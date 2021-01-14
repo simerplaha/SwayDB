@@ -35,8 +35,8 @@ sealed trait CompactionTask {
 }
 
 /**
- * Tasks that can be submitted to [[swaydb.core.level.compaction.Compaction]]
- * to move [[Segment]]s and [[LevelZeroMap]]s to lower [[Level]]s.
+ * Compaction tasks that can be submitted to
+ * [[swaydb.core.level.compaction.committer.CompactionCommitter]]
  */
 object CompactionTask {
 

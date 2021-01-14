@@ -4,7 +4,7 @@ import swaydb.core.level.Level
 import swaydb.core.level.compaction.throttle.ThrottleLevelState
 import swaydb.core.level.zero.LevelZero
 
-object LevelSleepState {
+object LevelSleepStates {
 
   def success(zero: LevelZero,
               stateId: Long): ThrottleLevelState.Sleeping =

@@ -36,9 +36,10 @@ import swaydb.core.level.compaction.throttle.behaviour._
 import scala.concurrent.Future
 
 /**
- * Compactor = Compaction Actor.
+ * The compaction Actor state (subtype of [[Compactor]]) which gets
+ * initialised under an [[ActorWire]] via [[ThrottleCompactorCreator]].
  *
- * Implements Actor functions.
+ * Implements all the compaction APIs and mutation is only managed here.
  */
 
 object ThrottleCompactor {
@@ -49,7 +50,7 @@ object ThrottleCompactor {
   }
 
   def apply(state: ThrottleCompactorState)(self: ActorWire[ThrottleCompactor, Unit])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                                                              locker: ActorWire[LastLevelLocker, Unit]) =
+                                                                                     locker: ActorWire[LastLevelLocker, Unit]) =
     new ThrottleCompactor(state, Future.unit)(self, committer, locker)
 }
 

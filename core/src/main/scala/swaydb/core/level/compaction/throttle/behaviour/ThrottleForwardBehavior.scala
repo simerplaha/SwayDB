@@ -45,7 +45,7 @@ private[throttle] object ThrottleForwardBehavior extends LazyLogging {
               replyTo: ActorWire[ForwardResponse, Unit])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
                                                          locker: ActorWire[LastLevelLocker, Unit],
                                                          ec: ExecutionContext,
-                                                         self: ActorWire[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] = {
+                                                         self: ActorWire[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
     if (level.levelNumber + 1 != state.levels.head.levelNumber) {
       logger.error(s"${state.name}: Cannot forward Level. Forward Level(${level.levelNumber}) is not previous level of Level(${state.levels.head.levelNumber})")
       replyTo.send(_.forwardFailed(level))
@@ -56,26 +56,30 @@ private[throttle] object ThrottleForwardBehavior extends LazyLogging {
         .map {
           newState =>
             val updatedState =
-              state.copy(
+              newState.copy(
                 levels = state.levels,
-                compactionStates = newState.compactionStates.filter(_._1 == level)
+                compactionStates = newState.compactionStates.filterNot(_._1.levelNumber == level.levelNumber)
               )
 
             replyTo.send(_.forwardSuccessful(level))
             updatedState
         }
+        .recover {
+          throwable =>
+            logger.error(s"${state.name}: Forward failed", throwable)
+            replyTo.send(_.forwardFailed(level))
+            state
+        }
     }
-  }
 
   def forwardSuccessful(level: Level,
-                        state: ThrottleCompactorState): Future[ThrottleCompactorState] = {
+                        state: ThrottleCompactorState): Future[ThrottleCompactorState] =
     if (state.levels.last.levelNumber + 1 != level.levelNumber) {
       logger.error(s"${state.name}: Forward success update failed because Level(${state.levels.last.levelNumber}) + 1 != Leve(${level.levelNumber})")
       Future.successful(state)
     } else {
       Future.successful(state.copy(levels = state.levels append level))
     }
-  }
 
   def forwardFailed(level: Level,
                     state: ThrottleCompactorState): Future[ThrottleCompactorState] =
