@@ -1,4 +1,4 @@
-Copyright (c) 2020 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+Copyright (c) 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
 
 SwayDB is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as

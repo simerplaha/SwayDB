@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -54,7 +54,7 @@ object RandomSearchIndex {
                 allocateSpace: RequiredSpace => Int,
                 blockIOStrategy: IOAction => IOStrategy,
                 compression: UncompressedBlockInfo => Iterable[Compression]) extends RandomSearchIndex {
-    
+
     def copyWithMaxProbe(maxProbe: Int) =
       this.copy(maxProbe = maxProbe)
 

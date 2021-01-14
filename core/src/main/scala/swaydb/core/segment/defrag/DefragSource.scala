@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
