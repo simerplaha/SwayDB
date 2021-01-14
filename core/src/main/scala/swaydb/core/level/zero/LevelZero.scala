@@ -24,8 +24,6 @@
 
 package swaydb.core.level.zero
 
-import java.nio.channels.FileChannel
-import java.nio.file.{Path, StandardOpenOption}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
@@ -36,6 +34,7 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
 import swaydb.core.level.seek._
+import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
 import swaydb.core.map.applied.{AppliedFunctionsMap, AppliedFunctionsMapCache}
 import swaydb.core.map.serializer.AppliedFunctionsMapEntryWriter
@@ -57,8 +56,10 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.Options
 import swaydb.data.{Atomic, OptimiseWrites}
-import swaydb.{Actor, Bag, Error, Glass, IO, OK}
+import swaydb.{Bag, Error, Glass, IO, OK}
 
+import java.nio.channels.FileChannel
+import java.nio.file.{Path, StandardOpenOption}
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 
@@ -554,7 +555,7 @@ private[swaydb] case class LevelZero(path: Path,
     }
 
   private def getFromMap(key: Slice[Byte],
-                         theMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache]): MemoryOption =
+                         theMap: LevelZeroMap): MemoryOption =
     if (theMap.cache.hasRange)
       theMap.cache.floorOptimised(key) match {
         case floor: Memory.Fixed if floor.key equiv key =>
@@ -571,7 +572,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   private def getFromNextLevel(key: Slice[Byte],
                                readState: ThreadReadState,
-                               tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
+                               tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption = {
     val headOrNull = tailMaps.headOrNull
 
     if (headOrNull == null)
@@ -591,13 +592,13 @@ private[swaydb] case class LevelZero(path: Path,
       )
   }
 
-  def currentGetter(theMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache]) =
+  def currentGetter(theMap: LevelZeroMap) =
     new CurrentGetter {
       override def get(key: Slice[Byte], readState: ThreadReadState): MemoryOption =
         getFromMap(key, theMap)
     }
 
-  def nextGetter(tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]) =
+  def nextGetter(tailMaps: DropIterator.Flat[Null, LevelZeroMap]) =
     new NextGetter {
       override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
         getFromNextLevel(key, readState, tailMaps)
@@ -605,8 +606,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   private def find(key: Slice[Byte],
                    readState: ThreadReadState,
-                   headMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-                   tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption =
+                   headMap: LevelZeroMap,
+                   tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption =
     Get.seek(
       key = key,
       readState = readState,
@@ -717,8 +718,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def ceiling(key: Slice[Byte],
               readState: ThreadReadState,
-              headMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-              tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
+              headMap: LevelZeroMap,
+              tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption = {
     val (left, right) = tailMaps.duplicate()
 
     find(
@@ -750,8 +751,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def floor(key: Slice[Byte],
             readState: ThreadReadState,
-            headMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-            tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
+            headMap: LevelZeroMap,
+            tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption = {
     val (left, right) = tailMaps.duplicate()
 
     find(
@@ -770,7 +771,7 @@ private[swaydb] case class LevelZero(path: Path,
   }
 
   private def higherFromMap(key: Slice[Byte],
-                            theMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache]): MemoryOption =
+                            theMap: LevelZeroMap): MemoryOption =
     if (theMap.cache.hasRange)
       theMap.cache.floorOptimised(key) match {
         case floorRange: Memory.Range if key >= floorRange.fromKey && key < floorRange.toKey =>
@@ -784,7 +785,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findHigherInNextLevel(key: Slice[Byte],
                             readState: ThreadReadState,
-                            tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
+                            tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption = {
     val nextMapOrNull = tailMaps.headOrNull
 
     if (nextMapOrNull == null)
@@ -804,8 +805,8 @@ private[swaydb] case class LevelZero(path: Path,
       )
   }
 
-  def currentWalker(currentMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-                    tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]) =
+  def currentWalker(currentMap: LevelZeroMap,
+                    tailMaps: DropIterator.Flat[Null, LevelZeroMap]) =
     new CurrentWalker {
       override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
         find(
@@ -831,7 +832,7 @@ private[swaydb] case class LevelZero(path: Path,
         "current"
     }
 
-  def nextWalker(tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]) =
+  def nextWalker(tailMaps: DropIterator.Flat[Null, LevelZeroMap]) =
     new NextWalker {
       override def higher(key: Slice[Byte],
                           readState: ThreadReadState): KeyValue.PutOption =
@@ -851,8 +852,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findHigher(key: Slice[Byte],
                  readState: ThreadReadState,
-                 currentMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-                 tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption =
+                 currentMap: LevelZeroMap,
+                 tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption =
     Higher.seek(
       key = key,
       readState = readState,
@@ -884,7 +885,7 @@ private[swaydb] case class LevelZero(path: Path,
   }
 
   private def lowerFromMap(key: Slice[Byte],
-                           theMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache]): MemoryOption =
+                           theMap: LevelZeroMap): MemoryOption =
     if (theMap.cache.hasRange)
       theMap.cache.floorOptimised(key) match {
         case floorRange: Memory.Range if key > floorRange.fromKey && key <= floorRange.toKey =>
@@ -898,7 +899,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findLowerInNextLevel(key: Slice[Byte],
                            readState: ThreadReadState,
-                           tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
+                           tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption = {
     val nextMapOrNull = tailMaps.headOrNull
 
     if (nextMapOrNull == null)
@@ -920,8 +921,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findLower(key: Slice[Byte],
                 readState: ThreadReadState,
-                currentMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-                tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption =
+                currentMap: LevelZeroMap,
+                tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption =
     Lower.seek(
       key = key,
       readState = readState,

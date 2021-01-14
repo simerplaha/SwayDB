@@ -26,7 +26,6 @@ package swaydb.core
 
 import org.scalatest.OptionValues._
 import org.scalatest.matchers.should.Matchers._
-import swaydb.EitherValues._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IOValues._
@@ -39,9 +38,9 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.DBFile
 import swaydb.core.level.compaction.CompactResult
 import swaydb.core.level.seek._
-import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
+import swaydb.core.level.zero.LevelZero
+import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.level.{Level, NextLevel, PathsDistributor}
-import swaydb.core.map.Map
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.merge.{KeyValueGrouper, KeyValueMerger}
 import swaydb.core.segment._
@@ -242,7 +241,7 @@ object TestData {
         level.commit(level.merge(segments = segments, removeDeletedRecords = false).awaitInf)
     }
 
-    def putMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
+    def putMap(map: LevelZeroMap)(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
       if (map.cache.isEmpty)

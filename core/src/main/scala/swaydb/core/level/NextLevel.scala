@@ -24,14 +24,11 @@
 
 package swaydb.core.level
 
-import swaydb.core.data.Memory
 import swaydb.core.level.compaction.CompactResult
-import swaydb.core.level.zero.LevelZeroMapCache
-import swaydb.core.map.Map
+import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.core.util.AtomicRanges
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.PushForwardStrategy
 import swaydb.data.slice.Slice
@@ -72,7 +69,7 @@ trait NextLevel extends LevelRef {
 
   def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean
 
-  def isCopyable(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): Boolean
+  def isCopyable(map: LevelZeroMap): Boolean
 
   def partitionCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
 
@@ -85,10 +82,10 @@ trait NextLevel extends LevelRef {
   def merge(segment: Assignable.Collection,
             removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
-  def mergeMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
+  def mergeMap(map: LevelZeroMap,
                removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
-  def mergeMaps(map: Iterable[Map[Slice[Byte], Memory, LevelZeroMapCache]],
+  def mergeMaps(map: Iterable[LevelZeroMap],
                 removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
   def merge(segments: Iterable[Assignable.Collection],

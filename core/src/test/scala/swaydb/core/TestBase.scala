@@ -38,11 +38,11 @@ import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.lock.LastLevelLocker
-import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorCreator, ThrottleCompactorState}
+import swaydb.core.level.compaction.throttle.ThrottleCompactorCreator
+import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
-import swaydb.core.map.timer.Timer
-import swaydb.core.map.{Map, MapCache, MapEntry, Maps}
+import swaydb.core.map.MapEntry
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
@@ -51,10 +51,8 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.{PersistentSegment, Segment}
-import swaydb.core.util.queue.VolatileQueue
-import swaydb.core.util.{HashedMap, IDGenerator}
+import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, MMAP, PushForwardStrategy, RecoveryMode}
@@ -68,7 +66,6 @@ import swaydb.{ActorWire, Glass, IO}
 
 import java.nio.file._
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -204,7 +201,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               flushOnOverflow: Boolean = false,
               mmap: MMAP.Map = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                          timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                         sweeper: TestCaseSweeper): map.Map[Slice[Byte], Memory, LevelZeroMapCache] = {
+                                                                                         sweeper: TestCaseSweeper): LevelZeroMap = {
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
       import sweeper._
 

@@ -26,9 +26,7 @@ package swaydb.core.level.compaction.reception
 
 import swaydb.Exception.InvalidLevelReservation
 import swaydb.IO
-import swaydb.core.data.Memory
-import swaydb.core.level.zero.LevelZeroMapCache
-import swaydb.core.map.Map
+import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.util.AtomicRanges
 import swaydb.data.MaxKey
@@ -92,8 +90,8 @@ private[core] case object LevelReceptionKeyValidator {
       )
   }
 
-  implicit object MapKeyValidator extends LevelReceptionKeyValidator[Map[Slice[Byte], Memory, LevelZeroMapCache]] {
-    protected override def validateOrNull(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
+  implicit object MapKeyValidator extends LevelReceptionKeyValidator[LevelZeroMap] {
+    protected override def validateOrNull(map: LevelZeroMap,
                                           reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit reservations: AtomicRanges[Slice[Byte]],
                                                                                          keyOrder: KeyOrder[Slice[Byte]]): InvalidLevelReservation =
       LevelReceptionKeyValidator.validateOrNull(

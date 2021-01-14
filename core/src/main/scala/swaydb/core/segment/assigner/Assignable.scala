@@ -26,7 +26,7 @@ package swaydb.core.segment.assigner
 
 import swaydb.Aggregator
 import swaydb.core.data.{KeyValue, Memory}
-import swaydb.core.level.zero.LevelZeroMapCache
+import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.map.Map
 import swaydb.core.merge.stats.MergeStats
 import swaydb.data.MaxKey
@@ -88,7 +88,7 @@ object Assignable {
   }
 
   object Collection {
-    def fromMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): Assignable.Collection =
+    def fromMap(map: LevelZeroMap): Assignable.Collection =
       new Collection {
         override def maxKey: MaxKey[Slice[Byte]] =
           map.cache.maxKey().getC

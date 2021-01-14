@@ -34,7 +34,7 @@ import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
 import swaydb.core.level.compaction.CompactResult
 import swaydb.core.level.seek._
-import swaydb.core.level.zero.LevelZeroMapCache
+import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.merge.stats.MergeStats
@@ -408,7 +408,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * Quick lookup to check if the [[Map]] can be copied without merge.
    */
-  def isCopyable(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): Boolean =
+  def isCopyable(map: LevelZeroMap): Boolean =
     Segment
       .minMaxKey(map.cache.skipList)
       .forall {
@@ -439,7 +439,7 @@ private[core] case class Level(dirs: Seq[Dir],
     )
   }
 
-  def mergeMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
+  def mergeMap(map: LevelZeroMap,
                removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.skipList.size)
 
@@ -452,7 +452,7 @@ private[core] case class Level(dirs: Seq[Dir],
     )
   }
 
-  def mergeMaps(maps: Iterable[Map[Slice[Byte], Memory, LevelZeroMapCache]],
+  def mergeMaps(maps: Iterable[LevelZeroMap],
                 removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, maps.foldLeft(0)(_ + _.cache.skipList.size))
     assignMerge(

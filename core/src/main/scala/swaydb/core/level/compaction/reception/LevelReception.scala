@@ -25,8 +25,7 @@
 package swaydb.core.level.compaction.reception
 
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.core.data.Memory
-import swaydb.core.level.zero.LevelZeroMapCache
+import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.{Assignable, SegmentAssigner}
@@ -35,7 +34,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Promise
 
 private[core] sealed trait LevelReception[-A] {
 
@@ -90,8 +89,8 @@ private[core] case object LevelReception {
    *         can be used to free the Map.
    *
    */
-  implicit object MapReception extends LevelReception[Map[Slice[Byte], Memory, LevelZeroMapCache]] {
-    override def reserve(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
+  implicit object MapReception extends LevelReception[LevelZeroMap] {
+    override def reserve(map: LevelZeroMap,
                          levelSegments: Iterable[Segment])(implicit reservations: AtomicRanges[Slice[Byte]],
                                                            keyOrder: KeyOrder[Slice[Byte]]): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] =
       IO {
