@@ -65,7 +65,7 @@ private[throttle] object ThrottleForwardBehavior extends LazyLogging {
             updatedState
         }
         .recover {
-          throwable =>
+          case throwable =>
             logger.error(s"${state.name}: Forward failed", throwable)
             replyTo.send(_.forwardFailed(level))
             state

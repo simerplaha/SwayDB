@@ -54,7 +54,7 @@ private[throttle] object ThrottleWakeUpBehavior extends LazyLogging {
     runWakeUp(state)
       .map(runPostCompaction)
       .recover {
-        exception =>
+        case exception =>
           logger.error("Failed compaction", exception)
           runPostCompaction(state)
       }
@@ -293,7 +293,7 @@ private[throttle] object ThrottleWakeUpBehavior extends LazyLogging {
           stateId = stateId
         )
       } recover {
-        _ =>
+        case _ =>
           LevelSleepStates.failure(
             zero = zero,
             stateId = stateId
@@ -340,7 +340,7 @@ private[throttle] object ThrottleWakeUpBehavior extends LazyLogging {
           )
         }
       } recover {
-        _ =>
+        case _ =>
           LevelSleepStates.failure(
             level = level,
             stateId = stateId
