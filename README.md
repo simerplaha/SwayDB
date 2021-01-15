@@ -20,7 +20,7 @@
 
 **Status**: Under testing & performance optimisations. See [project status](#Project-status).
 
-[Documentation](http://swaydb.io) | [License summary](#license-summary)
+[Documentation](http://swaydb.io)
 
 ## Overview
 
@@ -99,19 +99,6 @@ that are required before becoming production ready.
   and APIs.
 - [SwayDB.benchmark](https://github.com/simerplaha/SwayDB.benchmark) - Performance benchmarks.
 - [SwayDB.website](https://github.com/simerplaha/SwayDB.website) - Website code.
-
-## License summary
-
-**LAGPLv3** - The `Lesser` version.
-
-We would like to see others find SwayDB useful in their **own projects**, **companies** and other **open-source
-projects**
-for both **personal** and **commercial** reasons, the license **only** asks for your modifications (e.g bug-fixes)
-to SwayDB's source code to be shared so that it supports the contributors by not duplicating efforts and shares
-knowledge on this project's subject.
-
-The language in the [LICENSE](/LICENSE.md) file
-follows [GNU's guidelines](https://www.gnu.org/licenses/gpl-faq.en.html#GPLIncompatibleLibs).
 
 # Sponsors
 
