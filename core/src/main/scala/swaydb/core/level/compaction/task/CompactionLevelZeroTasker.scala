@@ -49,7 +49,7 @@ case object CompactionLevelZeroTasker {
     implicit val timeOrder: TimeOrder[Slice[Byte]] = source.timeOrder
     implicit val functionStore: FunctionStore = source.functionStore
 
-    val (sourceIterator, processedMapsIterator) = source.maps.compactionIterator.duplicate
+    val (sourceIterator, processedMapsIterator) = source.maps.compactionIterator().duplicate
 
     flatten(sourceIterator) map {
       collections =>

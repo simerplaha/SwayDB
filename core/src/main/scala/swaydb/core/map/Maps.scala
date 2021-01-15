@@ -512,13 +512,13 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
           .getOrElse(IO.unit)
       }
 
-  def iterator: Iterator[Map[K, V, C]] =
+  def readIterator(): Iterator[Map[K, V, C]] =
     queue.iterator
 
-  def compactionIterator: Iterator[Map[K, V, C]] =
+  def compactionIterator(): Iterator[Map[K, V, C]] =
     queue.iterator.drop(1)
 
-  def dropIterator: DropIterator.Flat[Null, Map[K, V, C]] =
+  def readDropIterator(): DropIterator.Flat[Null, Map[K, V, C]] =
     queue.dropIterator
 
   def mmap: MMAP =

@@ -617,7 +617,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def get(key: Slice[Byte],
           readState: ThreadReadState): KeyValue.PutOption = {
-    val iterator = maps.dropIterator
+    val iterator = maps.readDropIterator()
 
     find(
       key = key,
@@ -706,7 +706,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def ceiling(key: Slice[Byte],
               readState: ThreadReadState): KeyValue.PutOption = {
-    val iterator = maps.dropIterator
+    val iterator = maps.readDropIterator()
 
     ceiling(
       key = key,
@@ -739,7 +739,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def floor(key: Slice[Byte],
             readState: ThreadReadState): KeyValue.PutOption = {
-    val iterator = maps.dropIterator
+    val iterator = maps.readDropIterator()
 
     floor(
       key = key,
@@ -874,7 +874,7 @@ private[swaydb] case class LevelZero(path: Path,
    */
   def higher(key: Slice[Byte],
              readState: ThreadReadState): KeyValue.PutOption = {
-    val iterator = maps.dropIterator
+    val iterator = maps.readDropIterator()
 
     findHigher(
       key = key,
@@ -943,7 +943,7 @@ private[swaydb] case class LevelZero(path: Path,
    */
   def lower(key: Slice[Byte],
             readState: ThreadReadState): KeyValue.PutOption = {
-    val iterator = maps.dropIterator
+    val iterator = maps.readDropIterator()
 
     findLower(
       key = key,
