@@ -27,7 +27,7 @@ package swaydb.data.slice
 import swaydb.data.util.SomeOrNoneCovariant
 
 import scala.annotation.tailrec
-import scala.collection.generic.CanBuildFrom
+import scala.collection.generic.{CanBuildFrom, GenericCompanion, GenericTraversableTemplate}
 import scala.collection.{IterableLike, mutable}
 import scala.reflect.ClassTag
 
@@ -111,11 +111,19 @@ class Slice[+T] private[slice](array: Array[T],
                                toOffset: Int,
                                written: Int)(implicit classTag: ClassTag[T]) extends SliceBase[T](array, fromOffset, toOffset, written)
                                                                                 with SliceOption[T]
-                                                                                with IterableLike[T, Slice[T]] {
+                                                                                with GenericTraversableTemplate[T, Slice]
+                                                                                with IterableLike[T, Slice[T]] { self =>
 //@formatter:on
 
   override val isNoneC: Boolean =
     false
+
+  override def companion: GenericCompanion[Slice] =
+    new GenericCompanion[Slice] {
+      override def newBuilder[A]: scala.collection.mutable.Builder[A, Slice[A]] =
+      //        new Slice.SliceBuilder[A](array.length max 100)
+        ???
+    }
 
   override def getC: Slice[T] =
     this

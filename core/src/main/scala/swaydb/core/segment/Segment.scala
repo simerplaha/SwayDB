@@ -41,7 +41,6 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment.entry.id.BaseEntryId.Format.A
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -59,7 +58,7 @@ import swaydb.{Aggregator, IO}
 
 import java.nio.file.Path
 import scala.annotation.tailrec
-import scala.collection.compat._
+import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
@@ -82,7 +81,7 @@ private[core] case object Segment extends LazyLogging {
              maxKeyValueCountPerSegment: Int,
              pathsDistributor: PathsDistributor,
              createdInLevel: Long,
-             stats: MergeStats.Memory.ClosedIgnoreStats[TraversableOnce])(implicit keyOrder: KeyOrder[Slice[Byte]],
+             stats: MergeStats.Memory.ClosedIgnoreStats[IterableOnce])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                                           functionStore: FunctionStore,
                                                                           fileSweeper: FileSweeper,

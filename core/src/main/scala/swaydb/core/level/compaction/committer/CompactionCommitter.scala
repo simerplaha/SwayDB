@@ -36,6 +36,7 @@ import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.slice.Slice
 import swaydb.{Actor, DefActor, Error, IO}
 
+import scala.collection.compat._
 import scala.concurrent.ExecutionContext
 
 case object CompactionCommitter extends LazyLogging {
@@ -97,11 +98,12 @@ case object CompactionCommitter extends LazyLogging {
       .and(fromLevel.remove(segments))
 
   def commit(fromLevel: LevelZero,
-             maps: TraversableOnce[LevelZeroMap],
+             maps: IterableOnce[LevelZeroMap],
              mergeResults: Iterable[(Level, Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]])]): IO[Error.Level, Unit] =
     commitMergeResult(mergeResults)
       .and {
         maps
+          .iterator
           .toList
           .reverse
           .mapRecoverIO {
@@ -121,6 +123,4 @@ case object CompactionCommitter extends LazyLogging {
       old = old,
       merged = result
     )
-
 }
-

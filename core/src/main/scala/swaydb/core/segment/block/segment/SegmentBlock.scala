@@ -44,6 +44,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
+import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
@@ -178,7 +179,7 @@ private[core] case object SegmentBlock extends LazyLogging {
       compressionInfo = header.compressionInfo
     )
 
-  def writeOneOrMany(mergeStats: MergeStats.Persistent.Closed[TraversableOnce],
+  def writeOneOrMany(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
                      createdInLevel: Int,
                      bloomFilterConfig: BloomFilterBlock.Config,
                      hashIndexConfig: HashIndexBlock.Config,
@@ -307,7 +308,7 @@ private[core] case object SegmentBlock extends LazyLogging {
       many
     }
 
-  def writeOnes(mergeStats: MergeStats.Persistent.Closed[TraversableOnce],
+  def writeOnes(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
                 createdInLevel: Int,
                 bloomFilterConfig: BloomFilterBlock.Config,
                 hashIndexConfig: HashIndexBlock.Config,
@@ -336,7 +337,7 @@ private[core] case object SegmentBlock extends LazyLogging {
           )
       }
 
-  def writeSegmentRefs(mergeStats: MergeStats.Persistent.Closed[TraversableOnce],
+  def writeSegmentRefs(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
                        createdInLevel: Int,
                        bloomFilterConfig: BloomFilterBlock.Config,
                        hashIndexConfig: HashIndexBlock.Config,

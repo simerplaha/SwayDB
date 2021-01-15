@@ -37,6 +37,7 @@ import swaydb.data.{MaxKey, NonEmptyList}
 import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.annotation.tailrec
+import scala.collection.compat.IterableOnce
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
@@ -183,7 +184,7 @@ protected case object CompactionTasker {
    * Each [[Memory]] stores a unique Int value which can be read to fetch the
    * input data type from the returned [[collection.Map]].
    */
-  def toKeyValues[A <: Assignable.Collection](data: TraversableOnce[A]): (ListBuffer[Memory], collection.Map[Int, A]) = {
+  def toKeyValues[A <: Assignable.Collection](data: IterableOnce[A]): (ListBuffer[Memory], collection.Map[Int, A]) = {
     val segmentKeyValues = ListBuffer.empty[Memory]
     val segmentIndex = mutable.Map.empty[Int, A]
     var index = 0

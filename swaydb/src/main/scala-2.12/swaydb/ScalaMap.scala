@@ -24,6 +24,7 @@
 
 package swaydb
 
+import scala.collection.compat.IterableOnce
 import scala.collection.mutable
 
 /**
@@ -44,12 +45,12 @@ private[swaydb] object ScalaMap {
         this
       }
 
-      override def --=(xs: TraversableOnce[K]): this.type = {
+      override def --=(xs: IterableOnce[K]): this.type = {
         db.remove(xs.toIterable)
         this
       }
 
-      override def ++=(xs: TraversableOnce[(K, V)]): this.type = {
+      override def ++=(xs: IterableOnce[(K, V)]): this.type = {
         db.put(xs.toIterable)
         this
       }
