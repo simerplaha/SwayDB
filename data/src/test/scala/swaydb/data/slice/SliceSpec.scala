@@ -1115,6 +1115,48 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
   }
 
+  "flatMap" when {
+    "size = 0" in {
+      Slice
+        .empty[Int]
+        .flatMap {
+          int =>
+            fail("should have not executed")
+        } shouldBe empty
+    }
+
+    "size = 1" in {
+      Slice(1)
+        .flatMap {
+          int =>
+            Slice(int, 2, 3, 4)
+        } shouldBe Slice(1, 2, 3, 4)
+    }
+
+    "size = 2" in {
+      Slice(1, 2)
+        .flatMap {
+          int =>
+            Slice(int, (int + "" + int).toInt)
+        } shouldBe Slice(1, 11, 2, 22)
+    }
+  }
+
+  "flattenSlice" when {
+    "size = 0" in {
+      Slice.empty[Slice[Int]].flattenSlice shouldBe empty
+      assertDoesNotCompile("Slice.empty[Iterable[Int]].flattenSlice shouldBe empty")
+    }
+
+    "size = 1" in {
+      Slice(Slice(1)).flattenSlice shouldBe Slice(1)
+      Slice(Slice(1, 2, 3)).flattenSlice shouldBe Slice(1, 2, 3)
+    }
+
+    "size = 2" in {
+      Slice(Slice(1, 2), Slice(3, 4)).flattenSlice shouldBe Slice(1, 2, 3, 4)
+    }
+  }
 
   "write and read" when {
 

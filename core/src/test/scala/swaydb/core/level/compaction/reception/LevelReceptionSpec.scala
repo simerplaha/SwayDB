@@ -62,7 +62,7 @@ class Map_LevelReceptionSpec extends LevelReceptionSpec {
                        levelSegments: Iterable[Segment])(implicit reservations: AtomicRanges[Slice[Byte]],
                                                          keyOrder: KeyOrder[Slice[Byte]],
                                                          testCaseSweeper: TestCaseSweeper): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] = {
-    val segments = TestMap(keyValues.flatten)
+    val segments = TestMap(keyValues.flattenSlice)
     LevelReception.reserve(segments, levelSegments)
   }
 }

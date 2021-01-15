@@ -45,7 +45,7 @@ import scala.util.hashing.MurmurHash3
 abstract class SliceBase[+T](array: Array[T],
                              val fromOffset: Int,
                              val toOffset: Int,
-                             private var written: Int)(implicit val classTag: ClassTag[T]@uncheckedVariance) extends Iterable[T] { self =>
+                             private var written: Int)(protected[this] implicit val classTag: ClassTag[T]) extends Iterable[T] { self =>
 
   private var writePosition = fromOffset + written
 
@@ -311,10 +311,13 @@ abstract class SliceBase[+T](array: Array[T],
     selfSlice
   }
 
-  def addAll(items: java.lang.Iterable[T]@uncheckedVariance): Slice[T] =
-    addAll(items.asScala)
+  def addAll[B >: T](items: Array[B]): Slice[B] =
+    this.copyAll(items)
 
-  def addAll(items: Iterable[T]@uncheckedVariance): Slice[T] =
+  def addAll[B >: T](items: Slice[B]): Slice[B] =
+    this.copyAll(items)
+
+  private def copyAll[B >: T](items: Iterable[B]): Slice[B] =
     if (items.nonEmpty) {
       val futurePosition = writePosition + items.size - 1
       if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
@@ -679,6 +682,47 @@ abstract class SliceBase[+T](array: Array[T],
     merged add head
     merged addAll selfSlice
     merged
+  }
+
+  def flatMap[B: ClassTag](f: T => Slice[B]): Slice[B] =
+    if (self.isEmpty) {
+      Slice.empty[B]
+    } else if (self.size == 1) {
+      f(head) match {
+        case slice: Slice[B] =>
+          slice
+
+        case newItems =>
+          val slice = Slice.of[B](newItems.size)
+          slice addAll newItems
+      }
+    } else {
+      val result = Slice.of[Slice[B]](self.size)
+
+      this foreach {
+        item =>
+          result add f(item)
+      }
+
+      result.flatten
+    }
+
+  def flattenSlice[B: ClassTag](implicit evd: T <:< Slice[B]): Slice[B] = {
+    var size = 0
+
+    self foreach {
+      innerSlice =>
+        size += innerSlice.size
+    }
+
+    val newSlice = Slice.of[B](size)
+
+    self foreach {
+      innerSlice =>
+        newSlice addAll innerSlice
+    }
+
+    newSlice
   }
 
   def asJava(): lang.Iterable[T]@uncheckedVariance =

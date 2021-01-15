@@ -27,7 +27,7 @@ package swaydb.data.slice
 import swaydb.data.util.SomeOrNoneCovariant
 
 import scala.annotation.tailrec
-import scala.collection.generic.{CanBuildFrom, GenericCompanion, GenericTraversableTemplate}
+import scala.collection.generic.CanBuildFrom
 import scala.collection.{IterableLike, mutable}
 import scala.reflect.ClassTag
 
@@ -109,21 +109,13 @@ object Slice extends SliceCompanionBase {
 class Slice[+T] private[slice](array: Array[T],
                                fromOffset: Int,
                                toOffset: Int,
-                               written: Int)(implicit classTag: ClassTag[T]) extends SliceBase[T](array, fromOffset, toOffset, written)
-                                                                                with SliceOption[T]
-                                                                                with GenericTraversableTemplate[T, Slice]
-                                                                                with IterableLike[T, Slice[T]] { self =>
+                               written: Int)(implicit protected[this] implicit val tag: ClassTag[T]) extends SliceBase[T](array, fromOffset, toOffset, written)
+                                                                                                        with SliceOption[T]
+                                                                                                        with IterableLike[T, Slice[T]] { self =>
 //@formatter:on
 
   override val isNoneC: Boolean =
     false
-
-  override def companion: GenericCompanion[Slice] =
-    new GenericCompanion[Slice] {
-      override def newBuilder[A]: scala.collection.mutable.Builder[A, Slice[A]] =
-      //        new Slice.SliceBuilder[A](array.length max 100)
-        ???
-    }
 
   override def getC: Slice[T] =
     this
@@ -133,4 +125,5 @@ class Slice[+T] private[slice](array: Array[T],
 
   override protected[this] def newBuilder: scala.collection.mutable.Builder[T, Slice[T]] =
     new Slice.SliceBuilder[T](array.length max 100)
+
 }
