@@ -16,29 +16,7 @@
 
 **Status**: Under testing & performance optimisations. See [project status](#Project-status).
 
-**Typed data structures**: `Map`, `Set`, `Queue` `MultiMap`, `SetMap` that can easily be converted 
-to native Java and Scala collections.
-
-**Conditional updates**: Using any **Java**, **Scala**, **Kotlin** or any **native JVM** type-safe code - **No query language**.
-
-__Distribute data locally__ - Data can be stored on multiple local __HDD/SSD__.
-
-**Non-blocking** core with configurable APIs for blocking, non-blocking and/or reactive use-cases.   
-
-Highly configurable to suit **different workloads**. Some use-cases are:
-- General key-value storage
-- Message queues
-- Time-series or Events data
-- Caching
-- Application logs
-- Archiving data or cold storage with high file level compression
-
-See [comparable benchmarks](http://swaydb.io/benchmarks/rocksdb/?language=scala/) with RocksDB or QuickStart in 
-[Java](http://swaydb.io/quick-start/?language=java&data-type=map&functions=off), 
-[Scala](http://swaydb.io/quick-start/?language=scala&data-type=map&functions=off) or 
-[Kotlin](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src/main/kotlin/quickstart/QuickStartMapSimple.kt).
-
-[Documentation](http://swaydb.io) | [License summary](#license-summary) | [Project status](#Project-status)
+[Documentation](http://swaydb.io) | [License summary](#license-summary)
 
 ## Performance
 
@@ -50,28 +28,49 @@ See [comparable benchmarks](http://swaydb.io/benchmarks/rocksdb/?language=scala/
 
 ## Overview
 
-- Simple data types - `Map`, `Set`, `Queue`, `SetMap` & `MultiMap`.
-- Single or multiple disks persistent, in-memory or periodically persistent.
-- Streaming.
-- Atomic updates and inserts with [transactions](http://swaydb.io/api/write/transaction/?language=scala/).
-- Custom updates using any [JVM function](http://www.swaydb.io/api/write/registerFunction/).
+- Data types - `Map`, `Set`, `Queue`, `SetMap` & `MultiMap` with native Java and Scala collections support.
+- Conditional updates using any pure [JVM function](http://swaydb.io/api/pure-functions/?language=java) - **No query language**.
+- Atomic updates and inserts with `Transaction`.
+- **Non-blocking core** with configurable APIs for blocking, non-blocking and/or reactive use-cases.
+- Single or multiple disks persistent, in-memory or eventually persistent.
+- Streaming support for forward and reverse iterations. 
 - TTL - auto [expiring](http://www.swaydb.io/api/write/expire/) key-values.
-- Range [update, remove & expire](http://www.swaydb.io/api/write/update-range/).
-- Non-blocking with customisable non-blocking or blocking APIs.
+- Range operations to update, remove & expire data.
 - Key only iterations (Lazily fetched values).
 - [Configurable compression](http://swaydb.io/configuration/compressions/?language=scala) with LZ4 & Snappy
-- [Configurable](http://swaydb.io/configuration/?language=scala) core internals.
-- Duplicate values can be eliminated with [compressDuplicateValues](http://swaydb.io/configuration/valuesConfig/?language=scala).
-- A small type-safe [Actor](http://swaydb.io/actor/?language=scala/) implementation.
-- [IO](http://swaydb.io/io/?language=scala/) type for type-safe error handling. 
+- Highly configurable core internals to support custom workloads.
+- Duplicate values elimination with [compressDuplicateValues](http://swaydb.io/configuration/valuesConfig/?language=scala).
 
-[Read more](http://swaydb.io/).
+## Use cases
+
+Highly configurable to suit **different workloads**. Some known use-cases are:
+- General key-value storage
+- Message queues
+- Time-series or Events data
+- Caching
+- Application logs
+- Archiving data or cold storage with high file level compression
 
 ## Quick start
 
 - [Java - Quick start](http://swaydb.io/quick-start/?language=java&data-type=map&functions=off).
 - [Scala - Quick start](http://swaydb.io/quick-start/?language=scala&data-type=map&functions=off).
 - [Kotlin - Quick start](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src/main/kotlin/quickstart/QuickStartMapSimple.kt).
+
+## Contributing 
+Contributions are encouraged and very welcomed following the [Scala code of conduct](https://www.scala-lang.org/conduct/).
+
+### Where to start?
+
+#### SwayDB API 
+- Start your own database by building new data-structure eg: Graph, List, Logs etc.
+- Help with testing SwayDB
+
+#### Core API 
+Have a look at issues labelled [good first issue](https://github.com/simerplaha/SwayDB/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+
+#### Core internals
+See code marked `TODO`.  
 
 ## Project status 
 Your feedback and review is very important to get to production. Please get involved via
@@ -90,17 +89,17 @@ that are required before becoming production ready.
 - [SwayDB.benchmark](https://github.com/simerplaha/SwayDB.benchmark) - Performance benchmarks.
 - [SwayDB.website](https://github.com/simerplaha/SwayDB.website) - Website code.
 
-## Contribution
-Contributions are welcomed following the [Scala code of conduct](https://www.scala-lang.org/conduct/).
 
 ## License summary
+
+**LAGPLv3** - The `Lesser` version.
 
 We would like to see others find SwayDB useful in their **own projects**, **companies** and other **open-source projects** 
 for both **personal** and **commercial** reasons, the license **only** asks for your modifications (e.g bug-fixes) 
 to SwayDB's source code to be shared so that it supports the contributors by not duplicating efforts and shares knowledge on
 this project's subject.
 
-The language in the [LICENSE](/LICENSE.md) file follows [GNU's FAQ](https://www.gnu.org/licenses/gpl-faq.en.html#GPLIncompatibleLibs).
+The language in the [LICENSE](/LICENSE.md) file follows [GNU's guidelines](https://www.gnu.org/licenses/gpl-faq.en.html#GPLIncompatibleLibs).
 
 # Sponsors
 Thank you Jetbrains for providing an open-source licence for their awesome development tools. 
