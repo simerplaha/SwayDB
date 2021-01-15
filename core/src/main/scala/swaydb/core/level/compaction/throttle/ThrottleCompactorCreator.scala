@@ -35,7 +35,7 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.data.NonEmptyList
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
-import swaydb.{Actor, ActorWire, Error, IO}
+import swaydb.{Actor, DefActor, Error, IO}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
@@ -54,8 +54,8 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
    * @return return the root parent Actor with child Actors.
    */
   def createActors(levels: List[LevelRef],
-                   executionContexts: List[CompactionExecutionContext])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                                        locker: ActorWire[LastLevelLocker, Unit]): IO[swaydb.Error.Level, NonEmptyList[ActorWire[Compactor, Unit]]] =
+                   executionContexts: List[CompactionExecutionContext])(implicit committer: DefActor[CompactionCommitter.type, Unit],
+                                                                        locker: DefActor[LastLevelLocker, Unit]): IO[swaydb.Error.Level, NonEmptyList[DefActor[Compactor, Unit]]] =
     if (levels.size != executionContexts.size)
       IO.Left(swaydb.Error.Fatal(new IllegalStateException(s"Number of ExecutionContexts(${executionContexts.size}) is not the same as number of Levels(${levels.size}).")))
     else
@@ -83,7 +83,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
             val actors =
               jobs
                 .zipWithIndex
-                .foldRight(List.empty[ActorWire[Compactor, Unit]]) {
+                .foldRight(List.empty[DefActor[Compactor, Unit]]) {
                   case (((jobs, executionContext, resetCompactionPriorityAtInterval), index), children) =>
                     val state =
                       ThrottleCompactorState(
@@ -94,7 +94,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
                       )
 
                     val actor =
-                      Actor.wire[ThrottleCompactor](
+                      Actor.define[ThrottleCompactor](
                         name = s"Compaction Actor$index",
                         init = ThrottleCompactor(state)
                       )(executionContext)
@@ -109,8 +109,8 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
         }
 
   def createCompactor(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                                           locker: ActorWire[LastLevelLocker, Unit]): IO[Error.Level, NonEmptyList[ActorWire[Compactor, Unit]]] =
+                      executionContexts: List[CompactionExecutionContext])(implicit committer: DefActor[CompactionCommitter.type, Unit],
+                                                                           locker: DefActor[LastLevelLocker, Unit]): IO[Error.Level, NonEmptyList[DefActor[Compactor, Unit]]] =
     zero.nextLevel match {
       case Some(nextLevel) =>
         logger.debug(s"Level(${zero.levelNumber}): Creating actor.")
@@ -124,8 +124,8 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
     }
 
   def createAndListen(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                                           locker: ActorWire[LastLevelLocker, Unit]): IO[Error.Level, NonEmptyList[ActorWire[Compactor, Unit]]] =
+                      executionContexts: List[CompactionExecutionContext])(implicit committer: DefActor[CompactionCommitter.type, Unit],
+                                                                           locker: DefActor[LastLevelLocker, Unit]): IO[Error.Level, NonEmptyList[DefActor[Compactor, Unit]]] =
     createCompactor(
       zero = zero,
       executionContexts = executionContexts

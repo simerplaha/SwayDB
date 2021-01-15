@@ -25,7 +25,7 @@
 package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.ActorWire
+import swaydb.DefActor
 import swaydb.core.level.Level
 import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.committer.CompactionCommitter
@@ -37,7 +37,7 @@ import scala.concurrent.Future
 
 /**
  * The compaction Actor state (subtype of [[Compactor]]) which gets
- * initialised under an [[ActorWire]] via [[ThrottleCompactorCreator]].
+ * initialised under an [[DefActor]] via [[ThrottleCompactorCreator]].
  *
  * Implements all the compaction APIs and mutation is only managed here.
  */
@@ -49,15 +49,15 @@ object ThrottleCompactor {
     def forwardFailed(level: Level): Unit
   }
 
-  def apply(state: ThrottleCompactorState)(self: ActorWire[ThrottleCompactor, Unit])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                                                     locker: ActorWire[LastLevelLocker, Unit]) =
+  def apply(state: ThrottleCompactorState)(self: DefActor[ThrottleCompactor, Unit])(implicit committer: DefActor[CompactionCommitter.type, Unit],
+                                                                                    locker: DefActor[LastLevelLocker, Unit]) =
     new ThrottleCompactor(state, Future.unit)(self, committer, locker)
 }
 
 private[core] class ThrottleCompactor private(@volatile private var state: ThrottleCompactorState,
-                                              @volatile private var currentFuture: Future[Unit])(implicit self: ActorWire[ThrottleCompactor, Unit],
-                                                                                                 committer: ActorWire[CompactionCommitter.type, Unit],
-                                                                                                 locker: ActorWire[LastLevelLocker, Unit]) extends Compactor with ForwardResponse with LastLevelLocker.LastLevelSetResponse with LazyLogging {
+                                              @volatile private var currentFuture: Future[Unit])(implicit self: DefActor[ThrottleCompactor, Unit],
+                                                                                                 committer: DefActor[CompactionCommitter.type, Unit],
+                                                                                                 locker: DefActor[LastLevelLocker, Unit]) extends Compactor with ForwardResponse with LastLevelLocker.LastLevelSetResponse with LazyLogging {
 
   implicit val ec = self.ec
 
@@ -74,7 +74,7 @@ private[core] class ThrottleCompactor private(@volatile private var state: Throt
   override def wakeUp(): Unit =
     onComplete(ThrottleWakeUpBehavior.wakeUp(state))
 
-  def forward(level: Level, replyTo: ActorWire[ForwardResponse, Unit]): Unit =
+  def forward(level: Level, replyTo: DefActor[ForwardResponse, Unit]): Unit =
     onComplete(ThrottleForwardBehavior.forward(level, state, replyTo))
 
   override def forwardSuccessful(level: Level): Unit =

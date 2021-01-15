@@ -38,7 +38,7 @@ import swaydb.core.segment.block.BlockCache
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.data.RunThis._
 import swaydb.data.cache.{Cache, CacheNoIO}
-import swaydb.{ActorRef, ActorWire, Bag, Glass, Scheduler}
+import swaydb.{ActorRef, DefActor, Bag, Glass, Scheduler}
 
 import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
@@ -245,8 +245,8 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepCounter counter
   }
 
-  implicit class ActorWiresSweeperImplicits[T, S](actor: ActorWire[T, S]) {
-    def sweep()(implicit sweeper: TestCaseSweeper): ActorWire[T, S] =
+  implicit class ActorWiresSweeperImplicits[T, S](actor: DefActor[T, S]) {
+    def sweep()(implicit sweeper: TestCaseSweeper): DefActor[T, S] =
       sweeper sweepWireActor actor
   }
 
@@ -285,7 +285,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
                       private val dbFiles: ListBuffer[DBFile],
                       private val paths: ListBuffer[Path],
                       private val actors: ListBuffer[ActorRef[_, _]],
-                      private val actorWires: ListBuffer[ActorWire[_, _]],
+                      private val actorWires: ListBuffer[DefActor[_, _]],
                       private val counters: ListBuffer[CounterMap],
                       private val functions: ListBuffer[() => Unit]) {
 
@@ -392,7 +392,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
     actor
   }
 
-  def sweepWireActor[T, S](actor: ActorWire[T, S]): ActorWire[T, S] = {
+  def sweepWireActor[T, S](actor: DefActor[T, S]): DefActor[T, S] = {
     actorWires += actor
     actor
   }

@@ -62,7 +62,7 @@ import swaydb.data.storage.{Level0Storage, LevelStorage}
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
-import swaydb.{ActorWire, Glass, IO}
+import swaydb.{DefActor, Glass, IO}
 
 import java.nio.file._
 import java.util.concurrent.atomic.AtomicInteger
@@ -626,12 +626,12 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     val level1 = TestLevel(nextLevel = Some(level2), throttle = levelThrottle)
     val level0 = TestLevelZero(nextLevel = Some(level1), throttle = levelZeroThrottle)
 
-    val compaction: Option[(NonEmptyList[ActorWire[Compactor, Unit]], ActorWire[CompactionCommitter.type, Unit], ActorWire[LastLevelLocker, Unit])] =
+    val compaction: Option[(NonEmptyList[DefActor[Compactor, Unit]], DefActor[CompactionCommitter.type, Unit], DefActor[LastLevelLocker, Unit])] =
       if (throttleOn) {
-        implicit val committer: ActorWire[CompactionCommitter.type, Unit] =
+        implicit val committer: DefActor[CompactionCommitter.type, Unit] =
           CompactionCommitter.createActor(TestExecutionContext.executionContext)
 
-        implicit val locker: ActorWire[LastLevelLocker, Unit] =
+        implicit val locker: DefActor[LastLevelLocker, Unit] =
           LastLevelLocker.createActor(level0)(TestExecutionContext.executionContext)
 
         val compactors =

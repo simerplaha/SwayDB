@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -17,25 +17,25 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program or any covered work, only by linking or combining
+ * it with separate works, the licensors of this Program grant you additional
+ * permission to convey the resulting work.
  */
 
-package swaydb.core.sweeper
+package swaydb.core.actor
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
 import swaydb.data.RunThis._
-import swaydb.{Actor, ActorWire}
+import swaydb.{Actor, DefActor}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
+class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
   implicit val ec = TestExecutionContext.executionContext
 
   "ActorWire" should {
@@ -51,7 +51,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
             def get(): Iterable[Int] = message
           }
 
-          val actor = Actor.wire[MyImpl]("", _ => new MyImpl(ListBuffer.empty)).sweep()
+          val actor = Actor.define[MyImpl]("", _ => new MyImpl(ListBuffer.empty)).sweep()
 
           actor
             .ask
@@ -77,11 +77,11 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
         implicit sweeper =>
 
           object MyImpl {
-            def hello(name: String, replyTo: ActorWire[MyImpl.type, Unit]): String =
+            def hello(name: String, replyTo: DefActor[MyImpl.type, Unit]): String =
               s"Hello $name"
           }
 
-          Actor.wire[MyImpl.type]("", _ => MyImpl).sweep()
+          Actor.define[MyImpl.type]("", _ => MyImpl).sweep()
             .ask
             .map {
               (impl, state, self) =>
@@ -97,11 +97,11 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
 
 
           object MyImpl {
-            def hello(name: String, replyTo: ActorWire[MyImpl.type, Unit]): Future[String] =
+            def hello(name: String, replyTo: DefActor[MyImpl.type, Unit]): Future[String] =
               Future(s"Hello $name")
           }
 
-          Actor.wire[MyImpl.type]("", _ => MyImpl).sweep()
+          Actor.define[MyImpl.type]("", _ => MyImpl).sweep()
             .ask
             .flatMap {
               (impl, _, self) =>
@@ -127,7 +127,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
               Future(name)
           }
 
-          val actor = Actor.wire[MyImpl]("", _ => new MyImpl("")).sweep()
+          val actor = Actor.define[MyImpl]("", _ => new MyImpl("")).sweep()
 
           actor.send {
             (impl, state) =>
@@ -158,7 +158,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
               invoked
           }
 
-          val actor = Actor.wire[MyImpl]("", _ => new MyImpl(invoked = false)).sweep()
+          val actor = Actor.define[MyImpl]("", _ => new MyImpl(invoked = false)).sweep()
 
           actor.send(2.second) {
             (impl, _) =>
@@ -206,7 +206,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
               invoked
           }
 
-          val actor = Actor.wire[MyImpl]("", _ => new MyImpl(invoked = false)).sweep()
+          val actor = Actor.define[MyImpl]("", _ => new MyImpl(invoked = false)).sweep()
 
           val result =
             actor
@@ -248,7 +248,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
         implicit sweeper =>
 
           class MyImpl(var invoked: Boolean = false) {
-            def invoke(replyTo: ActorWire[MyImpl, Unit]): Future[Boolean] =
+            def invoke(replyTo: DefActor[MyImpl, Unit]): Future[Boolean] =
               replyTo
                 .ask
                 .map {
@@ -267,7 +267,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
               invoked
           }
 
-          val actor = Actor.wire[MyImpl]("", _ => new MyImpl()).sweep()
+          val actor = Actor.define[MyImpl]("", _ => new MyImpl()).sweep()
 
           val result =
             actor

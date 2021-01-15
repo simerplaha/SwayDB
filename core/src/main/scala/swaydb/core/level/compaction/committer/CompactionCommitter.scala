@@ -34,14 +34,14 @@ import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.slice.Slice
-import swaydb.{Actor, ActorWire, Error, IO}
+import swaydb.{Actor, DefActor, Error, IO}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 case object CompactionCommitter extends LazyLogging {
 
-  def createActor(ec: ExecutionContext): ActorWire[CompactionCommitter.type, Unit] =
-    Actor.wire[CompactionCommitter.type](
+  def createActor(ec: ExecutionContext): DefActor[CompactionCommitter.type, Unit] =
+    Actor.define[CompactionCommitter.type](
       name = CompactionCommitter.productPrefix,
       init = _ => CompactionCommitter
     )(ec)

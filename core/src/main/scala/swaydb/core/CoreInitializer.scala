@@ -52,7 +52,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.storage.{Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
-import swaydb.{ActorWire, Bag, Error, Glass, IO}
+import swaydb.{DefActor, Bag, Error, Glass, IO}
 
 import java.util.function.Supplier
 import scala.sys.ShutdownHookThread
@@ -83,14 +83,14 @@ private[core] object CoreInitializer extends LazyLogging {
    */
   def initialiseCompaction(zero: LevelZero,
                            executionContexts: List[CompactionExecutionContext])(implicit compactorCreator: CompactorCreator,
-                                                                                committer: ActorWire[CompactionCommitter.type, Unit],
-                                                                                locker: ActorWire[LastLevelLocker, Unit]): IO[Error.Level, NonEmptyList[ActorWire[Compactor, Unit]]] =
+                                                                                committer: DefActor[CompactionCommitter.type, Unit],
+                                                                                locker: DefActor[LastLevelLocker, Unit]): IO[Error.Level, NonEmptyList[DefActor[Compactor, Unit]]] =
     compactorCreator.createAndListen(
       zero = zero,
       executionContexts = executionContexts
     )
 
-  def sendInitialWakeUp(compactor: ActorWire[Compactor, Unit]): Unit =
+  def sendInitialWakeUp(compactor: DefActor[Compactor, Unit]): Unit =
     compactor.send(_.wakeUp())
 
   def addShutdownHook[BAG[_]](core: Core[BAG]): ShutdownHookThread =
@@ -175,7 +175,7 @@ private[core] object CoreInitializer extends LazyLogging {
             ThrottleCompactorCreator
 
           //TODO make configurable and terminate
-          implicit val committer: ActorWire[CompactionCommitter.type, Unit] =
+          implicit val committer: DefActor[CompactionCommitter.type, Unit] =
             CompactionCommitter.createActor(???)
 
           implicit val bufferSweeper: ByteBufferSweeperActor =
@@ -290,7 +290,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     ) flatMap {
                       zero: LevelZero =>
 
-                        implicit val locker: ActorWire[LastLevelLocker, Unit] =
+                        implicit val locker: DefActor[LastLevelLocker, Unit] =
                           LastLevelLocker.createActor(zero)(???)
 
                         initialiseCompaction(

@@ -32,26 +32,26 @@ import scala.concurrent.{ExecutionContext, Promise}
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
-object ActorWire {
+object DefActor {
 
   @inline def apply[I, S](name: String,
-                          init: ActorWire[I, S] => I,
+                          init: DefActor[I, S] => I,
                           interval: Option[(FiniteDuration, Long)],
-                          state: S)(implicit ec: ExecutionContext): ActorWire[I, S] =
-    new ActorWire[I, S](
+                          state: S)(implicit ec: ExecutionContext): DefActor[I, S] =
+    new DefActor[I, S](
       name = name,
       initialiser = init,
       interval = interval,
-      state = state
+      state = state,
+      uniqueId = UUID.randomUUID()
     )
 }
 
-final class ActorWire[+I, S] private(name: String,
-                                     initialiser: ActorWire[I, S] => I,
-                                     interval: Option[(FiniteDuration, Long)],
-                                     state: S)(implicit val ec: ExecutionContext) { wire =>
-
-  val uniqueId: UUID = UUID.randomUUID()
+final class DefActor[+I, S] private(name: String,
+                                    initialiser: DefActor[I, S] => I,
+                                    interval: Option[(FiniteDuration, Long)],
+                                    state: S,
+                                    uniqueId: UUID)(implicit val ec: ExecutionContext) { defActor =>
 
   private val impl = initialiser(this)
 
@@ -91,12 +91,12 @@ final class ActorWire[+I, S] private(name: String,
       bag fromPromise promise
     }
 
-    def map[R, BAG[_]](function: (I, S, ActorWire[I, S]) => R)(implicit bag: Bag.Async[BAG]): BAG[R] = {
+    def map[R, BAG[_]](function: (I, S, DefActor[I, S]) => R)(implicit bag: Bag.Async[BAG]): BAG[R] = {
       val promise = Promise[R]()
 
       actor send {
         (impl: I, state: S) =>
-          promise.tryComplete(Try(function(impl, state, wire)))
+          promise.tryComplete(Try(function(impl, state, defActor)))
       }
 
       bag fromPromise promise
@@ -113,35 +113,35 @@ final class ActorWire[+I, S] private(name: String,
       bag fromPromise promise
     }
 
-    def flatMap[R, BAG[_]](function: (I, S, ActorWire[I, S]) => BAG[R])(implicit bag: Bag.Async[BAG]): BAG[R] = {
+    def flatMap[R, BAG[_]](function: (I, S, DefActor[I, S]) => BAG[R])(implicit bag: Bag.Async[BAG]): BAG[R] = {
       val promise = Promise[R]()
 
       actor send {
         (impl: I, state: S) =>
-          bag.complete(promise, function(impl, state, wire))
+          bag.complete(promise, function(impl, state, defActor))
       }
 
       bag fromPromise promise
     }
 
-    def map[R, BAG[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => R)(implicit bag: Bag.Async[BAG]): Actor.Task[R, BAG] = {
+    def map[R, BAG[_]](delay: FiniteDuration)(function: (I, S, DefActor[I, S]) => R)(implicit bag: Bag.Async[BAG]): Actor.Task[R, BAG] = {
       val promise = Promise[R]()
 
       val timerTask =
         actor.send(
-          message = (impl: I, state: S) => promise.tryComplete(Try(function(impl, state, wire))),
+          message = (impl: I, state: S) => promise.tryComplete(Try(function(impl, state, defActor))),
           delay = delay
         )
 
       new Task(bag fromPromise promise, timerTask)
     }
 
-    def flatMap[R, BAG[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => BAG[R])(implicit bag: Bag.Async[BAG]): Actor.Task[R, BAG] = {
+    def flatMap[R, BAG[_]](delay: FiniteDuration)(function: (I, S, DefActor[I, S]) => BAG[R])(implicit bag: Bag.Async[BAG]): Actor.Task[R, BAG] = {
       val promise = Promise[R]()
 
       val timerTask =
         actor.send(
-          message = (impl: I, state: S) => bag.complete(promise, function(impl, state, wire)),
+          message = (impl: I, state: S) => bag.complete(promise, function(impl, state, defActor)),
           delay = delay
         )
 
@@ -158,7 +158,7 @@ final class ActorWire[+I, S] private(name: String,
           function(impl)
       }
 
-  def sendWithSelf(function: I => ActorWire[I, S] => Unit): Unit =
+  def sendWithSelf(function: I => DefActor[I, S] => Unit): Unit =
     actor
       .send {
         (impl: I, _: S) =>
@@ -172,7 +172,7 @@ final class ActorWire[+I, S] private(name: String,
           function(impl, state)
       }
 
-  def send[R](function: (I, S, ActorWire[I, S]) => R): Unit =
+  def send[R](function: (I, S, DefActor[I, S]) => R): Unit =
     actor
       .send {
         (impl: I, state: S) =>
@@ -209,7 +209,7 @@ final class ActorWire[+I, S] private(name: String,
 
   override def equals(other: Any): Boolean =
     other match {
-      case other: ActorWire[I, S] =>
+      case other: DefActor[I, S] =>
         this.uniqueId == other.uniqueId
 
       case _ =>

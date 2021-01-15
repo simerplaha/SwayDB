@@ -25,20 +25,11 @@
 package swaydb.core.level.compaction.throttle.behaviour
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.ActorWire
+import swaydb.DefActor
 import swaydb.core.level._
 import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.lock.LastLevelLocker
-import swaydb.core.level.compaction.task.{CompactionLevelTasker, CompactionLevelZeroTasker, CompactionTask}
-import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorState, ThrottleLevelOrdering, ThrottleLevelState}
-import swaydb.core.level.zero.LevelZero
-import swaydb.data.NonEmptyList
-import swaydb.data.slice.Slice
-import swaydb.data.util.FiniteDurations
-import swaydb.data.util.FiniteDurations.FiniteDurationImplicits
-import swaydb.data.util.Futures._
+import swaydb.core.level.compaction.task.CompactionTask
 
-import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -48,7 +39,7 @@ private[throttle] object CompactionTaskBehaviour extends LazyLogging {
 
   private[throttle] def runSegmentTask(task: CompactionTask.Segments,
                                        lockedLastLevel: Level)(implicit ec: ExecutionContext,
-                                                               committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
+                                                               committer: DefActor[CompactionCommitter.type, Unit]): Future[Unit] =
     task match {
       case task: CompactionTask.CompactSegments =>
         runSegmentTask(task = task, lockedLastLevel = lockedLastLevel)
@@ -59,7 +50,7 @@ private[throttle] object CompactionTaskBehaviour extends LazyLogging {
 
   private[throttle] def runCleanupTask(task: CompactionTask.Cleanup,
                                        lockedLastLevel: Level)(implicit ec: ExecutionContext,
-                                                               committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
+                                                               committer: DefActor[CompactionCommitter.type, Unit]): Future[Unit] =
     task match {
       case task: CompactionTask.CollapseSegments =>
         runSegmentTask(task = task, lockedLastLevel = lockedLastLevel)
@@ -70,7 +61,7 @@ private[throttle] object CompactionTaskBehaviour extends LazyLogging {
 
   private[throttle] def runSegmentTask(task: CompactionTask.CompactSegments,
                                        lockedLastLevel: Level)(implicit ec: ExecutionContext,
-                                                               committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
+                                                               committer: DefActor[CompactionCommitter.type, Unit]): Future[Unit] =
     if (task.tasks.isEmpty)
       Future.unit
     else
@@ -96,7 +87,7 @@ private[throttle] object CompactionTaskBehaviour extends LazyLogging {
 
   private[throttle] def runSegmentTask(task: CompactionTask.CollapseSegments,
                                        lockedLastLevel: Level)(implicit ec: ExecutionContext,
-                                                               committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
+                                                               committer: DefActor[CompactionCommitter.type, Unit]): Future[Unit] =
     if (task.segments.isEmpty)
       Future.unit
     else
@@ -122,7 +113,7 @@ private[throttle] object CompactionTaskBehaviour extends LazyLogging {
 
   private[throttle] def runSegmentTask(task: CompactionTask.RefreshSegments,
                                        lockedLastLevel: Level)(implicit ec: ExecutionContext,
-                                                               committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
+                                                               committer: DefActor[CompactionCommitter.type, Unit]): Future[Unit] =
     if (task.segments.isEmpty)
       Future.unit
     else
@@ -145,7 +136,7 @@ private[throttle] object CompactionTaskBehaviour extends LazyLogging {
 
   private[throttle] def runMapTask(task: CompactionTask.CompactMaps,
                                    lockedLastLevel: Level)(implicit ec: ExecutionContext,
-                                                           committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
+                                                           committer: DefActor[CompactionCommitter.type, Unit]): Future[Unit] =
     if (task.maps.isEmpty)
       Future.unit
     else

@@ -27,7 +27,7 @@ package swaydb.core.level.compaction.lock
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
-import swaydb.{Actor, ActorWire}
+import swaydb.{Actor, DefActor}
 
 import scala.concurrent.ExecutionContext
 
@@ -65,7 +65,7 @@ object LastLevelLocker {
     lastLevel
   }
 
-  def createActor(zero: LevelZero)(implicit ec: ExecutionContext): ActorWire[LastLevelLocker, Unit] = {
+  def createActor(zero: LevelZero)(implicit ec: ExecutionContext): DefActor[LastLevelLocker, Unit] = {
     val lastLevel = fetchLastLevel(zero)
 
     val state =
@@ -76,7 +76,7 @@ object LastLevelLocker {
         delayedSetOrNull = null
       )
 
-    Actor.wire[LastLevelLocker](
+    Actor.define[LastLevelLocker](
       name = this.getClass.getSimpleName,
       init = _ => state
     )(ec)
@@ -111,7 +111,7 @@ class LastLevelLocker private(private var lastLevel: Level,
     }
   }
 
-  def set(newLast: Level, replyTo: ActorWire[LastLevelLocker.LastLevelSetResponse, Unit]): Unit =
+  def set(newLast: Level, replyTo: DefActor[LastLevelLocker.LastLevelSetResponse, Unit]): Unit =
     if (newLast.levelNumber == lastLevel.levelNumber) {
       replyTo.send(_.levelSetSuccessful())
     } else if (locks == 0) {

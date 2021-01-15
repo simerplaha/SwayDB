@@ -394,39 +394,39 @@ object Actor {
       recovery = None
     )
 
-  def wire[T](name: String, init: ActorWire[T, Unit] => T)(implicit ec: ExecutionContext): ActorWire[T, Unit] =
-    ActorWire(
+  def define[T](name: String, init: DefActor[T, Unit] => T)(implicit ec: ExecutionContext): DefActor[T, Unit] =
+    DefActor(
       name = name,
       init = init,
       interval = None,
       state = ()
     )
 
-  def wire[T, S](name: String, state: S, init: ActorWire[T, S] => T)(implicit ec: ExecutionContext): ActorWire[T, S] =
-    ActorWire(
+  def define[T, S](name: String, state: S, init: DefActor[T, S] => T)(implicit ec: ExecutionContext): DefActor[T, S] =
+    DefActor(
       name = name,
       init = init,
       interval = None,
       state = state
     )
 
-  def wireTimer[T](name: String,
-                   interval: FiniteDuration,
-                   stashCapacity: Long,
-                   init: ActorWire[T, Unit] => T)(implicit ec: ExecutionContext): ActorWire[T, Unit] =
-    ActorWire(
+  def defineTimer[T](name: String,
+                     interval: FiniteDuration,
+                     stashCapacity: Long,
+                     init: DefActor[T, Unit] => T)(implicit ec: ExecutionContext): DefActor[T, Unit] =
+    DefActor(
       name = name,
       init = init,
       interval = Some((interval, stashCapacity)),
       state = ()
     )
 
-  def wireTimer[T, S](name: String,
-                      interval: FiniteDuration,
-                      stashCapacity: Long,
-                      state: S,
-                      init: ActorWire[T, S] => T)(implicit ec: ExecutionContext): ActorWire[T, S] =
-    ActorWire(
+  def defineTimer[T, S](name: String,
+                        interval: FiniteDuration,
+                        stashCapacity: Long,
+                        state: S,
+                        init: DefActor[T, S] => T)(implicit ec: ExecutionContext): DefActor[T, S] =
+    DefActor(
       name = name,
       init = init,
       interval = Some((interval, stashCapacity)),

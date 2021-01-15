@@ -25,14 +25,13 @@
 package swaydb.core.level.compaction.throttle.behaviour
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.ActorWire
+import swaydb.DefActor
 import swaydb.core.level.Level
 import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.lock.LastLevelLocker
 import swaydb.core.level.compaction.throttle.ThrottleCompactor.ForwardResponse
-import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorState, ThrottleLevelState}
+import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorState}
 
-import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -42,10 +41,10 @@ private[throttle] object ThrottleForwardBehavior extends LazyLogging {
 
   def forward(level: Level,
               state: ThrottleCompactorState,
-              replyTo: ActorWire[ForwardResponse, Unit])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                         locker: ActorWire[LastLevelLocker, Unit],
-                                                         ec: ExecutionContext,
-                                                         self: ActorWire[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
+              replyTo: DefActor[ForwardResponse, Unit])(implicit committer: DefActor[CompactionCommitter.type, Unit],
+                                                        locker: DefActor[LastLevelLocker, Unit],
+                                                        ec: ExecutionContext,
+                                                        self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
     if (level.levelNumber + 1 != state.levels.head.levelNumber) {
       logger.error(s"${state.name}: Cannot forward Level. Forward Level(${level.levelNumber}) is not previous level of Level(${state.levels.head.levelNumber})")
       replyTo.send(_.forwardFailed(level))

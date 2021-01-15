@@ -25,22 +25,11 @@
 package swaydb.core.level.compaction.throttle.behaviour
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.ActorWire
-import swaydb.core.level._
+import swaydb.DefActor
 import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.lock.LastLevelLocker
-import swaydb.core.level.compaction.task.{CompactionLevelTasker, CompactionLevelZeroTasker, CompactionTask}
-import swaydb.core.level.compaction.throttle.ThrottleCompactor.ForwardResponse
-import swaydb.core.level.compaction.throttle.behaviour.ThrottleForwardBehavior.logger
-import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorState, ThrottleLevelState}
-import swaydb.core.level.zero.LevelZero
-import swaydb.data.NonEmptyList
-import swaydb.data.slice.Slice
-import swaydb.data.util.FiniteDurations
-import swaydb.data.util.FiniteDurations.FiniteDurationImplicits
-import swaydb.data.util.Futures._
+import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorState}
 
-import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -48,10 +37,10 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 private[throttle] object ThrottleExtendBehavior extends LazyLogging {
 
-  def extensionSuccessful(state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                         locker: ActorWire[LastLevelLocker, Unit],
+  def extensionSuccessful(state: ThrottleCompactorState)(implicit committer: DefActor[CompactionCommitter.type, Unit],
+                                                         locker: DefActor[LastLevelLocker, Unit],
                                                          ec: ExecutionContext,
-                                                         self: ActorWire[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
+                                                         self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
     ThrottleWakeUpBehavior.wakeUp(state)
 
   def extensionFailed(state: ThrottleCompactorState): Future[ThrottleCompactorState] = {
