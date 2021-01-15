@@ -28,6 +28,7 @@ import java.util.{TimerTask, UUID}
 import swaydb.Actor.Task
 import swaydb.data.config.ActorConfig.QueueOrder
 
+import scala.annotation.unchecked.uncheckedVariance
 import scala.concurrent.{ExecutionContext, Promise}
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
@@ -37,47 +38,114 @@ object DefActor {
   @inline def apply[I, S](name: String,
                           init: DefActor[I, S] => I,
                           interval: Option[(FiniteDuration, Long)],
-                          state: S)(implicit ec: ExecutionContext): DefActor[I, S] =
-    new DefActor[I, S](
+                          state: S)(implicit ec: ExecutionContext): DefActor.Hooks[I, S] =
+    new Hooks[I, S](
       name = name,
-      initialiser = init,
+      init = init,
       interval = interval,
-      state = state,
-      uniqueId = UUID.randomUUID()
+      preTerminate = None,
+      postTerminate = None,
+      state = state
     )
+
+  final class Hooks[+I, S](name: String,
+                           init: DefActor[I, S] => I,
+                           interval: Option[(FiniteDuration, Long)],
+                           preTerminate: Option[(I, S, DefActor[I, S]) => Unit],
+                           postTerminate: Option[(I, S, DefActor[I, S]) => Unit],
+                           state: S)(implicit val ec: ExecutionContext) {
+
+    def onPreTerminate(f: (I, S, DefActor[I, S]) => Unit): Hooks[I, S] =
+      new Hooks[I, S](
+        name = name,
+        init = init,
+        interval = interval,
+        preTerminate = Some(f),
+        postTerminate = postTerminate,
+        state = state
+      )
+
+    def onPostTerminate(f: (I, S, DefActor[I, S]) => Unit): Hooks[I, S] =
+      new Hooks[I, S](
+        name = name,
+        init = init,
+        interval = interval,
+        preTerminate = preTerminate,
+        postTerminate = Some(f),
+        state = state
+      )
+
+    def start(): DefActor[I, S] =
+      new DefActor[I, S](
+        name = name,
+        initialiser = init,
+        interval = interval,
+        state = state,
+        preTerminate = preTerminate,
+        postTerminate = postTerminate,
+        uniqueId = UUID.randomUUID()
+      )
+  }
 }
 
 final class DefActor[+I, S] private(name: String,
                                     initialiser: DefActor[I, S] => I,
                                     interval: Option[(FiniteDuration, Long)],
                                     state: S,
+                                    preTerminate: Option[(I, S, DefActor[I, S]) => Unit],
+                                    postTerminate: Option[(I, S, DefActor[I, S]) => Unit],
                                     val uniqueId: UUID)(implicit val ec: ExecutionContext) { defActor =>
 
   private val impl = initialiser(this)
 
-  private val actor: ActorRef[(I, S) => Unit, S] =
-    interval match {
-      case Some((delays, stashCapacity)) =>
-        implicit val queueOrder = QueueOrder.FIFO
+  private val actor: ActorRef[(I, S) => Unit, S] = {
+    val actorBoot: ActorHooks[(I, S) => Unit, S] =
+      interval match {
+        case Some((delays, stashCapacity)) =>
+          implicit val queueOrder = QueueOrder.FIFO
 
-        Actor.timer[(I, S) => Unit, S](
-          name = name,
-          state = state,
-          stashCapacity = stashCapacity,
-          interval = delays
-        ) {
-          (function, self) =>
-            function(impl, self.state)
-        }
+          Actor.timer[(I, S) => Unit, S](
+            name = name,
+            state = state,
+            stashCapacity = stashCapacity,
+            interval = delays
+          ) {
+            (function, self) =>
+              function(impl, self.state)
+          }
+
+        case None =>
+          implicit val queueOrder = QueueOrder.FIFO
+
+          Actor[(I, S) => Unit, S](name, state) {
+            (function, self) =>
+              function(impl, self.state)
+          }
+      }
+
+    val preTerminateBoot =
+      preTerminate match {
+        case Some(preTerminate) =>
+          actorBoot.onPreTerminate {
+            _ =>
+              preTerminate(impl, this.state, this)
+          }
+
+        case None =>
+          actorBoot
+      }
+
+    postTerminate match {
+      case Some(postTerminate) =>
+        preTerminateBoot.onPostTerminate {
+          _ =>
+            postTerminate(impl, this.state, this)
+        }.start()
 
       case None =>
-        implicit val queueOrder = QueueOrder.FIFO
-
-        Actor[(I, S) => Unit, S](name, state) {
-          (function, self) =>
-            function(impl, self.state)
-        }
+        preTerminateBoot.start()
     }
+  }
 
   final class Ask {
     def map[R, BAG[_]](function: (I, S) => R)(implicit bag: Bag.Async[BAG]): BAG[R] = {

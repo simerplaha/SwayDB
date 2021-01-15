@@ -580,7 +580,7 @@ trait SimulationSpec extends AnyWordSpec with TestBaseEmbedded with LazyLogging 
                   Actor[ProductCommand, UserState](s"User $userId", state) {
                     (command, self) =>
                       processCommand(self.state, command, self)
-                  }
+                  }.start()
 
                 actor send ProductCommand.Create
                 actor

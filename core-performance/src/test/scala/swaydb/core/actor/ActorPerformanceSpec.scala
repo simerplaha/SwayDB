@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.sweeper
+package swaydb.core.actor
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -51,7 +51,7 @@ class ActorPerformanceSpec extends AnyWordSpec with Matchers {
     val actor =
       Actor.timerCache[Int]("", 100000, _ => 1, 5.second) {
         (_: Int, self: ActorRef[Int, Unit]) =>
-      }
+      }.start()
 
 
     //0.111304334 seconds.

@@ -469,7 +469,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
 
   def runPostTerminate(self: Actor[Command, State],
                        maxDeleteRetries: Int) = {
-    if(self.state.pendingClean.nonEmpty)
+    if (self.state.pendingClean.nonEmpty)
       logger.info(s"Cleaning ${self.state.pendingClean.size} memory-mapped ${English.plural(self.state.pendingClean.size, "file")}")
 
     self.state.pendingClean foreach {
@@ -497,7 +497,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
         self.state.pendingDeletes
       }
 
-    if(filesToDelete.nonEmpty)
+    if (filesToDelete.nonEmpty)
       logger.info(s"Deleting ${filesToDelete.size} ${English.plural(self.state.pendingDeletes.size, "file")}.")
 
     filesToDelete foreach {
@@ -583,7 +583,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
           messageReschedule = Some(messageReschedule)
         )
 
-    } recoverException[Command] {
+    }.recoverException[Command] {
       case (command, IO.Right(Actor.Error.TerminatedActor), self) =>
         process(
           command = command,
@@ -604,9 +604,9 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
 
         logger.error(s"Failed to process message ${message.name}. $pathInfo", exception)
 
-    } onPostTerminate {
+    }.onPostTerminate {
       self =>
         runPostTerminate(self, maxDeleteRetries)
-    }
+    }.start()
 
 }

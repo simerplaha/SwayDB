@@ -88,4 +88,7 @@ private[core] class ThrottleCompactor private(@volatile private var state: Throt
 
   override def levelSetFailed(): Unit =
     onComplete(ThrottleExtendBehavior.extensionFailed(state))
+
+  def terminateASAP(): Unit =
+    state.setTerminateASAP()
 }

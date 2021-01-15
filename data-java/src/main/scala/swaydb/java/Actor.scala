@@ -96,8 +96,8 @@ object Actor {
       asScala.terminateAndClear()
   }
 
-  final class Ref[T, S](override val asScala: swaydb.ActorRef[T, S]) extends ActorBase[T, S] {
-    def recover[M <: T](execution: TriFunctionVoid[M, Throwable, Instance[T, S]]): Actor.Ref[T, S] = {
+  final class Boot[T, S](val asScala: swaydb.ActorHooks[T, S]) {
+    def recover[M <: T](execution: TriFunctionVoid[M, Throwable, Instance[T, S]]): Boot[T, S] = {
       val actorRefWithRecovery =
         asScala.recover[M, Throwable] {
           case (message, io, actor) =>
@@ -112,10 +112,10 @@ object Actor {
             execution.apply(message, throwable, new Instance(actor))
         }
 
-      new Actor.Ref(actorRefWithRecovery)
+      new Boot(actorRefWithRecovery)
     }
 
-    def terminateAndRecover[M <: T](execution: TriFunctionVoid[M, Throwable, Instance[T, S]]): Actor.Ref[T, S] = {
+    def terminateAndRecover[M <: T](execution: TriFunctionVoid[M, Throwable, Instance[T, S]]): Boot[T, S] = {
       val actorRefWithRecovery =
         asScala.recover[M, Throwable] {
           case (message, io, actor) =>
@@ -130,15 +130,20 @@ object Actor {
             execution.apply(message, throwable, new Instance(actor))
         }
 
-      new Actor.Ref(actorRefWithRecovery)
+      new Boot(actorRefWithRecovery)
     }
+
+    def start(): Actor.Ref[T, S] =
+      new Actor.Ref(asScala.start())
   }
+
+  final class Ref[T, S](override val asScala: swaydb.ActorRef[T, S]) extends ActorBase[T, S]
 
   final class Instance[T, S](val asScala: swaydb.Actor[T, S]) extends ActorBase[T, S] {
     def state(): S = asScala.state
   }
 
-  def fifo[T](consumer: Consumer[T]): Actor.Ref[T, Void] = {
+  def fifo[T](consumer: Consumer[T]): Actor.Boot[T, Void] = {
     def scalaExecution(message: T, actor: swaydb.Actor[T, Void]) =
       consumer.accept(message)
 
@@ -148,10 +153,10 @@ object Actor {
         queueOrder = QueueOrder.FIFO
       )
 
-    new Actor.Ref(scalaActorRef)
+    new Actor.Boot(scalaActorRef)
   }
 
-  def fifo[T](consumer: BiConsumer[T, Instance[T, Void]]): Actor.Ref[T, Void] = {
+  def fifo[T](consumer: BiConsumer[T, Instance[T, Void]]): Actor.Boot[T, Void] = {
     def scalaExecution(message: T, actor: swaydb.Actor[T, Void]) =
       consumer.accept(message, new Instance(actor))
 
@@ -161,11 +166,11 @@ object Actor {
         queueOrder = QueueOrder.FIFO
       )
 
-    new Actor.Ref(scalaActorRef)
+    new Actor.Boot(scalaActorRef)
   }
 
   def fifo[T](consumer: Consumer[T],
-              executorService: ExecutorService): Actor.Ref[T, Void] =
+              executorService: ExecutorService): Actor.Boot[T, Void] =
     fifo[T, Void](
       initialState = null,
       consumer =
@@ -177,11 +182,11 @@ object Actor {
     )
 
   def fifo[T](consumer: BiConsumer[T, Instance[T, Void]],
-              executorService: ExecutorService): Actor.Ref[T, Void] =
+              executorService: ExecutorService): Actor.Boot[T, Void] =
     fifo[T, Void](null, consumer, executorService)
 
   def ordered[T](consumer: Consumer[T],
-                 comparator: Comparator[T]): Actor.Ref[T, Void] = {
+                 comparator: Comparator[T]): Actor.Boot[T, Void] = {
     def scalaExecution(message: T, actor: swaydb.Actor[T, Void]) =
       consumer.accept(message)
 
@@ -191,11 +196,11 @@ object Actor {
         queueOrder = QueueOrder.Ordered(Ordering.comparatorToOrdering(comparator))
       )
 
-    new Actor.Ref(scalaActorRef)
+    new Actor.Boot(scalaActorRef)
   }
 
   def ordered[T](consumer: BiConsumer[T, Instance[T, Void]],
-                 comparator: Comparator[T]): Actor.Ref[T, Void] = {
+                 comparator: Comparator[T]): Actor.Boot[T, Void] = {
     def scalaExecution(message: T, actor: swaydb.Actor[T, Void]) =
       consumer.accept(message, new Instance(actor))
 
@@ -205,12 +210,12 @@ object Actor {
         queueOrder = QueueOrder.Ordered(Ordering.comparatorToOrdering(comparator))
       )
 
-    new Actor.Ref(scalaActorRef)
+    new Actor.Boot(scalaActorRef)
   }
 
   def ordered[T](consumer: Consumer[T],
                  executorService: ExecutorService,
-                 comparator: Comparator[T]): Actor.Ref[T, Void] =
+                 comparator: Comparator[T]): Actor.Boot[T, Void] =
     ordered[T, Void](
       initialState = null,
       consumer =
@@ -224,11 +229,11 @@ object Actor {
 
   def ordered[T](consumer: BiConsumer[T, Instance[T, Void]],
                  executorService: ExecutorService,
-                 comparator: Comparator[T]): Actor.Ref[T, Void] =
+                 comparator: Comparator[T]): Actor.Boot[T, Void] =
     ordered[T, Void](null, consumer, executorService, comparator)
 
   def fifo[T, S](initialState: S,
-                 consumer: Consumer[T]): Actor.Ref[T, S] =
+                 consumer: Consumer[T]): Actor.Boot[T, S] =
     fifo[T, S](
       initialState = initialState,
       consumer =
@@ -239,7 +244,7 @@ object Actor {
     )
 
   def fifo[T, S](initialState: S,
-                 consumer: BiConsumer[T, Instance[T, S]]): Actor.Ref[T, S] = {
+                 consumer: BiConsumer[T, Instance[T, S]]): Actor.Boot[T, S] = {
     def scalaExecution(message: T, actor: swaydb.Actor[T, S]) =
       consumer.accept(message, new Instance(actor))
 
@@ -249,12 +254,12 @@ object Actor {
         queueOrder = QueueOrder.FIFO
       )
 
-    new Actor.Ref(scalaActorRef)
+    new Actor.Boot(scalaActorRef)
   }
 
   def fifo[T, S](initialState: S,
                  consumer: Consumer[T],
-                 executorService: ExecutorService): Actor.Ref[T, S] =
+                 executorService: ExecutorService): Actor.Boot[T, S] =
     fifo[T, S](
       initialState = initialState,
       consumer =
@@ -267,7 +272,7 @@ object Actor {
 
   def fifo[T, S](initialState: S,
                  consumer: BiConsumer[T, Instance[T, S]],
-                 executorService: ExecutorService): Actor.Ref[T, S] = {
+                 executorService: ExecutorService): Actor.Boot[T, S] = {
     def scalaExecution(message: T, actor: swaydb.Actor[T, S]) =
       consumer.accept(message, new Instance(actor))
 
@@ -277,13 +282,13 @@ object Actor {
         queueOrder = QueueOrder.FIFO
       )
 
-    new Actor.Ref(scalaActorRef)
+    new Actor.Boot(scalaActorRef)
   }
 
   def ordered[T, S](initialState: S,
                     consumer: Consumer[T],
                     executorService: ExecutorService,
-                    comparator: Comparator[T]): Actor.Ref[T, S] = {
+                    comparator: Comparator[T]): Actor.Boot[T, S] = {
     ordered[T, S](
       initialState = initialState,
       consumer =
@@ -299,7 +304,7 @@ object Actor {
   def ordered[T, S](initialState: S,
                     consumer: BiConsumer[T, Instance[T, S]],
                     executorService: ExecutorService,
-                    comparator: Comparator[T]): Actor.Ref[T, S] = {
+                    comparator: Comparator[T]): Actor.Boot[T, S] = {
     def scalaExecution(message: T, actor: swaydb.Actor[T, S]) =
       consumer.accept(message, new Instance(actor))
 
@@ -309,6 +314,6 @@ object Actor {
         queueOrder = QueueOrder.Ordered(Ordering.comparatorToOrdering(comparator))
       )
 
-    new Actor.Ref(scalaActorRef)
+    new Actor.Boot(scalaActorRef)
   }
 }

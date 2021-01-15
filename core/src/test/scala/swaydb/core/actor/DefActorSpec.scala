@@ -51,7 +51,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
             def get(): Iterable[Int] = message
           }
 
-          val actor = Actor.define[MyImpl]("", _ => new MyImpl(ListBuffer.empty)).sweep()
+          val actor = Actor.define[MyImpl]("", _ => new MyImpl(ListBuffer.empty)).start().sweep()
 
           actor
             .ask
@@ -81,7 +81,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
               s"Hello $name"
           }
 
-          Actor.define[MyImpl.type]("", _ => MyImpl).sweep()
+          Actor.define[MyImpl.type]("", _ => MyImpl).start().sweep()
             .ask
             .map {
               (impl, state, self) =>
@@ -101,7 +101,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
               Future(s"Hello $name")
           }
 
-          Actor.define[MyImpl.type]("", _ => MyImpl).sweep()
+          Actor.define[MyImpl.type]("", _ => MyImpl).start().sweep()
             .ask
             .flatMap {
               (impl, _, self) =>
@@ -127,7 +127,11 @@ class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
               Future(name)
           }
 
-          val actor = Actor.define[MyImpl]("", _ => new MyImpl("")).sweep()
+          val actor =
+            Actor
+              .define[MyImpl]("", _ => new MyImpl(""))
+              .start()
+              .sweep()
 
           actor.send {
             (impl, state) =>
@@ -158,7 +162,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
               invoked
           }
 
-          val actor = Actor.define[MyImpl]("", _ => new MyImpl(invoked = false)).sweep()
+          val actor = Actor.define[MyImpl]("", _ => new MyImpl(invoked = false)).start().sweep()
 
           actor.send(2.second) {
             (impl, _) =>
@@ -206,7 +210,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
               invoked
           }
 
-          val actor = Actor.define[MyImpl]("", _ => new MyImpl(invoked = false)).sweep()
+          val actor = Actor.define[MyImpl]("", _ => new MyImpl(invoked = false)).start().sweep()
 
           val result =
             actor
@@ -267,7 +271,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
               invoked
           }
 
-          val actor = Actor.define[MyImpl]("", _ => new MyImpl()).sweep()
+          val actor = Actor.define[MyImpl]("", _ => new MyImpl()).start().sweep()
 
           val result =
             actor

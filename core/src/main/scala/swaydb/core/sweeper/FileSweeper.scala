@@ -172,7 +172,7 @@ private[swaydb] case object FileSweeper extends LazyLogging {
       case (command, _) =>
         processCommand(command)
 
-    } recoverException[Command.Close] {
+    }.recoverException[Command.Close] {
       case (command, io, _) =>
         io match {
           case IO.Right(Actor.Error.TerminatedActor) =>
@@ -181,7 +181,7 @@ private[swaydb] case object FileSweeper extends LazyLogging {
           case IO.Left(exception) =>
             logger.error(s"Failed to close file. WeakReference(path: Path) = ${command.file.get.map(_.path)}.", exception)
         }
-    }
+    }.start()
 
   private def createFileDeleterActor()(implicit executionContext: ExecutionContext,
                                        order: QueueOrder[Command.Delete]): ActorRef[Command.Delete, Unit] = {
@@ -196,5 +196,6 @@ private[swaydb] case object FileSweeper extends LazyLogging {
               logger.error(s"Failed to delete file. Path = ${command.file.path}.", exception)
           }
       }
+      .start()
   }
 }

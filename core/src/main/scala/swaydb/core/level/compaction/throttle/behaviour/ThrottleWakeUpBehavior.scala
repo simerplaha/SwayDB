@@ -52,12 +52,12 @@ private[throttle] object ThrottleWakeUpBehavior extends LazyLogging {
                                             self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] = {
     logger.debug(s"${state.name}: Wake-up successful!")
     runWakeUp(state)
-      .map(runPostCompaction)
       .recover {
         case exception =>
           logger.error("Failed compaction", exception)
           runPostCompaction(state)
       }
+      .map(runPostCompaction)
   }
 
   private def runPostCompaction(context: ThrottleCompactorState)(implicit self: DefActor[ThrottleCompactor, Unit]): ThrottleCompactorState = {

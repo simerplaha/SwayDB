@@ -44,7 +44,7 @@ case object CompactionCommitter extends LazyLogging {
     Actor.define[CompactionCommitter.type](
       name = CompactionCommitter.productPrefix,
       init = _ => CompactionCommitter
-    )(ec)
+    )(ec).start()
 
   private def commitMergeResult(mergeResults: Iterable[(Level, Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]])]): IO[Error.Level, Slice[Unit]] =
     mergeResults

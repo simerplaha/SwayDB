@@ -71,18 +71,10 @@ sealed trait ActorRef[-T, S] { self =>
   def hasMessages: Boolean =
     totalWeight > 0
 
-  def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S]
-
-  def recoverException[M <: T](f: (M, IO[Throwable, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
-    recover[M, Throwable](f)
 
   def receiveAllForce[BAG[_], R](f: S => R)(implicit bag: Bag[BAG]): BAG[R]
 
   def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
-
-  def onPreTerminate(f: Actor[T, S] => Unit): ActorRef[T, S]
-
-  def onPostTerminate(f: Actor[T, S] => Unit): ActorRef[T, S]
 
   def terminateAfter(timeout: FiniteDuration): ActorRef[T, S]
 
@@ -119,13 +111,10 @@ object Actor {
       override def totalWeight: Long = throw new Exception("Dead Actor")
       override def messageCount: Int = throw new Exception("Dead Actor")
       override def isEmpty: Boolean = throw new Exception("Dead Actor")
-      override def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Error], Actor[T, S]) => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
       override def isTerminated: Boolean = throw new Exception("Dead Actor")
       override def clear(): Unit = throw new Exception("Dead Actor")
       override def terminateAfter(timeout: FiniteDuration): ActorRef[T, S] = throw new Exception("Dead Actor")
       override def hasRecovery: Boolean = throw new Exception("Dead Actor")
-      override def onPreTerminate(f: Actor[T, S] => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
-      override def onPostTerminate(f: Actor[T, S] => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
       override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
       override def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
       def terminateAndRecover[BAG[_], R](f: S => R)(implicit bag: Bag[BAG]): BAG[Option[R]] = throw new Exception("Dead Actor")
@@ -134,7 +123,7 @@ object Actor {
 
   def cacheFromConfig[T](config: ActorConfig,
                          stashCapacity: Long,
-                         weigher: T => Int)(execution: (T, Actor[T, Unit]) => Unit): ActorRef[T, Unit] =
+                         weigher: T => Int)(execution: (T, Actor[T, Unit]) => Unit): ActorHooks[T, Unit] =
     config match {
       case config: ActorConfig.Basic =>
         cache[T](
@@ -163,7 +152,7 @@ object Actor {
   def cacheFromConfig[T, S](config: ActorConfig,
                             state: S,
                             stashCapacity: Long,
-                            weigher: T => Int)(execution: (T, Actor[T, S]) => Unit): ActorRef[T, S] =
+                            weigher: T => Int)(execution: (T, Actor[T, S]) => Unit): ActorHooks[T, S] =
     config match {
       case config: ActorConfig.Basic =>
         cache[T, S](
@@ -198,12 +187,12 @@ object Actor {
    * On each message send (!) the Actor is woken up if it's not already running.
    */
   def apply[T](name: String)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
-                                                                     queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
+                                                                     queueOrder: QueueOrder[T]): ActorHooks[T, Unit] =
     apply[T, Unit](name, state = ())(execution)
 
   def apply[T, S](name: String, state: S)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
-                                                                               queueOrder: QueueOrder[T]): ActorRef[T, S] =
-    new Actor[T, S](
+                                                                               queueOrder: QueueOrder[T]): ActorHooks[T, S] =
+    new ActorHooks[T, S](
       name = name,
       state = state,
       queue = ActorQueue(queueOrder),
@@ -221,7 +210,7 @@ object Actor {
   def cache[T](name: String,
                stashCapacity: Long,
                weigher: T => Int)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
-                                                                          queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
+                                                                          queueOrder: QueueOrder[T]): ActorHooks[T, Unit] =
     cache[T, Unit](
       name = name,
       state = (),
@@ -233,8 +222,8 @@ object Actor {
                   state: S,
                   stashCapacity: Long,
                   weigher: T => Int)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
-                                                                          queueOrder: QueueOrder[T]): ActorRef[T, S] =
-    new Actor[T, S](
+                                                                          queueOrder: QueueOrder[T]): ActorHooks[T, S] =
+    new ActorHooks[T, S](
       name = name,
       state = state,
       queue = ActorQueue(queueOrder),
@@ -252,7 +241,7 @@ object Actor {
   def timer[T](name: String,
                stashCapacity: Long,
                interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
-                                                                                 queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
+                                                                                 queueOrder: QueueOrder[T]): ActorHooks[T, Unit] =
     timer(
       name = name,
       state = (),
@@ -270,8 +259,8 @@ object Actor {
                   state: S,
                   stashCapacity: Long,
                   interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
-                                                                                 queueOrder: QueueOrder[T]): ActorRef[T, S] =
-    new Actor[T, S](
+                                                                                 queueOrder: QueueOrder[T]): ActorHooks[T, S] =
+    new ActorHooks[T, S](
       name = name,
       state = state,
       queue = ActorQueue(queueOrder),
@@ -290,7 +279,7 @@ object Actor {
                     stashCapacity: Long,
                     weigher: T => Int,
                     interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
-                                                                                      queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
+                                                                                      queueOrder: QueueOrder[T]): ActorHooks[T, Unit] =
     timerCache[T, Unit](
       name = name,
       state = (),
@@ -304,8 +293,8 @@ object Actor {
                        stashCapacity: Long,
                        weigher: T => Int,
                        interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
-                                                                                      queueOrder: QueueOrder[T]): ActorRef[T, S] =
-    new Actor[T, S](
+                                                                                      queueOrder: QueueOrder[T]): ActorHooks[T, S] =
+    new ActorHooks[T, S](
       name = name,
       state = state,
       queue = ActorQueue(queueOrder),
@@ -326,7 +315,7 @@ object Actor {
   def timerLoop[T](name: String,
                    stashCapacity: Long,
                    interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
-                                                                                     queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
+                                                                                     queueOrder: QueueOrder[T]): ActorHooks[T, Unit] =
     timerLoop(
       name = name,
       state = (),
@@ -344,8 +333,8 @@ object Actor {
                       state: S,
                       stashCapacity: Long,
                       interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
-                                                                                     queueOrder: QueueOrder[T]): ActorRef[T, S] =
-    new Actor[T, S](
+                                                                                     queueOrder: QueueOrder[T]): ActorHooks[T, S] =
+    new ActorHooks[T, S](
       name = name,
       state = state,
       queue = ActorQueue(queueOrder),
@@ -364,7 +353,7 @@ object Actor {
                         stashCapacity: Long,
                         weigher: T => Int,
                         interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
-                                                                                          queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
+                                                                                          queueOrder: QueueOrder[T]): ActorHooks[T, Unit] =
     timerLoopCache[T, Unit](
       name = name,
       state = (),
@@ -378,8 +367,8 @@ object Actor {
                            stashCapacity: Long,
                            weigher: T => Int,
                            interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
-                                                                                          queueOrder: QueueOrder[T]): ActorRef[T, S] =
-    new Actor[T, S](
+                                                                                          queueOrder: QueueOrder[T]): ActorHooks[T, S] =
+    new ActorHooks[T, S](
       name = name,
       state = state,
       queue = ActorQueue(queueOrder),
@@ -394,7 +383,7 @@ object Actor {
       recovery = None
     )
 
-  def define[T](name: String, init: DefActor[T, Unit] => T)(implicit ec: ExecutionContext): DefActor[T, Unit] =
+  def define[T](name: String, init: DefActor[T, Unit] => T)(implicit ec: ExecutionContext): DefActor.Hooks[T, Unit] =
     DefActor(
       name = name,
       init = init,
@@ -402,7 +391,7 @@ object Actor {
       state = ()
     )
 
-  def define[T, S](name: String, state: S, init: DefActor[T, S] => T)(implicit ec: ExecutionContext): DefActor[T, S] =
+  def define[T, S](name: String, state: S, init: DefActor[T, S] => T)(implicit ec: ExecutionContext): DefActor.Hooks[T, S] =
     DefActor(
       name = name,
       init = init,
@@ -413,7 +402,7 @@ object Actor {
   def defineTimer[T](name: String,
                      interval: FiniteDuration,
                      stashCapacity: Long,
-                     init: DefActor[T, Unit] => T)(implicit ec: ExecutionContext): DefActor[T, Unit] =
+                     init: DefActor[T, Unit] => T)(implicit ec: ExecutionContext): DefActor.Hooks[T, Unit] =
     DefActor(
       name = name,
       init = init,
@@ -425,7 +414,7 @@ object Actor {
                         interval: FiniteDuration,
                         stashCapacity: Long,
                         state: S,
-                        init: DefActor[T, S] => T)(implicit ec: ExecutionContext): DefActor[T, S] =
+                        init: DefActor[T, S] => T)(implicit ec: ExecutionContext): DefActor.Hooks[T, S] =
     DefActor(
       name = name,
       init = init,
@@ -456,18 +445,18 @@ object Actor {
 
 private class Interval(val delay: FiniteDuration, val isLoop: Boolean)
 
-class Actor[-T, S](val name: String,
-                   val state: S,
-                   queue: ActorQueue[(T, Int)],
-                   stashCapacity: Long,
-                   weigher: T => Int,
-                   cached: Boolean,
-                   execution: (T, Actor[T, S]) => Unit,
-                   scheduler: CacheNoIO[Unit, Scheduler],
-                   interval: Option[Interval],
-                   preTerminate: Option[Actor[T, S] => Unit],
-                   postTerminate: Option[Actor[T, S] => Unit],
-                   recovery: Option[(T, IO[Throwable, Actor.Error], Actor[T, S]) => Unit])(implicit val executionContext: ExecutionContext) extends ActorRef[T, S] with LazyLogging { self =>
+class Actor[-T, S] private[swaydb](val name: String,
+                                   val state: S,
+                                   queue: ActorQueue[(T, Int)],
+                                   stashCapacity: Long,
+                                   weigher: T => Int,
+                                   cached: Boolean,
+                                   execution: (T, Actor[T, S]) => Unit,
+                                   scheduler: CacheNoIO[Unit, Scheduler],
+                                   interval: Option[Interval],
+                                   preTerminate: Option[Actor[T, S] => Unit],
+                                   postTerminate: Option[Actor[T, S] => Unit],
+                                   recovery: Option[(T, IO[Throwable, Actor.Error], Actor[T, S]) => Unit])(implicit val executionContext: ExecutionContext) extends ActorRef[T, S] with LazyLogging { self =>
 
   //only a single thread can invoke preTerminate.
   private val terminated = new AtomicBoolean(false)
@@ -525,7 +514,7 @@ class Actor[-T, S](val name: String,
 
       implicit val queueOrder = QueueOrder.FIFO
 
-      val replyTo: ActorRef[R, Unit] = Actor[R](name + "_response")((response, _) => promise.success(response))
+      val replyTo: ActorRef[R, Unit] = Actor[R](name + "_response")((response, _) => promise.success(response)).start()
       this send message(replyTo)
 
       bag fromPromise promise
@@ -536,7 +525,7 @@ class Actor[-T, S](val name: String,
 
     implicit val queueOrder = QueueOrder.FIFO
 
-    val replyTo: ActorRef[R, Unit] = Actor[R](name + "_response")((response, _) => promise.success(response))
+    val replyTo: ActorRef[R, Unit] = Actor[R](name + "_response")((response, _) => promise.success(response)).start()
     val task = this.send(message(replyTo), delay)
 
     new Actor.Task(bag fromPromise promise, task)
@@ -801,73 +790,6 @@ class Actor[-T, S](val name: String,
         wakeUp(currentStashed = totalWeight)
     }
   }
-
-  override def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
-    new Actor[T, S](
-      name = name,
-      state = state,
-      queue = queue,
-      stashCapacity = stashCapacity,
-      weigher = weigher,
-      cached = cached,
-      execution = execution,
-      interval = interval,
-      scheduler = scheduler,
-      preTerminate = preTerminate,
-      postTerminate = postTerminate,
-      recovery =
-        Some {
-          case (message: M@unchecked, error, actor) =>
-            error match {
-              case IO.Right(actorError) =>
-                f(message, IO.Right(actorError), actor)
-
-              case IO.Left(throwable) =>
-                f(message, IO.Left(ExceptionHandler.toError(throwable)), actor)
-            }
-
-          case (_, error, _) =>
-            error match {
-              case IO.Right(Actor.Error.TerminatedActor) =>
-                logger.error(s"""Actor("$name") - Failed to recover failed message.""", new Exception("Cause: Terminated Actor"))
-
-              case IO.Left(exception: Throwable) =>
-                logger.error(s"""Actor("$name") - Failed to recover failed message.""", exception)
-            }
-        }
-    )
-
-  override def onPreTerminate(f: Actor[T, S] => Unit): ActorRef[T, S] =
-    new Actor[T, S](
-      name = name,
-      state = state,
-      queue = queue,
-      stashCapacity = stashCapacity,
-      weigher = weigher,
-      cached = cached,
-      execution = execution,
-      scheduler = scheduler,
-      interval = interval,
-      preTerminate = Some(f),
-      postTerminate = postTerminate,
-      recovery = recovery
-    )
-
-  override def onPostTerminate(f: Actor[T, S] => Unit): ActorRef[T, S] =
-    new Actor[T, S](
-      name = name,
-      state = state,
-      queue = queue,
-      stashCapacity = stashCapacity,
-      weigher = weigher,
-      cached = cached,
-      execution = execution,
-      scheduler = scheduler,
-      interval = interval,
-      preTerminate = preTerminate,
-      postTerminate = Some(f),
-      recovery = recovery
-    )
 
   private def compareSetTerminated(): Boolean = {
     val canTerminate = terminated.compareAndSet(false, true)

@@ -93,11 +93,16 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
                         compactionStates = Map.empty
                       )
 
+                    implicit val ec: ExecutionContext = executionContext
+
                     val actor =
                       Actor.define[ThrottleCompactor](
                         name = s"Compaction Actor$index",
                         init = ThrottleCompactor(state)
-                      )(executionContext)
+                      ).onPreTerminate {
+                        case (impl, _, _) =>
+                          impl.terminateASAP()
+                      }.start()
 
                     actor :: children
                 }

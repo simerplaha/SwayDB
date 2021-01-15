@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.sweeper
+package swaydb.core.actor
 
 import swaydb.core.TestExecutionContext
 import swaydb.data.RunThis._
@@ -48,7 +48,7 @@ object PingPong extends App {
         println(s"Ping: ${self.state.count}")
         sleep(100.millisecond)
         message.replyTo send Pong(self)
-    }
+    }.start()
 
   val pong =
     Actor[Pong, State]("Pong", State(0)) {
@@ -57,7 +57,7 @@ object PingPong extends App {
         println(s"Pong: ${self.state.count}")
         sleep(100.millisecond)
         message.replyTo send Ping(self)
-    }
+    }.start()
 
   pong send Pong(ping)
 

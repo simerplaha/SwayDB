@@ -79,7 +79,7 @@ object LastLevelLocker {
     Actor.define[LastLevelLocker](
       name = this.getClass.getSimpleName,
       init = _ => state
-    )(ec)
+    )(ec).start()
   }
 
 }

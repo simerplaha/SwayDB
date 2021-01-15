@@ -187,7 +187,7 @@ private[core] object MemorySweeper extends LazyLogging {
                   if (cacheOptional.isDefined)
                     cacheOptional.get.clear()
               }
-          }
+          }.start()
       }
 
     def terminateAndClear() =

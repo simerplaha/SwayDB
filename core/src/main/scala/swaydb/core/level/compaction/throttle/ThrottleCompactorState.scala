@@ -49,7 +49,7 @@ case class ThrottleCompactorState(levels: Slice[LevelRef],
       s"Levels($info)"
   }
 
-  def setTerminated() =
+  def setTerminateASAP() =
     _terminateASAP = true
 
   def terminateASAP(): Boolean =

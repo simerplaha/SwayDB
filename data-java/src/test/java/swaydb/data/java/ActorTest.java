@@ -51,7 +51,9 @@ class ActorTest {
       };
 
     Actor.Ref<String, Void> statelessFIFO =
-      Actor.fifo(execution, executorService);
+      Actor
+        .fifo(execution, executorService)
+        .start();
 
     for (int i = 0; i < 100; i++) {
       statelessFIFO.send("test" + i);
@@ -96,10 +98,12 @@ class ActorTest {
     Actor.Ref<String, Void> statelessFIFO =
       Actor
         .fifo(execution, executorService)
-        .recover((message, error, actor) -> {
-          failedMessages.add(message); //recover from messages
-          assertEquals(error, failedMessageException);
-        });
+        .recover(
+          (message, error, actor) -> {
+            failedMessages.add(message); //recover from messages
+            assertEquals(error, failedMessageException);
+          })
+        .start();
 
     for (int i = 0; i < 100; i++) {
       statelessFIFO.send("test" + i); //send 100 messages

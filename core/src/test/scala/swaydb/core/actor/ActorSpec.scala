@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.sweeper
+package swaydb.core.actor
 
 import java.util.concurrent.{ConcurrentLinkedDeque, ConcurrentSkipListSet}
 
@@ -65,7 +65,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             Actor[Int, State]("", state) {
               case (int, self) =>
                 self.state.processed += int
-            }
+            }.start()
 
           (1 to messageCount) foreach (actor send _)
 
@@ -95,7 +95,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             Actor[String, State]("", state) {
               case (int, self) =>
                 self.state.processed += int
-            }.sweep()
+            }.start().sweep()
 
           (1 to messageCount).par foreach {
             message =>
@@ -123,7 +123,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
               case (int, self) =>
                 if (int == 2) throw IO.throwable(s"Oh no! Failed at $int")
                 self.state.processed += int
-            }.sweep()
+            }.start().sweep()
 
           (1 to 3) foreach (actor send _)
           //
@@ -147,11 +147,11 @@ class ActorSpec extends AnyWordSpec with Matchers {
               case (int, self) =>
                 if (int == 2) throw IO.throwable(s"Oh no! Failed at $int")
                 self.state.processed += int
-            }.sweep() recoverException[Int] {
+            }.recoverException[Int] {
               case (message, error: IO[Throwable, Actor.Error], actor) =>
                 message shouldBe 2
                 actor.state.recovered += message
-            }
+            }.start().sweep()
 
           (1 to 3) foreach (actor send _)
           //
@@ -207,10 +207,10 @@ class ActorSpec extends AnyWordSpec with Matchers {
             Actor[Int, State]("", state) {
               case (int, self) =>
                 self.state.processed add int
-            }.sweep() recover[Int, Throwable] {
+            }.recover[Int, Throwable] {
               case (message, error, actor) =>
                 actor.state.failed add message
-            }
+            }.start().sweep()
 
           (1 to 10) foreach {
             i =>
@@ -248,7 +248,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
                 self.state.processed += int
                 //delay sending message to self so that it does value processed in the same batch
                 self.send(int + 1, 500.millisecond)
-            }.sweep()
+            }.start().sweep()
 
           actor send 1
           sleep(7.second)
@@ -284,7 +284,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
                 self.send(nextMessageAndDelay, 100.millisecond)
                 val nextDelay = int.second
                 println("nextDelay: " + nextDelay)
-            }.sweep()
+            }.start().sweep()
 
           actor send 1
           sleep(10.seconds)
@@ -374,7 +374,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
               Actor.cache[Int, State]("", state, 10, _ => 1) {
                 case (int, self) =>
                   self.state.processed add int
-              }.sweep()
+              }.start().sweep()
 
             (1 to 10) foreach (actor send _)
 
@@ -411,7 +411,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             Actor.timerCache[Int]("", stashCapacity = stash, weigher = _ => 1, interval = 5.second) {
               (int: Int, self: ActorRef[Int, Unit]) =>
                 runs += 1
-            }.sweep()
+            }.start().sweep()
 
           (1 to 10000).par foreach {
             i =>
@@ -445,7 +445,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             Actor.timerLoopCache[Int]("", stash, _ => 1, 5.second) {
               (_: Int, self: ActorRef[Int, Unit]) =>
                 checks += 1
-            }.sweep()
+            }.start().sweep()
 
           (1 to 10000).par foreach {
             i =>
@@ -475,7 +475,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             Actor[ToInt]("") {
               (message, _) =>
                 message.replyTo send message.string.toInt
-            }.sweep()
+            }.start().sweep()
 
           import scala.concurrent.duration._
 
@@ -527,7 +527,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             val actor = Actor[() => Any]("") {
               (run, _) =>
                 run()
-            }.sweep()
+            }.start().sweep()
 
             assertActor(actor)
         }
@@ -540,7 +540,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             val actor = Actor.timer[() => Any]("", 0, 1.second) {
               (run, _) =>
                 run()
-            }.sweep()
+            }.start().sweep()
 
             assertActor(actor)
         }
@@ -560,7 +560,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
               Actor[Int]("") {
                 case (message, self) =>
                   queue add message
-              }.sweep()
+              }.start().sweep()
 
             (1 to 100) foreach {
               i =>
@@ -600,7 +600,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             Actor[Int]("") {
               case (message, self) =>
                 success add message
-            }.sweep() recoverException[Int] {
+            }.recoverException[Int] {
               case (message, error: IO[Throwable, Actor.Error], self) =>
                 error match {
                   case IO.Right(error) =>
@@ -613,7 +613,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
                     exception.printStackTrace()
                     fail(exception)
                 }
-            }
+            }.start().sweep()
 
           (1 to 100) foreach {
             i =>
@@ -712,7 +712,6 @@ class ActorSpec extends AnyWordSpec with Matchers {
 
             val actor =
               noRecoveryActor
-                .sweep()
                 .recoverException[Int] {
                   case (message, error: IO[Throwable, Actor.Error], self) =>
                     error match {
@@ -725,6 +724,8 @@ class ActorSpec extends AnyWordSpec with Matchers {
                         fail(exception)
                     }
                 }
+                .start()
+                .sweep()
 
             //not yet terminated
             actor.isTerminated shouldBe false
