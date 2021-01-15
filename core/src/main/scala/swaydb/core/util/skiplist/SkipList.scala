@@ -65,6 +65,8 @@ private[core] trait SkipList[OK, OV, K <: OK, V <: OV] {
 
   def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)]
 
+  def subMapValues(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[V]
+
   def headKey: OK
   def lastKey: OK
 

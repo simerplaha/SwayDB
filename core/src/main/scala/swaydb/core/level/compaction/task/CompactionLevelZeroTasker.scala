@@ -61,7 +61,7 @@ case object CompactionLevelZeroTasker {
 
         CompactionTask.CompactMaps(
           targetLevel = source,
-          maps = processedMapsIterator.toList,
+          maps = processedMapsIterator,
           tasks = tasks
         )
     }
@@ -113,21 +113,21 @@ case object CompactionLevelZeroTasker {
             case ((takeFrom, fromInclusive), (overlappingMaxKey, stack)) =>
               val overlappingKeyValues =
                 if (valuesIterator.hasNext)
-                  map.cache.skipList.subMap(
+                  map.cache.skipList.subMapValues(
                     from = takeFrom,
                     fromInclusive = fromInclusive,
                     to = overlappingMaxKey.maxKey,
                     toInclusive = overlappingMaxKey.inclusive
                   )
                 else //if it does not has next assign all.
-                  map.cache.skipList.subMap(
+                  map.cache.skipList.subMapValues(
                     from = takeFrom,
                     fromInclusive = fromInclusive,
                     to = mapMaxKey.maxKey,
                     toInclusive = true
                   )
 
-              stack += Right(overlappingKeyValues.map(_._2))
+              stack += Right(overlappingKeyValues)
 
               (overlappingMaxKey.maxKey, !overlappingMaxKey.inclusive)
           }
@@ -139,11 +139,11 @@ case object CompactionLevelZeroTasker {
 
   private def getKeyValues(either: Either[LevelZeroMap, Iterable[Memory]]): (Int, Iterator[Memory]) =
     either match {
-      case Left(value) =>
-        (value.cache.maxKeyValueCount, value.cache.iterator.map(_._2))
+      case Left(zeroMap) =>
+        (zeroMap.cache.maxKeyValueCount, zeroMap.cache.iterator.map(_._2))
 
-      case Right(value) =>
-        (value.size, value.iterator)
+      case Right(keyValues) =>
+        (keyValues.size, keyValues.iterator)
     }
 
   @inline def mergeStack(collections: Iterable[Either[LevelZeroMap, Iterable[Memory]]])(implicit ec: ExecutionContext,

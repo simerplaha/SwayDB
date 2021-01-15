@@ -562,7 +562,35 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     slice
   }
 
-  override def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] = {
+  override def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] =
+    buildSubMap[(K, V)](
+      from = from,
+      fromInclusive = fromInclusive,
+      to = to,
+      toInclusive = toInclusive,
+      mapper = {
+        case keyValue =>
+          keyValue
+      }
+    )
+
+
+  override def subMapValues(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[V] =
+    buildSubMap[V](
+      from = from,
+      fromInclusive = fromInclusive,
+      to = to,
+      toInclusive = toInclusive,
+      mapper = {
+        case (_, value) =>
+          value
+      }
+    )
+  private def buildSubMap[T](from: K,
+                             fromInclusive: Boolean,
+                             to: K,
+                             toInclusive: Boolean,
+                             mapper: (K, V) => T): Iterable[T] = {
     val compare = keyOrder.compare(from, to)
 
     if (compare == 0) {
@@ -571,7 +599,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
         if (found == nullValue)
           Iterable.empty
         else
-          Iterable((from, found.asInstanceOf[V]))
+          Iterable(mapper(from, found.asInstanceOf[V]))
       } else {
         Iterable.empty
       }
@@ -614,14 +642,14 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
       val compare = keyOrder.compare(fromFound.key, toFound.key)
 
       if (compare == 0)
-        Iterable((fromFound.key, fromFound.value))
+        Iterable(mapper(fromFound.key, fromFound.value))
       else if (compare > 0)
         Iterable.empty
       else
-        series.foldLeft(fromFound.index, toFound.index, ListBuffer.empty[(K, V)]) {
+        series.foldLeft(fromFound.index, toFound.index, ListBuffer.empty[T]) {
           case (buffer, keyValue) =>
             if (keyValue.value != null)
-              buffer += ((keyValue.key, keyValue.value))
+              buffer += mapper(keyValue.key, keyValue.value)
             else
               buffer
         }

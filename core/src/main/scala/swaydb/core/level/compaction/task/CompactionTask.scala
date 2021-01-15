@@ -56,7 +56,7 @@ object CompactionTask {
                              tasks: Iterable[Task[Segment]]) extends CompactionTask.Segments
 
   case class CompactMaps(targetLevel: LevelZero,
-                         maps: Iterable[LevelZeroMap],
+                         maps: Iterator[LevelZeroMap],
                          tasks: Iterable[Task[Assignable.Collection]]) extends CompactionTask
 
   case class CollapseSegments(targetLevel: Level,

@@ -138,6 +138,8 @@ private[core] class SkipListConcurrentLimit[OK, OV, K <: OK, V <: OV](limit: Int
 
   override def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] = skipList.subMap(from, fromInclusive, to, toInclusive)
 
+  override def subMapValues(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[V] = skipList.subMapValues(from, fromInclusive, to, toInclusive)
+
   override def foldLeft[R](r: R)(f: (R, (K, V)) => R): R = skipList.foldLeft(r)(f)
 
   override def foreach[R](f: (K, V) => R): Unit = skipList.foreach(f)

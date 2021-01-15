@@ -97,7 +97,7 @@ case object CompactionCommitter extends LazyLogging {
       .and(fromLevel.remove(segments))
 
   def commit(fromLevel: LevelZero,
-             maps: Iterable[LevelZeroMap],
+             maps: TraversableOnce[LevelZeroMap],
              mergeResults: Iterable[(Level, Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]])]): IO[Error.Level, Unit] =
     commitMergeResult(mergeResults)
       .and {

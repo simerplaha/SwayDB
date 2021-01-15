@@ -51,7 +51,7 @@ final class DefActor[+I, S] private(name: String,
                                     initialiser: DefActor[I, S] => I,
                                     interval: Option[(FiniteDuration, Long)],
                                     state: S,
-                                    uniqueId: UUID)(implicit val ec: ExecutionContext) { defActor =>
+                                    val uniqueId: UUID)(implicit val ec: ExecutionContext) { defActor =>
 
   private val impl = initialiser(this)
 
