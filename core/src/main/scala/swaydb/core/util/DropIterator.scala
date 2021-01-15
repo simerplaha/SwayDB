@@ -33,7 +33,7 @@ import swaydb.data.slice.Slice
  * This cannot be immutable as it will add a lot to GC workload.
  *
  * A Segment can easily have over 100,000 key-values to merge and an immutable
- * version of this class would create the same number of of [[DropIterator]] instances in-memory.
+ * version of this class would create the same number of [[DropIterator]] instances in-memory.
  */
 private[core] sealed trait DropIterator[H >: Null <: T, T >: Null] {
 
@@ -72,19 +72,19 @@ private[core] object DropIterator {
   }
 
   class Flat[H >: Null <: T, T >: Null] private[DropIterator](private var headRangeOrNull: H,
-                                                              private var tailHead: T,
+                                                              private var tailHeadOrNull: T,
                                                               private var tailKeyValues: Iterator[T]) extends DropIterator[H, T] {
 
     override val depth: Int = 1
 
     override def headOrNull: T =
       if (headRangeOrNull == null)
-        if (tailHead == null) {
+        if (tailHeadOrNull == null) {
           if (tailKeyValues.hasNext)
-            tailHead = tailKeyValues.next()
-          tailHead
+            tailHeadOrNull = tailKeyValues.next()
+          tailHeadOrNull
         } else {
-          tailHead
+          tailHeadOrNull
         }
       else
         headRangeOrNull
@@ -92,8 +92,8 @@ private[core] object DropIterator {
     def dropHead(): DropIterator.Flat[H, T] = {
       if (headRangeOrNull != null)
         headRangeOrNull = null
-      else if (tailHead != null)
-        tailHead = null
+      else if (tailHeadOrNull != null)
+        tailHeadOrNull = null
       else if (tailKeyValues.hasNext)
         tailKeyValues = tailKeyValues.drop(1)
 
@@ -109,7 +109,7 @@ private[core] object DropIterator {
       val duplicated = DropIterator[H, T](keyValues = right)
 
       if (this.headRangeOrNull != null)
-        duplicated.tailHead = this.tailHead
+        duplicated.tailHeadOrNull = this.tailHeadOrNull
 
       duplicated
     }
@@ -119,11 +119,11 @@ private[core] object DropIterator {
 
       val leftIterator = DropIterator[H, T](keyValues = left)
       leftIterator.headRangeOrNull = this.headRangeOrNull
-      leftIterator.tailHead = this.tailHead
+      leftIterator.tailHeadOrNull = this.tailHeadOrNull
 
       val rightIterator = DropIterator[H, T](keyValues = right)
       rightIterator.headRangeOrNull = this.headRangeOrNull
-      rightIterator.tailHead = this.tailHead
+      rightIterator.tailHeadOrNull = this.tailHeadOrNull
 
       (leftIterator, rightIterator)
     }
@@ -132,12 +132,12 @@ private[core] object DropIterator {
       if (headRangeOrNull != null) {
         headRangeOrNull = head
         this
-      } else if (tailHead != null) {
-        tailHead = head
+      } else if (tailHeadOrNull != null) {
+        tailHeadOrNull = head
         this
       } else {
         tailKeyValues = tailKeyValues.drop(1)
-        tailHead = head
+        tailHeadOrNull = head
         this
       }
 
@@ -150,15 +150,15 @@ private[core] object DropIterator {
         private var placeHolderDone = false
 
         override def hasNext: Boolean =
-          (!headDone && headRangeOrNull != null) || (!placeHolderDone && tailHead != null) || tailKeyValues.hasNext
+          (!headDone && headRangeOrNull != null) || (!placeHolderDone && tailHeadOrNull != null) || tailKeyValues.hasNext
 
         override def next(): T =
           if (!headDone && headRangeOrNull != null) {
             headDone = true
             headRangeOrNull
-          } else if (!placeHolderDone && tailHead != null) {
+          } else if (!placeHolderDone && tailHeadOrNull != null) {
             placeHolderDone = true
-            tailHead
+            tailHeadOrNull
           } else {
             tailKeyValues.next()
           }
