@@ -289,7 +289,7 @@ class SegmentBlockSpec extends TestBase {
           runThis(100.times) {
             val keyValues =
               randomizedKeyValues(keyValueCount, startId = Some(1)) ++
-                Seq(
+                Slice(
                   Memory.Range(
                     fromKey = 20,
                     toKey = 21,

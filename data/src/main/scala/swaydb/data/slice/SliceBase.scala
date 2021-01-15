@@ -318,39 +318,31 @@ abstract class SliceBase[+T](array: Array[T],
    * Do not allow inserting data that is not an Array or Slice
    * so that we always copy arrays.
    */
-  def addAllFastOrError(items: scala.collection.compat.IterableOnce[T]@uncheckedVariance): Slice[T] =
+  def addAllOrFail(items: scala.collection.compat.IterableOnce[T]@uncheckedVariance): Slice[T] =
     items match {
       case array: mutable.WrappedArray[T] =>
-        copyAll[T](array)
+        this.copyAll(array.array, 0, array.length)
 
       case items: Slice[T] =>
-        copyAll[T](items)
+        addAll[T](items)
 
       case items =>
-        throw new Exception(s"Iterable is neither an Array or Slice. ${items.getClass.getName}")
+        //do not allow inserting non copyable types.
+        throw new Exception(s"Iterable is neither an Array or Slice. Actual: ${items.getClass.getName}. A Slice can only insert an Array or Slice types.")
     }
 
   def addAll[B >: T](items: Array[B]): Slice[B] =
-    this.copyAll(items)
+    this.copyAll(items, 0, items.length)
 
   def addAll[B >: T](items: Slice[B]): Slice[B] =
-    this.copyAll(items)
+    this.copyAll(items.unsafeInnerArray, items.fromOffset, items.size)
 
-  private def copyAll[B >: T](items: Iterable[B]): Slice[B] =
-    if (items.nonEmpty) {
-      val futurePosition = writePosition + items.size - 1
+  private def copyAll[B >: T](items: Array[_], fromPosition: Int, itemsSize: Int): Slice[B] =
+    if (itemsSize > 0) {
+      val futurePosition = writePosition + itemsSize - 1
       if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
-      items match {
-        case array: mutable.WrappedArray[T] =>
-          Array.copy(array.array, 0, this.array, currentWritePosition, items.size)
-
-        case items: Slice[T] =>
-          Array.copy(items.unsafeInnerArray, items.fromOffset, this.array, currentWritePosition, items.size)
-
-        case _ =>
-          throw IO.throwable(s"Iterable is neither an Array or Slice. ${items.getClass.getName}")
-      }
-      writePosition += items.size
+      Array.copy(items, fromPosition, this.array, currentWritePosition, itemsSize)
+      writePosition += itemsSize
       written = (writePosition - fromOffset) max written
       selfSlice
     } else {

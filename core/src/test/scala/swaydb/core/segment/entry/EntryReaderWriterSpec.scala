@@ -151,7 +151,7 @@ class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
         )
 
         val sortedIndexReader = Reader(builder.bytes.close())
-        val valueBytes: Slice[Byte] = previous.value.toOptionC ++ next.value.toOptionC
+        val valueBytes: Slice[Byte] = previous.value.getOrElseC(Slice.empty) ++ next.value.getOrElseC(Slice.empty)
         val valuesReaderOrNull = if (valueBytes.isEmpty) null else buildSingleValueReader(valueBytes)
 
         val previousParsedKeyValue =

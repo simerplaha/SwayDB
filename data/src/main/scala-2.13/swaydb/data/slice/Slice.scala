@@ -27,7 +27,6 @@ package swaydb.data.slice
 import swaydb.data.slice.Slice.SliceFactory
 import swaydb.data.util.SomeOrNoneCovariant
 
-import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
 import scala.collection._
 import scala.collection.compat.IterableOnce
@@ -69,7 +68,7 @@ object Slice extends SliceCompanionBase {
     }
 
     override def addAll(xs: IterableOnce[A]): SliceBuilder.this.type = {
-      slice.addAllFastOrError(xs)
+      slice.addAllOrFail(xs)
       this
     }
 

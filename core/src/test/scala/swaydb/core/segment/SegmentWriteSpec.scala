@@ -890,7 +890,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             segments.size should be > 1
 
           segments.foreach(_.existsOnDisk shouldBe true)
-          segments.flatMap(_.iterator()) shouldBe keyValues
+          segments.toList.flatMap(_.iterator()) shouldBe keyValues
       }
     }
 
@@ -929,9 +929,9 @@ sealed trait SegmentWriteSpec extends TestBase {
             segments.foreach(_.existsOnDisk shouldBe true)
 
             if (persistent)
-              segments.flatMap(_.iterator()) shouldBe keyValues //persistent Segments are simply copied and are not checked for removed key-values.
+              segments.toList.flatMap(_.iterator()) shouldBe keyValues //persistent Segments are simply copied and are not checked for removed key-values.
             else
-              segments.flatMap(_.iterator()) shouldBe keyValues.collect { //memory Segments does a split/merge and apply lastLevel rules.
+              segments.toList.flatMap(_.iterator()) shouldBe keyValues.collect { //memory Segments does a split/merge and apply lastLevel rules.
                 case keyValue: Memory.Put if keyValue.hasTimeLeft() =>
                   keyValue
 
@@ -1345,7 +1345,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not value written to disk without splitting.
 
             segments.foreach(_.existsOnDisk shouldBe false)
-            segments.flatMap(_.iterator()) shouldBe keyValues
+            segments.toList.flatMap(_.iterator()) shouldBe keyValues
         }
       }
     }
@@ -1379,7 +1379,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not value written to disk without splitting.
 
             //some key-values could value expired while unexpired key-values are being collected. So try again!
-            segments.flatMap(_.iterator()) shouldBe keyValues.collect {
+            segments.toList.flatMap(_.iterator()) shouldBe keyValues.collect {
               case keyValue: Memory.Put if keyValue.hasTimeLeft() =>
                 keyValue
               case Memory.Range(fromKey, _, put @ Value.Put(_, deadline, _), _) if deadline.forall(_.hasTimeLeft()) =>
@@ -1530,7 +1530,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           newSegments should have size 1
 
-          val allReadKeyValues = newSegments.flatMap(_.iterator())
+          val allReadKeyValues = newSegments.toList.flatMap(_.iterator())
 
           allReadKeyValues should have size 2
 
@@ -1580,7 +1580,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   )
 
                   val expectedKeyValues =
-                    head ++ builder.result ++ tail
+                    head.toList ++ builder.result ++ tail
 
                   (head, mid, tail, TestSegment(mid), expectedKeyValues)
                 } else {
@@ -1623,7 +1623,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
               newSegments.size should be > 1
 
-              newSegments.flatMap(_.iterator()) shouldBe expectedKeyValues
+              newSegments.toList.flatMap(_.iterator()) shouldBe expectedKeyValues
           }
         }
 
@@ -1783,7 +1783,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               pathDistributor = createPathDistributor
             ).result.map(_.sweep())
 
-          updatedSegments.flatMap(_.iterator()).toList shouldBe updatedKeyValues
+          updatedSegments.toList.flatMap(_.iterator()) shouldBe updatedKeyValues
 
         //          assertGet(updatedKeyValues, updatedSegments)
       }
@@ -1843,7 +1843,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             //                mergedSegment.get(keyValue.key, readState).getUnsafe shouldBe keyValue
             //            }
 
-            mergedSegments.flatMap(_.iterator()) shouldBe keyValues2Closed
+            mergedSegments.toList.flatMap(_.iterator()) shouldBe keyValues2Closed
         }
       }
     }
@@ -1913,7 +1913,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 bloomFilterConfig = BloomFilterBlock.Config.random,
                 segmentConfig = SegmentBlock.Config.random,
                 pathDistributor = createPathDistributor
-              ).result.map(_.sweep()).flatMap(_.iterator()).toList
+              ).result.map(_.sweep()).toList.flatMap(_.iterator())
 
             val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Value.remove(None), Value.update(10))) :+ Memory.remove(10)
 
@@ -2124,7 +2124,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 ).map(_.sweep())
               }
 
-            refresh.flatMap(_.iterator()).toList shouldBe keyValues
+            refresh.toList.flatMap(_.iterator()) shouldBe keyValues
         }
       }
     }

@@ -66,7 +66,7 @@ object Slice extends SliceCompanionBase {
     }
 
     override def ++=(xs: TraversableOnce[T]): SliceBuilder.this.type = {
-      slice.addAllFastOrError(xs)
+      slice.addAllOrFail(xs)
       this
     }
 

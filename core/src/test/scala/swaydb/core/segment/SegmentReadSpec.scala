@@ -1044,7 +1044,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
                   )
               )
 
-            val keyValuesWithDeadline = keyValues ++ Seq(keyValueWithDeadline)
+            val keyValuesWithDeadline = keyValues ++ Array(keyValueWithDeadline: Memory)
             val keyValuesNoDeadline = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
 
             val deadlineToExpect = nearestPutDeadline(keyValuesWithDeadline)
