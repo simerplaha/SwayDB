@@ -59,26 +59,19 @@ object Slice extends SliceCompanionBase {
     override def asSliceOption(): SliceOption[Nothing] = this
   }
 
-  class SliceBuilder[A: ClassTag](sizeHint: Int) extends mutable.Builder[A, Slice[A]] {
+  class SliceBuilder[A: ClassTag](maxSize: Int) extends mutable.Builder[A, Slice[A]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-    protected var slice: Slice[A] = Slice.of[A]((sizeHint * 2) max 100)
+    protected var slice: Slice[A] = Slice.of[A](maxSize max 1)
 
-    def extendSlice(by: Int) = {
-      val extendedSlice = Slice.of[A](slice.size * by)
-      extendedSlice addAll slice
-      slice = extendedSlice
+    final override def addOne(x: A): this.type = {
+      slice add x
+      this
     }
 
-    @tailrec
-    final override def addOne(x: A): this.type =
-      try {
-        slice add x
-        this
-      } catch {
-        case _: ArrayIndexOutOfBoundsException => //Extend slice.
-          extendSlice(by = 2)
-          addOne(x)
-      }
+    override def addAll(xs: IterableOnce[A]): SliceBuilder.this.type = {
+      slice.addAllFastOrError(xs)
+      this
+    }
 
     def clear() =
       slice = Slice.of[A](slice.size)
@@ -87,16 +80,16 @@ object Slice extends SliceCompanionBase {
       slice.close()
   }
 
-  class SliceFactory(sizeHint: Int) extends ClassTagIterableFactory[Slice] {
+  class SliceFactory(maxSize: Int) extends ClassTagIterableFactory[Slice] {
 
-    def from[A](source: IterableOnce[A])(implicit evidence: ClassTag[A]): Slice[A] =
+    override def from[A](source: IterableOnce[A])(implicit evidence: ClassTag[A]): Slice[A] =
       (newBuilder[A] ++= source).result()
 
     def empty[A](implicit evidence: ClassTag[A]): Slice[A] =
-      Slice.of[A](sizeHint)
+      Slice.of[A](maxSize)
 
     def newBuilder[A](implicit evidence: ClassTag[A]): mutable.Builder[A, Slice[A]] =
-      new SliceBuilder[A](sizeHint)
+      new SliceBuilder[A](maxSize)
   }
 }
 

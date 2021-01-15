@@ -60,6 +60,9 @@ abstract class SliceBase[+T](array: Array[T],
   override def isEmpty =
     size == 0
 
+  override def nonEmpty =
+    !isEmpty
+
   def isFull =
     size == allocatedSize
 
@@ -310,6 +313,22 @@ abstract class SliceBase[+T](array: Array[T],
     written = (writePosition - fromOffset) max written
     selfSlice
   }
+
+  /**
+   * Do not allow inserting data that is not an Array or Slice
+   * so that we always copy arrays.
+   */
+  def addAllFastOrError(items: scala.collection.compat.IterableOnce[T]@uncheckedVariance): Slice[T] =
+    items match {
+      case array: mutable.WrappedArray[T] =>
+        copyAll[T](array)
+
+      case items: Slice[T] =>
+        copyAll[T](items)
+
+      case items =>
+        throw new Exception(s"Iterable is neither an Array or Slice. ${items.getClass.getName}")
+    }
 
   def addAll[B >: T](items: Array[B]): Slice[B] =
     this.copyAll(items)

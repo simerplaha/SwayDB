@@ -352,9 +352,9 @@ trait SliceCompanionBase {
       sliced.asInstanceOf[Slice[java.lang.Byte]]
   }
 
-  @inline final def newBuilder[T: ClassTag](sizeHint: Int): Slice.SliceBuilder[T] =
-    new slice.Slice.SliceBuilder[T](sizeHint)
+  @inline final def newBuilder[T: ClassTag](maxSize: Int): Slice.SliceBuilder[T] =
+    new slice.Slice.SliceBuilder[T](maxSize)
 
-  @inline private[swaydb] final def newAggregator[T: ClassTag](sizeHint: Int): Aggregator[T, Slice[T]] =
-    Aggregator.fromBuilder[T, Slice[T]](newBuilder[T](sizeHint))
+  @inline private[swaydb] final def newAggregator[T: ClassTag](maxSize: Int): Aggregator[T, Slice[T]] =
+    Aggregator.fromBuilder[T, Slice[T]](newBuilder[T](maxSize))
 }

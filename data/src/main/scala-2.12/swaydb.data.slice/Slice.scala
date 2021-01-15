@@ -26,9 +26,8 @@ package swaydb.data.slice
 
 import swaydb.data.util.SomeOrNoneCovariant
 
-import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
-import scala.collection.{IterableLike, mutable}
+import scala.collection.mutable
 import scala.reflect.ClassTag
 
 /**
@@ -57,26 +56,19 @@ object Slice extends SliceCompanionBase {
     override def asSliceOption(): SliceOption[Nothing] = this
   }
 
-  class SliceBuilder[T: ClassTag](sizeHint: Int) extends mutable.Builder[T, Slice[T]] {
+  class SliceBuilder[T: ClassTag](maxSize: Int) extends mutable.Builder[T, Slice[T]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-    protected var slice: Slice[T] = Slice.of[T]((sizeHint * 2) max 100)
+    protected var slice: Slice[T] = Slice.of[T](maxSize max 1)
 
-    def extendSlice(by: Int) = {
-      val extendedSlice = Slice.of[T](slice.size * by)
-      extendedSlice addAll slice
-      slice = extendedSlice
+    final def +=(x: T): this.type = {
+      slice add x
+      this
     }
 
-    @tailrec
-    final def +=(x: T): this.type =
-      try {
-        slice add x
-        this
-      } catch {
-        case _: ArrayIndexOutOfBoundsException => //Extend slice.
-          extendSlice(by = 2)
-          +=(x)
-      }
+    override def ++=(xs: TraversableOnce[T]): SliceBuilder.this.type = {
+      slice.addAllFastOrError(xs)
+      this
+    }
 
     def clear() =
       slice = Slice.of[T](slice.size)
@@ -91,7 +83,7 @@ object Slice extends SliceCompanionBase {
         new SliceBuilder[T](from.size)
 
       def apply() =
-        new SliceBuilder[T](100)
+        throw new Exception("Cannot create slice without size defined")
     }
 }
 
@@ -124,6 +116,6 @@ class Slice[+T] private[slice](array: Array[T],
     this
 
   override protected[this] def newBuilder: scala.collection.mutable.Builder[T, Slice[T]] =
-    new Slice.SliceBuilder[T](array.length max 100)
+    new Slice.SliceBuilder[T](this.size max 1)
 
 }
