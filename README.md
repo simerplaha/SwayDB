@@ -18,14 +18,6 @@
 
 [Documentation](http://swaydb.io) | [License summary](#license-summary)
 
-## Performance
-
-| Storage  type  | Performance                               
-|:---------------|:------------------------------------------------------
-| Persistent     | up to `863,000` reads/sec & `482,000` writes/sec                 
-| Memory         | TODO                
-
-
 ## Overview
 
 - Data types - `Map`, `Set`, `Queue`, `SetMap` & `MultiMap` with native Java and Scala collections support.
@@ -62,12 +54,12 @@ Contributions are encouraged and very welcomed following the [Scala code of cond
 
 ### Where to start?
 
-#### SwayDB API 
-- Start your own database by building new data-structure eg: Graph, List, Logs etc.
-- Help with testing SwayDB
+#### API 
+- Build new data-structure eg: Graph, List, Geospatial, Logs etc.
+- Test existing data-structures.
 
 #### Core API 
-Have a look at issues labelled [good first issue](https://github.com/simerplaha/SwayDB/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+See issues labelled - [good first issue](https://github.com/simerplaha/SwayDB/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
 
 #### Core internals
 See code marked `TODO`.  
