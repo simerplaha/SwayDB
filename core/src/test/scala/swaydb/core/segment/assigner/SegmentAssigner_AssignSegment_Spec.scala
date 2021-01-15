@@ -403,7 +403,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
 
             //input all Segments and gap Segments flattened
             val inputSegments =
-              gapedSegment flatMap {
+              gapedSegment.flatMap[Segment] {
                 case (headGap, midKeyValues, tailGap) =>
                   Slice(headGap, midKeyValues, tailGap)
               }

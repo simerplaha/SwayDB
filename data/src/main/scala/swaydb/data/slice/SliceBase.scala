@@ -684,6 +684,12 @@ abstract class SliceBase[+T](array: Array[T],
     merged
   }
 
+  /**
+   * Avoid using the generic flatMap
+   * implementation so that we always restrict the API to
+   * use Slices which has better support for copying
+   * the arrays content directly to target Slice.
+   */
   def flatMap[B: ClassTag](f: T => Slice[B]): Slice[B] =
     if (self.isEmpty) {
       Slice.empty[B]
@@ -704,7 +710,29 @@ abstract class SliceBase[+T](array: Array[T],
           result add f(item)
       }
 
-      result.flatten
+      result.flattenSlice[B]
+    }
+
+  def flatMapOption[B: ClassTag](f: T => Option[B]): Slice[B] =
+    if (self.isEmpty) {
+      Slice.empty[B]
+    } else if (self.size == 1) {
+      f(head) match {
+        case Some(value) =>
+          Slice(value)
+
+        case None =>
+          Slice.empty[B]
+      }
+    } else {
+      val result = Slice.of[B](self.size)
+
+      this foreach {
+        item =>
+          f(item) foreach result.add
+      }
+
+      result
     }
 
   def flattenSlice[B: ClassTag](implicit evd: T <:< Slice[B]): Slice[B] = {
