@@ -65,16 +65,22 @@ Contributions are encouraged and welcomed.
 foundation's [COC](https://www.apache.org/foundation/policies/conduct.html).
 
 - **Contributing to data management API**
-    - Build new data structures like Graph, List, Geospatial, Logs, Observables etc on top of existing data structures.
-      See [MultiMap](https://github.com/simerplaha/SwayDB/blob/master/swaydb/src/main/scala/swaydb/MultiMap.scala) for
-      example which is an extension
+    - Build new data structures extending existing data structures.
+      See [MultiMap](https://github.com/simerplaha/SwayDB/blob/master/swaydb/src/main/scala/swaydb/MultiMap.scala)
+      for example which is an extension
       of [Map](https://github.com/simerplaha/SwayDB/blob/master/swaydb/src/main/scala/swaydb/Map.scala).
+        - Graph
+        - List
+        - Geospatial
+        - Logs
+        - Observables
+        - Full-text search
+        - etc
     - Test and improve existing data structures.
 
 - **Contributing to core API**
     - See issues
-      labelled [good first issue](https://github.com/simerplaha/SwayDB/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-      .
+      labelled [good first issue](https://github.com/simerplaha/SwayDB/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
 
 - **Contributing to core internals**
     - See code marked `TODO`.
