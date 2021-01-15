@@ -381,7 +381,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
     bag.suspend(core.clearAppliedAndRegisteredFunctions())
 
   override def isFunctionApplied(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): Boolean =
-    core.isFunctionApplied(Slice.writeString[Byte](function.asInstanceOf[PureFunction.Map[K, V]].id))
+    core.isFunctionApplied(Slice.writeString[Byte](function.id))
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.
