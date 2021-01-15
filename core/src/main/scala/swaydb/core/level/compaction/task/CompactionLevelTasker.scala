@@ -37,9 +37,9 @@ case object CompactionLevelTasker {
    * @return optimal [[Segment]]s to compact to
    *         control the overflow.
    */
-  @inline def run(source: Level,
-                  nextLevels: NonEmptyList[Level],
-                  sourceOverflow: Long): CompactionTask.CompactSegments = {
+  def run(source: Level,
+          nextLevels: NonEmptyList[Level],
+          sourceOverflow: Long): CompactionTask.CompactSegments = {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
 
     val tasks =
@@ -52,8 +52,35 @@ case object CompactionLevelTasker {
     CompactionTask.CompactSegments(source, tasks)
   }
 
-  @inline def run(source: Level): CompactionTask.CompactSegments = {
-    implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
-    ???
+  def cleanup(level: Level,
+              lockedLastLevel: Level): Option[CompactionTask.Cleanup] =
+    runRefresh(level, lockedLastLevel) orElse runCollapse(level)
+
+  def runRefresh(level: Level,
+                 lockedLastLevel: Level): Option[CompactionTask.RefreshSegments] =
+    if (level.levelNumber == lockedLastLevel.levelNumber) {
+      val segments =
+        level
+          .segments()
+          .filter(_.nearestPutDeadline.exists(!_.hasTimeLeft()))
+
+      if (segments.isEmpty)
+        None
+      else
+        Some(CompactionTask.RefreshSegments(level, segments))
+    } else {
+      None
+    }
+
+  def runCollapse(level: Level): Option[CompactionTask.CollapseSegments] = {
+    val segments =
+      level
+        .segments()
+        .filter(Level.isSmallSegment(_, level.minSegmentSize))
+
+    if (segments.isEmpty)
+      None
+    else
+      Some(CompactionTask.CollapseSegments(level, segments))
   }
 }

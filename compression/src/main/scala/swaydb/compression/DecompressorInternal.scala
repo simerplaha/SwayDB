@@ -83,9 +83,9 @@ private[swaydb] object DecompressorInternal {
   def apply(id: DecompressorId): DecompressorInternal =
     id match {
       //@formatter:off
-      case DecompressorId.Snappy.Default =>                           Snappy
-      case DecompressorId.UnCompressed =>                        UnCompressed
-      case id: DecompressorId.LZ4DecompressorId =>                    DecompressorInternal(id)
+      case DecompressorId.Snappy.Default =>         Snappy
+      case DecompressorId.UnCompressed =>           UnCompressed
+      case id: DecompressorId.LZ4DecompressorId =>  DecompressorInternal(id)
       //@formatter:on
     }
 

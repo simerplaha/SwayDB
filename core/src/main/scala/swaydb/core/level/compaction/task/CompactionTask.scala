@@ -41,6 +41,7 @@ sealed trait CompactionTask {
 object CompactionTask {
 
   sealed trait Segments extends CompactionTask
+  sealed trait Cleanup extends Segments
 
   /**
    * Compaction task which is executed to perform compaction.
@@ -54,14 +55,15 @@ object CompactionTask {
   case class CompactSegments(targetLevel: Level,
                              tasks: Iterable[Task[Segment]]) extends CompactionTask.Segments
 
-  case class CollapseSegments(targetLevel: Level,
-                              segments: Iterable[Segment]) extends CompactionTask.Segments
-
-  case class RefreshSegments(targetLevel: Level,
-                             segments: Iterable[Segment]) extends CompactionTask.Segments
-
   case class CompactMaps(targetLevel: LevelZero,
                          maps: Iterable[LevelZeroMap],
                          tasks: Iterable[Task[Assignable.Collection]]) extends CompactionTask
+
+  case class CollapseSegments(targetLevel: Level,
+                              segments: Iterable[Segment]) extends Cleanup
+
+  case class RefreshSegments(targetLevel: Level,
+                             segments: Iterable[Segment]) extends Cleanup
+
 
 }

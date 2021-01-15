@@ -29,7 +29,7 @@ import swaydb.ActorWire
 import swaydb.core.level._
 import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.lock.LastLevelLocker
-import swaydb.core.level.compaction.task.{CompactionLevelTasker, CompactionLevelZeroTasker}
+import swaydb.core.level.compaction.task.{CompactionLevelTasker, CompactionLevelZeroTasker, CompactionTask}
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorState, ThrottleLevelOrdering, ThrottleLevelState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.data.NonEmptyList
@@ -315,37 +315,51 @@ private[throttle] object ThrottleWakeUpBehavior extends LazyLogging {
         )
       }
     } else {
-      val tasks =
-        if (nextLevels.isEmpty)
-          CompactionLevelTasker.run(source = level)
-        else
+      def runTask(task: CompactionTask.Segments): Future[ThrottleLevelState] =
+        CompactionTaskBehaviour.runSegmentTask(
+          task = task,
+          lockedLastLevel = lockedLastLevel
+        ) mapUnit {
+          //if after running last Level compaction there is still an overflow request extension.
+          if (level.levelNumber == lockedLastLevel.levelNumber && level.nextLevel.isDefined && level.nextCompactionDelay.fromNow.isOverdue()) {
+            locker.send(_.set(level.nextLevel.get.asInstanceOf[Level], self))
+            ThrottleLevelState.AwaitingExtension(stateId)
+          } else {
+            LevelSleepStates.success(
+              level = level,
+              stateId = stateId
+            )
+          }
+        } recover {
+          case _ =>
+            LevelSleepStates.failure(
+              level = level,
+              stateId = stateId
+            )
+        }
+
+      if (level.levelNumber == lockedLastLevel.levelNumber) {
+        CompactionLevelTasker.cleanup(level = level, lockedLastLevel = lockedLastLevel) match {
+          case Some(task) =>
+            runTask(task)
+
+          case None =>
+            Future.successful {
+              LevelSleepStates.success(
+                level = level,
+                stateId = stateId
+              )
+            }
+        }
+      } else {
+        val tasks =
           CompactionLevelTasker.run(
             source = level,
             nextLevels = NonEmptyList(nextLevels.head, nextLevels.dropHead()),
-            sourceOverflow = level.compactDataSize
+            sourceOverflow = level.compactDataSize max level.minSegmentSize
           )
 
-      CompactionTaskBehaviour.runSegmentTask(
-        task = tasks,
-        lockedLastLevel = lockedLastLevel
-      ) mapUnit {
-        //if after running last Level compaction there is still an overflow request extension.
-        if (nextLevels.isEmpty && level.nextLevel.isDefined && level.nextCompactionDelay.fromNow.isOverdue()) {
-          locker.send(_.set(level.nextLevel.get.asInstanceOf[Level], self))
-          ThrottleLevelState.AwaitingExtension(stateId)
-        } else {
-          LevelSleepStates.success(
-            level = level,
-            stateId = stateId
-          )
-        }
-      } recover {
-        case _ =>
-          LevelSleepStates.failure(
-            level = level,
-            stateId = stateId
-          )
+        runTask(tasks)
       }
     }
-
 }

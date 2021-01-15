@@ -53,6 +53,14 @@ private[throttle] object CompactionTaskBehaviour extends LazyLogging {
       case task: CompactionTask.CompactSegments =>
         runSegmentTask(task = task, lockedLastLevel = lockedLastLevel)
 
+      case task: CompactionTask.Cleanup =>
+        runCleanupTask(task = task, lockedLastLevel = lockedLastLevel)
+    }
+
+  private[throttle] def runCleanupTask(task: CompactionTask.Cleanup,
+                                       lockedLastLevel: Level)(implicit ec: ExecutionContext,
+                                                               committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
+    task match {
       case task: CompactionTask.CollapseSegments =>
         runSegmentTask(task = task, lockedLastLevel = lockedLastLevel)
 
