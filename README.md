@@ -76,6 +76,7 @@ foundation's [COC](https://www.apache.org/foundation/policies/conduct.html).
         - Observables
         - Full-text search
         - etc
+    - Add support for external serialising libraries. 
     - Test and improve existing data structures.
 
 - **Contributing to core API**
