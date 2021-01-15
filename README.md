@@ -27,12 +27,12 @@
 - Data types - `Map`, `Set`, `Queue`, `SetMap` & `MultiMap` with native Java and Scala collections support.
 - Conditional updates using any pure [JVM function](http://swaydb.io/api/pure-functions/?language=java) - **No query
   language**.
-- Atomic updates and inserts with `Transaction`.
+- Atomic updates and inserts with `Transaction` API.
 - **Non-blocking core** with configurable APIs for blocking, non-blocking and/or reactive use-cases.
 - Single or multiple disks persistent, in-memory or eventually persistent.
-- Streaming support for forward and reverse iterations.
-- TTL - auto [expiring](http://www.swaydb.io/api/write/expire/) key-values.
-- Range operations to update, remove & expire data.
+- [Streams](http://swaydb.io/api/stream/?language=java) - Asnc & sync forward and reverse data streaming/iteration.
+- TTL - non-blocking, non-polling asynchronous auto [expiring](http://swaydb.io/api/expire/?language=java) key-values.
+- Range operations to update, remove & expire a range of key-values.
 - Key only iterations (Lazily fetched values).
 - [Configurable compression](http://swaydb.io/configuration/compressions/?language=scala) with LZ4 & Snappy
 - Highly configurable core internals to support custom workloads.
