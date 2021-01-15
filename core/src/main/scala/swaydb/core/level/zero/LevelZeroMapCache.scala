@@ -190,6 +190,9 @@ private[core] class LevelZeroMapCache private(@volatile private var state: Level
   override def iterator: Iterator[(Slice[Byte], Memory)] =
     state.skipList.iterator
 
+  def valuesIterator(): Iterator[Memory] =
+    state.skipList.valuesIterator
+
   @inline private def getRangeKeys(memory: Memory): (Slice[Byte], Slice[Byte], Boolean) =
     memory match {
       case fixed: Memory.Fixed =>

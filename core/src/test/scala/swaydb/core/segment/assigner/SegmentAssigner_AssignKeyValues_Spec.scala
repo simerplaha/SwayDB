@@ -193,7 +193,7 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
 
         val result =
           SegmentAssigner.assignUnsafeNoGaps(
-            assignables =
+            keyValues =
               Slice(
                 randomFixedKeyValue(10),
                 randomRangeKeyValue(11, 20),

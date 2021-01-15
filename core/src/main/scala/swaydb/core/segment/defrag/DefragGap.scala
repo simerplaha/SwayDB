@@ -135,7 +135,7 @@ private[segment] object DefragGap {
     if ((hasNext && DefragCommon.isSegmentSmall(segment)) || mergeStatsSizeCalculator.isStatsOrNullSmall(statsOrNull))
       segment match {
         case many: PersistentSegmentMany =>
-          val refIterator = many.segmentRefsIterator()
+          val refIterator = many.segmentRefs()
 
           refIterator.foldLeft(statsOrNull) {
             case (statsOrNull, segmentRef) =>
@@ -195,7 +195,7 @@ private[segment] object DefragGap {
     if (removeDeletes && segment.hasUpdateOrRange)
       segment match {
         case segment: PersistentSegmentMany =>
-          segment.segmentRefsIterator().foldLeft(statsOrNull) {
+          segment.segmentRefs().foldLeft(statsOrNull) {
             case (lastMergeStatsOrNull, ref) =>
               addRemoteSegmentRef(
                 ref = ref,

@@ -65,12 +65,13 @@ class SegmentMerge_Performance_Spec extends TestBase {
     //run multiple times because first is warmup
     runThis(4.times, log = true) {
       Benchmark(s"SegmentMerger performance") {
-        KeyValueMerger.merge(
-          newKeyValues = keyValues,
-          oldKeyValues = keyValues,
-          stats = MergeStats.persistent(Aggregator.listBuffer),
-          isLastLevel = false
-        )
+        //        KeyValueMerger.merge(
+        //          newKeyValues = keyValues,
+        //          oldKeyValues = keyValues,
+        //          stats = MergeStats.persistent(Aggregator.listBuffer),
+        //          isLastLevel = false
+        //        )
+        ???
       }
     }
   }

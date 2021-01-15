@@ -50,13 +50,11 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
 
     "store key-values" in {
       list.depth shouldBe 1
-      list.size shouldBe 3
     }
 
     "drop" in {
       list = list.dropHead()
       list.depth shouldBe 1
-      list.size shouldBe 2
 
       val expect = Slice[KeyValue](2, 3)
       list.iterator.toSeq shouldBe expect
@@ -66,7 +64,6 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
     "dropAppend" in {
       list = list.dropPrepend(range)
       list.depth shouldBe 1
-      list.size shouldBe 2
 
       val expect = Slice[KeyValue](range, 3)
       list.iterator.toList shouldBe expect
@@ -76,7 +73,6 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
     "merge" in {
       list = list append DropIterator(Slice[KeyValue](4, 5, 6))
       list.depth shouldBe 2
-      list.size shouldBe 5
 
       val expect = Slice[KeyValue](range, 3, 4, 5, 6)
       list.iterator.toList shouldBe expect
@@ -86,7 +82,6 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
     "drop range" in {
       list = list.dropHead()
       list.depth shouldBe 1
-      list.size shouldBe 4
 
       val expect = Slice[KeyValue](3, 4, 5, 6)
       list.iterator.toList shouldBe expect
@@ -96,7 +91,6 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
     "drop again & depth should be 1 since all the key-values from first list are removed" in {
       list = list.dropHead()
       list.depth shouldBe 1
-      list.size shouldBe 3
       var expect = Slice[KeyValue](4, 5, 6)
       list.iterator.toList shouldBe expect
       list = DropIterator(expect)
@@ -104,7 +98,6 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
       //drop again, depth goes down to 1
       list = list.dropHead()
       list.depth shouldBe 1
-      list.size shouldBe 2
       expect = Slice[KeyValue](5, 6)
       list.iterator.toList shouldBe expect
       list = DropIterator(expect)
@@ -112,7 +105,6 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
       //drop again
       list = list.dropHead()
       list.depth shouldBe 1
-      list.size shouldBe 1
       expect = Slice[KeyValue](6)
       list.iterator.toList shouldBe expect
       list = DropIterator(expect)
@@ -120,8 +112,7 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
       //drop again
       list = list.dropHead()
       list.depth shouldBe 1
-      list.size shouldBe 0
-      list should have size 0
+      list.iterator shouldBe empty
     }
   }
 
@@ -137,13 +128,11 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
 
     "store key-values" in {
       list.depth shouldBe 4
-      list.size shouldBe 8
     }
 
     "drop" in {
       list = list.dropHead()
       list.depth shouldBe 4
-      list.size shouldBe 7
       val expect = Slice[KeyValue](2, 3, 4, 5, 6, 7, 8)
       list.iterator.toList shouldBe expect
       list = DropIterator(expect)
@@ -152,7 +141,6 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
     "dropAppend" in {
       list = list.dropPrepend(range)
       list.depth shouldBe 1
-      list.size shouldBe 7
       val expect = Slice[KeyValue](range, 3, 4, 5, 6, 7, 8)
       list.iterator.toList shouldBe expect
       list = DropIterator(expect)
@@ -161,7 +149,6 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
     "merge" in {
       list = DropIterator[KeyValue.Range, KeyValue](Slice[KeyValue](9)) append list
       list.depth shouldBe 2
-      list.size shouldBe 8
       val expect = Slice[KeyValue](9, range, 3, 4, 5, 6, 7, 8)
       list.iterator.toList shouldBe expect
       list = DropIterator(expect)
@@ -170,14 +157,12 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
     "drop 2" in {
       list = list.dropHead()
       list.depth shouldBe 1
-      list.size shouldBe 7
       var expect = Slice[KeyValue](range, 3, 4, 5, 6, 7, 8)
       list.iterator.toList shouldBe expect
       list = DropIterator(expect)
 
       list = list.dropHead()
       list.depth shouldBe 1
-      list.size shouldBe 6
       expect = Slice[KeyValue](3, 4, 5, 6, 7, 8)
       list.iterator.toList shouldBe expect
       list = DropIterator(expect)
@@ -185,7 +170,6 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
       list = list.dropHead()
       list = list.dropHead()
       list.depth shouldBe 1
-      list.size shouldBe 4
       expect = Slice[KeyValue](5, 6, 7, 8)
       list.iterator.toList shouldBe expect
       list = DropIterator(expect)
@@ -195,31 +179,26 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
       list = list.dropHead()
       list = list.dropHead()
       list.depth shouldBe 1
-      list.size shouldBe 0
     }
 
     "merge when empty" in {
       list = list append list append list append list append DropIterator(Slice[KeyValue](9))
       list.depth shouldBe 1
-      list.size shouldBe 1
       var expect = Slice[KeyValue](9)
       list.iterator.toList shouldBe expect
       list = DropIterator(expect)
 
       list.dropHead()
       list.depth shouldBe 1
-      list.size shouldBe 0
 
       list = DropIterator[KeyValue.Range, KeyValue](Slice[KeyValue](1)) append list append list append list append list
       list.depth shouldBe 1
-      list.size shouldBe 1
       expect = Slice[KeyValue](1)
       list.iterator.toList shouldBe expect
       list = DropIterator(expect)
 
       list.dropHead()
       list.depth shouldBe 1
-      list.size shouldBe 0
     }
   }
 

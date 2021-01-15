@@ -737,7 +737,7 @@ private[core] case object Segment extends LazyLogging {
         val listSegmentSize = segmentSizeForMerge(segment.listSegmentCache.value(()))
 
         //1+ for formatId
-        segment.segmentRefsIterator().foldLeft(1 + listSegmentSize) {
+        segment.segmentRefs().foldLeft(1 + listSegmentSize) {
           case (size, ref) =>
             size + segmentSizeForMerge(ref)
         }
@@ -1036,9 +1036,9 @@ private[core] case object Segment extends LazyLogging {
       } yield {
         val assignments =
           if (keyOrder.equiv(head.key, last.key))
-            SegmentAssigner.assignUnsafeNoGaps(assignables = Slice(head), segments = appendixSegments)
+            SegmentAssigner.assignUnsafeNoGaps(keyValues = Slice(head), segments = appendixSegments)
           else
-            SegmentAssigner.assignUnsafeNoGaps(assignables = Slice(head, last), segments = appendixSegments)
+            SegmentAssigner.assignUnsafeNoGaps(keyValues = Slice(head, last), segments = appendixSegments)
 
         Segment.overlaps(
           segments1 = busySegments,

@@ -98,7 +98,7 @@
 //              nullSegment = SegmentRef.Null,
 //              segments = many.segmentRefsIterator(),
 //              assignableCount = 0,
-//              assignables = Iterator.empty,
+//              keyValues = Iterator.empty,
 //              removeDeletes = false,
 //              createdInLevel = 1
 //            ).await
@@ -162,7 +162,7 @@
 //              nullSegment = SegmentRef.Null,
 //              segments = many.segmentRefsIterator(),
 //              assignableCount = keyValuesToMerge.size,
-//              assignables = keyValuesToMerge.iterator,
+//              keyValues = keyValuesToMerge.iterator,
 //              removeDeletes = false,
 //              createdInLevel = 1
 //            ).awaitInf

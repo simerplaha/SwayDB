@@ -739,22 +739,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     }
   }
 
-
-  @inline def segmentRefsMutable(): ListBuffer[SegmentRef] = {
-    val buffer = ListBuffer.empty[SegmentRef]
-
-    segmentRefsIterator() foreach {
-      ref =>
-        buffer += ref
-    }
-
-    buffer
-  }
-
-  @inline def headSegmentRef(): SegmentRef =
-    segmentRefsIterator().next()
-
-  @inline def segmentRefsIterator(): Iterator[SegmentRef] =
+  @inline def segmentRefs(): Iterator[SegmentRef] =
     new Iterator[SegmentRef] {
       //TODO - do not read sortedIndexBlock if the SegmentRef is already cached in-memory.
       var nextRef: SegmentRef = _
@@ -837,8 +822,7 @@ protected case class PersistentSegmentMany(file: DBFile,
    */
   def put(headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-          mergeableCount: Int,
-          mergeable: Iterator[Assignable],
+          newKeyValues: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -859,8 +843,7 @@ protected case class PersistentSegmentMany(file: DBFile,
       headGap = headGap,
       tailGap = tailGap,
       segment = this,
-      mergeableCount = mergeableCount,
-      mergeables = mergeable,
+      newKeyValues = newKeyValues,
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel
     )
@@ -992,7 +975,7 @@ protected case class PersistentSegmentMany(file: DBFile,
   }
 
   override def iterator(): Iterator[Persistent] =
-    segmentRefsIterator().flatMap(_.iterator())
+    segmentRefs().flatMap(_.iterator())
 
   override def isFooterDefined: Boolean =
     segmentsCache.asScala.values.exists(_.isFooterDefined)
@@ -1010,7 +993,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     !file.existsOnDisk
 
   def hasBloomFilter: Boolean =
-    segmentRefsIterator().exists(_.hasBloomFilter)
+    segmentRefs().exists(_.hasBloomFilter)
 
   def clearCachedKeyValues(): Unit =
     segmentsCache

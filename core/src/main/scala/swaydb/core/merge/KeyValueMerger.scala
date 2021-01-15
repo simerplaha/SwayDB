@@ -88,7 +88,6 @@ private[core] object KeyValueMerger extends LazyLogging {
   def merge[T[_]](headGap: Iterable[Assignable],
                   tailGap: Iterable[Assignable],
                   newKeyValues: Slice[KeyValue],
-                  oldKeyValuesCount: Int,
                   oldKeyValues: Iterator[KeyValue],
                   stats: MergeStats[Memory, T],
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -98,16 +97,14 @@ private[core] object KeyValueMerger extends LazyLogging {
       headGap = headGap,
       tailGap = tailGap,
       newKeyValues = DropIterator[Memory.Range, Assignable](newKeyValues),
-      oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValuesCount, oldKeyValues),
+      oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValues),
       builder = stats,
       isLastLevel = isLastLevel
     )
 
   def merge[T[_]](headGap: Iterable[Assignable],
                   tailGap: Iterable[Assignable],
-                  mergeableCount: Int,
-                  mergeable: Iterator[Assignable],
-                  oldKeyValuesCount: Int,
+                  newKeyValues: Iterator[Assignable],
                   oldKeyValues: Iterator[KeyValue],
                   stats: MergeStats[Memory, T],
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -116,13 +113,13 @@ private[core] object KeyValueMerger extends LazyLogging {
     merge(
       headGap = headGap,
       tailGap = tailGap,
-      newKeyValues = DropIterator[Memory.Range, Assignable](mergeableCount, mergeable),
-      oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValuesCount, oldKeyValues),
+      newKeyValues = DropIterator[Memory.Range, Assignable](newKeyValues),
+      oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValues),
       builder = stats,
       isLastLevel = isLastLevel
     )
 
-  def mergeAssignable[T[_]](mergeable: Slice[Assignable],
+  def mergeAssignable[T[_]](newKeyValues: Slice[Assignable],
                             oldKeyValues: Slice[KeyValue],
                             stats: MergeStats[Memory, T],
                             isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -131,15 +128,13 @@ private[core] object KeyValueMerger extends LazyLogging {
     merge(
       headGap = Assignable.emptyIterable,
       tailGap = Assignable.emptyIterable,
-      newKeyValues = DropIterator[Memory.Range, Assignable](mergeable),
+      newKeyValues = DropIterator[Memory.Range, Assignable](newKeyValues),
       oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValues),
       builder = stats,
       isLastLevel = isLastLevel
     )
 
-  def merge[T[_]](newKeyValuesCount: Int,
-                  newKeyValues: Iterator[Assignable],
-                  oldKeyValuesCount: Int,
+  def merge[T[_]](newKeyValues: Iterator[Assignable],
                   oldKeyValues: Iterator[KeyValue],
                   stats: MergeStats[Memory, T],
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -148,8 +143,8 @@ private[core] object KeyValueMerger extends LazyLogging {
     merge(
       headGap = Assignable.emptyIterable,
       tailGap = Assignable.emptyIterable,
-      newKeyValues = DropIterator[Memory.Range, Assignable](newKeyValuesCount, newKeyValues),
-      oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValuesCount, oldKeyValues),
+      newKeyValues = DropIterator[Memory.Range, Assignable](newKeyValues),
+      oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValues),
       builder = stats,
       isLastLevel = isLastLevel
     )
@@ -197,7 +192,7 @@ private[core] object KeyValueMerger extends LazyLogging {
          */
 
         case collection: Assignable.Collection =>
-          val expanded = DropIterator[Memory.Range, Assignable](collection.keyValueCount, collection.iterator())
+          val expanded = DropIterator[Memory.Range, Assignable](collection.iterator())
           val newIterator = expanded append newKeyValues.dropHead()
 
           doMerge(newIterator, oldKeyValues)

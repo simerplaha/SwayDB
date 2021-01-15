@@ -45,8 +45,6 @@ private[core] sealed trait DropIterator[H >: Null <: T, T >: Null] {
 
   def depth: Int
 
-  def size: Int
-
   def isEmpty: Boolean
 
   def iterator: Iterator[T]
@@ -55,13 +53,13 @@ private[core] sealed trait DropIterator[H >: Null <: T, T >: Null] {
 private[core] object DropIterator {
 
   @inline final def empty[H >: Null <: T, T >: Null] =
-    new Flat[H, T](0, null, null, Iterator.empty)
+    new Flat[H, T](null, null, Iterator.empty)
 
   @inline final def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): DropIterator.Flat[H, T] =
-    new Flat[H, T](keyValues.size, null, null, keyValues.iterator)
+    new Flat[H, T](null, null, keyValues.iterator)
 
-  @inline final def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): DropIterator.Flat[H, T] =
-    new Flat[H, T](size, null, null, keyValues)
+  @inline final def apply[H >: Null <: T, T >: Null](keyValues: Iterator[T]): DropIterator.Flat[H, T] =
+    new Flat[H, T](null, null, keyValues)
 
   implicit class DropIteratorImplicit[H >: Null <: T, T >: Null](left: DropIterator[H, T]) {
     @inline final def append(right: DropIterator[H, T]): DropIterator[H, T] =
@@ -73,8 +71,7 @@ private[core] object DropIterator {
         new Nest(left, right)
   }
 
-  class Flat[H >: Null <: T, T >: Null] private[DropIterator](var size: Int,
-                                                              private var headRangeOrNull: H,
+  class Flat[H >: Null <: T, T >: Null] private[DropIterator](private var headRangeOrNull: H,
                                                               private var tailHead: T,
                                                               private var tailKeyValues: Iterator[T]) extends DropIterator[H, T] {
 
@@ -93,16 +90,12 @@ private[core] object DropIterator {
         headRangeOrNull
 
     def dropHead(): DropIterator.Flat[H, T] = {
-      if (headRangeOrNull != null) {
+      if (headRangeOrNull != null)
         headRangeOrNull = null
-        size -= 1
-      } else if (tailHead != null) {
+      else if (tailHead != null)
         tailHead = null
-        size -= 1
-      } else if (tailKeyValues.hasNext) {
+      else if (tailKeyValues.hasNext)
         tailKeyValues = tailKeyValues.drop(1)
-        size -= 1
-      }
 
       this
     }
@@ -113,7 +106,7 @@ private[core] object DropIterator {
       val (left, right) = tailKeyValues.duplicate
       this.tailKeyValues = left
 
-      val duplicated = DropIterator[H, T](size = size - 1, keyValues = right)
+      val duplicated = DropIterator[H, T](keyValues = right)
 
       if (this.headRangeOrNull != null)
         duplicated.tailHead = this.tailHead
@@ -124,11 +117,11 @@ private[core] object DropIterator {
     def duplicate(): (Flat[H, T], Flat[H, T]) = {
       val (left, right) = tailKeyValues.duplicate
 
-      val leftIterator = DropIterator[H, T](size = size, keyValues = left)
+      val leftIterator = DropIterator[H, T](keyValues = left)
       leftIterator.headRangeOrNull = this.headRangeOrNull
       leftIterator.tailHead = this.tailHead
 
-      val rightIterator = DropIterator[H, T](size = size, keyValues = right)
+      val rightIterator = DropIterator[H, T](keyValues = right)
       rightIterator.headRangeOrNull = this.headRangeOrNull
       rightIterator.tailHead = this.tailHead
 
@@ -149,7 +142,7 @@ private[core] object DropIterator {
       }
 
     override def isEmpty: Boolean =
-      size <= 0
+      iterator.isEmpty
 
     override def iterator: Iterator[T] =
       new Iterator[T] {
@@ -191,7 +184,7 @@ private[core] object DropIterator {
     override def dropPrepend(head: H): DropIterator[H, T] =
       (left.isEmpty, right.isEmpty) match {
         case (true, true) =>
-          new Flat[H, T](1, head, null, Iterator.empty)
+          new Flat[H, T](head, null, Iterator.empty)
         case (true, false) =>
           right.dropPrepend(head)
         case (false, true) =>
@@ -223,12 +216,9 @@ private[core] object DropIterator {
       }
 
     override def isEmpty: Boolean =
-      size <= 0
+      left.iterator.isEmpty || right.iterator.isEmpty
 
     override def depth: Int =
       left.depth + right.depth
-
-    override def size =
-      left.size + right.size
   }
 }

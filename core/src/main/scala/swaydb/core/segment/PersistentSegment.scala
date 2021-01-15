@@ -63,7 +63,6 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
 
   def put(headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-          mergeableCount: Int,
           mergeable: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,

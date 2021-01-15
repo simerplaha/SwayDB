@@ -107,8 +107,7 @@ protected case object CompactionTasker {
       if (nextLevel.isNonEmpty()) { //if next Level is not empty then do assignment
         val assignments: ListBuffer[SegmentAssignment[mutable.SortedSet[A], mutable.SortedSet[A], Segment]] =
           SegmentAssigner.assignUnsafeGaps[mutable.SortedSet[A], mutable.SortedSet[A], Segment](
-            assignablesCount = segmentKeyValues.size,
-            assignables = segmentKeyValues.iterator,
+            keyValues = segmentKeyValues.iterator,
             segments = nextLevel.segments().iterator
           )
 

@@ -566,8 +566,8 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 gaps should have size 1
 
                 gaps.head.headGap.result.expectSegmentRefs() should have size 1
-                gaps.head.headGap.result.expectSegmentRefs() should contain only inputSegment.head.segmentRefsIterator().toList.head
-                gaps.head.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.drop(1)
+                gaps.head.headGap.result.expectSegmentRefs() should contain only inputSegment.head.segmentRefs().toList.head
+                gaps.head.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefs().toList.drop(1)
                 gaps.head.tailGap.result shouldBe empty
             }
           }
@@ -602,9 +602,9 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 gaps should have size 1
 
                 gaps.head.headGap.result shouldBe empty
-                gaps.head.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.dropRight(1)
+                gaps.head.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefs().toList.dropRight(1)
                 gaps.head.tailGap.result.expectSegmentRefs() should have size 1
-                gaps.head.tailGap.result.expectSegmentRefs() should contain only inputSegment.head.segmentRefsIterator().toList.last
+                gaps.head.tailGap.result.expectSegmentRefs() should contain only inputSegment.head.segmentRefs().toList.last
             }
           }
       }
@@ -640,7 +640,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 gaps should have size 1
 
                 gaps.head.headGap.result shouldBe empty
-                gaps.head.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList
+                gaps.head.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefs().toList
                 gaps.head.tailGap.result shouldBe empty
             }
           }
@@ -683,11 +683,11 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 gaps should have size 2
 
                 gaps.head.headGap.result shouldBe empty
-                gaps.head.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.take(2)
-                gaps.head.tailGap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.drop(2).take(2)
+                gaps.head.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefs().toList.take(2)
+                gaps.head.tailGap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefs().toList.drop(2).take(2)
 
                 gaps.last.headGap.result shouldBe empty
-                gaps.last.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.drop(4)
+                gaps.last.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefs().toList.drop(4)
                 gaps.last.tailGap.result shouldBe empty
             }
           }
@@ -742,12 +742,12 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
 
                 gaps.head.headGap.result shouldBe empty
                 gaps.head.midOverlap.result.expectKeyValues() shouldBe inputKeyValues
-                gaps.head.tailGap.result.expectSegmentRefs() shouldBe inputSegment1.head.segmentRefsIterator().take(2).toList
+                gaps.head.tailGap.result.expectSegmentRefs() shouldBe inputSegment1.head.segmentRefs().take(2).toList
 
                 gaps.last.headGap.result shouldBe empty
-                gaps.last.midOverlap.result.expectSegmentRefs() shouldBe inputSegment1.head.segmentRefsIterator().drop(2).take(2).toList
+                gaps.last.midOverlap.result.expectSegmentRefs() shouldBe inputSegment1.head.segmentRefs().drop(2).take(2).toList
                 gaps.last.tailGap.result should have size 2 //one SegmentRef from inputSegment1 gets assigned and the entire PersistentSegmentMany (inputSegment2)
-                gaps.last.tailGap.result.head shouldBe inputSegment1.head.segmentRefsIterator().toList.last
+                gaps.last.tailGap.result.head shouldBe inputSegment1.head.segmentRefs().toList.last
                 gaps.last.tailGap.result.last shouldBe inputSegment2.head
             }
           }

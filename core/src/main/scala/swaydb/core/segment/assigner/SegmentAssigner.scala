@@ -46,87 +46,75 @@ private[core] object SegmentAssigner {
 
   def assignMinMaxOnlyUnsafeNoGaps(inputSegments: Iterable[Assignable.Collection],
                                    targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assignUnsafeNoGaps(2 * inputSegments.size, Segment.tempMinMaxKeyValues(inputSegments), targetSegments).map(_.segment)
+    SegmentAssigner.assignUnsafeNoGaps(Segment.tempMinMaxKeyValues(inputSegments), targetSegments).map(_.segment)
 
   def assignMinMaxOnlyUnsafeNoGaps(input: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
                                    targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assignUnsafeNoGaps(2, Segment.tempMinMaxKeyValues(input), targetSegments).map(_.segment)
+    SegmentAssigner.assignUnsafeNoGaps(Segment.tempMinMaxKeyValues(input), targetSegments).map(_.segment)
 
   def assignMinMaxOnlyUnsafeNoGaps(input: Slice[Memory],
                                    targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assignUnsafeNoGaps(2, Segment.tempMinMaxKeyValues(input), targetSegments).map(_.segment)
+    SegmentAssigner.assignUnsafeNoGaps(Segment.tempMinMaxKeyValues(input), targetSegments).map(_.segment)
 
-  def assignUnsafeNoGaps(assignables: Slice[Assignable],
+  def assignUnsafeNoGaps(keyValues: Slice[Assignable],
                          segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): ListBuffer[SegmentAssignment[Nothing, ListBuffer[Assignable], Segment]] =
     assignUnsafe[Nothing, ListBuffer[Assignable], Segment](
-      assignablesCount = assignables.size,
-      assignables = assignables.iterator,
+      keyValues = keyValues.iterator,
       segmentsIterator = segments.iterator,
       noGaps = true
     )
 
-  def assignUnsafeNoGaps(assignablesCount: Int,
-                         assignables: Iterable[Assignable],
+  def assignUnsafeNoGaps(keyValues: Iterable[Assignable],
                          segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): ListBuffer[SegmentAssignment[Nothing, ListBuffer[Assignable], Segment]] =
     assignUnsafe[Nothing, ListBuffer[Assignable], Segment](
-      assignablesCount = assignablesCount,
-      assignables = assignables.iterator,
+      keyValues = keyValues.iterator,
       segmentsIterator = segments.iterator,
       noGaps = true
     )
 
-  def assignUnsafeGaps[GAP](assignables: Slice[Assignable],
+  def assignUnsafeGaps[GAP](keyValues: Slice[Assignable],
                             segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                          gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[SegmentAssignment[GAP, ListBuffer[Assignable], Segment]] =
     assignUnsafe[GAP, ListBuffer[Assignable], Segment](
-      assignablesCount = assignables.size,
-      assignables = assignables.iterator,
+      keyValues = keyValues.iterator,
       segmentsIterator = segments.iterator,
       noGaps = false
     )
 
-  def assignUnsafeGaps[GAP](assignablesCount: Int,
-                            assignables: Iterable[Assignable],
+  def assignUnsafeGaps[GAP](keyValues: Iterable[Assignable],
                             segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                          gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[SegmentAssignment[GAP, ListBuffer[Assignable], Segment]] =
     assignUnsafe[GAP, ListBuffer[Assignable], Segment](
-      assignablesCount = assignablesCount,
-      assignables = assignables.iterator,
+      keyValues = keyValues.iterator,
       segmentsIterator = segments.iterator,
       noGaps = false
     )
 
-  def assignUnsafeGapsSegmentRef[GAP](assignablesCount: Int,
-                                      assignables: Iterator[Assignable],
+  def assignUnsafeGapsSegmentRef[GAP](keyValues: Iterator[Assignable],
                                       segments: Iterable[SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                       gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[SegmentAssignment[GAP, ListBuffer[Assignable], SegmentRef]] =
     assignUnsafe[GAP, ListBuffer[Assignable], SegmentRef](
-      assignablesCount = assignablesCount,
-      assignables = assignables,
+      keyValues = keyValues,
       segmentsIterator = segments.iterator,
       noGaps = false
     )
 
-  def assignUnsafeGapsSegmentRef[GAP](assignablesCount: Int,
-                                      assignables: Iterator[Assignable],
+  def assignUnsafeGapsSegmentRef[GAP](keyValues: Iterator[Assignable],
                                       segments: Iterator[SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                       gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[SegmentAssignment[GAP, ListBuffer[Assignable], SegmentRef]] =
     assignUnsafe[GAP, ListBuffer[Assignable], SegmentRef](
-      assignablesCount = assignablesCount,
-      assignables = assignables,
+      keyValues = keyValues,
       segmentsIterator = segments,
       noGaps = false
     )
 
-  def assignUnsafeGaps[GAP, MID <: Iterable[_], SEG >: Null](assignablesCount: Int,
-                                                             assignables: Iterator[Assignable],
+  def assignUnsafeGaps[GAP, MID <: Iterable[_], SEG >: Null](keyValues: Iterator[Assignable],
                                                              segments: Iterator[SEG])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                       midCreator: Aggregator.Creator[Assignable, MID],
                                                                                       gapCreator: Aggregator.Creator[Assignable, GAP],
                                                                                       assignmentTarget: AssignmentTarget[SEG]): ListBuffer[SegmentAssignment[GAP, MID, SEG]] =
     assignUnsafe[GAP, MID, SEG](
-      assignablesCount = assignablesCount,
-      assignables = assignables,
+      keyValues = keyValues,
       segmentsIterator = segments,
       noGaps = false
     )
@@ -139,13 +127,8 @@ private[core] object SegmentAssigner {
    * the Segment can decide if expansion is required. Assigned Segments that
    * are not expanded can be directly transferred onto a new Segments during
    * compaction without reading them into JVM heap.
-   *
-   * @param assignablesCount keyValuesCount is needed here because keyValues
-   *                         could be a ConcurrentSkipList where calculating
-   *                         size is not constant time.
    */
-  private def assignUnsafe[GAP, MID <: Iterable[_], SEG >: Null](assignablesCount: Int,
-                                                                 assignables: Iterator[Assignable],
+  private def assignUnsafe[GAP, MID <: Iterable[_], SEG >: Null](keyValues: Iterator[Assignable],
                                                                  segmentsIterator: Iterator[SEG],
                                                                  noGaps: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                   gapCreator: Aggregator.Creator[Assignable, GAP],
@@ -267,15 +250,14 @@ private[core] object SegmentAssigner {
                     case nextSegment: SEG if spreadToNextSegment(assignable, nextSegment) => //if Segment spreads onto next Segment
                       assignable match {
                         case many: PersistentSegmentMany => //always expand to cover cases when last SegmentRef is a gap Segment.
-                          val segmentRefs = many.segmentRefsMutable()
-                          val segmentIterator = DropIterator[Memory.Range, Assignable](segmentRefs.length, segmentRefs.iterator)
+                          val segmentIterator = DropIterator[Memory.Range, Assignable](many.segmentRefs())
 
                           val newRemaining = segmentIterator append remaining.dropHead()
 
                           assign(newRemaining, thisSegmentMayBe, nextSegmentMayBe)
 
                         case _ =>
-                          val segmentIterator = DropIterator[Memory.Range, Assignable](assignable.keyValueCount, assignable.iterator())
+                          val segmentIterator = DropIterator[Memory.Range, Assignable](assignable.iterator())
 
                           val newRemaining = segmentIterator append remaining.dropHead()
 
@@ -286,8 +268,7 @@ private[core] object SegmentAssigner {
                       if (noGaps || thisSegmentMinKeyCompare == 0 || keyBelongsToThisSegmentNoSpread()) { //if this Segment should be added to thisSegment
                         assignable match {
                           case many: PersistentSegmentMany if !noGaps => //always expand to cover cases when last SegmentRef is a gap Segment.
-                            val segmentRefs = many.segmentRefsMutable()
-                            val segmentIterator = DropIterator[Memory.Range, Assignable](segmentRefs.length, segmentRefs.iterator)
+                            val segmentIterator = DropIterator[Memory.Range, Assignable](many.segmentRefs())
 
                             val newRemaining = segmentIterator append remaining.dropHead()
 
@@ -363,8 +344,7 @@ private[core] object SegmentAssigner {
                           else
                             assignable match {
                               case many: PersistentSegmentMany => //always expand to cover cases when last SegmentRef is a gap Segment.
-                                val segmentRefs = many.segmentRefsMutable()
-                                val segmentIterator = DropIterator[Memory.Range, Assignable](segmentRefs.length, segmentRefs.iterator)
+                                val segmentIterator = DropIterator[Memory.Range, Assignable](many.segmentRefs())
 
                                 val newRemaining = segmentIterator append remaining.dropHead()
 
@@ -372,7 +352,7 @@ private[core] object SegmentAssigner {
 
                               case _ =>
                                 //if this Segment spreads onto next Segment read all key-values and assign.
-                                val segmentIterator = DropIterator[Memory.Range, Assignable](assignable.keyValueCount, assignable.iterator())
+                                val segmentIterator = DropIterator[Memory.Range, Assignable](assignable.iterator())
 
                                 val newRemaining = segmentIterator append remaining.dropHead()
 
@@ -452,7 +432,7 @@ private[core] object SegmentAssigner {
     }
 
     if (segmentsIterator.hasNext)
-      assign(DropIterator(assignablesCount, assignables), segmentsIterator.next(), getNextSegmentMayBe())
+      assign(DropIterator(keyValues), segmentsIterator.next(), getNextSegmentMayBe())
 
     assignments
   }

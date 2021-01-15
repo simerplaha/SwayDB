@@ -1907,14 +1907,14 @@ object TestData {
         MMAP.Off(TestForceSave.channel())
   }
 
-  implicit class AssignablesImplicits(assignables: ListBuffer[Assignable]) {
+  implicit class AssignablesImplicits(keyValues: ListBuffer[Assignable]) {
 
     /**
-     * Ensures that the [[assignables]] contains only expanded [[KeyValue]]s
+     * Ensures that the [[keyValues]] contains only expanded [[KeyValue]]s
      * and no collections.
      */
     def expectKeyValues(): Iterable[KeyValue] =
-      assignables collect {
+      keyValues collect {
         case collection: Assignable.Collection =>
           fail(s"Expected KeyValue found ${collection.getClass} with ${collection.keyValueCount} key-values.")
 
@@ -1924,7 +1924,7 @@ object TestData {
       }
 
     def expectSegments(): Iterable[Segment] =
-      assignables collect {
+      keyValues collect {
         case collection: Assignable.Collection =>
           collection match {
             case segment: Segment =>
@@ -1939,7 +1939,7 @@ object TestData {
       }
 
     def expectSegmentRefs(): Iterable[SegmentRef] =
-      assignables collect {
+      keyValues collect {
         case collection: Assignable.Collection =>
           collection match {
             case segment: SegmentRef =>
@@ -2081,7 +2081,6 @@ object TestData {
 
     def put(headGap: Iterable[KeyValue],
             tailGap: Iterable[KeyValue],
-            mergeableCount: Int,
             mergeable: Iterator[Assignable],
             removeDeletes: Boolean,
             createdInLevel: Int,
@@ -2106,8 +2105,7 @@ object TestData {
             segment.put(
               headGap = ListBuffer(Assignable.Stats(MergeStats.memoryBuilder(headGap)(toMemory))),
               tailGap = ListBuffer(Assignable.Stats(MergeStats.memoryBuilder(tailGap)(toMemory))),
-              mergeableCount = mergeableCount,
-              mergeable = mergeable,
+              newKeyValues = mergeable,
               removeDeletes = removeDeletes,
               createdInLevel = createdInLevel,
               segmentConfig = segmentConfig
@@ -2132,7 +2130,6 @@ object TestData {
             segment.put(
               headGap = ListBuffer(Assignable.Stats(MergeStats.persistentBuilder(headGap)(toMemory))),
               tailGap = ListBuffer(Assignable.Stats(MergeStats.persistentBuilder(tailGap)(toMemory))),
-              mergeableCount = mergeableCount,
               mergeable = mergeable,
               removeDeletes = removeDeletes,
               createdInLevel = createdInLevel,

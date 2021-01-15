@@ -137,13 +137,13 @@ case object CompactionLevelZeroTasker {
     stacks.values().asScala.map(_._2)
   }
 
-  private def getKeyValues(either: Either[LevelZeroMap, Iterable[Memory]]): (Int, Iterator[Memory]) =
+  private def getKeyValues(either: Either[LevelZeroMap, Iterable[Memory]]): Iterator[Memory] =
     either match {
       case Left(zeroMap) =>
-        (zeroMap.cache.maxKeyValueCount, zeroMap.cache.iterator.map(_._2))
+        zeroMap.cache.valuesIterator()
 
       case Right(keyValues) =>
-        (keyValues.size, keyValues.iterator)
+        keyValues.iterator
     }
 
   @inline def mergeStack(collections: Iterable[Either[LevelZeroMap, Iterable[Memory]]])(implicit ec: ExecutionContext,
@@ -165,15 +165,13 @@ case object CompactionLevelZeroTasker {
             Future.successful(group.head)
           else
             Future {
-              val (newKeyValuesCount, newKeyValues) = getKeyValues(group.head)
-              val (oldKeyValuesCount, oldKeyValues) = getKeyValues(group.last)
+              val newKeyValues = getKeyValues(group.head)
+              val oldKeyValues = getKeyValues(group.last)
 
               val stats = MergeStats.buffer[Memory, ListBuffer](Aggregator.listBuffer)
 
               KeyValueMerger.merge(
-                newKeyValuesCount = newKeyValuesCount,
                 newKeyValues = newKeyValues,
-                oldKeyValuesCount = oldKeyValuesCount,
                 oldKeyValues = oldKeyValues,
                 stats = stats,
                 isLastLevel = false

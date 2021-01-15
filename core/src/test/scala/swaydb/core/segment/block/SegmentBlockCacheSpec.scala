@@ -343,7 +343,7 @@ class SegmentBlockCacheSpec extends TestBase {
                 case segment: PersistentSegment =>
                   segment match {
                     case segment: PersistentSegmentMany =>
-                      segment.segmentRefsIterator().toList
+                      segment.segmentRefs().toList
 
                     case segment: PersistentSegmentOne =>
                       List(segment.ref)

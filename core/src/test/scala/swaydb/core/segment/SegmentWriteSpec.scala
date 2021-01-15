@@ -204,7 +204,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   Slice(segment.ref.skipList.get)
 
                 case segment: PersistentSegmentMany =>
-                  segment.segmentRefsIterator().map(_.skipList.get)
+                  segment.segmentRefs().map(_.skipList.get)
               }
 
             skipList.size should be > 0
@@ -691,7 +691,6 @@ sealed trait SegmentWriteSpec extends TestBase {
             segment.put(
               headGap = head,
               tailGap = tail,
-              mergeableCount = mid.size,
               mergeable = mid.iterator,
               removeDeletes = false,
               createdInLevel = 0,
@@ -1471,7 +1470,6 @@ sealed trait SegmentWriteSpec extends TestBase {
           segment.put(
             headGap = Iterable.empty,
             tailGap = Iterable.empty,
-            mergeableCount = keyValues2.size,
             mergeable = keyValues2.iterator,
             removeDeletes = false,
             createdInLevel = 0,
@@ -1518,7 +1516,6 @@ sealed trait SegmentWriteSpec extends TestBase {
             segment.put(
               headGap = KeyValue.emptyIterable,
               tailGap = KeyValue.emptyIterable,
-              mergeableCount = newKeyValues.size,
               mergeable = newKeyValues.iterator,
               removeDeletes = false,
               createdInLevel = 0,
@@ -1542,9 +1539,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           KeyValueMerger.merge(
             headGap = KeyValue.emptyIterable,
             tailGap = KeyValue.emptyIterable,
-            mergeableCount = newKeyValues.size,
-            mergeable = newKeyValues.iterator,
-            oldKeyValuesCount = keyValues.size,
+            newKeyValues = newKeyValues.iterator,
             oldKeyValues = keyValues.iterator,
             stats = builder,
             isLastLevel = false
@@ -1614,7 +1609,6 @@ sealed trait SegmentWriteSpec extends TestBase {
                 oldSegment.put(
                   headGap = headKeyValues,
                   tailGap = tailKeyValues,
-                  mergeableCount = midKeyValues.size,
                   mergeable = midKeyValues.iterator,
                   removeDeletes = false,
                   createdInLevel = 0,
@@ -1674,7 +1668,6 @@ sealed trait SegmentWriteSpec extends TestBase {
                   //randomly create gaps
                   headGap = eitherOne(KeyValue.emptyIterable, randomizedKeyValues(keyValuesCount)),
                   tailGap = eitherOne(KeyValue.emptyIterable, randomizedKeyValues(keyValuesCount)),
-                  mergeableCount = newKeyValues.size,
                   mergeable = newKeyValues.iterator,
                   removeDeletes = false,
                   createdInLevel = 0,
@@ -1734,7 +1727,6 @@ sealed trait SegmentWriteSpec extends TestBase {
             segment.put(
               headGap = KeyValue.emptyIterable,
               tailGap = KeyValue.emptyIterable,
-              mergeableCount = deleteKeyValues.size,
               mergeable = deleteKeyValues.iterator,
               removeDeletes = false,
               createdInLevel = 0,
@@ -1779,7 +1771,6 @@ sealed trait SegmentWriteSpec extends TestBase {
             segment.put(
               headGap = KeyValue.emptyIterable,
               tailGap = KeyValue.emptyIterable,
-              mergeableCount = updatedKeyValues.size,
               mergeable = updatedKeyValues.iterator,
               removeDeletes = true,
               createdInLevel = 0,
@@ -1831,7 +1822,6 @@ sealed trait SegmentWriteSpec extends TestBase {
               segment1.put(
                 headGap = KeyValue.emptyIterable,
                 tailGap = KeyValue.emptyIterable,
-                mergeableCount = segment2.iterator().size,
                 mergeable = segment2.iterator(),
                 removeDeletes = false,
                 createdInLevel = 0,
@@ -1881,7 +1871,6 @@ sealed trait SegmentWriteSpec extends TestBase {
             segment.put(
               headGap = eitherOne(KeyValue.emptyIterable, Slice(Memory.remove(0))),
               tailGap = eitherOne(KeyValue.emptyIterable, Slice(Memory.remove(10), Memory.Range(11, 20, FromValue.Null, Value.remove(None)))),
-              mergeableCount = deleteKeyValues.size,
               mergeable = deleteKeyValues.iterator,
               removeDeletes = true,
               createdInLevel = 0,
@@ -1914,7 +1903,6 @@ sealed trait SegmentWriteSpec extends TestBase {
               segment.put(
                 headGap = KeyValue.emptyIterable,
                 tailGap = KeyValue.emptyIterable,
-                mergeableCount = deleteKeyValues.size,
                 mergeable = deleteKeyValues.iterator,
                 removeDeletes = false,
                 createdInLevel = 0,
@@ -1950,7 +1938,6 @@ sealed trait SegmentWriteSpec extends TestBase {
             segment.put(
               headGap = KeyValue.emptyIterable,
               tailGap = KeyValue.emptyIterable,
-              mergeableCount = deleteKeyValues.size,
               mergeable = deleteKeyValues.iterator,
               removeDeletes = true,
               createdInLevel = 0,
@@ -1996,7 +1983,6 @@ sealed trait SegmentWriteSpec extends TestBase {
               segment.put(
                 headGap = KeyValue.emptyIterable,
                 tailGap = KeyValue.emptyIterable,
-                mergeableCount = keyValues2.size,
                 mergeable = keyValues2.iterator,
                 removeDeletes = false,
                 createdInLevel = 0,
@@ -2012,7 +1998,6 @@ sealed trait SegmentWriteSpec extends TestBase {
               segment.put(
                 headGap = KeyValue.emptyIterable,
                 tailGap = KeyValue.emptyIterable,
-                mergeableCount = keyValues2.size,
                 mergeable = keyValues2.iterator,
                 removeDeletes = false,
                 createdInLevel = 0,

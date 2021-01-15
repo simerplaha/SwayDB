@@ -65,7 +65,6 @@ object DefragPersistentSegment {
                                          nullSegment: NULL_SEG,
                                          headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                                          tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                         mergeableCount: Int,
                                          mergeable: => Iterator[Assignable],
                                          removeDeletes: Boolean,
                                          createdInLevel: Int)(implicit executionContext: ExecutionContext,
@@ -86,7 +85,6 @@ object DefragPersistentSegment {
         fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
         headGap = headGap,
         tailGap = tailGap,
-        mergeableCount = mergeableCount,
         mergeable = mergeable,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
@@ -149,8 +147,7 @@ object DefragPersistentSegment {
   def runMany(headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
               tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
               segment: PersistentSegmentMany,
-              mergeableCount: Int,
-              mergeables: Iterator[Assignable],
+              newKeyValues: Iterator[Assignable],
               removeDeletes: Boolean,
               createdInLevel: Int)(implicit idGenerator: IDGenerator,
                                    executionContext: ExecutionContext,
@@ -163,7 +160,7 @@ object DefragPersistentSegment {
                                    hashIndexConfig: HashIndexBlock.Config,
                                    bloomFilterConfig: BloomFilterBlock.Config,
                                    segmentConfig: SegmentBlock.Config): Future[CompactResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] =
-    if (mergeableCount == 0)
+    if (newKeyValues.isEmpty)
       DefragPersistentSegment.runOnGaps[PersistentSegmentMany, PersistentSegmentOption](
         nullSegment = PersistentSegment.Null,
         headGap = headGap,
@@ -177,9 +174,8 @@ object DefragPersistentSegment {
         .flatMapUnit {
           runHeadDefragAndAssignments(
             headGap = headGap,
-            segments = segment.segmentRefsIterator(),
-            mergeableCount = mergeableCount,
-            mergeables = mergeables,
+            segments = segment.segmentRefs(),
+            newKeyValues = newKeyValues,
             removeDeletes = removeDeletes,
             createdInLevel = createdInLevel
           )
@@ -228,8 +224,7 @@ object DefragPersistentSegment {
    */
   private def runHeadDefragAndAssignments[NULL_SEG >: SEG, SEG >: Null](headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                                                                         segments: => Iterator[SEG],
-                                                                        mergeableCount: Int,
-                                                                        mergeables: Iterator[Assignable],
+                                                                        newKeyValues: Iterator[Assignable],
                                                                         removeDeletes: Boolean,
                                                                         createdInLevel: Int)(implicit executionContext: ExecutionContext,
                                                                                              keyOrder: KeyOrder[Slice[Byte]],
@@ -255,8 +250,7 @@ object DefragPersistentSegment {
       Future {
         assignAllSegments(
           segments = segments,
-          assignableCount = mergeableCount,
-          mergeables = mergeables,
+          newKeyValues = newKeyValues,
           removeDeletes = removeDeletes
         )
       }
@@ -304,7 +298,6 @@ object DefragPersistentSegment {
               fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
               headGap = assignment.headGap.result,
               tailGap = assignment.tailGap.result,
-              mergeableCount = assignment.midOverlap.result.size,
               mergeable = assignment.midOverlap.result.iterator,
               removeDeletes = removeDeletes,
               createdInLevel = createdInLevel,
@@ -329,8 +322,7 @@ object DefragPersistentSegment {
    * is NOT used by [[swaydb.core.level.Level]].
    */
   def assignAllSegments[SEG >: Null](segments: Iterator[SEG],
-                                     assignableCount: Int,
-                                     mergeables: Iterator[Assignable],
+                                     newKeyValues: Iterator[Assignable],
                                      removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                              assignmentTarget: AssignmentTarget[SEG],
                                                              defragSource: DefragSource[SEG]): ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], SEG]] = {
@@ -342,8 +334,7 @@ object DefragPersistentSegment {
     //assign key-values to Segment and then perform merge.
     val assignments =
       SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], SEG](
-        assignablesCount = assignableCount,
-        assignables = mergeables,
+        keyValues = newKeyValues,
         segments = segmentsIterator
       )
 
@@ -452,7 +443,7 @@ object DefragPersistentSegment {
         if (remoteSegment.segment.segmentSize < segmentConfig.minSize) {
           remoteSegment.segment match {
             case many: PersistentSegmentMany =>
-              many.segmentRefsIterator() foreach (ref => groups.last += TransientSegment.RemoteRef(ref))
+              many.segmentRefs() foreach (ref => groups.last += TransientSegment.RemoteRef(ref))
 
             case one: PersistentSegmentOne =>
               groups.last += TransientSegment.RemoteRef(one.ref)

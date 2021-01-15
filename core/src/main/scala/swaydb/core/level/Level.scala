@@ -429,8 +429,7 @@ private[core] case class Level(dirs: Seq[Dir],
             removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.size)
     assignMerge(
-      assignablesCount = segments.size,
-      assignables = segments,
+      newKeyValues = segments,
       targetSegments = self.segments(),
       removeDeletedRecords = removeDeletedRecords,
       noGaps = false
@@ -442,8 +441,7 @@ private[core] case class Level(dirs: Seq[Dir],
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.skipList.size)
 
     assignMerge(
-      assignablesCount = 1,
-      assignables = Seq(Assignable.Collection.fromMap(map)),
+      newKeyValues = Seq(Assignable.Collection.fromMap(map)),
       targetSegments = self.segments(),
       removeDeletedRecords = removeDeletedRecords,
       noGaps = false
@@ -454,8 +452,7 @@ private[core] case class Level(dirs: Seq[Dir],
                 removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, maps.foldLeft(0)(_ + _.cache.skipList.size))
     assignMerge(
-      assignablesCount = maps.size,
-      assignables = maps.map(Assignable.Collection.fromMap),
+      newKeyValues = maps.map(Assignable.Collection.fromMap),
       targetSegments = self.segments(),
       removeDeletedRecords = removeDeletedRecords,
       noGaps = false
@@ -517,8 +514,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
       //reserve the Level. It's unknown here what segments will value collapsed into what other Segments.
       assignMerge(
-        assignablesCount = segmentsToMerge.size,
-        assignables = segmentsToMerge,
+        newKeyValues = segmentsToMerge,
         targetSegments = targetSegments,
         removeDeletedRecords = removeDeletedRecords,
         noGaps = true
@@ -584,32 +580,28 @@ private[core] case class Level(dirs: Seq[Dir],
    *               assigned segments in this Level else will try to not expand.
    * @return compaction result with new segments.
    */
-  private def assignMerge(assignablesCount: Int,
-                          assignables: Iterable[Assignable],
+  private def assignMerge(newKeyValues: Iterable[Assignable],
                           targetSegments: Iterable[Segment],
                           removeDeletedRecords: Boolean,
                           noGaps: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
-    logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assignables.size)
+    logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, newKeyValues.size)
     if (inMemory)
       assignMergeMemory(
-        assignablesCount = assignablesCount,
-        assignables = assignables,
+        newKeyValues = newKeyValues,
         targetSegments = targetSegments,
         removeDeletedRecords = removeDeletedRecords,
         noGaps = noGaps
       )
     else
       assignMergePersist(
-        assignablesCount = assignablesCount,
-        assignables = assignables,
+        newKeyValues = newKeyValues,
         targetSegments = targetSegments,
         removeDeletedRecords = removeDeletedRecords,
         noGaps = noGaps
       )
   }
 
-  @inline private def assignMergeMemory(assignablesCount: Int,
-                                        assignables: Iterable[Assignable],
+  @inline private def assignMergeMemory(newKeyValues: Iterable[Assignable],
                                         targetSegments: Iterable[Segment],
                                         removeDeletedRecords: Boolean,
                                         noGaps: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Memory]]]] =
@@ -619,14 +611,12 @@ private[core] case class Level(dirs: Seq[Dir],
 
       if (noGaps)
         SegmentAssigner.assignUnsafeNoGaps(
-          assignablesCount = assignablesCount,
-          assignables = assignables,
+          keyValues = newKeyValues,
           segments = targetSegments
         )
       else
         SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]]](
-          assignablesCount = assignablesCount,
-          assignables = assignables,
+          keyValues = newKeyValues,
           segments = targetSegments
         )
     } flatMap {
@@ -634,7 +624,7 @@ private[core] case class Level(dirs: Seq[Dir],
         if (assignments.isEmpty) {
           //if there were not assignments then write new key-values are gap and run Defrag to avoid creating small Segments.
           val gap = GapAggregator.create[MergeStats.Memory.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
-          assignables foreach gap.add
+          newKeyValues foreach gap.add
 
           implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 
@@ -658,8 +648,7 @@ private[core] case class Level(dirs: Seq[Dir],
                 //if noGaps == true then headGap and tailGap will be null. Perform null check
                 headGap = Option(assignment.headGap).map(_.result).getOrElse(ListBuffer.empty),
                 tailGap = Option(assignment.tailGap).map(_.result).getOrElse(ListBuffer.empty),
-                mergeableCount = assignment.midOverlap.result.size,
-                mergeable = assignment.midOverlap.result.iterator,
+                newKeyValues = assignment.midOverlap.result.iterator,
                 removeDeletes = removeDeletedRecords,
                 createdInLevel = levelNumber,
                 segmentConfig = segmentConfig
@@ -677,8 +666,7 @@ private[core] case class Level(dirs: Seq[Dir],
         }
     }
 
-  @inline private def assignMergePersist(assignablesCount: Int,
-                                         assignables: Iterable[Assignable],
+  @inline private def assignMergePersist(newKeyValues: Iterable[Assignable],
                                          targetSegments: Iterable[Segment],
                                          removeDeletedRecords: Boolean,
                                          noGaps: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Persistent]]]] =
@@ -688,14 +676,12 @@ private[core] case class Level(dirs: Seq[Dir],
 
       if (noGaps)
         SegmentAssigner.assignUnsafeNoGaps(
-          assignablesCount = assignablesCount,
-          assignables = assignables,
+          keyValues = newKeyValues,
           segments = targetSegments
         )
       else
         SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]](
-          assignablesCount = assignablesCount,
-          assignables = assignables,
+          keyValues = newKeyValues,
           segments = targetSegments
         )
     } flatMap {
@@ -703,7 +689,7 @@ private[core] case class Level(dirs: Seq[Dir],
         if (assignments.isEmpty) {
           //if there were not assignments then write new key-values are gap and run Defrag to avoid creating small Segments.
           val gap = GapAggregator.create[MergeStats.Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
-          assignables foreach gap.add
+          newKeyValues foreach gap.add
 
           implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
           implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
@@ -727,7 +713,6 @@ private[core] case class Level(dirs: Seq[Dir],
                 //if noGaps == true then headGap and tailGap will be null. Perform null check
                 headGap = Option(assignment.headGap).map(_.result).getOrElse(ListBuffer.empty),
                 tailGap = Option(assignment.tailGap).map(_.result).getOrElse(ListBuffer.empty),
-                mergeableCount = assignment.midOverlap.result.size,
                 mergeable = assignment.midOverlap.result.iterator,
                 removeDeletes = removeDeletedRecords,
                 createdInLevel = levelNumber,
