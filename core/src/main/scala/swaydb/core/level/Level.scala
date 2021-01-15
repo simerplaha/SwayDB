@@ -111,9 +111,8 @@ private[core] case object Level extends LazyLogging {
                                               blockSweeper: Option[MemorySweeper.Block],
                                               fileSweeper: FileSweeper,
                                               bufferCleaner: ByteBufferSweeperActor,
-                                              forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Level, Level] = {
-    //acquire lock on folder
-    acquireLock(levelStorage) flatMap {
+                                              forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Level, Level] =
+    acquireLock(levelStorage) flatMap { //acquire lock on folder
       lock =>
         //lock acquired.
         //initialise Segment IO for this Level.
@@ -218,7 +217,6 @@ private[core] case object Level extends LazyLogging {
             }
         }
     }
-  }
 
   def removeDeletes(nextLevel: Option[LevelRef]): Boolean =
     nextLevel.isEmpty
