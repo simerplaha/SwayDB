@@ -24,14 +24,12 @@
 
 package swaydb.data.slice
 
+import swaydb.data.util.ByteOps
+
 import java.io.ByteArrayInputStream
 import java.lang
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
-
-import swaydb.IO
-import swaydb.data.util.ByteOps
-
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.mutable
@@ -705,14 +703,7 @@ abstract class SliceBase[+T](array: Array[T],
     if (self.isEmpty) {
       Slice.empty[B]
     } else if (self.size == 1) {
-      f(head) match {
-        case slice: Slice[B] =>
-          slice
-
-        case newItems =>
-          val slice = Slice.of[B](newItems.size)
-          slice addAll newItems
-      }
+      f(head)
     } else {
       val result = Slice.of[Slice[B]](self.size)
 
