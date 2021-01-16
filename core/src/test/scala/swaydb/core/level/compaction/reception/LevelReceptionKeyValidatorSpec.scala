@@ -213,7 +213,7 @@ class LevelReceptionKeyValidatorSpec extends TestBase {
             //create a single Segment or many
             val segments =
               eitherOne(
-                Slice(TestSegment(keyValues.flattenSlice)),
+                Slice(TestSegment(keyValues.flatten)),
                 keyValues.map(TestSegment(_))
               )
 

@@ -28,8 +28,8 @@ import org.scalatest.OptionValues._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.MaxKey
+import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
 import swaydb.data.util.{ByteSizeOf, ScalaByteOps}
 
 import scala.util.Random
@@ -1131,6 +1131,12 @@ class SliceSpec extends AnyWordSpec with Matchers {
           int =>
             Slice(int, 2, 3, 4)
         } shouldBe Slice(1, 2, 3, 4)
+
+      Slice(1)
+        .flatMap {
+          int =>
+            List(int, 2, 3, 4)
+        } shouldBe Slice(1, 2, 3, 4)
     }
 
     "size = 2" in {
@@ -1139,24 +1145,52 @@ class SliceSpec extends AnyWordSpec with Matchers {
           int =>
             Slice(int, (int + "" + int).toInt)
         } shouldBe Slice(1, 11, 2, 22)
+
+      Slice(1, 2)
+        .flatMap {
+          int =>
+            List(int, (int + "" + int).toInt)
+        } shouldBe Slice(1, 11, 2, 22)
+    }
+
+    "iterable" in {
+      runThis(20.times, log = true) {
+        val start = Slice.range(1, Random.nextInt(5))
+        val flatten = Slice.range(1, Random.nextInt(5))
+
+        val expected =
+          (1 to start.size)
+            .flatMap {
+              _ =>
+                flatten
+            }
+            .toList
+
+        (start: Iterable[Int])
+          .flatMap {
+            int =>
+              flatten.iterator
+          }.toList shouldBe expected
+      }
     }
   }
 
-  "flattenSlice" when {
+  "flatten" when {
     "size = 0" in {
-      Slice.empty[Slice[Int]].flattenSlice shouldBe empty
+      Slice.empty[Slice[Int]].flatten shouldBe empty
       assertDoesNotCompile("Slice.empty[Iterable[Int]].flattenSlice shouldBe empty")
     }
 
     "size = 1" in {
-      Slice(Slice(1)).flattenSlice shouldBe Slice(1)
-      Slice(Slice(1, 2, 3)).flattenSlice shouldBe Slice(1, 2, 3)
+      Slice(Slice(1)).flatten shouldBe Slice(1)
+      Slice(Slice(1, 2, 3)).flatten shouldBe Slice(1, 2, 3)
     }
 
     "size = 2" in {
-      Slice(Slice(1, 2), Slice(3, 4)).flattenSlice shouldBe Slice(1, 2, 3, 4)
+      Slice(Slice(1, 2), Slice(3, 4)).flatten shouldBe Slice(1, 2, 3, 4)
     }
   }
+
 
   "write and read" when {
 

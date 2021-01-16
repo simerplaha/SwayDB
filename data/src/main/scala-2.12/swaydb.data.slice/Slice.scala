@@ -24,8 +24,11 @@
 
 package swaydb.data.slice
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.util.SomeOrNoneCovariant
 
+import scala.annotation.tailrec
+import scala.collection.compat.IterableOnce
 import scala.collection.generic.CanBuildFrom
 import scala.collection.{IterableLike, mutable}
 import scala.reflect.ClassTag
@@ -47,7 +50,7 @@ sealed trait SliceOption[+T] extends SomeOrNoneCovariant[SliceOption[T], Slice[T
       this.getC.unslice()
 }
 
-object Slice extends SliceCompanionBase {
+object Slice extends SliceCompanionBase with LazyLogging {
 
   final case object Null extends SliceOption[Nothing] {
     override val isNoneC: Boolean = true
@@ -58,17 +61,29 @@ object Slice extends SliceCompanionBase {
 
   class SliceBuilder[T: ClassTag](maxSize: Int) extends mutable.Builder[T, Slice[T]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-    protected var slice: Slice[T] = Slice.of[T](maxSize max 1)
+    protected var slice: Slice[T] = Slice.of[T](maxSize max 16)
 
-    final def +=(x: T): this.type = {
-      slice add x
+    @inline def extendSlice(by: Int) = {
+      val extendedSlice = Slice.of[T](slice.size * by)
+      extendedSlice addAll slice
+      slice = extendedSlice
+    }
+
+    @tailrec
+    final override def +=(x: T): this.type =
+      if (!slice.isFull) {
+        slice add x
+        this
+      } else {
+        extendSlice(by = 2)
+        +=(x)
+      }
+
+    override def ++=(xs: IterableOnce[T]): SliceBuilder.this.type = {
+      this.slice = slice.addAllOrNew(items = xs, expandBy = 2)
       this
     }
 
-    override def ++=(xs: TraversableOnce[T]): SliceBuilder.this.type = {
-      slice.addAllOrFail(xs)
-      this
-    }
 
     def clear() =
       slice = Slice.of[T](slice.size)
@@ -82,8 +97,14 @@ object Slice extends SliceCompanionBase {
       def apply(from: Slice[_]) =
         new SliceBuilder[T](from.size)
 
-      def apply() =
-        throw new Exception("Cannot create slice without size defined")
+      def apply(): mutable.Builder[T, Slice[T]] = {
+        //Use an Array or another data-type instead of Slice if dynamic extensions are required.
+        //Dynamic extension is disabled so that we do not do unnecessary copying just for the sake of convenience.
+        //Slice is used heavily internally and we should avoid all operations that might be expensive.
+        val exception = new Exception("Cannot create slice with no size defined. If dynamic extension is required consider using another data-type.")
+        logger.error(exception.getMessage, exception)
+        throw exception
+      }
     }
 }
 

@@ -128,7 +128,7 @@ class BlockSpec extends TestBase {
           //create block reader
           def decompressedBlockReader = Block.unblock(ref.copy())
 
-          val dataBytes = segment.segmentBytes.dropHead().flattenSlice.toSlice
+          val dataBytes = segment.segmentBytes.dropHead().flatten
 
           decompressedBlockReader.readRemaining() shouldBe dataBytes
           decompressedBlockReader.read(Int.MaxValue) shouldBe dataBytes
@@ -232,7 +232,7 @@ class BlockSpec extends TestBase {
           //create block reader
           def decompressedBlockReader = Block.unblock(ref.copy())
 
-          val uncompressedSegmentBytesWithoutHeader = uncompressedSegment.segmentBytes.dropHead().flattenSlice.toSlice
+          val uncompressedSegmentBytesWithoutHeader = uncompressedSegment.segmentBytes.dropHead().flatten
 
           decompressedBlockReader.readRemaining() shouldBe uncompressedSegmentBytesWithoutHeader
           decompressedBlockReader.read(Int.MaxValue) shouldBe uncompressedSegmentBytesWithoutHeader

@@ -89,7 +89,7 @@ sealed trait LevelCollapseSpec extends TestBase {
 
         val keyValuesNoDeleted = ListBuffer.empty[KeyValue]
         val deleteEverySecond =
-          keyValues.zipWithIndex flatMapOption {
+          keyValues.zipWithIndex.toList flatMap {
             case (keyValue, index) =>
               if (index % 2 == 0)
                 Some(Memory.Remove(keyValue.key, None, Time.empty))
@@ -175,7 +175,7 @@ sealed trait LevelCollapseSpec extends TestBase {
 
         val keyValuesNotExpired = ListBuffer.empty[KeyValue]
         val expireEverySecond =
-          keyValues.zipWithIndex flatMapOption {
+          keyValues.zipWithIndex.toList flatMap {
             case (keyValue, index) =>
               if (index % 2 == 0)
                 Some(Memory.Remove(keyValue.key, Some(expiryAt + index.millisecond), Time.empty))

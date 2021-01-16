@@ -53,7 +53,7 @@ class KeyValueMerger_Fixed_Into_Range extends AnyWordSpec {
         val newKeyValue = randomFixedKeyValue(0)
 
         val expectedKeyValue = Slice(newKeyValue, oldKeyValue)
-        val expectedLastLevel: Slice[Memory.Fixed] = expectedKeyValue.flatMapOption(_.toLastLevelExpected).toSlice
+        val expectedLastLevel: Slice[Memory.Fixed] = expectedKeyValue.flatMap(_.toLastLevelExpected.toList).toSlice
 
         //        println
         //        println("newKeyValue: " + newKeyValue)

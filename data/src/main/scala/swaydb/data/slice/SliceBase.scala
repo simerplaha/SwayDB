@@ -33,6 +33,7 @@ import java.nio.charset.{Charset, StandardCharsets}
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
@@ -312,21 +313,42 @@ abstract class SliceBase[+T](array: Array[T],
     selfSlice
   }
 
-  /**
-   * Do not allow inserting data that is not an Array or Slice
-   * so that we always copy arrays.
-   */
-  def addAllOrFail(items: scala.collection.compat.IterableOnce[T]@uncheckedVariance): Slice[T] =
+  @tailrec
+  final def addAllOrNew(items: scala.collection.compat.IterableOnce[T]@uncheckedVariance, expandBy: Int): Slice[T] =
     items match {
       case array: mutable.WrappedArray[T] =>
-        this.copyAll(array.array, 0, array.length)
+        if (hasSpace(array.length)) {
+          this.copyAll(array.array, 0, array.length)
+        } else {
+          //TODO - core's code make sure that this does not occur often.
+          val newSlice = Slice.of[T]((this.size + array.length) * expandBy)
+          newSlice addAll selfSlice
+          newSlice addAll array.array.asInstanceOf[Array[T]]
+        }
 
       case items: Slice[T] =>
-        addAll[T](items)
+        if (hasSpace(items.size)) {
+          addAll[T](items)
+        } else {
+          //TODO - core's code make sure that this does not occur often.
+          val newSlice = Slice.of[T]((this.size + items.size) * expandBy)
+          newSlice addAll selfSlice
+          newSlice addAll items
+        }
+
+      case items: Iterable[T] =>
+        addAllOrNew(items.toArray[T], expandBy)
 
       case items =>
-        //do not allow inserting non copyable types.
-        throw new Exception(s"Iterable is neither an Array or Slice. Actual: ${items.getClass.getName}. A Slice can only insert an Array or Slice types.")
+        val buffer = ListBuffer.empty[T]
+        buffer ++= items
+
+        val newSlice = Slice.of[T]((self.size + buffer.size) * expandBy)
+
+        newSlice addAll selfSlice
+        newSlice addAll buffer.toArray
+
+        newSlice
     }
 
   def addAll[B >: T](items: Array[B]): Slice[B] =
@@ -334,6 +356,11 @@ abstract class SliceBase[+T](array: Array[T],
 
   def addAll[B >: T](items: Slice[B]): Slice[B] =
     this.copyAll(items.unsafeInnerArray, items.fromOffset, items.size)
+
+  def hasSpace(size: Int): Boolean = {
+    val futurePosition = writePosition + size - 1
+    futurePosition >= fromOffset && futurePosition <= toOffset
+  }
 
   private def copyAll[B >: T](items: Array[_], fromPosition: Int, itemsSize: Int): Slice[B] =
     if (itemsSize > 0) {
@@ -457,21 +484,26 @@ abstract class SliceBase[+T](array: Array[T],
   }
 
   override def filterNot(p: T => Boolean): Slice[T] = {
-    val filtered = Slice.of[T](size)
-    this.foreach {
-      item =>
-        if (!p(item)) filtered add item
+    val filtered = Slice.of[T](self.size)
+    val iterator = self.iterator
+
+    while (iterator.hasNext) {
+      val item = iterator.next()
+      if (!p(item)) filtered add item
     }
+
     filtered.close()
   }
 
   override def filter(p: T => Boolean): Slice[T] = {
-    val filtered = Slice.of[T](size)
-    this.foreach {
-      item =>
-        if (p(item))
-          filtered add item
+    val filtered = Slice.of[T](self.size)
+    val iterator = self.iterator
+
+    while (iterator.hasNext) {
+      val item = iterator.next()
+      if (p(item)) filtered add item
     }
+
     filtered.close()
   }
 
@@ -518,6 +550,9 @@ abstract class SliceBase[+T](array: Array[T],
       slice addAll selfSlice
       slice addAll other
     }
+
+  override def collectFirst[B](pf: PartialFunction[T, B]): Option[B] =
+    iterator.collectFirst(pf)
 
   def underlyingArraySize =
     array.length
@@ -694,10 +729,11 @@ abstract class SliceBase[+T](array: Array[T],
   }
 
   /**
-   * Avoid using the generic flatMap
-   * implementation so that we always restrict the API to
-   * use Slices which has better support for copying
-   * the arrays content directly to target Slice.
+   * Avoid using the default flatMap implementation
+   * so that we always restrict the API to use
+   * Slices which is faster when copying arrays.
+   *
+   * Use [[flatMapSlow]] to allow any IterableOnce instance.
    */
   def flatMap[B: ClassTag](f: T => Slice[B]): Slice[B] =
     if (self.isEmpty) {
@@ -712,32 +748,10 @@ abstract class SliceBase[+T](array: Array[T],
           result add f(item)
       }
 
-      result.flattenSlice[B]
+      result.flatten[B]
     }
 
-  def flatMapOption[B: ClassTag](f: T => Option[B]): Slice[B] =
-    if (self.isEmpty) {
-      Slice.empty[B]
-    } else if (self.size == 1) {
-      f(head) match {
-        case Some(value) =>
-          Slice(value)
-
-        case None =>
-          Slice.empty[B]
-      }
-    } else {
-      val result = Slice.of[B](self.size)
-
-      this foreach {
-        item =>
-          f(item) foreach result.add
-      }
-
-      result
-    }
-
-  def flattenSlice[B: ClassTag](implicit evd: T <:< Slice[B]): Slice[B] = {
+  def flatten[B: ClassTag](implicit evd: T <:< Slice[B]): Slice[B] = {
     var size = 0
 
     self foreach {

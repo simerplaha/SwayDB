@@ -27,6 +27,7 @@ package swaydb.data.slice
 import swaydb.data.slice.Slice.SliceFactory
 import swaydb.data.util.SomeOrNoneCovariant
 
+import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
 import scala.collection._
 import scala.collection.compat.IterableOnce
@@ -60,15 +61,26 @@ object Slice extends SliceCompanionBase {
 
   class SliceBuilder[A: ClassTag](maxSize: Int) extends mutable.Builder[A, Slice[A]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-    protected var slice: Slice[A] = Slice.of[A](maxSize max 1)
+    protected var slice: Slice[A] = Slice.of[A](maxSize max 16)
 
-    final override def addOne(x: A): this.type = {
-      slice add x
-      this
+    @inline def extendSlice(by: Int) = {
+      val extendedSlice = Slice.of[A](slice.size * by)
+      extendedSlice addAll slice
+      slice = extendedSlice
     }
 
+    @tailrec
+    final override def addOne(x: A): this.type =
+      if (!slice.isFull) {
+        slice add x
+        this
+      } else {
+        extendSlice(by = 2)
+        addOne(x)
+      }
+
     override def addAll(xs: IterableOnce[A]): SliceBuilder.this.type = {
-      slice.addAllOrFail(xs)
+      this.slice = slice.addAllOrNew(items = xs, expandBy = 2)
       this
     }
 
@@ -110,8 +122,7 @@ class Slice[+T] private[slice](array: Array[T],
                                written: Int)(implicit val iterableEvidence: ClassTag[T]@uncheckedVariance) extends SliceBase[T](array, fromOffset, toOffset, written)
                                                                                                               with SliceOption[T]
                                                                                                               with IterableOps[T, Slice, Slice[T]]
-                                                                                                              with EvidenceIterableFactoryDefaults[T, Slice, ClassTag]
-                                                                                                              with StrictOptimizedIterableOps[T, Slice, Slice[T]] {
+                                                                                                              with EvidenceIterableFactoryDefaults[T, Slice, ClassTag] {
 //@formatter:on
 
   override val isNoneC: Boolean =
