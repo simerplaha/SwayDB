@@ -26,5 +26,12 @@ package swaydb.data.compaction
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+ * Defines a compaction job.
+ *
+ * @param compactionDelay When should compaction run.
+ * @param compactDataSize How much data should be compacted.
+ *
+ */
 case class Throttle(compactionDelay: FiniteDuration,
                     compactDataSize: Long)

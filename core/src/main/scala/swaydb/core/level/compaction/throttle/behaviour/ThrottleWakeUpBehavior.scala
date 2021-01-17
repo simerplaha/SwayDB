@@ -55,7 +55,8 @@ private[throttle] object ThrottleWakeUpBehavior extends LazyLogging {
       .recover {
         case exception =>
           logger.error("Failed compaction", exception)
-          runPostCompaction(state)
+          //continue with previous state
+          state
       }
       .map(runPostCompaction)
   }

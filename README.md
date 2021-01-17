@@ -35,7 +35,7 @@
 - Range operations to update, remove & expire a range of key-values.
 - Key only iterations (Lazily fetched values).
 - [Configurable compression](http://swaydb.io/configuration/compressions/?language=scala) with LZ4 & Snappy
-- Highly configurable core internals to support custom workloads.
+- Configurable core internals to support custom workloads.
 - Duplicate values elimination
   with [compressDuplicateValues](http://swaydb.io/configuration/valuesConfig/?language=scala).
 

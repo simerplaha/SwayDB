@@ -29,16 +29,38 @@ import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.level.Level
 import swaydb.core.segment.Segment
-import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.NonEmptyList
+import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.SortedSet
 
-class CompactionTasker_run_Spec extends TestBase with MockFactory {
+class CompactionTasker_run_Spec0 extends CompactionTasker_run_Spec
+
+class CompactionTasker_run_Spec1 extends CompactionTasker_run_Spec {
+  override def levelFoldersCount = 10
+  override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+}
+
+class CompactionTasker_run_Spec2 extends CompactionTasker_run_Spec {
+  override def levelFoldersCount = 10
+  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
+}
+
+class CompactionTasker_run_Spec3 extends CompactionTasker_run_Spec {
+  override def inMemoryStorage = true
+}
+
+sealed trait CompactionTasker_run_Spec extends TestBase with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
