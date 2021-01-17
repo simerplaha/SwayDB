@@ -291,9 +291,9 @@ protected case object CompactionTasker {
 
         //if the assignment spreads onto the next target segments them merge the assignments into a single assignment for scoring.
         if (spreads) {
-          groupedAssignments.last.headGapResult addAll nextAssignment.headGapResult
-          groupedAssignments.last.midOverlapResult addAll nextAssignment.midOverlapResult
-          groupedAssignments.last.tailGapResult addAll nextAssignment.tailGapResult
+          groupedAssignments.last.headGapResult ++= nextAssignment.headGapResult
+          groupedAssignments.last.midOverlapResult ++= nextAssignment.midOverlapResult
+          groupedAssignments.last.tailGapResult ++= nextAssignment.tailGapResult
         } else {
           groupedAssignments +=
             SegmentAssignmentResult(
