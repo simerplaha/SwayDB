@@ -54,8 +54,7 @@ Highly configurable to suit **different workloads**. Some known use-cases are:
 
 - [Java - Quick start](http://swaydb.io/quick-start/?language=java&data-type=map&functions=off).
 - [Scala - Quick start](http://swaydb.io/quick-start/?language=scala&data-type=map&functions=off).
-- [Kotlin - Quick start](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src/main/kotlin/quickstart/QuickStartMapSimple.kt)
-  .
+- [Kotlin - Quick start](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src/main/kotlin/quickstart/QuickStartMapSimple.kt).
 
 ## Contributing
 
@@ -76,7 +75,7 @@ foundation's [COC](https://www.apache.org/foundation/policies/conduct.html).
         - Observables
         - Full-text search
         - etc
-    - Add support for external serialising libraries. 
+    - Add support for external serialising, streaming & compression libraries.
     - Test and improve existing data structures.
 
 - **Contributing to core API**

@@ -30,7 +30,7 @@ import swaydb.core.level._
 import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.lock.LastLevelLocker
 import swaydb.core.level.compaction.task.{CompactionLevelTasker, CompactionLevelZeroTasker, CompactionTask}
-import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorState, ThrottleLevelOrdering, ThrottleLevelState}
+import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorContext, ThrottleLevelOrdering, ThrottleLevelState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.data.NonEmptyList
 import swaydb.data.slice.Slice
@@ -46,10 +46,10 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 private[throttle] object ThrottleWakeUpBehavior extends LazyLogging {
 
-  def wakeUp(state: ThrottleCompactorState)(implicit committer: DefActor[CompactionCommitter.type, Unit],
-                                            locker: DefActor[LastLevelLocker, Unit],
-                                            ec: ExecutionContext,
-                                            self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] = {
+  def wakeUp(state: ThrottleCompactorContext)(implicit committer: DefActor[CompactionCommitter.type, Unit],
+                                              locker: DefActor[LastLevelLocker, Unit],
+                                              ec: ExecutionContext,
+                                              self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleCompactorContext] = {
     logger.debug(s"${state.name}: Wake-up successful!")
     runWakeUp(state)
       .recover {
@@ -60,17 +60,17 @@ private[throttle] object ThrottleWakeUpBehavior extends LazyLogging {
       .map(runPostCompaction)
   }
 
-  private def runPostCompaction(context: ThrottleCompactorState)(implicit self: DefActor[ThrottleCompactor, Unit]): ThrottleCompactorState = {
+  private def runPostCompaction(context: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor, Unit]): ThrottleCompactorContext = {
     logger.debug(s"${context.name}: Wake-up successful!")
     val updatedContext = scheduleWakeUp(context)
     wakeUpChild(updatedContext)
     updatedContext
   }
 
-  private def runWakeUp(context: ThrottleCompactorState)(implicit committer: DefActor[CompactionCommitter.type, Unit],
-                                                         locker: DefActor[LastLevelLocker, Unit],
-                                                         self: DefActor[ThrottleCompactor, Unit],
-                                                         ec: ExecutionContext): Future[ThrottleCompactorState] = {
+  private def runWakeUp(context: ThrottleCompactorContext)(implicit committer: DefActor[CompactionCommitter.type, Unit],
+                                                           locker: DefActor[LastLevelLocker, Unit],
+                                                           self: DefActor[ThrottleCompactor, Unit],
+                                                           ec: ExecutionContext): Future[ThrottleCompactorContext] = {
     logger.debug(s"\n\n\n\n\n\n${context.name}: Running compaction!")
 
     locker
@@ -118,12 +118,12 @@ private[throttle] object ThrottleWakeUpBehavior extends LazyLogging {
         sleepDeadline.isOverdue() || (newStateId != stateId && level.nextCompactionDelay.fromNow.isOverdue())
     }
 
-  def wakeUpChild(context: ThrottleCompactorState)(implicit self: DefActor[ThrottleCompactor, Unit]): Unit = {
+  def wakeUpChild(context: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor, Unit]): Unit = {
     logger.debug(s"${context.name}: Waking up child: ${context.child.map(_ => "child")}.")
     context.child.foreach(_.send(_.wakeUp()))
   }
 
-  def scheduleWakeUp(context: ThrottleCompactorState)(implicit self: DefActor[ThrottleCompactor, Unit]): ThrottleCompactorState = {
+  def scheduleWakeUp(context: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor, Unit]): ThrottleCompactorContext = {
     logger.debug(s"${context.name}: scheduling next wakeup for updated state: ${context.levels.size}. Current scheduled: ${context.sleepTask.map(_._2.timeLeft.asString)}")
 
     val levelsToCompact =
@@ -174,12 +174,12 @@ private[throttle] object ThrottleWakeUpBehavior extends LazyLogging {
     }
   }
 
-  private[throttle] def runCompactions(context: ThrottleCompactorState,
+  private[throttle] def runCompactions(context: ThrottleCompactorContext,
                                        compactions: Slice[LevelRef],
                                        lockedLastLevel: Level)(implicit committer: DefActor[CompactionCommitter.type, Unit],
                                                                locker: DefActor[LastLevelLocker, Unit],
                                                                self: DefActor[ThrottleCompactor, Unit],
-                                                               ec: ExecutionContext): Future[ThrottleCompactorState] =
+                                                               ec: ExecutionContext): Future[ThrottleCompactorContext] =
     if (context.terminateASAP()) {
       logger.warn(s"${context.name}: Cannot run jobs. Compaction is terminated.")
       Future.successful(context)

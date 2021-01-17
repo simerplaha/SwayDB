@@ -40,7 +40,33 @@ import swaydb.core.segment.ref.SegmentRef
  * @tparam SEG Target Segment to which key-values should be assigned to.
  *             This can be a [[swaydb.core.segment.Segment]] or [[SegmentRef]].
  */
+
+object SegmentAssignment {
+
+  sealed trait Result[+GAP, +MID, +SEG] {
+    def segment: SEG
+    def headGapResult: GAP
+    def midOverlapResult: MID
+    def tailGapResult: GAP
+
+    override def toString: String =
+      s"Target: ${segment.toString}, head: ${headGapResult.toString}, mid: ${midOverlapResult.toString}, tail: ${tailGapResult.toString}"
+  }
+}
+
 case class SegmentAssignment[+GAP, +MID, +SEG](segment: SEG,
                                                headGap: Aggregator[Assignable, GAP],
                                                midOverlap: Aggregator[Assignable, MID],
-                                               tailGap: Aggregator[Assignable, GAP])
+                                               tailGap: Aggregator[Assignable, GAP]) extends SegmentAssignment.Result[GAP, MID, SEG] {
+  final override def headGapResult: GAP = headGap.result
+  final override def midOverlapResult: MID = midOverlap.result
+  final override def tailGapResult: GAP = tailGap.result
+
+  def result: SegmentAssignment.Result[GAP, MID, SEG] =
+    this
+}
+
+case class SegmentAssignmentResult[+GAP, +MID, +SEG](segment: SEG,
+                                                     headGapResult: GAP,
+                                                     midOverlapResult: MID,
+                                                     tailGapResult: GAP) extends SegmentAssignment.Result[GAP, MID, SEG]

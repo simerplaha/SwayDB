@@ -30,11 +30,10 @@ import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.level.Level
 import swaydb.core.level.compaction.task.CompactionDataType._
 import swaydb.core.segment.Segment
-import swaydb.core.segment.assigner.{Assignable, SegmentAssigner, SegmentAssignment}
-import swaydb.core.util.Collections._
+import swaydb.core.segment.assigner.{Assignable, SegmentAssigner, SegmentAssignment, SegmentAssignmentResult}
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
 import swaydb.data.{MaxKey, NonEmptyList}
-import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.annotation.tailrec
 import scala.collection.compat.IterableOnce
@@ -112,9 +111,13 @@ protected case object CompactionTasker {
             segments = nextLevel.segments().iterator
           )
 
-        //score the assignments
+        //group the assignments that spread
+        val groupedAssignments =
+          CompactionTasker.groupAssignmentsForScoring[A, Segment, SegmentAssignment[mutable.SortedSet[A], mutable.SortedSet[A], Segment]](assignments)
+
+        //score assignments.
         val scoredAssignments =
-          CompactionTasker.scoreAndGroupAssignments[A, Segment](assignments)
+          groupedAssignments.sorted(CompactionAssignmentScorer.scorer[A, Segment]())
 
         //finalise Segments to compact.
         CompactionTasker.finaliseSegmentsToCompact(
@@ -128,7 +131,7 @@ protected case object CompactionTasker {
             data = data
           )
 
-        (Iterable.empty, segmentsToCopy)
+        (mutable.SortedSet.empty[A], segmentsToCopy)
       }
 
     //if there are Segments to merge then create a task.
@@ -162,7 +165,7 @@ protected case object CompactionTasker {
           tasks +=
             CompactionTask.Task(
               data = segmentsToCopy,
-              targetLevel = nextLevel
+              targetLevel = targetFirstLevel
             )
         } else {
           val oldTask = tasks(oldTaskIndex)
@@ -245,16 +248,28 @@ protected case object CompactionTasker {
       }
 
   /**
+   * Handles cases when a segment can be assigned to multiple target segments (one to many).
+   * For those cases those assignments are grouped to form a single [[SegmentAssignment]] that's why
+   * resulting type of [[SegmentAssignment]] is a ListBuffer[[B]].
+   *
+   * IMPORTANT - The resulting assignments should only be used for scoring because on merging two assignments
+   * their gaps are simply grouped together so that scoring can be applied for gaps vs overlaps.
+   * Eg: if assignment1 has tailGap which overlaps with next Segment's headGap then on more two assignments
+   * the tailGap is no-more a Gap but should become an overlapping assignment. But currently this is not
+   * account in the logic below therefore should only be used for scoring.
+   *
+   * @note Mutates the input assignments.
    * @tparam A the type of input data
    * @tparam B the type of target data to which the the [[A]]'s would be assigned to.
    *           This would be most be [[Segment]].
-   * @return optimal assignments based on scoring defined by [[CompactionAssignmentScorer]].
+   * @tparam C the type of assignments.
+   * @return groups assignments that spread onto multiple Segments.
    */
-  def scoreAndGroupAssignments[A <: Assignable.Collection, B](assignments: ListBuffer[SegmentAssignment[mutable.SortedSet[A], mutable.SortedSet[A], B]])(implicit inputDataType: CompactionDataType[A],
-                                                                                                                                                         targetDataType: CompactionDataType[B]): ListBuffer[SegmentAssignment[mutable.SortedSet[A], mutable.SortedSet[A], ListBuffer[B]]] = {
-    var previousAssignmentOrNull: SegmentAssignment[mutable.SortedSet[A], mutable.SortedSet[A], B] = null
+  def groupAssignmentsForScoring[A, B, C <: SegmentAssignment.Result[mutable.SortedSet[A], mutable.SortedSet[A], B]](assignments: Iterable[C])(implicit inputDataType: CompactionDataType[A],
+                                                                                                                                               targetDataType: CompactionDataType[B]): ListBuffer[SegmentAssignment.Result[mutable.SortedSet[A], mutable.SortedSet[A], ListBuffer[B]]] = {
+    var previousAssignmentOrNull: SegmentAssignment.Result[mutable.SortedSet[A], mutable.SortedSet[A], B] = null
 
-    val groupedAssignments = ListBuffer.empty[SegmentAssignment[mutable.SortedSet[A], mutable.SortedSet[A], ListBuffer[B]]]
+    val groupedAssignments = ListBuffer.empty[SegmentAssignment.Result[mutable.SortedSet[A], mutable.SortedSet[A], ListBuffer[B]]]
 
     assignments foreach {
       nextAssignment =>
@@ -262,36 +277,37 @@ protected case object CompactionTasker {
           previousAssignmentOrNull != null && {
             //check if previous assignment spreads onto next assignment.
             val previousAssignmentsLast =
-              previousAssignmentOrNull.tailGap.result.lastOption
-                .orElse(previousAssignmentOrNull.midOverlap.result.lastOption)
-                .orElse(previousAssignmentOrNull.headGap.result.lastOption)
+              previousAssignmentOrNull.tailGapResult.lastOption
+                .orElse(previousAssignmentOrNull.midOverlapResult.lastOption)
+                .orElse(previousAssignmentOrNull.headGapResult.lastOption)
 
             val nextAssignmentsFirst =
-              nextAssignment.headGap.result.lastOption
-                .orElse(nextAssignment.midOverlap.result.lastOption)
-                .orElse(nextAssignment.tailGap.result.lastOption)
+              nextAssignment.headGapResult.lastOption
+                .orElse(nextAssignment.midOverlapResult.lastOption)
+                .orElse(nextAssignment.tailGapResult.lastOption)
 
             previousAssignmentsLast == nextAssignmentsFirst
           }
 
+        //if the assignment spreads onto the next target segments them merge the assignments into a single assignment for scoring.
         if (spreads) {
-          groupedAssignments.last.headGap addAll nextAssignment.headGap.result
-          groupedAssignments.last.midOverlap addAll nextAssignment.midOverlap.result
-          groupedAssignments.last.tailGap addAll nextAssignment.tailGap.result
+          groupedAssignments.last.headGapResult addAll nextAssignment.headGapResult
+          groupedAssignments.last.midOverlapResult addAll nextAssignment.midOverlapResult
+          groupedAssignments.last.tailGapResult addAll nextAssignment.tailGapResult
         } else {
           groupedAssignments +=
-            SegmentAssignment(
+            SegmentAssignmentResult(
               segment = ListBuffer(nextAssignment.segment),
-              headGap = nextAssignment.headGap,
-              midOverlap = nextAssignment.midOverlap,
-              tailGap = nextAssignment.tailGap
+              headGapResult = nextAssignment.headGapResult,
+              midOverlapResult = nextAssignment.midOverlapResult,
+              tailGapResult = nextAssignment.tailGapResult
             )
         }
 
         previousAssignmentOrNull = nextAssignment
     }
 
-    groupedAssignments.sorted(CompactionAssignmentScorer.scorer[A, B])
+    groupedAssignments
   }
 
   /**
@@ -300,47 +316,67 @@ protected case object CompactionTasker {
    * segments that can be copied.
    */
   def finaliseSegmentsToCompact[A, B](dataOverflow: Long,
-                                      scoredAssignments: Iterable[SegmentAssignment[Iterable[A], Iterable[A], B]])(implicit segmentOrdering: Ordering[A],
-                                                                                                                   dataType: CompactionDataType[A]): (Iterable[A], Iterable[A]) = {
-    var sizeTaken = 0L
+                                      scoredAssignments: Iterable[SegmentAssignment.Result[Iterable[A], Iterable[A], B]])(implicit segmentOrdering: Ordering[A],
+                                                                                                                          dataType: CompactionDataType[A]): (scala.collection.SortedSet[A], scala.collection.SortedSet[A]) =
+    if (dataOverflow <= 0) {
+      (mutable.SortedSet.empty, mutable.SortedSet.empty)
+    } else {
+      var midOverlapTaken = 0L
 
-    val segmentsToMerge = mutable.SortedSet.empty[A]
-    val segmentsToCopy = mutable.SortedSet.empty[A]
+      //segments that are overlapping and require merging
+      val segmentsToMerge = mutable.SortedSet.empty[A]
+      //segments that can be copied
+      val segmentsToCopy = mutable.SortedSet.empty[A]
 
-    scoredAssignments
-      .foreachBreak {
-        assignment =>
-          segmentsToCopy ++= assignment.headGap.result
-          segmentsToCopy ++= assignment.tailGap.result
+      val it = scoredAssignments.iterator
+      var break = false //break if overflow is collected.
+      while (!break && it.hasNext) {
+        val assignment = it.next()
+        //collect segments that can be copied
+        segmentsToCopy ++= assignment.headGapResult
+        segmentsToCopy ++= assignment.tailGapResult
 
-          if (assignment.midOverlap.result.nonEmpty) {
-            val midSize = assignment.midOverlap.result.foldLeft(0)(_ + _.segmentSize)
-            sizeTaken += midSize
-            sizeTaken >= dataOverflow
-          } else {
-            true
+        //prioritise segments that have overlapping key-values.
+        //select all overlapping key-values (do not break here)
+        //because they all can be merged into the same target Segment.
+        if (assignment.midOverlapResult.nonEmpty) {
+          val midOverlapIterator = assignment.midOverlapResult.iterator
+          while (midOverlapIterator.hasNext) {
+            val nextMidOverlap = midOverlapIterator.next()
+            segmentsToMerge += nextMidOverlap
+            midOverlapTaken += nextMidOverlap.segmentSize
           }
+        }
+
+        break = midOverlapTaken >= dataOverflow
       }
 
-    val copyable =
-      fillOverflow(
-        overflow = dataOverflow - sizeTaken,
-        data = segmentsToCopy
-      )
+      val copyable =
+        fillOverflow(
+          overflow = dataOverflow - midOverlapTaken,
+          data = segmentsToCopy
+        )
 
-    (segmentsToMerge, copyable)
-  }
+      (segmentsToMerge, copyable)
+    }
 
-  def fillOverflow[A](overflow: Long, data: Iterable[A])(implicit dataType: CompactionDataType[A]): Iterable[A] = {
+  def fillOverflow[A](overflow: Long, data: Iterable[A])(implicit dataType: CompactionDataType[A],
+                                                         segmentOrdering: Ordering[A]): scala.collection.SortedSet[A] = {
     var remainingOverflow = overflow
 
-    if (remainingOverflow > 0)
-      data takeWhile {
-        segment =>
-          remainingOverflow -= segment.segmentSize
-          remainingOverflow >= 0
+    if (remainingOverflow > 0) {
+      val fill = mutable.SortedSet.empty[A]
+      val it = data.iterator
+      var break = false
+      while (!break && it.hasNext) {
+        val next = it.next()
+        fill += next
+        remainingOverflow -= next.segmentSize
+        break = remainingOverflow <= 0
       }
-    else
-      Iterable.empty
+      fill
+    } else {
+      mutable.SortedSet.empty
+    }
   }
 }

@@ -82,10 +82,10 @@ private[core] case object Segment extends LazyLogging {
              pathsDistributor: PathsDistributor,
              createdInLevel: Long,
              stats: MergeStats.Memory.ClosedIgnoreStats[IterableOnce])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                                          functionStore: FunctionStore,
-                                                                          fileSweeper: FileSweeper,
-                                                                          idGenerator: IDGenerator): Slice[MemorySegment] =
+                                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                                       functionStore: FunctionStore,
+                                                                       fileSweeper: FileSweeper,
+                                                                       idGenerator: IDGenerator): Slice[MemorySegment] =
     if (stats.isEmpty) {
       throw IO.throwable("Empty key-values submitted to memory Segment.")
     } else {
@@ -550,7 +550,6 @@ private[core] case object Segment extends LazyLogging {
                                          blockCacheSweeper: Option[MemorySweeper.Block],
                                          segmentIO: SegmentReadIO,
                                          forceSaveApplier: ForceSaveApplier): PersistentSegment = {
-
     val file =
       mmap match {
         case _: MMAP.On | _: MMAP.ReadOnly =>

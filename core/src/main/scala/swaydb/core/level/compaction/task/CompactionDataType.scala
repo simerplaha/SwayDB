@@ -36,7 +36,7 @@ import swaydb.core.segment.assigner.Assignable
  * [[A]] cannot be a contravariant type because [[CompactionDataType.TooSmallCollectionCompactionDataType]] is a
  * super type of [[Segment]].
  */
-protected sealed trait CompactionDataType[A] {
+trait CompactionDataType[A] {
   @inline def segmentSize(segment: A): Int
 }
 

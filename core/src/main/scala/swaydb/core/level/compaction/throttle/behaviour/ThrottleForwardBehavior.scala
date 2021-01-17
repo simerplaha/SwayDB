@@ -30,7 +30,7 @@ import swaydb.core.level.Level
 import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.lock.LastLevelLocker
 import swaydb.core.level.compaction.throttle.ThrottleCompactor.ForwardResponse
-import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorState}
+import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorContext}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -40,11 +40,11 @@ import scala.concurrent.{ExecutionContext, Future}
 private[throttle] object ThrottleForwardBehavior extends LazyLogging {
 
   def forward(level: Level,
-              state: ThrottleCompactorState,
+              state: ThrottleCompactorContext,
               replyTo: DefActor[ForwardResponse, Unit])(implicit committer: DefActor[CompactionCommitter.type, Unit],
                                                         locker: DefActor[LastLevelLocker, Unit],
                                                         ec: ExecutionContext,
-                                                        self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
+                                                        self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleCompactorContext] =
     if (level.levelNumber + 1 != state.levels.head.levelNumber) {
       logger.error(s"${state.name}: Cannot forward Level. Forward Level(${level.levelNumber}) is not previous level of Level(${state.levels.head.levelNumber})")
       replyTo.send(_.forwardFailed(level))
@@ -72,7 +72,7 @@ private[throttle] object ThrottleForwardBehavior extends LazyLogging {
     }
 
   def forwardSuccessful(level: Level,
-                        state: ThrottleCompactorState): Future[ThrottleCompactorState] =
+                        state: ThrottleCompactorContext): Future[ThrottleCompactorContext] =
     if (state.levels.last.levelNumber + 1 != level.levelNumber) {
       logger.error(s"${state.name}: Forward success update failed because Level(${state.levels.last.levelNumber}) + 1 != Leve(${level.levelNumber})")
       Future.successful(state)
@@ -81,7 +81,7 @@ private[throttle] object ThrottleForwardBehavior extends LazyLogging {
     }
 
   def forwardFailed(level: Level,
-                    state: ThrottleCompactorState): Future[ThrottleCompactorState] =
+                    state: ThrottleCompactorContext): Future[ThrottleCompactorContext] =
     if (state.levels.last.levelNumber + 1 != level.levelNumber) {
       logger.error(s"${state.name}: Forward success update failed because Level(${state.levels.last.levelNumber}) + 1 != Leve(${level.levelNumber})")
       Future.successful(state)

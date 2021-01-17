@@ -285,4 +285,16 @@ private[core] trait LevelRef {
 
   def hasMMAP: Boolean =
     LevelRef.hasMMAP(this)
+
+  override def equals(obj: Any): Boolean =
+    obj match {
+      case other: LevelRef =>
+        this.rootPath == other.rootPath
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    this.rootPath.hashCode()
 }

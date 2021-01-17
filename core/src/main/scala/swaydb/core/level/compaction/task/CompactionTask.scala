@@ -50,7 +50,7 @@ object CompactionTask {
    * @param data        data to merge.
    */
   case class Task[A <: Assignable.Collection](targetLevel: Level,
-                                              data: Iterable[A])
+                                              data: scala.collection.SortedSet[A])
 
   case class CompactSegments(targetLevel: Level,
                              tasks: Iterable[Task[Segment]]) extends CompactionTask.Segments
@@ -64,6 +64,5 @@ object CompactionTask {
 
   case class RefreshSegments(targetLevel: Level,
                              segments: Iterable[Segment]) extends Cleanup
-
 
 }

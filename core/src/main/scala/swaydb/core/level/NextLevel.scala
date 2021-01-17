@@ -47,6 +47,13 @@ object NextLevel {
     f(level)
   }
 
+  def foreachLeft[T](level: NextLevel, f: NextLevel => T): Unit =
+    level.nextLevel foreach {
+      nextLevel =>
+        f(nextLevel)
+        foreachLeft(nextLevel, f)
+    }
+
   def reverseNextLevels(level: NextLevel): ListBuffer[NextLevel] = {
     val levels = ListBuffer.empty[NextLevel]
     NextLevel.foreachRight(
@@ -116,6 +123,15 @@ trait NextLevel extends LevelRef {
       level = this,
       f = level =>
         levels += level
+    )
+    levels
+  }
+
+  def nextLevels: ListBuffer[NextLevel] = {
+    val levels = ListBuffer.empty[NextLevel]
+    NextLevel.foreachLeft(
+      level = this,
+      f = level => levels += level
     )
     levels
   }

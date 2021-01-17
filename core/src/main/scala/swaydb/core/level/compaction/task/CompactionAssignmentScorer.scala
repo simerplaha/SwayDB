@@ -29,11 +29,12 @@ import swaydb.core.segment.assigner.SegmentAssignment
 
 case object CompactionAssignmentScorer {
 
+
   /**
    * Scores and orders assignments.
    *
-   * [[SegmentAssignment]] that have no [[SegmentAssignment.midOverlap]] are always scored lower.
-   * Assignments that are reading the same amount of data as the data being written are scored higher.
+   * First score based on [[SegmentAssignment.midOverlap]] and if two assignments result in
+   * the same score then use total of both
    *
    * Assignments can occur in three possible scenarios which are easier imagined as a funnels.
    *
@@ -51,40 +52,29 @@ case object CompactionAssignmentScorer {
    *          \ /        |  |     /     \
    * @formatter:on
    */
-  def scorer[A, B](implicit inputDataTypeA: CompactionDataType[A],
-                   inputDataTypeB: CompactionDataType[B]) =
-    new Ordering[SegmentAssignment[Iterable[A], Iterable[A], Iterable[B]]] {
-      override def compare(left: SegmentAssignment[Iterable[A], Iterable[A], Iterable[B]],
-                           right: SegmentAssignment[Iterable[A], Iterable[A], Iterable[B]]): Int = {
-        val leftMidSize = left.midOverlap.result.foldLeft(0)(_ + _.segmentSize)
-        val leftTargetSegmentSize = left.segment.foldLeft(0)(_ + _.segmentSize)
-        val leftDifference = leftMidSize - leftTargetSegmentSize
+  def scorer[A, B]()(implicit inputDataType: CompactionDataType[A],
+                     targetDataType: CompactionDataType[B]) =
+    new Ordering[SegmentAssignment.Result[Iterable[A], Iterable[A], Iterable[B]]] {
+      override def compare(left: SegmentAssignment.Result[Iterable[A], Iterable[A], Iterable[B]],
+                           right: SegmentAssignment.Result[Iterable[A], Iterable[A], Iterable[B]]): Int = {
+        val leftDifference = difference(left)
+        val rightDifference = difference(right)
 
-        val rightMidSize = right.midOverlap.result.foldLeft(0)(_ + _.segmentSize)
-        val rightTargetSegmentSize = right.segment.foldLeft(0)(_ + _.segmentSize)
-        val rightDifference = rightMidSize - rightTargetSegmentSize
-
-        val compared =
-          if (leftMidSize == 0 && rightMidSize == 0)
-            0
-          else
-            leftDifference compare rightDifference
-
-        if (compared == 0) {
-          val leftHeadGapSize = left.headGap.result.foldLeft(0)(_ + _.segmentSize)
-          val leftTailGapSize = left.tailGap.result.foldLeft(0)(_ + _.segmentSize)
-          val leftGapSize = leftHeadGapSize + leftTailGapSize
-          val leftDifference = leftGapSize - leftTargetSegmentSize
-
-          val rightHeadGapSize = right.headGap.result.foldLeft(0)(_ + _.segmentSize)
-          val rightTailGapSize = right.tailGap.result.foldLeft(0)(_ + _.segmentSize)
-          val rightGapSize = rightHeadGapSize + rightTailGapSize
-          val rightDifference = rightGapSize - rightTargetSegmentSize
-
-          leftDifference compare rightDifference
-        } else {
-          compared
-        }
+        (leftDifference compare rightDifference) * -1
       }
     }
+
+  def difference[A, B](assignment: SegmentAssignment.Result[Iterable[A], Iterable[A], Iterable[B]])(implicit inputDataType: CompactionDataType[A],
+                                                                                                    targetDataType: CompactionDataType[B]) = {
+    //total data being read
+    val headGapSize = assignment.headGapResult.foldLeft(0)(_ + _.segmentSize)
+    val tailGapSize = assignment.tailGapResult.foldLeft(headGapSize)(_ + _.segmentSize)
+    val assignedDataSize = assignment.midOverlapResult.foldLeft(tailGapSize)(_ + _.segmentSize)
+
+    //total data being overwritten
+    val targetDataSize = assignment.segment.foldLeft(0)(_ + _.segmentSize)
+
+    //difference between data being assigned and target data
+    assignedDataSize - targetDataSize
+  }
 }

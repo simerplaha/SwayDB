@@ -44,7 +44,7 @@ import swaydb.core.level.{Level, NextLevel, PathsDistributor}
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.merge.{KeyValueGrouper, KeyValueMerger}
 import swaydb.core.segment._
-import swaydb.core.segment.assigner.Assignable
+import swaydb.core.segment.assigner.{Assignable, SegmentAssignment}
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
@@ -72,7 +72,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.{Error, Glass, IO}
+import swaydb.{Aggregator, Error, Glass, IO}
 
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
@@ -2197,5 +2197,13 @@ object TestData {
 
           putResult.persist(pathDistributor).value
       }
+  }
+
+  implicit class AggregatorImplicits(aggregator: Aggregator.type) {
+    def apply[A](items: A*): Aggregator[A, ListBuffer[A]] = {
+      val buffer: Aggregator[A, ListBuffer[A]] = Aggregator.listBuffer[A]
+      buffer.addAll(items)
+      buffer
+    }
   }
 }

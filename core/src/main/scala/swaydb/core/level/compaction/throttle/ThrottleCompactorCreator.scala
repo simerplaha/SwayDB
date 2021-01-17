@@ -86,7 +86,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
                 .foldRight(List.empty[DefActor[Compactor, Unit]]) {
                   case (((jobs, executionContext, resetCompactionPriorityAtInterval), index), children) =>
                     val state =
-                      ThrottleCompactorState(
+                      ThrottleCompactorContext(
                         levels = Slice(jobs.toArray),
                         resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval,
                         child = children.headOption,

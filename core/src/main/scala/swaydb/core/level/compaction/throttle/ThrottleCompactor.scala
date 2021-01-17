@@ -49,19 +49,19 @@ object ThrottleCompactor {
     def forwardFailed(level: Level): Unit
   }
 
-  def apply(state: ThrottleCompactorState)(self: DefActor[ThrottleCompactor, Unit])(implicit committer: DefActor[CompactionCommitter.type, Unit],
-                                                                                    locker: DefActor[LastLevelLocker, Unit]) =
+  def apply(state: ThrottleCompactorContext)(self: DefActor[ThrottleCompactor, Unit])(implicit committer: DefActor[CompactionCommitter.type, Unit],
+                                                                                      locker: DefActor[LastLevelLocker, Unit]) =
     new ThrottleCompactor(state, Future.unit)(self, committer, locker)
 }
 
-private[core] class ThrottleCompactor private(@volatile private var state: ThrottleCompactorState,
+private[core] class ThrottleCompactor private(@volatile private var state: ThrottleCompactorContext,
                                               @volatile private var currentFuture: Future[Unit])(implicit self: DefActor[ThrottleCompactor, Unit],
                                                                                                  committer: DefActor[CompactionCommitter.type, Unit],
                                                                                                  locker: DefActor[LastLevelLocker, Unit]) extends Compactor with ForwardResponse with LastLevelLocker.LastLevelSetResponse with LazyLogging {
 
   implicit val ec = self.ec
 
-  @inline private def onComplete(f: => Future[ThrottleCompactorState]): Unit =
+  @inline private def onComplete(f: => Future[ThrottleCompactorContext]): Unit =
     currentFuture onComplete {
       _ =>
         this.currentFuture =

@@ -28,7 +28,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.DefActor
 import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.lock.LastLevelLocker
-import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorState}
+import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorContext}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -37,13 +37,13 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 private[throttle] object ThrottleExtendBehavior extends LazyLogging {
 
-  def extensionSuccessful(state: ThrottleCompactorState)(implicit committer: DefActor[CompactionCommitter.type, Unit],
-                                                         locker: DefActor[LastLevelLocker, Unit],
-                                                         ec: ExecutionContext,
-                                                         self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
+  def extensionSuccessful(state: ThrottleCompactorContext)(implicit committer: DefActor[CompactionCommitter.type, Unit],
+                                                           locker: DefActor[LastLevelLocker, Unit],
+                                                           ec: ExecutionContext,
+                                                           self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleCompactorContext] =
     ThrottleWakeUpBehavior.wakeUp(state)
 
-  def extensionFailed(state: ThrottleCompactorState): Future[ThrottleCompactorState] = {
+  def extensionFailed(state: ThrottleCompactorContext): Future[ThrottleCompactorContext] = {
     logger.error("Failed to extend")
     Future.successful(state)
   }

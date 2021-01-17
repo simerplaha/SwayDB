@@ -98,7 +98,7 @@ class LastLevelLocker private(private var lastLevel: Level,
     lastLevel
   }
 
-  def unlock(): Unit = {
+  def unlock(): Unit =
     if (locks <= 0) {
       logger.error(s"No existing locks. Failed to unlock. Locks $locks.")
     } else {
@@ -109,7 +109,6 @@ class LastLevelLocker private(private var lastLevel: Level,
         request.apply()
       }
     }
-  }
 
   def set(newLast: Level, replyTo: DefActor[LastLevelLocker.LastLevelSetResponse, Unit]): Unit =
     if (newLast.levelNumber == lastLevel.levelNumber) {
