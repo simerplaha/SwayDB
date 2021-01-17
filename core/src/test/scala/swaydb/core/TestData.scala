@@ -2096,7 +2096,7 @@ object TestData {
                                                segmentReadIO: SegmentReadIO,
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                testCaseSweeper: TestCaseSweeper): CompactResult[SegmentOption, Slice[Segment]] = {
-      def toMemory(keyValue: KeyValue) = if (removeDeletes) KeyValueGrouper.addLastLevel(keyValue) else keyValue.toMemory()
+      def toMemory(keyValue: KeyValue) = if (removeDeletes) KeyValueGrouper.toLastLevelOrNull(keyValue) else keyValue.toMemory()
 
       segment match {
         case segment: MemorySegment =>

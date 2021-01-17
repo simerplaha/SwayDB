@@ -47,7 +47,7 @@ object MergeStatsCreator {
 
     override def create(removeDeletes: Boolean): MergeStats.Persistent.Builder[Memory, ListBuffer] =
       if (removeDeletes)
-        MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.addLastLevel)
+        MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.toLastLevelOrNull)
       else
         MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)
   }
@@ -59,7 +59,7 @@ object MergeStatsCreator {
 
     override def create(removeDeletes: Boolean): MergeStats.Memory.Builder[Memory, ListBuffer] =
       if (removeDeletes)
-        MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.addLastLevel)
+        MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.toLastLevelOrNull)
       else
         MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)
   }

@@ -38,15 +38,15 @@ private[core] object KeyValueGrouper extends LazyLogging {
                 builder: MergeStats[Memory, T],
                 isLastLevel: Boolean): Unit = {
     if (isLastLevel) {
-      val keyValueToMerge = addLastLevel(keyValue)
-      if (keyValueToMerge != null)
-        builder add keyValueToMerge
+      val keyValueToMergeOrNull = toLastLevelOrNull(keyValue)
+      if (keyValueToMergeOrNull != null)
+        builder add keyValueToMergeOrNull
     } else {
       builder add keyValue.toMemory()
     }
   }
 
-  def addLastLevel(keyValue: KeyValue): Memory =
+  def toLastLevelOrNull(keyValue: KeyValue): Memory =
     keyValue match {
       case fixed: KeyValue.Fixed =>
         fixed match {

@@ -366,7 +366,7 @@ private[core] case object Segment extends LazyLogging {
                                                         forceSaveApplier: ForceSaveApplier): Iterable[PersistentSegment] = {
     val builder =
       if (removeDeletes)
-        MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.addLastLevel)
+        MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.toLastLevelOrNull)
       else
         MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)
 
@@ -1169,7 +1169,7 @@ private[core] case object Segment extends LazyLogging {
           val nextKeyValue = fullIterator.next()
           val nextKeyValueOrNull =
             if (removeDeletes)
-              KeyValueGrouper.addLastLevel(nextKeyValue)
+              KeyValueGrouper.toLastLevelOrNull(nextKeyValue)
             else
               nextKeyValue.toMemory()
 
