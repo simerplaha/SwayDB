@@ -36,6 +36,7 @@ private[swaydb] object Futures {
   val rightUnit: Right[Nothing, Future[Unit]] = Right(unit)
   val rightUnitFuture: Future[Right[Nothing, Future[Unit]]] = Future.successful(rightUnit)
   val `false` = Future.successful(false)
+  val emptyIterable = Future.successful(Iterable.empty)
 
   implicit class FutureImplicits[A](future1: Future[A]) {
     @inline def and[B](future2: => Future[B])(implicit executionContext: ExecutionContext): Future[B] =

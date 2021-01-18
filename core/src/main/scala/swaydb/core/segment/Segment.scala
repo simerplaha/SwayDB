@@ -1186,14 +1186,6 @@ private[core] case object Segment extends LazyLogging {
       override def next(): Memory =
         nextOne
     }
-
-  def hasOnlyOneSegment(segments: Iterable[Segment]): Boolean = {
-    val iterator = segments.iterator
-    iterator.hasNext && {
-      iterator.next()
-      !iterator.hasNext //no next segment.
-    }
-  }
 }
 
 private[core] trait Segment extends FileSweeperItem with SegmentOption with Assignable.Collection { self =>

@@ -33,6 +33,14 @@ private[swaydb] object Collections {
 
   val emptyStringSeq = Seq.empty[String]
 
+  def hasOnlyOne[A](segments: Iterable[A]): Boolean = {
+    val iterator = segments.iterator
+    iterator.hasNext && {
+      iterator.next()
+      !iterator.hasNext //no next.
+    }
+  }
+
   def ensureNotNull[T](buffer: ListBuffer[T]): ListBuffer[T] =
     if (buffer == null)
       ListBuffer.empty[T]
