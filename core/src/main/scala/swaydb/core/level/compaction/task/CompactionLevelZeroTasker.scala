@@ -40,6 +40,7 @@ import swaydb.data.util.Futures
 import swaydb.data.{MaxKey, NonEmptyList}
 
 import java.util
+import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
@@ -56,11 +57,12 @@ case object CompactionLevelZeroTasker {
 
     flatten(sourceIterator) map {
       collections =>
-        val tasks = CompactionTasker.run(
-          data = collections,
-          lowerLevels = lowerLevels,
-          dataOverflow = Long.MaxValue //full overflow so that all collections are assigned and tasked.
-        )
+        val tasks =
+          CompactionTasker.run(
+            data = collections,
+            lowerLevels = lowerLevels,
+            dataOverflow = Long.MaxValue //full overflow so that all collections are assigned and tasked.
+          )
 
         CompactionTask.CompactMaps(
           targetLevel = source,
@@ -98,10 +100,39 @@ case object CompactionLevelZeroTasker {
     }
 
   /**
-   * Distributes [[LevelZeroMap]]s key-vales among themselves
-   * so that concurrent merge could occur to flatten [[LevelZero]].
+   * Distributes [[LevelZeroMap]]s key-values among themselves
+   * to flatten the entire [[LevelZero]] so that it behaves like it was
+   * a single [[Level]] without any conflicting key-values.
+   *
+   * This function does not perform any iterations on [[LevelZeroMap]]'s
+   * key-values. It assigns based on the Map's head and last key-values.
+   *
+   * The resulting [[CompactionLevelZeroStack]] will contains stacks
+   * that can be merged concurrently before compacting [[LevelZeroMap]]s
+   * onto lower [[Level]].
+   *
+   * @param input The [[LevelZeroMap]]s from [[LevelZero]] to compact.
    */
   def createStacks(input: scala.collection.compat.IterableOnce[LevelZeroMap])(implicit keyOrder: KeyOrder[Slice[Byte]]): util.TreeMap[Slice[Byte], CompactionLevelZeroStack] = {
+    val stacks = new util.TreeMap[Slice[Byte], CompactionLevelZeroStack](keyOrder)
+    val inputIterator = input.iterator
+
+    while (inputIterator.hasNext) {
+      val inputMap = inputIterator.next()
+      distributeMap(
+        inputMap = inputMap,
+        stacks = stacks
+      )
+    }
+
+    stacks
+  }
+
+  /**
+   * @see [[createStacks]]'s function doc.
+   */
+  private def distributeMap(inputMap: LevelZeroMap,
+                            stacks: util.NavigableMap[Slice[Byte], CompactionLevelZeroStack])(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
     import keyOrder._
     //builds a list of key-values that need to be merged
     //a stack looks like the following
@@ -110,115 +141,153 @@ case object CompactionLevelZeroTasker {
     //                          KeyValues2 -   11, 12
     //                          KeyValues3 -   11,             20)
 
-    val stacks = new util.TreeMap[Slice[Byte], CompactionLevelZeroStack](keyOrder)
+    val inputMinKey = inputMap.cache.skipList.headKey.getC
+    val inputMaxKey = inputMap.cache.maxKey().getC
+    //there could be range key-values in the Map so start with floor.
+    //stacked - 10 - 20
+    //input   -    15 - 30
+    val floorStackedEntry = stacks.floorEntry(inputMinKey)
 
-    input foreach {
-      inputMap =>
-        val inputMinKey = inputMap.cache.skipList.headKey.getC
-        val inputMaxKey = inputMap.cache.maxKey().getC
-        //there could be range key-values in the Map so start with floor.
-        //stacked - 10 - 20
-        //input   -    15 - 30
-        val floorStackedEntry = stacks.floorEntry(inputMinKey)
+    val overlappingMinKey =
+      if (floorStackedEntry == null)
+        inputMinKey //there was no floor start from mapMinKey
+      else
+        floorStackedEntry.getValue.maxKey match {
+          case MaxKey.Fixed(floorMaxKey) =>
+            if (inputMinKey <= floorMaxKey)
+              floorStackedEntry.getKey
+            else
+              inputMinKey
 
-        val overlappingMinKey =
-          if (floorStackedEntry == null)
-            inputMinKey //there was no floor start from mapMinKey
-          else
-            floorStackedEntry.getValue.maxKey match {
-              case MaxKey.Fixed(floorMaxKey) =>
-                if (inputMinKey <= floorMaxKey)
-                  floorStackedEntry.getKey
+          case MaxKey.Range(_, floorMaxKey) =>
+            if (inputMinKey < floorMaxKey)
+              floorStackedEntry.getKey
+            else
+              inputMinKey
+        }
+
+    //fetches existing maps that are overlapping the new inputMap
+    @inline def getOverlappingExistingMaps() = stacks.subMap(overlappingMinKey, true, inputMaxKey.maxKey, inputMaxKey.inclusive)
+
+    //mutable - which gets reset if the inputMap had range key-values which spreads to multiple maps.
+    var overlappingExistingMaps = getOverlappingExistingMaps()
+
+    if (overlappingExistingMaps.isEmpty) { //IF - no overlaps create a fresh entry
+      val newStack =
+        CompactionLevelZeroStack(
+          minKey = inputMinKey,
+          maxKey = inputMaxKey,
+          stack = ListBuffer(Left(inputMap))
+        )
+
+      stacks.put(inputMinKey, newStack)
+    } else { //ELSE distribute new key-values to their overlapping stacked maps.
+      /**
+       * Before distributing check if inputMap has range that spreads to multiple existing Maps.
+       * If yes, then combine those existing maps before distributing data because we don't want
+       * perform range splitting here. To keep it simple we simply join the existing conflicting
+       * maps and defer the split to SegmentAssigner which occurs later in the merge process.
+       */
+      if (inputMap.cache.hasRange && overlappingExistingMaps.size() > 1) {
+        var minKey: Slice[Byte] = null
+        var maxKey: MaxKey[Slice[Byte]] = null
+        //overlapping existing stacks to join to form a single CompactionLevelZeroStack
+        val joinedStack = ListBuffer.empty[Either[LevelZeroMap, Iterable[Memory]]]
+
+        overlappingExistingMaps.values().iterator() forEachRemaining {
+          stack =>
+            if (minKey == null) minKey = stack.minKey
+            maxKey = stack.maxKey
+            joinedStack ++= stack.stack
+        }
+
+        //remove existing overlapping maps
+        overlappingExistingMaps.clear()
+
+        //create the new stack
+        val newCollapsedStack =
+          CompactionLevelZeroStack(
+            minKey = minKey,
+            maxKey = maxKey,
+            stack = joinedStack
+          )
+
+        //insert the stack after clearing old assignments.
+        stacks.put(minKey, newCollapsedStack)
+
+        //reset the overlapping maps. floorStackedEntry does not require reset because the floorKey is still the same.
+        overlappingExistingMaps = getOverlappingExistingMaps()
+        //this time there is only one overlapping
+        assert(overlappingExistingMaps.size() == 1, s"${overlappingExistingMaps.size()} != 1")
+      }
+
+      /** ***********************
+       * START DATA DISTRIBUTION.
+       * ********************** */
+      val existingMaps = overlappingExistingMaps.values().iterator().asScala
+      //build the data to be updated.
+      val newUpdatedStacks = ListBuffer.empty[CompactionLevelZeroStack]
+
+      //iterate over all overlapping maps and slice the input and assign key-values to overlapping maps
+      existingMaps.foldLeft((inputMinKey, true)) {
+        case ((takeFrom, takeFromInclusive), existingStack) =>
+          val inputKeyValues =
+            if (existingMaps.hasNext)
+              inputMap.cache.skipList.subMapValues(
+                from = takeFrom,
+                fromInclusive = takeFromInclusive,
+                to = existingStack.maxKey.maxKey,
+                toInclusive = existingStack.maxKey.inclusive
+              )
+            else //if it does not has next assign all to the last Map.
+              inputMap.cache.skipList.subMapValues(
+                from = takeFrom,
+                fromInclusive = takeFromInclusive,
+                to = inputMaxKey.maxKey,
+                toInclusive = true
+              )
+
+          //this mutates existing stacks in the maps for update
+          existingStack.stack += Right(inputKeyValues)
+
+          val newMinKey =
+            keyOrder.min(existingStack.minKey, inputKeyValues.head.key)
+
+          val newMaxKey: MaxKey[Slice[Byte]] =
+            existingStack.maxKey match { //existing maxKey
+              case MaxKey.Fixed(existingMaxKey) => //existing maxKey
+                val newMaxKey = inputKeyValues.last.maxKey //new maxKey
+                if (existingMaxKey >= newMaxKey.maxKey)
+                  existingStack.maxKey
                 else
-                  inputMinKey
+                  newMaxKey
 
-              case MaxKey.Range(_, floorMaxKey) =>
-                if (inputMinKey < floorMaxKey)
-                  floorStackedEntry.getKey
-                else
-                  inputMinKey
+              case MaxKey.Range(_, existingMaxKey) =>
+                //since existing maxKey is a range if inputMap's maxKey is >= always select it
+                //because it could be a Fixed key-values.
+                val inputMapsMaxKey = inputKeyValues.last.maxKey
+                if (inputMapsMaxKey.maxKey >= existingMaxKey)
+                  inputMapsMaxKey
+                else //else leave old.
+                  existingStack.maxKey
             }
 
-        val overlappingStackedMaps = stacks.subMap(overlappingMinKey, true, inputMaxKey.maxKey, inputMaxKey.inclusive)
+          //remove old entry & write new entry to set the mutated stack in the existing stack to the new key
+          newUpdatedStacks += existingStack.copy(minKey = newMinKey, maxKey = newMaxKey)
+          //if maxKey was inclusive then it should be exclusive
+          //for next iteration because it's all been added by this iteration.
+          (existingStack.maxKey.maxKey, !existingStack.maxKey.inclusive)
+      }
 
-        if (overlappingStackedMaps.isEmpty) { //no overlap create a fresh entry
-          val newStack =
-            CompactionLevelZeroStack(
-              minKey = inputMinKey,
-              maxKey = inputMaxKey,
-              stack = ListBuffer(Left(inputMap))
-            )
+      //clear old assignments
+      overlappingExistingMaps.clear()
 
-          stacks.put(inputMinKey, newStack)
-        } else { //distribute new key-values to their overlapping stacked maps.
-          val existingMaps = overlappingStackedMaps.values().iterator().asScala
-
-          //build the data to be updated.
-          val updateEntries = ListBuffer.empty[(Slice[Byte], CompactionLevelZeroStack)]
-
-          //iterate over all overlapping maps and slice the input and assign key-values to overlapping maps
-          existingMaps.foldLeft((inputMinKey, true)) {
-            case ((takeFrom, takeFromInclusive), existingStack) =>
-              val inputKeyValues =
-                if (existingMaps.hasNext)
-                  inputMap.cache.skipList.subMapValues(
-                    from = takeFrom,
-                    fromInclusive = takeFromInclusive,
-                    to = existingStack.maxKey.maxKey,
-                    toInclusive = existingStack.maxKey.inclusive
-                  )
-                else //if it does not has next assign all to the last Map.
-                  inputMap.cache.skipList.subMapValues(
-                    from = takeFrom,
-                    fromInclusive = takeFromInclusive,
-                    to = inputMaxKey.maxKey,
-                    toInclusive = true
-                  )
-
-              //this mutates existing stacks in the maps for update
-              existingStack.stack += Right(inputKeyValues)
-
-              val newMinKey =
-                keyOrder.min(existingStack.minKey, inputKeyValues.head.key)
-
-              val newMaxKey: MaxKey[Slice[Byte]] =
-                existingStack.maxKey match { //existing maxKey
-                  case MaxKey.Fixed(existingMaxKey) => //existing maxKey
-                    val newMaxKey = inputKeyValues.last.maxKey //new maxKey
-                    if (existingMaxKey >= newMaxKey.maxKey)
-                      existingStack.maxKey
-                    else
-                      newMaxKey
-
-                  case MaxKey.Range(_, existingMaxKey) =>
-                    //since existing maxKey is a range if inputMap's maxKey is >= always select it
-                    //because it could be a Fixed key-values.
-                    val inputMapsMaxKey = inputKeyValues.last.maxKey
-                    if (inputMapsMaxKey.maxKey >= existingMaxKey)
-                      inputMapsMaxKey
-                    else //else leave old.
-                      existingStack.maxKey
-                }
-
-              //remove old entry & write new entry to set the mutated stack in the existing stack to the new key
-              updateEntries += ((existingStack.minKey, existingStack.copy(minKey = newMinKey, maxKey = newMaxKey)))
-              //if maxKey was inclusive then it should be exclusive
-              //for next iteration because it's all been added by this iteration.
-              (existingStack.maxKey.maxKey, !existingStack.maxKey.inclusive)
-          }
-
-          //finally remove all the updated maps and write new ones with new minKeys.
-          updateEntries foreach {
-            case (removeKey, newEntry) =>
-              stacks.remove(removeKey)
-              stacks.put(newEntry.minKey, newEntry)
-          }
-        }
+      //finally remove all the updated maps and write new ones with new minKeys.
+      newUpdatedStacks foreach {
+        newEntry =>
+          stacks.put(newEntry.minKey, newEntry)
+      }
     }
-
-    //map over here will not be that expensive because stacks are generally small
-    //if LevelZero is allowed 4 maps before compaction then this stack will have 4.
-    stacks
   }
 
   private def getKeyValues(either: Either[LevelZeroMap, Iterable[Memory]]): Iterator[Memory] =

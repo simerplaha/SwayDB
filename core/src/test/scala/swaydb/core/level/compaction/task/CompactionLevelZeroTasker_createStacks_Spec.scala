@@ -27,8 +27,7 @@ package swaydb.core.level.compaction.task
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestData._
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
-import swaydb.core.segment.Segment
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.MaxKey
 import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -36,7 +35,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.mutable.ListBuffer
-import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters._
 
 class CompactionLevelZeroTasker_createStacks_Spec extends TestBase with MockFactory {
 

@@ -27,6 +27,19 @@ package swaydb.core.segment.assigner
 import swaydb.Aggregator
 import swaydb.core.segment.ref.SegmentRef
 
+object SegmentAssignment {
+
+  sealed trait Result[+GAP, +MID, +SEG] {
+    def segment: SEG
+    def headGapResult: GAP
+    def midOverlapResult: MID
+    def tailGapResult: GAP
+
+    override def toString: String =
+      s"Target: ${segment.toString}, head: ${headGapResult.toString}, mid: ${midOverlapResult.toString}, tail: ${tailGapResult.toString}"
+  }
+}
+
 /**
  * Stores assign gap and mergeable (overlapping) key-value of a Segment.
  *
@@ -40,19 +53,6 @@ import swaydb.core.segment.ref.SegmentRef
  * @tparam SEG Target Segment to which key-values should be assigned to.
  *             This can be a [[swaydb.core.segment.Segment]] or [[SegmentRef]].
  */
-
-object SegmentAssignment {
-
-  sealed trait Result[+GAP, +MID, +SEG] {
-    def segment: SEG
-    def headGapResult: GAP
-    def midOverlapResult: MID
-    def tailGapResult: GAP
-
-    override def toString: String =
-      s"Target: ${segment.toString}, head: ${headGapResult.toString}, mid: ${midOverlapResult.toString}, tail: ${tailGapResult.toString}"
-  }
-}
 
 case class SegmentAssignment[+GAP, +MID, +SEG](segment: SEG,
                                                headGap: Aggregator[Assignable, GAP],

@@ -29,8 +29,7 @@ import swaydb.EitherValues._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
-import swaydb.core.segment.Segment
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.MaxKey
 import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -38,8 +37,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-import scala.collection.mutable.ListBuffer
-import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters._
 import scala.util.Random
 
 class CompactionLevelZeroTasker_createStacks_Fixed_BehaviourSpec extends TestBase with MockFactory {
