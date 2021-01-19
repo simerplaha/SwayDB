@@ -48,23 +48,14 @@ private[core] object KeyValueGrouper extends LazyLogging {
 
   def toLastLevelOrNull(keyValue: KeyValue): Memory =
     keyValue match {
-      case fixed: KeyValue.Fixed =>
-        fixed match {
-          case put: Memory.Put =>
-            if (put.hasTimeLeft())
-              put
-            else
-              null
+      case put: KeyValue.Put =>
+        if (put.hasTimeLeft())
+          put.toMemory()
+        else
+          null
 
-          case put: Persistent.Put =>
-            if (put.hasTimeLeft())
-              put.toMemory()
-            else
-              null
-
-          case _: Memory.Fixed | _: Persistent.Fixed =>
-            null
-        }
+      case _: KeyValue.Fixed =>
+        null
 
       case range: KeyValue.Range =>
         val fromValue = range.fetchFromValueUnsafe

@@ -67,7 +67,7 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{Level0Storage, LevelStorage}
-import swaydb.data.util.OperatingSystem
+import swaydb.data.util.{FiniteDurations, OperatingSystem}
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
 import swaydb.serializers.Default._
@@ -1640,6 +1640,18 @@ object TestData {
     }
     slice
   }
+
+  def furthestDeadline(keyValues: Iterable[KeyValue]): Option[Deadline] =
+    keyValues.foldLeft(Option.empty[Deadline]) {
+      case (furthestDeadline, keyValue) =>
+        keyValue.asPut match {
+          case Some(put) =>
+            FiniteDurations.getFurthestDeadline(put.deadline, furthestDeadline)
+
+          case None =>
+            furthestDeadline
+        }
+    }
 
   def getPuts(keyValues: Iterable[KeyValue]): Iterable[KeyValue.Put] =
     keyValues collect {

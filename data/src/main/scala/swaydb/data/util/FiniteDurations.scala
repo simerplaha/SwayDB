@@ -79,6 +79,25 @@ private[swaydb] object FiniteDurations {
         None
     }
 
+  def getFurthestDeadline(deadline: Option[Deadline],
+                          next: Option[Deadline]): Option[Deadline] =
+    (deadline, next) match {
+      case (Some(previous), Some(next)) =>
+        if (previous > next)
+          Some(previous)
+        else
+          Some(next)
+
+      case (None, next @ Some(_)) =>
+        next
+
+      case (previous @ Some(_), None) =>
+        previous
+
+      case (None, None) =>
+        None
+    }
+
   def eventually[T](timeoutDuration: FiniteDuration = 1.seconds,
                     interval: FiniteDuration = 100.millisecond)(f: => T): Try[T] = {
     val deadline = timeoutDuration.fromNow

@@ -82,7 +82,27 @@ class FiniteDurationsSpec extends AnyFlatSpec with Matchers {
     FiniteDurations.getNearestDeadline(None, Some(deadline1)) should contain(deadline1)
     FiniteDurations.getNearestDeadline(None, Some(deadline2)) should contain(deadline2)
 
+    FiniteDurations.getNearestDeadline(Some(deadline1), Some(deadline1)) should contain(deadline1)
+    FiniteDurations.getNearestDeadline(Some(deadline2), Some(deadline2)) should contain(deadline2)
+
     FiniteDurations.getNearestDeadline(Some(deadline1), Some(deadline2)) should contain(deadline1)
     FiniteDurations.getNearestDeadline(Some(deadline2), Some(deadline1)) should contain(deadline1)
+  }
+
+  it should "return furthest deadline" in {
+    val deadline1 = 10.seconds.fromNow
+    val deadline2 = 20.seconds.fromNow
+
+    FiniteDurations.getFurthestDeadline(Some(deadline1), None) should contain(deadline1)
+    FiniteDurations.getFurthestDeadline(Some(deadline2), None) should contain(deadline2)
+
+    FiniteDurations.getFurthestDeadline(None, Some(deadline1)) should contain(deadline1)
+    FiniteDurations.getFurthestDeadline(None, Some(deadline2)) should contain(deadline2)
+
+    FiniteDurations.getFurthestDeadline(Some(deadline1), Some(deadline1)) should contain(deadline1)
+    FiniteDurations.getFurthestDeadline(Some(deadline2), Some(deadline2)) should contain(deadline2)
+
+    FiniteDurations.getFurthestDeadline(Some(deadline1), Some(deadline2)) should contain(deadline2)
+    FiniteDurations.getFurthestDeadline(Some(deadline2), Some(deadline1)) should contain(deadline2)
   }
 }

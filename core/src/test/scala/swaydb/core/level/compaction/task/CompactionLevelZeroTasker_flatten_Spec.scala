@@ -27,15 +27,16 @@ package swaydb.core.level.compaction.task
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.segment.Segment
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{merge => _, _}
 import swaydb.data.MaxKey
 import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice
+import swaydb.data.util.FiniteDurations.FiniteDurationImplicits
 import swaydb.serializers.Default._
 
-import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.DurationInt
 
 class CompactionLevelZeroTasker_flatten_Spec extends TestBase with MockFactory {
 
@@ -45,27 +46,26 @@ class CompactionLevelZeroTasker_flatten_Spec extends TestBase with MockFactory {
   implicit val segmentOrdering = keyOrder.on[Segment](_.minKey)
   implicit val ec = TestExecutionContext.executionContext
 
-  "stack is empty" in {
-    runThis(10.times, log = true) {
+  /**
+   * TEST STEPS
+   * 1. random generates multiple LevelZero maps
+   * 2. performs concurrent flattening on them
+   * 3. asserts it's final merge state by merging the maps sequentially (no concurrency) into a Level.
+   */
+  "random generation" in {
+    runThis(5.times, log = true) {
       TestCaseSweeper {
         implicit sweeper =>
-          val updateKeyValues =
+          //LevelZero map key-values.
+          val keyValues =
             (0 to randomIntMax(20)) map {
               _ =>
                 randomizedKeyValues(randomIntMax(100) max 1, startId = Some(0))
             }
 
-          val minId = updateKeyValues.map(_.last.key.readInt()).min
-
-          val putKeyValues =
-            (1 to 100).foldLeft(ListBuffer.empty[Memory]) {
-              case (buffer, _) =>
-                val startId = if (buffer.nonEmpty) buffer.nextKey() else minId
-                buffer ++= randomPutKeyValues(eitherOne(randomIntMax(10) max 1, 10), startId = Some(startId))
-            } toSlice
-
-          val maps = (updateKeyValues :+ putKeyValues).map(TestMap(_))
-
+          //build maps
+          val maps = keyValues.map(TestMap(_))
+          //execute the flatten function on the map
           val flattenedMaps = CompactionLevelZeroTasker.flatten(maps.iterator).awaitInf
 
           //Assert: all maps are in order and there are no overlaps
@@ -82,30 +82,54 @@ class CompactionLevelZeroTasker_flatten_Spec extends TestBase with MockFactory {
               }
           }
 
-          def buildExpectedKeyValues(): Iterable[KeyValue] = {
+          //given the key-values assert it's state if it was merged sequentially into a level
+          def buildExpectedKeyValues() = {
             val level = TestLevel()
-            level.put(keyValues = putKeyValues, removeDeletes = true).get
-            updateKeyValues.reverse foreach {
+
+            keyValues.reverse foreach {
               keyValues =>
                 level.put(keyValues = keyValues, removeDeletes = true).get
             }
-            level.segments().flatMap(_.iterator())
+
+            level.segments().flatMap(_.iterator()).map(_.toMemory()).toSlice
           }
 
+          //get the actual merged key-values and write it to a Level to final cleanup merges
           def buildActualKeyValues() = {
             val level = TestLevel()
             val flattenedKeyValues = flattenedMaps.flatMap(_.iterator()).map(_.toMemory())
             level.put(keyValues = flattenedKeyValues, removeDeletes = true)
-            level.segments().flatMap(_.iterator())
+            level.segments().flatMap(_.iterator()).map(_.toMemory()).toSlice
           }
 
-          try
-            buildActualKeyValues() shouldBe buildExpectedKeyValues()
-          catch {
-            case throwable: Throwable =>
-              throwable.printStackTrace()
-              throw throwable
-          }
+          //get all expected key-values
+          val expected = buildExpectedKeyValues()
+          //get all actual key-values
+          val actual = buildActualKeyValues()
+          //this test's timeout
+          var testTimeout = 2.minutes.fromNow
+          //run this test with multiple attempts until timeout
+          while (testTimeout.hasTimeLeft())
+            try {
+              //Retry merge if there is a failure in assertion. This would happen for cases
+              //where flattening merge (concurrent) resulted in a deadline to expire a key-value immediately
+              //and sequential merge resulted in allowing the key-value's deadline to be extended or vice-versa.
+              //This happens when the order of merge is not the same and only effects key-values with deadline.
+              //Documentation - http://swaydb.io/implementation/compaction/increasing-expiration-time/?language=java
+              val expectedMerged = merge(expected, Slice.empty, true)
+              val actualMerged = merge(actual, Slice.empty, true)
+              actualMerged shouldBe expectedMerged
+              testTimeout = 0.seconds.fromNow
+            } catch {
+              case exception: Throwable =>
+                //sleep for some-time
+                sleep(2.second)
+                //For better print find the furthest deadline to show how long will this test run for
+                val furthestDeadline = TestData.furthestDeadline(expected ++ actual)
+                println(s"Test TimeLeft: ${testTimeout.timeLeft.asString}: ${exception.getMessage}. furthestDeadline timeLeft: ${furthestDeadline.map(_.timeLeft.asString)}")
+                if (testTimeout.isOverdue())
+                  fail(exception)
+            }
       }
     }
   }
