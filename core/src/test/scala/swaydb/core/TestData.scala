@@ -174,7 +174,7 @@ object TestData {
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
-    def put(keyValues: Iterable[Memory])(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
+    def put(keyValues: Iterable[Memory], removeDeletes: Boolean = false)(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
 
       implicit val idGenerator = level.segmentIDGenerator
 
@@ -222,7 +222,7 @@ object TestData {
 
         //        segments should have size 1
 
-        level.putSegments(segments) onRightSideEffect {
+        level.putSegments(segments = segments, removeDeletes = removeDeletes) onRightSideEffect {
           _ =>
             segments.foreach(_.delete)
         }
@@ -232,13 +232,13 @@ object TestData {
     def put(segment: Segment)(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] =
       putSegments(Seq(segment))
 
-    def putSegments(segments: Iterable[Segment])(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
+    def putSegments(segments: Iterable[Segment], removeDeletes: Boolean = false)(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
       if (segments.isEmpty)
         IO.failed("Segments are empty")
       else
-        level.commit(level.merge(segments = segments, removeDeletedRecords = false).awaitInf)
+        level.commit(level.merge(segments = segments, removeDeletedRecords = removeDeletes).awaitInf)
     }
 
     def putMap(map: LevelZeroMap)(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
