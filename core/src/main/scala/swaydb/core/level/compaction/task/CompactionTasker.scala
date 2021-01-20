@@ -90,14 +90,14 @@ protected case object CompactionTasker {
 
     //convert Segments to key-values for SegmentAssigner.
     val (segmentKeyValues, segmentMapIndex) =
-      CompactionTasker.toKeyValues(data)
+      toKeyValues(data)
 
     //build an aggregator such that all Assignable assignments are converted back to
     //the input data type. i.e. if input data type was Segment, mutable.SortedSet[A] will be
     //mutable.SortedSet[Segment]
 
     implicit val creator: Aggregator.Creator[Assignable, mutable.SortedSet[A]] =
-      CompactionTasker.aggregatorCreator(segmentOrder, segmentMapIndex)
+      aggregatorCreator(segmentOrder, segmentMapIndex)
 
     //get the next level from remaining levels.
     val nextLevel = lowerLevels.head
@@ -113,20 +113,20 @@ protected case object CompactionTasker {
 
         //group the assignments that spread
         val groupedAssignments =
-          CompactionTasker.groupAssignmentsForScoring[A, Segment, SegmentAssignment[mutable.SortedSet[A], mutable.SortedSet[A], Segment]](assignments)
+          groupAssignmentsForScoring[A, Segment, SegmentAssignment[mutable.SortedSet[A], mutable.SortedSet[A], Segment]](assignments)
 
         //score assignments.
         val scoredAssignments =
           groupedAssignments.sorted(CompactionAssignmentScorer.scorer[A, Segment]())
 
         //finalise Segments to compact.
-        CompactionTasker.finaliseSegmentsToCompact(
+        finaliseSegmentsToCompact(
           dataOverflow = dataOverflow,
           scoredAssignments = scoredAssignments
         )
       } else { //else segments can be copied.
         val segmentsToCopy =
-          CompactionTasker.fillOverflow(
+          fillOverflow(
             overflow = dataOverflow,
             data = data
           )
@@ -336,16 +336,13 @@ protected case object CompactionTasker {
         segmentsToCopy ++= assignment.headGapResult
         segmentsToCopy ++= assignment.tailGapResult
 
-        //prioritise segments that have overlapping key-values.
-        //select all overlapping key-values (do not break here)
-        //because they all can be merged into the same target Segment.
-        if (assignment.midOverlapResult.nonEmpty) {
-          val midOverlapIterator = assignment.midOverlapResult.iterator
-          while (midOverlapIterator.hasNext) {
-            val nextMidOverlap = midOverlapIterator.next()
-            segmentsToMerge += nextMidOverlap
-            midOverlapTaken += nextMidOverlap.segmentSize
-          }
+        //all midOverlaps should be merged because they
+        //have the same target Segment.
+        val midOverlapIterator = assignment.midOverlapResult.iterator
+        while (midOverlapIterator.hasNext) {
+          val overlap = midOverlapIterator.next()
+          segmentsToMerge += overlap
+          midOverlapTaken += overlap.segmentSize
         }
 
         break = midOverlapTaken >= dataOverflow
