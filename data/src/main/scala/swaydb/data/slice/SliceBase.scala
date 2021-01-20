@@ -510,7 +510,49 @@ abstract class SliceBase[+T](array: Array[T],
   def existsFor(forItems: Int, exists: T => Boolean): Boolean =
     take(forItems).exists(exists)
 
+  def replaceHeadCopy[A >: T : ClassTag](newHead: A): Slice[A] =
+    if (this.isEmpty) {
+      throw new Exception("Slice is empty")
+    } else if (this.size == 1) {
+      Slice(newHead)
+    } else {
+      val updatedSlice = Slice.of[A](this.size)
+      updatedSlice add newHead
+      updatedSlice addAll this.dropHead()
+    }
+
+  def replaceLastCopy[A >: T : ClassTag](newLast: A): Slice[A] =
+    if (this.isEmpty) {
+      throw new Exception("Slice is empty")
+    } else if (this.size == 1) {
+      Slice(newLast)
+    } else {
+      val updatedSlice = Slice.of[A](this.size)
+      updatedSlice addAll this.dropRight(1)
+      updatedSlice add newLast
+    }
+
+  def updateBinarySearchCopy[A >: T : ClassTag](target: A, update: A)(implicit ordering: Ordering[A]): Slice[A] = {
+    val index = binarySearchIndexOf(target)
+    if (index == -1) {
+      throw new Exception(s"Item $target not found")
+    } else {
+      val updatedSlice = Slice.of[A](this.size)
+      if (index != 0) updatedSlice addAll this.take(index)
+      updatedSlice add update
+      updatedSlice addAll this.take(index + 1, this.size - (index + 1))
+    }
+  }
+
   def binarySearch[A >: T, N <: A](target: A, nullValue: N)(implicit ordering: Ordering[A]): A = {
+    val index = binarySearchIndexOf(target)
+    if (index == -1)
+      nullValue
+    else
+      this.get(index)
+  }
+
+  def binarySearchIndexOf[A >: T](target: A)(implicit ordering: Ordering[A]): Int = {
     var start = 0
     var end = size - 1
 
@@ -519,14 +561,14 @@ abstract class SliceBase[+T](array: Array[T],
       val element = get(mid)
       val compare = ordering.compare(element, target)
       if (compare == 0)
-        return element
+        return mid
       else if (compare < 0)
         start = mid + 1
       else
         end = mid - 1
     }
 
-    nullValue
+    -1
   }
 
   def ++[B >: T : ClassTag](other: Slice[B]): Slice[B] =

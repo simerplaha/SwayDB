@@ -1212,4 +1212,88 @@ class SliceSpec extends AnyWordSpec with Matchers {
       }
     }
   }
+
+  "updateBinarySearchCopy" when {
+    "empty" in {
+      val slice = Slice.empty[Int]
+      assertThrows[Exception] {
+        slice.updateBinarySearchCopy(2, 3)
+      }
+    }
+
+    "item does not exist" in {
+      runThis(50.times) {
+        val slice = Slice.range(1, Random.nextInt(10))
+        assertThrows[Exception] {
+          slice.updateBinarySearchCopy(11, 3)
+        }
+      }
+    }
+
+    "update head" in {
+      Slice.range(1, 10).updateBinarySearchCopy(1, 2).head shouldBe 2
+    }
+
+    "update last" in {
+      Slice.range(1, 10).updateBinarySearchCopy(10, 2).last shouldBe 2
+    }
+
+    "update mid" in {
+      val slice = Slice.range(0, 10)
+      slice foreach {
+        item =>
+          slice.updateBinarySearchCopy(item, Int.MaxValue).get(item) shouldBe Int.MaxValue
+      }
+    }
+  }
+
+  "replaceHeadCopy" when {
+    "empty" in {
+      val slice = Slice.empty[Int]
+      assertThrows[Exception] {
+        slice.replaceHeadCopy(3)
+      }
+    }
+
+    "size = 1" in {
+      val replaced = Slice(1).replaceHeadCopy(Int.MaxValue)
+      replaced.head shouldBe Int.MaxValue
+      replaced.dropHead() shouldBe empty
+    }
+
+    "size = 10" in {
+      val replaced = Slice.range(1, 10).replaceHeadCopy(Int.MaxValue)
+      replaced.head shouldBe Int.MaxValue
+      replaced.dropHead() shouldBe Slice.range(2, 10)
+    }
+  }
+
+  "replaceLastCopy" when {
+    "empty" in {
+      val slice = Slice.empty[Int]
+      assertThrows[Exception] {
+        slice.replaceLastCopy(3)
+      }
+    }
+
+    "size = 1" in {
+      val replaced = Slice(1).replaceLastCopy(Int.MaxValue)
+      replaced.head shouldBe Int.MaxValue
+      replaced.last shouldBe Int.MaxValue
+      replaced.dropHead() shouldBe empty
+      replaced shouldBe Slice(Int.MaxValue)
+    }
+
+    "size = 10" in {
+      val replaced = Slice.range(1, 10).replaceLastCopy(Int.MaxValue)
+      replaced.last shouldBe Int.MaxValue
+      replaced.dropRight(1) shouldBe Slice.range(1, 9)
+    }
+
+    "on subslice" in {
+      val replaced = Slice.range(1, 10).drop(1).dropRight(1).replaceLastCopy(Int.MaxValue)
+      replaced.last shouldBe Int.MaxValue
+      replaced shouldBe Slice(2, 3, 4, 5, 6, 7, 8, Int.MaxValue)
+    }
+  }
 }
