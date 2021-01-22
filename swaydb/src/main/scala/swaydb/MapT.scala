@@ -24,6 +24,7 @@
 
 package swaydb
 
+import scala.collection.compat.IterableOnce
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
@@ -41,9 +42,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
   def expire(keys: Stream[(K, Deadline), BAG]): BAG[OK]
 
-  def expire(keys: Iterable[(K, Deadline)]): BAG[OK]
-
-  def expire(keys: Iterator[(K, Deadline)]): BAG[OK]
+  def expire(keys: IterableOnce[(K, Deadline)]): BAG[OK]
 
   def update(key: K, value: V): BAG[OK]
 
@@ -53,9 +52,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
   def update(keyValues: Stream[(K, V), BAG]): BAG[OK]
 
-  def update(keyValues: Iterable[(K, V)]): BAG[OK]
-
-  def update(keyValues: Iterator[(K, V)]): BAG[OK]
+  def update(keyValues: IterableOnce[(K, V)]): BAG[OK]
 
   def clearAppliedFunctions(): BAG[Iterable[String]]
 
@@ -73,9 +70,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
   def commit(prepare: Stream[Prepare[K, V, F], BAG]): BAG[OK]
 
-  def commit(prepare: Iterable[Prepare[K, V, F]]): BAG[OK]
-
-  def commit(prepare: Iterator[Prepare[K, V, F]]): BAG[OK]
+  def commit(prepare: IterableOnce[Prepare[K, V, F]]): BAG[OK]
 
   def getKeyDeadline(key: K): BAG[Option[(K, Option[Deadline])]]
 

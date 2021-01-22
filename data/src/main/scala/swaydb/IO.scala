@@ -183,7 +183,7 @@ object IO {
 
     //returns the first IO.Right(Some(_)).
     def untilSome[R](f: A => IO[E, Option[R]]): IO[E, Option[(R, A)]] = {
-      iterable.iterator foreach {
+      iterable foreach {
         item =>
           f(item) match {
             case IO.Right(Some(value)) =>
@@ -202,7 +202,7 @@ object IO {
     }
 
     def untilSomeValue[R](f: A => IO[E, Option[R]]): IO[E, Option[R]] = {
-      iterable.iterator foreach {
+      iterable foreach {
         item =>
           f(item) match {
             case IO.Right(Some(value)) =>

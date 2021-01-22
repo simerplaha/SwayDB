@@ -111,7 +111,7 @@ object LevelZeroMerger {
   @inline private def insertRange(insert: Memory.Range,
                                   state: State)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore) = {
+                                                functionStore: FunctionStore): Unit = {
     import keyOrder._
 
     //value the start position of this range to fetch the range's start and end key-values for the skipList.

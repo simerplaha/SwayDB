@@ -17,20 +17,20 @@ class BlockSpec extends TestBase {
 
   "dataType" in {
     //uncompressed
-    ValuesBlock(ValuesBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = None).dataType shouldBe IOAction.ReadUncompressedData(10)
-    ValuesBlock(ValuesBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = None).dataType shouldBe IOAction.ReadUncompressedData(10)
+    ValuesBlock(ValuesBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = None).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
+    ValuesBlock(ValuesBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = None).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
 
     //compressed
-    ValuesBlock(ValuesBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).dataType shouldBe IOAction.ReadCompressedData(10, 200)
-    ValuesBlock(ValuesBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).dataType shouldBe IOAction.ReadCompressedData(10, 200)
+    ValuesBlock(ValuesBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
+    ValuesBlock(ValuesBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
 
     //uncompressed
-    SegmentBlock(SegmentBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = None).dataType shouldBe IOAction.ReadUncompressedData(10)
-    SegmentBlock(SegmentBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = None).dataType shouldBe IOAction.ReadUncompressedData(10)
+    SegmentBlock(SegmentBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = None).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
+    SegmentBlock(SegmentBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = None).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
 
     //compressed
-    SegmentBlock(SegmentBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).dataType shouldBe IOAction.ReadCompressedData(10, 200)
-    SegmentBlock(SegmentBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).dataType shouldBe IOAction.ReadCompressedData(10, 200)
+    SegmentBlock(SegmentBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
+    SegmentBlock(SegmentBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
   }
 
   "block & unblock" when {

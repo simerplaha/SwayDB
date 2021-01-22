@@ -28,6 +28,7 @@ import swaydb.data.stream.StreamFree
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.collection.compat.IterableOnce
 
 object Stream {
 
@@ -69,11 +70,8 @@ object Stream {
   /**
    * Create a [[Stream]] from a collection.
    */
-  def apply[A, BAG[_]](items: Iterable[A])(implicit bag: Bag[BAG]): Stream[A, BAG] =
-    apply[A, BAG](items.iterator)
-
-  def apply[A, BAG[_]](it: Iterator[A])(implicit bag: Bag[BAG]): Stream[A, BAG] =
-    Stream(StreamFree(it))
+  def apply[A, BAG[_]](it: IterableOnce[A])(implicit bag: Bag[BAG]): Stream[A, BAG] =
+    Stream(StreamFree(it.iterator))
 
   def join[A, B >: A, BAG[_]](head: A, tail: Stream[B, BAG])(implicit bag: Bag[BAG]): Stream[B, BAG] =
     Stream(StreamFree.join(head, tail.free))

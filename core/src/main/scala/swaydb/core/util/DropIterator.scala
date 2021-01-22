@@ -24,7 +24,7 @@
 
 package swaydb.core.util
 
-import swaydb.data.slice.Slice
+import scala.collection.compat.IterableOnce
 
 /**
  * Mutable data type to hold the state of currently being merged key-values and provides functions
@@ -55,11 +55,8 @@ private[core] object DropIterator {
   @inline final def empty[H >: Null <: T, T >: Null] =
     new Flat[H, T](null, null, Iterator.empty)
 
-  @inline final def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): DropIterator.Flat[H, T] =
+  @inline final def apply[H >: Null <: T, T >: Null](keyValues: IterableOnce[T]): DropIterator.Flat[H, T] =
     new Flat[H, T](null, null, keyValues.iterator)
-
-  @inline final def apply[H >: Null <: T, T >: Null](keyValues: Iterator[T]): DropIterator.Flat[H, T] =
-    new Flat[H, T](null, null, keyValues)
 
   implicit class DropIteratorImplicit[H >: Null <: T, T >: Null](left: DropIterator[H, T]) {
     @inline final def append(right: DropIterator[H, T]): DropIterator[H, T] =

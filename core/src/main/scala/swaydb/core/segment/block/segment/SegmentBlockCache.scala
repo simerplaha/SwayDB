@@ -185,7 +185,7 @@ private[core] class SegmentBlockCache private(path: Path,
                                                              resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockedReader[O, B], UnblockedReader[O, B]](
       initial = initial,
-      strategy = reader => blockIO(reader.block.dataType).forceCacheOnAccess,
+      strategy = reader => blockIO(reader.block.decompressionAction).forceCacheOnAccess,
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName"))
     ) {
       (initial, self) => //initial set clean up.
@@ -197,7 +197,7 @@ private[core] class SegmentBlockCache private(path: Path,
       (blockedReader, self) =>
         IO {
 
-          val readerIsCacheOnAccess = shouldForceCache(resourceName) || blockIO(blockedReader.block.dataType).cacheOnAccess
+          val readerIsCacheOnAccess = shouldForceCache(resourceName) || blockIO(blockedReader.block.decompressionAction).cacheOnAccess
 
           val reader =
             UnblockedReader(
@@ -231,7 +231,7 @@ private[core] class SegmentBlockCache private(path: Path,
        */
       //      initial = if (areBlocksCacheableOnCreate && initial.isEmpty) Some(null) else initial,
       initial = initial,
-      strategy = _.map(reader => blockIO(reader.block.dataType).forceCacheOnAccess) getOrElse IOStrategy.ConcurrentIO(true),
+      strategy = _.map(reader => blockIO(reader.block.decompressionAction).forceCacheOnAccess) getOrElse IOStrategy.ConcurrentIO(true),
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName"))
     ) {
       (initial, self) => //initial set clean up.
@@ -243,7 +243,7 @@ private[core] class SegmentBlockCache private(path: Path,
     } {
       case (Some(blockedReader), self) =>
         IO {
-          val cacheOnAccess = shouldForceCache(resourceName) || blockIO(blockedReader.block.dataType).cacheOnAccess
+          val cacheOnAccess = shouldForceCache(resourceName) || blockIO(blockedReader.block.decompressionAction).cacheOnAccess
 
           val reader =
             UnblockedReader(

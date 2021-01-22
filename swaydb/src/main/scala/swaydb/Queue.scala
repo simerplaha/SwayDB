@@ -35,6 +35,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.stream.StreamFree
 import swaydb.serializers.Serializer
+import scala.collection.compat.IterableOnce
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -157,10 +158,7 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Glass],
       }
     }
 
-  def push(elems: Iterable[A]): OK =
-    push(elems.iterator)
-
-  def push(elems: Iterator[A]): OK =
+  def push(elems: IterableOnce[A]): OK =
     set.add {
       elems.map {
         item =>

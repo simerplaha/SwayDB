@@ -25,9 +25,9 @@
 package swaydb
 
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice
-
 import swaydb.serializers._
+
+import scala.collection.compat.IterableOnce
 
 private[swaydb] object PrepareImplicits {
 
@@ -50,14 +50,7 @@ private[swaydb] object PrepareImplicits {
         Prepare.Add[Slice[Byte]](key, deadline)
     }
 
-  @inline implicit def preparesToUntyped[K, V, F, R <: Apply[V]](prepare: Iterable[Prepare[K, V, F]])(implicit keySerializer: Serializer[K],
-                                                                                                      valueSerializer: Serializer[V]): Iterable[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]] =
+  @inline implicit def preparesToUntyped[K, V, F, R <: Apply[V]](prepare: IterableOnce[Prepare[K, V, F]])(implicit keySerializer: Serializer[K],
+                                                                                                          valueSerializer: Serializer[V]): IterableOnce[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]] =
     prepare.map(batch => prepareToUntyped(batch)(keySerializer, valueSerializer))
-
-  @inline implicit def preparesToUntyped[K, V, F, R <: Apply[V]](prepare: Iterator[Prepare[K, V, F]])(implicit keySerializer: Serializer[K],
-                                                                                                      valueSerializer: Serializer[V]): Iterator[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]] =
-    prepare.map(batch => prepareToUntyped(batch)(keySerializer, valueSerializer))
-
-  @inline implicit def preparesToUnTypes[T](prepare: Iterable[Prepare[T, Nothing, Nothing]])(implicit serializer: Serializer[T]): Iterable[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]] =
-    prepare.map(batch => prepareToUntyped(batch))
 }

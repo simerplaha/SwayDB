@@ -34,6 +34,7 @@ import swaydb.core.util.skiplist.SkipList
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
+import scala.collection.compat.IterableOnce
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -56,66 +57,40 @@ private[core] object SegmentAssigner {
                                    targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
     SegmentAssigner.assignUnsafeNoGaps(Segment.tempMinMaxKeyValues(input), targetSegments).map(_.segment)
 
-  def assignUnsafeNoGaps(keyValues: Slice[Assignable],
-                         segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): ListBuffer[SegmentAssignment[Nothing, ListBuffer[Assignable], Segment]] =
+  def assignUnsafeNoGaps(keyValues: IterableOnce[Assignable],
+                         segments: IterableOnce[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): ListBuffer[SegmentAssignment[Nothing, ListBuffer[Assignable], Segment]] =
     assignUnsafe[Nothing, ListBuffer[Assignable], Segment](
       keyValues = keyValues.iterator,
       segmentsIterator = segments.iterator,
       noGaps = true
     )
 
-  def assignUnsafeNoGaps(keyValues: Iterable[Assignable],
-                         segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): ListBuffer[SegmentAssignment[Nothing, ListBuffer[Assignable], Segment]] =
-    assignUnsafe[Nothing, ListBuffer[Assignable], Segment](
-      keyValues = keyValues.iterator,
-      segmentsIterator = segments.iterator,
-      noGaps = true
-    )
-
-  def assignUnsafeGaps[GAP](keyValues: Slice[Assignable],
-                            segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                         gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[SegmentAssignment[GAP, ListBuffer[Assignable], Segment]] =
+  def assignUnsafeGaps[GAP](keyValues: IterableOnce[Assignable],
+                            segments: IterableOnce[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                             gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[SegmentAssignment[GAP, ListBuffer[Assignable], Segment]] =
     assignUnsafe[GAP, ListBuffer[Assignable], Segment](
       keyValues = keyValues.iterator,
       segmentsIterator = segments.iterator,
       noGaps = false
     )
 
-  def assignUnsafeGaps[GAP](keyValues: Iterable[Assignable],
-                            segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                         gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[SegmentAssignment[GAP, ListBuffer[Assignable], Segment]] =
-    assignUnsafe[GAP, ListBuffer[Assignable], Segment](
+  def assignUnsafeGapsSegmentRef[GAP](keyValues: IterableOnce[Assignable],
+                                      segments: IterableOnce[SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                          gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[SegmentAssignment[GAP, ListBuffer[Assignable], SegmentRef]] =
+    assignUnsafe[GAP, ListBuffer[Assignable], SegmentRef](
       keyValues = keyValues.iterator,
       segmentsIterator = segments.iterator,
       noGaps = false
     )
 
-  def assignUnsafeGapsSegmentRef[GAP](keyValues: Iterator[Assignable],
-                                      segments: Iterable[SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                      gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[SegmentAssignment[GAP, ListBuffer[Assignable], SegmentRef]] =
-    assignUnsafe[GAP, ListBuffer[Assignable], SegmentRef](
-      keyValues = keyValues,
-      segmentsIterator = segments.iterator,
-      noGaps = false
-    )
-
-  def assignUnsafeGapsSegmentRef[GAP](keyValues: Iterator[Assignable],
-                                      segments: Iterator[SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                      gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[SegmentAssignment[GAP, ListBuffer[Assignable], SegmentRef]] =
-    assignUnsafe[GAP, ListBuffer[Assignable], SegmentRef](
-      keyValues = keyValues,
-      segmentsIterator = segments,
-      noGaps = false
-    )
-
-  def assignUnsafeGaps[GAP, MID <: Iterable[_], SEG >: Null](keyValues: Iterator[Assignable],
-                                                             segments: Iterator[SEG])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                      midCreator: Aggregator.Creator[Assignable, MID],
-                                                                                      gapCreator: Aggregator.Creator[Assignable, GAP],
-                                                                                      assignmentTarget: AssignmentTarget[SEG]): ListBuffer[SegmentAssignment[GAP, MID, SEG]] =
+  def assignUnsafeGaps[GAP, MID <: Iterable[_], SEG >: Null](keyValues: IterableOnce[Assignable],
+                                                             segments: IterableOnce[SEG])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                          midCreator: Aggregator.Creator[Assignable, MID],
+                                                                                          gapCreator: Aggregator.Creator[Assignable, GAP],
+                                                                                          assignmentTarget: AssignmentTarget[SEG]): ListBuffer[SegmentAssignment[GAP, MID, SEG]] =
     assignUnsafe[GAP, MID, SEG](
-      keyValues = keyValues,
-      segmentsIterator = segments,
+      keyValues = keyValues.iterator,
+      segmentsIterator = segments.iterator,
       noGaps = false
     )
 

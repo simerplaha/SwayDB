@@ -24,7 +24,6 @@
 
 package swaydb
 
-import java.nio.file.Path
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -34,6 +33,8 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.stream.{From, SourceFree}
 import swaydb.serializers.{Serializer, _}
 
+import java.nio.file.Path
+import scala.collection.compat.IterableOnce
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
@@ -74,10 +75,7 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
   def add(elems: Stream[A, BAG]): BAG[OK] =
     bag.flatMap(elems.materialize)(add)
 
-  def add(elems: Iterable[A]): BAG[OK] =
-    add(elems.iterator)
-
-  def add(elems: Iterator[A]): BAG[OK] =
+  def add(elems: IterableOnce[A]): BAG[OK] =
     bag.suspend(core.commit(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = Slice.Null, deadline = None))))
 
   def remove(elem: A): BAG[OK] =
@@ -92,10 +90,7 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
   def remove(elems: Stream[A, BAG]): BAG[OK] =
     bag.flatMap(elems.materialize)(remove)
 
-  def remove(elems: Iterable[A]): BAG[OK] =
-    remove(elems.iterator)
-
-  def remove(elems: Iterator[A]): BAG[OK] =
+  def remove(elems: IterableOnce[A]): BAG[OK] =
     bag.suspend(core.commit(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
 
   def expire(elem: A, after: FiniteDuration): BAG[OK] =
@@ -116,10 +111,7 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
   def expire(elems: Stream[(A, Deadline), BAG]): BAG[OK] =
     bag.flatMap(elems.materialize)(expire)
 
-  def expire(elems: Iterable[(A, Deadline)]): BAG[OK] =
-    expire(elems.iterator)
-
-  def expire(elems: Iterator[(A, Deadline)]): BAG[OK] =
+  def expire(elems: IterableOnce[(A, Deadline)]): BAG[OK] =
     bag.suspend {
       core.commit {
         elems map {
@@ -143,7 +135,7 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
     bag.suspend(core.applyFunction(elem, Slice.writeString[Byte](function.id)))
 
   def commit(prepare: Prepare[A, Nothing, F]*): BAG[OK] =
-    bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
+    bag.suspend(core.commit(preparesToUntyped(prepare)))
 
   def commit(prepare: Stream[Prepare[A, Nothing, F], BAG]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
@@ -151,8 +143,8 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
         commit(statements)
     }
 
-  def commit(prepare: Iterable[Prepare[A, Nothing, F]]): BAG[OK] =
-    bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
+  def commit(prepare: IterableOnce[Prepare[A, Nothing, F]]): BAG[OK] =
+    bag.suspend(core.commit(preparesToUntyped(prepare)))
 
   def levelZeroMeter: LevelZeroMeter =
     core.levelZeroMeter

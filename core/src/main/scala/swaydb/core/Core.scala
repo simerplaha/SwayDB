@@ -47,6 +47,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.TupleOrNone
+import scala.collection.compat.IterableOnce
 
 import java.nio.file.Path
 import scala.concurrent.duration._
@@ -98,7 +99,7 @@ private[swaydb] object Core {
   /**
    * Converts all prepare statement to a single transactional commit entry ([[MapEntry]]).
    */
-  private def prepareToMapEntry(entries: Iterator[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory]] =
+  private def prepareToMapEntry(entries: IterableOnce[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory]] =
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
       case (mapEntry, prepare) =>
         val nextEntry =
@@ -205,7 +206,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
    * @note If the default time order [[TimeOrder.long]] is used
    *       Times should always be unique and in incremental order for *ALL* key values.
    */
-  def commit(entries: Iterator[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]]): BAG[OK] =
+  def commit(entries: IterableOnce[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]]): BAG[OK] =
     assertTerminated {
       if (entries.isEmpty)
         bag.failure(new IllegalArgumentException("Cannot write empty batch"))

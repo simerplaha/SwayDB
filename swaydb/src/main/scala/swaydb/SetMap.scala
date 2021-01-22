@@ -30,7 +30,7 @@ import swaydb.core.util.Bytes
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import scala.collection.compat.IterableOnce
 import swaydb.data.stream.{From, SourceFree}
 import swaydb.serializers.Serializer
 
@@ -149,10 +149,7 @@ case class SetMap[K, V, BAG[_]] private(private val set: Set[(K, V), Nothing, BA
   def put(keyValues: Stream[(K, V), BAG]): BAG[OK] =
     set.add(keyValues)
 
-  def put(keyValues: Iterable[(K, V)]): BAG[OK] =
-    set.add(keyValues)
-
-  def put(keyValues: Iterator[(K, V)]): BAG[OK] =
+  def put(keyValues: IterableOnce[(K, V)]): BAG[OK] =
     set.add(keyValues)
 
   def remove(key: K): BAG[OK] =
@@ -164,10 +161,7 @@ case class SetMap[K, V, BAG[_]] private(private val set: Set[(K, V), Nothing, BA
   def remove(keys: Stream[K, BAG]): BAG[OK] =
     set.remove(keys.map((_, nullValue)))
 
-  def remove(keys: Iterable[K]): BAG[OK] =
-    remove(keys.iterator)
-
-  def remove(keys: Iterator[K]): BAG[OK] =
+  def remove(keys: IterableOnce[K]): BAG[OK] =
     set.remove(keys.map((_, nullValue)))
 
   def expire(key: K, after: FiniteDuration): BAG[OK] =

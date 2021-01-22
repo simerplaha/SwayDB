@@ -36,6 +36,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.stream.{From, SourceFree, StreamFree}
 import swaydb.multimap.{MultiKey, MultiPrepare, MultiValue, Schema}
 import swaydb.serializers.{Serializer, _}
+import scala.collection.compat.IterableOnce
 
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -212,10 +213,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
     multiMap.commit(stream)
   }
 
-  override def put(keyValues: Iterable[(K, V)]): BAG[OK] =
-    put(keyValues.iterator)
-
-  override def put(keyValues: Iterator[(K, V)]): BAG[OK] = {
+  override def put(keyValues: IterableOnce[(K, V)]): BAG[OK] = {
     val iterator =
       keyValues.map {
         case (key, value) =>
@@ -239,10 +237,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
   def remove(keys: Stream[K, BAG]): BAG[OK] =
     bag.flatMap(keys.materialize)(remove)
 
-  def remove(keys: Iterable[K]): BAG[OK] =
-    remove(keys.iterator)
-
-  def remove(keys: Iterator[K]): BAG[OK] =
+  def remove(keys: IterableOnce[K]): BAG[OK] =
     multiMap.remove(keys.map(key => MultiKey.Key(mapId, key)))
 
   def expire(key: K, after: FiniteDuration): BAG[OK] =
@@ -263,11 +258,8 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
   def expire(keys: Stream[(K, Deadline), BAG]): BAG[OK] =
     bag.flatMap(keys.materialize)(expire)
 
-  def expire(keys: Iterable[(K, Deadline)]): BAG[OK] =
-    expire(keys.iterator)
-
-  def expire(keys: Iterator[(K, Deadline)]): BAG[OK] = {
-    val iterator: Iterator[Prepare.Remove[MultiKey.Key[K]]] =
+  def expire(keys: IterableOnce[(K, Deadline)]): BAG[OK] = {
+    val iterator: IterableOnce[Prepare.Remove[MultiKey.Key[K]]] =
       keys.map {
         case (key, deadline) =>
           Prepare.Expire(MultiKey.Key(mapId, key), deadline.earlier(defaultExpiration))
@@ -295,10 +287,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
   def update(keyValues: Stream[(K, V), BAG]): BAG[OK] =
     bag.flatMap(keyValues.materialize)(update)
 
-  def update(keyValues: Iterable[(K, V)]): BAG[OK] =
-    update(keyValues.iterator)
-
-  def update(keyValues: Iterator[(K, V)]): BAG[OK] = {
+  def update(keyValues: IterableOnce[(K, V)]): BAG[OK] = {
     val updates =
       keyValues.map {
         case (key, value) =>
@@ -348,15 +337,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
   /**
    * Commits transaction to global map.
    */
-  def commitMultiPrepare(transaction: Iterable[MultiPrepare[M, K, V, F]]): BAG[OK] =
-    multiMap.commit {
-      transaction map {
-        transaction =>
-          MultiMap.toInnerPrepare(transaction)
-      }
-    }
-
-  def commitMultiPrepare(transaction: Iterator[MultiPrepare[M, K, V, F]]): BAG[OK] =
+  def commitMultiPrepare(transaction: IterableOnce[MultiPrepare[M, K, V, F]]): BAG[OK] =
     multiMap.commit {
       transaction map {
         transaction =>
@@ -373,10 +354,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
         commit(prepares)
     }
 
-  def commit(prepare: Iterable[Prepare[K, V, F]]): BAG[OK] =
-    multiMap.commit(prepare.map(prepare => MultiMap.toInnerPrepare(mapId, defaultExpiration, prepare)))
-
-  override def commit(prepare: Iterator[Prepare[K, V, F]]): BAG[OK] =
+  override def commit(prepare: IterableOnce[Prepare[K, V, F]]): BAG[OK] =
     multiMap.commit(prepare.map(prepare => MultiMap.toInnerPrepare(mapId, defaultExpiration, prepare)))
 
   def get(key: K): BAG[Option[V]] =

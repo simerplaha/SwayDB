@@ -65,10 +65,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
   def put(keyValues: Stream[(K, V), BAG]): BAG[OK] =
     bag.flatMap(keyValues.materialize)(put)
 
-  def put(keyValues: Iterable[(K, V)]): BAG[OK] =
-    put(keyValues.iterator)
-
-  def put(keyValues: Iterator[(K, V)]): BAG[OK] =
+  def put(keyValues: IterableOnce[(K, V)]): BAG[OK] =
     bag.suspend {
       core.commit {
         keyValues map {
@@ -90,10 +87,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
   def remove(keys: Stream[K, BAG]): BAG[OK] =
     bag.flatMap(keys.materialize)(remove)
 
-  def remove(keys: Iterable[K]): BAG[OK] =
-    remove(keys.iterator)
-
-  def remove(keys: Iterator[K]): BAG[OK] =
+  def remove(keys: IterableOnce[K]): BAG[OK] =
     bag.suspend(core.commit(keys.map(key => Prepare.Remove(keySerializer.write(key)))))
 
   def expire(key: K, after: FiniteDuration): BAG[OK] =
@@ -114,10 +108,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
   def expire(keys: Stream[(K, Deadline), BAG]): BAG[OK] =
     bag.flatMap(keys.materialize)(expire)
 
-  def expire(keys: Iterable[(K, Deadline)]): BAG[OK] =
-    expire(keys.iterator)
-
-  def expire(keys: Iterator[(K, Deadline)]): BAG[OK] =
+  def expire(keys: IterableOnce[(K, Deadline)]): BAG[OK] =
     bag.suspend {
       core.commit {
         keys map {
@@ -143,10 +134,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
   def update(keyValues: Stream[(K, V), BAG]): BAG[OK] =
     bag.flatMap(keyValues.materialize)(update)
 
-  def update(keyValues: Iterable[(K, V)]): BAG[OK] =
-    update(keyValues.iterator)
-
-  def update(keyValues: Iterator[(K, V)]): BAG[OK] =
+  def update(keyValues: IterableOnce[(K, V)]): BAG[OK] =
     bag.suspend {
       core.commit {
         keyValues map {
@@ -166,7 +154,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
     bag.suspend(core.applyFunction(from, to, Slice.writeString[Byte](function.id)))
 
   def commit(prepare: Prepare[K, V, F]*): BAG[OK] =
-    bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
+    bag.suspend(core.commit(preparesToUntyped(prepare)))
 
   def commit(prepare: Stream[Prepare[K, V, F], BAG]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
@@ -174,10 +162,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
         commit(prepares)
     }
 
-  def commit(prepare: Iterable[Prepare[K, V, F]]): BAG[OK] =
-    bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
-
-  def commit(prepare: Iterator[Prepare[K, V, F]]): BAG[OK] =
+  def commit(prepare: IterableOnce[Prepare[K, V, F]]): BAG[OK] =
     bag.suspend(core.commit(preparesToUntyped(prepare)))
 
   /**

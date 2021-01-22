@@ -28,6 +28,7 @@ import java.nio.file.Path
 
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
+import scala.collection.compat.IterableOnce
 
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -58,9 +59,7 @@ trait SetMapT[K, V, BAG[_]] extends Source[K, (K, V), BAG] {
 
   def put(keyValues: Stream[(K, V), BAG]): BAG[OK]
 
-  def put(keyValues: Iterable[(K, V)]): BAG[OK]
-
-  def put(keyValues: Iterator[(K, V)]): BAG[OK]
+  def put(keyValues: IterableOnce[(K, V)]): BAG[OK]
 
   def remove(key: K): BAG[OK]
 
@@ -68,9 +67,7 @@ trait SetMapT[K, V, BAG[_]] extends Source[K, (K, V), BAG] {
 
   def remove(keys: Stream[K, BAG]): BAG[OK]
 
-  def remove(keys: Iterable[K]): BAG[OK]
-
-  def remove(keys: Iterator[K]): BAG[OK]
+  def remove(keys: IterableOnce[K]): BAG[OK]
 
   def expire(key: K, after: FiniteDuration): BAG[OK]
 

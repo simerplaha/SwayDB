@@ -42,7 +42,7 @@ private[core] trait Block[+O <: BlockOffset] {
   def offset: O
   def headerSize: Int
   def compressionInfo: Option[Block.CompressionInfo]
-  def dataType: IOAction.DecompressAction =
+  def decompressionAction: IOAction.DecompressAction =
     compressionInfo match {
       case Some(compressionInfo) =>
         IOAction.ReadCompressedData(
