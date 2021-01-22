@@ -31,8 +31,8 @@ import scala.collection.compat.IterableOnce
 
 private[swaydb] object PrepareImplicits {
 
-  implicit def prepareToUntyped[K, V, F, R <: Apply[V]](prepare: Prepare[K, V, F])(implicit keySerializer: Serializer[K],
-                                                                                   valueSerializer: Serializer[V]): Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]] =
+  implicit def prepareToUntyped[K, V, F](prepare: Prepare[K, V, F])(implicit keySerializer: Serializer[K],
+                                                                    valueSerializer: Serializer[V]): Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]] =
     prepare match {
       case Prepare.Put(key, value, deadline) =>
         Prepare.Put[Slice[Byte], SliceOption[Byte]](key, value, deadline)
@@ -41,7 +41,8 @@ private[swaydb] object PrepareImplicits {
         Prepare.Remove[Slice[Byte]](from, to, deadline)
 
       case Prepare.ApplyFunction(from, to, function) =>
-        Prepare.ApplyFunction[Slice[Byte], Slice[Byte]](from, to, Slice.writeString[Byte](function.asInstanceOf[PureFunction[K, V, _]].id))
+        val functionId = function.asInstanceOf[PureFunction[_, _, _]].id
+        Prepare.ApplyFunction[Slice[Byte], Slice[Byte]](from, to, Slice.writeString[Byte](functionId))
 
       case Prepare.Update(from, to, value) =>
         Prepare.Update[Slice[Byte], SliceOption[Byte]](from, to, value)
@@ -50,7 +51,7 @@ private[swaydb] object PrepareImplicits {
         Prepare.Add[Slice[Byte]](key, deadline)
     }
 
-  @inline implicit def preparesToUntyped[K, V, F, R <: Apply[V]](prepare: IterableOnce[Prepare[K, V, F]])(implicit keySerializer: Serializer[K],
-                                                                                                          valueSerializer: Serializer[V]): IterableOnce[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]] =
+  @inline implicit def preparesToUntyped[K, V, F](prepare: IterableOnce[Prepare[K, V, F]])(implicit keySerializer: Serializer[K],
+                                                                                           valueSerializer: Serializer[V]): IterableOnce[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]] =
     prepare.map(batch => prepareToUntyped(batch)(keySerializer, valueSerializer))
 }

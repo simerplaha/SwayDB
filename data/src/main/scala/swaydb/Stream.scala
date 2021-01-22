@@ -50,7 +50,7 @@ object Stream {
     apply[A, BAG](Iterable.empty)
 
   def apply[T, BAG[_]](items: T*)(implicit bag: Bag[BAG]): Stream[T, BAG] =
-    apply[T, BAG](items.iterator)
+    apply[T, BAG](items)
 
   def range[BAG[_]](from: Int, to: Int)(implicit bag: Bag[BAG]): Stream[Int, BAG] =
     apply[Int, BAG](from to to)
@@ -167,8 +167,8 @@ abstract class Stream[A, BAG[_]](implicit val bag: Bag[BAG]) {
   def foreach(f: A => Unit): BAG[Unit] =
     free.foreach(f)
 
-  def partition(f: A => Boolean): BAG[(ListBuffer[A], ListBuffer[A])] =
-    free.partition(f)
+  def partitionBuffer(f: A => Boolean): BAG[(ListBuffer[A], ListBuffer[A])] =
+    free.partitionBuffer(f)
 
   /**
    * Folds over all elements in the StreamBag to calculate it's total size.
@@ -185,11 +185,14 @@ abstract class Stream[A, BAG[_]](implicit val bag: Bag[BAG]) {
   /**
    * Executes this StreamBag within the provided [[Bag]].
    */
-  def materialize: BAG[ListBuffer[A]] =
+  def materialize: BAG[Iterable[A]] =
     free.materialize
 
+  def materializeBuffer: BAG[ListBuffer[A]] =
+    free.materializeBuffer
+
   /**
-   * A [[StreamerFree]] is a simple interface to a [[StreamFree]] instance which
+   * A [[Streamer]] is a simple interface to a [[StreamFree]] instance which
    * only one has function [[Streamer.nextOrNull]] that can be used to
    * create other interop implementations with other Streaming libraries.
    */

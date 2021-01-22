@@ -324,7 +324,7 @@ abstract class SetTest extends TestBase {
     assertDoesNotThrow(() -> set.add(1));
     assertDoesNotThrow(() -> set.add(2));
 
-    List<Integer> integers = set.materialize();
+    Iterable<Integer> integers = set.materialize();
 
     assertEquals(Arrays.asList(2, 1), integers);
 

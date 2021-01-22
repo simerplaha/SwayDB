@@ -57,7 +57,7 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
   def mightContain(elem: A): BAG[Boolean] =
     bag.suspend(core.mightContainKey(elem, core.readStates.get()))
 
-  def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Set[A]) =
+  def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Set[A]): BAG[Boolean] =
     bag.suspend(core mightContainFunction Slice.writeString[Byte](function.id))
 
   def add(elem: A): BAG[OK] =

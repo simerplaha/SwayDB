@@ -331,7 +331,7 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
     "partition" in {
       val (leftStream, rightStream) =
         Stream[Int, BAG](1 to 10)
-          .partition(_ % 2 == 0)
+          .partitionBuffer(_ % 2 == 0)
           .await
 
       leftStream shouldBe (1 to 10).filter(_ % 2 == 0)

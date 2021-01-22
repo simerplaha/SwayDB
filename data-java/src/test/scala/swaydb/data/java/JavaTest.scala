@@ -124,7 +124,7 @@ object JavaTest {
     string.toLowerCase should include(contain.toLowerCase)
 
   def shouldBe[T](actual: java.lang.Iterable[T], expected: java.lang.Iterable[T]): Unit =
-    actual.asScala shouldBe expected.asScala
+    actual.asScala.toList shouldBe expected.asScala.toList
 
   def shouldBe[T](actual: swaydb.java.Stream[T], expected: java.lang.Iterable[T]): Unit =
     actual.materialize.asScala.toList shouldBe expected.asScala.toList
@@ -133,7 +133,7 @@ object JavaTest {
     actual.materialize shouldBe expected.materialize
 
   def shouldContainOnly[T](actual: swaydb.java.Stream[T], expected: T): Unit =
-    actual.materialize should contain only expected
+    actual.materialize.asScala should contain only expected
 
   def shouldBeFalse(actual: Boolean): Unit =
     actual shouldBe false

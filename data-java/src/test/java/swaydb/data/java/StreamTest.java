@@ -32,21 +32,21 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static swaydb.data.java.JavaTest.shouldBe;
 
 class StreamTest {
   List<Integer> source = Arrays.asList(1, 2, 3, 4, 5);
 
   @Test
   void rangeInt() {
-    List<Integer> range = Stream.range(1, 10).materialize();
-    assertEquals(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), range);
+    Iterable<Integer> range = Stream.range(1, 10).materialize();
+    shouldBe(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), range);
   }
 
   @Test
   void rangeChar() {
-    List<Character> range = Stream.range('a', 'd').materialize();
-    assertEquals(Arrays.asList('a', 'b', 'c', 'd'), range);
+    Iterable<Character> range = Stream.range('a', 'd').materialize();
+    shouldBe(Arrays.asList('a', 'b', 'c', 'd'), range);
   }
 
 
@@ -55,12 +55,12 @@ class StreamTest {
 
     Stream<Integer> stream = Stream.of(source.iterator());
 
-    List<Integer> streamIntegers =
+    Iterable<Integer> streamIntegers =
       stream
         .map(integer -> integer + 10)
         .materialize();
 
-    assertEquals(Arrays.asList(11, 12, 13, 14, 15), streamIntegers);
+    shouldBe(Arrays.asList(11, 12, 13, 14, 15), streamIntegers);
   }
 
   @Test
@@ -68,12 +68,12 @@ class StreamTest {
 
     Stream<Integer> stream = Stream.of(source.iterator());
 
-    List<Integer> streamIntegers =
+    Iterable<Integer> streamIntegers =
       stream
         .flatMap(integer -> Stream.of(Collections.singletonList(integer + 20).iterator()))
         .materialize();
 
-    assertEquals(Arrays.asList(21, 22, 23, 24, 25), streamIntegers);
+    shouldBe(Arrays.asList(21, 22, 23, 24, 25), streamIntegers);
   }
 
   @Test
@@ -83,9 +83,9 @@ class StreamTest {
 
     Pair<List<Integer>, List<Integer>> streamIntegers =
       stream
-        .partition(integer -> integer % 2 == 0);
+        .partitionList(integer -> integer % 2 == 0);
 
-    assertEquals(Arrays.asList(2, 4), streamIntegers.left());
-    assertEquals(Arrays.asList(1, 3, 5), streamIntegers.right());
+    shouldBe(Arrays.asList(2, 4), streamIntegers.left());
+    shouldBe(Arrays.asList(1, 3, 5), streamIntegers.right());
   }
 }

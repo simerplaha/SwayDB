@@ -246,7 +246,7 @@ private[swaydb] trait StreamFree[A] { self =>
         f(item)
     }
 
-  def partition[BAG[_]](f: A => Boolean)(implicit bag: Bag[BAG]): BAG[(ListBuffer[A], ListBuffer[A])] =
+  def partitionBuffer[BAG[_]](f: A => Boolean)(implicit bag: Bag[BAG]): BAG[(ListBuffer[A], ListBuffer[A])] =
     foldLeft((ListBuffer.empty[A], ListBuffer.empty[A])) {
       case (buckets @ (left, right), elem) =>
         if (f(elem))
@@ -284,11 +284,16 @@ private[swaydb] trait StreamFree[A] { self =>
   /**
    * Executes this StreamBag within the provided [[Bag]].
    */
-  def materialize[BAG[_]](implicit bag: Bag[BAG]): BAG[ListBuffer[A]] = {
-    implicit val listBuffer = ListBuffer.newBuilder[A]
+
+  def materialize[BAG[_]](implicit bag: Bag[BAG]): BAG[Iterable[A]] = {
+    implicit val listBuffer: mutable.Builder[A, ListBuffer[A]] = ListBuffer.newBuilder[A]
     bag.transform(materializeBuilder)(_.result())
   }
 
+  def materializeBuffer[BAG[_]](implicit bag: Bag[BAG]): BAG[ListBuffer[A]] = {
+    implicit val listBuffer: mutable.Builder[A, ListBuffer[A]] = ListBuffer.newBuilder[A]
+    bag.transform(materializeBuilder)(_.result())
+  }
 
   /**
    * A [[Streamer]] is a simple interface to a [[Stream]] instance which

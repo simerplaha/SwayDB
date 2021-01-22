@@ -716,12 +716,12 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
-    List<Integer> stream =
+    Iterable<Integer> stream =
       map
         .map(KeyVal::key)
         .materialize();
 
-    List<Integer> expected = Stream.range(1, 100).materialize();
+    List<Integer> expected = Stream.range(1, 100).materializeList();
     Collections.reverse(expected);
 
     shouldBe(stream, expected);

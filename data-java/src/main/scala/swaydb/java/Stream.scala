@@ -24,14 +24,14 @@
 
 package swaydb.java
 
-import java.util
-import java.util.Optional
-import java.util.function.{BiFunction, Consumer, Predicate}
-
 import swaydb.data.util.Java._
 import swaydb.{Bag, Glass, Pair}
 
-import scala.collection.compat._
+import java.util.Optional
+import java.util.function.{BiFunction, Consumer, Predicate}
+import java.{lang, util}
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.compat.java8.FunctionConverters._
 import scala.jdk.CollectionConverters._
 
@@ -98,8 +98,11 @@ trait Stream[A] {
   def filterNot(predicate: Predicate[A]): Stream[A] =
     Stream.fromScala(asScalaStream.filterNot(predicate.test))
 
-  def partition[B](predicate: Predicate[A]): Pair[util.List[A], util.List[A]] = {
-    val (left, right) = asScalaStream.partition(predicate.test)
+  def partition[B](predicate: Predicate[A]): Pair[lang.Iterable[A], lang.Iterable[A]] =
+    partitionList(predicate)
+
+  def partitionList[B](predicate: Predicate[A]): Pair[util.List[A], util.List[A]] = {
+    val (left, right) = asScalaStream.partitionBuffer(predicate.test)
     Pair(left.asJava, right.asJava)
   }
 
@@ -121,6 +124,9 @@ trait Stream[A] {
   def count: Int =
     asScalaStream.count
 
-  def materialize: util.List[A] =
+  def materialize: lang.Iterable[A] =
     asScalaStream.materialize.asJava
+
+  def materializeList: util.List[A] =
+    asScalaStream.materializeBuffer.asJava
 }
