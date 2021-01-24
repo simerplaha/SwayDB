@@ -24,19 +24,18 @@
 
 package swaydb
 
-import java.nio.file.Path
-
 import swaydb.core.util.Bytes
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
-import scala.collection.compat.IterableOnce
+import swaydb.data.slice.Slice
 import swaydb.data.stream.{From, SourceFree}
 import swaydb.serializers.Serializer
 
+import java.nio.file.Path
+import scala.collection.compat.IterableOnce
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import swaydb.data.slice.Slice
 
 object SetMap {
   /**

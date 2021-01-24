@@ -24,11 +24,9 @@
 
 package swaydb
 
-import java.nio.file.Path
-
-import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.counter.CounterMap
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.util.Times._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
@@ -36,8 +34,9 @@ import swaydb.data.slice.Slice
 import swaydb.data.stream.{From, SourceFree, StreamFree}
 import swaydb.multimap.{MultiKey, MultiPrepare, MultiValue, Schema}
 import swaydb.serializers.{Serializer, _}
-import scala.collection.compat.IterableOnce
 
+import java.nio.file.Path
+import scala.collection.compat.IterableOnce
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 

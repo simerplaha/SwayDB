@@ -28,7 +28,7 @@ import swaydb.data.stream.StreamFree
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.collection.compat.IterableOnce
+import scala.collection.compat._
 
 object Stream {
 

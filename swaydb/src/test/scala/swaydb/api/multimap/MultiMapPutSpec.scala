@@ -153,7 +153,7 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
           val rootSubMaps = root.children.materialize
           rootSubMaps.foreach(_.isEmpty shouldBe true) //has no map entries
 
-          val subMaps = rootSubMaps.flatMap(_.children.materialize)
+          val subMaps = rootSubMaps.flatMap(_.children.materialize).toList
           subMaps should have size 4
 
           subMaps(0).get(1).value shouldBe "one"

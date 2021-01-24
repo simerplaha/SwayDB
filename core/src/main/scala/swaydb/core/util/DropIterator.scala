@@ -24,7 +24,7 @@
 
 package swaydb.core.util
 
-import scala.collection.compat.IterableOnce
+import scala.collection.compat._
 
 /**
  * Mutable data type to hold the state of currently being merged key-values and provides functions

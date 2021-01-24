@@ -24,7 +24,6 @@
 
 package swaydb
 
-import java.nio.file.Path
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -33,8 +32,10 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.stream.{From, SourceFree}
 import swaydb.data.util.TupleOrNone
-import swaydb.serializers.{Serializer, _}
+import swaydb.serializers._
 
+import java.nio.file.Path
+import scala.collection.compat.IterableOnce
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 

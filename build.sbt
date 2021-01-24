@@ -3,13 +3,13 @@ import sbt.url
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import xerial.sbt.Sonatype._
 
-//CORE
+//CORE dependencies
 val lz4Version = "1.7.1"
 val snappyVersion = "1.1.8.1"
 val scalaJava8CompatVersion = "0.9.1"
 val scalaCollectionsCompat = "2.3.2"
 
-//TEST
+//TEST dependencies - Libraries used for tests
 val logbackClassicVersion = "1.2.3"
 val scalaLoggingVersion = "3.9.2"
 val scalaMockVersion = "5.1.0"
@@ -17,7 +17,7 @@ val scalaTestVersion = "3.2.2"
 val junitJupiterVersion = "5.7.0"
 val scalaParallelCollectionsVersion = "1.0.0"
 
-//LIBRARY SUPPORT/INTEROP
+//INTEROP - Supported external libraries for serialisation & effects interop
 val boopickleVersion = "1.3.3"
 val monixVersion = "3.3.0"
 val zioVersion = "1.0.3"

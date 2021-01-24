@@ -26,17 +26,17 @@ package swaydb.core.segment.assigner
 
 import swaydb.Aggregator
 import swaydb.core.data.{KeyValue, Memory, MemoryOption, Value}
-import swaydb.core.segment.{PersistentSegmentMany, Segment}
 import swaydb.core.segment.assigner.AssignmentTarget._
 import swaydb.core.segment.ref.SegmentRef
+import swaydb.core.segment.{PersistentSegmentMany, Segment}
 import swaydb.core.util.DropIterator
 import swaydb.core.util.skiplist.SkipList
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
-import scala.collection.compat.IterableOnce
 
 import scala.annotation.tailrec
+import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 
 /**

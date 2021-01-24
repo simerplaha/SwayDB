@@ -24,12 +24,11 @@
 
 package swaydb
 
-import java.nio.file.Path
-
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import scala.collection.compat.IterableOnce
 
+import java.nio.file.Path
+import scala.collection.compat.IterableOnce
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 

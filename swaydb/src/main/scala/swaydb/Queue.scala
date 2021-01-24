@@ -24,9 +24,6 @@
 
 package swaydb
 
-import java.nio.file.Path
-import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.atomic.AtomicLong
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Bytes
 import swaydb.data.accelerate.LevelZeroMeter
@@ -35,9 +32,12 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.stream.StreamFree
 import swaydb.serializers.Serializer
-import scala.collection.compat.IterableOnce
 
+import java.nio.file.Path
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicLong
 import scala.annotation.tailrec
+import scala.collection.compat.IterableOnce
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object Queue {

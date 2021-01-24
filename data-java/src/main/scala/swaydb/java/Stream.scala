@@ -30,8 +30,6 @@ import swaydb.{Bag, Glass, Pair}
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
 import java.{lang, util}
-import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 import scala.compat.java8.FunctionConverters._
 import scala.jdk.CollectionConverters._
 
@@ -46,10 +44,10 @@ object Stream {
     }
 
   def of[A](iterator: java.util.Iterator[A]): Stream[A] =
-    Stream.fromScala[A](swaydb.Stream(iterator.asScala.to(Iterable)))
-
-  def of[A](iterator: java.lang.Iterable[A]): Stream[A] =
     Stream.fromScala[A](swaydb.Stream(iterator.asScala))
+
+  def of[A](iterable: java.lang.Iterable[A]): Stream[A] =
+    Stream.fromScala[A](swaydb.Stream(iterable.asScala))
 
   def range(from: Int, to: Int): Stream[Integer] =
     Stream.fromScala(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Integer, Glass]])
