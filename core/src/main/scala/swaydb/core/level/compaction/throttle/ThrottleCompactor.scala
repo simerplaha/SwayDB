@@ -26,11 +26,7 @@ package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.DefActor
-import swaydb.core.level.Level
 import swaydb.core.level.compaction.Compactor
-import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.lock.LastLevelLocker
-import swaydb.core.level.compaction.throttle.ThrottleCompactor.ForwardResponse
 import swaydb.core.level.compaction.throttle.behaviour._
 
 import scala.concurrent.Future
@@ -43,21 +39,13 @@ import scala.concurrent.Future
  */
 
 object ThrottleCompactor {
-  sealed trait ForwardResponse {
-    def forwardSuccessful(level: Level): Unit
 
-    def forwardFailed(level: Level): Unit
-  }
-
-  def apply(state: ThrottleCompactorContext)(self: DefActor[ThrottleCompactor, Unit])(implicit committer: DefActor[CompactionCommitter.type, Unit],
-                                                                                      locker: DefActor[LastLevelLocker, Unit]) =
-    new ThrottleCompactor(state, Future.unit)(self, committer, locker)
+  def apply(state: ThrottleCompactorContext)(self: DefActor[ThrottleCompactor, Unit]) =
+    new ThrottleCompactor(state, Future.unit)(self)
 }
 
-private[core] class ThrottleCompactor private(@volatile private var state: ThrottleCompactorContext,
-                                              @volatile private var currentFuture: Future[Unit])(implicit self: DefActor[ThrottleCompactor, Unit],
-                                                                                                 committer: DefActor[CompactionCommitter.type, Unit],
-                                                                                                 locker: DefActor[LastLevelLocker, Unit]) extends Compactor with ForwardResponse with LastLevelLocker.LastLevelSetResponse with LazyLogging {
+private[core] class ThrottleCompactor private(@volatile private var context: ThrottleCompactorContext,
+                                              @volatile private var currentFuture: Future[Unit])(implicit self: DefActor[ThrottleCompactor, Unit]) extends Compactor with LazyLogging {
 
   implicit val ec = self.ec
 
@@ -66,29 +54,14 @@ private[core] class ThrottleCompactor private(@volatile private var state: Throt
       _ =>
         this.currentFuture =
           f map {
-            newState =>
-              this.state = newState
+            newContext =>
+              this.context = newContext
           }
     }
 
   override def wakeUp(): Unit =
-    onComplete(ThrottleWakeUpBehavior.wakeUp(state))
-
-  def forward(level: Level, replyTo: DefActor[ForwardResponse, Unit]): Unit =
-    onComplete(ThrottleForwardBehavior.forward(level, state, replyTo))
-
-  override def forwardSuccessful(level: Level): Unit =
-    onComplete(ThrottleForwardBehavior.forwardSuccessful(level, state))
-
-  override def forwardFailed(level: Level): Unit =
-    onComplete(ThrottleForwardBehavior.forwardFailed(level, state))
-
-  override def levelSetSuccessful(): Unit =
-    onComplete(ThrottleExtendBehavior.extensionSuccessful(state))
-
-  override def levelSetFailed(): Unit =
-    onComplete(ThrottleExtendBehavior.extensionFailed(state))
+    onComplete(BehaviorWakeUp.wakeUp(context))
 
   def terminateASAP(): Unit =
-    state.setTerminateASAP()
+    context.setTerminateASAP()
 }

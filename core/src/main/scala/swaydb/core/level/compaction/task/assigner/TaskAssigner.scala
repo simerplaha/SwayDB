@@ -27,9 +27,9 @@ package swaydb.core.level.compaction.task.assigner
 import swaydb.Aggregator
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{Memory, Time, Value}
-import swaydb.core.level.Level
 import swaydb.core.level.compaction.task.CompactionDataType._
 import swaydb.core.level.compaction.task.{CompactionDataType, CompactionTask}
+import swaydb.core.level.{Level, LevelAssignment}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.{Assignable, SegmentAssigner, SegmentAssignment, SegmentAssignmentResult}
 import swaydb.data.order.KeyOrder
@@ -40,6 +40,7 @@ import scala.annotation.tailrec
 import scala.collection.compat.IterableOnce
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Builds optimal compaction tasks to perform that meet the configured
@@ -47,11 +48,31 @@ import scala.collection.mutable.ListBuffer
  */
 protected case object TaskAssigner {
 
-  def run[A <: Assignable.Collection](data: Iterable[A],
-                                      lowerLevels: NonEmptyList[Level],
-                                      dataOverflow: Long)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                          dataType: CompactionDataType[A]): Iterable[CompactionTask.Task[A]] = {
+  /**
+   * Re-assigns tasks to target Level but this time it allows
+   * expanding input data to handle cases where key-values spread
+   * to multiple Segments.
+   */
+  def assignExpand[A <: Assignable.Collection](tasks: Iterable[CompactionTask.Task[A]],
+                                               removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[LevelAssignment]] =
+    Future.traverse(tasks) {
+      task =>
+        Future {
+          task.target.assign(
+            newKeyValues = task.data,
+            targetSegments = task.target.segments(),
+            removeDeletedRecords = removeDeletedRecords
+          )
+        }
+    }
 
+  /**
+   * Assigns input data by looking at the edge (head & last) key-values i.e. without reading the Segment's content.
+   */
+  def assignQuick[A <: Assignable.Collection](data: Iterable[A],
+                                              lowerLevels: NonEmptyList[Level],
+                                              dataOverflow: Long)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                  dataType: CompactionDataType[A]): Iterable[CompactionTask.Task[A]] = {
     val tasks = ListBuffer.empty[CompactionTask.Task[A]]
 
     buildTasks(
@@ -140,7 +161,7 @@ protected case object TaskAssigner {
       tasks +=
         CompactionTask.Task(
           data = segmentsToMerge,
-          targetLevel = nextLevel
+          target = nextLevel
         )
 
     //if segmentToCopy is not empty then try to finding a
@@ -160,13 +181,13 @@ protected case object TaskAssigner {
       } else { //there were not lower levels
         //find the first level that this data could've be copied into
         //and assign this data to that level.
-        val oldTaskIndex = tasks.indexWhere(_.targetLevel == targetFirstLevel)
+        val oldTaskIndex = tasks.indexWhere(_.target == targetFirstLevel)
 
         if (oldTaskIndex < 0) {
           tasks +=
             CompactionTask.Task(
               data = segmentsToCopy,
-              targetLevel = targetFirstLevel
+              target = targetFirstLevel
             )
         } else {
           val oldTask = tasks(oldTaskIndex)

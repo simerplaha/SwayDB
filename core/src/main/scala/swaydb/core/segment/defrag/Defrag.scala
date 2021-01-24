@@ -41,8 +41,8 @@ import scala.concurrent.{ExecutionContext, Future}
 object Defrag {
 
   def runOnGaps[SEG, S >: Null <: MergeStats.Segment[Memory, ListBuffer]](fragments: ListBuffer[TransientSegment.Fragment[S]],
-                                                                          headGap: ListBuffer[Assignable.Gap[S]],
-                                                                          tailGap: ListBuffer[Assignable.Gap[S]],
+                                                                          headGap: Iterable[Assignable.Gap[S]],
+                                                                          tailGap: Iterable[Assignable.Gap[S]],
                                                                           removeDeletes: Boolean,
                                                                           createdInLevel: Int,
                                                                           fence: TransientSegment.Fragment[S])(implicit segmentConfig: SegmentBlock.Config,
@@ -50,7 +50,7 @@ object Defrag {
                                                                                                                mergeStatsSizeCalculator: MergeStatsSizeCalculator[S],
                                                                                                                executionContext: ExecutionContext): Future[ListBuffer[TransientSegment.Fragment[S]]] = {
 
-    @inline def run(gap: ListBuffer[Assignable.Gap[S]], fragments: ListBuffer[TransientSegment.Fragment[S]]) =
+    @inline def run(gap: Iterable[Assignable.Gap[S]], fragments: ListBuffer[TransientSegment.Fragment[S]]) =
       if (gap.isEmpty)
         Future.successful(fragments)
       else
@@ -76,8 +76,8 @@ object Defrag {
   def runOnSegment[SEG, NULL_SEG >: SEG, S >: Null <: MergeStats.Segment[Memory, ListBuffer]](segment: SEG,
                                                                                               nullSegment: NULL_SEG,
                                                                                               fragments: ListBuffer[TransientSegment.Fragment[S]],
-                                                                                              headGap: ListBuffer[Assignable.Gap[S]],
-                                                                                              tailGap: ListBuffer[Assignable.Gap[S]],
+                                                                                              headGap: Iterable[Assignable.Gap[S]],
+                                                                                              tailGap: Iterable[Assignable.Gap[S]],
                                                                                               mergeable: Iterator[Assignable],
                                                                                               removeDeletes: Boolean,
                                                                                               createdInLevel: Int,

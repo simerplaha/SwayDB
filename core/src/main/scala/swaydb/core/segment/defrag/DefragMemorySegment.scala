@@ -48,8 +48,8 @@ object DefragMemorySegment {
    */
   def runOnSegment[SEG, NULL_SEG >: SEG](segment: SEG,
                                          nullSegment: NULL_SEG,
-                                         headGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
-                                         tailGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+                                         headGap: Iterable[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+                                         tailGap: Iterable[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
                                          mergeable: => Iterator[Assignable],
                                          removeDeletes: Boolean,
                                          createdInLevel: Int,
@@ -90,8 +90,8 @@ object DefragMemorySegment {
    * Default [[MergeStats.Memory]] and build new [[MemorySegment]].
    */
   def runOnGaps[SEG, NULL_SEG >: SEG](nullSegment: NULL_SEG,
-                                      headGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
-                                      tailGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+                                      headGap: Iterable[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+                                      tailGap: Iterable[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
                                       removeDeletes: Boolean,
                                       createdInLevel: Int,
                                       pathsDistributor: PathsDistributor)(implicit executionContext: ExecutionContext,

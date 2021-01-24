@@ -28,8 +28,6 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO._
 import swaydb.core.level.LevelRef
-import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.lock.LastLevelLocker
 import swaydb.core.level.compaction.{Compactor, CompactorCreator}
 import swaydb.core.level.zero.LevelZero
 import swaydb.data.NonEmptyList
@@ -54,8 +52,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
    * @return return the root parent Actor with child Actors.
    */
   def createActors(levels: List[LevelRef],
-                   executionContexts: List[CompactionExecutionContext])(implicit committer: DefActor[CompactionCommitter.type, Unit],
-                                                                        locker: DefActor[LastLevelLocker, Unit]): IO[swaydb.Error.Level, NonEmptyList[DefActor[Compactor, Unit]]] =
+                   executionContexts: List[CompactionExecutionContext]): IO[swaydb.Error.Level, NonEmptyList[DefActor[Compactor, Unit]]] =
     if (levels.size != executionContexts.size)
       IO.Left(swaydb.Error.Fatal(new IllegalStateException(s"Number of ExecutionContexts(${executionContexts.size}) is not the same as number of Levels(${levels.size}).")))
     else
@@ -114,8 +111,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
         }
 
   def createCompactor(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext])(implicit committer: DefActor[CompactionCommitter.type, Unit],
-                                                                           locker: DefActor[LastLevelLocker, Unit]): IO[Error.Level, NonEmptyList[DefActor[Compactor, Unit]]] =
+                      executionContexts: List[CompactionExecutionContext]): IO[Error.Level, NonEmptyList[DefActor[Compactor, Unit]]] =
     zero.nextLevel match {
       case Some(nextLevel) =>
         logger.debug(s"Level(${zero.levelNumber}): Creating actor.")
@@ -129,8 +125,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
     }
 
   def createAndListen(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext])(implicit committer: DefActor[CompactionCommitter.type, Unit],
-                                                                           locker: DefActor[LastLevelLocker, Unit]): IO[Error.Level, NonEmptyList[DefActor[Compactor, Unit]]] =
+                      executionContexts: List[CompactionExecutionContext]): IO[Error.Level, NonEmptyList[DefActor[Compactor, Unit]]] =
     createCompactor(
       zero = zero,
       executionContexts = executionContexts

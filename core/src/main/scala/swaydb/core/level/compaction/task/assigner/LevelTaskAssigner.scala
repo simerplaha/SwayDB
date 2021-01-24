@@ -39,16 +39,16 @@ case object LevelTaskAssigner {
    *         control the overflow.
    */
   def run(source: Level,
-          nextLevels: NonEmptyList[Level],
+          lowerLevels: NonEmptyList[Level],
           sourceOverflow: Long): CompactionTask.CompactSegments = {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
 
     val tasks =
-      TaskAssigner.run[Segment](
-        data = source.segments(),
-        lowerLevels = nextLevels,
-        dataOverflow = sourceOverflow
-      )
+    TaskAssigner.assignQuick[Segment](
+      data = source.segments(),
+      lowerLevels = lowerLevels,
+      dataOverflow = sourceOverflow
+    )
 
     CompactionTask.CompactSegments(source, tasks)
   }

@@ -84,8 +84,8 @@ private[core] final case class MemorySegment(path: Path,
   override def asSegmentOption: SegmentOption =
     this
 
-  def put(headGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
-          tailGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+  def put(headGap: Iterable[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+          tailGap: Iterable[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
           newKeyValues: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,

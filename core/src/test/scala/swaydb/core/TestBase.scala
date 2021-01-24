@@ -36,8 +36,6 @@ import swaydb.core.data.{Memory, Time}
 import swaydb.core.io.file.{DBFile, Effect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
-import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.lock.LastLevelLocker
 import swaydb.core.level.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
@@ -626,14 +624,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     val level1 = TestLevel(nextLevel = Some(level2), throttle = levelThrottle)
     val level0 = TestLevelZero(nextLevel = Some(level1), throttle = levelZeroThrottle)
 
-    val compaction: Option[(NonEmptyList[DefActor[Compactor, Unit]], DefActor[CompactionCommitter.type, Unit], DefActor[LastLevelLocker, Unit])] =
+    val compaction: Option[NonEmptyList[DefActor[Compactor, Unit]]] =
       if (throttleOn) {
-        implicit val committer: DefActor[CompactionCommitter.type, Unit] =
-          CompactionCommitter.createActor(TestExecutionContext.executionContext)
-
-        implicit val locker: DefActor[LastLevelLocker, Unit] =
-          LastLevelLocker.createActor(level0)(TestExecutionContext.executionContext)
-
         val compactors =
           CoreInitializer.initialiseCompaction(
             zero = level0,
@@ -642,7 +634,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
         compactors should have size 1
 
-        Some((compactors, committer, locker))
+        Some(compactors)
       } else {
         None
       }
@@ -755,12 +747,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     runAsserts(asserts)
 
-    compaction.foreach {
-      case (compaction, committer, locker) =>
-        compaction.foreach(_.terminateAndClear[Glass]())
-        committer.terminateAndClear[Glass]()
-        locker.terminateAndClear[Glass]()
-    }
+    compaction.foreach(_.foreach(_.terminateAndClear[Glass]()))
 
     level0.delete[Glass]()
 

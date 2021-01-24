@@ -63,8 +63,8 @@ object DefragPersistentSegment {
    */
   def runOnSegment[SEG, NULL_SEG >: SEG](segment: SEG,
                                          nullSegment: NULL_SEG,
-                                         headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                         tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+                                         headGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+                                         tailGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                                          mergeable: => Iterator[Assignable],
                                          removeDeletes: Boolean,
                                          createdInLevel: Int)(implicit executionContext: ExecutionContext,
@@ -105,8 +105,8 @@ object DefragPersistentSegment {
    * Builds a [[Future]] that executes defragmentation and merge on a single Segment.
    */
   def runOnGaps[SEG, NULL_SEG >: SEG](nullSegment: NULL_SEG,
-                                      headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                      tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+                                      headGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+                                      tailGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                                       removeDeletes: Boolean,
                                       createdInLevel: Int)(implicit executionContext: ExecutionContext,
                                                            keyOrder: KeyOrder[Slice[Byte]],
@@ -144,8 +144,8 @@ object DefragPersistentSegment {
    * @return [[CompactResult.source]] is true if this Segment was replaced or else it will be false.
    *         [[swaydb.core.segment.ref.SegmentRef]] is not being used here because the input is an [[Iterator]] of [[SEG]].
    */
-  def runMany(headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-              tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+  def runMany(headGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+              tailGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
               segment: PersistentSegmentMany,
               newKeyValues: Iterator[Assignable],
               removeDeletes: Boolean,
@@ -222,7 +222,7 @@ object DefragPersistentSegment {
   /**
    * Run headGap's defragmentation and mid key-values assignment concurrently.
    */
-  private def runHeadDefragAndAssignments[NULL_SEG >: SEG, SEG >: Null](headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+  private def runHeadDefragAndAssignments[NULL_SEG >: SEG, SEG >: Null](headGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                                                                         segments: => Iterator[SEG],
                                                                         newKeyValues: Iterator[Assignable],
                                                                         removeDeletes: Boolean,

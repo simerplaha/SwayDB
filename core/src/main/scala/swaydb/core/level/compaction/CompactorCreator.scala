@@ -24,12 +24,10 @@
 
 package swaydb.core.level.compaction
 
-import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.lock.LastLevelLocker
 import swaydb.core.level.zero.LevelZero
-import swaydb.{DefActor, IO}
 import swaydb.data.NonEmptyList
 import swaydb.data.compaction.CompactionExecutionContext
+import swaydb.{DefActor, IO}
 
 /**
  * Creates Compaction Actors.
@@ -37,7 +35,6 @@ import swaydb.data.compaction.CompactionExecutionContext
 private[core] trait CompactorCreator {
 
   def createAndListen(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext])(implicit committer: DefActor[CompactionCommitter.type, Unit],
-                                                                           locker: DefActor[LastLevelLocker, Unit]): IO[swaydb.Error.Level, NonEmptyList[DefActor[Compactor, Unit]]]
+                      executionContexts: List[CompactionExecutionContext]): IO[swaydb.Error.Level, NonEmptyList[DefActor[Compactor, Unit]]]
 
 }

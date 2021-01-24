@@ -31,8 +31,6 @@ import swaydb.core.build.BuildValidator
 import swaydb.core.data.{Memory, SwayFunction, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.compaction.Compactor
-import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.lock.LastLevelLocker
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
@@ -160,8 +158,6 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
                                    private val sequencer: Sequencer[BAG],
                                    val readStates: ThreadLocal[ThreadReadState])(implicit bag: Bag[BAG],
                                                                                  compactors: NonEmptyList[DefActor[Compactor, Unit]],
-                                                                                 committer: DefActor[CompactionCommitter.type, Unit],
-                                                                                 locker: DefActor[LastLevelLocker, Unit],
                                                                                  private[swaydb] val bufferSweeper: ByteBufferSweeperActor) extends LazyLogging {
 
   def zeroPath: Path =
@@ -368,12 +364,6 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
               result and compactor.terminateAndClear()
           }
         }
-        .and {
-          committer.terminateAndClear()
-        }
-        .and {
-          locker.terminateAndClear()
-        }
         .andTransform {
           logger.info("Compaction terminated!")
         }
@@ -399,8 +389,6 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
       readStates = readStates
     )(bag = bag2,
       compactors = compactors,
-      committer = committer,
-      locker = locker,
       bufferSweeper = bufferSweeper)
 
   def toBag[BAG2[_]](serialOrNull: Sequencer[BAG2])(implicit bag2: Bag[BAG2]): Core[BAG2] =
@@ -412,7 +400,5 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
       readStates = readStates
     )(bag = bag2,
       compactors = compactors,
-      committer = committer,
-      locker = locker,
       bufferSweeper = bufferSweeper)
 }

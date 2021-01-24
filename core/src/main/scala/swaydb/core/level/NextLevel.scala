@@ -33,6 +33,7 @@ import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.PushForwardStrategy
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
+import scala.collection.compat.IterableOnce
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
@@ -74,29 +75,25 @@ trait NextLevel extends LevelRef {
 
   def throttle: LevelMeter => Throttle
 
-  def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean
-
-  def isCopyable(map: LevelZeroMap): Boolean
-
-  def partitionCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
-
   def isNonEmpty(): Boolean
 
   def pushForwardStrategy: PushForwardStrategy
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 
-  def merge(segment: Assignable.Collection,
-            removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
+  def assign(newKeyValues: Assignable.Collection,
+             targetSegments: IterableOnce[Segment],
+             removeDeletedRecords: Boolean): LevelAssignment
 
-  def mergeMap(map: LevelZeroMap,
-               removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
+  def assign(newKeyValues: Iterable[Assignable.Collection],
+             targetSegments: IterableOnce[Segment],
+             removeDeletedRecords: Boolean): LevelAssignment
 
-  def mergeMaps(map: Iterable[LevelZeroMap],
-                removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
+  def assign(newKeyValues: LevelZeroMap,
+             targetSegments: IterableOnce[Segment],
+             removeDeletedRecords: Boolean): LevelAssignment
 
-  def merge(segments: Iterable[Assignable.Collection],
-            removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
+  def merge(assigment: LevelAssignment)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
   def refresh(segment: Iterable[Segment],
               removeDeletedRecords: Boolean): IO[Error.Level, Iterable[CompactResult[Segment, Slice[TransientSegment]]]]

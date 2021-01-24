@@ -26,12 +26,12 @@ package swaydb.core.level.compaction.task
 
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
-import swaydb.core.level.{Level, LevelRef}
+import swaydb.core.level.{Level, LevelAssignment, LevelRef}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.Assignable
 
 sealed trait CompactionTask {
-  def targetLevel: LevelRef
+  def source: LevelRef
 }
 
 /**
@@ -46,23 +46,23 @@ object CompactionTask {
   /**
    * Compaction task which is executed to perform compaction.
    *
-   * @param targetLevel [[Level]] where the [[data]] should be written to.
-   * @param data        data to merge.
+   * @param target [[Level]] where the [[data]] should be written to.
+   * @param data   data to merge.
    */
-  case class Task[A <: Assignable.Collection](targetLevel: Level,
+  case class Task[A <: Assignable.Collection](target: Level,
                                               data: scala.collection.SortedSet[A])
 
-  case class CompactSegments(targetLevel: Level,
+  case class CompactSegments(source: Level,
                              tasks: Iterable[Task[Segment]]) extends CompactionTask.Segments
 
-  case class CompactMaps(targetLevel: LevelZero,
+  case class CompactMaps(source: LevelZero,
                          maps: Iterator[LevelZeroMap],
                          tasks: Iterable[Task[Assignable.Collection]]) extends CompactionTask
 
-  case class CollapseSegments(targetLevel: Level,
+  case class CollapseSegments(source: Level,
                               segments: Iterable[Segment]) extends Cleanup
 
-  case class RefreshSegments(targetLevel: Level,
+  case class RefreshSegments(source: Level,
                              segments: Iterable[Segment]) extends Cleanup
 
 }

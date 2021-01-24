@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.committer
+package swaydb.core.level.compaction.throttle.behaviour
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
@@ -34,18 +34,11 @@ import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.slice.Slice
-import swaydb.{Actor, DefActor, Error, IO}
+import swaydb.{Error, IO}
 
 import scala.collection.compat._
-import scala.concurrent.ExecutionContext
 
-case object CompactionCommitter extends LazyLogging {
-
-  def createActor(ec: ExecutionContext): DefActor[CompactionCommitter.type, Unit] =
-    Actor.define[CompactionCommitter.type](
-      name = CompactionCommitter.productPrefix,
-      init = _ => CompactionCommitter
-    )(ec).start()
+case object BehaviourCommit extends LazyLogging {
 
   private def commitMergeResult(mergeResults: Iterable[(Level, Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]])]): IO[Error.Level, Slice[Unit]] =
     mergeResults

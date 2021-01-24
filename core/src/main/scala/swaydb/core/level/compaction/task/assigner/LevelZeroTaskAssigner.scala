@@ -60,36 +60,37 @@ case object LevelZeroTaskAssigner {
                    maxKey: MaxKey[Slice[Byte]],
                    stack: ListBuffer[Either[LevelZeroMap, Iterable[Memory]]])
 
-
-  @inline def run(source: LevelZero,
-                  lowerLevels: NonEmptyList[Level])(implicit ec: ExecutionContext): Future[CompactMaps] = {
+  def run(source: LevelZero,
+          lowerLevels: NonEmptyList[Level])(implicit ec: ExecutionContext): Future[CompactMaps] = {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
     implicit val timeOrder: TimeOrder[Slice[Byte]] = source.timeOrder
     implicit val functionStore: FunctionStore = source.functionStore
 
     val (sourceIterator, processedMapsIterator) = source.maps.compactionIterator().duplicate
 
-    flatten(sourceIterator) map {
-      collections =>
-        val tasks =
-          TaskAssigner.run(
+    flatten(sourceIterator)
+      .map {
+        collections =>
+          TaskAssigner.assignQuick(
             data = collections,
             lowerLevels = lowerLevels,
             dataOverflow = Long.MaxValue //full overflow so that all collections are assigned and tasked.
           )
-
-        CompactionTask.CompactMaps(
-          targetLevel = source,
-          maps = processedMapsIterator,
-          tasks = tasks
-        )
-    }
+      }
+      .map {
+        tasks =>
+          CompactionTask.CompactMaps(
+            source = source,
+            maps = processedMapsIterator,
+            tasks = tasks
+          )
+      }
   }
 
-  @inline def flatten(input: Iterator[LevelZeroMap])(implicit ec: ExecutionContext,
-                                                     keyOrder: KeyOrder[Slice[Byte]],
-                                                     timerOrder: TimeOrder[Slice[Byte]],
-                                                     functionStore: FunctionStore): Future[Iterable[Assignable.Collection]] =
+  def flatten(input: Iterator[LevelZeroMap])(implicit ec: ExecutionContext,
+                                             keyOrder: KeyOrder[Slice[Byte]],
+                                             timerOrder: TimeOrder[Slice[Byte]],
+                                             functionStore: FunctionStore): Future[Iterable[Assignable.Collection]] =
     Future(createStacks(input)) flatMap {
       stacks =>
         Future.traverse(stacks.values().asScala.map(_.stack))(mergeStack) map {
@@ -316,10 +317,10 @@ case object LevelZeroTaskAssigner {
   /**
    * Merges all input collections to form a single collection.
    */
-  @inline def mergeStack(stack: Iterable[Either[LevelZeroMap, Iterable[Memory]]])(implicit ec: ExecutionContext,
-                                                                                  keyOrder: KeyOrder[Slice[Byte]],
-                                                                                  timerOrder: TimeOrder[Slice[Byte]],
-                                                                                  functionStore: FunctionStore): Future[Iterable[Memory]] =
+  def mergeStack(stack: Iterable[Either[LevelZeroMap, Iterable[Memory]]])(implicit ec: ExecutionContext,
+                                                                          keyOrder: KeyOrder[Slice[Byte]],
+                                                                          timerOrder: TimeOrder[Slice[Byte]],
+                                                                          functionStore: FunctionStore): Future[Iterable[Memory]] =
     if (stack.isEmpty)
       Futures.emptyIterable
     else if (Collections.hasOnlyOne(stack))

@@ -235,19 +235,25 @@ object TestData {
     def putSegments(segments: Iterable[Segment], removeDeletes: Boolean = false)(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
-      if (segments.isEmpty)
+      if (segments.isEmpty) {
         IO.failed("Segments are empty")
-      else
-        level.commit(level.merge(segments = segments, removeDeletedRecords = removeDeletes).awaitInf)
+      } else {
+        val assign = level.assign(segments, level.segments(), removeDeletes)
+        val merge = level.merge(assign).awaitInf
+        level.commit(merge)
+      }
     }
 
     def putMap(map: LevelZeroMap)(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
-      if (map.cache.isEmpty)
+      if (map.cache.isEmpty) {
         IO.failed("Map is empty")
-      else
-        level.commit(level.mergeMap(map = map, removeDeletedRecords = false).awaitInf)
+      } else {
+        val assign = level.assign(newKeyValues = map, targetSegments = level.segments(), removeDeletedRecords = false)
+        val merge = level.merge(assign).awaitInf
+        level.commit(merge)
+      }
     }
 
     def reopen(implicit sweeper: TestCaseSweeper): Level =
