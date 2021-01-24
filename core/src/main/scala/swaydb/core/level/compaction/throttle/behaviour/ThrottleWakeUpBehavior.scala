@@ -29,7 +29,8 @@ import swaydb.DefActor
 import swaydb.core.level._
 import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.lock.LastLevelLocker
-import swaydb.core.level.compaction.task.{CompactionLevelTasker, CompactionLevelZeroTasker, CompactionTask}
+import swaydb.core.level.compaction.task.CompactionTask
+import swaydb.core.level.compaction.task.assigner.{LevelTaskAssigner, LevelZeroTaskAssigner}
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorContext, ThrottleLevelOrdering, ThrottleLevelState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.data.NonEmptyList
@@ -279,7 +280,7 @@ private[throttle] object ThrottleWakeUpBehavior extends LazyLogging {
         )
       }
     else
-      CompactionLevelZeroTasker.run(
+      LevelZeroTaskAssigner.run(
         source = zero,
         lowerLevels = NonEmptyList(nextLevels.head, nextLevels.dropHead())
       ) flatMap {
@@ -340,7 +341,7 @@ private[throttle] object ThrottleWakeUpBehavior extends LazyLogging {
         }
 
       if (level.levelNumber == lockedLastLevel.levelNumber) {
-        CompactionLevelTasker.cleanup(level = level, lockedLastLevel = lockedLastLevel) match {
+        LevelTaskAssigner.cleanup(level = level, lockedLastLevel = lockedLastLevel) match {
           case Some(task) =>
             runTask(task)
 
@@ -354,7 +355,7 @@ private[throttle] object ThrottleWakeUpBehavior extends LazyLogging {
         }
       } else {
         val tasks =
-          CompactionLevelTasker.run(
+          LevelTaskAssigner.run(
             source = level,
             nextLevels = NonEmptyList(nextLevels.head, nextLevels.dropHead()),
             sourceOverflow = level.compactDataSize max level.minSegmentSize

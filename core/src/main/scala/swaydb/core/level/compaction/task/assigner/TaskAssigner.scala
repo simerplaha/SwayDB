@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -22,13 +22,14 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.task
+package swaydb.core.level.compaction.task.assigner
 
 import swaydb.Aggregator
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.level.Level
 import swaydb.core.level.compaction.task.CompactionDataType._
+import swaydb.core.level.compaction.task.{CompactionDataType, CompactionTask}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.{Assignable, SegmentAssigner, SegmentAssignment, SegmentAssignmentResult}
 import swaydb.data.order.KeyOrder
@@ -44,7 +45,7 @@ import scala.collection.mutable.ListBuffer
  * Builds optimal compaction tasks to perform that meet the configured
  * [[swaydb.data.compaction.Throttle]] criteria.
  */
-protected case object CompactionTasker {
+protected case object TaskAssigner {
 
   def run[A <: Assignable.Collection](data: Iterable[A],
                                       lowerLevels: NonEmptyList[Level],
@@ -117,7 +118,7 @@ protected case object CompactionTasker {
 
         //score assignments.
         val scoredAssignments =
-          groupedAssignments.sorted(CompactionAssignmentScorer.scorer[A, Segment]())
+          groupedAssignments.sorted(AssignmentScorer.scorer[A, Segment]())
 
         //finalise Segments to compact.
         finaliseSegmentsToCompact(

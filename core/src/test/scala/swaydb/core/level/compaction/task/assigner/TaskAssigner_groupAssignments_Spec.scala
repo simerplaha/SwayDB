@@ -22,16 +22,17 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.task
+package swaydb.core.level.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import swaydb.core.level.compaction.task.CompactionDataType
 import swaydb.core.segment.assigner.SegmentAssignmentResult
 
 import scala.collection.mutable
 
-class CompactionTasker_groupAssignments_Spec extends AnyWordSpec with Matchers with MockFactory {
+class TaskAssigner_groupAssignments_Spec extends AnyWordSpec with Matchers with MockFactory {
 
   "not join assignments" when {
     "there is no spread" in {
@@ -62,7 +63,7 @@ class CompactionTasker_groupAssignments_Spec extends AnyWordSpec with Matchers w
         )
 
       val (toMerge, toCopy) =
-        CompactionTasker.finaliseSegmentsToCompact[Int, Int](
+        TaskAssigner.finaliseSegmentsToCompact[Int, Int](
           dataOverflow = Long.MaxValue,
           scoredAssignments = List(assignment1, assignment2)
         )
@@ -101,7 +102,7 @@ class CompactionTasker_groupAssignments_Spec extends AnyWordSpec with Matchers w
         )
 
       val groups =
-        CompactionTasker.groupAssignmentsForScoring[Int, Int, SegmentAssignmentResult[mutable.SortedSet[Int], mutable.SortedSet[Int], Int]](List(assignment1, assignment2))
+        TaskAssigner.groupAssignmentsForScoring[Int, Int, SegmentAssignmentResult[mutable.SortedSet[Int], mutable.SortedSet[Int], Int]](List(assignment1, assignment2))
 
       groups should have size 1
       val group = groups.head

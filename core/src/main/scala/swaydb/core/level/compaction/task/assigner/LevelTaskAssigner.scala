@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -22,16 +22,17 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.task
+package swaydb.core.level.compaction.task.assigner
 
 import swaydb.core.level.Level
 import swaydb.core.level.compaction.task.CompactionDataType._
+import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
 import swaydb.data.NonEmptyList
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
-case object CompactionLevelTasker {
+case object LevelTaskAssigner {
 
   /**
    * @return optimal [[Segment]]s to compact to
@@ -43,7 +44,7 @@ case object CompactionLevelTasker {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
 
     val tasks =
-      CompactionTasker.run[Segment](
+      TaskAssigner.run[Segment](
         data = source.segments(),
         lowerLevels = nextLevels,
         dataOverflow = sourceOverflow

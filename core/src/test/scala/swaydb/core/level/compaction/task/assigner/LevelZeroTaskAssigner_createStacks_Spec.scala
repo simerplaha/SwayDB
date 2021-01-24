@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.task
+package swaydb.core.level.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestData._
@@ -37,14 +37,14 @@ import swaydb.serializers._
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 
-class CompactionLevelZeroTasker_createStacks_Spec extends TestBase with MockFactory {
+class LevelZeroTaskAssigner_createStacks_Spec extends TestBase with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
 
   "input.size == 0" in {
-    CompactionLevelZeroTasker.createStacks(List.empty) shouldBe empty
+    LevelZeroTaskAssigner.createStacks(List.empty) shouldBe empty
   }
 
   "input.size = 1" in {
@@ -55,7 +55,7 @@ class CompactionLevelZeroTasker_createStacks_Spec extends TestBase with MockFact
             TestMap(randomizedKeyValues(startId = Some(0)))
           )
 
-        val stacks = CompactionLevelZeroTasker.createStacks(maps).asScala
+        val stacks = LevelZeroTaskAssigner.createStacks(maps).asScala
 
         stacks should have size 1
         stacks.head._1 shouldBe 0.serialise
@@ -88,7 +88,7 @@ class CompactionLevelZeroTasker_createStacks_Spec extends TestBase with MockFact
                 maps += TestMap(randomizedKeyValues(startId = Some(startId)))
             }
 
-          val stacks = CompactionLevelZeroTasker.createStacks(maps).asScala
+          val stacks = LevelZeroTaskAssigner.createStacks(maps).asScala
           stacks should have size maps.size
           stacks.values.map(_.stack) shouldBe maps.map(map => ListBuffer(Left(map)))
       }

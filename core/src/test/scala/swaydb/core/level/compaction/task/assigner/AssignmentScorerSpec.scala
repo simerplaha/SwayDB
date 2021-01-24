@@ -22,17 +22,18 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.task
+package swaydb.core.level.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import swaydb.core.level.compaction.task.CompactionDataType
 import swaydb.core.segment.assigner.SegmentAssignmentResult
 import swaydb.data.RunThis._
 
 import scala.util.Random
 
-class CompactionAssignmentScorerSpec extends AnyWordSpec with Matchers with MockFactory {
+class AssignmentScorerSpec extends AnyWordSpec with Matchers with MockFactory {
 
   "scoring" when {
     "NO GAPS" should {
@@ -66,7 +67,7 @@ class CompactionAssignmentScorerSpec extends AnyWordSpec with Matchers with Mock
             )
 
 
-          val scored = Random.shuffle(List(assignment1, assignment2)).sorted(CompactionAssignmentScorer.scorer[Int, Int]())
+          val scored = Random.shuffle(List(assignment1, assignment2)).sorted(AssignmentScorer.scorer[Int, Int]())
 
           scored should have size 2
 
@@ -120,7 +121,7 @@ class CompactionAssignmentScorerSpec extends AnyWordSpec with Matchers with Mock
 
           val assignments = List(assignment1, assignment2, assignment3)
 
-          val scored = Random.shuffle(assignments).sorted(CompactionAssignmentScorer.scorer[Int, Int]())
+          val scored = Random.shuffle(assignments).sorted(AssignmentScorer.scorer[Int, Int]())
 
           scored should have size 3
 
@@ -162,7 +163,7 @@ class CompactionAssignmentScorerSpec extends AnyWordSpec with Matchers with Mock
               tailGapResult = List.empty
             )
 
-          val scored = Random.shuffle(List(assignment1, assignment2)).sorted(CompactionAssignmentScorer.scorer[Int, Int]())
+          val scored = Random.shuffle(List(assignment1, assignment2)).sorted(AssignmentScorer.scorer[Int, Int]())
 
           scored should have size 2
 

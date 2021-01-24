@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.task
+package swaydb.core.level.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
@@ -42,27 +42,27 @@ import swaydb.{IO, StorageByteImplicits}
 
 import scala.concurrent.duration._
 
-class CompactionLevelTaskerSpec0 extends CompactionLevelTaskerSpec
+class LevelTaskAssignerSpec0 extends LevelTaskAssignerSpec
 
-class CompactionLevelTaskerSpec1 extends CompactionLevelTaskerSpec {
+class LevelTaskAssignerSpec1 extends LevelTaskAssignerSpec {
   override def levelFoldersCount = 10
   override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
   override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
   override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
-class CompactionLevelTaskerSpec2 extends CompactionLevelTaskerSpec {
+class LevelTaskAssignerSpec2 extends LevelTaskAssignerSpec {
   override def levelFoldersCount = 10
   override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
   override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
   override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
 }
 
-class CompactionLevelTaskerSpec3 extends CompactionLevelTaskerSpec {
+class LevelTaskAssignerSpec3 extends LevelTaskAssignerSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait CompactionLevelTaskerSpec extends TestBase with MockFactory {
+sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
@@ -73,7 +73,7 @@ sealed trait CompactionLevelTaskerSpec extends TestBase with MockFactory {
       TestCaseSweeper {
         implicit sweeper =>
           val level = TestLevel()
-          CompactionLevelTasker.runRefresh(level, level) shouldBe empty
+          LevelTaskAssigner.runRefresh(level, level) shouldBe empty
       }
     }
 
@@ -83,7 +83,7 @@ sealed trait CompactionLevelTaskerSpec extends TestBase with MockFactory {
           val level = TestLevel()
           level.put(Slice(Memory.put(1))) shouldBe IO.unit
 
-          CompactionLevelTasker.runRefresh(level, level) shouldBe empty
+          LevelTaskAssigner.runRefresh(level, level) shouldBe empty
       }
     }
 
@@ -93,7 +93,7 @@ sealed trait CompactionLevelTaskerSpec extends TestBase with MockFactory {
           val level = TestLevel()
           level.put(Slice(Memory.put(1, Slice.Null, 1.minute.fromNow))) shouldBe IO.unit
 
-          CompactionLevelTasker.runRefresh(level, level) shouldBe empty
+          LevelTaskAssigner.runRefresh(level, level) shouldBe empty
       }
     }
 
@@ -103,7 +103,7 @@ sealed trait CompactionLevelTaskerSpec extends TestBase with MockFactory {
           val level = TestLevel()
           level.put(Slice(Memory.put(1, Slice.Null, expiredDeadline()))) shouldBe IO.unit
 
-          val task = CompactionLevelTasker.runRefresh(level, level).value
+          val task = LevelTaskAssigner.runRefresh(level, level).value
           task.targetLevel shouldBe level
           task.segments shouldBe level.segments()
       }
@@ -115,7 +115,7 @@ sealed trait CompactionLevelTaskerSpec extends TestBase with MockFactory {
       TestCaseSweeper {
         implicit sweeper =>
           val level = TestLevel()
-          CompactionLevelTasker.runCollapse(level) shouldBe empty
+          LevelTaskAssigner.runCollapse(level) shouldBe empty
       }
     }
 
@@ -125,7 +125,7 @@ sealed trait CompactionLevelTaskerSpec extends TestBase with MockFactory {
           val level = TestLevel()
           level.put(Slice(Memory.put(1))) shouldBe IO.unit
 
-          val task = CompactionLevelTasker.runCollapse(level).value
+          val task = LevelTaskAssigner.runCollapse(level).value
           task.targetLevel shouldBe level
           task.segments shouldBe level.segments()
       }
@@ -142,7 +142,7 @@ sealed trait CompactionLevelTaskerSpec extends TestBase with MockFactory {
 
             val reopened = level.reopen(segmentSize = Int.MaxValue)
 
-            val task = CompactionLevelTasker.runCollapse(reopened).value
+            val task = LevelTaskAssigner.runCollapse(reopened).value
             task.targetLevel shouldBe level
             task.segments shouldBe reopened.segments()
         }

@@ -22,18 +22,19 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.task
+package swaydb.core.level.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
+import swaydb.core.level.compaction.task.CompactionDataType
 import swaydb.core.segment.assigner.SegmentAssignmentResult
 import swaydb.data.RunThis._
 
 import scala.collection.mutable.ListBuffer
 
-class CompactionTasker_finaliseSegmentsToCompact_Spec extends AnyWordSpec with Matchers with MockFactory {
+class TaskAssigner_finaliseSegmentsToCompact_Spec extends AnyWordSpec with Matchers with MockFactory {
 
   /**
    * SCENARIO 1
@@ -55,7 +56,7 @@ class CompactionTasker_finaliseSegmentsToCompact_Spec extends AnyWordSpec with M
         implicit val inputDataType = mock[CompactionDataType[Int]]
 
         val (toMerge, toCopy) =
-          CompactionTasker.finaliseSegmentsToCompact[Int, String](
+          TaskAssigner.finaliseSegmentsToCompact[Int, String](
             dataOverflow = 0,
             scoredAssignments = List(assignment)
           )
@@ -72,7 +73,7 @@ class CompactionTasker_finaliseSegmentsToCompact_Spec extends AnyWordSpec with M
         (inputDataType.segmentSize _).expects(4) returning 1
 
         val (toMerge, toCopy) =
-          CompactionTasker.finaliseSegmentsToCompact[Int, String](
+          TaskAssigner.finaliseSegmentsToCompact[Int, String](
             dataOverflow = 3, //overflow is 3 and midOverlap is also 3
             scoredAssignments = List(assignment)
           )
@@ -91,7 +92,7 @@ class CompactionTasker_finaliseSegmentsToCompact_Spec extends AnyWordSpec with M
           (inputDataType.segmentSize _).expects(4) returning 1
 
           val (toMerge, toCopy) =
-            CompactionTasker.finaliseSegmentsToCompact[Int, String](
+            TaskAssigner.finaliseSegmentsToCompact[Int, String](
               dataOverflow = eitherOne(1, 2), //overflow is 1 or 2 and midOverlap size is 3. Still all midOverlaps are taken
               scoredAssignments = List(assignment)
             )
@@ -112,7 +113,7 @@ class CompactionTasker_finaliseSegmentsToCompact_Spec extends AnyWordSpec with M
         (inputDataType.segmentSize _).expects(0) returning 1
 
         val (toMerge, toCopy) =
-          CompactionTasker.finaliseSegmentsToCompact[Int, String](
+          TaskAssigner.finaliseSegmentsToCompact[Int, String](
             dataOverflow = 4,
             scoredAssignments = List(assignment)
           )
@@ -131,7 +132,7 @@ class CompactionTasker_finaliseSegmentsToCompact_Spec extends AnyWordSpec with M
         (inputDataType.segmentSize _).expects(1) returning 1
 
         val (toMerge, toCopy) =
-          CompactionTasker.finaliseSegmentsToCompact[Int, String](
+          TaskAssigner.finaliseSegmentsToCompact[Int, String](
             dataOverflow = 5,
             scoredAssignments = List(assignment)
           )
@@ -154,7 +155,7 @@ class CompactionTasker_finaliseSegmentsToCompact_Spec extends AnyWordSpec with M
         (inputDataType.segmentSize _).expects(6) returning 1
 
         val (toMerge, toCopy) =
-          CompactionTasker.finaliseSegmentsToCompact[Int, String](
+          TaskAssigner.finaliseSegmentsToCompact[Int, String](
             dataOverflow = 7,
             scoredAssignments = List(assignment)
           )
@@ -177,7 +178,7 @@ class CompactionTasker_finaliseSegmentsToCompact_Spec extends AnyWordSpec with M
           (inputDataType.segmentSize _).expects(7) returning 1
 
           val (toMerge, toCopy) =
-            CompactionTasker.finaliseSegmentsToCompact[Int, String](
+            TaskAssigner.finaliseSegmentsToCompact[Int, String](
               dataOverflow = eitherOne(8, 10, Long.MaxValue),
               scoredAssignments = List(assignment)
             )
@@ -228,7 +229,7 @@ class CompactionTasker_finaliseSegmentsToCompact_Spec extends AnyWordSpec with M
         implicit val inputDataType = mock[CompactionDataType[Int]]
 
         val (toMerge, toCopy) =
-          CompactionTasker.finaliseSegmentsToCompact[Int, String](
+          TaskAssigner.finaliseSegmentsToCompact[Int, String](
             dataOverflow = 0,
             scoredAssignments = assignments
           )
@@ -245,7 +246,7 @@ class CompactionTasker_finaliseSegmentsToCompact_Spec extends AnyWordSpec with M
         (inputDataType.segmentSize _).expects(7) returning 1
 
         val (toMerge, toCopy) =
-          CompactionTasker.finaliseSegmentsToCompact[Int, String](
+          TaskAssigner.finaliseSegmentsToCompact[Int, String](
             dataOverflow = 3,
             scoredAssignments = assignments
           )
@@ -262,7 +263,7 @@ class CompactionTasker_finaliseSegmentsToCompact_Spec extends AnyWordSpec with M
         (inputDataType.segmentSize _).expects(4) returning 1
 
         val (toMerge, toCopy) =
-          CompactionTasker.finaliseSegmentsToCompact[Int, String](
+          TaskAssigner.finaliseSegmentsToCompact[Int, String](
             dataOverflow = 2,
             scoredAssignments = assignments
           )
@@ -282,7 +283,7 @@ class CompactionTasker_finaliseSegmentsToCompact_Spec extends AnyWordSpec with M
         (inputDataType.segmentSize _).expects(2) returning 1
 
         val (toMerge, toCopy) =
-          CompactionTasker.finaliseSegmentsToCompact[Int, String](
+          TaskAssigner.finaliseSegmentsToCompact[Int, String](
             dataOverflow = 5,
             scoredAssignments = assignments
           )
@@ -307,7 +308,7 @@ class CompactionTasker_finaliseSegmentsToCompact_Spec extends AnyWordSpec with M
           (inputDataType.segmentSize _).expects(8) returning 1
 
           val (toMerge, toCopy) =
-            CompactionTasker.finaliseSegmentsToCompact[Int, String](
+            TaskAssigner.finaliseSegmentsToCompact[Int, String](
               dataOverflow = eitherOne(9, 10, Long.MaxValue),
               scoredAssignments = assignments
             )

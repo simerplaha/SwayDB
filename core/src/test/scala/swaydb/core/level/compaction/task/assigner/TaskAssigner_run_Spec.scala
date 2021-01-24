@@ -22,12 +22,13 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.task
+package swaydb.core.level.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.level.Level
+import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.NonEmptyList
@@ -40,27 +41,27 @@ import swaydb.serializers._
 
 import scala.collection.SortedSet
 
-class CompactionTasker_run_Spec0 extends CompactionTasker_run_Spec
+class TaskAssigner_run_Spec0 extends TaskAssigner_run_Spec
 
-class CompactionTasker_run_Spec1 extends CompactionTasker_run_Spec {
+class TaskAssigner_run_Spec1 extends TaskAssigner_run_Spec {
   override def levelFoldersCount = 10
   override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
   override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
   override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
-class CompactionTasker_run_Spec2 extends CompactionTasker_run_Spec {
+class TaskAssigner_run_Spec2 extends TaskAssigner_run_Spec {
   override def levelFoldersCount = 10
   override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
   override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
   override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
 }
 
-class CompactionTasker_run_Spec3 extends CompactionTasker_run_Spec {
+class TaskAssigner_run_Spec3 extends TaskAssigner_run_Spec {
   override def inMemoryStorage = true
 }
 
-sealed trait CompactionTasker_run_Spec extends TestBase with MockFactory {
+sealed trait TaskAssigner_run_Spec extends TestBase with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
@@ -72,7 +73,7 @@ sealed trait CompactionTasker_run_Spec extends TestBase with MockFactory {
         val segment = TestSegment(Slice(Memory.put(1)))
         val level = TestLevel()
 
-        val tasks = CompactionTasker.run(Slice(segment), NonEmptyList(level), Int.MaxValue)
+        val tasks = TaskAssigner.run(Slice(segment), NonEmptyList(level), Int.MaxValue)
 
         tasks should contain only
           CompactionTask.Task(
@@ -89,7 +90,7 @@ sealed trait CompactionTasker_run_Spec extends TestBase with MockFactory {
         //multiple nested Levels but
         val level = TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel()))))))
 
-        val tasks = CompactionTasker.run(Slice(segment), NonEmptyList(level, level.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue)
+        val tasks = TaskAssigner.run(Slice(segment), NonEmptyList(level, level.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue)
 
         tasks should contain only
           CompactionTask.Task(
@@ -110,7 +111,7 @@ sealed trait CompactionTasker_run_Spec extends TestBase with MockFactory {
         val lastLevel = TestLevel(keyValues = Slice(Memory.put(1)))
         val level = TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(lastLevel))))))
 
-        val tasks = CompactionTasker.run(Slice(segment), NonEmptyList(level, level.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue)
+        val tasks = TaskAssigner.run(Slice(segment), NonEmptyList(level, level.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue)
 
         tasks should contain only
           CompactionTask.Task(
@@ -132,7 +133,7 @@ sealed trait CompactionTasker_run_Spec extends TestBase with MockFactory {
         val lastLevel = TestLevel(keyValues = Slice(Memory.put(2)))
         val level = TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(lastLevel))))))
 
-        val tasks = CompactionTasker.run(Slice(segment), NonEmptyList(level, level.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue)
+        val tasks = TaskAssigner.run(Slice(segment), NonEmptyList(level, level.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue)
 
         tasks should contain only
           CompactionTask.Task(
@@ -158,7 +159,7 @@ sealed trait CompactionTasker_run_Spec extends TestBase with MockFactory {
         val lastLevel = TestLevel(keyValues = Slice(Memory.put(2)))
         val level = TestLevel(keyValues = Slice(Memory.put(1)), nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(lastLevel))))))
 
-        val tasks = CompactionTasker.run(Slice(segment), NonEmptyList(level, level.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue)
+        val tasks = TaskAssigner.run(Slice(segment), NonEmptyList(level, level.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue)
 
         //expect segment to get assigned to first level.
         tasks should contain only
@@ -185,7 +186,7 @@ sealed trait CompactionTasker_run_Spec extends TestBase with MockFactory {
         val lastLevel = TestLevel(keyValues = Slice(Memory.put(2)))
         val level = TestLevel(keyValues = Slice(Memory.put(1)), nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(lastLevel))))))
 
-        val tasks = CompactionTasker.run(Slice(segment), NonEmptyList(level, level.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue)
+        val tasks = TaskAssigner.run(Slice(segment), NonEmptyList(level, level.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue)
 
         //expect segment to get assigned to first level.
         tasks should contain only
@@ -212,7 +213,7 @@ sealed trait CompactionTasker_run_Spec extends TestBase with MockFactory {
         val lastLevel = TestLevel(keyValues = Slice(Memory.put(2)))
         val level = TestLevel(keyValues = Slice(Memory.put(1)), nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(lastLevel))))))
 
-        val tasks = CompactionTasker.run(segments, NonEmptyList(level, level.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue)
+        val tasks = TaskAssigner.run(segments, NonEmptyList(level, level.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue)
 
         //expect segment to get assigned to first level.
         tasks should contain only
@@ -244,7 +245,7 @@ sealed trait CompactionTasker_run_Spec extends TestBase with MockFactory {
           val level2 = TestLevel(keyValues = Slice(Memory.put(2)), nextLevel = Some(level3))
           val level1 = TestLevel(keyValues = Slice(Memory.put(1)), nextLevel = Some(level2))
 
-          val tasks = CompactionTasker.run(segments, NonEmptyList(level1, level1.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue).toList
+          val tasks = TaskAssigner.run(segments, NonEmptyList(level1, level1.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue).toList
 
           tasks should have size 4
 
@@ -295,7 +296,7 @@ sealed trait CompactionTasker_run_Spec extends TestBase with MockFactory {
           val level2 = TestLevel(keyValues = Slice(Memory.put(2)), nextLevel = Some(level3))
           val level1 = TestLevel(keyValues = Slice(Memory.put(1)), nextLevel = Some(level2))
 
-          val tasks = CompactionTasker.run(segments, NonEmptyList(level1, level1.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue).toList
+          val tasks = TaskAssigner.run(segments, NonEmptyList(level1, level1.nextLevels.map(_.asInstanceOf[Level])), Int.MaxValue).toList
 
           tasks should have size 4
 

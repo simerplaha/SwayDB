@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -22,12 +22,14 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.task
+package swaydb.core.level.compaction.task.assigner
 
 import swaydb.Aggregator
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.Level
+import swaydb.core.level.compaction.task.CompactionTask
+import swaydb.core.level.compaction.task.CompactionTask.CompactMaps
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.merge.KeyValueMerger
@@ -45,10 +47,22 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 
-case object CompactionLevelZeroTasker {
+case object LevelZeroTaskAssigner {
+
+  /**
+   * Data type used to for flattening and merging [[swaydb.core.level.zero.LevelZero]].
+   *
+   * @param minKey smallest key in this stack
+   * @param maxKey largest key in this stack
+   * @param stack  overlapping data
+   */
+  case class Stack(minKey: Slice[Byte],
+                   maxKey: MaxKey[Slice[Byte]],
+                   stack: ListBuffer[Either[LevelZeroMap, Iterable[Memory]]])
+
 
   @inline def run(source: LevelZero,
-                  lowerLevels: NonEmptyList[Level])(implicit ec: ExecutionContext): Future[CompactionTask.CompactMaps] = {
+                  lowerLevels: NonEmptyList[Level])(implicit ec: ExecutionContext): Future[CompactMaps] = {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
     implicit val timeOrder: TimeOrder[Slice[Byte]] = source.timeOrder
     implicit val functionStore: FunctionStore = source.functionStore
@@ -58,7 +72,7 @@ case object CompactionLevelZeroTasker {
     flatten(sourceIterator) map {
       collections =>
         val tasks =
-          CompactionTasker.run(
+          TaskAssigner.run(
             data = collections,
             lowerLevels = lowerLevels,
             dataOverflow = Long.MaxValue //full overflow so that all collections are assigned and tasked.
@@ -107,14 +121,14 @@ case object CompactionLevelZeroTasker {
    * This function does not perform any iterations on [[LevelZeroMap]]'s
    * key-values. It assigns based on the Map's head and last key-values.
    *
-   * The resulting [[CompactionLevelZeroStack]] will contains stacks
+   * The resulting [[Stack]] will contains stacks
    * that can be merged concurrently before compacting [[LevelZeroMap]]s
    * onto lower [[Level]].
    *
    * @param input The [[LevelZeroMap]]s from [[LevelZero]] to compact.
    */
-  def createStacks(input: scala.collection.compat.IterableOnce[LevelZeroMap])(implicit keyOrder: KeyOrder[Slice[Byte]]): util.TreeMap[Slice[Byte], CompactionLevelZeroStack] = {
-    val stacks = new util.TreeMap[Slice[Byte], CompactionLevelZeroStack](keyOrder)
+  def createStacks(input: IterableOnce[LevelZeroMap])(implicit keyOrder: KeyOrder[Slice[Byte]]): util.TreeMap[Slice[Byte], Stack] = {
+    val stacks = new util.TreeMap[Slice[Byte], Stack](keyOrder)
     val inputIterator = input.iterator
 
     while (inputIterator.hasNext) {
@@ -132,7 +146,7 @@ case object CompactionLevelZeroTasker {
    * @see [[createStacks]]'s function doc.
    */
   private def distributeMap(inputMap: LevelZeroMap,
-                            stacks: util.NavigableMap[Slice[Byte], CompactionLevelZeroStack])(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
+                            stacks: util.NavigableMap[Slice[Byte], Stack])(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
     import keyOrder._
     //builds a list of key-values that need to be merged
     //a stack looks like the following
@@ -174,7 +188,7 @@ case object CompactionLevelZeroTasker {
 
     if (overlappingExistingMaps.isEmpty) { //IF - no overlaps create a fresh entry
       val newStack =
-        CompactionLevelZeroStack(
+        Stack(
           minKey = inputMinKey,
           maxKey = inputMaxKey,
           stack = ListBuffer(Left(inputMap))
@@ -206,7 +220,7 @@ case object CompactionLevelZeroTasker {
 
         //create the new stack
         val newCollapsedStack =
-          CompactionLevelZeroStack(
+          Stack(
             minKey = minKey,
             maxKey = maxKey,
             stack = joinedStack
@@ -226,7 +240,7 @@ case object CompactionLevelZeroTasker {
        * ********************** */
       val existingMaps = overlappingExistingMaps.values().iterator().asScala
       //build the data to be updated.
-      val newUpdatedStacks = ListBuffer.empty[CompactionLevelZeroStack]
+      val newUpdatedStacks = ListBuffer.empty[Stack]
 
       //iterate over all overlapping maps and slice the input and assign key-values to overlapping maps
       existingMaps.foldLeft((inputMinKey, true)) {

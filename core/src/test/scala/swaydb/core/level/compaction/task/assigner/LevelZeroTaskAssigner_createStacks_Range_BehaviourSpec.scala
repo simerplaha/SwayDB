@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.task
+package swaydb.core.level.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.EitherValues._
@@ -40,7 +40,7 @@ import swaydb.serializers._
 import scala.jdk.CollectionConverters._
 import scala.util.Random
 
-class CompactionLevelZeroTasker_createStacks_Range_BehaviourSpec extends TestBase with MockFactory {
+class LevelZeroTaskAssigner_createStacks_Range_BehaviourSpec extends TestBase with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
@@ -56,11 +56,11 @@ class CompactionLevelZeroTasker_createStacks_Range_BehaviourSpec extends TestBas
    * The following test-cases are hard to describe in the test-case.
    * See the key-values in the comments to view the test inputs.
    */
-  def createStacks(keyValues: Slice[Memory]*)(test: scala.collection.Map[Slice[Byte], CompactionLevelZeroStack] => Unit): Unit =
+  def createStacks(keyValues: Slice[Memory]*)(test: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] => Unit): Unit =
     TestCaseSweeper {
       implicit sweeper =>
         val maps: Iterable[LevelZeroMap] = keyValues.map(TestMap(_))
-        val stacks = CompactionLevelZeroTasker.createStacks(maps)
+        val stacks = LevelZeroTaskAssigner.createStacks(maps)
         test(stacks.asScala)
     }
 
@@ -71,7 +71,7 @@ class CompactionLevelZeroTasker_createStacks_Range_BehaviourSpec extends TestBas
       Slice((1, 10)),
       Slice((1, 10))
     ) {
-      stacks: scala.collection.Map[Slice[Byte], CompactionLevelZeroStack] =>
+      stacks: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] =>
         stacks should have size 1
         val (minKey, stack) = stacks.head
 
@@ -91,7 +91,7 @@ class CompactionLevelZeroTasker_createStacks_Range_BehaviourSpec extends TestBas
       Slice((1, 10)),
       Slice((2, 10))
     ) {
-      stacks: scala.collection.Map[Slice[Byte], CompactionLevelZeroStack] =>
+      stacks: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] =>
         stacks should have size 1
         val (minKey, stack) = stacks.head
 
@@ -110,7 +110,7 @@ class CompactionLevelZeroTasker_createStacks_Range_BehaviourSpec extends TestBas
       Slice((2, 10)),
       Slice((1, 10))
     ) {
-      stacks: scala.collection.Map[Slice[Byte], CompactionLevelZeroStack] =>
+      stacks: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] =>
         stacks should have size 1
         val (minKey, stack) = stacks.head
 
@@ -130,7 +130,7 @@ class CompactionLevelZeroTasker_createStacks_Range_BehaviourSpec extends TestBas
       Slice((1, 10)),
       Slice((2, 11))
     ) {
-      stacks: scala.collection.Map[Slice[Byte], CompactionLevelZeroStack] =>
+      stacks: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] =>
         stacks should have size 1
         val (minKey, stack) = stacks.head
 
@@ -149,7 +149,7 @@ class CompactionLevelZeroTasker_createStacks_Range_BehaviourSpec extends TestBas
       Slice((2, 11)),
       Slice((1, 10))
     ) {
-      stacks: scala.collection.Map[Slice[Byte], CompactionLevelZeroStack] =>
+      stacks: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] =>
         stacks should have size 1
         val (minKey, stack) = stacks.head
 
@@ -175,7 +175,7 @@ class CompactionLevelZeroTasker_createStacks_Range_BehaviourSpec extends TestBas
           )
         ): _*
       ) {
-        stacks: scala.collection.Map[Slice[Byte], CompactionLevelZeroStack] =>
+        stacks: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] =>
           stacks should have size 2
 
           val (headKey, headValue) = stacks.head
@@ -205,7 +205,7 @@ class CompactionLevelZeroTasker_createStacks_Range_BehaviourSpec extends TestBas
         Slice(range(1, 10)),
         Slice(range(5, 15))
       ) {
-        stacks: scala.collection.Map[Slice[Byte], CompactionLevelZeroStack] =>
+        stacks: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] =>
           stacks should have size 1
 
           val (headKey, headValue) = stacks.head
@@ -234,7 +234,7 @@ class CompactionLevelZeroTasker_createStacks_Range_BehaviourSpec extends TestBas
         Slice(range(40, 50)),
         Slice(range(1, 50))
       ) {
-        stacks: scala.collection.Map[Slice[Byte], CompactionLevelZeroStack] =>
+        stacks: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] =>
           stacks should have size 1
 
           val (headKey, headValue) = stacks.head
@@ -265,7 +265,7 @@ class CompactionLevelZeroTasker_createStacks_Range_BehaviourSpec extends TestBas
         Slice(range(40, 50)),
         Slice(fixed(25))
       ) {
-        stacks: scala.collection.Map[Slice[Byte], CompactionLevelZeroStack] =>
+        stacks: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] =>
           stacks should have size 4
 
           val (headKey, headValue) = stacks.head
@@ -316,7 +316,7 @@ class CompactionLevelZeroTasker_createStacks_Range_BehaviourSpec extends TestBas
         Slice(fixed(25)),
         Slice(range(10, 25)),
       ) {
-        stacks: scala.collection.Map[Slice[Byte], CompactionLevelZeroStack] =>
+        stacks: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] =>
           stacks should have size 3
 
           val (headKey, headValue) = stacks.head
@@ -364,7 +364,7 @@ class CompactionLevelZeroTasker_createStacks_Range_BehaviourSpec extends TestBas
         Slice(range(10, 100)),
         Slice(range(10, 101))
       ) {
-        stacks: scala.collection.Map[Slice[Byte], CompactionLevelZeroStack] =>
+        stacks: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] =>
           stacks should have size 1
 
           val (headKey, headValue) = stacks.head

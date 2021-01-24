@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.task
+package swaydb.core.level.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions._
@@ -38,7 +38,7 @@ import swaydb.serializers.Default._
 
 import scala.concurrent.duration.DurationInt
 
-class CompactionLevelZeroTasker_flatten_Spec extends TestBase with MockFactory {
+class LevelZeroTaskAssigner_flatten_Spec extends TestBase with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
@@ -66,7 +66,7 @@ class CompactionLevelZeroTasker_flatten_Spec extends TestBase with MockFactory {
           //build maps
           val maps = keyValues.map(TestMap(_))
           //execute the flatten function on the map
-          val flattenedMaps = CompactionLevelZeroTasker.flatten(maps.iterator).awaitInf
+          val flattenedMaps = LevelZeroTaskAssigner.flatten(maps.iterator).awaitInf
 
           //Assert: all maps are in order and there are no overlaps
           flattenedMaps.drop(1).foldLeft(flattenedMaps.head) {

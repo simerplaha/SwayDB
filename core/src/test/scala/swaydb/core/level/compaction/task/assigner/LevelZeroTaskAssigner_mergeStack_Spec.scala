@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.task
+package swaydb.core.level.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
@@ -38,7 +38,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class CompactionLevelZeroTasker_mergeStack_Spec extends TestBase with MockFactory {
+class LevelZeroTaskAssigner_mergeStack_Spec extends TestBase with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
@@ -52,7 +52,7 @@ class CompactionLevelZeroTasker_mergeStack_Spec extends TestBase with MockFactor
         val stack: Iterable[Either[LevelZeroMap, Iterable[Memory]]] =
           List.empty
 
-        CompactionLevelZeroTasker.mergeStack(stack).awaitInf shouldBe Iterable.empty
+        LevelZeroTaskAssigner.mergeStack(stack).awaitInf shouldBe Iterable.empty
 
     }
   }
@@ -71,7 +71,7 @@ class CompactionLevelZeroTasker_mergeStack_Spec extends TestBase with MockFactor
               )
             )
 
-          CompactionLevelZeroTasker.mergeStack(stack).awaitInf should contain only keyValue
+          LevelZeroTaskAssigner.mergeStack(stack).awaitInf should contain only keyValue
 
       }
     }
@@ -88,7 +88,7 @@ class CompactionLevelZeroTasker_mergeStack_Spec extends TestBase with MockFactor
               Right(Slice(Memory.put(1, 1)))
             )
 
-          CompactionLevelZeroTasker.mergeStack(stack).awaitInf should contain only Memory.put(1, 2)
+          LevelZeroTaskAssigner.mergeStack(stack).awaitInf should contain only Memory.put(1, 2)
 
       }
     }
@@ -106,7 +106,7 @@ class CompactionLevelZeroTasker_mergeStack_Spec extends TestBase with MockFactor
               Right(Slice(Memory.put(1, 1), Memory.put(2, 2)))
             )
 
-          CompactionLevelZeroTasker.mergeStack(stack).awaitInf should contain only(Memory.put(1, 2), Memory.put(2, 2))
+          LevelZeroTaskAssigner.mergeStack(stack).awaitInf should contain only(Memory.put(1, 2), Memory.put(2, 2))
       }
     }
   }
@@ -151,7 +151,7 @@ class CompactionLevelZeroTasker_mergeStack_Spec extends TestBase with MockFactor
                 )
             }
 
-          val actual = CompactionLevelZeroTasker.mergeStack(stack).awaitInf
+          val actual = LevelZeroTaskAssigner.mergeStack(stack).awaitInf
 
           actual shouldBe expected
       }

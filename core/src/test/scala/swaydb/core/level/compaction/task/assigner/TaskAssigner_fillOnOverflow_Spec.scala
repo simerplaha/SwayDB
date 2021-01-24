@@ -22,27 +22,28 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.task
+package swaydb.core.level.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import swaydb.core.level.compaction.task.CompactionDataType
 
 import scala.collection.SortedSet
 
-class CompactionTasker_fillOnOverflow_Spec extends AnyWordSpec with Matchers with MockFactory {
+class TaskAssigner_fillOnOverflow_Spec extends AnyWordSpec with Matchers with MockFactory {
 
   "fillOverflow" when {
     "no overflow" in {
       implicit val dataType = mock[CompactionDataType[Int]] //never invoked
-      CompactionTasker.fillOverflow[Int](0, List(1, 2)) shouldBe empty
+      TaskAssigner.fillOverflow[Int](0, List(1, 2)) shouldBe empty
     }
 
     "half overflow" in {
       implicit val dataType = mock[CompactionDataType[Int]]
       (dataType.segmentSize _).expects(1) returning 1
 
-      CompactionTasker.fillOverflow[Int](1, List(1, 2)) shouldBe SortedSet(1)
+      TaskAssigner.fillOverflow[Int](1, List(1, 2)) shouldBe SortedSet(1)
     }
 
     "full overflow" in {
@@ -51,7 +52,7 @@ class CompactionTasker_fillOnOverflow_Spec extends AnyWordSpec with Matchers wit
       (dataType.segmentSize _).expects(2) returning 1
 
       //3 does not get added
-      CompactionTasker.fillOverflow[Int](2, List(1, 2, 3)) shouldBe SortedSet(1, 2)
+      TaskAssigner.fillOverflow[Int](2, List(1, 2, 3)) shouldBe SortedSet(1, 2)
     }
 
     "inconsistent sizes" in {
@@ -62,7 +63,7 @@ class CompactionTasker_fillOnOverflow_Spec extends AnyWordSpec with Matchers wit
       (dataType.segmentSize _).expects(2) returning 3
 
       //overflow is 3 so 1 does not satisfy there 2 will also get added but 3 never does.
-      CompactionTasker.fillOverflow[Int](3, List(1, 2, 3)) shouldBe SortedSet(1, 2)
+      TaskAssigner.fillOverflow[Int](3, List(1, 2, 3)) shouldBe SortedSet(1, 2)
     }
   }
 }
