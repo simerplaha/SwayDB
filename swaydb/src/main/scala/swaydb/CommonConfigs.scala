@@ -25,7 +25,7 @@
 package swaydb
 
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.data.compaction.CompactionExecutionContext
+import swaydb.data.compaction.CompactionConfig
 import swaydb.data.{Atomic, OptimiseWrites}
 
 import scala.concurrent.duration._
@@ -34,10 +34,10 @@ case object CommonConfigs {
 
   def segmentDeleteDelay = 10.seconds
 
-  def compactionExecutionContext(maxThreads: Int = 2): CompactionExecutionContext.Create = {
+  def compactionConfig(maxThreads: Int = 2): CompactionConfig = {
     val executionContext = DefaultExecutionContext.compactionEC(maxThreads = maxThreads)
     //create compaction config
-    CompactionExecutionContext.Create(
+    CompactionConfig(
       compactionExecutionContext = executionContext,
       resetCompactionPriorityAtInterval = 3
     )

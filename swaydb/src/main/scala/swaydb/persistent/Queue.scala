@@ -24,13 +24,11 @@
 
 package swaydb.persistent
 
-import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
@@ -40,6 +38,7 @@ import swaydb.data.{Atomic, DataType, OptimiseWrites}
 import swaydb.serializers.Serializer
 import swaydb.{Bag, CommonConfigs}
 
+import java.nio.file.Path
 import scala.concurrent.duration.FiniteDuration
 
 object Queue extends LazyLogging {
@@ -55,7 +54,7 @@ object Queue extends LazyLogging {
                        appendixFlushCheckpointSize: Int = 2.mb,
                        otherDirs: Seq[Dir] = Seq.empty,
                        cacheKeyValueIds: Boolean = true,
-                       compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
+                       compactionConfig: CompactionConfig = CommonConfigs.compactionConfig(),
                        acceleration: LevelZeroMeter => Accelerator = DefaultConfigs.accelerator,
                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                        optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
@@ -97,7 +96,7 @@ object Queue extends LazyLogging {
           cacheKeyValueIds = cacheKeyValueIds,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
-          compactionExecutionContext = compactionExecutionContext,
+          compactionConfig = compactionConfig,
           acceleration = acceleration,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,

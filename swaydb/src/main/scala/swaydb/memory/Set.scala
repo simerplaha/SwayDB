@@ -30,7 +30,7 @@ import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, MemoryCache, ThreadStateCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
@@ -53,7 +53,7 @@ object Set extends LazyLogging {
                                                  maxKeyValuesPerSegment: Int = Int.MaxValue,
                                                  fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                                  deleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
-                                                 compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
+                                                 compactionConfig: CompactionConfig = CommonConfigs.compactionConfig(),
                                                  optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                  atomic: Atomic = CommonConfigs.atomic(),
                                                  acceleration: LevelZeroMeter => Accelerator = DefaultConfigs.accelerator,
@@ -76,6 +76,7 @@ object Set extends LazyLogging {
           enableTimer = PureFunction.isOn(functionClassTag),
           cacheKeyValueIds = false,
           threadStateCache = threadStateCache,
+          compactionConfig = compactionConfig,
           config =
             DefaultMemoryConfig(
               mapSize = mapSize,
@@ -84,7 +85,6 @@ object Set extends LazyLogging {
               minSegmentSize = minSegmentSize,
               maxKeyValuesPerSegment = maxKeyValuesPerSegment,
               deleteDelay = deleteDelay,
-              compactionExecutionContext = compactionExecutionContext,
               acceleration = acceleration,
               levelZeroThrottle = levelZeroThrottle,
               lastLevelThrottle = lastLevelThrottle,

@@ -24,12 +24,9 @@
 
 package swaydb.java.persistent
 
-import java.nio.file.Path
-import java.util.Collections
-
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
@@ -39,6 +36,8 @@ import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
 import swaydb.{Bag, CommonConfigs, Glass}
 
+import java.nio.file.Path
+import java.util.Collections
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
@@ -53,7 +52,7 @@ object PersistentQueue {
                         private var appendixFlushCheckpointSize: Int = 2.mb,
                         private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                         private var cacheKeyValueIds: Boolean = true,
-                        private var compactionExecutionContext: Option[CompactionExecutionContext.Create] = None,
+                        private var compactionConfig: Option[CompactionConfig] = None,
                         private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                         private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                         private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
@@ -80,8 +79,8 @@ object PersistentQueue {
       this
     }
 
-    def setCompactionExecutionContext(executionContext: CompactionExecutionContext.Create) = {
-      this.compactionExecutionContext = Some(executionContext)
+    def setCompactionConfig(config: CompactionConfig) = {
+      this.compactionConfig = Some(config)
       this
     }
 
@@ -221,7 +220,7 @@ object PersistentQueue {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
-          compactionExecutionContext = compactionExecutionContext getOrElse CommonConfigs.compactionExecutionContext(),
+          compactionConfig = compactionConfig getOrElse CommonConfigs.compactionConfig(),
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
           optimiseWrites = optimiseWrites,

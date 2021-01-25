@@ -42,14 +42,14 @@ import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, MemorySweeper}
-import swaydb.data.compaction.CompactionExecutionContext
+import swaydb.data.compaction.CompactionConfig
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.{Bag, DefActor, Error, Glass, IO}
 
 import java.util.function.Supplier
@@ -61,29 +61,13 @@ import scala.sys.ShutdownHookThread
 private[core] object CoreInitializer extends LazyLogging {
 
   /**
-   * Based on the configuration returns execution context for the Level.
-   */
-  def executionContext(levelConfig: LevelConfig): CompactionExecutionContext =
-    levelConfig match {
-      case config: MemoryLevelConfig =>
-        config.compactionExecutionContext
-
-      case config: PersistentLevelConfig =>
-        config.compactionExecutionContext
-    }
-
-  def executionContexts(config: SwayDBConfig): List[CompactionExecutionContext] =
-    List(config.level0.compactionExecutionContext, executionContext(config.level1)) ++
-      config.otherLevels.map(executionContext)
-
-  /**
    * Boots up compaction Actor and start listening to changes in levels.
    */
   def initialiseCompaction(zero: LevelZero,
-                           executionContexts: List[CompactionExecutionContext])(implicit compactorCreator: CompactorCreator): IO[Error.Level, NonEmptyList[DefActor[Compactor, Unit]]] =
+                           compactionConfig: CompactionConfig)(implicit compactorCreator: CompactorCreator): IO[Error.Level, DefActor[Compactor, Unit]] =
     compactorCreator.createAndListen(
       zero = zero,
-      executionContexts = executionContexts
+      compactionConfig = compactionConfig
     )
 
   def sendInitialWakeUp(compactor: DefActor[Compactor, Unit]): Unit =
@@ -116,10 +100,11 @@ private[core] object CoreInitializer extends LazyLogging {
             cacheKeyValueIds: Boolean,
             fileCache: FileCache.On,
             threadStateCache: ThreadStateCache,
-            memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                      timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore,
-                                      buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
+            memoryCache: MemoryCache,
+            compactionConfig: CompactionConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                functionStore: FunctionStore,
+                                                buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
     if (config.level0.mapSize > 1.gb) {
       val exception = new Exception(s"mapSize ${config.level0.mapSize / 1000000}.MB is too large. Maximum limit is 1.GB.")
       logger.error(exception.getMessage, exception)
@@ -172,8 +157,6 @@ private[core] object CoreInitializer extends LazyLogging {
 
           implicit val bufferSweeper: ByteBufferSweeperActor =
             ByteBufferSweeper()(fileSweeper.executionContext)
-
-          val contexts = executionContexts(config)
 
           lazy val memoryLevelPath = MemoryPathGenerator.next()
 
@@ -283,12 +266,12 @@ private[core] object CoreInitializer extends LazyLogging {
                       zero: LevelZero =>
                         initialiseCompaction(
                           zero = zero,
-                          executionContexts = contexts
+                          compactionConfig = compactionConfig
                         ) map {
                           implicit compactor =>
 
                             //trigger initial wakeUp.
-                            sendInitialWakeUp(compactor.head)
+                            sendInitialWakeUp(compactor)
 
                             val readStates: ThreadLocal[ThreadReadState] =
                               ThreadLocal.withInitial[ThreadReadState] {

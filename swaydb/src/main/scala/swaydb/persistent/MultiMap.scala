@@ -24,13 +24,11 @@
 
 package swaydb.persistent
 
-import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
@@ -42,6 +40,7 @@ import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
 import swaydb.{Apply, CommonConfigs, KeyOrderConverter, MultiMap, PureFunction}
 
+import java.nio.file.Path
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
@@ -67,7 +66,7 @@ object MultiMap extends LazyLogging {
                                                           appendixFlushCheckpointSize: Int = 2.mb,
                                                           otherDirs: Seq[Dir] = Seq.empty,
                                                           cacheKeyValueIds: Boolean = true,
-                                                          compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
+                                                          compactionConfig: CompactionConfig = CommonConfigs.compactionConfig(),
                                                           optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                           atomic: Atomic = CommonConfigs.atomic(),
                                                           acceleration: LevelZeroMeter => Accelerator = DefaultConfigs.accelerator,
@@ -117,7 +116,7 @@ object MultiMap extends LazyLogging {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs,
           cacheKeyValueIds = cacheKeyValueIds,
-          compactionExecutionContext = compactionExecutionContext,
+          compactionConfig = compactionConfig,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration,

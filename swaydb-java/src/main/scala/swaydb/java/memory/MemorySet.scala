@@ -27,7 +27,7 @@ package swaydb.java.memory
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -51,7 +51,7 @@ object MemorySet {
                            private var deleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                            private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                            private var atomic: Atomic = CommonConfigs.atomic(),
-                           private var compactionExecutionContext: Option[CompactionExecutionContext.Create] = None,
+                           private var compactionConfig: Option[CompactionConfig] = None,
                            private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = DefaultConfigs.accelerator.asJava,
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
@@ -68,8 +68,8 @@ object MemorySet {
       this
     }
 
-    def setCompactionExecutionContext(executionContext: CompactionExecutionContext.Create) = {
-      this.compactionExecutionContext = Some(executionContext)
+    def setCompactionConfig(config: CompactionConfig) = {
+      this.compactionConfig = Some(config)
       this
     }
 
@@ -150,7 +150,7 @@ object MemorySet {
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
           deleteDelay = deleteDelay,
-          compactionExecutionContext = compactionExecutionContext getOrElse CommonConfigs.compactionExecutionContext(),
+          compactionConfig = compactionConfig getOrElse CommonConfigs.compactionConfig(),
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.asScala,

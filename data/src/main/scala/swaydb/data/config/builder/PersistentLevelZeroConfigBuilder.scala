@@ -24,14 +24,12 @@
 
 package swaydb.data.config.builder
 
-import java.nio.file.Path
-
-import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config.{ConfigWizard, MMAP, RecoveryMode}
 import swaydb.data.util.Java.JavaFunction
+import swaydb.data.{Atomic, OptimiseWrites}
 
+import java.nio.file.Path
 import scala.concurrent.duration.FiniteDuration
 
 /**
@@ -44,7 +42,6 @@ class PersistentLevelZeroConfigBuilder {
   private var clearAppliedFunctionsOnBoot: Boolean = _
   private var mmap: MMAP.Map = _
   private var recoveryMode: RecoveryMode = _
-  private var compactionExecutionContext: CompactionExecutionContext.Create = _
   private var acceleration: LevelZeroMeter => Accelerator = _
   private var optimiseWrites: OptimiseWrites = _
   private var atomic: Atomic = _
@@ -95,13 +92,6 @@ object PersistentLevelZeroConfigBuilder {
   }
 
   class Step6(builder: PersistentLevelZeroConfigBuilder) {
-    def compactionExecutionContext(compactionExecutionContext: CompactionExecutionContext.Create) = {
-      builder.compactionExecutionContext = compactionExecutionContext
-      new Step7(builder)
-    }
-  }
-
-  class Step7(builder: PersistentLevelZeroConfigBuilder) {
     def acceleration(acceleration: JavaFunction[LevelZeroMeter, Accelerator]) = {
       builder.acceleration = acceleration.apply
       new Step8(builder)
@@ -131,7 +121,6 @@ object PersistentLevelZeroConfigBuilder {
         clearAppliedFunctionsOnBoot = builder.clearAppliedFunctionsOnBoot,
         mmap = builder.mmap,
         recoveryMode = builder.recoveryMode,
-        compactionExecutionContext = builder.compactionExecutionContext,
         optimiseWrites = builder.optimiseWrites,
         acceleration = builder.acceleration,
         atomic = builder.atomic,

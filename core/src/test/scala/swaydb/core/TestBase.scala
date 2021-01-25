@@ -52,14 +52,14 @@ import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, MMAP, PushForwardStrategy, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{Level0Storage, LevelStorage}
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.{DefActor, Glass, IO}
 
 import java.nio.file._
@@ -624,17 +624,15 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     val level1 = TestLevel(nextLevel = Some(level2), throttle = levelThrottle)
     val level0 = TestLevelZero(nextLevel = Some(level1), throttle = levelZeroThrottle)
 
-    val compaction: Option[NonEmptyList[DefActor[Compactor, Unit]]] =
+    val compaction: Option[DefActor[Compactor, Unit]] =
       if (throttleOn) {
-        val compactors =
+        val compactor =
           CoreInitializer.initialiseCompaction(
             zero = level0,
-            executionContexts = CompactionExecutionContext.Create(TestExecutionContext.executionContext, randomIntMax(10).max(1)) +: List.fill(4)(CompactionExecutionContext.Shared)
+            compactionConfig = CompactionConfig(TestExecutionContext.executionContext, randomIntMax(10).max(1))
           ).value
 
-        compactors should have size 1
-
-        Some(compactors)
+        Some(compactor)
       } else {
         None
       }
@@ -747,7 +745,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     runAsserts(asserts)
 
-    compaction.foreach(_.foreach(_.terminateAndClear[Glass]()))
+    compaction.foreach(_.terminateAndClear[Glass]())
 
     level0.delete[Glass]()
 

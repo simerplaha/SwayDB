@@ -24,13 +24,10 @@
 
 package swaydb.java.eventually.persistent
 
-import java.nio.file.Path
-import java.util.Collections
-
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.CompactionExecutionContext
+import swaydb.data.compaction.CompactionConfig
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -43,6 +40,8 @@ import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerialize
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag, CommonConfigs, Glass, PureFunction}
 
+import java.nio.file.Path
+import java.util.Collections
 import scala.compat.java8.DurationConverters.DurationOps
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration.FiniteDuration
@@ -64,7 +63,7 @@ object EventuallyPersistentSet {
                            private var cacheKeyValueIds: Boolean = true,
                            private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                            private var memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
-                           private var compactionExecutionContext: Option[CompactionExecutionContext.Create] = None,
+                           private var compactionConfig: Option[CompactionConfig] = None,
                            private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                            private var atomic: Atomic = CommonConfigs.atomic(),
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = DefaultConfigs.accelerator.asJava,
@@ -88,8 +87,8 @@ object EventuallyPersistentSet {
       this
     }
 
-    def setCompactionExecutionContext(executionContext: CompactionExecutionContext.Create) = {
-      this.compactionExecutionContext = Some(executionContext)
+    def setCompactionConfig(config: CompactionConfig) = {
+      this.compactionConfig = Some(config)
       this
     }
 
@@ -243,7 +242,7 @@ object EventuallyPersistentSet {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           memorySegmentDeleteDelay = memorySegmentDeleteDelay,
-          compactionExecutionContext = compactionExecutionContext getOrElse CommonConfigs.compactionExecutionContext(),
+          compactionConfig = compactionConfig getOrElse CommonConfigs.compactionConfig(),
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.apply,

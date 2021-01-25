@@ -24,12 +24,11 @@
 
 package swaydb.data.config.builder
 
-import java.nio.file.Path
-
-import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.util.Java.JavaFunction
 
+import java.nio.file.Path
 import scala.jdk.CollectionConverters._
 
 /**
@@ -46,7 +45,6 @@ class PersistentLevelConfigBuilder {
   private var mightContainIndex: MightContainIndex = _
   private var valuesConfig: ValuesConfig = _
   private var segmentConfig: SegmentConfig = _
-  private var compactionExecutionContext: CompactionExecutionContext = _
 }
 
 object PersistentLevelConfigBuilder {
@@ -131,13 +129,6 @@ object PersistentLevelConfigBuilder {
   }
 
   class Step10(builder: PersistentLevelConfigBuilder) {
-    def compactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) = {
-      builder.compactionExecutionContext = compactionExecutionContext
-      new Step11(builder)
-    }
-  }
-
-  class Step11(builder: PersistentLevelConfigBuilder) {
     def throttle(throttle: JavaFunction[LevelMeter, Throttle]) =
       new PersistentLevelConfig(
         dir = builder.dir,
@@ -150,7 +141,6 @@ object PersistentLevelConfigBuilder {
         mightContainIndex = builder.mightContainIndex,
         valuesConfig = builder.valuesConfig,
         segmentConfig = builder.segmentConfig,
-        compactionExecutionContext = builder.compactionExecutionContext,
         throttle = throttle.apply
       )
   }

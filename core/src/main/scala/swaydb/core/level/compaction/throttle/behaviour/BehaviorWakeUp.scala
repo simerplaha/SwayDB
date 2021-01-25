@@ -60,9 +60,7 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
 
   private def runPostCompaction(context: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor, Unit]): ThrottleCompactorContext = {
     logger.debug(s"${context.name}: Wake-up successful!")
-    val updatedContext = scheduleWakeUp(context)
-    wakeUpChild(updatedContext)
-    updatedContext
+    scheduleWakeUp(context)
   }
 
   def fetchLastLevel(zero: LevelZero): Level = {
@@ -143,11 +141,6 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
         logger.debug(s"Level(${level.levelNumber}): $state")
         sleepDeadline.isOverdue() || (newStateId != stateId && level.nextCompactionDelay.fromNow.isOverdue())
     }
-
-  def wakeUpChild(context: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor, Unit]): Unit = {
-    logger.debug(s"${context.name}: Waking up child: ${context.child.map(_ => "child")}.")
-    context.child.foreach(_.send(_.wakeUp()))
-  }
 
   def scheduleWakeUp(context: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor, Unit]): ThrottleCompactorContext = {
     logger.debug(s"${context.name}: scheduling next wakeup for updated state: ${context.levels.size}. Current scheduled: ${context.sleepTask.map(_._2.timeLeft.asString)}")
@@ -304,7 +297,7 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
         lowerLevels = NonEmptyList(nextLevels.head, nextLevels.dropHead())
       ) flatMap {
         tasks =>
-          BehaviourRunTask.runMapTask(
+          BehaviourRunCompactionTask.runMapTask(
             task = tasks,
             lockedLastLevel = lockedLastLevel
           )
@@ -335,7 +328,7 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
       }
     } else {
       def runTask(task: CompactionTask.Segments): Future[ThrottleLevelState] =
-        BehaviourRunTask.runSegmentTask(
+        BehaviourRunCompactionTask.runSegmentTask(
           task = task,
           lockedLastLevel = lockedLastLevel
         ) flatMapUnit {

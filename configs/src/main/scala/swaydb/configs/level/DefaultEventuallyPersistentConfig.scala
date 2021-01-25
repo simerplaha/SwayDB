@@ -24,14 +24,13 @@
 
 package swaydb.configs.level
 
-import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.{Atomic, OptimiseWrites}
 
+import java.nio.file.Path
 import scala.concurrent.duration._
 
 object DefaultEventuallyPersistentConfig extends LazyLogging {
@@ -46,13 +45,11 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
             clearAppliedFunctionsOnBoot: Boolean,
             maxMemoryLevelSize: Int,
             maxSegmentsToPush: Int,
-            memoryLevelCompactionExecutionContext: CompactionExecutionContext.Create,
             memoryLevelMinSegmentSize: Int,
             memoryLevelMaxKeyValuesCountPerSegment: Int,
             memorySegmentDeleteDelay: FiniteDuration,
             persistentLevelAppendixFlushCheckpointSize: Int,
             mmapPersistentLevelAppendix: MMAP.Map,
-            persistentLevelCompactionExecutionContext: CompactionExecutionContext.Create,
             persistentLevelSortedKeyIndex: SortedKeyIndex,
             persistentLevelRandomSearchIndex: RandomSearchIndex,
             persistentLevelBinarySearchIndex: BinarySearchIndex,
@@ -67,7 +64,6 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
         mapSize = mapSize,
         appliedFunctionsMapSize = appliedFunctionsMapSize,
         clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
-        compactionExecutionContext = memoryLevelCompactionExecutionContext,
         optimiseWrites = optimiseWrites,
         atomic = atomic,
         acceleration = acceleration,
@@ -78,7 +74,6 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
         maxKeyValuesPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
         pushForward = PushForwardStrategy.Off,
         deleteDelay = memorySegmentDeleteDelay,
-        compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
             if (levelMeter.levelSize > maxMemoryLevelSize)
@@ -98,7 +93,6 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
         mightContainKey = persistentLevelMightContainIndex,
         valuesConfig = persistentLevelValuesConfig,
         segmentConfig = persistentLevelSegmentConfig,
-        compactionExecutionContext = persistentLevelCompactionExecutionContext,
         throttle =
           (_: LevelMeter) =>
             Throttle(

@@ -24,14 +24,12 @@
 
 package swaydb.eventually.persistent
 
-import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultExecutionContext}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.CompactionExecutionContext
+import swaydb.data.compaction.CompactionConfig
 import swaydb.data.config.{ThreadStateCache, _}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
@@ -42,6 +40,7 @@ import swaydb.function.FunctionConverter
 import swaydb.serializers.Serializer
 import swaydb.{Apply, CommonConfigs, KeyOrderConverter, PureFunction}
 
+import java.nio.file.Path
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
@@ -65,7 +64,7 @@ object Map extends LazyLogging {
                                                        cacheKeyValueIds: Boolean = true,
                                                        mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                                                        memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
-                                                       compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
+                                                       compactionConfig: CompactionConfig = CommonConfigs.compactionConfig(),
                                                        optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                        atomic: Atomic = CommonConfigs.atomic(),
                                                        acceleration: LevelZeroMeter => Accelerator = DefaultConfigs.accelerator,
@@ -98,6 +97,7 @@ object Map extends LazyLogging {
           fileCache = fileCache,
           memoryCache = memoryCache,
           threadStateCache = threadStateCache,
+          compactionConfig = compactionConfig,
           config =
             DefaultEventuallyPersistentConfig(
               dir = dir,
@@ -107,13 +107,11 @@ object Map extends LazyLogging {
               clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
               maxMemoryLevelSize = maxMemoryLevelSize,
               maxSegmentsToPush = maxSegmentsToPush,
-              memoryLevelCompactionExecutionContext = compactionExecutionContext,
               memoryLevelMinSegmentSize = memoryLevelSegmentSize,
               memoryLevelMaxKeyValuesCountPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
               memorySegmentDeleteDelay = memorySegmentDeleteDelay,
               persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
               mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
-              persistentLevelCompactionExecutionContext = compactionExecutionContext,
               persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
               persistentLevelRandomSearchIndex = persistentLevelRandomSearchIndex,
               persistentLevelBinarySearchIndex = binarySearchIndex,

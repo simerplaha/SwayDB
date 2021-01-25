@@ -24,13 +24,10 @@
 
 package swaydb.java.eventually.persistent
 
-import java.nio.file.Path
-import java.util.Collections
-
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.CompactionExecutionContext
+import swaydb.data.compaction.CompactionConfig
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -43,6 +40,8 @@ import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag, CommonConfigs, Glass, PureFunction}
 
+import java.nio.file.Path
+import java.util.Collections
 import scala.compat.java8.DurationConverters.DurationOps
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration.FiniteDuration
@@ -64,7 +63,7 @@ object EventuallyPersistentMultiMap {
                                  private var cacheKeyValueIds: Boolean = true,
                                  private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                                  private var memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
-                                 private var compactionExecutionContext: Option[CompactionExecutionContext.Create] = None,
+                                 private var compactionConfig: Option[CompactionConfig] = None,
                                  private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                  private var atomic: Atomic = CommonConfigs.atomic(),
                                  private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = DefaultConfigs.accelerator.asJava,
@@ -90,8 +89,8 @@ object EventuallyPersistentMultiMap {
       this
     }
 
-    def setCompactionExecutionContext(executionContext: CompactionExecutionContext.Create) = {
-      this.compactionExecutionContext = Some(executionContext)
+    def setCompactionConfig(config: CompactionConfig) = {
+      this.compactionConfig = Some(config)
       this
     }
 
@@ -245,7 +244,7 @@ object EventuallyPersistentMultiMap {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           memorySegmentDeleteDelay = memorySegmentDeleteDelay,
-          compactionExecutionContext = compactionExecutionContext getOrElse CommonConfigs.compactionExecutionContext(),
+          compactionConfig = compactionConfig getOrElse CommonConfigs.compactionConfig(),
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.apply,
@@ -277,7 +276,7 @@ object EventuallyPersistentMultiMap {
                            keySerializer: JavaSerializer[K],
                            valueSerializer: JavaSerializer[V],
                            functions: java.lang.Iterable[PureFunction[K, V, Apply.Map[V]]]): Config[M, K, V, PureFunction[K, V, Apply.Map[V]]] = {
-    implicit val pureFunctions = Functions(functions)
+    implicit val pureFunctions: Functions[PureFunction[K, V, Apply.Map[V]]] = Functions(functions)
     implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
     implicit val scalaMapKeySerializer: Serializer[M] = SerializerConverter.toScala(mapKeySerializer)
     implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)

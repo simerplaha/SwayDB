@@ -26,16 +26,13 @@ package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.IO._
 import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.{Compactor, CompactorCreator}
 import swaydb.core.level.zero.LevelZero
-import swaydb.data.NonEmptyList
-import swaydb.data.compaction.CompactionExecutionContext
+import swaydb.data.compaction.CompactionConfig
 import swaydb.data.slice.Slice
 import swaydb.{Actor, DefActor, Error, IO}
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 
 /**
@@ -46,106 +43,59 @@ import scala.concurrent.ExecutionContext
 private[core] object ThrottleCompactorCreator extends CompactorCreator with LazyLogging {
 
   /**
-   * Split levels into compaction groups with dedicated or shared ExecutionContexts based on
-   * the input [[CompactionExecutionContext]] config.
-   *
-   * @return return the root parent Actor with child Actors.
+   * Creates compaction Actor
    */
-  def createActors(levels: List[LevelRef],
-                   executionContexts: List[CompactionExecutionContext]): IO[swaydb.Error.Level, NonEmptyList[DefActor[Compactor, Unit]]] =
-    if (levels.size != executionContexts.size)
-      IO.Left(swaydb.Error.Fatal(new IllegalStateException(s"Number of ExecutionContexts(${executionContexts.size}) is not the same as number of Levels(${levels.size}).")))
-    else
-      levels
-        .zip(executionContexts)
-        .foldLeftRecoverIO(ListBuffer.empty[(ListBuffer[LevelRef], ExecutionContext, Int)]) {
-          case (jobs, (level, CompactionExecutionContext.Create(compactionEC, resetCompactionPriorityAtInterval))) => //new thread pool.
-            jobs += ((ListBuffer(level), compactionEC, resetCompactionPriorityAtInterval))
-            IO.Right(jobs)
+  def createCompactor(levels: Iterable[LevelRef],
+                      config: CompactionConfig): DefActor[ThrottleCompactor, Unit] = {
+    val state =
+      ThrottleCompactorContext(
+        levels = Slice(levels.toArray),
+        resetCompactionPriorityAtInterval = config.resetCompactionPriorityAtInterval,
+        compactionStates = Map.empty
+      )
 
-          case (jobs, (level, CompactionExecutionContext.Shared)) => //share with previous thread pool.
-            jobs.lastOption match {
-              case Some((lastGroup, _, _)) =>
-                lastGroup += level
-                IO.Right(jobs)
+    implicit val ec: ExecutionContext = config.executionContext
 
-              case None =>
-                //this will never occur because during configuration Level0 is only allowed to have Create
-                //so Shared can never happen with Create.
-                IO.Left(swaydb.Error.Fatal(new IllegalStateException("Shared ExecutionContext submitted without Create.")))
-            }
-        }
-        .flatMap {
-          jobs =>
-            val actors =
-              jobs
-                .zipWithIndex
-                .foldRight(List.empty[DefActor[Compactor, Unit]]) {
-                  case (((jobs, executionContext, resetCompactionPriorityAtInterval), index), children) =>
-                    val state =
-                      ThrottleCompactorContext(
-                        levels = Slice(jobs.toArray),
-                        resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval,
-                        child = children.headOption,
-                        compactionStates = Map.empty
-                      )
-
-                    implicit val ec: ExecutionContext = executionContext
-
-                    val actor =
-                      Actor.define[ThrottleCompactor](
-                        name = s"Compaction Actor$index",
-                        init = ThrottleCompactor(state)
-                      ).onPreTerminate {
-                        case (impl, _, _) =>
-                          impl.terminateASAP()
-                      }.start()
-
-                    actor :: children
-                }
-
-            if (actors.isEmpty)
-              IO.failed("Unable to create compactor(s).")
-            else
-              IO(NonEmptyList(actors.head, actors.tail))
-        }
+    Actor.define[ThrottleCompactor](
+      name = s"Compaction Actor",
+      init = ThrottleCompactor(state)
+    ).onPreTerminate {
+      case (impl, _, _) =>
+        impl.terminateASAP()
+    }.start()
+  }
 
   def createCompactor(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext]): IO[Error.Level, NonEmptyList[DefActor[Compactor, Unit]]] =
+                      config: CompactionConfig): IO[Error.Level, DefActor[ThrottleCompactor, Unit]] =
     zero.nextLevel match {
       case Some(nextLevel) =>
         logger.debug(s"Level(${zero.levelNumber}): Creating actor.")
-        createActors(
-          levels = zero +: LevelRef.getLevels(nextLevel),
-          executionContexts = executionContexts
-        )
+        IO {
+          createCompactor(
+            levels = zero +: LevelRef.getLevels(nextLevel),
+            config = config
+          )
+        }
 
       case None =>
         IO.Left(swaydb.Error.Fatal(new Exception("Compaction not started because there is no lower level.")))
     }
 
   def createAndListen(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext]): IO[Error.Level, NonEmptyList[DefActor[Compactor, Unit]]] =
+                      config: CompactionConfig): IO[Error.Level, DefActor[Compactor, Unit]] =
     createCompactor(
       zero = zero,
-      executionContexts = executionContexts
-    ) flatMap {
-      actors =>
+      config = config
+    ) map {
+      actor =>
         logger.debug(s"Level(${zero.levelNumber}): Initialising listener.")
         //listen to changes in levelZero
-        actors.headOption match {
-          case Some(headActor) =>
-            zero onNextMapCallback (
-              event =
-                () =>
-                  headActor.send(_.wakeUp())
-              )
+        zero onNextMapCallback (
+          event =
+            () =>
+              actor.send(_.wakeUp())
+          )
 
-            IO.Right(actors)
-
-          case None =>
-            IO.failed("No Actors created.")
-        }
+        actor
     }
 }
-

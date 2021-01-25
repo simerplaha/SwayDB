@@ -24,13 +24,11 @@
 
 package swaydb.eventually.persistent
 
-import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.CompactionExecutionContext
+import swaydb.data.compaction.CompactionConfig
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
@@ -40,6 +38,7 @@ import swaydb.data.{Atomic, DataType, OptimiseWrites}
 import swaydb.serializers.Serializer
 import swaydb.{Bag, CommonConfigs}
 
+import java.nio.file.Path
 import scala.concurrent.duration.FiniteDuration
 
 object Queue extends LazyLogging {
@@ -60,7 +59,7 @@ object Queue extends LazyLogging {
                        cacheKeyValueIds: Boolean = true,
                        mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                        memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
-                       compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
+                       compactionConfig: CompactionConfig = CommonConfigs.compactionConfig(),
                        optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                        atomic: Atomic = CommonConfigs.atomic(),
                        acceleration: LevelZeroMeter => Accelerator = DefaultConfigs.accelerator,
@@ -96,7 +95,7 @@ object Queue extends LazyLogging {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           memorySegmentDeleteDelay = memorySegmentDeleteDelay,
-          compactionExecutionContext = compactionExecutionContext,
+          compactionConfig = compactionConfig,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration,

@@ -24,13 +24,10 @@
 
 package swaydb.java.persistent
 
-import java.nio.file.Path
-import java.util.Collections
-
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -43,6 +40,8 @@ import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
 import swaydb.{Bag, CommonConfigs, Glass}
 
+import java.nio.file.Path
+import java.util.Collections
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
@@ -57,7 +56,7 @@ object PersistentSetMap {
                            private var appendixFlushCheckpointSize: Int = 2.mb,
                            private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                            private var cacheKeyValueIds: Boolean = true,
-                           private var compactionExecutionContext: Option[CompactionExecutionContext.Create] = None,
+                           private var compactionConfig: Option[CompactionConfig] = None,
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = DefaultConfigs.accelerator.asJava,
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                            private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
@@ -87,8 +86,8 @@ object PersistentSetMap {
       this
     }
 
-    def setCompactionExecutionContext(executionContext: CompactionExecutionContext.Create) = {
-      this.compactionExecutionContext = Some(executionContext)
+    def setCompactionConfig(config: CompactionConfig) = {
+      this.compactionConfig = Some(config)
       this
     }
 
@@ -247,7 +246,7 @@ object PersistentSetMap {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
-          compactionExecutionContext = compactionExecutionContext getOrElse CommonConfigs.compactionExecutionContext(),
+          compactionConfig = compactionConfig getOrElse CommonConfigs.compactionConfig(),
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.asScala,

@@ -37,9 +37,8 @@ import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.map.timer.Timer
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.data.NonEmptyList
 import swaydb.data.accelerate.LevelZeroMeter
-import swaydb.data.compaction.LevelMeter
+import swaydb.data.compaction.{CompactionConfig, LevelMeter}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
@@ -63,17 +62,19 @@ private[swaydb] object Core {
             fileCache: FileCache.On,
             memoryCache: MemoryCache,
             threadStateCache: ThreadStateCache,
+            compactionConfig: CompactionConfig,
             config: SwayDBPersistentConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                            timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore,
-                                            buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
+                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                functionStore: FunctionStore,
+                                                buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       threadStateCache = threadStateCache,
-      memoryCache = memoryCache
+      memoryCache = memoryCache,
+      compactionConfig = compactionConfig
     )
 
   def apply(enableTimer: Boolean,
@@ -81,17 +82,19 @@ private[swaydb] object Core {
             fileCache: FileCache.On,
             memoryCache: MemoryCache,
             threadStateCache: ThreadStateCache,
+            compactionConfig: CompactionConfig,
             config: SwayDBMemoryConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]],
-                                        functionStore: FunctionStore,
-                                        buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
+                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                functionStore: FunctionStore,
+                                                buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       threadStateCache = threadStateCache,
-      memoryCache = memoryCache
+      memoryCache = memoryCache,
+      compactionConfig = compactionConfig
     )
 
   /**
@@ -157,7 +160,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
                                    threadStateCache: ThreadStateCache,
                                    private val sequencer: Sequencer[BAG],
                                    val readStates: ThreadLocal[ThreadReadState])(implicit bag: Bag[BAG],
-                                                                                 compactors: NonEmptyList[DefActor[Compactor, Unit]],
+                                                                                 compactor: DefActor[Compactor, Unit],
                                                                                  private[swaydb] val bufferSweeper: ByteBufferSweeperActor) extends LazyLogging {
 
   def zeroPath: Path =
@@ -359,10 +362,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
           sequencer.terminate()
         }
         .and {
-          compactors.foldLeft(bag.unit) {
-            case (result, compactor) =>
-              result and compactor.terminateAndClear()
-          }
+          compactor.terminateAndClear()
         }
         .andTransform {
           logger.info("Compaction terminated!")
@@ -388,7 +388,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
       sequencer = Sequencer.transfer[BAG, BAG2](sequencer),
       readStates = readStates
     )(bag = bag2,
-      compactors = compactors,
+      compactor = compactor,
       bufferSweeper = bufferSweeper)
 
   def toBag[BAG2[_]](serialOrNull: Sequencer[BAG2])(implicit bag2: Bag[BAG2]): Core[BAG2] =
@@ -399,6 +399,6 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
       sequencer = if (serialOrNull == null) Sequencer.transfer[BAG, BAG2](sequencer) else serialOrNull,
       readStates = readStates
     )(bag = bag2,
-      compactors = compactors,
+      compactor = compactor,
       bufferSweeper = bufferSweeper)
 }

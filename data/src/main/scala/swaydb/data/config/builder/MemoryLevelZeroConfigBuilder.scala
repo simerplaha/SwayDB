@@ -24,11 +24,10 @@
 
 package swaydb.data.config.builder
 
-import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config.ConfigWizard
 import swaydb.data.util.Java.JavaFunction
+import swaydb.data.{Atomic, OptimiseWrites}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -39,7 +38,6 @@ class MemoryLevelZeroConfigBuilder {
   private var mapSize: Long = _
   private var appliedFunctionsMapSize: Long = _
   private var clearAppliedFunctionsOnBoot: Boolean = _
-  private var compactionExecutionContext: CompactionExecutionContext.Create = _
   private var acceleration: LevelZeroMeter => Accelerator = _
   private var optimiseWrites: OptimiseWrites = _
   private var atomic: Atomic = _
@@ -64,13 +62,6 @@ object MemoryLevelZeroConfigBuilder {
   class Step2(builder: MemoryLevelZeroConfigBuilder) {
     def clearAppliedFunctionsOnBoot(clear: Boolean) = {
       builder.clearAppliedFunctionsOnBoot = clear
-      new Step3(builder)
-    }
-  }
-
-  class Step3(builder: MemoryLevelZeroConfigBuilder) {
-    def compactionExecutionContext(compactionExecutionContext: CompactionExecutionContext.Create) = {
-      builder.compactionExecutionContext = compactionExecutionContext
       new Step4(builder)
     }
   }
@@ -102,7 +93,6 @@ object MemoryLevelZeroConfigBuilder {
         mapSize = builder.mapSize,
         appliedFunctionsMapSize = builder.appliedFunctionsMapSize,
         clearAppliedFunctionsOnBoot = builder.clearAppliedFunctionsOnBoot,
-        compactionExecutionContext = builder.compactionExecutionContext,
         optimiseWrites = builder.optimiseWrites,
         atomic = builder.atomic,
         acceleration = builder.acceleration,

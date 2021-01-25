@@ -25,8 +25,7 @@
 package swaydb.core.level.compaction
 
 import swaydb.core.level.zero.LevelZero
-import swaydb.data.NonEmptyList
-import swaydb.data.compaction.CompactionExecutionContext
+import swaydb.data.compaction.CompactionConfig
 import swaydb.{DefActor, IO}
 
 /**
@@ -35,6 +34,6 @@ import swaydb.{DefActor, IO}
 private[core] trait CompactorCreator {
 
   def createAndListen(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext]): IO[swaydb.Error.Level, NonEmptyList[DefActor[Compactor, Unit]]]
+                      compactionConfig: CompactionConfig): IO[swaydb.Error.Level, DefActor[Compactor, Unit]]
 
 }
