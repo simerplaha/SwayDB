@@ -32,6 +32,7 @@ import swaydb.core.level.compaction.task.assigner.{LevelTaskAssigner, LevelZeroT
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorContext, ThrottleLevelOrdering, ThrottleLevelState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.data.NonEmptyList
+import swaydb.data.compaction.PushStrategy
 import swaydb.data.slice.Slice
 import swaydb.data.util.FiniteDurations
 import swaydb.data.util.FiniteDurations.FiniteDurationImplicits
@@ -105,11 +106,11 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
         }
       }
       .flatMap {
-        lockedLastLevel =>
+        lastLevel =>
           val levelsToCompact =
             context
               .levels
-              .takeWhile(_.levelNumber != lockedLastLevel.levelNumber)
+              .takeWhile(_.levelNumber != lastLevel.levelNumber)
               .sorted(ThrottleLevelOrdering.ordering)
 
           //process only few job in the current thread and stop so that reordering occurs.
@@ -127,7 +128,7 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
           runCompactions(
             context = context,
             compactions = compactions,
-            lockedLastLevel = lockedLastLevel
+            lastLevel = lastLevel
           )
       }
   }
@@ -195,8 +196,8 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
 
   private[throttle] def runCompactions(context: ThrottleCompactorContext,
                                        compactions: Slice[LevelRef],
-                                       lockedLastLevel: Level)(implicit self: DefActor[ThrottleCompactor, Unit],
-                                                               ec: ExecutionContext): Future[ThrottleCompactorContext] =
+                                       lastLevel: Level)(implicit self: DefActor[ThrottleCompactor, Unit],
+                                                         ec: ExecutionContext): Future[ThrottleCompactorContext] =
     if (context.terminateASAP()) {
       logger.warn(s"${context.name}: Cannot run jobs. Compaction is terminated.")
       Future.successful(context)
@@ -224,7 +225,8 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
             level = level,
             nextLevels = nextLevels,
             stateId = stateId,
-            lockedLastLevel = lockedLastLevel
+            lastLevel = lastLevel,
+            pushStrategy = context.compactionConfig.pushStrategy
           ) flatMap {
             nextState =>
               logger.debug(s"Level(${level.levelNumber}): ${context.name}: next state $nextState.")
@@ -239,7 +241,7 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
               runCompactions(
                 context = newContext,
                 compactions = nextLevels,
-                lockedLastLevel = lockedLastLevel
+                lastLevel = lastLevel
               )
           }
 
@@ -248,7 +250,7 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
           runCompactions(
             context = context,
             compactions = nextLevels,
-            lockedLastLevel = lockedLastLevel
+            lastLevel = lastLevel
           )
         }
       }
@@ -260,15 +262,17 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
   private[throttle] def runCompaction(level: LevelRef,
                                       nextLevels: Slice[Level],
                                       stateId: Long,
-                                      lockedLastLevel: Level)(implicit ec: ExecutionContext,
-                                                              self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleLevelState] =
+                                      lastLevel: Level,
+                                      pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
+                                                                  self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleLevelState] =
     level match {
       case zero: LevelZero =>
         compactLevelZero(
           zero = zero,
           nextLevels = nextLevels,
           stateId = stateId,
-          lockedLastLevel = lockedLastLevel
+          lastLevel = lastLevel,
+          pushStrategy = pushStrategy
         )
 
       case level: Level =>
@@ -276,14 +280,16 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
           level = level,
           nextLevels = nextLevels,
           stateId = stateId,
-          lockedLastLevel = lockedLastLevel
+          lastLevel = lastLevel,
+          pushStrategy = pushStrategy
         )
     }
 
   private def compactLevelZero(zero: LevelZero,
                                nextLevels: Slice[Level],
                                stateId: Long,
-                               lockedLastLevel: Level)(implicit ec: ExecutionContext): Future[ThrottleLevelState] =
+                               lastLevel: Level,
+                               pushStrategy: PushStrategy)(implicit ec: ExecutionContext): Future[ThrottleLevelState] =
     if (zero.isEmpty)
       Future.successful {
         LevelSleepStates.success(
@@ -294,12 +300,13 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
     else
       LevelZeroTaskAssigner.run(
         source = zero,
+        pushStrategy = pushStrategy,
         lowerLevels = NonEmptyList(nextLevels.head, nextLevels.dropHead())
       ) flatMap {
         tasks =>
-          BehaviourRunCompactionTask.runMapTask(
+          BehaviourCompactionTask.runCompactMaps(
             task = tasks,
-            lockedLastLevel = lockedLastLevel
+            lastLevel = lastLevel
           )
       } mapUnit {
         LevelSleepStates.success(
@@ -317,8 +324,9 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
   private def compactLevel(level: Level,
                            nextLevels: Slice[Level],
                            stateId: Long,
-                           lockedLastLevel: Level)(implicit ec: ExecutionContext,
-                                                   self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleLevelState] =
+                           lastLevel: Level,
+                           pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
+                                                       self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleLevelState] =
     if (level.isEmpty) {
       Future.successful {
         LevelSleepStates.success(
@@ -328,19 +336,21 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
       }
     } else {
       def runTask(task: CompactionTask.Segments): Future[ThrottleLevelState] =
-        BehaviourRunCompactionTask.runSegmentTask(
+        BehaviourCompactionTask.runSegmentTask(
           task = task,
-          lockedLastLevel = lockedLastLevel
+          lastLevel = lastLevel
         ) flatMapUnit {
           //if after running last Level compaction there is still an overflow request extension.
-          if (level.levelNumber == lockedLastLevel.levelNumber && level.nextLevel.isDefined && level.nextCompactionDelay.fromNow.isOverdue()) {
+          if (level.levelNumber == lastLevel.levelNumber && level.nextLevel.isDefined && level.nextCompactionDelay.fromNow.isOverdue()) {
             val task =
               LevelTaskAssigner.run(
-                source = lockedLastLevel,
-                lowerLevels = NonEmptyList(lockedLastLevel.nextLevel.get.asInstanceOf[Level]),
-                sourceOverflow = lockedLastLevel.compactDataSize max lockedLastLevel.minSegmentSize
+                source = lastLevel,
+                pushStrategy = pushStrategy,
+                lowerLevels = NonEmptyList(lastLevel.nextLevel.get.asInstanceOf[Level]),
+                sourceOverflow = lastLevel.compactDataSize max lastLevel.minSegmentSize
               )
 
+            //TODO - test to make sure this recursion does not run indefinitely.
             runTask(task)
           } else {
             Future.successful {
@@ -358,8 +368,8 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
             )
         }
 
-      if (level.levelNumber == lockedLastLevel.levelNumber) {
-        LevelTaskAssigner.cleanup(level = level, lockedLastLevel = lockedLastLevel) match {
+      if (level.levelNumber == lastLevel.levelNumber) {
+        LevelTaskAssigner.cleanup(level = level, lastLevel = lastLevel) match {
           case Some(task) =>
             runTask(task)
 
@@ -375,6 +385,7 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
         val task =
           LevelTaskAssigner.run(
             source = level,
+            pushStrategy = pushStrategy,
             lowerLevels = NonEmptyList(nextLevels.head, nextLevels.dropHead()),
             sourceOverflow = level.compactDataSize max level.minSegmentSize
           )

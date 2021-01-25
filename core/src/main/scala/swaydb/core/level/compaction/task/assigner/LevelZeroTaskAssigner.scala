@@ -36,6 +36,7 @@ import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.util.Collections
+import swaydb.data.compaction.PushStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.Futures
@@ -61,6 +62,7 @@ case object LevelZeroTaskAssigner {
                    stack: ListBuffer[Either[LevelZeroMap, Iterable[Memory]]])
 
   def run(source: LevelZero,
+          pushStrategy: PushStrategy,
           lowerLevels: NonEmptyList[Level])(implicit ec: ExecutionContext): Future[CompactMaps] = {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
     implicit val timeOrder: TimeOrder[Slice[Byte]] = source.timeOrder
@@ -74,7 +76,8 @@ case object LevelZeroTaskAssigner {
           TaskAssigner.assignQuick(
             data = collections,
             lowerLevels = lowerLevels,
-            dataOverflow = Long.MaxValue //full overflow so that all collections are assigned and tasked.
+            dataOverflow = Long.MaxValue, //full overflow so that all collections are assigned and tasked.
+            pushStrategy = pushStrategy
           )
       }
       .map {

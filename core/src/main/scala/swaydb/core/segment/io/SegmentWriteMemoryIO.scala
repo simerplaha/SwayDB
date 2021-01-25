@@ -25,10 +25,10 @@
 package swaydb.core.segment.io
 
 import swaydb.Error.Segment.ExceptionHandler
+import swaydb.core.data.DefIO
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.PathsDistributor
-import swaydb.core.level.compaction.CompactResult
 import swaydb.core.segment._
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
@@ -65,22 +65,22 @@ object SegmentWriteMemoryIO extends SegmentWriteIO[TransientSegment.Memory, Memo
   override def persistMerged(pathsDistributor: PathsDistributor,
                              segmentRefCacheWeight: Int,
                              mmap: MMAP.Segment,
-                             mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Memory]]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                     functionStore: FunctionStore,
-                                                                                                                     fileSweeper: FileSweeper,
-                                                                                                                     bufferCleaner: ByteBufferSweeperActor,
-                                                                                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                                     blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                                                                     segmentReadIO: SegmentReadIO,
-                                                                                                                     idGenerator: IDGenerator,
-                                                                                                                     forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[MemorySegment]]]] =
+                             mergeResult: Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Memory]]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                             timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                             functionStore: FunctionStore,
+                                                                                                             fileSweeper: FileSweeper,
+                                                                                                             bufferCleaner: ByteBufferSweeperActor,
+                                                                                                             keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                                             blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                                                             segmentReadIO: SegmentReadIO,
+                                                                                                             idGenerator: IDGenerator,
+                                                                                                             forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[DefIO[SegmentOption, Iterable[MemorySegment]]]] =
     IO.Right {
       mergeResult collect {
         //collect the ones with source set or has new segments to write
-        case mergeResult if mergeResult.source.isSomeS || mergeResult.result.nonEmpty =>
-          val segments = mergeResult.result.map(_.segment)
-          mergeResult.updateResult(segments)
+        case mergeResult if mergeResult.input.isSomeS || mergeResult.output.nonEmpty =>
+          val segments = mergeResult.output.map(_.segment)
+          mergeResult.copyOutput(segments)
       }
     }
 }

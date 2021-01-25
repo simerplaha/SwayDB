@@ -27,8 +27,8 @@ package swaydb.core.level.compaction.throttle.behaviour
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO._
+import swaydb.core.data.DefIO
 import swaydb.core.level.Level
-import swaydb.core.level.compaction.CompactResult
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.segment.block.segment.data.TransientSegment
@@ -40,23 +40,24 @@ import scala.collection.compat._
 
 case object BehaviourCommit extends LazyLogging {
 
-  private def commitMergeResult(mergeResults: Iterable[(Level, Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]])]): IO[Error.Level, Slice[Unit]] =
+  private def commitMergeResult(mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Slice[Unit]] =
     mergeResults
-      .mapRecoverIO[(Level, Iterable[CompactResult[SegmentOption, Iterable[Segment]]])](
+      .mapRecoverIO[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]](
         block = {
-          case (level, result) =>
-            level
-              .persist(result)
-              .transform(result => (level, result))
+          defIO =>
+            defIO
+              .input
+              .persist(defIO.output)
+              .transform(result => defIO.copyOutput(result))
         },
         recover = {
           case (result, error) =>
             logger.error(s"Failed to create Segments. Performing cleanup.", error.exception)
             result foreach {
-              case (_, result) =>
-                result foreach {
-                  result =>
-                    result.result foreach {
+              defIO =>
+                defIO.output foreach {
+                  defIO =>
+                    defIO.output foreach {
                       segment =>
                         IO(segment.delete) onLeftSideEffect {
                           exception =>
@@ -71,28 +72,28 @@ case object BehaviourCommit extends LazyLogging {
         persisted =>
           //TODO - reverse?
           persisted.mapRecoverIO {
-            case (level, persistedResult) =>
-              level.commitPersisted(persistedResult, None)
+            defIO =>
+              defIO.input.commitPersisted(defIO.output, None)
           }
       }
 
   def commit(fromLevel: Level,
              segments: Iterable[Segment],
              toLevel: Level,
-             mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
+             mergeResult: Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
     toLevel
       .commit(mergeResult)
       .and(fromLevel.remove(segments))
 
   def commit(fromLevel: Level,
              segments: Iterable[Segment],
-             mergeResults: Iterable[(Level, Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]])]): IO[Error.Level, Unit] =
+             mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Unit] =
     commitMergeResult(mergeResults)
       .and(fromLevel.remove(segments))
 
   def commit(fromLevel: LevelZero,
              maps: IterableOnce[LevelZeroMap],
-             mergeResults: Iterable[(Level, Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]])]): IO[Error.Level, Unit] =
+             mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Unit] =
     commitMergeResult(mergeResults)
       .and {
         maps
@@ -106,12 +107,12 @@ case object BehaviourCommit extends LazyLogging {
       }
 
   def commit(level: Level,
-             result: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
+             result: Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
     level.commit(result)
 
   def replace(level: Level,
               old: Iterable[Segment],
-              result: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
+              result: Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
     level.commit(
       old = old,
       merged = result

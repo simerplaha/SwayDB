@@ -32,6 +32,7 @@ import swaydb.core.level.compaction.task.{CompactionDataType, CompactionTask}
 import swaydb.core.level.{Level, LevelAssignment}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.{Assignable, SegmentAssigner, SegmentAssignment, SegmentAssignmentResult}
+import swaydb.data.compaction.PushStrategy
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.{MaxKey, NonEmptyList}
@@ -71,8 +72,9 @@ protected case object TaskAssigner {
    */
   def assignQuick[A <: Assignable.Collection](data: Iterable[A],
                                               lowerLevels: NonEmptyList[Level],
-                                              dataOverflow: Long)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                  dataType: CompactionDataType[A]): Iterable[CompactionTask.Task[A]] = {
+                                              dataOverflow: Long,
+                                              pushStrategy: PushStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                          dataType: CompactionDataType[A]): Iterable[CompactionTask.Task[A]] = {
     val tasks = ListBuffer.empty[CompactionTask.Task[A]]
 
     buildTasks(
@@ -80,6 +82,7 @@ protected case object TaskAssigner {
       targetFirstLevel = lowerLevels.head,
       lowerLevels = lowerLevels,
       dataOverflow = dataOverflow,
+      pushStrategy = pushStrategy,
       tasks = tasks
     )
 
@@ -106,6 +109,7 @@ protected case object TaskAssigner {
                                                      targetFirstLevel: Level,
                                                      lowerLevels: NonEmptyList[Level],
                                                      dataOverflow: Long,
+                                                     pushStrategy: PushStrategy,
                                                      tasks: ListBuffer[CompactionTask.Task[A]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                 dataType: CompactionDataType[A]): Unit = {
     implicit val segmentOrder: Ordering[A] = keyOrder.on[A](_.key)
@@ -176,6 +180,7 @@ protected case object TaskAssigner {
           targetFirstLevel = targetFirstLevel,
           lowerLevels = NonEmptyList(lowerLevels.tail.head, lowerLevels.tail.drop(1)),
           dataOverflow = Long.MaxValue, //all Segments should be merged to set overflow to be maximum.
+          pushStrategy = pushStrategy,
           tasks = tasks
         )
       } else { //there were not lower levels

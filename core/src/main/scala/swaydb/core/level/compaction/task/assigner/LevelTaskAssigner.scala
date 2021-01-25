@@ -29,6 +29,7 @@ import swaydb.core.level.compaction.task.CompactionDataType._
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
 import swaydb.data.NonEmptyList
+import swaydb.data.compaction.PushStrategy
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -39,27 +40,29 @@ case object LevelTaskAssigner {
    *         control the overflow.
    */
   def run(source: Level,
+          pushStrategy: PushStrategy,
           lowerLevels: NonEmptyList[Level],
           sourceOverflow: Long): CompactionTask.CompactSegments = {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
 
     val tasks =
-    TaskAssigner.assignQuick[Segment](
-      data = source.segments(),
-      lowerLevels = lowerLevels,
-      dataOverflow = sourceOverflow
-    )
+      TaskAssigner.assignQuick[Segment](
+        data = source.segments(),
+        lowerLevels = lowerLevels,
+        dataOverflow = sourceOverflow,
+        pushStrategy = pushStrategy
+      )
 
     CompactionTask.CompactSegments(source, tasks)
   }
 
   def cleanup(level: Level,
-              lockedLastLevel: Level): Option[CompactionTask.Cleanup] =
-    runRefresh(level, lockedLastLevel) orElse runCollapse(level)
+              lastLevel: Level): Option[CompactionTask.Cleanup] =
+    runRefresh(level, lastLevel) orElse runCollapse(level)
 
   def runRefresh(level: Level,
-                 lockedLastLevel: Level): Option[CompactionTask.RefreshSegments] =
-    if (level.levelNumber == lockedLastLevel.levelNumber) {
+                 lastLevel: Level): Option[CompactionTask.RefreshSegments] =
+    if (level.levelNumber == lastLevel.levelNumber) {
       val segments =
         level
           .segments()

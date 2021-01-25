@@ -33,10 +33,9 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
-import swaydb.core.data.{KeyValue, _}
+import swaydb.core.data.{DefIO, KeyValue, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.DBFile
-import swaydb.core.level.compaction.CompactResult
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
@@ -2109,7 +2108,7 @@ object TestData {
                                                keyOrder: KeyOrder[Slice[Byte]],
                                                segmentReadIO: SegmentReadIO,
                                                timeOrder: TimeOrder[Slice[Byte]],
-                                               testCaseSweeper: TestCaseSweeper): CompactResult[SegmentOption, Slice[Segment]] = {
+                                               testCaseSweeper: TestCaseSweeper): DefIO[SegmentOption, Slice[Segment]] = {
       def toMemory(keyValue: KeyValue) = if (removeDeletes) KeyValueGrouper.toLastLevelOrNull(keyValue) else keyValue.toMemory()
 
       segment match {
@@ -2125,17 +2124,17 @@ object TestData {
               segmentConfig = segmentConfig
             ).awaitInf
 
-          putResult.source match {
+          putResult.input match {
             case MemorySegment.Null =>
-              CompactResult(
-                source = Segment.Null,
-                result = putResult.result.toSlice
+              DefIO(
+                input = Segment.Null,
+                output = putResult.output.toSlice
               )
 
             case segment: MemorySegment =>
-              CompactResult(
-                source = segment,
-                result = putResult.result.toSlice
+              DefIO(
+                input = segment,
+                output = putResult.output.toSlice
               )
           }
 
@@ -2155,19 +2154,19 @@ object TestData {
               segmentConfig = segmentConfig
             ).awaitInf
 
-          val segments = putResult.result.persist(pathDistributor).value
+          val segments = putResult.output.persist(pathDistributor).value
 
-          putResult.source match {
+          putResult.input match {
             case PersistentSegment.Null =>
-              CompactResult(
-                source = Segment.Null,
-                result = segments
+              DefIO(
+                input = Segment.Null,
+                output = segments
               )
 
             case segment: PersistentSegment =>
-              CompactResult(
-                source = segment,
-                result = segments
+              DefIO(
+                input = segment,
+                output = segments
               )
           }
 
@@ -2194,7 +2193,7 @@ object TestData {
             removeDeletes = removeDeletes,
             createdInLevel = createdInLevel,
             segmentConfig = segmentConfig
-          ).result
+          ).output
 
         case segment: PersistentSegment =>
           val putResult =
@@ -2207,7 +2206,7 @@ object TestData {
               hashIndexConfig = hashIndexConfig,
               bloomFilterConfig = bloomFilterConfig,
               segmentConfig = segmentConfig
-            ).result
+            ).output
 
           putResult.persist(pathDistributor).value
       }

@@ -27,10 +27,10 @@ package swaydb.core.segment.io
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO._
+import swaydb.core.data.DefIO
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
-import swaydb.core.level.compaction.CompactResult
 import swaydb.core.segment._
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
@@ -52,38 +52,38 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
   def persistMerged(pathsDistributor: PathsDistributor,
                     segmentRefCacheWeight: Int,
                     mmap: MMAP.Segment,
-                    mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Persistent]]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                functionStore: FunctionStore,
-                                                                                                                fileSweeper: FileSweeper,
-                                                                                                                bufferCleaner: ByteBufferSweeperActor,
-                                                                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                                blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                                                                segmentReadIO: SegmentReadIO,
-                                                                                                                idGenerator: IDGenerator,
-                                                                                                                forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[PersistentSegment]]]] =
+                    mergeResult: Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Persistent]]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                        timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                        functionStore: FunctionStore,
+                                                                                                        fileSweeper: FileSweeper,
+                                                                                                        bufferCleaner: ByteBufferSweeperActor,
+                                                                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                                        blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                                                        segmentReadIO: SegmentReadIO,
+                                                                                                        idGenerator: IDGenerator,
+                                                                                                        forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[DefIO[SegmentOption, Iterable[PersistentSegment]]]] =
     mergeResult collect {
       //collect the ones with source set or has new segments to write
-      case mergeResult if mergeResult.source.isSomeS || mergeResult.result.nonEmpty =>
+      case mergeResult if mergeResult.input.isSomeS || mergeResult.output.nonEmpty =>
         mergeResult
 
-    } mapRecoverIO[CompactResult[SegmentOption, Iterable[PersistentSegment]]](
+    } mapRecoverIO[DefIO[SegmentOption, Iterable[PersistentSegment]]](
       mergeResult =>
         persistTransient(
           pathsDistributor = pathsDistributor,
           segmentRefCacheWeight = segmentRefCacheWeight,
           mmap = mmap,
-          transient = mergeResult.result
+          transient = mergeResult.output
         ) map {
           segment =>
-            mergeResult.updateResult(segment)
+            mergeResult.copyOutput(segment)
         },
       recover =
         (segments, _) =>
           segments foreach {
             segmentToDelete =>
               segmentToDelete
-                .result
+                .output
                 .foreachIO(segment => IO(segment.delete()), failFast = false)
                 .foreach {
                   error =>

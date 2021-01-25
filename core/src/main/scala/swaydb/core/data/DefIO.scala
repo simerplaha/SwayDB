@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -22,36 +22,40 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.data
 
-object CompactResult {
+object DefIO {
 
-  @inline def apply[S, A](source: S,
-                          result: A): CompactResult[S, A] =
-    new CompactResult[S, A](
-      source = source,
-      result = result
+  @inline def apply[I, O](input: I,
+                          output: O): DefIO[I, O] =
+    new DefIO[I, O](
+      input = input,
+      output = output
     )
 
 }
 
-class CompactResult[+S, +A](val source: S,
-                            val result: A) {
-  @inline def map[B](f: A => B): CompactResult[S, B] =
-    new CompactResult[S, B](
-      source = source,
-      result = f(result)
+/**
+ * Stores the input and output of a function.
+ */
+class DefIO[+I, +O](val input: I,
+                    val output: O) {
+
+  @inline def map[B](f: O => B): DefIO[I, B] =
+    new DefIO[I, B](
+      input = input,
+      output = f(output)
     )
 
-  @inline def updateSource[S2](source: S2): CompactResult[S2, A] =
-    new CompactResult[S2, A](
-      source = source,
-      result = result
+  @inline def copyInput[I2](input: I2): DefIO[I2, O] =
+    new DefIO[I2, O](
+      input = input,
+      output = output
     )
 
-  @inline def updateResult[B](result: B): CompactResult[S, B] =
-    new CompactResult[S, B](
-      source = source,
-      result = result
+  @inline def copyOutput[O2](output: O2): DefIO[I, O2] =
+    new DefIO[I, O2](
+      input = input,
+      output = output
     )
 }

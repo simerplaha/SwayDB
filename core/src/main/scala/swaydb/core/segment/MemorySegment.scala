@@ -25,10 +25,9 @@
 package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{Memory, _}
+import swaydb.core.data.{DefIO, Memory, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
-import swaydb.core.level.compaction.CompactResult
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlock
@@ -90,7 +89,7 @@ private[core] final case class MemorySegment(path: Path,
           removeDeletes: Boolean,
           createdInLevel: Int,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[CompactResult[MemorySegmentOption, Iterable[MemorySegment]]] =
+                                              executionContext: ExecutionContext): Future[DefIO[MemorySegmentOption, Iterable[MemorySegment]]] =
     if (deleted)
       Future.failed(swaydb.Exception.NoSuchFile(path))
     else {
@@ -110,7 +109,7 @@ private[core] final case class MemorySegment(path: Path,
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): CompactResult[MemorySegment, Slice[MemorySegment]] =
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): DefIO[MemorySegment, Slice[MemorySegment]] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -129,7 +128,7 @@ private[core] final case class MemorySegment(path: Path,
           stats = mergeStats
         )
 
-      CompactResult(this, refreshed)
+      DefIO(this, refreshed)
     }
 
   override def getFromCache(key: Slice[Byte]): MemoryOption =

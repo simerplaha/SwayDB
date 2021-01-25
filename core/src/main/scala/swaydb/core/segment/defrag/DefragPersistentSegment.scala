@@ -25,9 +25,8 @@
 package swaydb.core.segment.defrag
 
 import swaydb.Aggregator
-import swaydb.core.data.Memory
+import swaydb.core.data.{DefIO, Memory}
 import swaydb.core.function.FunctionStore
-import swaydb.core.level.compaction.CompactResult
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.{Assignable, AssignmentTarget, GapAggregator, SegmentAssigner, SegmentAssignment}
@@ -77,7 +76,7 @@ object DefragPersistentSegment {
                                                               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                                               hashIndexConfig: HashIndexBlock.Config,
                                                               bloomFilterConfig: BloomFilterBlock.Config,
-                                                              segmentConfig: SegmentBlock.Config): Future[CompactResult[NULL_SEG, Slice[TransientSegment.Persistent]]] =
+                                                              segmentConfig: SegmentBlock.Config): Future[DefIO[NULL_SEG, Slice[TransientSegment.Persistent]]] =
     Future {
       Defrag.runOnSegment(
         segment = segment,
@@ -93,11 +92,11 @@ object DefragPersistentSegment {
     } flatMap {
       mergeResult =>
         commitFragments(
-          fragments = mergeResult.result,
+          fragments = mergeResult.output,
           createdInLevel = createdInLevel
         ) map {
           persistentSegments =>
-            mergeResult.updateResult(persistentSegments)
+            mergeResult.copyOutput(persistentSegments)
         }
     }
 
@@ -118,7 +117,7 @@ object DefragPersistentSegment {
                                                            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                                            hashIndexConfig: HashIndexBlock.Config,
                                                            bloomFilterConfig: BloomFilterBlock.Config,
-                                                           segmentConfig: SegmentBlock.Config): Future[CompactResult[NULL_SEG, Slice[TransientSegment.Persistent]]] =
+                                                           segmentConfig: SegmentBlock.Config): Future[DefIO[NULL_SEG, Slice[TransientSegment.Persistent]]] =
     Defrag.runOnGaps(
       fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
       headGap = headGap,
@@ -133,7 +132,7 @@ object DefragPersistentSegment {
           createdInLevel = createdInLevel
         ) map {
           persistentSegments =>
-            CompactResult(nullSegment, persistentSegments)
+            DefIO(nullSegment, persistentSegments)
         }
     }
 
@@ -141,7 +140,7 @@ object DefragPersistentSegment {
    * Builds a [[Future]] pipeline that executes assignment, defragmentation and merge on multiple Segments. This is
    * used by [[PersistentSegmentMany]].
    *
-   * @return [[CompactResult.source]] is true if this Segment was replaced or else it will be false.
+   * @return [[DefIO.input]] is true if this Segment was replaced or else it will be false.
    *         [[swaydb.core.segment.ref.SegmentRef]] is not being used here because the input is an [[Iterator]] of [[SEG]].
    */
   def runMany(headGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
@@ -159,7 +158,7 @@ object DefragPersistentSegment {
                                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                    hashIndexConfig: HashIndexBlock.Config,
                                    bloomFilterConfig: BloomFilterBlock.Config,
-                                   segmentConfig: SegmentBlock.Config): Future[CompactResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] =
+                                   segmentConfig: SegmentBlock.Config): Future[DefIO[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] =
     if (newKeyValues.isEmpty)
       DefragPersistentSegment.runOnGaps[PersistentSegmentMany, PersistentSegmentOption](
         nullSegment = PersistentSegment.Null,
@@ -212,9 +211,9 @@ object DefragPersistentSegment {
               createdInLevel = createdInLevel
             ) map {
               transientSegments =>
-                CompactResult(
-                  source = segment, //replaced
-                  result = transientSegments
+                DefIO(
+                  input = segment, //replaced
+                  output = transientSegments
                 )
             }
         }
@@ -302,7 +301,7 @@ object DefragPersistentSegment {
               removeDeletes = removeDeletes,
               createdInLevel = createdInLevel,
               createFence = createFence
-            ).result
+            ).output
           }
     } map {
       buffer =>

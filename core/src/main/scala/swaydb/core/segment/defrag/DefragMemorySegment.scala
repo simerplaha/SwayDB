@@ -24,10 +24,9 @@
 
 package swaydb.core.segment.defrag
 
-import swaydb.core.data.Memory
+import swaydb.core.data.{DefIO, Memory}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
-import swaydb.core.level.compaction.CompactResult
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.Assignable
@@ -60,7 +59,7 @@ object DefragMemorySegment {
                                                                              defragSource: DefragSource[SEG],
                                                                              segmentConfig: SegmentBlock.Config,
                                                                              fileSweeper: FileSweeper,
-                                                                             idGenerator: IDGenerator): Future[CompactResult[NULL_SEG, Iterable[MemorySegment]]] =
+                                                                             idGenerator: IDGenerator): Future[DefIO[NULL_SEG, Iterable[MemorySegment]]] =
     Future {
       Defrag.runOnSegment(
         segment = segment,
@@ -76,13 +75,13 @@ object DefragMemorySegment {
     } flatMap {
       mergeResult =>
         commitSegments(
-          mergeResult = mergeResult.result,
+          mergeResult = mergeResult.output,
           removeDeletes = removeDeletes,
           createdInLevel = createdInLevel,
           pathsDistributor = pathsDistributor
         ) map {
           result =>
-            mergeResult.updateResult(result.flatten)
+            mergeResult.copyOutput(result.flatten)
         }
     }
 
@@ -101,7 +100,7 @@ object DefragMemorySegment {
                                                                           defragSource: DefragSource[SEG],
                                                                           segmentConfig: SegmentBlock.Config,
                                                                           fileSweeper: FileSweeper,
-                                                                          idGenerator: IDGenerator): Future[CompactResult[NULL_SEG, Iterable[MemorySegment]]] =
+                                                                          idGenerator: IDGenerator): Future[DefIO[NULL_SEG, Iterable[MemorySegment]]] =
     Defrag.runOnGaps(
       fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Memory.Builder[Memory, ListBuffer]]],
       headGap = headGap,
@@ -118,9 +117,9 @@ object DefragMemorySegment {
           pathsDistributor = pathsDistributor
         ) map {
           result =>
-            CompactResult(
-              source = nullSegment,
-              result = result.flatten
+            DefIO(
+              input = nullSegment,
+              output = result.flatten
             )
         }
     }

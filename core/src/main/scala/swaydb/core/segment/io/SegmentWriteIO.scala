@@ -24,10 +24,10 @@
 
 package swaydb.core.segment.io
 
+import swaydb.core.data.DefIO
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.PathsDistributor
-import swaydb.core.level.compaction.CompactResult
 import swaydb.core.segment._
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
@@ -53,16 +53,16 @@ trait SegmentWriteIO[T <: TransientSegment, S] {
   def persistMerged(pathsDistributor: PathsDistributor,
                     segmentRefCacheWeight: Int,
                     mmap: MMAP.Segment,
-                    mergeResult: Iterable[CompactResult[SegmentOption, Iterable[T]]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                      timeOrder: TimeOrder[Slice[Byte]],
-                                                                                      functionStore: FunctionStore,
-                                                                                      fileSweeper: FileSweeper,
-                                                                                      bufferCleaner: ByteBufferSweeperActor,
-                                                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                      blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                                      segmentReadIO: SegmentReadIO,
-                                                                                      idGenerator: IDGenerator,
-                                                                                      forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[S]]]]
+                    mergeResult: Iterable[DefIO[SegmentOption, Iterable[T]]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                              timeOrder: TimeOrder[Slice[Byte]],
+                                                                              functionStore: FunctionStore,
+                                                                              fileSweeper: FileSweeper,
+                                                                              bufferCleaner: ByteBufferSweeperActor,
+                                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                              blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                              segmentReadIO: SegmentReadIO,
+                                                                              idGenerator: IDGenerator,
+                                                                              forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[DefIO[SegmentOption, Iterable[S]]]]
 
   def persistTransient(pathsDistributor: PathsDistributor,
                        segmentRefCacheWeight: Int,

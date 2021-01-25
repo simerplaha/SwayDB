@@ -27,11 +27,10 @@ package swaydb.core.segment
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.core.data._
+import swaydb.core.data.{DefIO, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
 import swaydb.core.io.reader.Reader
-import swaydb.core.level.compaction.CompactResult
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
@@ -831,7 +830,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[CompactResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] = {
+                                              executionContext: ExecutionContext): Future[DefIO[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] = {
     implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
     implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexBlock.Config = binarySearchIndexConfig
@@ -856,7 +855,7 @@ protected case class PersistentSegmentMany(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): CompactResult[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]] = {
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): DefIO[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]] = {
     val refreshed =
       Segment.refreshForNewLevel(
         keyValues = iterator(),
@@ -870,7 +869,7 @@ protected case class PersistentSegmentMany(file: DBFile,
         segmentConfig = segmentConfig
       )
 
-    CompactResult(this, refreshed)
+    DefIO(this, refreshed)
   }
 
   def getFromCache(key: Slice[Byte]): PersistentOption = {

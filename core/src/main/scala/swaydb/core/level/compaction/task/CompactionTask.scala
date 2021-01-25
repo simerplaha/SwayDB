@@ -36,7 +36,8 @@ sealed trait CompactionTask {
 
 /**
  * Compaction tasks that can be submitted to
- * [[swaydb.core.level.compaction.committer.CompactionCommitter]]
+ * [[swaydb.core.level.compaction.throttle.behaviour.BehaviourCompactionTask]]
+ * for execution.
  */
 object CompactionTask {
 

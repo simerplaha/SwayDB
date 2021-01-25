@@ -24,7 +24,7 @@
 
 package swaydb.core.level
 
-import swaydb.core.level.compaction.CompactResult
+import swaydb.core.data.DefIO
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.segment.block.segment.data.TransientSegment
 
@@ -35,6 +35,6 @@ case object LevelCollapseResult {
   final case object Empty extends LevelCollapseResult
 
   final case class Collapsed(sourceSegments: Iterable[Segment],
-                             mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]) extends LevelCollapseResult
+                             mergeResult: Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]) extends LevelCollapseResult
 
 }

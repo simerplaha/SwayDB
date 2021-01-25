@@ -1480,7 +1480,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             bloomFilterConfig = BloomFilterBlock.Config.random,
             segmentConfig = SegmentBlock.Config.random.copy(minSize = 1.mb),
             pathDistributor = createPathDistributor
-          ).result.map(_.sweep())
+          ).output.map(_.sweep())
 
           if (persistent) segment.isOpen shouldBe true
       }
@@ -1526,7 +1526,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               bloomFilterConfig = bloomFilterConfig,
               segmentConfig = segmentConfig.copy(minSize = 4.mb),
               pathDistributor = createPathDistributor
-            ).result.map(_.sweep())
+            ).output.map(_.sweep())
 
           newSegments should have size 1
 
@@ -1619,7 +1619,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   bloomFilterConfig = bloomFilterConfig,
                   segmentConfig = segmentConfig.copy(minSize = oldSegment.segmentSize / 10),
                   pathDistributor = createPathDistributor
-                ).result.map(_.sweep())
+                ).output.map(_.sweep())
 
               newSegments.size should be > 1
 
@@ -1678,7 +1678,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   bloomFilterConfig = bloomFilterConfig,
                   segmentConfig = segmentConfig.copy(minSize = 50.bytes),
                   pathDistributor = PathsDistributor(Seq(Dir(segment.path.getParent, 1)), () => Seq.empty)
-                ).result.map(_.sweep())
+                ).output.map(_.sweep())
               }
 
               //the folder should contain only the original segment and the segmentToFailPut
@@ -1737,7 +1737,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               bloomFilterConfig = bloomFilterConfig,
               segmentConfig = segmentConfig.copy(minSize = 4.mb),
               pathDistributor = createPathDistributor
-            ).result.map(_.sweep())
+            ).output.map(_.sweep())
 
           deletedSegment should have size 1
           val newDeletedSegment = deletedSegment.head
@@ -1781,7 +1781,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               bloomFilterConfig = bloomFilterConfig,
               segmentConfig = segmentConfig.copy(minSize = 4.mb),
               pathDistributor = createPathDistributor
-            ).result.map(_.sweep())
+            ).output.map(_.sweep())
 
           updatedSegments.flatMap(_.iterator()).toList shouldBe updatedKeyValues
 
@@ -1832,7 +1832,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 bloomFilterConfig = bloomFilterConfig,
                 segmentConfig = segmentConfig.copy(minSize = 10.mb),
                 pathDistributor = createPathDistributor
-              ).result.map(_.sweep())
+              ).output.map(_.sweep())
 
             //            mergedSegments.size shouldBe 1
 
@@ -1881,7 +1881,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               bloomFilterConfig = BloomFilterBlock.Config.random,
               segmentConfig = SegmentBlock.Config.random.copy(minSize = 4.mb),
               pathDistributor = createPathDistributor
-            ).result.isEmpty shouldBe true
+            ).output.isEmpty shouldBe true
         }
       }
     }
@@ -1913,7 +1913,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 bloomFilterConfig = BloomFilterBlock.Config.random,
                 segmentConfig = SegmentBlock.Config.random,
                 pathDistributor = createPathDistributor
-              ).result.map(_.sweep()).flatMap(_.iterator()).toList
+              ).output.map(_.sweep()).flatMap(_.iterator()).toList
 
             val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Value.remove(None), Value.update(10))) :+ Memory.remove(10)
 
@@ -1948,7 +1948,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               bloomFilterConfig = BloomFilterBlock.Config.random,
               segmentConfig = SegmentBlock.Config.random.copy(minSize = 4.mb),
               pathDistributor = createPathDistributor
-            ).result.map(_.sweep())
+            ).output.map(_.sweep())
 
           newSegments.size shouldBe 1
           newSegments.head.keyValueCount shouldBe 1
@@ -1993,7 +1993,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 bloomFilterConfig = BloomFilterBlock.Config.random,
                 segmentConfig = SegmentBlock.Config.random.copy(minSize = segmentSizeForMerge / 4),
                 pathDistributor = pathsDistributor
-              ).result.map(_.sweep())
+              ).output.map(_.sweep())
             else
               segment.put(
                 headGap = KeyValue.emptyIterable,
@@ -2008,7 +2008,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 bloomFilterConfig = BloomFilterBlock.Config.random,
                 segmentConfig = SegmentBlock.Config.random.copy(minSize = 21.bytes),
                 pathDistributor = pathsDistributor
-              ).result.map(_.sweep())
+              ).output.map(_.sweep())
 
           //all returned segments contain all the KeyValues ???
           //      segments should have size 5
@@ -2061,7 +2061,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               hashIndexConfig = HashIndexBlock.Config.random,
               bloomFilterConfig = BloomFilterBlock.Config.random,
               segmentConfig = SegmentBlock.Config.random
-            ).result shouldBe empty
+            ).output shouldBe empty
         }
       }
     }
