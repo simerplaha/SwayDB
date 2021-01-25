@@ -134,7 +134,6 @@ object DefaultConfigs {
     SegmentConfig(
       cacheSegmentBlocksOnCreate = true,
       deleteDelay = CommonConfigs.segmentDeleteDelay,
-      pushForward = PushForwardStrategy.OnOverflow,
       mmap = MMAP.Off(forceSave = ForceSave.BeforeClose(enableBeforeCopy = false, enableForReadOnlyMode = false, logBenchmark = false)),
       minSegmentSize = 44.mb,
       segmentFormat = SegmentFormat.Grouped(count = 10000, enableRootHashIndex = false, groupCacheStrategy = GroupCacheStrategy.Keep),
@@ -188,7 +187,7 @@ object DefaultConfigs {
   @inline def calculateThrottle(maxLevelSize: Long, meter: LevelMeter) = {
     val levelSize = meter.levelSize
     val delay = ((maxLevelSize.toDouble / levelSize) * 100D) - 100
-    if (delay == Double.PositiveInfinity || (delay >= 0 && meter.pushForwardStrategy == PushForwardStrategy.OnOverflow))
+    if (delay == Double.PositiveInfinity)
       idle
     else
       Throttle(

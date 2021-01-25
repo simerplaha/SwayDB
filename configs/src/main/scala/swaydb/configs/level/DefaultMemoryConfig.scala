@@ -61,7 +61,6 @@ object DefaultMemoryConfig extends LazyLogging {
       .withMemoryLevel1(
         minSegmentSize = minSegmentSize,
         maxKeyValuesPerSegment = maxKeyValuesPerSegment,
-        pushForward = PushForwardStrategy.Off,
         deleteDelay = deleteDelay,
         throttle = lastLevelThrottle
       )

@@ -118,8 +118,8 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
           //able to merged instantly.
 
           val compactions =
-            if (context.resetCompactionPriorityAtInterval < context.levels.size)
-              levelsToCompact.take(context.resetCompactionPriorityAtInterval)
+            if (context.compactionConfig.resetCompactionPriorityAtInterval < context.levels.size)
+              levelsToCompact.take(context.compactionConfig.resetCompactionPriorityAtInterval)
             else
               levelsToCompact
 

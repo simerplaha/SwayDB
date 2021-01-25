@@ -50,7 +50,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
     val state =
       ThrottleCompactorContext(
         levels = Slice(levels.toArray),
-        resetCompactionPriorityAtInterval = config.resetCompactionPriorityAtInterval,
+        compactionConfig = config,
         compactionStates = Map.empty
       )
 

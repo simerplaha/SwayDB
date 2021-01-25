@@ -29,21 +29,25 @@ import scala.concurrent.ExecutionContext
 
 object CompactionConfig {
 
-  def create(compactionService: ExecutorService,
-             resetCompactionPriorityAtInterval: Int): CompactionConfig =
+  def create(resetCompactionPriorityAtInterval: Int,
+             compactionService: ExecutorService,
+             pushStrategy: PushStrategy): CompactionConfig =
     CompactionConfig(
+      resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval,
       compactionExecutionContext = ExecutionContext.fromExecutorService(compactionService),
-      resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval
+      pushStrategy = pushStrategy
     )
 
-  def apply(compactionExecutionContext: ExecutionContext,
-            resetCompactionPriorityAtInterval: Int): CompactionConfig =
+  def apply(resetCompactionPriorityAtInterval: Int,
+            compactionExecutionContext: ExecutionContext,
+            pushStrategy: PushStrategy): CompactionConfig =
     if (resetCompactionPriorityAtInterval <= 0)
       throw new Exception(s"Invalid resetCompactionPriorityAtInterval $resetCompactionPriorityAtInterval. Should be greater than zero.")
     else
       new CompactionConfig(
+        resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval,
         executionContext = compactionExecutionContext,
-        resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval
+        pushStrategy = pushStrategy
       )
 }
 /**
@@ -54,5 +58,6 @@ object CompactionConfig {
  *                                          run compaction on a maximum of two levels consecutively before
  *                                          re-ordering/re-prioritising/re-computing compaction priority.
  */
-case class CompactionConfig private(executionContext: ExecutionContext,
-                                    resetCompactionPriorityAtInterval: Int)
+case class CompactionConfig private(resetCompactionPriorityAtInterval: Int,
+                                    executionContext: ExecutionContext,
+                                    pushStrategy: PushStrategy)

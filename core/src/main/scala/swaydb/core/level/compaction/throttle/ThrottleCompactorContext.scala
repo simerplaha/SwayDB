@@ -26,13 +26,14 @@ package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.level.LevelRef
+import swaydb.data.compaction.CompactionConfig
 import swaydb.data.slice.Slice
 
 import java.util.TimerTask
 import scala.concurrent.duration.Deadline
 
 case class ThrottleCompactorContext(levels: Slice[LevelRef],
-                                    resetCompactionPriorityAtInterval: Int,
+                                    compactionConfig: CompactionConfig,
                                     compactionStates: Map[LevelRef, ThrottleLevelState],
                                     sleepTask: Option[(TimerTask, Deadline)] = None,
                                     @volatile private var _terminateASAP: Boolean = false) extends LazyLogging {

@@ -32,7 +32,7 @@ import swaydb.core.data.Memory
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.data.config.{MMAP, PushForwardStrategy}
+import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
@@ -137,7 +137,7 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
       else
         TestCaseSweeper {
           implicit sweeper =>
-            val level = TestLevel(segmentConfig = SegmentBlock.Config.random2(pushForward = PushForwardStrategy.Off, deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 1.byte))
+            val level = TestLevel(segmentConfig = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 1.byte))
             level.put(Slice(Memory.put(1), Memory.put(2), Memory.put(3), Memory.put(4), Memory.put(5), Memory.put(6))) shouldBe IO.unit
 
             val reopened = level.reopen(segmentSize = Int.MaxValue)

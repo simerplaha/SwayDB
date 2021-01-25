@@ -55,8 +55,8 @@ import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.Exceptions._
 import swaydb.core.util.{MinMax, _}
-import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.{Dir, PushForwardStrategy}
+import swaydb.data.compaction.{LevelMeter, PushStrategy, Throttle}
+import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.LevelStorage
@@ -314,9 +314,6 @@ private[core] case class Level(dirs: Seq[Dir],
       .folderId
       .toInt
 
-  override val pushForwardStrategy: PushForwardStrategy =
-    segmentConfig.pushForward
-
   logger.info(s"{}: Level $levelNumber started.", pathDistributor)
 
   private implicit val currentWalker =
@@ -376,9 +373,6 @@ private[core] case class Level(dirs: Seq[Dir],
 
       override def segmentCountAndLevelSize: (Int, Long) =
         self.segmentCountAndLevelSize
-
-      override val pushForwardStrategy: PushForwardStrategy =
-        self.pushForwardStrategy
     }
 
   def rootPath: Path =

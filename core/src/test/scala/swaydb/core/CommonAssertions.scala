@@ -59,7 +59,8 @@ import swaydb.core.segment.ref.search.{KeyMatcher, SegmentSearcher, ThreadReadSt
 import swaydb.core.sweeper.{ByteBufferSweeper, MemorySweeper}
 import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.RunThis._
-import swaydb.data.config.{IOStrategy, PushForwardStrategy}
+import swaydb.data.compaction.PushStrategy
+import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice, SliceOption, SliceReader}
 import swaydb.data.{Atomic, OptimiseWrites}
@@ -1566,13 +1567,11 @@ object CommonAssertions {
     else
       IOStrategy.ConcurrentIO(cacheOnAccess)
 
-  def randomPushForwardStrategy(): PushForwardStrategy =
+  def randomPushStrategy(): PushStrategy =
     if (randomBoolean())
-      PushForwardStrategy.On
-    else if (randomBoolean())
-      PushForwardStrategy.OnOverflow
+      PushStrategy.Immediately
     else
-      PushForwardStrategy.Off
+      PushStrategy.OnOverflow
 
   def randomThreadSafeIOStrategy(cacheOnAccess: Boolean = randomBoolean(),
                                  includeReserved: Boolean = true): IOStrategy.ThreadSafe =

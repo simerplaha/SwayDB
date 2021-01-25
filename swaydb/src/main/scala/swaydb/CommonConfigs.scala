@@ -25,7 +25,7 @@
 package swaydb
 
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.data.compaction.CompactionConfig
+import swaydb.data.compaction.{CompactionConfig, PushStrategy}
 import swaydb.data.{Atomic, OptimiseWrites}
 
 import scala.concurrent.duration._
@@ -38,8 +38,10 @@ case object CommonConfigs {
     val executionContext = DefaultExecutionContext.compactionEC(maxThreads = maxThreads)
     //create compaction config
     CompactionConfig(
+      resetCompactionPriorityAtInterval = 3,
       compactionExecutionContext = executionContext,
-      resetCompactionPriorityAtInterval = 3
+
+      pushStrategy = PushStrategy.OnOverflow
     )
   }
 

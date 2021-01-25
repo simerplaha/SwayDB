@@ -29,12 +29,11 @@ import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.PushForwardStrategy
+import swaydb.data.compaction.{LevelMeter, PushStrategy, Throttle}
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
-import scala.collection.compat.IterableOnce
 
+import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -76,8 +75,6 @@ trait NextLevel extends LevelRef {
   def throttle: LevelMeter => Throttle
 
   def isNonEmpty(): Boolean
-
-  def pushForwardStrategy: PushForwardStrategy
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 

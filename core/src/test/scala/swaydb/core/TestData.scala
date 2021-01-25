@@ -62,7 +62,7 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.{AtomicRanges, IDGenerator}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.cache.Cache
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, PushStrategy, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -492,7 +492,6 @@ object TestData {
                maxKeyValuesPerSegment: Int = eitherOne(randomIntMax(100), randomIntMax(100000)),
                deleteDelay: FiniteDuration = randomFiniteDuration(),
                mmap: MMAP.Segment = MMAP.randomForSegment(),
-               pushForward: PushForwardStrategy = randomPushForwardStrategy(),
                cacheBlocksOnCreate: Boolean = randomBoolean(),
                enableHashIndexForListSegment: Boolean = randomBoolean(),
                cacheOnAccess: Boolean = randomBoolean(),
@@ -505,7 +504,6 @@ object TestData {
         maxCount = maxKeyValuesPerSegment,
         segmentRefCacheWeight = segmentRefCacheWeight,
         enableHashIndexForListSegment = enableHashIndexForListSegment,
-        pushForward = pushForward,
         mmap = mmap,
         deleteDelay = deleteDelay,
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
@@ -519,7 +517,6 @@ object TestData {
                 deleteDelay: FiniteDuration = randomFiniteDuration(),
                 mmap: MMAP.Segment = MMAP.randomForSegment(),
                 enableHashIndexForListSegment: Boolean = randomBoolean(),
-                pushForward: PushForwardStrategy = randomPushForwardStrategy(),
                 minSegmentSize: Int = randomIntMax(30.mb),
                 segmentRefCacheWeight: Int = randomIntMax(Byte.MaxValue)): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
@@ -530,7 +527,6 @@ object TestData {
         maxCount = maxKeyValuesPerSegment,
         segmentRefCacheWeight = segmentRefCacheWeight,
         enableHashIndexForListSegment = enableHashIndexForListSegment,
-        pushForward = pushForward,
         mmap = mmap,
         deleteDelay = deleteDelay,
         compressions = compressions

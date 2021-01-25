@@ -38,7 +38,7 @@ import swaydb.core.segment.entry.reader.PersistentReader
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne, Segment}
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestSweeper, TestTimer}
-import swaydb.data.config.{Dir, IOAction, IOStrategy, MMAP, PushForwardStrategy}
+import swaydb.data.config.{Dir, IOAction, IOStrategy, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
@@ -175,7 +175,6 @@ class SegmentReadPerformanceSpec extends TestBase {
           keyValuesCount,
         segmentRefCacheWeight = 100.bytes,
         enableHashIndexForListSegment = true,
-        pushForward = PushForwardStrategy.Off,
         mmap = mmapSegments,
         deleteDelay = 0.seconds,
         //              compressions = _ => Seq(CompressionInternal.randomLZ4(Double.MinValue))

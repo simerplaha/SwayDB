@@ -72,7 +72,6 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
       .withMemoryLevel1(
         minSegmentSize = memoryLevelMinSegmentSize,
         maxKeyValuesPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
-        pushForward = PushForwardStrategy.Off,
         deleteDelay = memorySegmentDeleteDelay,
         throttle =
           levelMeter => {

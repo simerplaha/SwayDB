@@ -68,7 +68,6 @@ private[core] case object SegmentBlock extends LazyLogging {
         enableHashIndexForListSegment = config.segmentFormat.enableRootHashIndex,
         segmentRefCacheWeight = config.segmentFormat.groupCacheStrategy.defaultWeight,
         maxCount = config.segmentFormat.count,
-        pushForward = config.pushForward,
         mmap = config.mmap,
         deleteDelay = config.deleteDelay,
         compressions = config.compression
@@ -81,7 +80,6 @@ private[core] case object SegmentBlock extends LazyLogging {
               maxCount: Int,
               segmentRefCacheWeight: Int,
               enableHashIndexForListSegment: Boolean,
-              pushForward: PushForwardStrategy,
               mmap: MMAP.Segment,
               deleteDelay: FiniteDuration,
               compressions: UncompressedBlockInfo => Iterable[Compression]): Config =
@@ -93,7 +91,6 @@ private[core] case object SegmentBlock extends LazyLogging {
         maxCount = maxCount,
         segmentRefCacheWeight = segmentRefCacheWeight,
         enableHashIndexForListSegment = enableHashIndexForListSegment,
-        pushForward = pushForward,
         mmap = mmap,
         deleteDelay = deleteDelay,
         compressions =
@@ -111,7 +108,6 @@ private[core] case object SegmentBlock extends LazyLogging {
                                     maxCount: Int,
                                     segmentRefCacheWeight: Int,
                                     enableHashIndexForListSegment: Boolean,
-                                    pushForward: PushForwardStrategy,
                                     mmap: MMAP.Segment,
                                     deleteDelay: FiniteDuration,
                                     compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Config =
@@ -123,7 +119,6 @@ private[core] case object SegmentBlock extends LazyLogging {
         maxCount = maxCount max 1,
         segmentRefCacheWeight = segmentRefCacheWeight,
         enableHashIndexForListSegment = enableHashIndexForListSegment,
-        pushForward = pushForward,
         mmap = mmap,
         deleteDelay = deleteDelay,
         compressions = compressions
@@ -137,7 +132,6 @@ private[core] case object SegmentBlock extends LazyLogging {
                        val maxCount: Int,
                        val segmentRefCacheWeight: Int,
                        val enableHashIndexForListSegment: Boolean,
-                       val pushForward: PushForwardStrategy,
                        val mmap: MMAP.Segment,
                        val deleteDelay: FiniteDuration,
                        val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
@@ -158,7 +152,6 @@ private[core] case object SegmentBlock extends LazyLogging {
         maxCount = maxCount,
         segmentRefCacheWeight = segmentRefCacheWeight,
         enableHashIndexForListSegment = enableHashIndexForListSegment,
-        pushForward = pushForward,
         mmap = mmap,
         deleteDelay = deleteDelay,
         compressions = compressions

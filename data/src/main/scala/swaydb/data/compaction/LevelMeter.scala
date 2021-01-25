@@ -24,13 +24,10 @@
 
 package swaydb.data.compaction
 
-import swaydb.data.config.PushForwardStrategy
-
 trait LevelMeter {
   def segmentsCount: Int
   def levelSize: Long
   def segmentCountAndLevelSize: (Int, Long)
   def requiresCleanUp: Boolean
   def nextLevelMeter: Option[LevelMeter]
-  def pushForwardStrategy: PushForwardStrategy
 }
