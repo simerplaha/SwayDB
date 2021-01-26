@@ -43,7 +43,7 @@ import swaydb.core.level.{Level, NextLevel, PathsDistributor}
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.merge.{KeyValueGrouper, KeyValueMerger}
 import swaydb.core.segment._
-import swaydb.core.segment.assigner.{Assignable, SegmentAssignment}
+import swaydb.core.segment.assigner.{Assignable, Assignment}
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
@@ -238,7 +238,7 @@ object TestData {
         IO.failed("Segments are empty")
       } else {
         val assign = level.assign(segments, level.segments(), removeDeletes)
-        val merge = level.merge(assign).awaitInf
+        val merge = level.merge(assign, removeDeletes).awaitInf
         level.commit(merge)
       }
     }
@@ -249,8 +249,9 @@ object TestData {
       if (map.cache.isEmpty) {
         IO.failed("Map is empty")
       } else {
-        val assign = level.assign(newKeyValues = map, targetSegments = level.segments(), removeDeletedRecords = false)
-        val merge = level.merge(assign).awaitInf
+        val removeDeletes = false
+        val assign = level.assign(newKeyValues = map, targetSegments = level.segments(), removeDeletedRecords = removeDeletes)
+        val merge = level.merge(assigment = assign, removeDeletedRecords = removeDeletes).awaitInf
         level.commit(merge)
       }
     }

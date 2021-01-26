@@ -31,7 +31,6 @@ import scala.concurrent.duration.FiniteDuration
  *
  * @param compactionDelay When should compaction run.
  * @param compactDataSize How much data should be compacted.
- *
  */
 case class Throttle(compactionDelay: FiniteDuration,
                     compactDataSize: Long)

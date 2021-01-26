@@ -22,7 +22,7 @@
 // * you additional permission to convey the resulting work.
 // */
 //
-//package swaydb.core.level.compaction.throttle
+//package swaydb.core.level.compaction.throttle.behaviour
 //
 //import org.scalamock.scalatest.MockFactory
 //import swaydb.Error.Segment.ExceptionHandler

@@ -28,7 +28,7 @@ import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
-import swaydb.core.segment.assigner.{Assignable, SegmentAssigner}
+import swaydb.core.segment.assigner.{Assignable, Assigner}
 import swaydb.core.util.AtomicRanges
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -58,7 +58,7 @@ private[core] case object LevelReception {
                          levelSegments: Iterable[Segment])(implicit reservations: AtomicRanges[Slice[Byte]],
                                                            keyOrder: KeyOrder[Slice[Byte]]): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] = {
       IO {
-        SegmentAssigner.assignMinMaxOnlyUnsafeNoGaps(
+        Assigner.assignMinMaxOnlyUnsafeNoGaps(
           inputSegments = segments,
           targetSegments = levelSegments
         )
@@ -94,7 +94,7 @@ private[core] case object LevelReception {
                          levelSegments: Iterable[Segment])(implicit reservations: AtomicRanges[Slice[Byte]],
                                                            keyOrder: KeyOrder[Slice[Byte]]): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] =
       IO {
-        SegmentAssigner.assignMinMaxOnlyUnsafeNoGaps(
+        Assigner.assignMinMaxOnlyUnsafeNoGaps(
           input = map.cache.skipList,
           targetSegments = levelSegments
         )

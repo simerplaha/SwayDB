@@ -39,11 +39,11 @@ import swaydb.data.util.OperatingSystem
 
 import scala.collection.mutable.ListBuffer
 
-class SegmentAssigner_AssignSegment_Spec0 extends SegmentAssigner_AssignSegment_Spec {
+class SegmentAssigner_Assign_Spec0 extends SegmentAssigner_Assign_Spec {
   val keyValueCount = 100
 }
 
-class SegmentAssigner_AssignSegment_Spec1 extends SegmentAssigner_AssignSegment_Spec {
+class SegmentAssigner_Assign_Spec1 extends SegmentAssigner_Assign_Spec {
   val keyValueCount = 100
 
   override def levelFoldersCount = 10
@@ -52,7 +52,7 @@ class SegmentAssigner_AssignSegment_Spec1 extends SegmentAssigner_AssignSegment_
   override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
-class SegmentAssigner_AssignSegment_Spec2 extends SegmentAssigner_AssignSegment_Spec {
+class SegmentAssigner_Assign_Spec2 extends SegmentAssigner_Assign_Spec {
   val keyValueCount = 100
 
   override def levelFoldersCount = 10
@@ -61,12 +61,12 @@ class SegmentAssigner_AssignSegment_Spec2 extends SegmentAssigner_AssignSegment_
   override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
 }
 
-class SegmentAssigner_AssignSegment_Spec3 extends SegmentAssigner_AssignSegment_Spec {
+class SegmentAssigner_Assign_Spec3 extends SegmentAssigner_Assign_Spec {
   val keyValueCount = 1000
   override def inMemoryStorage = true
 }
 
-sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
+sealed trait SegmentAssigner_Assign_Spec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
@@ -85,7 +85,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
              * Test with no gaps
              */
             {
-              val noGaps = SegmentAssigner.assignUnsafeNoGaps(Slice(segment), Slice(segment))
+              val noGaps = Assigner.assignUnsafeNoGaps(Slice(segment), Slice(segment))
               noGaps should have size 1
               val assignedSegments = noGaps.head.midOverlap.result.expectSegments()
               assignedSegments should have size 1
@@ -100,7 +100,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
              * Test with gaps
              */
             {
-              val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segment), Slice(segment))
+              val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segment), Slice(segment))
               gaps should have size 1
               val assignedSegments = gaps.head.midOverlap.result.expectSegments()
               assignedSegments.head shouldBe segment
@@ -124,7 +124,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
               /**
                * Test with REFs
                */
-              val noGaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segmentRef), Slice(segment))
+              val noGaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segmentRef), Slice(segment))
               noGaps should have size 1
               val assignedSegments = noGaps.head.midOverlap.result.expectSegmentRefs()
               assignedSegments.head.path shouldBe segmentRef.path
@@ -151,7 +151,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             /**
              * Test with no gaps
              */
-            SegmentAssigner.assignUnsafeNoGaps(Slice(segment1, segment2), Slice(segment1, segment2)) ==> {
+            Assigner.assignUnsafeNoGaps(Slice(segment1, segment2), Slice(segment1, segment2)) ==> {
               noGaps =>
                 //got two assignments
                 noGaps should have size 2
@@ -177,7 +177,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             /**
              * Test with gaps
              */
-            SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segment1, segment2), Slice(segment1, segment2)) ==> {
+            Assigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segment1, segment2), Slice(segment1, segment2)) ==> {
               gaps =>
                 gaps should have size 2
 
@@ -219,7 +219,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             /**
              * Test with no gaps
              */
-            SegmentAssigner.assignUnsafeNoGaps(Slice(inputSegment), Slice(segment1, segment2)) ==> {
+            Assigner.assignUnsafeNoGaps(Slice(inputSegment), Slice(segment1, segment2)) ==> {
               noGaps =>
                 //got two assignments
                 noGaps should have size 2
@@ -241,7 +241,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             /**
              * Test with gaps
              */
-            SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(inputSegment), Slice(segment1, segment2)) ==> {
+            Assigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(inputSegment), Slice(segment1, segment2)) ==> {
               gaps =>
                 gaps should have size 2
 
@@ -278,7 +278,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             /**
              * Test with no gaps
              */
-            SegmentAssigner.assignUnsafeNoGaps(Slice(inputSegment), Slice(segment1, segment2)) ==> {
+            Assigner.assignUnsafeNoGaps(Slice(inputSegment), Slice(segment1, segment2)) ==> {
               noGaps =>
                 noGaps should have size 1
 
@@ -294,7 +294,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             /**
              * Test with gaps
              */
-            SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(inputSegment), Slice(segment1, segment2)) ==> {
+            Assigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(inputSegment), Slice(segment1, segment2)) ==> {
               gaps =>
                 gaps should have size 1
 
@@ -342,7 +342,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             /**
              * Test with no gaps
              */
-            SegmentAssigner.assignUnsafeNoGaps(inputSegments, segments) ==> {
+            Assigner.assignUnsafeNoGaps(inputSegments, segments) ==> {
               assignments =>
                 assignments should have size segments.size
 
@@ -360,7 +360,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             /**
              * Test with gaps
              */
-            SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegments, segments) ==> {
+            Assigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegments, segments) ==> {
               assignments =>
                 assignments should have size segments.size
 
@@ -418,7 +418,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             /**
              * Test with no gaps
              */
-            SegmentAssigner.assignUnsafeNoGaps(inputSegments, existingSegments) ==> {
+            Assigner.assignUnsafeNoGaps(inputSegments, existingSegments) ==> {
               assignments =>
                 assignments should have size existingSegments.size
 
@@ -442,7 +442,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             /**
              * Test with gaps
              */
-            SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegments, existingSegments) ==> {
+            Assigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegments, existingSegments) ==> {
               assignments =>
                 assignments should have size existingSegments.size
 
@@ -490,7 +490,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 inputSegment should have size 1
                 existingSegment should have size 1
 
-                val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
+                val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
                 gaps should have size 1
 
                 gaps.head.headGap.result should have size 1
@@ -526,7 +526,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 inputSegment should have size 1
                 existingSegment should have size 1
 
-                val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
+                val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
                 gaps should have size 1
 
                 gaps.head.headGap.result shouldBe empty
@@ -562,7 +562,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 inputSegment should have size 1
                 existingSegment should have size 1
 
-                val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
+                val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
                 gaps should have size 1
 
                 gaps.head.headGap.result.expectSegmentRefs() should have size 1
@@ -598,7 +598,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 inputSegment should have size 1
                 existingSegment should have size 1
 
-                val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
+                val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
                 gaps should have size 1
 
                 gaps.head.headGap.result shouldBe empty
@@ -636,7 +636,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 existingSegment should have size 1
 
                 //all SegmentsRefs get assigned
-                val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
+                val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
                 gaps should have size 1
 
                 gaps.head.headGap.result shouldBe empty
@@ -679,7 +679,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 existingSegment2 should have size 1
 
                 //all SegmentsRefs get assigned
-                val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment1 ++ existingSegment2)
+                val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment1 ++ existingSegment2)
                 gaps should have size 2
 
                 gaps.head.headGap.result shouldBe empty
@@ -736,7 +736,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 existingSegment2 should have size 1
 
                 //all SegmentsRefs get assigned
-                val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputKeyValues ++ inputSegment1 ++ inputSegment2, existingSegment1 ++ existingSegment2)
+                val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](inputKeyValues ++ inputSegment1 ++ inputSegment2, existingSegment1 ++ existingSegment2)
                 gaps should have size 2
 
 

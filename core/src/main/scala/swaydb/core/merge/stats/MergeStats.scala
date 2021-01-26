@@ -290,6 +290,5 @@ private[core] case object MergeStats {
 
     override def keyValues: T[data.Memory] =
       aggregator.result
-
   }
 }

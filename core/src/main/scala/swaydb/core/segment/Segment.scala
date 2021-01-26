@@ -33,7 +33,7 @@ import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.KeyValueGrouper
 import swaydb.core.merge.stats.MergeStats
-import swaydb.core.segment.assigner.{Assignable, SegmentAssigner}
+import swaydb.core.segment.assigner.{Assignable, Assigner}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
@@ -864,10 +864,10 @@ private[core] case object Segment extends LazyLogging {
 
   def nonOverlapping[A <: Assignable.Collection](segments1: Iterable[A],
                                                  segments2: Iterable[A],
-                                                 count: Int)(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[A] = {
-    if (count == 0)
+                                                 count: Int)(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[A] =
+    if (count == 0) {
       Iterable.empty
-    else {
+    } else {
       val resultSegments = ListBuffer.empty[A]
       segments1 foreachBreak {
         segment1 =>
@@ -877,7 +877,6 @@ private[core] case object Segment extends LazyLogging {
       }
       resultSegments
     }
-  }
 
   def overlaps[A <: Assignable.Collection](segments1: Iterable[A],
                                            segments2: Iterable[A])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[A] =
@@ -1011,7 +1010,7 @@ private[core] case object Segment extends LazyLogging {
       false
     else {
       val assignments =
-        SegmentAssigner.assignMinMaxOnlyUnsafeNoGaps(
+        Assigner.assignMinMaxOnlyUnsafeNoGaps(
           inputSegments = inputSegments,
           targetSegments = appendixSegments
         )
@@ -1034,9 +1033,9 @@ private[core] case object Segment extends LazyLogging {
       } yield {
         val assignments =
           if (keyOrder.equiv(head.key, last.key))
-            SegmentAssigner.assignUnsafeNoGaps(keyValues = Slice(head), segments = appendixSegments)
+            Assigner.assignUnsafeNoGaps(keyValues = Slice(head), segments = appendixSegments)
           else
-            SegmentAssigner.assignUnsafeNoGaps(keyValues = Slice(head, last), segments = appendixSegments)
+            Assigner.assignUnsafeNoGaps(keyValues = Slice(head, last), segments = appendixSegments)
 
         Segment.overlaps(
           segments1 = busySegments,
@@ -1163,6 +1162,7 @@ private[core] case object Segment extends LazyLogging {
 
       var nextOne: Memory = _
 
+      //FIXME - hasNext jumps to next item even if next() was not invoked.
       @tailrec
       final override def hasNext: Boolean =
         if (fullIterator.hasNext) {

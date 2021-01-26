@@ -29,7 +29,7 @@ import swaydb.DefActor
 import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.throttle.behaviour._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * The compaction Actor state (subtype of [[Compactor]]) which gets
@@ -40,14 +40,19 @@ import scala.concurrent.Future
 
 object ThrottleCompactor {
 
-  def apply(state: ThrottleCompactorContext)(self: DefActor[ThrottleCompactor, Unit]) =
-    new ThrottleCompactor(state, Future.unit)(self)
+  def apply(state: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor, Unit],
+                                             behaviorWakeUp: BehaviorWakeUp): ThrottleCompactor =
+    new ThrottleCompactor(
+      context = state,
+      currentFuture = Future.unit
+    )
 }
 
 private[core] class ThrottleCompactor private(@volatile private var context: ThrottleCompactorContext,
-                                              @volatile private var currentFuture: Future[Unit])(implicit self: DefActor[ThrottleCompactor, Unit]) extends Compactor with LazyLogging {
+                                              @volatile private var currentFuture: Future[Unit])(implicit self: DefActor[ThrottleCompactor, Unit],
+                                                                                                 behaviour: BehaviorWakeUp) extends Compactor with LazyLogging {
 
-  implicit val ec = self.ec
+  implicit val ec: ExecutionContext = self.ec
 
   @inline private def onComplete(f: => Future[ThrottleCompactorContext]): Unit =
     currentFuture onComplete {
@@ -60,7 +65,7 @@ private[core] class ThrottleCompactor private(@volatile private var context: Thr
     }
 
   override def wakeUp(): Unit =
-    onComplete(BehaviorWakeUp.wakeUp(context))
+    onComplete(behaviour.wakeUp(context))
 
   def terminateASAP(): Unit =
     context.setTerminateASAP()

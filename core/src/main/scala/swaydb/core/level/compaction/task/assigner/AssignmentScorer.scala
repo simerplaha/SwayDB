@@ -26,15 +26,14 @@ package swaydb.core.level.compaction.task.assigner
 
 import swaydb.core.level.compaction.task.CompactionDataType
 import swaydb.core.level.compaction.task.CompactionDataType._
-import swaydb.core.segment.assigner.SegmentAssignment
+import swaydb.core.segment.assigner.Assignment
 
 protected case object AssignmentScorer {
-
 
   /**
    * Scores and orders assignments.
    *
-   * First score based on [[SegmentAssignment.midOverlap]] and if two assignments result in
+   * First score based on [[Assignment.midOverlap]] and if two assignments result in
    * the same score then use total of both
    *
    * Assignments can occur in three possible scenarios which are easier imagined as a funnels.
@@ -55,9 +54,9 @@ protected case object AssignmentScorer {
    */
   def scorer[A, B]()(implicit inputDataType: CompactionDataType[A],
                      targetDataType: CompactionDataType[B]) =
-    new Ordering[SegmentAssignment.Result[Iterable[A], Iterable[A], Iterable[B]]] {
-      override def compare(left: SegmentAssignment.Result[Iterable[A], Iterable[A], Iterable[B]],
-                           right: SegmentAssignment.Result[Iterable[A], Iterable[A], Iterable[B]]): Int = {
+    new Ordering[Assignment.Result[Iterable[A], Iterable[A], Iterable[B]]] {
+      override def compare(left: Assignment.Result[Iterable[A], Iterable[A], Iterable[B]],
+                           right: Assignment.Result[Iterable[A], Iterable[A], Iterable[B]]): Int = {
         val leftDifference = difference(left)
         val rightDifference = difference(right)
 
@@ -65,8 +64,8 @@ protected case object AssignmentScorer {
       }
     }
 
-  def difference[A, B](assignment: SegmentAssignment.Result[Iterable[A], Iterable[A], Iterable[B]])(implicit inputDataType: CompactionDataType[A],
-                                                                                                    targetDataType: CompactionDataType[B]) = {
+  def difference[A, B](assignment: Assignment.Result[Iterable[A], Iterable[A], Iterable[B]])(implicit inputDataType: CompactionDataType[A],
+                                                                                             targetDataType: CompactionDataType[B]) = {
     //total data being read
     val headGapSize = assignment.headGapResult.foldLeft(0)(_ + _.segmentSize)
     val tailGapSize = assignment.tailGapResult.foldLeft(headGapSize)(_ + _.segmentSize)

@@ -27,7 +27,7 @@ package swaydb.core.segment.assigner
 import swaydb.Aggregator
 import swaydb.core.segment.ref.SegmentRef
 
-object SegmentAssignment {
+object Assignment {
 
   sealed trait Result[+GAP, +MID, +SEG] {
     def segment: SEG
@@ -54,19 +54,19 @@ object SegmentAssignment {
  *             This can be a [[swaydb.core.segment.Segment]] or [[SegmentRef]].
  */
 
-case class SegmentAssignment[+GAP, +MID, +SEG](segment: SEG,
-                                               headGap: Aggregator[Assignable, GAP],
-                                               midOverlap: Aggregator[Assignable, MID],
-                                               tailGap: Aggregator[Assignable, GAP]) extends SegmentAssignment.Result[GAP, MID, SEG] {
+case class Assignment[+GAP, +MID, +SEG](segment: SEG,
+                                        headGap: Aggregator[Assignable, GAP],
+                                        midOverlap: Aggregator[Assignable, MID],
+                                        tailGap: Aggregator[Assignable, GAP]) extends Assignment.Result[GAP, MID, SEG] {
   final override def headGapResult: GAP = headGap.result
   final override def midOverlapResult: MID = midOverlap.result
   final override def tailGapResult: GAP = tailGap.result
 
-  def result: SegmentAssignment.Result[GAP, MID, SEG] =
+  def result: Assignment.Result[GAP, MID, SEG] =
     this
 }
 
-case class SegmentAssignmentResult[+GAP, +MID, +SEG](segment: SEG,
-                                                     headGapResult: GAP,
-                                                     midOverlapResult: MID,
-                                                     tailGapResult: GAP) extends SegmentAssignment.Result[GAP, MID, SEG]
+case class AssignmentResult[+GAP, +MID, +SEG](segment: SEG,
+                                              headGapResult: GAP,
+                                              midOverlapResult: MID,
+                                              tailGapResult: GAP) extends Assignment.Result[GAP, MID, SEG]

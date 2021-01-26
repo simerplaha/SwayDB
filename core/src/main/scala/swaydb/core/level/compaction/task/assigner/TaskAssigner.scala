@@ -27,11 +27,11 @@ package swaydb.core.level.compaction.task.assigner
 import swaydb.Aggregator
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{Memory, Time, Value}
+import swaydb.core.level.Level
 import swaydb.core.level.compaction.task.CompactionDataType._
 import swaydb.core.level.compaction.task.{CompactionDataType, CompactionTask}
-import swaydb.core.level.{Level, LevelAssignment}
 import swaydb.core.segment.Segment
-import swaydb.core.segment.assigner.{Assignable, SegmentAssigner, SegmentAssignment, SegmentAssignmentResult}
+import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, AssignmentResult}
 import swaydb.data.compaction.PushStrategy
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -41,7 +41,6 @@ import scala.annotation.tailrec
 import scala.collection.compat.IterableOnce
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Builds optimal compaction tasks to perform that meet the configured
@@ -50,25 +49,7 @@ import scala.concurrent.{ExecutionContext, Future}
 protected case object TaskAssigner {
 
   /**
-   * Re-assigns tasks to target Level but this time it allows
-   * expanding input data to handle cases where key-values spread
-   * to multiple Segments.
-   */
-  def assignExpand[A <: Assignable.Collection](tasks: Iterable[CompactionTask.Task[A]],
-                                               removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[LevelAssignment]] =
-    Future.traverse(tasks) {
-      task =>
-        Future {
-          task.target.assign(
-            newKeyValues = task.data,
-            targetSegments = task.target.segments(),
-            removeDeletedRecords = removeDeletedRecords
-          )
-        }
-    }
-
-  /**
-   * Assigns input data by looking at the edge (head & last) key-values i.e. without reading the Segment's content.
+   * Quick assigns input data by looking at the edge (head & last) key-values i.e. without reading the Segment's content.
    */
   def assignQuick[A <: Assignable.Collection](data: Iterable[A],
                                               lowerLevels: NonEmptyList[Level],
@@ -79,7 +60,7 @@ protected case object TaskAssigner {
 
     buildTasks(
       data = data,
-      targetFirstLevel = lowerLevels.head,
+      copyToLevel = lowerLevels.head,
       lowerLevels = lowerLevels,
       dataOverflow = dataOverflow,
       pushStrategy = pushStrategy,
@@ -94,19 +75,19 @@ protected case object TaskAssigner {
    * If there were no overlapping segments then it assigns data
    * to first encountered non-overlapping Level for copying.
    *
-   * @param data             New data which requires merging/assignment to an optimal
-   *                         level.
-   * @param targetFirstLevel First level which remains fixed throughout the recursion.
-   * @param lowerLevels      Remaining levels.
-   * @param dataOverflow     Sets the total size of data to compact. This is dictated
-   *                         by the [[swaydb.data.compaction.Throttle]] configuration.
-   * @param tasks            Final [[CompactionTask.Task]] that will contain optimal
-   *                         assignments.
+   * @param data         New data which requires merging/assignment to an optimal
+   *                     level.
+   * @param copyToLevel  Level to with data can be copied to.
+   * @param lowerLevels  Remaining levels.
+   * @param dataOverflow Sets the total size of data to compact. This is dictated
+   *                     by the [[swaydb.data.compaction.Throttle]] configuration.
+   * @param tasks        Final [[CompactionTask.Task]] that will contain optimal
+   *                     assignments.
    * @tparam A the type of input data.
    */
   @tailrec
   private def buildTasks[A <: Assignable.Collection](data: Iterable[A],
-                                                     targetFirstLevel: Level,
+                                                     copyToLevel: Level,
                                                      lowerLevels: NonEmptyList[Level],
                                                      dataOverflow: Long,
                                                      pushStrategy: PushStrategy,
@@ -126,20 +107,20 @@ protected case object TaskAssigner {
       aggregatorCreator(segmentOrder, segmentMapIndex)
 
     //get the next level from remaining levels.
-    val nextLevel = lowerLevels.head
+    val thisLevel = lowerLevels.head
 
     //performing assignment and scoring and fetch Segments that can be merged and segments that can be copied.
     val (segmentsToMerge, segmentsToCopy) =
-      if (nextLevel.isNonEmpty()) { //if next Level is not empty then do assignment
-        val assignments: ListBuffer[SegmentAssignment[mutable.SortedSet[A], mutable.SortedSet[A], Segment]] =
-          SegmentAssigner.assignUnsafeGaps[mutable.SortedSet[A], mutable.SortedSet[A], Segment](
+      if (thisLevel.isNonEmpty()) { //if next Level is not empty then do assignment
+        val assignments: ListBuffer[Assignment[mutable.SortedSet[A], mutable.SortedSet[A], Segment]] =
+          Assigner.assignUnsafeGaps[mutable.SortedSet[A], mutable.SortedSet[A], Segment](
             keyValues = segmentKeyValues.iterator,
-            segments = nextLevel.segments().iterator
+            segments = thisLevel.segments().iterator
           )
 
         //group the assignments that spread
         val groupedAssignments =
-          groupAssignmentsForScoring[A, Segment, SegmentAssignment[mutable.SortedSet[A], mutable.SortedSet[A], Segment]](assignments)
+          groupAssignmentsForScoring[A, Segment, Assignment[mutable.SortedSet[A], mutable.SortedSet[A], Segment]](assignments)
 
         //score assignments.
         val scoredAssignments =
@@ -165,7 +146,7 @@ protected case object TaskAssigner {
       tasks +=
         CompactionTask.Task(
           data = segmentsToMerge,
-          target = nextLevel
+          target = thisLevel
         )
 
     //if segmentToCopy is not empty then try to finding a
@@ -177,7 +158,7 @@ protected case object TaskAssigner {
         //lower level to find a segments that can be merged with this copyable data.
         buildTasks[A](
           data = segmentsToCopy,
-          targetFirstLevel = targetFirstLevel,
+          copyToLevel = if (pushStrategy.immediately) thisLevel else copyToLevel,
           lowerLevels = NonEmptyList(lowerLevels.tail.head, lowerLevels.tail.drop(1)),
           dataOverflow = Long.MaxValue, //all Segments should be merged to set overflow to be maximum.
           pushStrategy = pushStrategy,
@@ -186,13 +167,20 @@ protected case object TaskAssigner {
       } else { //there were not lower levels
         //find the first level that this data could've be copied into
         //and assign this data to that level.
-        val oldTaskIndex = tasks.indexWhere(_.target == targetFirstLevel)
+
+        val copyableLevel =
+          if (pushStrategy.immediately) //segment can be copied into this Level so write to this Level
+            thisLevel
+          else
+            copyToLevel
+
+        val oldTaskIndex = tasks.indexWhere(_.target == copyableLevel)
 
         if (oldTaskIndex < 0) {
           tasks +=
             CompactionTask.Task(
               data = segmentsToCopy,
-              target = targetFirstLevel
+              target = copyableLevel
             )
         } else {
           val oldTask = tasks(oldTaskIndex)
@@ -209,7 +197,7 @@ protected case object TaskAssigner {
 
   /**
    * Converts [[Assignable.Collection]] type to [[Memory]] key-values types
-   * which can then be used by [[SegmentAssigner]] for assignments.
+   * which can then be used by [[Assigner]] for assignments.
    *
    * Each [[Memory]] stores a unique Int value which can be read to fetch the
    * input data type from the returned [[collection.Map]].
@@ -219,37 +207,39 @@ protected case object TaskAssigner {
     val segmentIndex = mutable.Map.empty[Int, A]
     var index = 0
 
-    data foreach {
-      segment =>
-        val indexBytes = Slice.writeUnsignedInt[Byte](index)
-        segmentIndex.put(index, segment)
+    val dataIterator = data.iterator
 
-        if (segment.keyValueCount == 1)
-          segment.maxKey match {
-            case MaxKey.Fixed(maxKey: Slice[Byte]) =>
-              segmentKeyValues += Memory.Put(maxKey, indexBytes, None, Time.empty)
+    while (dataIterator.hasNext) {
+      val segment = dataIterator.next()
+      val indexBytes = Slice.writeUnsignedInt[Byte](index)
+      segmentIndex.put(index, segment)
 
-            case MaxKey.Range(fromKey: Slice[Byte], maxKey: Slice[Byte]) =>
-              segmentKeyValues += Memory.Range(fromKey, maxKey, FromValue.Null, Value.Update(indexBytes, None, Time.empty))
-          }
-        else
-          segment.maxKey match {
-            case MaxKey.Fixed(maxKey: Slice[Byte]) =>
-              segmentKeyValues += Memory.Range(segment.key, maxKey, FromValue.Null, Value.Update(indexBytes, None, Time.empty))
-              segmentKeyValues += Memory.Put(maxKey, indexBytes, None, Time.empty)
+      if (segment.keyValueCount == 1)
+        segment.maxKey match {
+          case MaxKey.Fixed(maxKey: Slice[Byte]) =>
+            segmentKeyValues += Memory.Put(maxKey, indexBytes, None, Time.empty)
 
-            case MaxKey.Range(_, maxKey: Slice[Byte]) =>
-              segmentKeyValues += Memory.Range(segment.key, maxKey, FromValue.Null, Value.Update(indexBytes, None, Time.empty))
-          }
+          case MaxKey.Range(fromKey: Slice[Byte], maxKey: Slice[Byte]) =>
+            segmentKeyValues += Memory.Range(fromKey, maxKey, FromValue.Null, Value.Update(indexBytes, None, Time.empty))
+        }
+      else
+        segment.maxKey match {
+          case MaxKey.Fixed(maxKey: Slice[Byte]) =>
+            segmentKeyValues += Memory.Range(segment.key, maxKey, FromValue.Null, Value.Update(indexBytes, None, Time.empty))
+            segmentKeyValues += Memory.Put(maxKey, indexBytes, None, Time.empty)
 
-        index += 1
+          case MaxKey.Range(_, maxKey: Slice[Byte]) =>
+            segmentKeyValues += Memory.Range(segment.key, maxKey, FromValue.Null, Value.Update(indexBytes, None, Time.empty))
+        }
+
+      index += 1
     }
 
     (segmentKeyValues, segmentIndex)
   }
 
   /**
-   * An aggregator which converts [[SegmentAssigner]]'s assignments back to the original
+   * An aggregator which converts [[Assigner]]'s assignments back to the original
    * input data type.
    */
   def aggregatorCreator[A](implicit ordering: Ordering[A],
@@ -276,8 +266,8 @@ protected case object TaskAssigner {
 
   /**
    * Handles cases when a segment can be assigned to multiple target segments (one to many).
-   * For those cases those assignments are grouped to form a single [[SegmentAssignment]] that's why
-   * resulting type of [[SegmentAssignment]] is a ListBuffer[[B]].
+   * For those cases those assignments are grouped to form a single [[Assignment]] that's why
+   * resulting type of [[Assignment]] is a ListBuffer[[B]].
    *
    * IMPORTANT - The resulting assignments should only be used for scoring because on merging two assignments
    * their gaps are simply grouped together so that scoring can be applied for gaps vs overlaps.
@@ -292,46 +282,49 @@ protected case object TaskAssigner {
    * @tparam C the type of assignments.
    * @return groups assignments that spread onto multiple Segments.
    */
-  def groupAssignmentsForScoring[A, B, C <: SegmentAssignment.Result[mutable.SortedSet[A], mutable.SortedSet[A], B]](assignments: Iterable[C])(implicit inputDataType: CompactionDataType[A],
-                                                                                                                                               targetDataType: CompactionDataType[B]): ListBuffer[SegmentAssignment.Result[mutable.SortedSet[A], mutable.SortedSet[A], ListBuffer[B]]] = {
-    var previousAssignmentOrNull: SegmentAssignment.Result[mutable.SortedSet[A], mutable.SortedSet[A], B] = null
+  def groupAssignmentsForScoring[A, B, C <: Assignment.Result[mutable.SortedSet[A], mutable.SortedSet[A], B]](assignments: Iterable[C])(implicit inputDataType: CompactionDataType[A],
+                                                                                                                                        targetDataType: CompactionDataType[B]): ListBuffer[Assignment.Result[mutable.SortedSet[A], mutable.SortedSet[A], ListBuffer[B]]] = {
+    var previousAssignmentOrNull: Assignment.Result[mutable.SortedSet[A], mutable.SortedSet[A], B] = null
 
-    val groupedAssignments = ListBuffer.empty[SegmentAssignment.Result[mutable.SortedSet[A], mutable.SortedSet[A], ListBuffer[B]]]
+    val groupedAssignments = ListBuffer.empty[Assignment.Result[mutable.SortedSet[A], mutable.SortedSet[A], ListBuffer[B]]]
 
-    assignments foreach {
-      nextAssignment =>
-        val spreads =
-          previousAssignmentOrNull != null && {
-            //check if previous assignment spreads onto next assignment.
-            val previousAssignmentsLast =
-              previousAssignmentOrNull.tailGapResult.lastOption
-                .orElse(previousAssignmentOrNull.midOverlapResult.lastOption)
-                .orElse(previousAssignmentOrNull.headGapResult.lastOption)
+    val assignmentsIterator = assignments.iterator
 
-            val nextAssignmentsFirst =
-              nextAssignment.headGapResult.lastOption
-                .orElse(nextAssignment.midOverlapResult.lastOption)
-                .orElse(nextAssignment.tailGapResult.lastOption)
+    while (assignmentsIterator.hasNext) {
+      val nextAssignment = assignmentsIterator.next()
 
-            previousAssignmentsLast == nextAssignmentsFirst
-          }
+      val spreads =
+        previousAssignmentOrNull != null && {
+          //check if previous assignment spreads onto next assignment.
+          val previousAssignmentsLast =
+            previousAssignmentOrNull.tailGapResult.lastOption
+              .orElse(previousAssignmentOrNull.midOverlapResult.lastOption)
+              .orElse(previousAssignmentOrNull.headGapResult.lastOption)
 
-        //if the assignment spreads onto the next target segments them merge the assignments into a single assignment for scoring.
-        if (spreads) {
-          groupedAssignments.last.headGapResult ++= nextAssignment.headGapResult
-          groupedAssignments.last.midOverlapResult ++= nextAssignment.midOverlapResult
-          groupedAssignments.last.tailGapResult ++= nextAssignment.tailGapResult
-        } else {
-          groupedAssignments +=
-            SegmentAssignmentResult(
-              segment = ListBuffer(nextAssignment.segment),
-              headGapResult = nextAssignment.headGapResult,
-              midOverlapResult = nextAssignment.midOverlapResult,
-              tailGapResult = nextAssignment.tailGapResult
-            )
+          val nextAssignmentsFirst =
+            nextAssignment.headGapResult.lastOption
+              .orElse(nextAssignment.midOverlapResult.lastOption)
+              .orElse(nextAssignment.tailGapResult.lastOption)
+
+          previousAssignmentsLast == nextAssignmentsFirst
         }
 
-        previousAssignmentOrNull = nextAssignment
+      //if the assignment spreads onto the next target segments them merge the assignments into a single assignment for scoring.
+      if (spreads) {
+        groupedAssignments.last.headGapResult ++= nextAssignment.headGapResult
+        groupedAssignments.last.midOverlapResult ++= nextAssignment.midOverlapResult
+        groupedAssignments.last.tailGapResult ++= nextAssignment.tailGapResult
+      } else {
+        groupedAssignments +=
+          AssignmentResult(
+            segment = ListBuffer(nextAssignment.segment),
+            headGapResult = nextAssignment.headGapResult,
+            midOverlapResult = nextAssignment.midOverlapResult,
+            tailGapResult = nextAssignment.tailGapResult
+          )
+      }
+
+      previousAssignmentOrNull = nextAssignment
     }
 
     groupedAssignments
@@ -343,10 +336,10 @@ protected case object TaskAssigner {
    * segments that can be copied.
    */
   def finaliseSegmentsToCompact[A, B](dataOverflow: Long,
-                                      scoredAssignments: Iterable[SegmentAssignment.Result[Iterable[A], Iterable[A], B]])(implicit segmentOrdering: Ordering[A],
-                                                                                                                          dataType: CompactionDataType[A]): (scala.collection.SortedSet[A], scala.collection.SortedSet[A]) =
+                                      scoredAssignments: Iterable[Assignment.Result[Iterable[A], Iterable[A], B]])(implicit segmentOrdering: Ordering[A],
+                                                                                                                   dataType: CompactionDataType[A]): (scala.collection.SortedSet[A], scala.collection.SortedSet[A]) =
     if (dataOverflow <= 0) {
-      (mutable.SortedSet.empty, mutable.SortedSet.empty)
+      (scala.collection.SortedSet.empty, scala.collection.SortedSet.empty)
     } else {
       var midOverlapTaken = 0L
 
@@ -355,10 +348,10 @@ protected case object TaskAssigner {
       //segments that can be copied
       val segmentsToCopy = mutable.SortedSet.empty[A]
 
-      val it = scoredAssignments.iterator
+      val scoredAssignmentsIterator = scoredAssignments.iterator
       var break = false //break if overflow is collected.
-      while (!break && it.hasNext) {
-        val assignment = it.next()
+      while (!break && scoredAssignmentsIterator.hasNext) {
+        val assignment = scoredAssignmentsIterator.next()
         //collect segments that can be copied
         segmentsToCopy ++= assignment.headGapResult
         segmentsToCopy ++= assignment.tailGapResult
@@ -376,7 +369,7 @@ protected case object TaskAssigner {
       }
 
       val copyable =
-        fillOverflow(
+        fillOverflow[A](
           overflow = dataOverflow - midOverlapTaken,
           data = segmentsToCopy
         )
@@ -390,10 +383,10 @@ protected case object TaskAssigner {
 
     if (remainingOverflow > 0) {
       val fill = mutable.SortedSet.empty[A]
-      val it = data.iterator
+      val dataIterator = data.iterator
       var break = false
-      while (!break && it.hasNext) {
-        val next = it.next()
+      while (!break && dataIterator.hasNext) {
+        val next = dataIterator.next()
         fill += next
         remainingOverflow -= next.segmentSize
         break = remainingOverflow <= 0

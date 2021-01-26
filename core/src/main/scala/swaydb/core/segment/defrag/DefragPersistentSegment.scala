@@ -29,7 +29,7 @@ import swaydb.core.data.{DefIO, Memory}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
-import swaydb.core.segment.assigner.{Assignable, AssignmentTarget, GapAggregator, SegmentAssigner, SegmentAssignment}
+import swaydb.core.segment.assigner.{Assignable, AssignmentTarget, GapAggregator, Assigner, Assignment}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
@@ -324,7 +324,7 @@ object DefragPersistentSegment {
                                      newKeyValues: Iterator[Assignable],
                                      removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                              assignmentTarget: AssignmentTarget[SEG],
-                                                             defragSource: DefragSource[SEG]): ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], SEG]] = {
+                                                             defragSource: DefragSource[SEG]): ListBuffer[Assignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], SEG]] = {
     implicit val creator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
       GapAggregator.create(removeDeletes)
 
@@ -332,7 +332,7 @@ object DefragPersistentSegment {
 
     //assign key-values to Segment and then perform merge.
     val assignments =
-      SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], SEG](
+      Assigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], SEG](
         keyValues = newKeyValues,
         segments = segmentsIterator
       )
@@ -343,7 +343,7 @@ object DefragPersistentSegment {
           //TODO - assignments dont need to check for added missing assignments.
           if (!assignments.exists(_.segment == segment)) {
             assignments +=
-              SegmentAssignment(
+              Assignment(
                 segment = segment,
                 headGap = creator.createNew(),
                 midOverlap = Aggregator.listBuffer,

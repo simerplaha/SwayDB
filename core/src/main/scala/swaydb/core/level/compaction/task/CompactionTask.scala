@@ -26,7 +26,7 @@ package swaydb.core.level.compaction.task
 
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
-import swaydb.core.level.{Level, LevelAssignment, LevelRef}
+import swaydb.core.level.{Level, LevelRef}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.Assignable
 
@@ -56,6 +56,9 @@ object CompactionTask {
   case class CompactSegments(source: Level,
                              tasks: Iterable[Task[Segment]]) extends CompactionTask.Segments
 
+  /**
+   * @param maps should be in the same order at it's position in [[LevelZero]].
+   */
   case class CompactMaps(source: LevelZero,
                          maps: Iterator[LevelZeroMap],
                          tasks: Iterable[Task[Assignable.Collection]]) extends CompactionTask

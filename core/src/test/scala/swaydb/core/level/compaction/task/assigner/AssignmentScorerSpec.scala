@@ -28,7 +28,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.level.compaction.task.CompactionDataType
-import swaydb.core.segment.assigner.SegmentAssignmentResult
+import swaydb.core.segment.assigner.AssignmentResult
 import swaydb.data.RunThis._
 
 import scala.util.Random
@@ -47,7 +47,7 @@ class AssignmentScorerSpec extends AnyWordSpec with Matchers with MockFactory {
           //0 1 2
 
           val assignment1 =
-            SegmentAssignmentResult[List[Int], List[Int], List[Int]](
+            AssignmentResult[List[Int], List[Int], List[Int]](
               segment = List(0, 1, 2),
               headGapResult = List.empty,
               midOverlapResult = List(4),
@@ -59,7 +59,7 @@ class AssignmentScorerSpec extends AnyWordSpec with Matchers with MockFactory {
           //0 1 2
 
           val assignment2 =
-            SegmentAssignmentResult[List[Int], List[Int], List[Int]](
+            AssignmentResult[List[Int], List[Int], List[Int]](
               segment = List(0, 1, 2),
               headGapResult = List.empty,
               midOverlapResult = List(5, 6),
@@ -88,7 +88,7 @@ class AssignmentScorerSpec extends AnyWordSpec with Matchers with MockFactory {
           //0 1 2
 
           val assignment1 =
-            SegmentAssignmentResult[List[Int], List[Int], List[Int]](
+            AssignmentResult[List[Int], List[Int], List[Int]](
               segment = List(0, 1, 2),
               headGapResult = List.empty,
               midOverlapResult = List(4),
@@ -100,7 +100,7 @@ class AssignmentScorerSpec extends AnyWordSpec with Matchers with MockFactory {
           //0 1 2
 
           val assignment2 =
-            SegmentAssignmentResult[List[Int], List[Int], List[Int]](
+            AssignmentResult[List[Int], List[Int], List[Int]](
               segment = List(0, 1, 2),
               headGapResult = List.empty,
               midOverlapResult = List(5, 6),
@@ -112,7 +112,7 @@ class AssignmentScorerSpec extends AnyWordSpec with Matchers with MockFactory {
           //0 1 2
 
           val assignment3 =
-            SegmentAssignmentResult[List[Int], List[Int], List[Int]](
+            AssignmentResult[List[Int], List[Int], List[Int]](
               segment = List(0, 1, 2),
               headGapResult = List.empty,
               midOverlapResult = List(7),
@@ -144,7 +144,7 @@ class AssignmentScorerSpec extends AnyWordSpec with Matchers with MockFactory {
           //   [0, 1, 2]
 
           val assignment1 =
-            SegmentAssignmentResult[List[Int], List[Int], List[Int]](
+            AssignmentResult[List[Int], List[Int], List[Int]](
               segment = List(0, 1, 2),
               headGapResult = List(3),
               midOverlapResult = List(4),
@@ -156,7 +156,7 @@ class AssignmentScorerSpec extends AnyWordSpec with Matchers with MockFactory {
           //  [0, 1, 2]
 
           val assignment2 =
-            SegmentAssignmentResult[List[Int], List[Int], List[Int]](
+            AssignmentResult[List[Int], List[Int], List[Int]](
               segment = List(0, 1, 2),
               headGapResult = List.empty,
               midOverlapResult = List(6),

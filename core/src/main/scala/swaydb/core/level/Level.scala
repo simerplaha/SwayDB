@@ -39,7 +39,7 @@ import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.merge.stats.MergeStats.{Memory, Persistent}
 import swaydb.core.segment._
-import swaydb.core.segment.assigner.{Assignable, GapAggregator, SegmentAssigner, SegmentAssignment}
+import swaydb.core.segment.assigner.{Assignable, GapAggregator, Assigner, Assignment}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
@@ -183,7 +183,6 @@ private[core] case object Level extends LazyLogging {
               case None =>
                 val allSegments = appendix.cache.values()
                 implicit val segmentIDGenerator: IDGenerator = IDGenerator(initial = largestSegmentId(allSegments))
-                implicit val atomicRanges: AtomicRanges[Slice[Byte]] = AtomicRanges[Slice[Byte]]()(keyOrder)
                 val paths: PathsDistributor = PathsDistributor(levelStorage.dirs, () => allSegments)
 
                 val deletedUnCommittedSegments =
@@ -388,7 +387,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def assign(newKeyValues: Assignable.Collection,
              targetSegments: IterableOnce[Segment],
-             removeDeletedRecords: Boolean): LevelAssignment =
+             removeDeletedRecords: Boolean): DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]] =
     assign(
       newKeyValues = Seq(newKeyValues),
       targetSegments = targetSegments,
@@ -398,7 +397,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def assign(newKeyValues: Iterable[Assignable.Collection],
              targetSegments: IterableOnce[Segment],
-             removeDeletedRecords: Boolean): LevelAssignment = {
+             removeDeletedRecords: Boolean): DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, newKeyValues.size)
     assign(
       newKeyValues = newKeyValues,
@@ -410,7 +409,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def assign(newKeyValues: LevelZeroMap,
              targetSegments: IterableOnce[Segment],
-             removeDeletedRecords: Boolean): LevelAssignment = {
+             removeDeletedRecords: Boolean): DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, newKeyValues.cache.skipList.size)
     assign(
       newKeyValues = Seq(Assignable.Collection.fromMap(newKeyValues)),
@@ -486,7 +485,10 @@ private[core] case class Level(dirs: Seq[Dir],
         (segmentsToMerge, assignments)
       } flatMap {
         case (segmentsToMerge, assignments) =>
-          merge(assignments) map {
+          merge(
+            assigment = assignments,
+            removeDeletedRecords = removeDeletedRecords
+          ) map {
             mergeResult =>
               LevelCollapseResult.Collapsed(
                 sourceSegments = segmentsToMerge,
@@ -544,10 +546,10 @@ private[core] case class Level(dirs: Seq[Dir],
   private def assign(newKeyValues: Iterable[Assignable],
                      targetSegments: IterableOnce[Segment],
                      removeDeletedRecords: Boolean,
-                     noGaps: Boolean): LevelAssignment = {
+                     noGaps: Boolean): DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]] = {
     logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, newKeyValues.size)
 
-    val assignments: Iterable[SegmentAssignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]] =
+    val assignments: Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]] =
       if (inMemory)
         assignMemory(
           newKeyValues = newKeyValues,
@@ -563,43 +565,43 @@ private[core] case class Level(dirs: Seq[Dir],
           noGaps = noGaps
         )
 
-    LevelAssignment(
-      newKeyValues = newKeyValues,
-      removeDeletedRecords = removeDeletedRecords,
-      assignments = assignments
+    DefIO(
+      input = newKeyValues,
+      output = assignments
     )
   }
 
-  def merge(assigment: LevelAssignment)(implicit ec: ExecutionContext): Future[Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]] = {
-    logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assigment.newKeyValues.size)
+  def merge(assigment: DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]],
+            removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]] = {
+    logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assigment.input.size)
     if (inMemory)
       mergeMemory(
-        newKeyValues = assigment.newKeyValues,
-        removeDeletedRecords = assigment.removeDeletedRecords,
-        assignments = assigment.castToMemoryAssignments
+        newKeyValues = assigment.input,
+        removeDeletedRecords = removeDeletedRecords,
+        assignments = assigment.output.asInstanceOf[Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]]
       )
     else
       mergePersistent(
-        newKeyValues = assigment.newKeyValues,
-        removeDeletedRecords = assigment.removeDeletedRecords,
-        assignments = assigment.castToPersistentAssignments
+        newKeyValues = assigment.input,
+        removeDeletedRecords = removeDeletedRecords,
+        assignments = assigment.output.asInstanceOf[Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]]
       )
   }
 
   private def assignMemory(newKeyValues: Iterable[Assignable],
                            targetSegments: IterableOnce[Segment],
                            removeDeletedRecords: Boolean,
-                           noGaps: Boolean): Iterable[SegmentAssignment[ListBuffer[Assignable.Gap[Memory.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]] = {
+                           noGaps: Boolean): Iterable[Assignment[ListBuffer[Assignable.Gap[Memory.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]] = {
     implicit def gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[Memory.Builder[Memory, ListBuffer]]]] =
       GapAggregator.create(removeDeletes = removeDeletedRecords)
 
     if (noGaps)
-      SegmentAssigner.assignUnsafeNoGaps(
+      Assigner.assignUnsafeNoGaps(
         keyValues = newKeyValues,
         segments = targetSegments
       )
     else
-      SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]]](
+      Assigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]]](
         keyValues = newKeyValues,
         segments = targetSegments
       )
@@ -608,17 +610,17 @@ private[core] case class Level(dirs: Seq[Dir],
   private def assignPersistent(newKeyValues: Iterable[Assignable],
                                targetSegments: IterableOnce[Segment],
                                removeDeletedRecords: Boolean,
-                               noGaps: Boolean): Iterable[SegmentAssignment[ListBuffer[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]] = {
+                               noGaps: Boolean): Iterable[Assignment[ListBuffer[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]] = {
     implicit def gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
       GapAggregator.create[MergeStats.Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords)
 
     if (noGaps)
-      SegmentAssigner.assignUnsafeNoGaps(
+      Assigner.assignUnsafeNoGaps(
         keyValues = newKeyValues,
         segments = targetSegments
       )
     else
-      SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]](
+      Assigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]](
         keyValues = newKeyValues,
         segments = targetSegments
       )
@@ -627,7 +629,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   @inline private def mergeMemory(newKeyValues: Iterable[Assignable],
                                   removeDeletedRecords: Boolean,
-                                  assignments: Iterable[SegmentAssignment[Iterable[Assignable.Gap[Memory.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]])(implicit ec: ExecutionContext): Future[Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Memory]]]] =
+                                  assignments: Iterable[Assignment[Iterable[Assignable.Gap[Memory.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]])(implicit ec: ExecutionContext): Future[Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Memory]]]] =
     if (assignments.isEmpty) {
       //if there were not assignments then write new key-values are gap and run Defrag to avoid creating small Segments.
       val gap = GapAggregator.create[MergeStats.Memory.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
@@ -674,7 +676,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   @inline private def mergePersistent(newKeyValues: Iterable[Assignable],
                                       removeDeletedRecords: Boolean,
-                                      assignments: Iterable[SegmentAssignment[Iterable[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]])(implicit ec: ExecutionContext): Future[Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Persistent]]]] =
+                                      assignments: Iterable[Assignment[Iterable[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]])(implicit ec: ExecutionContext): Future[Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Persistent]]]] =
     if (assignments.isEmpty) {
       //if there were not assignments then write new key-values are gap and run Defrag to avoid creating small Segments.
       val gap = GapAggregator.create[MergeStats.Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
@@ -764,12 +766,18 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
+  def commitPersisted(result: Iterable[DefIO[SegmentOption, Iterable[Segment]]]): IO[Error.Level, Unit] =
+    commitPersisted(
+      result = result,
+      appendEntry = None
+    )
+
   private def persistAndCommit(mergeResult: Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]],
                                appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Error.Level, Unit] =
     persist(mergeResult).flatMap(result => commitPersisted(result, appendEntry))
 
-  def commitPersisted(result: Iterable[DefIO[SegmentOption, Iterable[Segment]]],
-                      appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Error.Level, Unit] = {
+  private def commitPersisted(result: Iterable[DefIO[SegmentOption, Iterable[Segment]]],
+                              appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Error.Level, Unit] = {
 
     val persistentAndCommitResult =
       if (result.isEmpty && appendEntry.isEmpty)
@@ -1163,14 +1171,6 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def segments(): Iterable[Segment] =
     appendix.cache.values()
-
-  def segmentsReserved(reservationKey: AtomicRanges.Key[Slice[Byte]]): Iterable[Segment] =
-    self.appendix.cache.subMapValues(
-      from = reservationKey.fromKey,
-      fromInclusive = true,
-      to = reservationKey.toKey,
-      toInclusive = reservationKey.toKeyInclusive
-    )
 
   def hasNextLevel: Boolean =
     nextLevel.isDefined

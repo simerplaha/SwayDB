@@ -35,7 +35,6 @@ import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.util.Collections
 import swaydb.data.compaction.PushStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -326,7 +325,7 @@ case object LevelZeroTaskAssigner {
                                                                           functionStore: FunctionStore): Future[Iterable[Memory]] =
     if (stack.isEmpty)
       Futures.emptyIterable
-    else if (Collections.hasOnlyOne(stack))
+    else if (stack.size == 1)
       stack.head match {
         case Left(map) =>
           Future.successful(map.cache.skipList.values())
@@ -335,7 +334,7 @@ case object LevelZeroTaskAssigner {
           Future.successful(keyValues)
       }
     else
-      Future.traverse(stack.grouped(2).toList) {
+      Future.traverse(stack.grouped(2)) {
         group =>
           if (group.size == 1)
             Future.successful(group.head)
@@ -357,6 +356,6 @@ case object LevelZeroTaskAssigner {
             }
       } flatMap {
         mergedResult =>
-          mergeStack(mergedResult)
+          mergeStack(mergedResult.to(Iterable))
       }
 }

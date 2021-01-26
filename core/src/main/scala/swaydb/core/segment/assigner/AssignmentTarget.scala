@@ -32,10 +32,10 @@ import swaydb.data.slice.Slice
 import scala.annotation.implicitNotFound
 
 /**
- * [[AssignmentTarget]] implements functions that [[SegmentAssigner]]
+ * [[AssignmentTarget]] implements functions that [[Assigner]]
  * uses to assign [[Assignable]] to target [[A]] types.
  *
- * Currently the following type classes allow [[SegmentAssigner]] to assign
+ * Currently the following type classes allow [[Assigner]] to assign
  * [[Assignable]] to [[Segment]] and [[SegmentRef]].
  */
 @implicitNotFound("Type class implementation not found for AssignmentTarget of type ${A}")

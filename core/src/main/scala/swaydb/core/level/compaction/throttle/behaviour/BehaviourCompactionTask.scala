@@ -25,13 +25,13 @@
 package swaydb.core.level.compaction.throttle.behaviour
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{Error, IO}
 import swaydb.core.data.DefIO
 import swaydb.core.level._
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.SegmentOption
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.{Error, IO}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -67,15 +67,20 @@ protected object BehaviourCompactionTask extends LazyLogging {
                                            lastLevel: Level)(implicit ec: ExecutionContext): Future[Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]] =
     Future.traverse(tasks) {
       task =>
+        val removeDeletedRecords = task.target.levelNumber == lastLevel.levelNumber
+
         Future {
           task.target.assign(
             newKeyValues = task.data,
             targetSegments = task.target.segments(),
-            removeDeletedRecords = task.target.levelNumber == lastLevel.levelNumber
+            removeDeletedRecords = removeDeletedRecords
           )
         } flatMap {
           levelAssignment =>
-            task.target.merge(levelAssignment)
+            task.target.merge(
+              assigment = levelAssignment,
+              removeDeletedRecords = removeDeletedRecords
+            )
         } map {
           mergeResult =>
             DefIO(

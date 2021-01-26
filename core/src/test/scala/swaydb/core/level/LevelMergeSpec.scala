@@ -87,7 +87,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             val assignmentResult = level.assign(segment, level.segments(), removeDeletedRecords = false)
 
             //merge
-            val compactionResult = level.merge(assignmentResult).await
+            val compactionResult = level.merge(assignmentResult, removeDeletedRecords = false).await
             compactionResult should have size 1
 
             //level is still empty because nothing is committed.
@@ -122,7 +122,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             val assignmentResult = level.assign(segment, level.segments(), removeDeletedRecords = false)
 
             //merge
-            val compactionResult = level.merge(assignmentResult).awaitInf
+            val compactionResult = level.merge(assignmentResult, removeDeletedRecords = false).awaitInf
             compactionResult should have size 1
 
             //level is still empty because nothing is committed.
@@ -154,7 +154,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             //assign
             val segmentAssignment = level.assign(segment, level.segments(), removeDeletedRecords = false)
 
-            val segmentMergeResult = level.merge(segmentAssignment).awaitInf
+            val segmentMergeResult = level.merge(segmentAssignment, removeDeletedRecords = false).awaitInf
             level.commit(segmentMergeResult) shouldBe IO.unit
 
             assertGet(keyValues, level)
@@ -163,7 +163,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
 
             val mapAssignment = level.assign(map, level.segments(), removeDeletedRecords = false)
 
-            val mapMergeResult = level.merge(mapAssignment).awaitInf
+            val mapMergeResult = level.merge(mapAssignment, removeDeletedRecords = false).awaitInf
             level.commit(mapMergeResult) shouldBe IO.unit
 
             assertGet(keyValues, level)
@@ -186,7 +186,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
 
             val segmentAssigment = level.assign(segment, level.segments(), removeDeletedRecords = false)
 
-            val segmentMergeResult = level.merge(segmentAssigment).awaitInf
+            val segmentMergeResult = level.merge(segmentAssigment, removeDeletedRecords = false).awaitInf
             level.commit(segmentMergeResult) shouldBe IO.unit
 
             assertGet(keyValues1, level)
@@ -203,7 +203,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
 
             val mapAssigment = level.assign(map, level.segments(), removeDeletedRecords = false)
 
-            val mapMergeResult = level.merge(mapAssigment).awaitInf
+            val mapMergeResult = level.merge(mapAssigment, removeDeletedRecords = false).awaitInf
             level.commit(mapMergeResult) shouldBe IO.unit
 
             assertGet(keyValues2, level)
@@ -228,7 +228,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
 
             val segmentAssigment = level.assign(segment, level.segments(), removeDeletedRecords = false)
 
-            val segmentMergeResult = level.merge(segmentAssigment).awaitInf
+            val segmentMergeResult = level.merge(segmentAssigment, removeDeletedRecords = false).awaitInf
             level.commit(segmentMergeResult) shouldBe IO.unit
 
             assertGet(keyValues1, level)
@@ -243,7 +243,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
 
             val mapAssigment = level.assign(map, level.segments(), removeDeletedRecords = false)
 
-            val mapMergeResult = level.merge(mapAssigment).awaitInf
+            val mapMergeResult = level.merge(mapAssigment, removeDeletedRecords = false).awaitInf
             level.commit(mapMergeResult) shouldBe IO.unit
 
             level.isEmpty shouldBe true

@@ -32,7 +32,7 @@ import scala.collection.mutable.ListBuffer
 
 /**
  * An [[Aggregator]] that also builds [[MergeStats]] for gap key-values to help Segments pre-compute merge statistics
- * which [[swaydb.core.segment.assigner.SegmentAssignment]] uses.
+ * which [[swaydb.core.segment.assigner.Assignment]] uses.
  */
 object GapAggregator {
 

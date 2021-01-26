@@ -24,9 +24,10 @@
 
 package swaydb.core.level
 
-import swaydb.core.data.DefIO
+import swaydb.core.data.{DefIO, Memory}
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
-import swaydb.core.segment.assigner.Assignable
+import swaydb.core.merge.stats.MergeStats
+import swaydb.core.segment.assigner.{Assignable, Assignment}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.compaction.{LevelMeter, PushStrategy, Throttle}
@@ -80,17 +81,18 @@ trait NextLevel extends LevelRef {
 
   def assign(newKeyValues: Assignable.Collection,
              targetSegments: IterableOnce[Segment],
-             removeDeletedRecords: Boolean): LevelAssignment
+             removeDeletedRecords: Boolean): DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]]
 
   def assign(newKeyValues: Iterable[Assignable.Collection],
              targetSegments: IterableOnce[Segment],
-             removeDeletedRecords: Boolean): LevelAssignment
+             removeDeletedRecords: Boolean): DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]]
 
   def assign(newKeyValues: LevelZeroMap,
              targetSegments: IterableOnce[Segment],
-             removeDeletedRecords: Boolean): LevelAssignment
+             removeDeletedRecords: Boolean): DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]]
 
-  def merge(assigment: LevelAssignment)(implicit ec: ExecutionContext): Future[Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]
+  def merge(assigment: DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]],
+            removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]
 
   def refresh(segment: Iterable[Segment],
               removeDeletedRecords: Boolean): IO[Error.Level, Iterable[DefIO[Segment, Slice[TransientSegment]]]]

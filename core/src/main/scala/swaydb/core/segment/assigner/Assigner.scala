@@ -43,22 +43,22 @@ import scala.collection.mutable.ListBuffer
  * Assigns [[Assignable]] types to Segments.
  */
 
-private[core] object SegmentAssigner {
+private[core] object Assigner {
 
   def assignMinMaxOnlyUnsafeNoGaps(inputSegments: Iterable[Assignable.Collection],
                                    targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assignUnsafeNoGaps(Segment.tempMinMaxKeyValues(inputSegments), targetSegments).map(_.segment)
+    Assigner.assignUnsafeNoGaps(Segment.tempMinMaxKeyValues(inputSegments), targetSegments).map(_.segment)
 
   def assignMinMaxOnlyUnsafeNoGaps(input: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
                                    targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assignUnsafeNoGaps(Segment.tempMinMaxKeyValues(input), targetSegments).map(_.segment)
+    Assigner.assignUnsafeNoGaps(Segment.tempMinMaxKeyValues(input), targetSegments).map(_.segment)
 
   def assignMinMaxOnlyUnsafeNoGaps(input: Slice[Memory],
                                    targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assignUnsafeNoGaps(Segment.tempMinMaxKeyValues(input), targetSegments).map(_.segment)
+    Assigner.assignUnsafeNoGaps(Segment.tempMinMaxKeyValues(input), targetSegments).map(_.segment)
 
   def assignUnsafeNoGaps(keyValues: IterableOnce[Assignable],
-                         segments: IterableOnce[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): ListBuffer[SegmentAssignment[Nothing, ListBuffer[Assignable], Segment]] =
+                         segments: IterableOnce[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): ListBuffer[Assignment[Nothing, ListBuffer[Assignable], Segment]] =
     assignUnsafe[Nothing, ListBuffer[Assignable], Segment](
       keyValues = keyValues.iterator,
       segmentsIterator = segments.iterator,
@@ -67,7 +67,7 @@ private[core] object SegmentAssigner {
 
   def assignUnsafeGaps[GAP](keyValues: IterableOnce[Assignable],
                             segments: IterableOnce[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[SegmentAssignment[GAP, ListBuffer[Assignable], Segment]] =
+                                                             gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[Assignment[GAP, ListBuffer[Assignable], Segment]] =
     assignUnsafe[GAP, ListBuffer[Assignable], Segment](
       keyValues = keyValues.iterator,
       segmentsIterator = segments.iterator,
@@ -76,7 +76,7 @@ private[core] object SegmentAssigner {
 
   def assignUnsafeGapsSegmentRef[GAP](keyValues: IterableOnce[Assignable],
                                       segments: IterableOnce[SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                          gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[SegmentAssignment[GAP, ListBuffer[Assignable], SegmentRef]] =
+                                                                          gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[Assignment[GAP, ListBuffer[Assignable], SegmentRef]] =
     assignUnsafe[GAP, ListBuffer[Assignable], SegmentRef](
       keyValues = keyValues.iterator,
       segmentsIterator = segments.iterator,
@@ -87,7 +87,7 @@ private[core] object SegmentAssigner {
                                                              segments: IterableOnce[SEG])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                           midCreator: Aggregator.Creator[Assignable, MID],
                                                                                           gapCreator: Aggregator.Creator[Assignable, GAP],
-                                                                                          assignmentTarget: AssignmentTarget[SEG]): ListBuffer[SegmentAssignment[GAP, MID, SEG]] =
+                                                                                          assignmentTarget: AssignmentTarget[SEG]): ListBuffer[Assignment[GAP, MID, SEG]] =
     assignUnsafe[GAP, MID, SEG](
       keyValues = keyValues.iterator,
       segmentsIterator = segments.iterator,
@@ -108,10 +108,10 @@ private[core] object SegmentAssigner {
                                                                  noGaps: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                   gapCreator: Aggregator.Creator[Assignable, GAP],
                                                                                   midCreator: Aggregator.Creator[Assignable, MID],
-                                                                                  assignmentTarget: AssignmentTarget[SEG]): ListBuffer[SegmentAssignment[GAP, MID, SEG]] = {
+                                                                                  assignmentTarget: AssignmentTarget[SEG]): ListBuffer[Assignment[GAP, MID, SEG]] = {
     import keyOrder._
 
-    val assignments = ListBuffer.empty[SegmentAssignment[GAP, MID, SEG]]
+    val assignments = ListBuffer.empty[Assignment[GAP, MID, SEG]]
 
     @inline def getNextSegmentMayBe(): SEG = if (segmentsIterator.hasNext) segmentsIterator.next() else null
 
@@ -131,12 +131,12 @@ private[core] object SegmentAssigner {
     def assignToSegment(assignable: Assignable,
                         assignTo: SEG): Unit =
       assignments.lastOption match {
-        case Some(SegmentAssignment(bufferSegment, _, mid, _)) if bufferSegment == assignTo =>
+        case Some(Assignment(bufferSegment, _, mid, _)) if bufferSegment == assignTo =>
           mid add assignable
 
         case _ =>
           assignments +=
-            SegmentAssignment(
+            Assignment(
               segment = assignTo,
               //if noGaps is true then gapCreator will return Nothing Aggregator which cannot be accessed.
               //So use null so that no objects are created.
@@ -149,7 +149,7 @@ private[core] object SegmentAssigner {
     def assignToGap(assignable: Assignable,
                     assignTo: SEG): Unit =
       assignments.lastOption match {
-        case Some(SegmentAssignment(bufferSegment, headGap, midOverlap, tailGap)) if bufferSegment == assignTo =>
+        case Some(Assignment(bufferSegment, headGap, midOverlap, tailGap)) if bufferSegment == assignTo =>
           if (midOverlap.result.isEmpty && assignable.key < assignTo.minKey)
             headGap add assignable
           else
@@ -169,7 +169,7 @@ private[core] object SegmentAssigner {
             }
 
           assignments +=
-            SegmentAssignment(
+            Assignment(
               segment = assignTo,
               headGap = headGap,
               midOverlap = midCreator.createNew(),
@@ -354,7 +354,7 @@ private[core] object SegmentAssigner {
                           //check if a key-value is already assigned to thisSegment. Else if thisSegment is empty jump to next
                           //there is no point adding a single key-value to a Segment.
                           assignments.lastOption match {
-                            case Some(SegmentAssignment(segment, _, keyValues, _)) if segment == thisSegment =>
+                            case Some(Assignment(segment, _, keyValues, _)) if segment == thisSegment =>
                               keyValues add assignable
                               assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
 
@@ -387,7 +387,7 @@ private[core] object SegmentAssigner {
                           //same code as above, need to push it to a common function.
                           if (noGaps) {
                             assignments.lastOption match {
-                              case Some(SegmentAssignment(segment, _, keyValues, _)) if segment == thisSegment =>
+                              case Some(Assignment(segment, _, keyValues, _)) if segment == thisSegment =>
                                 keyValues add keyValue
                                 assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
 

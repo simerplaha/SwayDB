@@ -40,7 +40,7 @@ import swaydb.serializers._
 import scala.jdk.CollectionConverters._
 import scala.util.Random
 
-class LevelZeroTaskAssigner_createStacks_Range_BehaviourSpec extends TestBase with MockFactory {
+class LevelZeroTaskAssigner_createStacks_Range_Spec extends TestBase with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default

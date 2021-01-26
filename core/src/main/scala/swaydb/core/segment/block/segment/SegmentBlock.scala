@@ -385,62 +385,64 @@ private[core] case object SegmentBlock extends LazyLogging {
       var closed = true
 
       //start building the segment.
-      mergeStats.keyValues foreach {
-        keyValue =>
-          closed = false
-          totalProcessedCount += 1
-          processedInThisSegment += 1
+      val mergeStatsKeyValuesIterator = mergeStats.keyValues.iterator
 
-          val comparableKey = keyOrder.comparableKey(keyValue.key)
-          bloomFilterIndexableKeys += comparableKey
+      while (mergeStatsKeyValuesIterator.hasNext) {
+        val keyValue = mergeStatsKeyValuesIterator.next()
+        closed = false
+        totalProcessedCount += 1
+        processedInThisSegment += 1
 
-          SortedIndexBlock.write(keyValue = keyValue, state = sortedIndex)
-          values foreach (ValuesBlock.write(keyValue, _))
+        val comparableKey = keyOrder.comparableKey(keyValue.key)
+        bloomFilterIndexableKeys += comparableKey
 
-          //Do not include SegmentFooterBlock.optimalBytesRequired here. Screws up the above max segments count estimation.
-          var currentSegmentSize = sortedIndex.compressibleBytes.size
-          values foreach (currentSegmentSize += _.compressibleBytes.size)
+        SortedIndexBlock.write(keyValue = keyValue, state = sortedIndex)
+        values foreach (ValuesBlock.write(keyValue, _))
 
-          //check and close segment if segment size limit is reached.
-          //to do - maybe check if compression is defined and increase the segmentSize.
-          def segmentSizeLimitReached: Boolean =
-            currentSegmentSize >= segmentConfig.minSize && unwrittenTailSegmentBytes() > segmentConfig.minSize
+        //Do not include SegmentFooterBlock.optimalBytesRequired here. Screws up the above max segments count estimation.
+        var currentSegmentSize = sortedIndex.compressibleBytes.size
+        values foreach (currentSegmentSize += _.compressibleBytes.size)
 
-          def segmentCountLimitReached: Boolean =
-            processedInThisSegment >= segmentConfig.maxCount && (keyValuesCount - totalProcessedCount >= segmentConfig.maxCount)
+        //check and close segment if segment size limit is reached.
+        //to do - maybe check if compression is defined and increase the segmentSize.
+        def segmentSizeLimitReached: Boolean =
+          currentSegmentSize >= segmentConfig.minSize && unwrittenTailSegmentBytes() > segmentConfig.minSize
 
-          if (segmentCountLimitReached || segmentSizeLimitReached) {
-            logger.debug(s"Creating segment of size: $currentSegmentSize.bytes. segmentCountLimitReached: $segmentCountLimitReached. segmentSizeLimitReached: $segmentSizeLimitReached")
+        def segmentCountLimitReached: Boolean =
+          processedInThisSegment >= segmentConfig.maxCount && (keyValuesCount - totalProcessedCount >= segmentConfig.maxCount)
 
-            val (closedSegment, nextSortedIndex, nextValues) =
-              writeSegmentRef(
-                createdInLevel = createdInLevel,
-                hasMoreKeyValues = totalProcessedCount < keyValuesCount,
-                bloomFilterIndexableKeys = bloomFilterIndexableKeys,
-                sortedIndex = sortedIndex,
-                values = values,
-                bloomFilterConfig = bloomFilterConfig,
-                hashIndexConfig = hashIndexConfig,
-                binarySearchIndexConfig = binarySearchIndexConfig,
-                sortedIndexConfig = sortedIndexConfig,
-                valuesConfig = valuesConfig,
-                prepareForCachingSegmentBlocksOnCreate = segmentConfig.cacheBlocksOnCreate
-              )
+        if (segmentCountLimitReached || segmentSizeLimitReached) {
+          logger.debug(s"Creating segment of size: $currentSegmentSize.bytes. segmentCountLimitReached: $segmentCountLimitReached. segmentSizeLimitReached: $segmentSizeLimitReached")
 
-            segments add closedSegment
+          val (closedSegment, nextSortedIndex, nextValues) =
+            writeSegmentRef(
+              createdInLevel = createdInLevel,
+              hasMoreKeyValues = totalProcessedCount < keyValuesCount,
+              bloomFilterIndexableKeys = bloomFilterIndexableKeys,
+              sortedIndex = sortedIndex,
+              values = values,
+              bloomFilterConfig = bloomFilterConfig,
+              hashIndexConfig = hashIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              valuesConfig = valuesConfig,
+              prepareForCachingSegmentBlocksOnCreate = segmentConfig.cacheBlocksOnCreate
+            )
 
-            //segment's closed. Prepare for next Segment.
-            bloomFilterIndexableKeys.clear() //clear bloomFilter keys.
+          segments add closedSegment
 
-            nextSortedIndex foreach { //set the newSortedIndex if it was created.
-              newSortedIndex =>
-                sortedIndex = newSortedIndex
-            }
+          //segment's closed. Prepare for next Segment.
+          bloomFilterIndexableKeys.clear() //clear bloomFilter keys.
 
-            values = nextValues
-            processedInThisSegment = 0
-            closed = true
+          nextSortedIndex foreach { //set the newSortedIndex if it was created.
+            newSortedIndex =>
+              sortedIndex = newSortedIndex
           }
+
+          values = nextValues
+          processedInThisSegment = 0
+          closed = true
+        }
       }
 
       //if the segment was closed and all key-values were written then close Segment.
@@ -618,33 +620,38 @@ private[core] case object SegmentBlock extends LazyLogging {
         binarySearchConfig = binarySearchIndexConfig
       )
 
-    if (hashIndex.isDefined || binarySearchIndex.isDefined)
-      sortedIndexState.secondaryIndexEntries foreach {
-        indexEntry =>
-          val hit =
-            if (hashIndex.isDefined)
-              HashIndexBlock.write(
-                entry = indexEntry,
-                state = hashIndex.get
-              )
-            else
-              false
-
-          //if it's a hit and binary search is not configured to be full.
-          //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
-          if (binarySearchIndex.isDefined && (binarySearchIndexConfig.fullIndex || !hit))
-            BinarySearchIndexBlock.write(
+    if (hashIndex.isDefined || binarySearchIndex.isDefined) {
+      val secondaryIndexEntriesIterator = sortedIndexState.secondaryIndexEntries.iterator
+      while (secondaryIndexEntriesIterator.hasNext) {
+        val indexEntry = secondaryIndexEntriesIterator.next()
+        val hit =
+          if (hashIndex.isDefined)
+            HashIndexBlock.write(
               entry = indexEntry,
-              state = binarySearchIndex.get
+              state = hashIndex.get
             )
+          else
+            false
+
+        //if it's a hit and binary search is not configured to be full.
+        //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
+        if (binarySearchIndex.isDefined && (binarySearchIndexConfig.fullIndex || !hit))
+          BinarySearchIndexBlock.write(
+            entry = indexEntry,
+            state = binarySearchIndex.get
+          )
       }
+    }
 
     bloomFilter foreach {
       bloomFilter =>
-        bloomFilterIndexableKeys foreach {
-          key =>
-            BloomFilterBlock.add(key, bloomFilter)
-        }
+        val it = bloomFilterIndexableKeys.iterator
+
+        while (it.hasNext)
+          BloomFilterBlock.add(
+            comparableKey = it.next(),
+            state = bloomFilter
+          )
     }
 
     new ClosedBlocks(

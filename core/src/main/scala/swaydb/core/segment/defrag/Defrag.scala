@@ -48,7 +48,6 @@ object Defrag {
                                                                                                                mergeStatsCreator: MergeStatsCreator[S],
                                                                                                                mergeStatsSizeCalculator: MergeStatsSizeCalculator[S],
                                                                                                                executionContext: ExecutionContext): Future[ListBuffer[TransientSegment.Fragment[S]]] = {
-
     @inline def run(gap: Iterable[Assignable.Gap[S]], fragments: ListBuffer[TransientSegment.Fragment[S]]) =
       if (gap.isEmpty)
         Future.successful(fragments)
@@ -87,8 +86,6 @@ object Defrag {
                                                                                                                                                 segmentConfig: SegmentBlock.Config,
                                                                                                                                                 mergeStatsCreator: MergeStatsCreator[S],
                                                                                                                                                 mergeStatsSizeCalculator: MergeStatsSizeCalculator[S]): DefIO[NULL_SEG, ListBuffer[TransientSegment.Fragment[S]]] = {
-
-
     //forceExpand if there are cleanable (updates, removes etc) key-values or if segment size is too small.
     val forceExpand =
       (removeDeletes && segment.hasUpdateOrRange) || ((headGap.nonEmpty || tailGap.nonEmpty) && segment.segmentSize < segmentConfig.minSize && segment.keyValueCount < segmentConfig.maxCount)

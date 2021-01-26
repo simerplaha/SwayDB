@@ -28,7 +28,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.level.compaction.task.CompactionDataType
-import swaydb.core.segment.assigner.SegmentAssignmentResult
+import swaydb.core.segment.assigner.AssignmentResult
 
 import scala.collection.mutable
 
@@ -44,7 +44,7 @@ class TaskAssigner_groupAssignments_Spec extends AnyWordSpec with Matchers with 
       //   2
 
       val assignment1 =
-        SegmentAssignmentResult(
+        AssignmentResult(
           segment = 2,
           headGapResult = List(1),
           midOverlapResult = List(2),
@@ -55,7 +55,7 @@ class TaskAssigner_groupAssignments_Spec extends AnyWordSpec with Matchers with 
       //   3
 
       val assignment2 =
-        SegmentAssignmentResult(
+        AssignmentResult(
           segment = 3,
           headGapResult = List(4),
           midOverlapResult = List(5),
@@ -82,8 +82,8 @@ class TaskAssigner_groupAssignments_Spec extends AnyWordSpec with Matchers with 
       //1, 2, 3
       //   2
 
-      val assignment1: SegmentAssignmentResult[mutable.SortedSet[Int], mutable.SortedSet[Int], Int] =
-        SegmentAssignmentResult(
+      val assignment1: AssignmentResult[mutable.SortedSet[Int], mutable.SortedSet[Int], Int] =
+        AssignmentResult(
           segment = 2,
           headGapResult = mutable.SortedSet(1),
           midOverlapResult = mutable.SortedSet(2),
@@ -93,8 +93,8 @@ class TaskAssigner_groupAssignments_Spec extends AnyWordSpec with Matchers with 
       //3, 4, 5
       //   3
 
-      val assignment2: SegmentAssignmentResult[mutable.SortedSet[Int], mutable.SortedSet[Int], Int] =
-        SegmentAssignmentResult(
+      val assignment2: AssignmentResult[mutable.SortedSet[Int], mutable.SortedSet[Int], Int] =
+        AssignmentResult(
           segment = 3,
           headGapResult = mutable.SortedSet(3),
           midOverlapResult = mutable.SortedSet(4),
@@ -102,7 +102,7 @@ class TaskAssigner_groupAssignments_Spec extends AnyWordSpec with Matchers with 
         )
 
       val groups =
-        TaskAssigner.groupAssignmentsForScoring[Int, Int, SegmentAssignmentResult[mutable.SortedSet[Int], mutable.SortedSet[Int], Int]](List(assignment1, assignment2))
+        TaskAssigner.groupAssignmentsForScoring[Int, Int, AssignmentResult[mutable.SortedSet[Int], mutable.SortedSet[Int], Int]](List(assignment1, assignment2))
 
       groups should have size 1
       val group = groups.head

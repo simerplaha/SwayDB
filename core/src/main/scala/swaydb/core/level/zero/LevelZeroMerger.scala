@@ -124,7 +124,7 @@ object LevelZeroMerger {
           insert.fromKey
       } getOrElse insert.fromKey
 
-    val conflictingKeyValues = state.skipList.subMap(startKey, true, insert.toKey, false)
+    val conflictingKeyValues = state.skipList.subMap(from = startKey, fromInclusive = true, to = insert.toKey, toInclusive = false)
     if (conflictingKeyValues.isEmpty) {
       state.setHasRangeToTrue() //set this before put so reads know to floor this skipList.
       state.skipList.put(insert.key, insert)

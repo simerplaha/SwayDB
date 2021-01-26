@@ -38,26 +38,29 @@ import swaydb.{Error, IO}
 
 import scala.collection.compat._
 
-case object BehaviourCommit extends LazyLogging {
+protected case object BehaviourCommit extends LazyLogging {
 
-  private def commitMergeResult(mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Slice[Unit]] =
+  private val levelCommitOrder =
+    Ordering.Int.reverse.on[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]](_.input.levelNumber)
+
+  def persistAndCommit(mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Slice[Unit]] =
     mergeResults
       .mapRecoverIO[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]](
         block = {
-          defIO =>
-            defIO
+          levelIO =>
+            levelIO
               .input
-              .persist(defIO.output)
-              .transform(result => defIO.copyOutput(result))
+              .persist(levelIO.output)
+              .transform(result => levelIO.copyOutput(result))
         },
         recover = {
           case (result, error) =>
             logger.error(s"Failed to create Segments. Performing cleanup.", error.exception)
             result foreach {
-              defIO =>
-                defIO.output foreach {
-                  defIO =>
-                    defIO.output foreach {
+              levelIO =>
+                levelIO.output foreach {
+                  segmentIO =>
+                    segmentIO.output foreach {
                       segment =>
                         IO(segment.delete) onLeftSideEffect {
                           exception =>
@@ -70,10 +73,10 @@ case object BehaviourCommit extends LazyLogging {
       )
       .flatMap {
         persisted =>
-          //TODO - reverse?
-          persisted.mapRecoverIO {
+          //commit the Segments to each Level in reverse order
+          persisted.sorted(levelCommitOrder) mapRecoverIO {
             defIO =>
-              defIO.input.commitPersisted(defIO.output, None)
+              defIO.input.commitPersisted(defIO.output)
           }
       }
 
@@ -88,13 +91,13 @@ case object BehaviourCommit extends LazyLogging {
   def commit(fromLevel: Level,
              segments: Iterable[Segment],
              mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Unit] =
-    commitMergeResult(mergeResults)
+    persistAndCommit(mergeResults)
       .and(fromLevel.remove(segments))
 
   def commit(fromLevel: LevelZero,
              maps: IterableOnce[LevelZeroMap],
              mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Unit] =
-    commitMergeResult(mergeResults)
+    persistAndCommit(mergeResults)
       .and {
         maps
           .iterator

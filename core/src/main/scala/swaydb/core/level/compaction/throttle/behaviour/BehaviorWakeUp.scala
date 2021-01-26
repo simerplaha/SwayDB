@@ -41,10 +41,15 @@ import swaydb.data.util.Futures._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
+trait BehaviorWakeUp {
+  def wakeUp(state: ThrottleCompactorContext)(implicit ec: ExecutionContext,
+                                              self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleCompactorContext]
+}
+
 /**
  * Implements compaction functions.
  */
-private[throttle] object BehaviorWakeUp extends LazyLogging {
+private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging {
 
   def wakeUp(state: ThrottleCompactorContext)(implicit ec: ExecutionContext,
                                               self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleCompactorContext] = {
@@ -90,8 +95,7 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
     lastLevel
   }
 
-  private def runWakeUp(context: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor, Unit],
-                                                           ec: ExecutionContext): Future[ThrottleCompactorContext] = {
+  private def runWakeUp(context: ThrottleCompactorContext)(implicit ec: ExecutionContext): Future[ThrottleCompactorContext] = {
     logger.debug(s"\n\n\n\n\n\n${context.name}: Running compaction!")
 
     Future
@@ -194,10 +198,9 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
     }
   }
 
-  private[throttle] def runCompactions(context: ThrottleCompactorContext,
-                                       compactions: Slice[LevelRef],
-                                       lastLevel: Level)(implicit self: DefActor[ThrottleCompactor, Unit],
-                                                         ec: ExecutionContext): Future[ThrottleCompactorContext] =
+  def runCompactions(context: ThrottleCompactorContext,
+                     compactions: Slice[LevelRef],
+                     lastLevel: Level)(implicit ec: ExecutionContext): Future[ThrottleCompactorContext] =
     if (context.terminateASAP()) {
       logger.warn(s"${context.name}: Cannot run jobs. Compaction is terminated.")
       Future.successful(context)
@@ -259,12 +262,11 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
   /**
    * It should be be re-fetched for the same compaction.
    */
-  private[throttle] def runCompaction(level: LevelRef,
-                                      nextLevels: Slice[Level],
-                                      stateId: Long,
-                                      lastLevel: Level,
-                                      pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                                                  self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleLevelState] =
+  def runCompaction(level: LevelRef,
+                    nextLevels: Slice[Level],
+                    stateId: Long,
+                    lastLevel: Level,
+                    pushStrategy: PushStrategy)(implicit ec: ExecutionContext): Future[ThrottleLevelState] =
     level match {
       case zero: LevelZero =>
         compactLevelZero(
@@ -285,11 +287,11 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
         )
     }
 
-  private def compactLevelZero(zero: LevelZero,
-                               nextLevels: Slice[Level],
-                               stateId: Long,
-                               lastLevel: Level,
-                               pushStrategy: PushStrategy)(implicit ec: ExecutionContext): Future[ThrottleLevelState] =
+  def compactLevelZero(zero: LevelZero,
+                       nextLevels: Slice[Level],
+                       stateId: Long,
+                       lastLevel: Level,
+                       pushStrategy: PushStrategy)(implicit ec: ExecutionContext): Future[ThrottleLevelState] =
     if (zero.isEmpty)
       Future.successful {
         LevelSleepStates.success(
@@ -321,12 +323,11 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
           )
       }
 
-  private def compactLevel(level: Level,
-                           nextLevels: Slice[Level],
-                           stateId: Long,
-                           lastLevel: Level,
-                           pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                                       self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleLevelState] =
+  def compactLevel(level: Level,
+                   nextLevels: Slice[Level],
+                   stateId: Long,
+                   lastLevel: Level,
+                   pushStrategy: PushStrategy)(implicit ec: ExecutionContext): Future[ThrottleLevelState] =
     if (level.isEmpty) {
       Future.successful {
         LevelSleepStates.success(
@@ -334,63 +335,84 @@ private[throttle] object BehaviorWakeUp extends LazyLogging {
           stateId = stateId
         )
       }
-    } else {
-      def runTask(task: CompactionTask.Segments): Future[ThrottleLevelState] =
-        BehaviourCompactionTask.runSegmentTask(
-          task = task,
-          lastLevel = lastLevel
-        ) flatMapUnit {
-          //if after running last Level compaction there is still an overflow request extension.
-          if (level.levelNumber == lastLevel.levelNumber && level.nextLevel.isDefined && level.nextCompactionDelay.fromNow.isOverdue()) {
-            val task =
-              LevelTaskAssigner.run(
-                source = lastLevel,
-                pushStrategy = pushStrategy,
-                lowerLevels = NonEmptyList(lastLevel.nextLevel.get.asInstanceOf[Level]),
-                sourceOverflow = lastLevel.compactDataSize max lastLevel.minSegmentSize
-              )
+    } else if (level.levelNumber == lastLevel.levelNumber) {
+      LevelTaskAssigner.cleanup(level = level, lastLevel = lastLevel) match {
+        case Some(task) =>
+          runSegmentTask(
+            task = task,
+            level = level,
+            stateId = stateId,
+            lastLevel = lastLevel,
+            pushStrategy = pushStrategy
+          )
 
-            //TODO - test to make sure this recursion does not run indefinitely.
-            runTask(task)
-          } else {
-            Future.successful {
-              LevelSleepStates.success(
-                level = level,
-                stateId = stateId
-              )
-            }
-          }
-        } recover {
-          case _ =>
-            LevelSleepStates.failure(
+        case None =>
+          Future.successful {
+            LevelSleepStates.success(
               level = level,
               stateId = stateId
             )
-        }
+          }
+      }
+    } else {
+      val task =
+        LevelTaskAssigner.run(
+          source = level,
+          pushStrategy = pushStrategy,
+          lowerLevels = NonEmptyList(nextLevels.head, nextLevels.dropHead()),
+          sourceOverflow = level.compactDataSize max level.minSegmentSize
+        )
 
-      if (level.levelNumber == lastLevel.levelNumber) {
-        LevelTaskAssigner.cleanup(level = level, lastLevel = lastLevel) match {
-          case Some(task) =>
-            runTask(task)
+      runSegmentTask(
+        task = task,
+        level = level,
+        stateId = stateId,
+        lastLevel = lastLevel,
+        pushStrategy = pushStrategy
+      )
+    }
 
-          case None =>
-            Future.successful {
-              LevelSleepStates.success(
-                level = level,
-                stateId = stateId
-              )
-            }
-        }
-      } else {
+  def runSegmentTask(task: CompactionTask.Segments,
+                     level: Level,
+                     stateId: Long,
+                     lastLevel: Level,
+                     pushStrategy: PushStrategy)(implicit ec: ExecutionContext): Future[ThrottleLevelState] =
+    BehaviourCompactionTask.runSegmentTask(
+      task = task,
+      lastLevel = lastLevel
+    ) flatMapUnit {
+      //if after running last Level compaction there is still an overflow request extension.
+      if (level.levelNumber == lastLevel.levelNumber && level.nextLevel.isDefined && level.nextCompactionDelay.fromNow.isOverdue()) {
         val task =
           LevelTaskAssigner.run(
-            source = level,
+            source = lastLevel,
             pushStrategy = pushStrategy,
-            lowerLevels = NonEmptyList(nextLevels.head, nextLevels.dropHead()),
-            sourceOverflow = level.compactDataSize max level.minSegmentSize
+            lowerLevels = NonEmptyList(lastLevel.nextLevel.get.asInstanceOf[Level]),
+            sourceOverflow = lastLevel.compactDataSize max lastLevel.minSegmentSize
           )
 
-        runTask(task)
+        //TODO - test to make sure this recursion does not run indefinitely.
+        runSegmentTask(
+          task = task,
+          level = level,
+          stateId = stateId,
+          lastLevel = lastLevel,
+          pushStrategy = pushStrategy
+        )
+      } else {
+        Future.successful {
+          LevelSleepStates.success(
+            level = level,
+            stateId = stateId
+          )
+        }
       }
+    } recover {
+      case _ =>
+        LevelSleepStates.failure(
+          level = level,
+          stateId = stateId
+        )
     }
+
 }

@@ -63,6 +63,5 @@ private[swaydb] object Futures {
 
     @inline def mapUnit[A](future2: => A)(implicit executionContext: ExecutionContext): Future[A] =
       future1.map(_ => future2)
-
   }
 }

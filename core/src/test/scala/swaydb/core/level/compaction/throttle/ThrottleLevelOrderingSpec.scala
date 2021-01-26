@@ -30,4 +30,3 @@ import org.scalatest.matchers.should.Matchers
 class ThrottleLevelOrderingSpec extends AnyFlatSpec with Matchers {
 
 }
-

@@ -26,10 +26,10 @@ package swaydb.core.segment.defrag
 
 import swaydb.core.data.Memory
 import swaydb.core.merge.stats.MergeStats
-import swaydb.core.segment.assigner.{Assignable, SegmentAssignment}
+import swaydb.core.segment.assigner.{Assignable, Assignment}
 import swaydb.core.segment.block.segment.data.TransientSegment
 
 import scala.collection.mutable.ListBuffer
 
 case class FragmentAndAssignment[SEG](fragments: ListBuffer[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                      assignments: ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], SEG]])
+                                      assignments: ListBuffer[Assignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], SEG]])

@@ -27,6 +27,7 @@ package swaydb.core.level.compaction.throttle
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.level.LevelRef
+import swaydb.core.level.compaction.throttle.behaviour.BehaviorWakeUp
 import swaydb.core.level.compaction.{Compactor, CompactorCreator}
 import swaydb.core.level.zero.LevelZero
 import swaydb.data.compaction.CompactionConfig
@@ -58,7 +59,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
 
     Actor.define[ThrottleCompactor](
       name = s"Compaction Actor",
-      init = ThrottleCompactor(state)
+      init = actor => ThrottleCompactor(state)(actor, BehaviorWakeUp)
     ).onPreTerminate {
       case (impl, _, _) =>
         impl.terminateASAP()

@@ -29,7 +29,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.level.compaction.task.CompactionDataType
-import swaydb.core.segment.assigner.SegmentAssignmentResult
+import swaydb.core.segment.assigner.AssignmentResult
 import swaydb.data.RunThis._
 
 import scala.collection.mutable.ListBuffer
@@ -43,7 +43,7 @@ class TaskAssigner_finaliseSegmentsToCompact_Spec extends AnyWordSpec with Match
    */
   "single assignment" when {
     val assignment =
-      SegmentAssignmentResult[ListBuffer[Int], ListBuffer[Int], String](
+      AssignmentResult[ListBuffer[Int], ListBuffer[Int], String](
         segment = "segment",
         headGapResult = ListBuffer(0, 1),
         midOverlapResult = ListBuffer(2, 3, 4),
@@ -198,7 +198,7 @@ class TaskAssigner_finaliseSegmentsToCompact_Spec extends AnyWordSpec with Match
    */
   "multi assignment" when {
     val assignment1 =
-      SegmentAssignmentResult[ListBuffer[Int], ListBuffer[Int], String](
+      AssignmentResult[ListBuffer[Int], ListBuffer[Int], String](
         segment = "segment1",
         headGapResult = ListBuffer(0),
         midOverlapResult = ListBuffer(1),
@@ -206,7 +206,7 @@ class TaskAssigner_finaliseSegmentsToCompact_Spec extends AnyWordSpec with Match
       )
 
     val assignment2 =
-      SegmentAssignmentResult[ListBuffer[Int], ListBuffer[Int], String](
+      AssignmentResult[ListBuffer[Int], ListBuffer[Int], String](
         segment = "segment2",
         headGapResult = ListBuffer(3),
         midOverlapResult = ListBuffer(4),
@@ -214,7 +214,7 @@ class TaskAssigner_finaliseSegmentsToCompact_Spec extends AnyWordSpec with Match
       )
 
     val assignment3 =
-      SegmentAssignmentResult[ListBuffer[Int], ListBuffer[Int], String](
+      AssignmentResult[ListBuffer[Int], ListBuffer[Int], String](
         segment = "segment3",
         headGapResult = ListBuffer(6),
         midOverlapResult = ListBuffer(7),
