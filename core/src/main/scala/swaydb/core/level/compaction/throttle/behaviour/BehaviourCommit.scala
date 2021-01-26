@@ -36,8 +36,6 @@ import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
-import scala.collection.compat._
-
 protected case object BehaviourCommit extends LazyLogging {
 
   private val levelCommitOrder =
@@ -51,7 +49,7 @@ protected case object BehaviourCommit extends LazyLogging {
             levelIO
               .input
               .persist(levelIO.output)
-              .transform(result => levelIO.copyOutput(result))
+              .transform(levelIO.withOutput)
         },
         recover = {
           case (result, error) =>
@@ -95,13 +93,11 @@ protected case object BehaviourCommit extends LazyLogging {
       .and(fromLevel.remove(segments))
 
   def commit(fromLevel: LevelZero,
-             maps: IterableOnce[LevelZeroMap],
+             maps: List[LevelZeroMap],
              mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Unit] =
     persistAndCommit(mergeResults)
       .and {
         maps
-          .iterator
-          .toList
           .reverse
           .mapRecoverIO {
             map =>

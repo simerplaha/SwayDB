@@ -67,9 +67,12 @@ case object LevelZeroTaskAssigner {
     implicit val timeOrder: TimeOrder[Slice[Byte]] = source.timeOrder
     implicit val functionStore: FunctionStore = source.functionStore
 
-    val (sourceIterator, processedMapsIterator) = source.maps.compactionIterator().duplicate
+    //covert to List because now BehaviourCommit.commit requires
+    //this maps to be reversible so do the conversion here instead
+    //of working with iterators
+    val maps = source.maps.compactionIterator().toList
 
-    flatten(sourceIterator)
+    flatten(maps)
       .map {
         collections =>
           TaskAssigner.assignQuick(
@@ -83,16 +86,16 @@ case object LevelZeroTaskAssigner {
         tasks =>
           CompactionTask.CompactMaps(
             source = source,
-            maps = processedMapsIterator,
+            maps = maps,
             tasks = tasks
           )
       }
   }
 
-  def flatten(input: Iterator[LevelZeroMap])(implicit ec: ExecutionContext,
-                                             keyOrder: KeyOrder[Slice[Byte]],
-                                             timerOrder: TimeOrder[Slice[Byte]],
-                                             functionStore: FunctionStore): Future[Iterable[Assignable.Collection]] =
+  def flatten(input: IterableOnce[LevelZeroMap])(implicit ec: ExecutionContext,
+                                                 keyOrder: KeyOrder[Slice[Byte]],
+                                                 timerOrder: TimeOrder[Slice[Byte]],
+                                                 functionStore: FunctionStore): Future[Iterable[Assignable.Collection]] =
     Future(createStacks(input)) flatMap {
       stacks =>
         Future.traverse(stacks.values().asScala.map(_.stack))(mergeStack) map {

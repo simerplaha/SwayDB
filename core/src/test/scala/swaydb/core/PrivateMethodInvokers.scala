@@ -29,10 +29,11 @@ import swaydb.core.map.timer.Timer
 import swaydb.core.map.{Map, MapCache, Maps}
 import swaydb.core.segment.PersistentSegment
 import swaydb.core.segment.ref.SegmentRef
-import swaydb.core.util.HashedMap
+import swaydb.core.util.{HashedMap, IDGenerator}
 import swaydb.core.util.queue.VolatileQueue
 import swaydb.data.slice.Slice
 
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}
 
 object PrivateMethodInvokers {
@@ -55,6 +56,11 @@ object PrivateMethodInvokers {
   def getSegmentsCache(segment: PersistentSegment): ConcurrentSkipListMap[Slice[Byte], SegmentRef] = {
     val function = PrivateMethod[ConcurrentSkipListMap[Slice[Byte], SegmentRef]](Symbol("segmentsCache"))
     segment.invokePrivate(function())
+  }
+
+  def getAtomicLong(generator: IDGenerator): AtomicLong = {
+    val function = PrivateMethod[AtomicLong](Symbol("atomicID"))
+    generator.invokePrivate(function())
   }
 
 }

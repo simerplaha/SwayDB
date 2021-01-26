@@ -833,7 +833,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             segment.existsOnDisk shouldBe true
 
             val copiedSegment = segment.reopen(targetPath)
-            copiedSegment.iterator().toList.toSlice shouldBe keyValuesReadOnly
+            copiedSegment.iterator().toSlice shouldBe keyValuesReadOnly
             copiedSegment.path shouldBe targetPath
 
             //original segment should still exist

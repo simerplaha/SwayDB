@@ -69,6 +69,15 @@ object RunThis extends Eventually {
 
     def awaitInf: T =
       Await.result(f, Duration.Inf)
+
+    def awaitFailureInf: Throwable =
+      try {
+        val result = Await.result(f, Duration.Inf)
+        throw new Exception(s"Expected failure. Actual success: $result")
+      } catch {
+        case throwable: Throwable =>
+          throwable
+      }
   }
 
   implicit class FutureAwait2[T](f: => T)(implicit ec: ExecutionContext) {
@@ -96,13 +105,13 @@ object RunThis extends Eventually {
 
   def runThisParallel(times: Int, log: Boolean = false, otherInfo: String = "")(f: => Unit)(implicit ec: ExecutionContext): Unit = {
     val futures =
-    (1 to times) map {
-      i =>
-        Future {
-          if (log) println(s"Iteration: $i${if (otherInfo.nonEmpty) s": $otherInfo" else ""}/$times")
-          f
-        }
-    }
+      (1 to times) map {
+        i =>
+          Future {
+            if (log) println(s"Iteration: $i${if (otherInfo.nonEmpty) s": $otherInfo" else ""}/$times")
+            f
+          }
+      }
 
     Future.sequence(futures).await(10.seconds)
   }

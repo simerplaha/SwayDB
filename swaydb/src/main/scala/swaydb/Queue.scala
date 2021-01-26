@@ -283,5 +283,4 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Glass],
 
   override def toString(): String =
     s"Queue(path = $path)"
-
 }

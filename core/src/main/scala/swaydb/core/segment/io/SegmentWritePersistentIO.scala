@@ -76,7 +76,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
           transient = mergeResult.output
         ) map {
           segment =>
-            mergeResult.copyOutput(segment)
+            mergeResult.withOutput(segment)
         },
       recover =
         (segments, _) =>

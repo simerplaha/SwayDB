@@ -43,7 +43,7 @@ import swaydb.core.level.{Level, NextLevel, PathsDistributor}
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.merge.{KeyValueGrouper, KeyValueMerger}
 import swaydb.core.segment._
-import swaydb.core.segment.assigner.{Assignable, Assignment}
+import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
@@ -61,13 +61,13 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.{AtomicRanges, IDGenerator}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.cache.Cache
-import swaydb.data.compaction.{LevelMeter, PushStrategy, Throttle}
+import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{Level0Storage, LevelStorage}
-import swaydb.data.util.{FiniteDurations, OperatingSystem}
 import swaydb.data.util.StorageUnits._
+import swaydb.data.util.{FiniteDurations, OperatingSystem}
 import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -76,6 +76,7 @@ import swaydb.{Aggregator, Error, Glass, IO}
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -397,10 +398,11 @@ object TestData {
       }
   }
 
-  implicit class ToSlice[T: ClassTag](items: Iterable[T]) {
+  implicit class ToSlice[T: ClassTag](items: IterableOnce[T]) {
     def toSlice: Slice[T] = {
-      val slice = Slice.of[T](items.size)
-      items foreach slice.add
+      val listItems = items.iterator.toList
+      val slice = Slice.of[T](listItems.size)
+      listItems foreach slice.add
       slice
     }
   }
@@ -574,15 +576,21 @@ object TestData {
 
   def randomPutKeyValue(key: Slice[Byte],
                         value: SliceOption[Byte] = randomStringSliceOptional,
-                        deadline: Option[Deadline] = randomDeadlineOption)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put = {
-    val put = Memory.Put(key, value, deadline, testTimer.next)
-    //println(put)
-    put
-  }
+                        deadline: Option[Deadline] = randomDeadlineOption)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put =
+    Memory.Put(
+      key = key,
+      value = value,
+      deadline = deadline,
+      time = testTimer.next
+    )
 
   def randomExpiredPutKeyValue(key: Slice[Byte],
                                value: SliceOption[Byte] = randomStringSliceOptional)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put =
-    randomPutKeyValue(key, value, deadline = Some(expiredDeadline()))
+    randomPutKeyValue(
+      key = key,
+      value = value,
+      deadline = Some(expiredDeadline())
+    )
 
   def randomUpdateKeyValue(key: Slice[Byte],
                            value: SliceOption[Byte] = randomStringSliceOptional,
@@ -1630,7 +1638,7 @@ object TestData {
         MaxKey.Range(last.fromKey, last.toKey)
     }
 
-  def unexpiredPuts(keyValues: Iterable[KeyValue]): Slice[KeyValue.Put] = {
+  def unexpiredPuts(keyValues: IterableOnce[KeyValue]): Slice[KeyValue.Put] = {
     val slice = Slice.of[KeyValue.Put](keyValues.size)
     keyValues foreach {
       keyValue =>
@@ -1643,7 +1651,7 @@ object TestData {
     slice
   }
 
-  def furthestDeadline(keyValues: Iterable[KeyValue]): Option[Deadline] =
+  def furthestDeadline(keyValues: IterableOnce[KeyValue]): Option[Deadline] =
     keyValues.foldLeft(Option.empty[Deadline]) {
       case (furthestDeadline, keyValue) =>
         keyValue.asPut match {

@@ -1259,8 +1259,14 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
 
   def putDeadlineCount: Int
 
+  def hasExpired(): Boolean =
+    nearestPutDeadline.exists(_.isOverdue())
+
   def hasUpdateOrRange: Boolean =
     updateCount > 0 || rangeCount > 0
+
+  def hasUpdateOrRangeOrExpired(): Boolean =
+    hasUpdateOrRange || hasExpired()
 
   def isFooterDefined: Boolean
 

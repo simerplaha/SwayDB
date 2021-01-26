@@ -57,10 +57,11 @@ object CompactionTask {
                              tasks: Iterable[Task[Segment]]) extends CompactionTask.Segments
 
   /**
-   * @param maps should be in the same order at it's position in [[LevelZero]].
+   * @param maps Should not be in random order.
+   *             Should be in the same order at it's position in [[LevelZero]].
    */
   case class CompactMaps(source: LevelZero,
-                         maps: Iterator[LevelZeroMap],
+                         maps: List[LevelZeroMap],
                          tasks: Iterable[Task[Assignable.Collection]]) extends CompactionTask
 
   case class CollapseSegments(source: Level,

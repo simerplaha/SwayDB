@@ -81,7 +81,7 @@ object DefragMemorySegment {
           pathsDistributor = pathsDistributor
         ) map {
           result =>
-            mergeResult.copyOutput(result.flatten)
+            mergeResult.withOutput(result.flatten)
         }
     }
 

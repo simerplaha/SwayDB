@@ -80,7 +80,7 @@ object SegmentWriteMemoryIO extends SegmentWriteIO[TransientSegment.Memory, Memo
         //collect the ones with source set or has new segments to write
         case mergeResult if mergeResult.input.isSomeS || mergeResult.output.nonEmpty =>
           val segments = mergeResult.output.map(_.segment)
-          mergeResult.copyOutput(segments)
+          mergeResult.withOutput(segments)
       }
     }
 }

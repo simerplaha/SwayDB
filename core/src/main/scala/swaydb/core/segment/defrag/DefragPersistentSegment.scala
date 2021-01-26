@@ -96,7 +96,7 @@ object DefragPersistentSegment {
           createdInLevel = createdInLevel
         ) map {
           persistentSegments =>
-            mergeResult.copyOutput(persistentSegments)
+            mergeResult.withOutput(persistentSegments)
         }
     }
 
@@ -277,7 +277,8 @@ object DefragPersistentSegment {
     Future.traverse(headFragmentsAndAssignments.assignments) {
       assignment =>
         //Segments that did not get assign a key-value should be converted to Fragment straight away.
-        if (assignment.headGap.result.isEmpty && assignment.tailGap.result.isEmpty && assignment.midOverlap.result.isEmpty)
+        //but if the segment is required for cleanup feed it to defrag so that expired key-values get cleared.
+        if (assignment.headGap.result.isEmpty && assignment.tailGap.result.isEmpty && assignment.midOverlap.result.isEmpty && (!removeDeletes || !assignment.segment.hasUpdateOrRangeOrExpired))
           defragSource match {
             case DefragSource.SegmentTarget =>
               val remoteSegment =

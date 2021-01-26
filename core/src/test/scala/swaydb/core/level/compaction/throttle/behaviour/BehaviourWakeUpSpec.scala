@@ -22,40 +22,10 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.data
+package swaydb.core.level.compaction.throttle.behaviour
 
-object DefIO {
+import swaydb.core.TestBase
 
-  @inline def apply[I, O](input: I,
-                          output: O): DefIO[I, O] =
-    new DefIO[I, O](
-      input = input,
-      output = output
-    )
+class BehaviourWakeUpSpec extends TestBase {
 
-}
-
-/**
- * Stores the input and output of a function.
- */
-class DefIO[+I, +O](val input: I,
-                    val output: O) {
-
-  @inline def map[B](f: O => B): DefIO[I, B] =
-    new DefIO[I, B](
-      input = input,
-      output = f(output)
-    )
-
-  @inline def withInput[I2](input: I2): DefIO[I2, O] =
-    new DefIO[I2, O](
-      input = input,
-      output = output
-    )
-
-  @inline def withOutput[O2](output: O2): DefIO[I, O2] =
-    new DefIO[I, O2](
-      input = input,
-      output = output
-    )
 }

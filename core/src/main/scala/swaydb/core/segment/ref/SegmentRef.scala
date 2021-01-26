@@ -241,8 +241,14 @@ private[core] class SegmentRef(val path: Path,
   def segmentSize: Int =
     segmentBlockCache.segmentSize
 
+  def hasExpired(): Boolean =
+    nearestPutDeadline.exists(_.isOverdue())
+
   def hasUpdateOrRange: Boolean =
     updateCount > 0 || rangeCount > 0
+
+  def hasUpdateOrRangeOrExpired(): Boolean =
+    hasUpdateOrRange || hasExpired()
 
   def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
     SegmentRefReader.get(key, threadState)

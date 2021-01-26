@@ -44,7 +44,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
                      lastLevel: Level)(implicit ec: ExecutionContext): Future[Unit] =
     task match {
       case task: CompactionTask.CompactSegments =>
-        runCompactSegments(task = task, lastLevel = lastLevel)
+        compactSegments(task = task, lastLevel = lastLevel)
 
       case task: CompactionTask.Cleanup =>
         runCleanupTask(task = task, lastLevel = lastLevel)
@@ -54,17 +54,17 @@ protected object BehaviourCompactionTask extends LazyLogging {
                      lastLevel: Level)(implicit ec: ExecutionContext): Future[Unit] =
     task match {
       case task: CompactionTask.CollapseSegments =>
-        runCollapse(task = task, lastLevel = lastLevel)
+        collapse(task = task, lastLevel = lastLevel)
 
       case task: CompactionTask.RefreshSegments =>
         //Runs on current thread because these functions are already
         //being invoked by compaction thread and there is no concurrency
         //required when running refresh.
-        runRefresh(task = task, lastLevel = lastLevel).toFuture
+        refresh(task = task, lastLevel = lastLevel).toFuture
     }
 
-  def runTasks[A <: Assignable.Collection](tasks: Iterable[CompactionTask.Task[A]],
-                                           lastLevel: Level)(implicit ec: ExecutionContext): Future[Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]] =
+  private def runTasks[A <: Assignable.Collection](tasks: Iterable[CompactionTask.Task[A]],
+                                                   lastLevel: Level)(implicit ec: ExecutionContext): Future[Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]] =
     Future.traverse(tasks) {
       task =>
         val removeDeletedRecords = task.target.levelNumber == lastLevel.levelNumber
@@ -90,8 +90,8 @@ protected object BehaviourCompactionTask extends LazyLogging {
         }
     }
 
-  def runCompactSegments(task: CompactionTask.CompactSegments,
-                         lastLevel: Level)(implicit ec: ExecutionContext): Future[Unit] =
+  def compactSegments(task: CompactionTask.CompactSegments,
+                      lastLevel: Level)(implicit ec: ExecutionContext): Future[Unit] =
     if (task.tasks.isEmpty)
       Future.unit
     else
@@ -107,8 +107,8 @@ protected object BehaviourCompactionTask extends LazyLogging {
           ).toFuture
       }
 
-  def runCompactMaps(task: CompactionTask.CompactMaps,
-                     lastLevel: Level)(implicit ec: ExecutionContext): Future[Unit] =
+  def compactMaps(task: CompactionTask.CompactMaps,
+                  lastLevel: Level)(implicit ec: ExecutionContext): Future[Unit] =
     if (task.maps.isEmpty)
       Future.unit
     else
@@ -124,8 +124,8 @@ protected object BehaviourCompactionTask extends LazyLogging {
           ).toFuture
       }
 
-  def runCollapse(task: CompactionTask.CollapseSegments,
-                  lastLevel: Level)(implicit ec: ExecutionContext): Future[Unit] =
+  def collapse(task: CompactionTask.CollapseSegments,
+               lastLevel: Level)(implicit ec: ExecutionContext): Future[Unit] =
     if (task.segments.isEmpty)
       Future.unit
     else
@@ -147,8 +147,8 @@ protected object BehaviourCompactionTask extends LazyLogging {
             ).toFuture
         }
 
-  def runRefresh(task: CompactionTask.RefreshSegments,
-                 lastLevel: Level): IO[Error.Level, Unit] =
+  def refresh(task: CompactionTask.RefreshSegments,
+              lastLevel: Level): IO[Error.Level, Unit] =
     if (task.segments.isEmpty)
       IO.unit
     else

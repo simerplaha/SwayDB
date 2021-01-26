@@ -97,6 +97,7 @@ private[swaydb] case object FileSweeper extends LazyLogging {
       def apply(file: FileSweeperItem): Close =
         new Close(new WeakReference[FileSweeperItem](file))
     }
+
     case class Close private(file: WeakReference[FileSweeperItem]) extends Command {
       def isDelete: Boolean = false
     }
@@ -184,7 +185,7 @@ private[swaydb] case object FileSweeper extends LazyLogging {
     }.start()
 
   private def createFileDeleterActor()(implicit executionContext: ExecutionContext,
-                                       order: QueueOrder[Command.Delete]): ActorRef[Command.Delete, Unit] = {
+                                       order: QueueOrder[Command.Delete]): ActorRef[Command.Delete, Unit] =
     Actor[Command.Delete]("FileDeleter Actor")(processCommand)
       .recoverException[Command.Delete] {
         case (command, io, self) =>
@@ -197,5 +198,4 @@ private[swaydb] case object FileSweeper extends LazyLogging {
           }
       }
       .start()
-  }
 }

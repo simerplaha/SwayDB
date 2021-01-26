@@ -192,7 +192,7 @@ private[segment] object DefragGap {
                                                                                     fragments: ListBuffer[TransientSegment.Fragment[S]],
                                                                                     removeDeletes: Boolean,
                                                                                     createdInLevel: Int)(implicit mergeStatsCreator: MergeStatsCreator[S]): S =
-    if (removeDeletes && segment.hasUpdateOrRange)
+    if (removeDeletes && segment.hasUpdateOrRangeOrExpired())
       segment match {
         case segment: PersistentSegmentMany =>
           segment.segmentRefs().foldLeft(statsOrNull) {
@@ -232,7 +232,7 @@ private[segment] object DefragGap {
                                                                                        fragments: ListBuffer[TransientSegment.Fragment[S]],
                                                                                        lastMergeStatsOrNull: S,
                                                                                        removeDeletes: Boolean)(implicit mergeStatsCreator: MergeStatsCreator[S]): S =
-    if (removeDeletes && ref.hasUpdateOrRange) {
+    if (removeDeletes && ref.hasUpdateOrRangeOrExpired()) {
       addToStats(
         keyValues = ref.iterator(),
         statsOrNull = lastMergeStatsOrNull,

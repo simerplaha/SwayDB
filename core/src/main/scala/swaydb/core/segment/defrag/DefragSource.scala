@@ -38,7 +38,7 @@ sealed trait DefragSource[-A] {
   def maxKey(segment: A): MaxKey[Slice[Byte]]
   def segmentSize(segment: A): Int
   def keyValueCount(segment: A): Int
-  def hasUpdateOrRange(segment: A): Boolean
+  def hasUpdateOrRangeOrExpired(segment: A): Boolean
   def iterator(segment: A): Iterator[KeyValue]
 }
 
@@ -57,8 +57,8 @@ object DefragSource {
     @inline def keyValueCount(implicit targetType: DefragSource[A]) =
       targetType.keyValueCount(target)
 
-    @inline def hasUpdateOrRange(implicit targetType: DefragSource[A]) =
-      targetType.hasUpdateOrRange(target)
+    @inline def hasUpdateOrRangeOrExpired(implicit targetType: DefragSource[A]) =
+      targetType.hasUpdateOrRangeOrExpired(target)
 
     @inline def iterator()(implicit targetType: DefragSource[A]) =
       targetType.iterator(target)
@@ -80,8 +80,8 @@ object DefragSource {
     override def iterator(segment: Segment): Iterator[KeyValue] =
       segment.iterator()
 
-    override def hasUpdateOrRange(segment: Segment): Boolean =
-      segment.hasUpdateOrRange
+    override def hasUpdateOrRangeOrExpired(segment: Segment): Boolean =
+      segment.hasUpdateOrRangeOrExpired()
   }
 
   implicit object SegmentRefTarget extends DefragSource[SegmentRef] {
@@ -100,7 +100,7 @@ object DefragSource {
     override def iterator(ref: SegmentRef): Iterator[KeyValue] =
       ref.iterator()
 
-    override def hasUpdateOrRange(ref: SegmentRef): Boolean =
-      ref.hasUpdateOrRange
+    override def hasUpdateOrRangeOrExpired(ref: SegmentRef): Boolean =
+      ref.hasUpdateOrRangeOrExpired()
   }
 }

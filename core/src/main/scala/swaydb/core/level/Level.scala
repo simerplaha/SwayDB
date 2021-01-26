@@ -450,6 +450,9 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
+  /**
+   * Input segments should always receive Segments that are in the Level itself.
+   */
   def collapse(segments: Iterable[Segment],
                removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[LevelCollapseResult] = {
     logger.trace(s"{}: Collapsing '{}' segments", pathDistributor.head, segments.size)
@@ -458,8 +461,8 @@ private[core] case class Level(dirs: Seq[Dir],
     else
       Future {
         //other segments in the appendix that are not the input segments (segments to collapse).
-        val reservedSegments = self.segments()
-        val targetAppendixSegments = reservedSegments.filterNot(map => segments.exists(_.path == map.path))
+        val levelSegments = self.segments()
+        val targetAppendixSegments = levelSegments.filterNot(levelSegment => segments.exists(_.path == levelSegment.path))
 
         val (segmentsToMerge, targetSegments) =
           if (targetAppendixSegments.nonEmpty) {
@@ -646,7 +649,7 @@ private[core] case class Level(dirs: Seq[Dir],
         pathsDistributor = pathDistributor
       ) map {
         mergeResults =>
-          val updatedResult = mergeResults.copyOutput(mergeResults.output.map(TransientSegment.Memory))
+          val updatedResult = mergeResults.withOutput(mergeResults.output.map(TransientSegment.Memory))
           Seq(updatedResult)
       }
     } else {
@@ -718,7 +721,7 @@ private[core] case class Level(dirs: Seq[Dir],
         mergeResults =>
           mergeResults map {
             result =>
-              result.copyInput(result.input.asSegmentOption)
+              result.withInput(result.input.asSegmentOption)
           }
       }
     }

@@ -188,7 +188,7 @@ sealed trait LevelReadNoneSpec extends TestBase {
               eitherOne(
                 //either do a range remove
                 left =
-                  randomRemoveRanges(level1KeyValues).toList.toSlice,
+                  randomRemoveRanges(level1KeyValues).toSlice,
                 //or do fixed removes via function or fixed.
                 right =
                   level1KeyValues map {

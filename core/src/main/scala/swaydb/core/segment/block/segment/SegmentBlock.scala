@@ -681,5 +681,3 @@ private[core] case object SegmentBlock extends LazyLogging {
 private[core] case class SegmentBlock(offset: SegmentBlock.Offset,
                                       headerSize: Int,
                                       compressionInfo: Option[Block.CompressionInfo]) extends Block[SegmentBlock.Offset]
-
-

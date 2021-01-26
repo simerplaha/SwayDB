@@ -306,7 +306,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
         lowerLevels = NonEmptyList(nextLevels.head, nextLevels.dropHead())
       ) flatMap {
         tasks =>
-          BehaviourCompactionTask.runCompactMaps(
+          BehaviourCompactionTask.compactMaps(
             task = tasks,
             lastLevel = lastLevel
           )

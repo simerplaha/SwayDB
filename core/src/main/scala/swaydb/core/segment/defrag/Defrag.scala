@@ -88,7 +88,7 @@ object Defrag {
                                                                                                                                                 mergeStatsSizeCalculator: MergeStatsSizeCalculator[S]): DefIO[NULL_SEG, ListBuffer[TransientSegment.Fragment[S]]] = {
     //forceExpand if there are cleanable (updates, removes etc) key-values or if segment size is too small.
     val forceExpand =
-      (removeDeletes && segment.hasUpdateOrRange) || ((headGap.nonEmpty || tailGap.nonEmpty) && segment.segmentSize < segmentConfig.minSize && segment.keyValueCount < segmentConfig.maxCount)
+      (removeDeletes && segment.hasUpdateOrRangeOrExpired) || ((headGap.nonEmpty || tailGap.nonEmpty) && segment.segmentSize < segmentConfig.minSize && segment.keyValueCount < segmentConfig.maxCount)
 
     val newFragments =
       if (headGap.isEmpty)
