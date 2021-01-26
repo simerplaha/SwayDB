@@ -41,7 +41,7 @@ import swaydb.data.util.Futures._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-trait BehaviorWakeUp {
+private[throttle] trait BehaviorWakeUp {
   def wakeUp(state: ThrottleCompactorContext)(implicit ec: ExecutionContext,
                                               self: DefActor[ThrottleCompactor, Unit]): Future[ThrottleCompactorContext]
 }

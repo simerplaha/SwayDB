@@ -38,7 +38,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.{MaxKey, NonEmptyList}
 
 import scala.annotation.tailrec
-import scala.collection.compat.IterableOnce
+import scala.collection.compat._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 

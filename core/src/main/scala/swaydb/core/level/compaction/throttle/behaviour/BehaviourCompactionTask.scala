@@ -76,9 +76,9 @@ protected object BehaviourCompactionTask extends LazyLogging {
             removeDeletedRecords = removeDeletedRecords
           )
         } flatMap {
-          levelAssignment =>
+          assignment =>
             task.target.merge(
-              assigment = levelAssignment,
+              assigment = assignment,
               removeDeletedRecords = removeDeletedRecords
             )
         } map {
@@ -106,7 +106,6 @@ protected object BehaviourCompactionTask extends LazyLogging {
             mergeResults = mergeResult
           ).toFuture
       }
-
 
   def runCompactMaps(task: CompactionTask.CompactMaps,
                      lastLevel: Level)(implicit ec: ExecutionContext): Future[Unit] =
