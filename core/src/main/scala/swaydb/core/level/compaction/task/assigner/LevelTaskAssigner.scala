@@ -39,10 +39,10 @@ case object LevelTaskAssigner {
    * @return optimal [[Segment]]s to compact to
    *         control the overflow.
    */
-  def run(source: Level,
-          pushStrategy: PushStrategy,
-          lowerLevels: NonEmptyList[Level],
-          sourceOverflow: Long): CompactionTask.CompactSegments = {
+  def assign(source: Level,
+             pushStrategy: PushStrategy,
+             lowerLevels: NonEmptyList[Level],
+             sourceOverflow: Long): CompactionTask.CompactSegments = {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
 
     val tasks =
@@ -56,33 +56,35 @@ case object LevelTaskAssigner {
     CompactionTask.CompactSegments(source, tasks)
   }
 
-  def cleanup(level: Level,
-              lastLevel: Level): Option[CompactionTask.Cleanup] =
-    runRefresh(level, lastLevel) orElse runCollapse(level)
+  def cleanup(level: Level): Option[CompactionTask.Cleanup] =
+    refresh(level) orElse collapse(level)
 
-  def runRefresh(level: Level,
-                 lastLevel: Level): Option[CompactionTask.RefreshSegments] =
-    if (level.levelNumber == lastLevel.levelNumber) {
-      val segments =
-        level
-          .segments()
-          .filter(_.nearestPutDeadline.exists(!_.hasTimeLeft()))
-
-      if (segments.isEmpty)
-        None
-      else
-        Some(CompactionTask.RefreshSegments(level, segments))
-    } else {
-      None
-    }
-
-  def runCollapse(level: Level): Option[CompactionTask.CollapseSegments] = {
+  def refresh(level: Level): Option[CompactionTask.RefreshSegments] = {
     val segments =
       level
         .segments()
-        .filter(Level.isSmallSegment(_, level.minSegmentSize))
+        .filter(_.nearestPutDeadline.exists(!_.hasTimeLeft()))
 
     if (segments.isEmpty)
+      None
+    else
+      Some(CompactionTask.RefreshSegments(level, segments))
+  }
+
+  def collapse(level: Level): Option[CompactionTask.CollapseSegments] = {
+    var segmentsCount = 0
+
+    val segments =
+      level
+        .segments()
+        .filter {
+          segment =>
+            segmentsCount += 1
+            Level.isSmallSegment(segment, level.minSegmentSize)
+        }
+
+    //do not collapse if no small Segments or if there is only 2 Segments in the Level
+    if (segments.isEmpty || segmentsCount <= 2)
       None
     else
       Some(CompactionTask.CollapseSegments(level, segments))

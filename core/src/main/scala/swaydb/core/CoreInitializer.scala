@@ -64,7 +64,8 @@ private[core] object CoreInitializer extends LazyLogging {
    * Boots up compaction Actor and start listening to changes in levels.
    */
   def initialiseCompaction(zero: LevelZero,
-                           compactionConfig: CompactionConfig)(implicit compactorCreator: CompactorCreator): IO[Error.Level, DefActor[Compactor, Unit]] =
+                           compactionConfig: CompactionConfig)(implicit compactorCreator: CompactorCreator,
+                                                               fileSweeper: FileSweeper.On): IO[Error.Level, DefActor[Compactor, Unit]] =
     compactorCreator.createAndListen(
       zero = zero,
       compactionConfig = compactionConfig
@@ -122,7 +123,7 @@ private[core] object CoreInitializer extends LazyLogging {
       validationResult match {
         case IO.Right(_) =>
 
-          implicit val fileSweeper: FileSweeper =
+          implicit val fileSweeper: FileSweeper.On =
             FileSweeper(fileCache)
 
           val memorySweeper: Option[MemorySweeper.On] =

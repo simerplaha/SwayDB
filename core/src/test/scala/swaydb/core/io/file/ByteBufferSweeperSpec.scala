@@ -61,7 +61,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
           import sweeper._
 
           implicit val fileSweeper: FileSweeper =
-            FileSweeper(1, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext)).sweep().fetch
+            FileSweeper(1, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext)).sweep()
 
           val file: DBFile =
             DBFile.mmapWriteAndRead(
@@ -92,7 +92,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
           import sweeper._
           implicit val ec = TestExecutionContext.executionContext
 
-          implicit val fileSweeper = FileSweeper(1, ActorConfig.Timer("FileSweeper Test Timer", 0.second, TestExecutionContext.executionContext)).sweep().fetch
+          implicit val fileSweeper = FileSweeper(1, ActorConfig.Timer("FileSweeper Test Timer", 0.second, TestExecutionContext.executionContext)).sweep()
           implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(messageReschedule = 0.millisecond).sweep()
           val bytes = randomBytesSlice()
 

@@ -33,7 +33,8 @@ sealed trait ActorConfig {
 
 object ActorConfig {
 
-  case class Basic(name: String, ec: ExecutionContext) extends ActorConfig
+  case class Basic(name: String,
+                   ec: ExecutionContext) extends ActorConfig
 
   case class Timer(name: String,
                    delay: FiniteDuration,

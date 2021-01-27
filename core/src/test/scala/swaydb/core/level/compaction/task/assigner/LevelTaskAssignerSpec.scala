@@ -73,7 +73,7 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
       TestCaseSweeper {
         implicit sweeper =>
           val level = TestLevel()
-          LevelTaskAssigner.runRefresh(level, level) shouldBe empty
+          LevelTaskAssigner.refresh(level) shouldBe empty
       }
     }
 
@@ -83,7 +83,7 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
           val level = TestLevel()
           level.put(Slice(Memory.put(1))) shouldBe IO.unit
 
-          LevelTaskAssigner.runRefresh(level, level) shouldBe empty
+          LevelTaskAssigner.refresh(level) shouldBe empty
       }
     }
 
@@ -93,7 +93,7 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
           val level = TestLevel()
           level.put(Slice(Memory.put(1, Slice.Null, 1.minute.fromNow))) shouldBe IO.unit
 
-          LevelTaskAssigner.runRefresh(level, level) shouldBe empty
+          LevelTaskAssigner.refresh(level) shouldBe empty
       }
     }
 
@@ -103,7 +103,7 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
           val level = TestLevel()
           level.put(Slice(Memory.put(1, Slice.Null, expiredDeadline()))) shouldBe IO.unit
 
-          val task = LevelTaskAssigner.runRefresh(level, level).value
+          val task = LevelTaskAssigner.refresh(level).value
           task.source shouldBe level
           task.segments shouldBe level.segments()
       }
@@ -115,7 +115,7 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
       TestCaseSweeper {
         implicit sweeper =>
           val level = TestLevel()
-          LevelTaskAssigner.runCollapse(level) shouldBe empty
+          LevelTaskAssigner.collapse(level) shouldBe empty
       }
     }
 
@@ -125,7 +125,7 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
           val level = TestLevel()
           level.put(Slice(Memory.put(1))) shouldBe IO.unit
 
-          val task = LevelTaskAssigner.runCollapse(level).value
+          val task = LevelTaskAssigner.collapse(level).value
           task.source shouldBe level
           task.segments shouldBe level.segments()
       }
@@ -142,7 +142,7 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
 
             val reopened = level.reopen(segmentSize = Int.MaxValue)
 
-            val task = LevelTaskAssigner.runCollapse(reopened).value
+            val task = LevelTaskAssigner.collapse(reopened).value
             task.source shouldBe level
             task.segments shouldBe reopened.segments()
         }

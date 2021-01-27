@@ -68,6 +68,8 @@ sealed trait BehaviourCompactionTask_refresh_Spec extends TestBase {
     runThis(10.times, log = true) {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel()
 
           val segments =
@@ -84,7 +86,7 @@ sealed trait BehaviourCompactionTask_refresh_Spec extends TestBase {
           assertReads(keyValues, level)
 
           val task = CompactionTask.RefreshSegments(source = level, segments = level.segments())
-          BehaviourCompactionTask.refresh(task, level) shouldBe IO.unit
+          BehaviourCompactionTask.refresh(task, level).awaitInf shouldBe unit
           level.isEmpty shouldBe true
 
           if (persistent) {
@@ -99,6 +101,8 @@ sealed trait BehaviourCompactionTask_refresh_Spec extends TestBase {
     runThis(10.times, log = true) {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel()
 
           val segments =
@@ -126,7 +130,7 @@ sealed trait BehaviourCompactionTask_refresh_Spec extends TestBase {
           else
             TestSegment(path = level.rootPath.resolve(s"${level.segmentIDGenerator.current + 1}.seg"))
 
-          BehaviourCompactionTask.refresh(task, level).left.get.exception shouldBe a[Exception]
+          BehaviourCompactionTask.refresh(task, level).awaitFailureInf shouldBe a[Exception]
 
           level.segments().map(_.path) shouldBe segmentPathsBeforeRefresh
 

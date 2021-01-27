@@ -62,7 +62,7 @@ object TestCaseSweeper extends LazyLogging {
 
   def apply(): TestCaseSweeper =
     new TestCaseSweeper(
-      fileSweepers = ListBuffer(Cache.noIO[Unit, FileSweeper](true, true, None)((_, _) => createFileSweeper())),
+      fileSweepers = ListBuffer(Cache.noIO[Unit, FileSweeper.On](true, true, None)((_, _) => createFileSweeper())),
       cleaners = ListBuffer(Cache.noIO[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner())),
       blockCaches = ListBuffer(Cache.noIO[Unit, Option[BlockCache.State]](true, true, None)((_, _) => createBlockCacheRandom())),
       allMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.All]](true, true, None)((_, _) => createMemorySweeperMax())),
@@ -210,24 +210,19 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepBlockCacheState state
   }
 
-  implicit class AllMemorySweeperImplicits(keyValue: MemorySweeper.All) {
+  implicit class AllMemorySweeperImplicits(actor: MemorySweeper.All) {
     def sweep()(implicit sweeper: TestCaseSweeper): MemorySweeper.All =
-      sweeper sweepMemorySweeper keyValue
+      sweeper sweepMemorySweeper actor
   }
 
-  implicit class BufferCleanerSweeperImplicits(keyValue: ByteBufferSweeperActor) {
+  implicit class BufferCleanerSweeperImplicits(actor: ByteBufferSweeperActor) {
     def sweep()(implicit sweeper: TestCaseSweeper): ByteBufferSweeperActor =
-      sweeper sweepBufferCleaner keyValue
+      sweeper sweepBufferCleaner actor
   }
 
-  implicit class FileCleanerSweeperImplicits(keyValue: FileSweeper) {
-    def sweep()(implicit sweeper: TestCaseSweeper): FileSweeper =
-      sweeper sweepFileSweeper keyValue
-  }
-
-  implicit class FileCleanerCacheSweeperImplicits(cache: CacheNoIO[Unit, FileSweeper]) {
-    def sweep()(implicit sweeper: TestCaseSweeper): CacheNoIO[Unit, FileSweeper] =
-      sweeper sweepFileSweeper cache
+  implicit class FileCleanerSweeperImplicits(actor: FileSweeper.On) {
+    def sweep()(implicit sweeper: TestCaseSweeper): FileSweeper.On =
+      sweeper sweepFileSweeper actor
   }
 
   implicit class SchedulerSweeperImplicits(scheduler: Scheduler) {
@@ -270,7 +265,7 @@ object TestCaseSweeper extends LazyLogging {
  * }}}
  */
 
-class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeper]],
+class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeper.On]],
                       private val cleaners: ListBuffer[CacheNoIO[Unit, ByteBufferSweeperActor]],
                       private val blockCaches: ListBuffer[CacheNoIO[Unit, Option[BlockCache.State]]],
                       private val allMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.All]]],
@@ -291,7 +286,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
 
 
   implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.On
-  implicit lazy val fileSweeper: FileSweeper = fileSweepers.head.value(())
+  implicit lazy val fileSweeper: FileSweeper.On = fileSweepers.head.value(())
   implicit lazy val cleaner: ByteBufferSweeperActor = cleaners.head.value(())
   implicit lazy val blockCache: Option[BlockCache.State] = blockCaches.head.value(())
 
@@ -372,17 +367,8 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
   def sweepBufferCleaner(bufferCleaner: ByteBufferSweeperActor): ByteBufferSweeperActor =
     removeReplaceCache(cleaners, bufferCleaner)
 
-  def sweepFileSweeper(actor: FileSweeper): FileSweeper =
-    removeReplaceCache(fileSweepers, actor)
-
-  def sweepFileSweeper(actor: CacheNoIO[Unit, FileSweeper]): CacheNoIO[Unit, FileSweeper] = {
-    //if previous cache is uninitialised overwrite it with this new one
-    if (fileSweepers.lastOption.exists(_.get().isEmpty))
-      fileSweepers.remove(0)
-
-    fileSweepers += actor
-    actor
-  }
+  def sweepFileSweeper(sweeper: FileSweeper.On): FileSweeper.On =
+    removeReplaceCache(fileSweepers, sweeper)
 
   def sweepScheduler(schedule: Scheduler): Scheduler =
     removeReplaceCache(schedulers, schedule)

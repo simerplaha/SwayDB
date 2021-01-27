@@ -102,7 +102,7 @@ object DBFile extends LazyLogging {
                 ChannelFile.read(path = filePath)
 
             if (autoClose)
-              fileSweeper send FileSweeper.Command.Close(closer)
+              fileSweeper send FileSweeper.Command.CloseFileItem(closer)
 
             file
           }
@@ -110,7 +110,7 @@ object DBFile extends LazyLogging {
 
     self = cache
 
-    if (autoClose && file.isDefined) fileSweeper send FileSweeper.Command.Close(closer)
+    if (autoClose && file.isDefined) fileSweeper send FileSweeper.Command.CloseFileItem(closer)
     cache
   }
 

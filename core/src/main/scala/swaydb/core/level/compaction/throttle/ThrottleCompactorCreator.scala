@@ -30,6 +30,7 @@ import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.throttle.behaviour.BehaviorWakeUp
 import swaydb.core.level.compaction.{Compactor, CompactorCreator}
 import swaydb.core.level.zero.LevelZero
+import swaydb.core.sweeper.FileSweeper
 import swaydb.data.compaction.CompactionConfig
 import swaydb.data.slice.Slice
 import swaydb.{Actor, DefActor, Error, IO}
@@ -46,8 +47,8 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
   /**
    * Creates compaction Actor
    */
-  def createCompactor(levels: Iterable[LevelRef],
-                      config: CompactionConfig): DefActor[ThrottleCompactor, Unit] = {
+  private def createCompactor(levels: Iterable[LevelRef],
+                              config: CompactionConfig)(implicit fileSweeper: FileSweeper.On): DefActor[ThrottleCompactor, Unit] = {
     val state =
       ThrottleCompactorContext(
         levels = Slice(levels.toArray),
@@ -55,19 +56,20 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
         compactionStates = Map.empty
       )
 
+    //ExecutionContext is shared by the Actor's executor and the Actor logic.
     implicit val ec: ExecutionContext = config.executionContext
 
     Actor.define[ThrottleCompactor](
       name = s"Compaction Actor",
-      init = actor => ThrottleCompactor(state)(actor, BehaviorWakeUp)
+      init = self => ThrottleCompactor(state)(self = self, behaviorWakeUp = BehaviorWakeUp, fileSweeper = fileSweeper, ec = ec)
     ).onPreTerminate {
       case (impl, _, _) =>
         impl.terminateASAP()
     }.start()
   }
 
-  def createCompactor(zero: LevelZero,
-                      config: CompactionConfig): IO[Error.Level, DefActor[ThrottleCompactor, Unit]] =
+  private def createCompactor(zero: LevelZero,
+                              config: CompactionConfig)(implicit fileSweeper: FileSweeper.On): IO[Error.Level, DefActor[ThrottleCompactor, Unit]] =
     zero.nextLevel match {
       case Some(nextLevel) =>
         logger.debug(s"Level(${zero.levelNumber}): Creating actor.")
@@ -83,7 +85,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
     }
 
   def createAndListen(zero: LevelZero,
-                      config: CompactionConfig): IO[Error.Level, DefActor[Compactor, Unit]] =
+                      config: CompactionConfig)(implicit fileSweeper: FileSweeper.On): IO[Error.Level, DefActor[Compactor, Unit]] =
     createCompactor(
       zero = zero,
       config = config

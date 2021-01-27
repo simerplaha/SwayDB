@@ -74,6 +74,8 @@ sealed trait BehaviourCompactionTask_compactSegments_MultiLevels_Spec extends Te
         "target Level is empty" in {
           TestCaseSweeper {
             implicit sweeper =>
+              import sweeper._
+
               //LEVEL1 - [1], [2], [3], [4]
               //LOWER LEVELS ARE EMPTY - THE RESULT SHOULD BE FOLLOWING
               //LEVEL2 - [1]
@@ -143,6 +145,8 @@ sealed trait BehaviourCompactionTask_compactSegments_MultiLevels_Spec extends Te
         "target Level is non empty" in {
           TestCaseSweeper {
             implicit sweeper =>
+              import sweeper._
+
               //LEVEL1 - [1], [2], [3], [4]
               //LOWER LEVELS HAVE ZERO VALUE
               //LEVEL2 - [1]

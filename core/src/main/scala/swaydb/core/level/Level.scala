@@ -39,7 +39,7 @@ import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.merge.stats.MergeStats.{Memory, Persistent}
 import swaydb.core.segment._
-import swaydb.core.segment.assigner.{Assignable, GapAggregator, Assigner, Assignment}
+import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, GapAggregator}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock

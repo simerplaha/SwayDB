@@ -31,7 +31,8 @@ import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.SegmentOption
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.{Error, IO}
+import swaydb.core.sweeper.FileSweeper
+import swaydb.data.util.Futures._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -41,7 +42,8 @@ import scala.concurrent.{ExecutionContext, Future}
 protected object BehaviourCompactionTask extends LazyLogging {
 
   def runSegmentTask(task: CompactionTask.Segments,
-                     lastLevel: Level)(implicit ec: ExecutionContext): Future[Unit] =
+                     lastLevel: Level)(implicit ec: ExecutionContext,
+                                       fileSweeper: FileSweeper.On): Future[Unit] =
     task match {
       case task: CompactionTask.CompactSegments =>
         compactSegments(task = task, lastLevel = lastLevel)
@@ -51,7 +53,8 @@ protected object BehaviourCompactionTask extends LazyLogging {
     }
 
   def runCleanupTask(task: CompactionTask.Cleanup,
-                     lastLevel: Level)(implicit ec: ExecutionContext): Future[Unit] =
+                     lastLevel: Level)(implicit ec: ExecutionContext,
+                                       fileSweeper: FileSweeper.On): Future[Unit] =
     task match {
       case task: CompactionTask.CollapseSegments =>
         collapse(task = task, lastLevel = lastLevel)
@@ -60,15 +63,24 @@ protected object BehaviourCompactionTask extends LazyLogging {
         //Runs on current thread because these functions are already
         //being invoked by compaction thread and there is no concurrency
         //required when running refresh.
-        refresh(task = task, lastLevel = lastLevel).toFuture
+        refresh(task = task, lastLevel = lastLevel)
     }
 
+  @inline def ensurePauseSweeper[T](levels: Iterable[LevelRef])(f: => Future[T])(implicit fileSweeper: FileSweeper.On,
+                                                                                 ec: ExecutionContext): Future[T] = {
+    //No need to wait for a response because FileSweeper's queue is ordered prioritising PauseResume messages.
+    //Who not? Because the Actor is configurable which could be a cached timer with longer time interval
+    //which means we might not get a response immediately.
+    fileSweeper.closer.send(FileSweeper.Command.Pause(levels))
+    f.withCallback(fileSweeper.send(FileSweeper.Command.Resume(levels)))
+  }
+
   private def runTasks[A <: Assignable.Collection](tasks: Iterable[CompactionTask.Task[A]],
-                                                   lastLevel: Level)(implicit ec: ExecutionContext): Future[Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]] =
+                                                   lastLevel: Level)(implicit ec: ExecutionContext,
+                                                                     fileSweeper: FileSweeper.On): Future[Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]] =
     Future.traverse(tasks) {
       task =>
         val removeDeletedRecords = task.target.levelNumber == lastLevel.levelNumber
-
         Future {
           task.target.assign(
             newKeyValues = task.data,
@@ -91,78 +103,91 @@ protected object BehaviourCompactionTask extends LazyLogging {
     }
 
   def compactSegments(task: CompactionTask.CompactSegments,
-                      lastLevel: Level)(implicit ec: ExecutionContext): Future[Unit] =
+                      lastLevel: Level)(implicit ec: ExecutionContext,
+                                        fileSweeper: FileSweeper.On): Future[Unit] =
     if (task.tasks.isEmpty)
       Future.unit
     else
-      runTasks(
-        tasks = task.tasks,
-        lastLevel = lastLevel
-      ) flatMap {
-        mergeResult =>
-          BehaviourCommit.commit(
-            fromLevel = task.source,
-            segments = task.tasks.flatMap(_.data),
-            mergeResults = mergeResult
-          ).toFuture
+      ensurePauseSweeper(task.compactingLevels) {
+        runTasks(
+          tasks = task.tasks,
+          lastLevel = lastLevel
+        ) flatMap {
+          mergeResult =>
+            BehaviourCommit.commit(
+              fromLevel = task.source,
+              segments = task.tasks.flatMap(_.data),
+              mergeResults = mergeResult
+            ).toFuture
+        }
       }
 
   def compactMaps(task: CompactionTask.CompactMaps,
-                  lastLevel: Level)(implicit ec: ExecutionContext): Future[Unit] =
+                  lastLevel: Level)(implicit ec: ExecutionContext,
+                                    fileSweeper: FileSweeper.On): Future[Unit] =
     if (task.maps.isEmpty)
       Future.unit
     else
-      runTasks(
-        tasks = task.tasks,
-        lastLevel = lastLevel
-      ) flatMap {
-        result =>
-          BehaviourCommit.commit(
-            fromLevel = task.source,
-            maps = task.maps,
-            mergeResults = result
-          ).toFuture
+      ensurePauseSweeper(task.compactingLevels) {
+        runTasks(
+          tasks = task.tasks,
+          lastLevel = lastLevel
+        ) flatMap {
+          result =>
+            BehaviourCommit.commit(
+              fromLevel = task.source,
+              maps = task.maps,
+              mergeResults = result
+            ).toFuture
+        }
       }
 
   def collapse(task: CompactionTask.CollapseSegments,
-               lastLevel: Level)(implicit ec: ExecutionContext): Future[Unit] =
+               lastLevel: Level)(implicit ec: ExecutionContext,
+                                 fileSweeper: FileSweeper.On): Future[Unit] =
     if (task.segments.isEmpty)
       Future.unit
     else
-      task
-        .source
-        .collapse(
-          segments = task.segments,
-          removeDeletedRecords = task.source.levelNumber == lastLevel.levelNumber
-        )
-        .flatMap {
-          case LevelCollapseResult.Empty =>
-            Future.failed(new Exception(s"Collapse failed: ${LevelCollapseResult.productPrefix}.${LevelCollapseResult.Empty.productPrefix}"))
+      ensurePauseSweeper(task.compactingLevels) {
+        task
+          .source
+          .collapse(
+            segments = task.segments,
+            removeDeletedRecords = task.source.levelNumber == lastLevel.levelNumber
+          )
+          .flatMap {
+            case LevelCollapseResult.Empty =>
+              Future.failed(new Exception(s"Collapse failed: ${LevelCollapseResult.productPrefix}.${LevelCollapseResult.Empty.productPrefix}"))
 
-          case LevelCollapseResult.Collapsed(sourceSegments, mergeResult) =>
-            BehaviourCommit.replace(
-              level = task.source,
-              old = sourceSegments,
-              result = mergeResult
-            ).toFuture
-        }
+            case LevelCollapseResult.Collapsed(sourceSegments, mergeResult) =>
+              BehaviourCommit.replace(
+                level = task.source,
+                old = sourceSegments,
+                result = mergeResult
+              ).toFuture
+          }
+      }
 
   def refresh(task: CompactionTask.RefreshSegments,
-              lastLevel: Level): IO[Error.Level, Unit] =
+              lastLevel: Level)(implicit fileSweeper: FileSweeper.On,
+                                ec: ExecutionContext): Future[Unit] =
     if (task.segments.isEmpty)
-      IO.unit
+      Future.unit
     else
-      task
-        .source
-        .refresh(
-          segments = task.segments,
-          removeDeletedRecords = task.source.levelNumber == lastLevel.levelNumber
-        )
-        .flatMap {
-          result =>
-            BehaviourCommit.commit(
-              level = task.source,
-              result = result
-            )
-        }
+      ensurePauseSweeper(task.compactingLevels) {
+        task
+          .source
+          .refresh(
+            segments = task.segments,
+            removeDeletedRecords = task.source.levelNumber == lastLevel.levelNumber
+          )
+          .flatMap {
+            result =>
+              BehaviourCommit.commit(
+                level = task.source,
+                result = result
+              )
+          }
+          .toFuture
+      }
 }

@@ -75,6 +75,8 @@ sealed trait BehaviourCompactionTask_collapse_Spec extends TestBase {
     runThis(10.times, log = true) {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 1.byte, deleteDelay = Duration.Zero, mmap = mmapSegments))
 
           val segments =
@@ -108,6 +110,8 @@ sealed trait BehaviourCompactionTask_collapse_Spec extends TestBase {
     runThis(10.times, log = true) {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 1.byte, deleteDelay = Duration.Zero, mmap = mmapSegments))
 
           val segments =

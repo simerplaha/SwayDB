@@ -75,6 +75,8 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
         "target Level is empty" in {
           TestCaseSweeper {
             implicit sweeper =>
+              import sweeper._
+
               //LEVEL1 - [1], [2]
               //LEVEL2 - EMPTY
               val sourceLevel = TestLevel()
@@ -113,6 +115,8 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
         "target Level is non empty" in {
           TestCaseSweeper {
             implicit sweeper =>
+              import sweeper._
+
               //LEVEL1 - [1], [2]
               //LEVEL2 - {[1], [2]} || {1, 2}
               val sourceLevel = TestLevel()
@@ -159,6 +163,8 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
           runThis(10.times, log = true) {
             TestCaseSweeper {
               implicit sweeper =>
+                import sweeper._
+
                 //LEVEL1 - [1], [2]
                 //LEVEL2 - EMPTY
                 val sourceLevel = TestLevel()
@@ -204,6 +210,8 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
           runThis(20.times, log = true) {
             TestCaseSweeper {
               implicit sweeper =>
+                import sweeper._
+
                 val sourceLevel = TestLevel()
                 val targetLevel = TestLevel()
 
@@ -264,6 +272,8 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
           runThis(5.times, log = true) {
             TestCaseSweeper {
               implicit sweeper =>
+                import sweeper._
+
                 //LEVEL1 - [1], [2]
                 //LEVEL2 - EMPTY
                 val sourceLevel = TestLevel()

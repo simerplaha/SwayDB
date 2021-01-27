@@ -617,6 +617,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     println("Starting levels")
 
     implicit val levelSweeper: TestCaseSweeper = TestCaseSweeper()
+    implicit val fileSweeper = levelSweeper.fileSweeper
 
     val level4 = TestLevel(throttle = levelThrottle)
     val level3 = TestLevel(nextLevel = Some(level4), throttle = levelThrottle)

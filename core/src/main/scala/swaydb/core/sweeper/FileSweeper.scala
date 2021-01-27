@@ -23,17 +23,20 @@
  */
 package swaydb.core.sweeper
 
-import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
-import swaydb.data.cache.{Cache, CacheNoIO}
+import swaydb.core.level.zero.LevelZero
+import swaydb.core.level.{Level, LevelRef, NextLevel}
+import swaydb.data.cache.CacheNoIO
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.config.{ActorConfig, FileCache}
 import swaydb.{Actor, ActorRef, Bag, IO}
 
+import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicLong
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.Deadline
+import scala.concurrent.duration.{Deadline, DurationInt}
 import scala.ref.WeakReference
 
 private[core] trait FileSweeperItem {
@@ -44,7 +47,7 @@ private[core] trait FileSweeperItem {
 }
 
 private[swaydb] sealed trait FileSweeper {
-  def closer: ActorRef[FileSweeper.Command.Close, Unit]
+  def closer: ActorRef[FileSweeper.Command.Close, FileSweeper.State]
   def deleter: ActorRef[FileSweeper.Command.Delete, Unit]
 
   def messageCount: Int =
@@ -65,14 +68,37 @@ private[swaydb] sealed trait FileSweeper {
  */
 private[swaydb] case object FileSweeper extends LazyLogging {
 
-  case class On(closer: ActorRef[FileSweeper.Command.Close, Unit],
+  //Time to re-schedule when the level is paused.
+  val delayPausedClosing = 5.seconds
+
+  val actorQueueOrder =
+    new Ordering[Command.Close] {
+      //prioritises Pause and Resume messages otherwise orders based on messageId
+      override def compare(left: Command.Close, right: Command.Close): Int =
+        left match {
+          case left: Command.PauseResume =>
+            right match {
+              case right: Command.PauseResume =>
+                left.messageId.compare(right.messageId)
+
+              case _ =>
+                -1
+            }
+
+          case left =>
+            left.messageId.compare(right.messageId)
+        }
+    }
+
+
+  case class State(pausedFolders: mutable.Set[Path])
+
+  case class On(closer: ActorRef[FileSweeper.Command.Close, FileSweeper.State],
                 deleter: ActorRef[FileSweeper.Command.Delete, Unit]) extends FileSweeper
 
   case object Off extends FileSweeper {
-    lazy val deadActor = Actor.deadActor[Command, Unit]()
-
-    override def closer: ActorRef[Command.Close, Unit] = deadActor
-    override def deleter: ActorRef[Command.Delete, Unit] = deadActor
+    override def closer: ActorRef[Command.Close, FileSweeper.State] = throw new Exception(s"No closer Actor for ${FileSweeper.productPrefix}.${this.productPrefix}")
+    override def deleter: ActorRef[Command.Delete, Unit] = throw new Exception(s"No deleter Actor for ${FileSweeper.productPrefix}.${this.productPrefix}")
   }
 
   implicit class FileSweeperActorImplicits(cache: CacheNoIO[Unit, FileSweeper]) {
@@ -81,7 +107,7 @@ private[swaydb] case object FileSweeper extends LazyLogging {
   }
 
   sealed trait Command {
-    def isDelete: Boolean
+    def isDelete: Boolean = false
   }
 
   object Command {
@@ -90,17 +116,36 @@ private[swaydb] case object FileSweeper extends LazyLogging {
     //If the file gets garbage collected due to it being WeakReference before
     //delete on the file is triggered, the physical file will remain on disk.
     case class Delete(file: FileSweeperItem, deadline: Deadline) extends Command {
-      def isDelete: Boolean = true
+      final override def isDelete: Boolean = true
     }
 
     object Close {
-      def apply(file: FileSweeperItem): Close =
-        new Close(new WeakReference[FileSweeperItem](file))
+      val messageIdGenerator = new AtomicLong(0)
     }
 
-    case class Close private(file: WeakReference[FileSweeperItem]) extends Command {
-      def isDelete: Boolean = false
+    sealed trait Close extends Command {
+      val messageId: Long = Close.messageIdGenerator.incrementAndGet()
     }
+
+    sealed trait CloseFile extends Close
+
+    object CloseFileItem {
+      def apply(file: FileSweeperItem): CloseFileItem =
+        new CloseFileItem(new WeakReference[FileSweeperItem](file))
+    }
+
+    case class CloseFileItem private(file: WeakReference[FileSweeperItem]) extends CloseFile
+
+    object CloseFiles {
+      def of(files: Iterable[FileSweeperItem]): CloseFiles =
+        new CloseFiles(files.map(file => new WeakReference[FileSweeperItem](file)))
+    }
+
+    case class CloseFiles private(files: Iterable[WeakReference[FileSweeperItem]]) extends CloseFile
+
+    sealed trait PauseResume extends Close
+    case class Pause(levels: Iterable[LevelRef]) extends PauseResume
+    case class Resume(levels: Iterable[LevelRef]) extends PauseResume
   }
 
   def apply(fileCache: FileCache): Option[FileSweeper] =
@@ -112,27 +157,25 @@ private[swaydb] case object FileSweeper extends LazyLogging {
         Some(apply(enable))
     }
 
-  def apply(fileCache: FileCache.On): FileSweeper =
+  def apply(fileCache: FileCache.On): FileSweeper.On =
     apply(
       maxOpenSegments = fileCache.maxOpen,
       actorConfig = fileCache.actorConfig
-    ).value(())
+    )
 
   def apply(maxOpenSegments: Int,
-            actorConfig: ActorConfig): CacheNoIO[Unit, FileSweeper] =
-    Cache.noIO[Unit, FileSweeper](synchronised = true, stored = true, initial = None) {
-      (_, _) =>
-        val closer =
-          createFileCloserActor(
-            maxOpenSegments = maxOpenSegments,
-            actorConfig = actorConfig
-          )
+            actorConfig: ActorConfig): FileSweeper.On = {
+    val closer =
+      createFileCloserActor(
+        maxOpenSegments = maxOpenSegments,
+        actorConfig = actorConfig
+      )
 
-        val deleter =
-          createFileDeleterActor()(actorConfig.ec, QueueOrder.FIFO)
+    val deleter =
+      createFileDeleterActor()(actorConfig.ec, QueueOrder.FIFO)
 
-        FileSweeper.On(closer, deleter)
-    }
+    FileSweeper.On(closer, deleter)
+  }
 
   def close[BAG[_]]()(implicit fileSweeper: FileSweeper,
                       bag: Bag[BAG]): BAG[Unit] =
@@ -142,14 +185,65 @@ private[swaydb] case object FileSweeper extends LazyLogging {
       .and(fileSweeper.deleter.terminateAndRecover(_ => ()))
       .andTransform(logger.info(this.productPrefix + " terminated!"))
 
-  private def processCommand(command: Command.Close): Unit =
-    command.file.get foreach {
+  private def closeFile(command: Command.CloseFileItem,
+                        file: WeakReference[FileSweeperItem],
+                        self: Actor[Command.Close, State]): Unit =
+    file.get foreach {
       file =>
-        try
-          file.close()
-        catch {
-          case exception: Exception =>
-            logger.error(s"Failed to close file. ${file.path}", exception)
+        val fileParentPath = file.path.getParent
+        if (self.state.pausedFolders.exists(pausedFolder => fileParentPath.startsWith(pausedFolder)))
+          self.send(command, delayPausedClosing)
+        else
+          try
+            file.close()
+          catch {
+            case exception: Exception =>
+              logger.error(s"Failed to close file. ${file.path}", exception)
+          }
+    }
+
+
+  private def processCommand(command: Command.Close, self: Actor[Command.Close, State]): Unit =
+    command match {
+      case command @ Command.CloseFileItem(file) =>
+        closeFile(
+          command = command,
+          file = file,
+          self = self
+        )
+
+      case Command.CloseFiles(files) =>
+        files foreach {
+          file =>
+            closeFile(
+              command = Command.CloseFileItem(file),
+              file = file,
+              self = self
+            )
+        }
+
+      case Command.Pause(levels) =>
+        levels foreach {
+          case zero: LevelZero =>
+            self.state.pausedFolders += zero.path
+
+          case level: NextLevel =>
+            level.dirs foreach {
+              dir =>
+                self.state.pausedFolders += dir.path
+            }
+        }
+
+      case Command.Resume(levels) =>
+        levels foreach {
+          case zero: LevelZero =>
+            self.state.pausedFolders -= zero.path
+
+          case level: NextLevel =>
+            level.dirs foreach {
+              dir =>
+                self.state.pausedFolders -= dir.path
+            }
         }
     }
 
@@ -164,23 +258,25 @@ private[swaydb] case object FileSweeper extends LazyLogging {
         logger.error(s"Failed to delete file. ${command.file.path}", exception)
     }
 
-  private def createFileCloserActor(maxOpenSegments: Int, actorConfig: ActorConfig): ActorRef[Command.Close, Unit] =
-    Actor.cacheFromConfig[Command.Close](
+  private def createFileCloserActor(maxOpenSegments: Int, actorConfig: ActorConfig): ActorRef[Command.Close, FileSweeper.State] =
+    Actor.cacheFromConfig[Command.Close, FileSweeper.State](
       config = actorConfig,
+      state = FileSweeper.State(mutable.Set.empty[Path]),
       stashCapacity = maxOpenSegments,
+      queueOrder = QueueOrder.Ordered(actorQueueOrder),
       weigher = _ => 1
     ) {
-      case (command, _) =>
-        processCommand(command)
+      case (command, self) =>
+        processCommand(command, self)
 
     }.recoverException[Command.Close] {
-      case (command, io, _) =>
+      case (command, io, self) =>
         io match {
           case IO.Right(Actor.Error.TerminatedActor) =>
-            processCommand(command)
+            processCommand(command, self)
 
           case IO.Left(exception) =>
-            logger.error(s"Failed to close file. WeakReference(path: Path) = ${command.file.get.map(_.path)}.", exception)
+            logger.error(s"Failed to close file. = $command.", exception)
         }
     }.start()
 

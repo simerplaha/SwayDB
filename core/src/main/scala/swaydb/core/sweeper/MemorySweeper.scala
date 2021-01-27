@@ -29,6 +29,7 @@ import swaydb.core.data.Persistent
 import swaydb.core.util.HashedMap
 import swaydb.core.util.skiplist.SkipList
 import swaydb.data.cache.CacheNoIO
+import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.ByteSizeOf
@@ -155,8 +156,9 @@ private[core] object MemorySweeper extends LazyLogging {
       actorConfig map {
         actorConfig =>
           Actor.cacheFromConfig[Command](
-            stashCapacity = cacheSize,
             config = actorConfig,
+            stashCapacity = cacheSize,
+            queueOrder = QueueOrder.FIFO,
             weigher = MemorySweeper.weigher
           ) {
             (command, _) =>

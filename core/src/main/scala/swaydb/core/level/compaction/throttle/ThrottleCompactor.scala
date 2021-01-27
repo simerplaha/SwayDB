@@ -28,6 +28,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.DefActor
 import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.throttle.behaviour._
+import swaydb.core.sweeper.FileSweeper
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -40,20 +41,21 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object ThrottleCompactor {
 
-  def apply(state: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor, Unit],
-                                             behaviorWakeUp: BehaviorWakeUp): ThrottleCompactor =
+  def apply(context: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor, Unit],
+                                               behaviorWakeUp: BehaviorWakeUp,
+                                               fileSweeper: FileSweeper.On,
+                                               ec: ExecutionContext): ThrottleCompactor =
     new ThrottleCompactor(
-      context = state,
+      context = context,
       currentFuture = Future.unit
     )
 }
 
 private[core] class ThrottleCompactor private(@volatile private var context: ThrottleCompactorContext,
                                               @volatile private var currentFuture: Future[Unit])(implicit self: DefActor[ThrottleCompactor, Unit],
-                                                                                                 behaviour: BehaviorWakeUp) extends Compactor with LazyLogging {
-
-  implicit val ec: ExecutionContext = self.ec
-
+                                                                                                 behaviour: BehaviorWakeUp,
+                                                                                                 fileSweeper: FileSweeper.On,
+                                                                                                 executionContext: ExecutionContext) extends Compactor with LazyLogging {
   @inline private def onComplete(f: => Future[ThrottleCompactorContext]): Unit =
     currentFuture onComplete {
       _ =>

@@ -30,8 +30,12 @@ import swaydb.core.level.{Level, LevelRef}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.Assignable
 
+import scala.collection.mutable.ListBuffer
+
 sealed trait CompactionTask {
   def source: LevelRef
+
+  def compactingLevels: Iterable[LevelRef]
 }
 
 /**
@@ -54,7 +58,17 @@ object CompactionTask {
                                               data: scala.collection.SortedSet[A])
 
   case class CompactSegments(source: Level,
-                             tasks: Iterable[Task[Segment]]) extends CompactionTask.Segments
+                             tasks: Iterable[Task[Segment]]) extends CompactionTask.Segments {
+    override def compactingLevels: Iterable[Level] = {
+      val buffer = ListBuffer.empty[Level]
+      buffer += source
+      tasks foreach {
+        task =>
+          buffer += task.target
+      }
+      buffer
+    }
+  }
 
   /**
    * @param maps Should not be in random order.
@@ -62,12 +76,27 @@ object CompactionTask {
    */
   case class CompactMaps(source: LevelZero,
                          maps: List[LevelZeroMap],
-                         tasks: Iterable[Task[Assignable.Collection]]) extends CompactionTask
+                         tasks: Iterable[Task[Assignable.Collection]]) extends CompactionTask {
+    override def compactingLevels: Iterable[LevelRef] = {
+      val buffer = ListBuffer.empty[LevelRef]
+      buffer += source
+      tasks foreach {
+        task =>
+          buffer += task.target
+      }
+      buffer
+    }
+  }
 
   case class CollapseSegments(source: Level,
-                              segments: Iterable[Segment]) extends Cleanup
+                              segments: Iterable[Segment]) extends Cleanup {
+    override def compactingLevels: Iterable[Level] =
+      Iterable(source)
+  }
 
   case class RefreshSegments(source: Level,
-                             segments: Iterable[Segment]) extends Cleanup
-
+                             segments: Iterable[Segment]) extends Cleanup {
+    override def compactingLevels: Iterable[Level] =
+      Iterable(source)
+  }
 }

@@ -25,6 +25,7 @@
 package swaydb.core.level.compaction
 
 import swaydb.core.level.zero.LevelZero
+import swaydb.core.sweeper.FileSweeper
 import swaydb.data.compaction.CompactionConfig
 import swaydb.{DefActor, IO}
 
@@ -34,6 +35,6 @@ import swaydb.{DefActor, IO}
 private[core] trait CompactorCreator {
 
   def createAndListen(zero: LevelZero,
-                      compactionConfig: CompactionConfig): IO[swaydb.Error.Level, DefActor[Compactor, Unit]]
+                      compactionConfig: CompactionConfig)(implicit fileSweeper: FileSweeper.On): IO[swaydb.Error.Level, DefActor[Compactor, Unit]]
 
 }

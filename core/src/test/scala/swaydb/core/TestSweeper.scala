@@ -75,8 +75,8 @@ private[swaydb] object TestSweeper {
   def randomBlockCache: Option[BlockCache.State] =
     orNone(createBlockCache(createMemorySweeperRandom()))
 
-  def createFileSweeper(): FileSweeper =
-    FileSweeper(1000, ActorConfig.Basic("Basic test 3", DefaultExecutionContext.sweeperEC)).value(())
+  def createFileSweeper(): FileSweeper.On =
+    FileSweeper(1000, ActorConfig.Basic("Basic test 3", DefaultExecutionContext.sweeperEC))
 
   def createBufferCleaner(): ByteBufferSweeperActor =
     ByteBufferSweeper()(DefaultExecutionContext.sweeperEC)

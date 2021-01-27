@@ -71,7 +71,6 @@ sealed trait ActorRef[-T, S] { self =>
   def hasMessages: Boolean =
     totalWeight > 0
 
-
   def receiveAllForce[BAG[_], R](f: S => R)(implicit bag: Bag[BAG]): BAG[R]
 
   def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
@@ -100,29 +99,9 @@ object Actor {
     case object TerminatedActor extends Actor.Error
   }
 
-  def deadActor[T, S](): ActorRef[T, S] =
-    new ActorRef[T, S] {
-      override def name: String = "Dead actor"
-      override def executionContext: ExecutionContext = throw new Exception("Dead Actor")
-      override def send(message: T): Unit = throw new Exception("Dead Actor")
-      override def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit bag: Bag.Async[X]): X[R] = throw new Exception("Dead Actor")
-      override def send(message: T, delay: FiniteDuration): TimerTask = throw new Exception("Dead Actor")
-      override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit bag: Bag.Async[X]): Task[R, X] = throw new Exception("Dead Actor")
-      override def totalWeight: Long = throw new Exception("Dead Actor")
-      override def messageCount: Int = throw new Exception("Dead Actor")
-      override def isEmpty: Boolean = throw new Exception("Dead Actor")
-      override def isTerminated: Boolean = throw new Exception("Dead Actor")
-      override def clear(): Unit = throw new Exception("Dead Actor")
-      override def terminateAfter(timeout: FiniteDuration): ActorRef[T, S] = throw new Exception("Dead Actor")
-      override def hasRecovery: Boolean = throw new Exception("Dead Actor")
-      override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
-      override def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
-      def terminateAndRecover[BAG[_], R](f: S => R)(implicit bag: Bag[BAG]): BAG[Option[R]] = throw new Exception("Dead Actor")
-      def receiveAllForce[BAG[_], R](f: S => R)(implicit bag: Bag[BAG]): BAG[R] = throw new Exception("Dead Actor")
-    }
-
   def cacheFromConfig[T](config: ActorConfig,
                          stashCapacity: Long,
+                         queueOrder: QueueOrder[T],
                          weigher: T => Int)(execution: (T, Actor[T, Unit]) => Unit): ActorHooks[T, Unit] =
     config match {
       case config: ActorConfig.Basic =>
@@ -130,7 +109,7 @@ object Actor {
           name = config.name,
           stashCapacity = stashCapacity,
           weigher = weigher
-        )(execution)(config.ec, QueueOrder.FIFO)
+        )(execution)(config.ec, queueOrder)
 
       case config: ActorConfig.Timer =>
         timerCache(
@@ -138,7 +117,7 @@ object Actor {
           stashCapacity = stashCapacity,
           interval = config.delay,
           weigher = weigher
-        )(execution)(config.ec, QueueOrder.FIFO)
+        )(execution)(config.ec, queueOrder)
 
       case config: ActorConfig.TimeLoop =>
         timerLoopCache(
@@ -146,12 +125,13 @@ object Actor {
           stashCapacity = stashCapacity,
           interval = config.delay,
           weigher = weigher
-        )(execution)(config.ec, QueueOrder.FIFO)
+        )(execution)(config.ec, queueOrder)
     }
 
   def cacheFromConfig[T, S](config: ActorConfig,
                             state: S,
                             stashCapacity: Long,
+                            queueOrder: QueueOrder[T],
                             weigher: T => Int)(execution: (T, Actor[T, S]) => Unit): ActorHooks[T, S] =
     config match {
       case config: ActorConfig.Basic =>
@@ -160,7 +140,7 @@ object Actor {
           state = state,
           stashCapacity = stashCapacity,
           weigher = weigher
-        )(execution)(config.ec, QueueOrder.FIFO)
+        )(execution)(config.ec, queueOrder)
 
       case config: ActorConfig.Timer =>
         timerCache[T, S](
@@ -169,7 +149,7 @@ object Actor {
           stashCapacity = stashCapacity,
           interval = config.delay,
           weigher = weigher
-        )(execution)(config.ec, QueueOrder.FIFO)
+        )(execution)(config.ec, queueOrder)
 
       case config: ActorConfig.TimeLoop =>
         timerLoopCache[T, S](
@@ -178,7 +158,7 @@ object Actor {
           stashCapacity = stashCapacity,
           interval = config.delay,
           weigher = weigher
-        )(execution)(config.ec, QueueOrder.FIFO)
+        )(execution)(config.ec, queueOrder)
     }
 
   /**
