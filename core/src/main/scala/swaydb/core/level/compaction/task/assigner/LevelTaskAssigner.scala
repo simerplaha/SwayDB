@@ -80,7 +80,7 @@ case object LevelTaskAssigner {
         .filter {
           segment =>
             segmentsCount += 1
-            Level.isSmallSegment(segment, level.minSegmentSize)
+            Level.shouldCollapse(level, segment)
         }
 
     //do not collapse if no small Segments or if there is only 2 Segments in the Level

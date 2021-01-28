@@ -134,7 +134,7 @@ object TestData {
           putDeadlineCount = segment.putDeadlineCount,
           keyValueCount = segment.keyValueCount,
           nearestExpiryDeadline = segment.nearestPutDeadline,
-          copiedFrom = orNone(Some(segment))
+          copiedFrom = someOrNone(segment)
         ).sweep()
 
       segment.close

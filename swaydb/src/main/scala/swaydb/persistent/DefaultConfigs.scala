@@ -135,8 +135,9 @@ object DefaultConfigs {
       cacheSegmentBlocksOnCreate = true,
       deleteDelay = CommonConfigs.segmentDeleteDelay,
       mmap = MMAP.Off(forceSave = ForceSave.BeforeClose(enableBeforeCopy = false, enableForReadOnlyMode = false, logBenchmark = false)),
-      minSegmentSize = 44.mb,
-      segmentFormat = SegmentFormat.Grouped(count = 10000, enableRootHashIndex = false, groupCacheStrategy = GroupCacheStrategy.Keep),
+      minSegmentSize = 32.mb,
+      //      segmentFormat = SegmentFormat.Flattened,
+      segmentFormat = SegmentFormat.Grouped(count = 10000, enableRootHashIndex = false, groupCacheStrategy = GroupCacheStrategy.Drop(10)),
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
       blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO.cached
@@ -160,7 +161,7 @@ object DefaultConfigs {
     ByteCacheOnly(
       minIOSeekSize = 4096,
       skipBlockCacheSeekSize = 4096 * 10,
-      cacheCapacity = 1.gb_long,
+      cacheCapacity = 300.mb_long,
       disableForSearchIO = false,
       actorConfig =
         ActorConfig.TimeLoop(
@@ -170,8 +171,18 @@ object DefaultConfigs {
         )
     )
 
-  def levelZeroThrottle(meter: LevelZeroMeter): FiniteDuration =
-    (2 - meter.mapsCount).seconds
+  def levelZeroThrottle(meter: LevelZeroMeter): FiniteDuration = {
+    val count = meter.mapsCount
+    //when there are more than 4 maps/logs in LevelZero
+    //then give LevelZero highest priority.
+    //This will compact all LevelZero maps at once.
+    if (count >= 4) {
+      -365.days
+    } else {
+      //else give it some delay
+      count.seconds
+    }
+  }
 
   /**
    * The general idea for the following [[Throttle]] functions

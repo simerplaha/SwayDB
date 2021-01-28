@@ -32,9 +32,9 @@ import scala.concurrent.duration._
 
 case object CommonConfigs {
 
-  def segmentDeleteDelay = 10.seconds
+  def segmentDeleteDelay: FiniteDuration = 10.seconds
 
-  def compactionConfig(maxThreads: Int = 2): CompactionConfig = {
+  def compactionConfig(maxThreads: Int = (Runtime.getRuntime.availableProcessors() / 2) max 2): CompactionConfig = {
     val executionContext = DefaultExecutionContext.compactionEC(maxThreads = maxThreads)
     //create compaction config
     CompactionConfig(

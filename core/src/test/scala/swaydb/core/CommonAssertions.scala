@@ -74,9 +74,17 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.reflect.ClassTag
 import scala.util.{Random, Try}
 
 object CommonAssertions {
+
+  implicit class CommonAssertions[A](instance: A) {
+    def shouldBeInstanceOf[B <: A](implicit bClassTag: ClassTag[B]): B = {
+      instance.getClass shouldBe bClassTag.runtimeClass
+      instance.asInstanceOf[B]
+    }
+  }
 
   implicit class KeyValueImplicits(actual: KeyValue) {
 
@@ -173,6 +181,12 @@ object CommonAssertions {
       left
     else
       right
+
+  def someOrNone[T](some: => T): Option[T] =
+    if (Random.nextBoolean())
+      None
+    else
+      Some(some)
 
   def orNone[T](option: => Option[T]): Option[T] =
     if (Random.nextBoolean())
@@ -1556,7 +1570,7 @@ object CommonAssertions {
   }
 
   def randomBlockSize(): Option[Int] =
-    orNone(Some(4096))
+    someOrNone(4096)
 
   def randomIOStrategy(cacheOnAccess: Boolean = randomBoolean(),
                        includeReserved: Boolean = true): IOStrategy =
@@ -1882,5 +1896,6 @@ object CommonAssertions {
       (maps.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)
     }
   }
+
 }
 

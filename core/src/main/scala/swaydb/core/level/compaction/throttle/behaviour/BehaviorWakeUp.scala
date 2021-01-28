@@ -29,7 +29,7 @@ import swaydb.DefActor
 import swaydb.core.level._
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.level.compaction.task.assigner.{LevelTaskAssigner, LevelZeroTaskAssigner}
-import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorContext, ThrottleLevelOrdering, ThrottleLevelState}
+import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorContext, ThrottleLevelOrdering, LevelState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.sweeper.FileSweeper
 import swaydb.data.NonEmptyList
@@ -43,9 +43,11 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 private[throttle] trait BehaviorWakeUp {
+
   def wakeUp(context: ThrottleCompactorContext)(implicit ec: ExecutionContext,
                                                 self: DefActor[ThrottleCompactor, Unit],
                                                 fileSweeper: FileSweeper.On): Future[ThrottleCompactorContext]
+
 }
 
 /**
@@ -114,7 +116,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
       }
       .flatMap {
         lastLevel =>
-          val levelsToCompact =
+          val levelsToCompactInOrder =
             context
               .levels
               .takeWhile(_.levelNumber != lastLevel.levelNumber)
@@ -125,29 +127,24 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
           //level0 might fill up with level1 and level2 being empty and level0 maps not being
           //able to merged instantly.
 
-          val compactions =
+          val compactionsOrder =
             if (context.compactionConfig.resetCompactionPriorityAtInterval < context.levels.size)
-              levelsToCompact.take(context.compactionConfig.resetCompactionPriorityAtInterval)
+              levelsToCompactInOrder.take(context.compactionConfig.resetCompactionPriorityAtInterval)
             else
-              levelsToCompact
+              levelsToCompactInOrder
 
           //run compaction jobs
           runCompactions(
             context = context,
-            compactions = compactions,
+            compactionsOrder = compactionsOrder,
             lastLevel = lastLevel
           )
       }
 
-  def shouldRun(level: LevelRef, newStateId: Long, context: ThrottleLevelState): Boolean =
-    context match {
-      case _: ThrottleLevelState.AwaitingExtension =>
-        false
-
-      case ThrottleLevelState.Sleeping(sleepDeadline, stateId) =>
-        logger.debug(s"Level(${level.levelNumber}): $context")
-        sleepDeadline.isOverdue() || (newStateId != stateId && level.nextCompactionDelay.fromNow.isOverdue())
-    }
+  def shouldRun(level: LevelRef, newStateId: Long, state: LevelState.Sleeping): Boolean = {
+    logger.debug(s"Level(${level.levelNumber}): $state")
+    state.sleepDeadline.isOverdue() || (newStateId != state.stateId && level.nextCompactionDelay.fromNow.isOverdue())
+  }
 
   def scheduleWakeUp(context: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor, Unit]): ThrottleCompactorContext = {
     logger.debug(s"${context.name}: scheduling next wakeup for updated state: ${context.levels.size}. Current scheduled: ${context.sleepTask.map(_._2.timeLeft.asString)}")
@@ -164,14 +161,11 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
 
     val nextDeadline =
       levelsToCompact.foldLeft(Option.empty[Deadline]) {
-        case (nearestDeadline, (_, ThrottleLevelState.Sleeping(sleepDeadline, _))) =>
+        case (nearestDeadline, (_, LevelState.Sleeping(sleepDeadline, _))) =>
           FiniteDurations.getNearestDeadline(
             deadline = nearestDeadline,
             next = Some(sleepDeadline)
           )
-
-        case (nearestDeadline, (_, _: ThrottleLevelState.AwaitingExtension)) =>
-          nearestDeadline
       }
 
     logger.debug(s"${context.name}: Time left for new deadline ${nextDeadline.map(_.timeLeft.asString)}")
@@ -201,16 +195,16 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
   }
 
   def runCompactions(context: ThrottleCompactorContext,
-                     compactions: Slice[LevelRef],
+                     compactionsOrder: Slice[LevelRef],
                      lastLevel: Level)(implicit ec: ExecutionContext,
                                        fileSweeper: FileSweeper.On): Future[ThrottleCompactorContext] =
     if (context.terminateASAP()) {
       logger.warn(s"${context.name}: Cannot run jobs. Compaction is terminated.")
       Future.successful(context)
     } else {
-      logger.debug(s"${context.name}: Compaction order: ${compactions.map(_.levelNumber).mkString(", ")}")
+      logger.debug(s"${context.name}: Compaction order: ${compactionsOrder.map(_.levelNumber).mkString(", ")}")
 
-      val level = compactions.headOrNull
+      val level = compactionsOrder.headOrNull
 
       if (level == null) {
         logger.debug(s"${context.name}: Compaction round complete.") //all jobs complete.
@@ -222,14 +216,11 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
         //Level's stateId should only be accessed here before compaction starts for the level.
         val stateId = level.stateId
 
-        val nextLevels = compactions.dropHead().asInstanceOf[Slice[Level]]
-
         if ((currentState.isEmpty && level.nextCompactionDelay.fromNow.isOverdue()) || currentState.exists(state => shouldRun(level, stateId, state))) {
           logger.debug(s"Level(${level.levelNumber}): ${context.name}: ${if (currentState.isEmpty) "Initial run" else "shouldRun = true"}.")
 
           runCompaction(
             level = level,
-            nextLevels = nextLevels,
             stateId = stateId,
             lastLevel = lastLevel,
             pushStrategy = context.compactionConfig.pushStrategy
@@ -246,7 +237,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
 
               runCompactions(
                 context = newContext,
-                compactions = nextLevels,
+                compactionsOrder = compactionsOrder.dropHead(),
                 lastLevel = lastLevel
               )
           }
@@ -255,7 +246,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
           logger.debug(s"Level(${level.levelNumber}): ${context.name}: shouldRun = false.")
           runCompactions(
             context = context,
-            compactions = nextLevels,
+            compactionsOrder = compactionsOrder.dropHead(),
             lastLevel = lastLevel
           )
         }
@@ -266,16 +257,14 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
    * It should be be re-fetched for the same compaction.
    */
   def runCompaction(level: LevelRef,
-                    nextLevels: Slice[Level],
                     stateId: Long,
                     lastLevel: Level,
                     pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                                fileSweeper: FileSweeper.On): Future[ThrottleLevelState] =
+                                                fileSweeper: FileSweeper.On): Future[LevelState.Sleeping] =
     level match {
       case zero: LevelZero =>
         compactLevelZero(
           zero = zero,
-          nextLevels = nextLevels,
           stateId = stateId,
           lastLevel = lastLevel,
           pushStrategy = pushStrategy
@@ -284,19 +273,28 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
       case level: Level =>
         compactLevel(
           level = level,
-          nextLevels = nextLevels,
           stateId = stateId,
           lastLevel = lastLevel,
           pushStrategy = pushStrategy
         )
     }
 
+  def buildLowerLevels(level: LevelRef, lastLevel: Level): NonEmptyList[Level] = {
+    val nextLevel = level.nextLevel.get.asInstanceOf[Level]
+
+    val lowerLevels =
+      nextLevel.nextLevels.collect {
+        case level: Level if level.levelNumber <= lastLevel.levelNumber => level
+      }
+
+    NonEmptyList(nextLevel, lowerLevels)
+  }
+
   def compactLevelZero(zero: LevelZero,
-                       nextLevels: Slice[Level],
                        stateId: Long,
                        lastLevel: Level,
                        pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                                   fileSweeper: FileSweeper.On): Future[ThrottleLevelState] =
+                                                   fileSweeper: FileSweeper.On): Future[LevelState.Sleeping] =
     if (zero.isEmpty)
       LevelSleepStates.success(
         zero = zero,
@@ -306,7 +304,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
       LevelZeroTaskAssigner.run(
         source = zero,
         pushStrategy = pushStrategy,
-        lowerLevels = NonEmptyList(nextLevels.head, nextLevels.dropHead())
+        lowerLevels = buildLowerLevels(zero, lastLevel)
       ) flatMap {
         tasks =>
           BehaviourCompactionTask.compactMaps(
@@ -320,48 +318,44 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
         )
       } onError {
         LevelSleepStates.failure(
-          zero = zero,
           stateId = stateId
         )
       }
 
   def compactLevel(level: Level,
-                   nextLevels: Slice[Level],
                    stateId: Long,
                    lastLevel: Level,
                    pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                               fileSweeper: FileSweeper.On): Future[ThrottleLevelState] =
+                                               fileSweeper: FileSweeper.On): Future[LevelState.Sleeping] =
     if (level.isEmpty)
       LevelSleepStates.success(
         level = level,
         stateId = stateId
       ).toFuture
     else if (level.levelNumber == lastLevel.levelNumber)
-      compactNonEmptyLastLevel(
+      compactLastLevel(
         level = level,
         stateId = stateId,
         pushStrategy = pushStrategy
       )
     else
-      compactNonEmptyUpperLevel(
+      compactUpperLevel(
         level = level,
-        nextLevels = nextLevels,
         stateId = stateId,
         lastLevel = lastLevel,
         pushStrategy = pushStrategy
       )
 
-  def compactNonEmptyUpperLevel(level: Level,
-                                nextLevels: Slice[Level],
-                                stateId: Long,
-                                lastLevel: Level,
-                                pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                                            fileSweeper: FileSweeper.On): Future[ThrottleLevelState] = {
+  def compactUpperLevel(level: Level,
+                        stateId: Long,
+                        lastLevel: Level,
+                        pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
+                                                    fileSweeper: FileSweeper.On): Future[LevelState.Sleeping] = {
     val task =
       LevelTaskAssigner.assign(
         source = level,
         pushStrategy = pushStrategy,
-        lowerLevels = NonEmptyList(nextLevels.head, nextLevels.dropHead()),
+        lowerLevels = buildLowerLevels(level, lastLevel),
         sourceOverflow = level.compactDataSize max level.minSegmentSize
       )
 
@@ -391,41 +385,14 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
     }
   }
 
-  def compactNonEmptyLastLevel(level: Level,
-                               stateId: Long,
-                               pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                                           fileSweeper: FileSweeper.On): Future[ThrottleLevelState] = {
-    //last level compaction
-    val cleanupResult =
-      LevelTaskAssigner.cleanup(level = level) match {
-        case Some(task) =>
-          runSegmentTask(
-            task = task,
-            level = level,
-            stateId = stateId,
-            lastLevel = level,
-            pushStrategy = pushStrategy
-          )
-
-        case None =>
-          LevelSleepStates.success(
-            level = level,
-            stateId = stateId
-          ).toFuture
-      }
-
-    //post cleanup
-    cleanupResult and {
-      //if after running last Level compaction there is still an overflow do an extension.
-      if (level.nextLevel.isDefined && level.nextCompactionDelay.fromNow.isOverdue()) {
-        val task =
-          LevelTaskAssigner.assign(
-            source = level,
-            pushStrategy = pushStrategy,
-            lowerLevels = NonEmptyList(level.nextLevel.get.asInstanceOf[Level]),
-            sourceOverflow = level.compactDataSize max level.minSegmentSize
-          )
-
+  def compactLastLevel(level: Level,
+                       stateId: Long,
+                       pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
+                                                   fileSweeper: FileSweeper.On): Future[LevelState.Sleeping] =
+    LevelTaskAssigner.refresh(level = level) match {
+      case Some(task) =>
+        //ignore extendLastLevelMayBe if only refresh was executed
+        //and wait for next compaction cycle to check this again
         runSegmentTask(
           task = task,
           level = level,
@@ -433,18 +400,86 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
           lastLevel = level,
           pushStrategy = pushStrategy
         )
-      } else {
-        cleanupResult
-      }
+
+      case None =>
+        //run extendLastLevelMayBe only after collapse
+        LevelTaskAssigner.collapse(level = level) match {
+          case Some(task) =>
+            runSegmentTask(
+              task = task,
+              level = level,
+              stateId = stateId,
+              lastLevel = level,
+              pushStrategy = pushStrategy
+            ) flatMap {
+              state =>
+                extendLastLevelMayBe(
+                  newState = state,
+                  stateId = stateId,
+                  level = level,
+                  pushStrategy = pushStrategy
+                )
+            }
+
+          case None =>
+            val state =
+              LevelSleepStates.success(
+                level = level,
+                stateId = stateId
+              )
+
+            extendLastLevelMayBe(
+              newState = state,
+              stateId = stateId,
+              level = level,
+              pushStrategy = pushStrategy
+            )
+        }
     }
-  }
+
+  /**
+   * Pre-condition:
+   * LastLevel runs refresh and collapse as part of it's compaction process.
+   * If refresh is executed collapse is executed in the next compaction cycle
+   * to re-prioritise Level. So this function should only be invoked after a
+   * full cleanup cycle i.e. after [[LevelTaskAssigner.collapse]] is invoked.
+   *
+   * Execution condition:
+   * If collapse was executed and there are no more cleanups remaining
+   * but the level is still overflowing (indicated by newState's sleepDeadline)
+   * only then extend lowerLevel to next level by pushing segment.
+   */
+  def extendLastLevelMayBe(newState: LevelState.Sleeping,
+                           stateId: Long,
+                           level: Level,
+                           pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
+                                                       fileSweeper: FileSweeper.On): Future[LevelState.Sleeping] =
+    if (level.nextLevel.isDefined && newState.sleepDeadline.isOverdue() && LevelTaskAssigner.cleanup(level).isEmpty) {
+      val task =
+        LevelTaskAssigner.assign(
+          source = level,
+          pushStrategy = pushStrategy,
+          lowerLevels = NonEmptyList(level.nextLevel.get.asInstanceOf[Level]),
+          sourceOverflow = level.compactDataSize max level.minSegmentSize
+        )
+
+      runSegmentTask(
+        task = task,
+        level = level,
+        stateId = stateId,
+        lastLevel = level,
+        pushStrategy = pushStrategy
+      )
+    } else {
+      Future.successful(newState)
+    }
 
   def runSegmentTask(task: CompactionTask.Segments,
                      level: Level,
                      stateId: Long,
                      lastLevel: Level,
                      pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                                 fileSweeper: FileSweeper.On): Future[ThrottleLevelState] =
+                                                 fileSweeper: FileSweeper.On): Future[LevelState.Sleeping] =
     BehaviourCompactionTask.runSegmentTask(
       task = task,
       lastLevel = lastLevel
@@ -455,7 +490,6 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
       )
     } onError {
       LevelSleepStates.failure(
-        level = level,
         stateId = stateId
       )
     }

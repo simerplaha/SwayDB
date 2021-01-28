@@ -262,9 +262,11 @@ private[core] case object Level extends LazyLogging {
 
   def shouldCollapse(level: NextLevel,
                      segment: Segment): Boolean =
-    isSmallSegment(segment, level.minSegmentSize) ||
-      //if the Segment was not created in this level.
-      segment.createdInLevel != level.levelNumber
+  //do not collapse segments that were created in other levels
+  //see issue - //https://github.com/simerplaha/SwayDB/issues/299
+    isSmallSegment(segment, level.minSegmentSize) // ||
+  //if the Segment was not created in this level.
+  //      segment.createdInLevel != level.levelNumber
 }
 
 /**

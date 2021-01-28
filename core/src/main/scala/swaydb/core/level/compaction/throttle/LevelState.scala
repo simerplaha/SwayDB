@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -22,10 +22,29 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.throttle.behaviour
+package swaydb.core.level.compaction.throttle
 
-import swaydb.core.TestBase
+import swaydb.data.util.FiniteDurations._
 
-class BehaviourWakeUpSpec extends TestBase {
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
+private[level] object LevelState {
+
+  val failureSleepDuration: FiniteDuration = 5.second
+
+  def longSleep: Deadline = longSleepFiniteDuration.fromNow
+
+  val longSleepFiniteDuration: FiniteDuration = 1.hour
+
+  case class Sleeping(sleepDeadline: Deadline,
+                      stateId: Long) {
+    override def toString: String =
+      this.productPrefix +
+        s" - sleepDeadline: ${sleepDeadline.timeLeft.asString}, " +
+        s"stateId: $stateId "
+
+    def toFuture: Future[Sleeping] =
+      Future.successful(this)
+  }
 }

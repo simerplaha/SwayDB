@@ -66,13 +66,13 @@ protected object BehaviourCompactionTask extends LazyLogging {
         refresh(task = task, lastLevel = lastLevel)
     }
 
-  @inline def ensurePauseSweeper[T](levels: Iterable[LevelRef])(f: => Future[T])(implicit fileSweeper: FileSweeper.On,
-                                                                                 ec: ExecutionContext): Future[T] = {
+  @inline def ensurePauseSweeper[T](levels: Iterable[LevelRef])(compact: => Future[T])(implicit fileSweeper: FileSweeper.On,
+                                                                                       ec: ExecutionContext): Future[T] = {
     //No need to wait for a response because FileSweeper's queue is ordered prioritising PauseResume messages.
     //Who not? Because the Actor is configurable which could be a cached timer with longer time interval
     //which means we might not get a response immediately.
     fileSweeper.closer.send(FileSweeper.Command.Pause(levels))
-    f.withCallback(fileSweeper.send(FileSweeper.Command.Resume(levels)))
+    compact.withCallback(fileSweeper.send(FileSweeper.Command.Resume(levels)))
   }
 
   private def runTasks[A <: Assignable.Collection](tasks: Iterable[CompactionTask.Task[A]],
