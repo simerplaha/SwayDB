@@ -35,6 +35,7 @@ import swaydb.core.TestData._
 import swaydb.core.sweeper.ByteBufferCleaner
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.data.RunThis._
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
 class MMAPFileSpec extends TestBase with MockFactory {
@@ -103,11 +104,11 @@ class MMAPFileSpec extends TestBase with MockFactory {
                   () => {
                     //copy file to another path
                     val path2 = Effect.copy(path, randomFilePath)
-                    Effect.readAllBytes(path2) shouldBe bytes
+                    Slice(Effect.readAllBytes(path2)) shouldBe bytes
                   },
                   () =>
                     //read all the bytes from disk and they exist
-                    Effect.readAllBytes(path) shouldBe bytes
+                    Slice(Effect.readAllBytes(path)) shouldBe bytes
                 ).runThisRandomly
               }
 
@@ -144,7 +145,7 @@ class MMAPFileSpec extends TestBase with MockFactory {
                   forcedAgain.get() shouldBe false
 
                 //read bytes from disk and they should exist.
-                Effect.readAllBytes(path) shouldBe bytes
+                Slice(Effect.readAllBytes(path)) shouldBe bytes
               }
             }
         }

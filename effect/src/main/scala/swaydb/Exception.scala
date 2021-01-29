@@ -24,12 +24,11 @@
 
 package swaydb
 
+import swaydb.data.Reserve
+
 import java.lang
 import java.nio.channels.OverlappingFileLockException
 import java.nio.file.Path
-
-import swaydb.data.{DataType, Reserve}
-
 import scala.jdk.CollectionConverters._
 
 /**
@@ -105,7 +104,7 @@ object Exception {
 
   case class GetOnIncompleteDeferredFutureIO(reserve: Reserve[Unit]) extends Exception("Get invoked on in-complete Future within Deferred IO.")
 
-  case class InvalidDirectoryType(invalidType: DataType, expected: DataType) extends Exception(s"Invalid data type ${invalidType.name} for the directory of type ${expected.name}.")
+  case class InvalidDirectoryType(invalidType: String, expected: String) extends Exception(s"Invalid data type $invalidType for the directory of type $expected.")
   case class MissingMultiMapGenFolder(path: Path) extends Exception(s"Missing multimap gen file or folder: $path")
 
   case class IncompatibleVersions(previous: String, current: String)

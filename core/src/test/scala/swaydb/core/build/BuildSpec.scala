@@ -132,7 +132,7 @@ class BuildSpec extends TestBase {
                 val file = Build.write(folder, buildInfo).value
 
                 //drop crc
-                Effect.overwrite(file, Effect.readAllBytes(file).dropHead())
+                Effect.overwrite(file, Effect.readAllBytes(file).drop(1))
 
                 Build.read(folder).left.value.getMessage should startWith(s"assertion failed: Invalid CRC.")
             }
@@ -159,7 +159,7 @@ class BuildSpec extends TestBase {
                 bytesWithInvalidFormatId.isFull shouldBe true
 
                 //overwrite
-                Effect.overwrite(file, bytesWithInvalidFormatId)
+                Effect.overwrite(file, bytesWithInvalidFormatId.toArray)
 
                 //Invalid formatId will return invalid CRC.
                 //            Build.read(folder).left.value.getMessage shouldBe s"assertion failed: $file has invalid formatId. ${Build.formatId + 1} != ${Build.formatId}"
@@ -212,7 +212,7 @@ class BuildSpec extends TestBase {
                 Effect.exists(folder.resolve(Build.fileName)) shouldBe true
 
                 val error = Build.validateOrCreate(folder)(IO.ExceptionHandler, BuildValidator.DisallowOlderVersions(invalidDataType))
-                error.left.value.exception shouldBe InvalidDirectoryType(invalidDataType, dataType)
+                error.left.value.exception shouldBe InvalidDirectoryType(invalidDataType.name, dataType.name)
             }
         }
       }

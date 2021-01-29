@@ -21,7 +21,7 @@ package swaydb.api
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.{Bag, Glass}
+import swaydb.Glass
 
 import scala.collection.mutable.ListBuffer
 

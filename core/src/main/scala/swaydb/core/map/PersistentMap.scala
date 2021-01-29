@@ -27,7 +27,6 @@ package swaydb.core.map
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
-import swaydb.IO._
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
@@ -37,6 +36,7 @@ import swaydb.core.util.Extension
 import swaydb.data.config.{IOStrategy, MMAP}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.slice.SliceIOImplicits._
 
 import java.nio.file.Path
 import scala.annotation.tailrec

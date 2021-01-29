@@ -75,7 +75,7 @@ object BuildValidator {
           if (!isValid)
             IO.failed(IncompatibleVersions(previous.version.version, thisVersion.version))
           else if (previousDataType != dataType)
-            IO.failed(Exception.InvalidDirectoryType(dataType, previous.dataType))
+            IO.failed(Exception.InvalidDirectoryType(dataType.name, previous.dataType.name))
           else
             IO(Some(dataType))
       }
@@ -108,7 +108,7 @@ object BuildValidator {
 
         case Build.Info(_, dataType) =>
           if (dataType != DataType.MultiMap)
-            IO.failed(Exception.InvalidDirectoryType(dataType, DataType.MultiMap))
+            IO.failed(Exception.InvalidDirectoryType(dataType.name, DataType.MultiMap.name))
           else
             checkExists()
       }

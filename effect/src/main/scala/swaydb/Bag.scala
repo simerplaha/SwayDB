@@ -26,7 +26,6 @@ package swaydb
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO.{ApiIO, ThrowableIO}
-import swaydb.data.util.Futures
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
@@ -529,7 +528,7 @@ object Bag extends LazyLogging {
         ec
 
       override val unit: Future[Unit] =
-        Futures.unit
+        Future.unit
 
       override def none[A]: Future[Option[A]] =
         Future.successful(None)

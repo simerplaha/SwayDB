@@ -24,14 +24,12 @@
 
 package swaydb.data.slice
 
-import java.nio.ByteBuffer
-import java.nio.charset.{Charset, StandardCharsets}
 import swaydb.Aggregator
-import swaydb.Exception.InvalidLevelReservation
-import swaydb.data.order.KeyOrder
 import swaydb.data.util.{ByteOps, ByteSizeOf}
 import swaydb.data.{MaxKey, slice}
 
+import java.nio.ByteBuffer
+import java.nio.charset.{Charset, StandardCharsets}
 import scala.collection.{Iterable, Iterator, Seq}
 import scala.reflect.ClassTag
 

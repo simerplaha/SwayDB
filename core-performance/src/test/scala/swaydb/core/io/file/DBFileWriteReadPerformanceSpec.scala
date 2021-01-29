@@ -83,7 +83,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
 
         val channelFile =
           DBFile.channelRead(
-            path = Effect.write(path, bytes),
+            path = Effect.write(path, bytes.toByteBufferWrap),
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
             autoClose = true
           )

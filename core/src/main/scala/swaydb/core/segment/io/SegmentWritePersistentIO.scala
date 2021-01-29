@@ -26,7 +26,6 @@ package swaydb.core.segment.io
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO._
 import swaydb.core.data.DefIO
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
@@ -39,6 +38,7 @@ import swaydb.core.util.IDGenerator
 import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.slice.SliceIOImplicits._
 import swaydb.{Error, IO}
 
 import java.nio.file.Path

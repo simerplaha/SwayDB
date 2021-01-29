@@ -24,13 +24,14 @@
 
 package swaydb.core.build
 
-import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.io.file.Effect
 import swaydb.data.DataType
+import swaydb.data.slice.Slice
 import swaydb.macros.VersionReader
+
+import java.nio.file.Path
 
 sealed trait Build
 object Build extends LazyLogging {
@@ -95,7 +96,7 @@ object Build extends LazyLogging {
 
       Effect.createDirectoriesIfAbsent(folder)
       logger.debug(s"Writing build.info - v${buildInfo.version.version}")
-      Effect.write(file, slice)
+      Effect.write(file, slice.toByteBufferWrap)
     }
 
   def read[E: IO.ExceptionHandler](folder: Path): IO[E, Build] =
@@ -110,7 +111,7 @@ object Build extends LazyLogging {
         else
           IO {
             val bytes = Effect.readAllBytes(file)
-            val buildInfo = BuildSerialiser.read(bytes, file)
+            val buildInfo = BuildSerialiser.read(Slice(bytes), file)
             logger.debug(s"build.info - v${buildInfo.version.version}")
             buildInfo
           }

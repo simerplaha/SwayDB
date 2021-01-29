@@ -113,7 +113,7 @@ class ForceSavePerformanceSpec extends TestBase {
 
             val channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
 
-            Effect.writeUnclosed(channel, bytes)
+            Effect.writeUnclosed(channel, bytes.toByteBufferWrap)
 
             val newTime =
               Benchmark.time(s"Force save memory-mapped file") {

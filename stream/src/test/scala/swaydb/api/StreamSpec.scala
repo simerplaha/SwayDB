@@ -49,7 +49,7 @@ class StreamIOSpec extends StreamSpec[IO.ApiIO] {
     a.left.get.exception
 }
 
-class StreamLessSpec extends StreamSpec[Glass] {
+class StreamGlassSpec extends StreamSpec[Glass] {
   override def get[A](a: Glass[A]): A = a
 
   override def getException(a: => Glass[_]): Throwable =

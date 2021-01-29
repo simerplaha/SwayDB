@@ -24,7 +24,6 @@
 
 package swaydb
 
-import swaydb.EitherValues.EitherTestUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -56,10 +55,10 @@ trait IOValues {
 
   implicit class IOEitherImplicits[E, L, R](io: IO[E, Either[L, R]]) {
     def rightValue: R =
-      io.get.rightValue
+      io.get.right.get
 
     def leftValue: L =
-      io.get.leftValue
+      io.get.left.get
   }
 
   implicit class DeferredIOImplicits[L: IO.ExceptionHandler, R](io: => IO.Defer[L, R]) {

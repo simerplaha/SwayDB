@@ -106,7 +106,7 @@ class DBFileSpec extends TestBase with MockFactory {
           files should have size 2
           files foreach {
             file =>
-              Effect.readAllBytes(file.path) shouldBe bytes
+              Slice(Effect.readAllBytes(file.path)) shouldBe bytes
               file.readAll shouldBe bytes
           }
       }
@@ -221,7 +221,7 @@ class DBFileSpec extends TestBase with MockFactory {
           //          ()
           //      } repeat 3.times
 
-          Effect.write(testFile, bytes)
+          Effect.write(testFile, bytes.toByteBufferWrap)
 
           val readFile = DBFile.channelRead(
             path = testFile,
@@ -418,7 +418,7 @@ class DBFileSpec extends TestBase with MockFactory {
           val testFile = randomFilePath
           val bytes = Slice("bytes one".getBytes())
 
-          Effect.write(testFile, bytes)
+          Effect.write(testFile, bytes.toByteBufferWrap)
 
           val readFile =
             DBFile.mmapRead(
@@ -442,7 +442,7 @@ class DBFileSpec extends TestBase with MockFactory {
           readFile.close()
           doRead
 
-          IO(Effect.write(testFile, bytes)).left.value shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
+          IO(Effect.write(testFile, bytes.toByteBufferWrap)).left.value shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
 
           readFile.close()
       }
@@ -511,7 +511,7 @@ class DBFileSpec extends TestBase with MockFactory {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath
-          Effect.write(to = testFile, bytes = Slice(randomBytes()))
+          Effect.write(to = testFile, bytes = Slice(randomBytes()).toByteBufferWrap)
 
           IO {
             DBFile.mmapInit(

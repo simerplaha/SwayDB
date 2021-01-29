@@ -26,7 +26,6 @@ package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO._
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
@@ -52,6 +51,7 @@ import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.data.MaxKey
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.SliceIOImplicits._
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.{FiniteDurations, SomeOrNone}
 import swaydb.{Aggregator, IO}

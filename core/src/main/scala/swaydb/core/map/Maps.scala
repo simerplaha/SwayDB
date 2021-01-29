@@ -24,10 +24,8 @@
 
 package swaydb.core.map
 
-import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
-import swaydb.IO._
 import swaydb.core.brake.BrakePedal
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
@@ -40,8 +38,10 @@ import swaydb.core.util.queue.VolatileQueue
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.SliceIOImplicits._
 import swaydb.{Error, IO}
 
+import java.nio.file.Path
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 

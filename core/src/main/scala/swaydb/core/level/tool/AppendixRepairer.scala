@@ -24,11 +24,9 @@
 
 package swaydb.core.level.tool
 
-import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
-import swaydb.IO._
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.level.AppendixMapCache
 import swaydb.core.map.serializer.MapEntryWriter
@@ -42,7 +40,10 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
 import swaydb.data.slice.Slice
+import swaydb.data.slice.SliceIOImplicits._
 import swaydb.data.util.StorageUnits._
+
+import java.nio.file.Path
 
 private[swaydb] object AppendixRepairer extends LazyLogging {
 

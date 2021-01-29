@@ -27,7 +27,6 @@ package swaydb.core.level
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.IO._
 import swaydb.core.data.{DefIO, KeyValue, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
@@ -57,6 +56,7 @@ import swaydb.core.util.{MinMax, _}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.SliceIOImplicits._
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.LevelStorage
 import swaydb.{Aggregator, Bag, Error, IO}

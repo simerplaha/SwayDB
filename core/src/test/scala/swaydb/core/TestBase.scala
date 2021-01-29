@@ -448,7 +448,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
   }
 
   def createFile(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): Path =
-    Effect.write(testClassDir.resolve(nextSegmentId).sweep(), bytes)
+    Effect.write(testClassDir.resolve(nextSegmentId).sweep(), bytes.toByteBufferWrap)
 
   def createRandomFileReader(path: Path)(implicit sweeper: TestCaseSweeper): FileReader =
     if (Random.nextBoolean())

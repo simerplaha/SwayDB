@@ -26,7 +26,6 @@ package swaydb.core.level.compaction.throttle.behaviour
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.IO._
 import swaydb.core.data.DefIO
 import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
@@ -34,6 +33,7 @@ import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.slice.Slice
+import swaydb.data.slice.SliceIOImplicits._
 import swaydb.{Error, IO}
 
 protected case object BehaviourCommit extends LazyLogging {

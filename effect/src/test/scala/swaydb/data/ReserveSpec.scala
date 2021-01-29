@@ -27,10 +27,8 @@ package swaydb.data
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import swaydb.data.Base._
-import swaydb.data.slice.Slice
-import swaydb.data.util.Options
 
-import java.util.concurrent.{ConcurrentLinkedQueue, ConcurrentSkipListMap}
+import java.util.concurrent.ConcurrentLinkedQueue
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
 import scala.util.Random
@@ -70,7 +68,7 @@ class ReserveSpec extends AnyFlatSpec with Matchers {
           if (i == 10000 || Random.nextBoolean())
             Reserve.setFree(busy)
           else
-            Reserve.compareAndSet(Options.unit, busy)
+            Reserve.compareAndSet(Some(()), busy)
       }
     }
 

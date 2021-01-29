@@ -84,10 +84,10 @@ private[file] class ChannelFile(val path: Path,
   }
 
   def append(slice: Slice[Byte]): Unit =
-    Effect.writeUnclosed(channel, slice)
+    Effect.writeUnclosed(channel, slice.toByteBufferWrap)
 
   def append(slice: Iterable[Slice[Byte]]): Unit =
-    Effect.writeUnclosed(channel, slice)
+    Effect.writeUnclosed(channel, slice.iterator.map(_.toByteBufferWrap))
 
   override def transfer(position: Int, count: Int, transferTo: DBFileType): Int =
     transferTo match {

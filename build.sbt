@@ -145,8 +145,10 @@ lazy val SwayDB =
       core,
       compression,
       data,
+      effect,
       actor,
       stream,
+      cache,
       configs,
       serializers,
       `data-java`,
@@ -157,34 +159,47 @@ lazy val SwayDB =
       `swaydb-cats-effect`
     )
 
+lazy val effect =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+
 lazy val core =
   project
     .in(file("core"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(data, actor, data % "test->test", macros % "test->test;compile-internal", compression, configs % "test->test", serializers % "test->test")
+    .dependsOn(data, effect, cache, actor, data % "test->test", macros % "test->test;compile-internal", compression, configs % "test->test", serializers % "test->test")
 
 lazy val data =
   project
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(macros % "compile-internal")
+    .dependsOn(macros % "compile-internal", effect)
 
 lazy val actor =
   project
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(data)
+    .dependsOn(data, cache)
 
 lazy val stream =
   project
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(data)
+    .dependsOn(data, effect)
+
+lazy val cache =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(data, effect)
 
 lazy val `data-java` =
   project

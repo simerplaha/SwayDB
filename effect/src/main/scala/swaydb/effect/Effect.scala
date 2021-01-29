@@ -24,22 +24,20 @@
 
 package swaydb.core.io.file
 
+import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
+import swaydb.core.util.Extension
+
 import java.io.IOException
+import java.nio.ByteBuffer
 import java.nio.channels.{FileChannel, WritableByteChannel}
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import java.util
 import java.util.function.BiPredicate
-
-import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
-import swaydb.core.util.Extension
-import swaydb.core.util.PipeOps._
-import swaydb.data.slice.Slice
-import swaydb.data.util.Maths
-
 import scala.jdk.CollectionConverters._
 import scala.util.Try
+import scala.collection.compat.IterableOnce
 
 private[core] object Effect extends LazyLogging {
 
@@ -67,11 +65,11 @@ private[core] object Effect extends LazyLogging {
   }
 
   def overwrite(to: Path,
-                bytes: Slice[Byte]): Path =
-    Files.write(to, bytes.toArray)
+                bytes: Array[Byte]): Path =
+    Files.write(to, bytes)
 
   def write(to: Path,
-            bytes: Slice[Byte]): Path = {
+            bytes: ByteBuffer): Path = {
     val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
     try {
       writeUnclosed(channel, bytes)
@@ -82,7 +80,7 @@ private[core] object Effect extends LazyLogging {
   }
 
   def write(to: Path,
-            bytes: Iterable[Slice[Byte]]): Path = {
+            bytes: IterableOnce[ByteBuffer]): Path = {
     val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
     try {
       writeUnclosed(channel, bytes)
@@ -92,7 +90,7 @@ private[core] object Effect extends LazyLogging {
     }
   }
 
-  def replace(bytes: Slice[Byte],
+  def replace(bytes: ByteBuffer,
               to: Path): Path = {
     val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE)
     try {
@@ -104,21 +102,23 @@ private[core] object Effect extends LazyLogging {
   }
 
   def writeUnclosed(channel: WritableByteChannel,
-                    bytes: Iterable[Slice[Byte]]): Unit =
+                    bytes: IterableOnce[ByteBuffer]): Unit =
     bytes foreach {
       bytes =>
         writeUnclosed(channel, bytes)
     }
 
   def writeUnclosed(channel: WritableByteChannel,
-                    bytes: Slice[Byte]): Unit = {
-    val written = channel write bytes.toByteBufferWrap
+                    bytes: ByteBuffer): Unit = {
+    val byteSize = bytes.remaining() - bytes.arrayOffset()
+
+    val written = channel write bytes
 
     // toByteBuffer uses size of Slice instead of written,
     // but here the check on written ensures that only the actually written bytes find written.
     // All the client code invoking writes to Disk using Slice should ensure that no Slice contains empty bytes.
-    if (written != bytes.size)
-      throw swaydb.Exception.FailedToWriteAllBytes(written, bytes.size, bytes.size)
+    if (written != byteSize)
+      throw swaydb.Exception.FailedToWriteAllBytes(written, byteSize, byteSize)
   }
 
   def transfer(position: Int, count: Int, from: FileChannel, transferTo: WritableByteChannel): Int = {
@@ -211,11 +211,10 @@ private[core] object Effect extends LazyLogging {
     path.getParent.resolve(s"${id + 1}.${ext.toString}")
   }
 
-  def incrementFolderId(path: Path): Path =
-    folderId(path) ==> {
-      currentFolderId =>
-        path.getParent.resolve((currentFolderId + 1).toString)
-    }
+  def incrementFolderId(path: Path): Path = {
+    val currentFolderId = folderId(path)
+    path.getParent.resolve((currentFolderId + 1).toString)
+  }
 
   def folderId(path: Path): Long =
     path.getFileName.toString.toLong
@@ -275,8 +274,8 @@ private[core] object Effect extends LazyLogging {
       .flatMap(_.files(Extension.Seg))
       .sortBy(_.getFileName.fileId._1)
 
-  def readAllBytes(path: Path): Slice[Byte] =
-    Slice(Files.readAllBytes(path))
+  def readAllBytes(path: Path): Array[Byte] =
+    Files.readAllBytes(path)
 
   def readAllLines(path: Path): util.List[String] =
     Files.readAllLines(path)
@@ -311,6 +310,9 @@ private[core] object Effect extends LazyLogging {
     else
       IO.`true`
 
+  @inline def round(double: Double, scale: Int = 6): BigDecimal =
+    BigDecimal(double).setScale(scale, BigDecimal.RoundingMode.HALF_UP)
+
   def getFilesSize(folder: Path, fileExtension: String): String = {
     val extensionFilter =
       new BiPredicate[Path, BasicFileAttributes] {
@@ -327,7 +329,7 @@ private[core] object Effect extends LazyLogging {
         .asScala
         .foldLeft(0L)(_ + _.toFile.length())
 
-    val mb = Maths.round(size / 1000000.0, 2)
+    val mb = round(size / 1000000.0, 2)
 
     s"$mb mb - $size bytes"
   }

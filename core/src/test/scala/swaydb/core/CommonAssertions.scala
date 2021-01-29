@@ -76,6 +76,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.{Random, Try}
+import swaydb.data.slice.SliceIOImplicits._
 
 object CommonAssertions {
 
@@ -979,7 +980,7 @@ object CommonAssertions {
         val data =
           Seq(s"\nLevel: ${level.rootPath}\n") ++
             dump(level.segments())
-        Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString[Byte](data.mkString("\n"))))
+        Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString[Byte](data.mkString("\n"))).toByteBufferWrap)
 
         dump(nextLevel)
 
@@ -987,7 +988,7 @@ object CommonAssertions {
         val data =
           Seq(s"\nLevel: ${level.rootPath}\n") ++
             dump(level.segments())
-        Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString[Byte](data.mkString("\n"))))
+        Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString[Byte](data.mkString("\n"))).toByteBufferWrap)
     }
 
   def assertGet(keyValues: Iterable[KeyValue],

@@ -466,7 +466,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           map.close()
 
           val set = swaydb.persistent.Set[Int, Nothing, IO.ApiIO](dir)
-          set.left.value.exception shouldBe InvalidDirectoryType(DataType.Set, DataType.Map)
+          set.left.value.exception shouldBe InvalidDirectoryType(DataType.Set.name, DataType.Map.name)
 
           //reopen it as a map
           val reopened = swaydb.persistent.Map[Int, Int, Nothing, Glass](dir).sweep(_.delete())

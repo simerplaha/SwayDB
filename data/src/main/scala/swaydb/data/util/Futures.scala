@@ -24,8 +24,6 @@
 
 package swaydb.data.util
 
-import swaydb.IO
-
 import scala.concurrent.{ExecutionContext, Future}
 
 private[swaydb] object Futures {
@@ -58,9 +56,6 @@ private[swaydb] object Futures {
         onesResult =>
           future2.map(_ => onesResult)
       }
-
-    @inline def andIO[L, R](io: => IO[L, A])(implicit executionContext: ExecutionContext): Future[A] =
-      future1.flatMap(_ => io.toFuture)
   }
 
   implicit class FutureUnitImplicits(future1: Future[Unit]) {
