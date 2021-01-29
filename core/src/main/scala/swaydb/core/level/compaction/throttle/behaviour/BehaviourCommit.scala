@@ -41,7 +41,7 @@ protected case object BehaviourCommit extends LazyLogging {
   private val levelCommitOrder =
     Ordering.Int.reverse.on[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]](_.input.levelNumber)
 
-  def persistAndCommit(mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Slice[Unit]] =
+  def persist(mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Slice[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]]] =
     mergeResults
       .mapRecoverIO[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]](
         block = {
@@ -69,14 +69,16 @@ protected case object BehaviourCommit extends LazyLogging {
             }
         }
       )
-      .flatMap {
-        persisted =>
-          //commit the Segments to each Level in reverse order
-          persisted.sorted(levelCommitOrder) mapRecoverIO {
-            defIO =>
-              defIO.input.commitPersisted(defIO.output)
-          }
-      }
+
+  def commit(persisted: Slice[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]]): IO[Error.Level, Slice[Unit]] =
+  //commit the Segments to each Level in reverse order
+    persisted.sorted(levelCommitOrder) mapRecoverIO {
+      defIO =>
+        defIO.input.commitPersisted(defIO.output)
+    }
+
+  def persistCommit(mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Slice[Unit]] =
+    persist(mergeResults).flatMap(commit)
 
   def commit(fromLevel: Level,
              segments: Iterable[Segment],
@@ -86,16 +88,16 @@ protected case object BehaviourCommit extends LazyLogging {
       .commit(mergeResult)
       .and(fromLevel.remove(segments))
 
-  def commit(fromLevel: Level,
-             segments: Iterable[Segment],
-             mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Unit] =
-    persistAndCommit(mergeResults)
+  def persistCommitSegments(fromLevel: Level,
+                            segments: Iterable[Segment],
+                            mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Unit] =
+    persistCommit(mergeResults)
       .and(fromLevel.remove(segments))
 
-  def commit(fromLevel: LevelZero,
-             maps: List[LevelZeroMap],
-             mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Unit] =
-    persistAndCommit(mergeResults)
+  def persistCommitMaps(fromLevel: LevelZero,
+                        maps: List[LevelZeroMap],
+                        mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Unit] =
+    persistCommit(mergeResults)
       .and {
         maps
           .reverse

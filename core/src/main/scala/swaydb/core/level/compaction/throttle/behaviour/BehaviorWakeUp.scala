@@ -119,7 +119,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
           val levelsToCompactInOrder =
             context
               .levels
-              .takeWhile(_.levelNumber != lastLevel.levelNumber)
+              .takeWhile(_.levelNumber <= lastLevel.levelNumber)
               .sorted(ThrottleLevelOrdering.ordering)
 
           //process only few job in the current thread and stop so that reordering occurs.

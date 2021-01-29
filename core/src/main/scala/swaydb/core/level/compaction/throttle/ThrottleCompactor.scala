@@ -56,15 +56,20 @@ private[core] class ThrottleCompactor private(@volatile private var context: Thr
                                                                                                  behaviour: BehaviorWakeUp,
                                                                                                  fileSweeper: FileSweeper.On,
                                                                                                  executionContext: ExecutionContext) extends Compactor with LazyLogging {
-  @inline private def onComplete(f: => Future[ThrottleCompactorContext]): Unit =
-    currentFuture onComplete {
-      _ =>
-        this.currentFuture =
-          f map {
-            newContext =>
-              this.context = newContext
-          }
-    }
+  @inline private def onComplete(nextFuture: => Future[ThrottleCompactorContext]): Unit =
+    this.currentFuture =
+      currentFuture
+        .recoverWith {
+          _ =>
+            Future.unit
+        }
+        .flatMap {
+          _ =>
+            nextFuture map {
+              newContext =>
+                this.context = newContext
+            }
+        }
 
   override def wakeUp(): Unit =
     onComplete(behaviour.wakeUp(context))

@@ -114,7 +114,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
           lastLevel = lastLevel
         ) flatMap {
           mergeResult =>
-            BehaviourCommit.commit(
+            BehaviourCommit.persistCommitSegments(
               fromLevel = task.source,
               segments = task.tasks.flatMap(_.data),
               mergeResults = mergeResult
@@ -134,7 +134,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
           lastLevel = lastLevel
         ) flatMap {
           result =>
-            BehaviourCommit.commit(
+            BehaviourCommit.persistCommitMaps(
               fromLevel = task.source,
               maps = task.maps,
               mergeResults = result
