@@ -151,7 +151,7 @@ lazy val SwayDB =
       serializers,
       `data-java`,
       `swaydb-java`,
-      `serializer-boopickle`,
+      `swaydb-boopickle`,
       `swaydb-monix`,
       `swaydb-zio`,
       `swaydb-cats-effect`
@@ -198,7 +198,7 @@ lazy val swaydb =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(core % "test->test;compile->compile", serializers, `serializer-boopickle` % "test->test", configs, stream)
+    .dependsOn(core % "test->test;compile->compile", serializers, `swaydb-boopickle` % "test->test", configs, stream)
 
 lazy val configs =
   project
@@ -288,7 +288,7 @@ lazy val `swaydb-cats-effect` =
 /**
  * Support modules - Serialisers.
  */
-lazy val `serializer-boopickle` =
+lazy val `swaydb-boopickle` =
   project
     .settings(name := "boopickle")
     .settings(commonSettings)

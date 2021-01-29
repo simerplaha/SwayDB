@@ -60,7 +60,7 @@ private[core] class ThrottleCompactor private(@volatile private var context: Thr
     this.currentFuture =
       currentFuture
         .recoverWith {
-          _ =>
+          case _ =>
             Future.unit
         }
         .flatMap {
