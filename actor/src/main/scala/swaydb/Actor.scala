@@ -24,19 +24,18 @@
 
 package swaydb
 
-import java.util.TimerTask
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicLong}
-import java.util.function.{IntUnaryOperator, LongUnaryOperator}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
-import swaydb.IO.ExceptionHandler
 import swaydb.data.Reserve
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.config.ActorConfig
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.util.{AtomicThreadLocalBoolean, FunctionSafe, Options}
 
+import java.util.TimerTask
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
+import java.util.function.LongUnaryOperator
 import scala.annotation.tailrec
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future, Promise}

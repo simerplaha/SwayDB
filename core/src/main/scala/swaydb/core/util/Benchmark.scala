@@ -24,13 +24,15 @@
 
 package swaydb.core.util
 
-import java.lang.management.ManagementFactory
-import java.util.function.Supplier
-
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.{Bag, Glass}
 import swaydb.data.util.Maths
 
+import java.lang.management.ManagementFactory
+import java.util.function.Supplier
+import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
+import Bag.Implicits._
 
 object Benchmark extends LazyLogging {
 
@@ -49,48 +51,58 @@ object Benchmark extends LazyLogging {
     else
       print(message)
 
-  private def run[R](message: String, inlinePrint: Boolean, useLazyLogging: Boolean)(benchmarkThis: => R): (R, BigDecimal) = {
-//    if (!useLazyLogging) //don't need header Benchmarking log when using lazyLogging. LazyLogging is generally for user's viewing only.
-//      if (inlinePrint)
-//        doPrint(message = s"Benchmarking: ${if(message.isEmpty) "" else s"$message: "}", useLazyLogging = useLazyLogging, newLine = false)
-//      else
-//        doPrint(message = s"Benchmarking: $message", useLazyLogging = useLazyLogging, newLine = true)
+  private def run[R, BAG[_]](message: String, inlinePrint: Boolean, useLazyLogging: Boolean)(benchmarkThis: => BAG[R])(implicit bag: Bag[BAG]): BAG[(R, BigDecimal)] = {
+    if (!useLazyLogging) //don't need header Benchmarking log when using lazyLogging. LazyLogging is generally for user's viewing only.
+      if (inlinePrint)
+        doPrint(message = s"Benchmarking: ${if (message.isEmpty) "" else s"$message: "}", useLazyLogging = useLazyLogging, newLine = false)
+      else
+        doPrint(message = s"Benchmarking: $message", useLazyLogging = useLazyLogging, newLine = true)
 
     val collectionTimeBefore = ManagementFactory.getGarbageCollectorMXBeans.asScala.foldLeft(0L)(_ + _.getCollectionTime)
 
     val startTime = System.nanoTime()
-    val result = benchmarkThis
-    val endTime = System.nanoTime()
-    val timeTaken = (endTime - startTime) / 1000000000.0: Double
 
-    val collectionTimeAfter = ManagementFactory.getGarbageCollectorMXBeans.asScala.foldLeft(0L)(_ + _.getCollectionTime)
+    benchmarkThis flatMap {
+      result =>
+        val endTime = System.nanoTime()
+        val timeTaken = (endTime - startTime) / 1000000000.0: Double
 
-    val gcTimeTaken = (collectionTimeAfter - collectionTimeBefore) / 1000.0
+        val collectionTimeAfter = ManagementFactory.getGarbageCollectorMXBeans.asScala.foldLeft(0L)(_ + _.getCollectionTime)
 
-    val timeWithoutGCRounded = Maths.round(timeTaken - gcTimeTaken)
+        val gcTimeTaken = (collectionTimeAfter - collectionTimeBefore) / 1000.0
 
-    val messageToLog = s"${if (message.isEmpty) "" else s"$message - "}$timeWithoutGCRounded seconds. GC: ${Maths.round(gcTimeTaken)}. Total: ${Maths.round(timeTaken)}"
+        val timeWithoutGCRounded = Maths.round(timeTaken - gcTimeTaken)
 
-    if (inlinePrint)
-      doPrint(message = messageToLog, useLazyLogging = useLazyLogging, newLine = false)
-    else
-      doPrint(message = messageToLog, useLazyLogging = useLazyLogging, newLine = true)
+        val messageToLog = s"${if (message.isEmpty) "" else s"$message - "}$timeWithoutGCRounded seconds. GC: ${Maths.round(gcTimeTaken)}. Total: ${Maths.round(timeTaken)}"
 
-    if (!useLazyLogging)
-      println
+        if (inlinePrint)
+          doPrint(message = messageToLog, useLazyLogging = useLazyLogging, newLine = false)
+        else
+          doPrint(message = messageToLog, useLazyLogging = useLazyLogging, newLine = true)
 
-    (result, timeWithoutGCRounded)
+        if (!useLazyLogging)
+          println
+
+        bag.success(result, timeWithoutGCRounded)
+    }
   }
 
   def apply[R](message: String, inlinePrint: Boolean = false, useLazyLogging: Boolean = false)(benchmarkThis: => R): R =
-    run(
+    run[R, Glass](
       message = message,
       inlinePrint = inlinePrint,
       useLazyLogging = useLazyLogging
     )(benchmarkThis)._1
 
-  def time(message: String, inlinePrint: Boolean = false, useLazyLogging: Boolean = false)(benchmarkThis: => Unit): BigDecimal =
+  def future[R](message: String, inlinePrint: Boolean = false, useLazyLogging: Boolean = false)(benchmarkThis: => Future[R])(implicit ec: ExecutionContext): Future[R] =
     run(
+      message = message,
+      inlinePrint = inlinePrint,
+      useLazyLogging = useLazyLogging
+    )(benchmarkThis).map(_._1)
+
+  def time(message: String, inlinePrint: Boolean = false, useLazyLogging: Boolean = false)(benchmarkThis: => Unit): BigDecimal =
+    run[Unit, Glass](
       message = message,
       inlinePrint = inlinePrint,
       useLazyLogging = useLazyLogging

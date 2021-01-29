@@ -23,7 +23,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Bag._
 import swaydb.IO.ApiIO
-import swaydb.core.TestExecutionContext
 import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
 import swaydb.{Bag, Glass, IO, Stream}
@@ -33,7 +32,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Try
 
-class StreamFutureSpec extends StreamSpec[Future]()(Bag.future(TestExecutionContext.executionContext)) {
+class StreamFutureSpec extends StreamSpec[Future]()(Bag.future(scala.concurrent.ExecutionContext.Implicits.global)) {
   override def get[A](a: Future[A]): A = Await.result(a, 60.seconds)
 
   override def getException(a: => Future[_]): Throwable = {
