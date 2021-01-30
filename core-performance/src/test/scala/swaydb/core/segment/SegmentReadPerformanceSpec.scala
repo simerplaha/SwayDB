@@ -42,6 +42,7 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
+import swaydb.data.config.SegmentRefCacheLife
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.effect.{Dir, IOAction, IOStrategy}
@@ -171,7 +172,7 @@ class SegmentReadPerformanceSpec extends TestBase {
         maxCount =
           //                    keyValuesCount / 100,
           keyValuesCount,
-        segmentRefCacheWeight = 100.bytes,
+        segmentRefCacheLife = SegmentRefCacheLife.Temporary,
         enableHashIndexForListSegment = true,
         mmap = mmapSegments,
         deleteDelay = 0.seconds,

@@ -116,9 +116,15 @@ trait SliceCompanionBase {
     slice
   }
 
-  def from[T: ClassTag](iterator: Iterable[T], size: Int): Slice[T] = {
+  def from[T: ClassTag](iterable: Iterable[T], size: Int): Slice[T] = {
     val slice = of[T](size)
-    iterator foreach slice.add
+    iterable foreach slice.add
+    slice
+  }
+
+  def from[T: ClassTag](iterable: Iterable[Slice[T]]): Slice[T] = {
+    val slice = of[T](iterable.foldLeft(0)(_ + _.size))
+    iterable foreach slice.addAll
     slice
   }
 

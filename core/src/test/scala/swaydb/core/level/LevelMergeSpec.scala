@@ -31,6 +31,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data.Value.FromValue
+import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -38,6 +39,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
+import TestCaseSweeper._
 
 class LevelMergeSpec0 extends LevelMergeSpec
 
@@ -86,6 +88,9 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             //assign
             val assignmentResult = level.assign(segment, level.segments(), removeDeletedRecords = false)
 
+            implicit val compactionActor: CompactionIO.Actor =
+              CompactionIO.create().sweep()
+
             //merge
             val compactionResult = level.merge(assignmentResult, removeDeletedRecords = false).await
             compactionResult should have size 1
@@ -97,7 +102,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             segment.existsOnDiskOrMemory shouldBe true
 
             //commit
-            level.commit(compactionResult) shouldBe IO.unit
+            level.commitPersisted(compactionResult) shouldBe IO.unit
 
             level.isEmpty shouldBe false
             assertReads(keyValues, level)
@@ -121,6 +126,9 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             //assign
             val assignmentResult = level.assign(segment, level.segments(), removeDeletedRecords = false)
 
+            implicit val compactionActor: CompactionIO.Actor =
+              CompactionIO.create().sweep()
+
             //merge
             val compactionResult = level.merge(assignmentResult, removeDeletedRecords = false).awaitInf
             compactionResult should have size 1
@@ -132,7 +140,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             segment.existsOnDiskOrMemory shouldBe true
 
             //commit
-            level.commit(compactionResult) shouldBe IO.unit
+            level.commitPersisted(compactionResult) shouldBe IO.unit
 
             level.isEmpty shouldBe true
         }
@@ -154,8 +162,11 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             //assign
             val segmentAssignment = level.assign(segment, level.segments(), removeDeletedRecords = false)
 
+            implicit val compactionActor: CompactionIO.Actor =
+              CompactionIO.create().sweep()
+
             val segmentMergeResult = level.merge(segmentAssignment, removeDeletedRecords = false).awaitInf
-            level.commit(segmentMergeResult) shouldBe IO.unit
+            level.commitPersisted(segmentMergeResult) shouldBe IO.unit
 
             assertGet(keyValues, level)
 
@@ -164,7 +175,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             val mapAssignment = level.assign(map, level.segments(), removeDeletedRecords = false)
 
             val mapMergeResult = level.merge(mapAssignment, removeDeletedRecords = false).awaitInf
-            level.commit(mapMergeResult) shouldBe IO.unit
+            level.commitPersisted(mapMergeResult) shouldBe IO.unit
 
             assertGet(keyValues, level)
 
@@ -186,8 +197,11 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
 
             val segmentAssigment = level.assign(segment, level.segments(), removeDeletedRecords = false)
 
+            implicit val compactionActor: CompactionIO.Actor =
+              CompactionIO.create().sweep()
+
             val segmentMergeResult = level.merge(segmentAssigment, removeDeletedRecords = false).awaitInf
-            level.commit(segmentMergeResult) shouldBe IO.unit
+            level.commitPersisted(segmentMergeResult) shouldBe IO.unit
 
             assertGet(keyValues1, level)
 
@@ -204,7 +218,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             val mapAssigment = level.assign(map, level.segments(), removeDeletedRecords = false)
 
             val mapMergeResult = level.merge(mapAssigment, removeDeletedRecords = false).awaitInf
-            level.commit(mapMergeResult) shouldBe IO.unit
+            level.commitPersisted(mapMergeResult) shouldBe IO.unit
 
             assertGet(keyValues2, level)
 
@@ -228,8 +242,11 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
 
             val segmentAssigment = level.assign(segment, level.segments(), removeDeletedRecords = false)
 
+            implicit val compactionActor: CompactionIO.Actor =
+              CompactionIO.create().sweep()
+
             val segmentMergeResult = level.merge(segmentAssigment, removeDeletedRecords = false).awaitInf
-            level.commit(segmentMergeResult) shouldBe IO.unit
+            level.commitPersisted(segmentMergeResult) shouldBe IO.unit
 
             assertGet(keyValues1, level)
 
@@ -244,7 +261,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             val mapAssigment = level.assign(map, level.segments(), removeDeletedRecords = false)
 
             val mapMergeResult = level.merge(mapAssigment, removeDeletedRecords = false).awaitInf
-            level.commit(mapMergeResult) shouldBe IO.unit
+            level.commitPersisted(mapMergeResult) shouldBe IO.unit
 
             level.isEmpty shouldBe true
 

@@ -695,7 +695,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             segment.put(
               headGap = head,
               tailGap = tail,
-              mergeable = mid.iterator,
+              newKeyValues = mid.iterator,
               removeDeletes = false,
               createdInLevel = 0,
               valuesConfig = valuesConfig,
@@ -704,7 +704,9 @@ sealed trait SegmentWriteSpec extends TestBase {
               hashIndexConfig = hashIndexConfig,
               bloomFilterConfig = bloomFilterConfig,
               segmentConfig = segmentConfig,
-              pathDistributor = createPathDistributor
+              pathDistributor = createPathDistributor,
+              segmentRefCacheLife = randomSegmentRefCacheLife(),
+              mmapSegment = mmapSegments
             )
           }.left.get.exception shouldBe a[NoSuchFileException]
 
@@ -1474,7 +1476,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           segment.put(
             headGap = Iterable.empty,
             tailGap = Iterable.empty,
-            mergeable = keyValues2.iterator,
+            newKeyValues = keyValues2.iterator,
             removeDeletes = false,
             createdInLevel = 0,
             valuesConfig = ValuesBlock.Config.random,
@@ -1483,7 +1485,9 @@ sealed trait SegmentWriteSpec extends TestBase {
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
             segmentConfig = SegmentBlock.Config.random.copy(minSize = 1.mb),
-            pathDistributor = createPathDistributor
+            pathDistributor = createPathDistributor,
+            segmentRefCacheLife = randomSegmentRefCacheLife(),
+            mmapSegment = mmapSegments
           ).output.map(_.sweep())
 
           if (persistent) segment.isOpen shouldBe true
@@ -1520,7 +1524,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             segment.put(
               headGap = KeyValue.emptyIterable,
               tailGap = KeyValue.emptyIterable,
-              mergeable = newKeyValues.iterator,
+              newKeyValues = newKeyValues.iterator,
               removeDeletes = false,
               createdInLevel = 0,
               valuesConfig = valuesConfig,
@@ -1529,7 +1533,9 @@ sealed trait SegmentWriteSpec extends TestBase {
               hashIndexConfig = hashIndexConfig,
               bloomFilterConfig = bloomFilterConfig,
               segmentConfig = segmentConfig.copy(minSize = 4.mb),
-              pathDistributor = createPathDistributor
+              pathDistributor = createPathDistributor,
+              segmentRefCacheLife = randomSegmentRefCacheLife(),
+              mmapSegment = mmapSegments
             ).output.map(_.sweep())
 
           newSegments should have size 1
@@ -1613,7 +1619,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 oldSegment.put(
                   headGap = headKeyValues,
                   tailGap = tailKeyValues,
-                  mergeable = midKeyValues.iterator,
+                  newKeyValues = midKeyValues.iterator,
                   removeDeletes = false,
                   createdInLevel = 0,
                   valuesConfig = valuesConfig,
@@ -1622,7 +1628,9 @@ sealed trait SegmentWriteSpec extends TestBase {
                   hashIndexConfig = hashIndexConfig,
                   bloomFilterConfig = bloomFilterConfig,
                   segmentConfig = segmentConfig.copy(minSize = oldSegment.segmentSize / 10),
-                  pathDistributor = createPathDistributor
+                  pathDistributor = createPathDistributor,
+                  segmentRefCacheLife = randomSegmentRefCacheLife(),
+                  mmapSegment = mmapSegments
                 ).output.map(_.sweep())
 
               newSegments.size should be > 1
@@ -1672,7 +1680,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   //randomly create gaps
                   headGap = eitherOne(KeyValue.emptyIterable, randomizedKeyValues(keyValuesCount)),
                   tailGap = eitherOne(KeyValue.emptyIterable, randomizedKeyValues(keyValuesCount)),
-                  mergeable = newKeyValues.iterator,
+                  newKeyValues = newKeyValues.iterator,
                   removeDeletes = false,
                   createdInLevel = 0,
                   valuesConfig = valuesConfig,
@@ -1681,7 +1689,9 @@ sealed trait SegmentWriteSpec extends TestBase {
                   hashIndexConfig = hashIndexConfig,
                   bloomFilterConfig = bloomFilterConfig,
                   segmentConfig = segmentConfig.copy(minSize = 50.bytes),
-                  pathDistributor = PathsDistributor(Seq(Dir(segment.path.getParent, 1)), () => Seq.empty)
+                  pathDistributor = PathsDistributor(Seq(Dir(segment.path.getParent, 1)), () => Seq.empty),
+                  segmentRefCacheLife = randomSegmentRefCacheLife(),
+                  mmapSegment = mmapSegments
                 ).output.map(_.sweep())
               }
 
@@ -1731,7 +1741,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             segment.put(
               headGap = KeyValue.emptyIterable,
               tailGap = KeyValue.emptyIterable,
-              mergeable = deleteKeyValues.iterator,
+              newKeyValues = deleteKeyValues.iterator,
               removeDeletes = false,
               createdInLevel = 0,
               valuesConfig = valuesConfig,
@@ -1740,7 +1750,9 @@ sealed trait SegmentWriteSpec extends TestBase {
               hashIndexConfig = hashIndexConfig,
               bloomFilterConfig = bloomFilterConfig,
               segmentConfig = segmentConfig.copy(minSize = 4.mb),
-              pathDistributor = createPathDistributor
+              pathDistributor = createPathDistributor,
+              segmentRefCacheLife = randomSegmentRefCacheLife(),
+              mmapSegment = mmapSegments
             ).output.map(_.sweep())
 
           deletedSegment should have size 1
@@ -1775,7 +1787,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             segment.put(
               headGap = KeyValue.emptyIterable,
               tailGap = KeyValue.emptyIterable,
-              mergeable = updatedKeyValues.iterator,
+              newKeyValues = updatedKeyValues.iterator,
               removeDeletes = true,
               createdInLevel = 0,
               valuesConfig = valuesConfig,
@@ -1784,7 +1796,9 @@ sealed trait SegmentWriteSpec extends TestBase {
               hashIndexConfig = hashIndexConfig,
               bloomFilterConfig = bloomFilterConfig,
               segmentConfig = segmentConfig.copy(minSize = 4.mb),
-              pathDistributor = createPathDistributor
+              pathDistributor = createPathDistributor,
+              segmentRefCacheLife = randomSegmentRefCacheLife(),
+              mmapSegment = mmapSegments
             ).output.map(_.sweep())
 
           updatedSegments.flatMap(_.iterator()).toList shouldBe updatedKeyValues
@@ -1826,7 +1840,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               segment1.put(
                 headGap = KeyValue.emptyIterable,
                 tailGap = KeyValue.emptyIterable,
-                mergeable = segment2.iterator(),
+                newKeyValues = segment2.iterator(),
                 removeDeletes = false,
                 createdInLevel = 0,
                 valuesConfig = valuesConfig,
@@ -1835,7 +1849,9 @@ sealed trait SegmentWriteSpec extends TestBase {
                 hashIndexConfig = hashIndexConfig,
                 bloomFilterConfig = bloomFilterConfig,
                 segmentConfig = segmentConfig.copy(minSize = 10.mb),
-                pathDistributor = createPathDistributor
+                pathDistributor = createPathDistributor,
+                segmentRefCacheLife = randomSegmentRefCacheLife(),
+                mmapSegment = mmapSegments
               ).output.map(_.sweep())
 
             //            mergedSegments.size shouldBe 1
@@ -1875,7 +1891,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             segment.put(
               headGap = eitherOne(KeyValue.emptyIterable, Slice(Memory.remove(0))),
               tailGap = eitherOne(KeyValue.emptyIterable, Slice(Memory.remove(10), Memory.Range(11, 20, FromValue.Null, Value.remove(None)))),
-              mergeable = deleteKeyValues.iterator,
+              newKeyValues = deleteKeyValues.iterator,
               removeDeletes = true,
               createdInLevel = 0,
               valuesConfig = ValuesBlock.Config.random,
@@ -1884,7 +1900,9 @@ sealed trait SegmentWriteSpec extends TestBase {
               hashIndexConfig = HashIndexBlock.Config.random,
               bloomFilterConfig = BloomFilterBlock.Config.random,
               segmentConfig = SegmentBlock.Config.random.copy(minSize = 4.mb),
-              pathDistributor = createPathDistributor
+              pathDistributor = createPathDistributor,
+              segmentRefCacheLife = randomSegmentRefCacheLife(),
+              mmapSegment = mmapSegments
             ).output.isEmpty shouldBe true
         }
       }
@@ -1907,7 +1925,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               segment.put(
                 headGap = KeyValue.emptyIterable,
                 tailGap = KeyValue.emptyIterable,
-                mergeable = deleteKeyValues.iterator,
+                newKeyValues = deleteKeyValues.iterator,
                 removeDeletes = false,
                 createdInLevel = 0,
                 valuesConfig = ValuesBlock.Config.random,
@@ -1916,7 +1934,9 @@ sealed trait SegmentWriteSpec extends TestBase {
                 hashIndexConfig = HashIndexBlock.Config.random,
                 bloomFilterConfig = BloomFilterBlock.Config.random,
                 segmentConfig = SegmentBlock.Config.random,
-                pathDistributor = createPathDistributor
+                pathDistributor = createPathDistributor,
+                segmentRefCacheLife = randomSegmentRefCacheLife(),
+                mmapSegment = mmapSegments
               ).output.map(_.sweep()).flatMap(_.iterator()).toList
 
             val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Value.remove(None), Value.update(10))) :+ Memory.remove(10)
@@ -1942,7 +1962,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             segment.put(
               headGap = KeyValue.emptyIterable,
               tailGap = KeyValue.emptyIterable,
-              mergeable = deleteKeyValues.iterator,
+              newKeyValues = deleteKeyValues.iterator,
               removeDeletes = true,
               createdInLevel = 0,
               valuesConfig = ValuesBlock.Config.random,
@@ -1951,7 +1971,9 @@ sealed trait SegmentWriteSpec extends TestBase {
               hashIndexConfig = HashIndexBlock.Config.random,
               bloomFilterConfig = BloomFilterBlock.Config.random,
               segmentConfig = SegmentBlock.Config.random.copy(minSize = 4.mb),
-              pathDistributor = createPathDistributor
+              pathDistributor = createPathDistributor,
+              segmentRefCacheLife = randomSegmentRefCacheLife(),
+              mmapSegment = mmapSegments
             ).output.map(_.sweep())
 
           newSegments.size shouldBe 1
@@ -1987,7 +2009,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               segment.put(
                 headGap = KeyValue.emptyIterable,
                 tailGap = KeyValue.emptyIterable,
-                mergeable = keyValues2.iterator,
+                newKeyValues = keyValues2.iterator,
                 removeDeletes = false,
                 createdInLevel = 0,
                 valuesConfig = ValuesBlock.Config.random,
@@ -1996,13 +2018,15 @@ sealed trait SegmentWriteSpec extends TestBase {
                 hashIndexConfig = HashIndexBlock.Config.random,
                 bloomFilterConfig = BloomFilterBlock.Config.random,
                 segmentConfig = SegmentBlock.Config.random.copy(minSize = segmentSizeForMerge / 4),
-                pathDistributor = pathsDistributor
+                pathDistributor = pathsDistributor,
+                segmentRefCacheLife = randomSegmentRefCacheLife(),
+                mmapSegment = mmapSegments
               ).output.map(_.sweep())
             else
               segment.put(
                 headGap = KeyValue.emptyIterable,
                 tailGap = KeyValue.emptyIterable,
-                mergeable = keyValues2.iterator,
+                newKeyValues = keyValues2.iterator,
                 removeDeletes = false,
                 createdInLevel = 0,
                 valuesConfig = ValuesBlock.Config.random,
@@ -2011,7 +2035,9 @@ sealed trait SegmentWriteSpec extends TestBase {
                 hashIndexConfig = HashIndexBlock.Config.random,
                 bloomFilterConfig = BloomFilterBlock.Config.random,
                 segmentConfig = SegmentBlock.Config.random.copy(minSize = 21.bytes),
-                pathDistributor = pathsDistributor
+                pathDistributor = pathsDistributor,
+                segmentRefCacheLife = randomSegmentRefCacheLife(),
+                mmapSegment = mmapSegments
               ).output.map(_.sweep())
 
           //all returned segments contain all the KeyValues ???

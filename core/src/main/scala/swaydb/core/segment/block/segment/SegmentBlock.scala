@@ -39,7 +39,6 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.{Bytes, Collections, MinMax}
-import swaydb.effect.IOStrategy
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -68,7 +67,7 @@ private[core] case object SegmentBlock extends LazyLogging {
         cacheBlocksOnCreate = config.cacheSegmentBlocksOnCreate,
         minSize = config.minSegmentSize,
         enableHashIndexForListSegment = config.segmentFormat.enableRootHashIndex,
-        segmentRefCacheWeight = config.segmentFormat.groupCacheStrategy.defaultWeight,
+        segmentRefCacheLife = config.segmentFormat.segmentRefCacheLife,
         maxCount = config.segmentFormat.count,
         mmap = config.mmap,
         deleteDelay = config.deleteDelay,
@@ -80,7 +79,7 @@ private[core] case object SegmentBlock extends LazyLogging {
               cacheBlocksOnCreate: Boolean,
               minSize: Int,
               maxCount: Int,
-              segmentRefCacheWeight: Int,
+              segmentRefCacheLife: SegmentRefCacheLife,
               enableHashIndexForListSegment: Boolean,
               mmap: MMAP.Segment,
               deleteDelay: FiniteDuration,
@@ -91,7 +90,7 @@ private[core] case object SegmentBlock extends LazyLogging {
         cacheBlocksOnCreate = cacheBlocksOnCreate,
         minSize = minSize,
         maxCount = maxCount,
-        segmentRefCacheWeight = segmentRefCacheWeight,
+        segmentRefCacheLife = segmentRefCacheLife,
         enableHashIndexForListSegment = enableHashIndexForListSegment,
         mmap = mmap,
         deleteDelay = deleteDelay,
@@ -108,7 +107,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                                     cacheBlocksOnCreate: Boolean,
                                     minSize: Int,
                                     maxCount: Int,
-                                    segmentRefCacheWeight: Int,
+                                    segmentRefCacheLife: SegmentRefCacheLife,
                                     enableHashIndexForListSegment: Boolean,
                                     mmap: MMAP.Segment,
                                     deleteDelay: FiniteDuration,
@@ -119,7 +118,7 @@ private[core] case object SegmentBlock extends LazyLogging {
         cacheBlocksOnCreate = cacheBlocksOnCreate,
         minSize = minSize max 1,
         maxCount = maxCount max 1,
-        segmentRefCacheWeight = segmentRefCacheWeight,
+        segmentRefCacheLife = segmentRefCacheLife,
         enableHashIndexForListSegment = enableHashIndexForListSegment,
         mmap = mmap,
         deleteDelay = deleteDelay,
@@ -132,7 +131,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                        val cacheBlocksOnCreate: Boolean,
                        val minSize: Int,
                        val maxCount: Int,
-                       val segmentRefCacheWeight: Int,
+                       val segmentRefCacheLife: SegmentRefCacheLife,
                        val enableHashIndexForListSegment: Boolean,
                        val mmap: MMAP.Segment,
                        val deleteDelay: FiniteDuration,
@@ -152,7 +151,7 @@ private[core] case object SegmentBlock extends LazyLogging {
         cacheBlocksOnCreate = cacheBlocksOnCreate,
         minSize = minSize,
         maxCount = maxCount,
-        segmentRefCacheWeight = segmentRefCacheWeight,
+        segmentRefCacheLife = segmentRefCacheLife,
         enableHashIndexForListSegment = enableHashIndexForListSegment,
         mmap = mmap,
         deleteDelay = deleteDelay,
@@ -387,10 +386,7 @@ private[core] case object SegmentBlock extends LazyLogging {
       var closed = true
 
       //start building the segment.
-      val mergeStatsKeyValuesIterator = mergeStats.keyValues.iterator
-
-      while (mergeStatsKeyValuesIterator.hasNext) {
-        val keyValue = mergeStatsKeyValuesIterator.next()
+      for (keyValue <- mergeStats.keyValues) {
         closed = false
         totalProcessedCount += 1
         processedInThisSegment += 1
@@ -622,10 +618,8 @@ private[core] case object SegmentBlock extends LazyLogging {
         binarySearchConfig = binarySearchIndexConfig
       )
 
-    if (hashIndex.isDefined || binarySearchIndex.isDefined) {
-      val secondaryIndexEntriesIterator = sortedIndexState.secondaryIndexEntries.iterator
-      while (secondaryIndexEntriesIterator.hasNext) {
-        val indexEntry = secondaryIndexEntriesIterator.next()
+    if (hashIndex.isDefined || binarySearchIndex.isDefined)
+      for (indexEntry <- sortedIndexState.secondaryIndexEntries) {
         val hit =
           if (hashIndex.isDefined)
             HashIndexBlock.write(
@@ -643,15 +637,12 @@ private[core] case object SegmentBlock extends LazyLogging {
             state = binarySearchIndex.get
           )
       }
-    }
 
     bloomFilter foreach {
       bloomFilter =>
-        val it = bloomFilterIndexableKeys.iterator
-
-        while (it.hasNext)
+        for (comparableKey <- bloomFilterIndexableKeys)
           BloomFilterBlock.add(
-            comparableKey = it.next(),
+            comparableKey = comparableKey,
             state = bloomFilter
           )
     }

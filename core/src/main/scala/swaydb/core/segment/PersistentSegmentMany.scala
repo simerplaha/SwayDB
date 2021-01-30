@@ -31,6 +31,8 @@ import swaydb.core.data.{DefIO, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.io.reader.Reader
+import swaydb.core.level.PathsDistributor
+import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
@@ -52,6 +54,7 @@ import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey
 import swaydb.data.cache.{Cache, CacheNoIO}
+import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.effect.{Effect, Extension}
@@ -70,7 +73,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
   val formatIdSlice: Slice[Byte] = Slice(formatId)
 
   def apply(file: DBFile,
-            segmentRefCacheWeight: Int,
+            segmentRefCacheLife: SegmentRefCacheLife,
             segment: TransientSegment.Many)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                             timeOrder: TimeOrder[Slice[Byte]],
                                             functionStore: FunctionStore,
@@ -215,7 +218,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
       putDeadlineCount = segment.putDeadlineCount,
       keyValueCount = segment.keyValueCount,
       listSegmentCache = listSegmentCache,
-      segmentRefCacheWeight = segmentRefCacheWeight,
+      segmentRefCacheLife = segmentRefCacheLife,
       segmentsCache = segmentsCache
     )
   }
@@ -223,7 +226,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
   def apply(file: DBFile,
             segmentSize: Int,
             createdInLevel: Int,
-            segmentRefCacheWeight: Int,
+            segmentRefCacheLife: SegmentRefCacheLife,
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
@@ -381,7 +384,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
       putDeadlineCount = putDeadlineCount,
       keyValueCount = keyValueCount,
       listSegmentCache = listSegmentCache,
-      segmentRefCacheWeight = segmentRefCacheWeight,
+      segmentRefCacheLife = segmentRefCacheLife,
       segmentsCache = segmentsCache
     )
   }
@@ -392,15 +395,15 @@ protected case object PersistentSegmentMany extends LazyLogging {
    * Used when Segment's information is unknown.
    */
   def apply(file: DBFile,
-            segmentRefCacheWeight: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]],
-                                        functionStore: FunctionStore,
-                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                        blockCacheSweeper: Option[MemorySweeper.Block],
-                                        fileSweeper: FileSweeper,
-                                        bufferCleaner: ByteBufferSweeperActor,
-                                        segmentIO: SegmentReadIO,
-                                        forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
+            segmentRefCacheLife: SegmentRefCacheLife)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                      timeOrder: TimeOrder[Slice[Byte]],
+                                                      functionStore: FunctionStore,
+                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                      blockCacheSweeper: Option[MemorySweeper.Block],
+                                                      fileSweeper: FileSweeper,
+                                                      bufferCleaner: ByteBufferSweeperActor,
+                                                      segmentIO: SegmentReadIO,
+                                                      forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
 
     val fileExtension = Effect.fileExtension(file.path)
 
@@ -513,7 +516,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
       putDeadlineCount = segmentRefs.values().foldLeft(0)(_ + _.putDeadlineCount),
       keyValueCount = segmentRefs.values().foldLeft(0)(_ + _.keyValueCount),
       listSegmentCache = listSegmentCache,
-      segmentRefCacheWeight = segmentRefCacheWeight,
+      segmentRefCacheLife = segmentRefCacheLife,
       //above parsed segmentRefs cannot be used here because
       //it's MaxKey.Range's minKey is set to the Segment's minKey
       //instead of the Segment's last range key-values minKey.
@@ -684,7 +687,7 @@ protected case class PersistentSegmentMany(file: DBFile,
                                            putDeadlineCount: Int,
                                            keyValueCount: Int,
                                            listSegmentCache: CacheNoIO[Unit, SegmentRef],
-                                           segmentRefCacheWeight: Int,
+                                           segmentRefCacheLife: SegmentRefCacheLife,
                                            private val segmentsCache: ConcurrentSkipListMap[Slice[Byte], SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                       functionStore: FunctionStore,
@@ -718,21 +721,29 @@ protected case class PersistentSegmentMany(file: DBFile,
           footerCacheable = None
         )
 
-      val existingSegment = segmentsCache.putIfAbsent(segment.minKey, segment)
+      if (!segmentRefCacheLife.isDiscard) {
+        val existingSegment = segmentsCache.putIfAbsent(segment.minKey, segment)
 
-      if (existingSegment == null) {
+        if (existingSegment == null) {
 
-        if (segmentRefCacheWeight > 0) {
-          val sweeper = blockCacheSweeper orElse keyValueMemorySweeper
-          if (sweeper.isDefined)
-            sweeper.get.add(segment.minKey, segmentRefCacheWeight, segmentsCache)
-          else
-            logger.error(s"segmentRefCacheWeight is defined ($segmentRefCacheWeight) but no sweeper provided.")
+          if (segmentRefCacheLife.isTemporary) {
+            val sweeper = blockCacheSweeper orElse keyValueMemorySweeper
+            if (sweeper.isDefined)
+              sweeper.get.add(
+                key = segment.minKey,
+                weight = segment.segmentSize,
+                cache = segmentsCache
+              )
+            else
+              logger.error(s"${SegmentRefCacheLife.productPrefix} is ${SegmentRefCacheLife.Temporary.productPrefix} but no sweeper available.")
+          }
+
+          segment
+        } else {
+          existingSegment
         }
-
-        segment
       } else {
-        existingSegment
+        segment
       }
     } else {
       segment
@@ -830,8 +841,12 @@ protected case class PersistentSegmentMany(file: DBFile,
           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
-          segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[DefIO[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] = {
+          segmentConfig: SegmentBlock.Config,
+          pathsDistributor: PathsDistributor,
+          segmentRefCacheLife: SegmentRefCacheLife,
+          mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
+                              executionContext: ExecutionContext,
+                              compactionIO: CompactionIO.Actor): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]] = {
     implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
     implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexBlock.Config = binarySearchIndexConfig
@@ -845,7 +860,10 @@ protected case class PersistentSegmentMany(file: DBFile,
       segment = this,
       newKeyValues = newKeyValues,
       removeDeletes = removeDeletes,
-      createdInLevel = createdInLevel
+      createdInLevel = createdInLevel,
+      pathsDistributor = pathsDistributor,
+      segmentRefCacheLife = segmentRefCacheLife,
+      mmap = mmap
     )
   }
 

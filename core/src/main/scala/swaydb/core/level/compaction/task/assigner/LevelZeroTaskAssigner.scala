@@ -135,15 +135,12 @@ case object LevelZeroTaskAssigner {
    */
   def createStacks(input: IterableOnce[LevelZeroMap])(implicit keyOrder: KeyOrder[Slice[Byte]]): util.TreeMap[Slice[Byte], Stack] = {
     val stacks = new util.TreeMap[Slice[Byte], Stack](keyOrder)
-    val inputIterator = input.iterator
 
-    while (inputIterator.hasNext) {
-      val inputMap = inputIterator.next()
+    for (inputMap <- input)
       distributeMap(
         inputMap = inputMap,
         stacks = stacks
       )
-    }
 
     stacks
   }

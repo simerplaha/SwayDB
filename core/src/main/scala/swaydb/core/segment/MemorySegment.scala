@@ -100,7 +100,7 @@ private[core] final case class MemorySegment(path: Path,
         nullSegment = MemorySegment.Null,
         headGap = headGap,
         tailGap = tailGap,
-        mergeable = newKeyValues,
+        newKeyValues = newKeyValues,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
         pathsDistributor = pathsDistributor

@@ -49,7 +49,7 @@ import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.data.MaxKey
-import swaydb.data.config.MMAP
+import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.SliceIOImplicits._
 import swaydb.data.slice.{Slice, SliceOption}
@@ -246,7 +246,7 @@ private[core] case object Segment extends LazyLogging {
 
     SegmentWritePersistentIO.persistTransient(
       pathsDistributor = pathsDistributor,
-      segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
+      segmentRefCacheLife = segmentConfig.segmentRefCacheLife,
       mmap = segmentConfig.mmap,
       transient = transient
     ).get
@@ -277,7 +277,7 @@ private[core] case object Segment extends LazyLogging {
           copyToPersist(
             segment = segment,
             pathsDistributor = pathsDistributor,
-            segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
+            segmentRefCacheLife = segmentConfig.segmentRefCacheLife,
             mmap = segmentConfig.mmap
           )
         )
@@ -299,7 +299,7 @@ private[core] case object Segment extends LazyLogging {
 
   def copyToPersist(segment: PersistentSegment,
                     pathsDistributor: PathsDistributor,
-                    segmentRefCacheWeight: Int,
+                    segmentRefCacheLife: SegmentRefCacheLife,
                     mmap: MMAP.Segment)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         functionStore: FunctionStore,
@@ -319,7 +319,7 @@ private[core] case object Segment extends LazyLogging {
         path = nextPath,
         formatId = segment.formatId,
         createdInLevel = segment.createdInLevel,
-        segmentRefCacheWeight = segmentRefCacheWeight,
+        segmentRefCacheLife = segmentRefCacheLife,
         mmap = mmap,
         minKey = segment.minKey,
         maxKey = segment.maxKey,
@@ -529,7 +529,7 @@ private[core] case object Segment extends LazyLogging {
   def apply(path: Path,
             formatId: Byte,
             createdInLevel: Int,
-            segmentRefCacheWeight: Int,
+            segmentRefCacheLife: SegmentRefCacheLife,
             mmap: MMAP.Segment,
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
@@ -632,7 +632,7 @@ private[core] case object Segment extends LazyLogging {
             file = file,
             segmentSize = segmentSize,
             createdInLevel = createdInLevel,
-            segmentRefCacheWeight = segmentRefCacheWeight,
+            segmentRefCacheLife = segmentRefCacheLife,
             minKey = minKey,
             maxKey = maxKey,
             minMaxFunctionId = minMaxFunctionId,
@@ -650,7 +650,7 @@ private[core] case object Segment extends LazyLogging {
             file = file,
             segmentSize = segmentSize,
             createdInLevel = createdInLevel,
-            segmentRefCacheWeight = segmentRefCacheWeight,
+            segmentRefCacheLife = segmentRefCacheLife,
             minKey = minKey,
             maxKey = maxKey,
             minMaxFunctionId = minMaxFunctionId,
@@ -714,8 +714,8 @@ private[core] case object Segment extends LazyLogging {
       if (formatId == PersistentSegmentOne.formatId)
         PersistentSegmentOne(file = file)
       else if (formatId == PersistentSegmentMany.formatId)
-      //NOTE - segmentRefCacheWeight is 0 because this function use by AppendixRepairer
-        PersistentSegmentMany(file = file, segmentRefCacheWeight = 0)
+      //NOTE - SegmentRefCacheLife is Permanent because this function use by AppendixRepairer
+        PersistentSegmentMany(file = file, segmentRefCacheLife = SegmentRefCacheLife.Permanent)
       else
         throw new Exception(s"Invalid Segment formatId: $formatId")
 

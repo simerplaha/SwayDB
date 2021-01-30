@@ -63,7 +63,7 @@ class AppendixMapEntrySpec extends TestBase {
                   deleteAfterClean = OperatingSystem.isWindows,
                   forceSave = TestForceSave.mmap()
                 ),
-              segmentRefCacheWeight = randomByte()
+              segmentRefCacheLife = randomSegmentRefCacheLife()
             )
 
           import AppendixMapEntryWriter.AppendixPutWriter
@@ -102,7 +102,7 @@ class AppendixMapEntrySpec extends TestBase {
                 deleteAfterClean = OperatingSystem.isWindows,
                 forceSave = TestForceSave.mmap()
               ),
-            segmentRefCacheWeight = randomByte()
+            segmentRefCacheLife = randomSegmentRefCacheLife()
           )
 
           import AppendixMapEntryWriter.AppendixRemoveWriter
@@ -137,7 +137,7 @@ class AppendixMapEntrySpec extends TestBase {
                 deleteAfterClean = OperatingSystem.isWindows,
                 forceSave = TestForceSave.mmap()
               ),
-            segmentRefCacheWeight = randomByte()
+            segmentRefCacheLife = randomSegmentRefCacheLife()
           )
 
           val segment1 = TestSegment()

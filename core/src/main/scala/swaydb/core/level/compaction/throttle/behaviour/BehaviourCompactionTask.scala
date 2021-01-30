@@ -25,13 +25,15 @@
 package swaydb.core.level.compaction.throttle.behaviour
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.DefActor
 import swaydb.core.data.DefIO
 import swaydb.core.level._
+import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.level.compaction.task.CompactionTask
-import swaydb.core.segment.SegmentOption
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.sweeper.FileSweeper
+import swaydb.data.slice.Slice
 import swaydb.utils.Futures.FutureImplicits
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -72,15 +74,18 @@ protected object BehaviourCompactionTask extends LazyLogging {
     //Who not? Because the Actor is configurable which could be a cached timer with longer time interval
     //which means we might not get a response immediately.
     fileSweeper.closer.send(FileSweeper.Command.Pause(levels))
-    compact.withCallback(fileSweeper.send(FileSweeper.Command.Resume(levels)))
+    compact.unitCallback(fileSweeper.send(FileSweeper.Command.Resume(levels)))
   }
 
   private def runTasks[A <: Assignable.Collection](tasks: Iterable[CompactionTask.Task[A]],
                                                    lastLevel: Level)(implicit ec: ExecutionContext,
-                                                                     fileSweeper: FileSweeper.On): Future[Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]] =
+                                                                     fileSweeper: FileSweeper.On): Future[Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]]] = {
+    implicit val compactionIO: DefActor[CompactionIO, Unit] = CompactionIO.create()
+
     Future.traverse(tasks) {
       task =>
         val removeDeletedRecords = task.target.levelNumber == lastLevel.levelNumber
+
         Future {
           task.target.assign(
             newKeyValues = task.data,
@@ -100,7 +105,8 @@ protected object BehaviourCompactionTask extends LazyLogging {
               output = mergeResult
             )
         }
-    }
+    }.flatMapCallback(compactionIO.terminate[Future]())
+  }
 
   def compactSegments(task: CompactionTask.CompactSegments,
                       lastLevel: Level)(implicit ec: ExecutionContext,
@@ -114,10 +120,10 @@ protected object BehaviourCompactionTask extends LazyLogging {
           lastLevel = lastLevel
         ) flatMap {
           mergeResult =>
-            BehaviourCommit.persistCommitSegments(
+            BehaviourCommit.commitPersistedSegments(
               fromLevel = task.source,
               segments = task.tasks.flatMap(_.data),
-              mergeResults = mergeResult
+              persisted = Slice.from(mergeResult, mergeResult.size)
             ).toFuture
         }
       }
@@ -134,10 +140,10 @@ protected object BehaviourCompactionTask extends LazyLogging {
           lastLevel = lastLevel
         ) flatMap {
           result =>
-            BehaviourCommit.persistCommitMaps(
+            BehaviourCommit.commitPersistedMaps(
               fromLevel = task.source,
               maps = task.maps,
-              mergeResults = result
+              mergeResults = Slice.from(result, result.size)
             ).toFuture
         }
       }
@@ -149,6 +155,8 @@ protected object BehaviourCompactionTask extends LazyLogging {
       Future.unit
     else
       ensurePauseSweeper(task.compactingLevels) {
+        implicit val compactionIO: DefActor[CompactionIO, Unit] = CompactionIO.create()
+
         task
           .source
           .collapse(
@@ -166,6 +174,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
                 result = mergeResult
               ).toFuture
           }
+          .flatMapCallback(compactionIO.terminate[Future]())
       }
 
   def refresh(task: CompactionTask.RefreshSegments,

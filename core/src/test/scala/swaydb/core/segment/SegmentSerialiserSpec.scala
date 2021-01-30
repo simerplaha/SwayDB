@@ -63,7 +63,7 @@ class SegmentSerialiserSpec extends TestBase {
             SegmentSerialiser.FormatA.read(
               reader = Reader(bytes),
               mmapSegment = MMAP.randomForSegment(),
-              segmentRefCacheWeight = randomByte(),
+              segmentRefCacheLife = randomSegmentRefCacheLife(),
               checkExists = segment.persistent
             ).sweep()
 

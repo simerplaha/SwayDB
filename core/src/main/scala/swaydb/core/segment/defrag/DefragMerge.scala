@@ -53,7 +53,7 @@ private[segment] object DefragMerge {
    */
   def run[SEG, NULL_SEG >: SEG, S <: MergeStats.Segment[Memory, ListBuffer]](segment: SEG,
                                                                              nullSegment: NULL_SEG,
-                                                                             mergeable: Iterator[Assignable],
+                                                                             newKeyValues: Iterator[Assignable],
                                                                              removeDeletes: Boolean,
                                                                              forceExpand: Boolean,
                                                                              fragments: ListBuffer[TransientSegment.Fragment[S]])(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -61,13 +61,13 @@ private[segment] object DefragMerge {
                                                                                                                                   functionStore: FunctionStore,
                                                                                                                                   defragSource: DefragSource[SEG],
                                                                                                                                   mergeStatsCreator: MergeStatsCreator[S]): NULL_SEG =
-    if (mergeable.hasNext)
+    if (newKeyValues.hasNext)
       fragments.lastOption match {
         case Some(TransientSegment.Stats(stats)) =>
           KeyValueMerger.merge(
             headGap = Assignable.emptyIterable,
             tailGap = Assignable.emptyIterable,
-            newKeyValues = mergeable,
+            newKeyValues = newKeyValues,
             oldKeyValues = segment.iterator(),
             stats = stats,
             isLastLevel = removeDeletes
@@ -81,7 +81,7 @@ private[segment] object DefragMerge {
           KeyValueMerger.merge(
             headGap = Assignable.emptyIterable,
             tailGap = Assignable.emptyIterable,
-            newKeyValues = mergeable,
+            newKeyValues = newKeyValues,
             oldKeyValues = segment.iterator(),
             stats = newStats,
             isLastLevel = removeDeletes
@@ -104,7 +104,7 @@ private[segment] object DefragMerge {
           KeyValueMerger.merge(
             headGap = Assignable.emptyIterable,
             tailGap = Assignable.emptyIterable,
-            newKeyValues = mergeable,
+            newKeyValues = newKeyValues,
             oldKeyValues = segment.iterator(),
             stats = newStats,
             isLastLevel = removeDeletes

@@ -24,13 +24,10 @@
 
 package swaydb.data.config
 
-import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.config.SegmentFormat.GroupCacheStrategy
-
 sealed trait SegmentFormat {
   def count: Int
   def enableRootHashIndex: Boolean
-  def groupCacheStrategy: GroupCacheStrategy
+  def segmentRefCacheLife: SegmentRefCacheLife
 }
 
 case object SegmentFormat {
@@ -42,18 +39,12 @@ case object SegmentFormat {
   //for Java
   def grouped(count: Int,
               enableRootHashIndex: Boolean,
-              groupCache: GroupCacheStrategy): SegmentFormat.Grouped =
+              segmentRefCacheLife: SegmentRefCacheLife): SegmentFormat.Grouped =
     SegmentFormat.Grouped(
       count = count,
       enableRootHashIndex = enableRootHashIndex,
-      groupCacheStrategy = groupCache
+      segmentRefCacheLife = segmentRefCacheLife
     )
-
-  def keepGroupCacheStrategy(): GroupCacheStrategy.Keep =
-    GroupCacheStrategy.Keep
-
-  def weightedGroupCacheStrategy(defaultWeight: Int): GroupCacheStrategy.Drop =
-    GroupCacheStrategy.Drop(defaultWeight = defaultWeight)
 
   /**
    * Stores an array of key-values in a single Segment file.
@@ -62,7 +53,7 @@ case object SegmentFormat {
   final case object Flattened extends Flattened {
     override val count: Int = Int.MaxValue
     override val enableRootHashIndex: Boolean = false
-    override val groupCacheStrategy: GroupCacheStrategy = GroupCacheStrategy.Keep
+    override val segmentRefCacheLife: SegmentRefCacheLife = SegmentRefCacheLife.Permanent
   }
 
   /**
@@ -73,63 +64,25 @@ case object SegmentFormat {
    *
    * This format can be imagined as - List(1, 2, 3, 4, 5).grouped(2).
    *
-   * @param enableRootHashIndex If true a root hash index (if configured via [[RandomSearchIndex]]) is created
-   *                            pointing to the min and max key of each group. This is useful if group size is
-   *                            too small eg: 2-3 key-values per group.
-   * @param groupCacheStrategy  Set how caching of Groups object should be handled.
-   *                            It sets the weight of the group reference object. Group is just a plain object which gets
-   *                            stored within the Segment and contains information about the Group and references
-   *                            to it's internal caches (NOTE - internal caches are already managed by [[MemoryCache]]).
+   * @param enableRootHashIndex     If true a root hash index (if configured via [[RandomSearchIndex]]) is created
+   *                                pointing to the min and max key of each group. This is useful if group size is
+   *                                too small eg: 2-3 key-values per group.
+   * @param segmentRefCacheLife Set how caching of Groups object should be handled.
+   *                                It sets the weight of the group reference object. Group is just a plain object which gets
+   *                                stored within the Segment and contains information about the Group and references
+   *                                to it's internal caches (NOTE - internal caches are already managed by [[MemoryCache]]).
    *
-   *                            Set this to [[GroupCacheStrategy.Keep]] to keep all read Group reference objects
-   *                            in-memory until the Segment is deleted.
+   *                                Set this to [[SegmentRefCacheLife.Permanent]] to keep all read Group reference objects
+   *                                in-memory until the Segment is deleted.
    *
-   *                            The reason this is configurable is so that we can control the number of in-memory
-   *                            objects. With this configuration we can drop the entire Group form memory
-   *                            specially when [[count]] is too small which could lead to too many Group references
-   *                            being created which should be controlled otherwise the number of in-memory Group
-   *                            references will increase as more Segments are created.
+   *                                The reason this is configurable is so that we can control the number of in-memory
+   *                                objects. With this configuration we can drop the entire Group form memory
+   *                                specially when [[count]] is too small which could lead to too many Group references
+   *                                being created which should be controlled otherwise the number of in-memory Group
+   *                                references will increase as more Segments are created.
    */
   final case class Grouped(count: Int,
                            enableRootHashIndex: Boolean,
-                           groupCacheStrategy: GroupCacheStrategy) extends SegmentFormat
-
-  sealed trait GroupCacheStrategy {
-    def defaultWeight: Int
-  }
-
-  case object GroupCacheStrategy {
-
-    def keep(): GroupCacheStrategy.Keep =
-      GroupCacheStrategy.Keep
-
-    def weighted(defaultWeight: Int): GroupCacheStrategy.Drop =
-      GroupCacheStrategy.Drop(defaultWeight)
-
-    /**
-     * Keeps all Group references in-memory. Does not drop.
-     */
-    sealed trait Keep extends GroupCacheStrategy
-    final case object Keep extends Keep {
-      override val defaultWeight: Int = 0
-    }
-
-    case object Drop extends LazyLogging {
-
-      def apply(defaultWeight: Int): GroupCacheStrategy.Drop =
-        if (defaultWeight <= 0) {
-          val exception = new Exception(s"${GroupCacheStrategy.productPrefix}.${Drop.productPrefix} configuration's defaultWeight should be greater than 0. Invalid weight $defaultWeight.")
-          logger.error(exception.getMessage, exception)
-          throw exception
-        } else {
-          new Drop(defaultWeight)
-        }
-    }
-
-    /**
-     * Drops Groups when [[MemoryCache]] limit is reached.
-     */
-    final case class Drop private(defaultWeight: Int) extends GroupCacheStrategy
-  }
+                           segmentRefCacheLife: SegmentRefCacheLife) extends SegmentFormat
 
 }

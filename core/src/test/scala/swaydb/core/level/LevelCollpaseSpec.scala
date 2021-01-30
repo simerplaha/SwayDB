@@ -24,6 +24,7 @@
 
 package swaydb.core.level
 
+import swaydb.core.TestCaseSweeper._
 import org.scalatest.OptionValues._
 import swaydb.IO
 import swaydb.IOValues._
@@ -33,6 +34,7 @@ import swaydb.core.data._
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core._
+import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.testkit.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -101,6 +103,9 @@ sealed trait LevelCollapseSpec extends TestBase {
         //delete half of the key values which will create small Segments
         level.put(Slice(deleteEverySecond.toArray)).runRandomIO.right.value
 
+        implicit val compactionActor: CompactionIO.Actor =
+          CompactionIO.create().sweep()
+
         level.collapse(level.segments(), removeDeletedRecords = false).awaitInf match {
           case LevelCollapseResult.Empty =>
             fail(s"Expected: ${LevelCollapseResult.Collapsed.getClass.getSimpleName}. Actor: ${LevelCollapseResult.Empty.productPrefix}")
@@ -139,6 +144,9 @@ sealed trait LevelCollapseSpec extends TestBase {
 
             //reopen the Level with larger min segment size
             val reopenLevel = level.reopen(segmentSize = 20.mb)
+
+            implicit val compactionActor: CompactionIO.Actor =
+              CompactionIO.create().sweep()
 
             reopenLevel.collapse(reopenLevel.segments(), removeDeletedRecords = false).await match {
               case LevelCollapseResult.Empty =>
@@ -194,6 +202,10 @@ sealed trait LevelCollapseSpec extends TestBase {
         }
 
         sleep(20.seconds)
+
+        implicit val compactionActor: CompactionIO.Actor =
+          CompactionIO.create().sweep()
+
         level.collapse(level.segments(), removeDeletedRecords = false).awaitInf match {
           case LevelCollapseResult.Empty =>
             fail("")
@@ -221,6 +233,9 @@ sealed trait LevelCollapseSpec extends TestBase {
         nextLevel.putSegments(level.segments()).get
 
         if (persistent) nextLevel.segments() foreach (_.createdInLevel shouldBe level.levelNumber)
+
+        implicit val compactionActor: CompactionIO.Actor =
+          CompactionIO.create().sweep()
 
         nextLevel.collapse(nextLevel.segments(), removeDeletedRecords = false).awaitInf match {
           case LevelCollapseResult.Empty =>

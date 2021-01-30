@@ -275,7 +275,7 @@ class MapEntrySpec extends TestBase {
                   deleteAfterClean = OperatingSystem.isWindows,
                   forceSave = TestForceSave.mmap()
                 ),
-              segmentRefCacheWeight = randomByte()
+              segmentRefCacheLife = randomSegmentRefCacheLife()
             )
 
           import AppendixMapEntryWriter._
@@ -323,7 +323,7 @@ class MapEntrySpec extends TestBase {
                   deleteAfterClean = OperatingSystem.isWindows,
                   forceSave = TestForceSave.mmap()
                 ),
-              segmentRefCacheWeight = randomByte()
+              segmentRefCacheLife = randomSegmentRefCacheLife()
             )
 
           import AppendixMapEntryWriter._
@@ -414,7 +414,7 @@ class MapEntrySpec extends TestBase {
                   deleteAfterClean = OperatingSystem.isWindows,
                   forceSave = TestForceSave.mmap()
                 ),
-              segmentRefCacheWeight = randomByte()
+              segmentRefCacheLife = randomSegmentRefCacheLife()
             )
           import AppendixMapEntryWriter._
           import appendixReader._

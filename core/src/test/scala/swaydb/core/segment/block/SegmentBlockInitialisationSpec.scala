@@ -553,7 +553,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       cacheBlocksOnCreate = false,
                       minSize = randomIntMax(2.mb),
                       maxCount = randomIntMax(1000),
-                      segmentRefCacheWeight = randomByte(),
+                      segmentRefCacheLife = randomSegmentRefCacheLife(),
                       enableHashIndexForListSegment = randomBoolean(),
                       mmap = MMAP.randomForSegment(),
                       deleteDelay = randomFiniteDuration(),

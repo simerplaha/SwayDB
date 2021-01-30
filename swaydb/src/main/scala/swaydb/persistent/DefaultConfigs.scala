@@ -27,7 +27,6 @@ package swaydb.persistent
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.MemoryCache.ByteCacheOnly
-import swaydb.data.config.SegmentFormat.GroupCacheStrategy
 import swaydb.data.config._
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.OperatingSystem
@@ -138,7 +137,7 @@ object DefaultConfigs {
       mmap = MMAP.Off(forceSave = ForceSave.BeforeClose(enableBeforeCopy = false, enableForReadOnlyMode = false, logBenchmark = false)),
       minSegmentSize = 32.mb,
       //      segmentFormat = SegmentFormat.Flattened,
-      segmentFormat = SegmentFormat.Grouped(count = 10000, enableRootHashIndex = false, groupCacheStrategy = GroupCacheStrategy.Drop(10)),
+      segmentFormat = SegmentFormat.Grouped(count = 10000, enableRootHashIndex = false, segmentRefCacheLife = SegmentRefCacheLife.Temporary),
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
       blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO.cached

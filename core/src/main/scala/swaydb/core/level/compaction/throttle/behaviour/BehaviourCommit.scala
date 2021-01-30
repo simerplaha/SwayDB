@@ -94,10 +94,31 @@ protected case object BehaviourCommit extends LazyLogging {
     persistCommit(mergeResults)
       .and(fromLevel.remove(segments))
 
+  def commitPersistedSegments(fromLevel: Level,
+                              segments: Iterable[Segment],
+                              persisted: Slice[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]]): IO[Error.Level, Unit] =
+    commit(persisted)
+      .and(fromLevel.remove(segments))
+
   def persistCommitMaps(fromLevel: LevelZero,
                         maps: List[LevelZeroMap],
                         mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Unit] =
     persistCommit(mergeResults)
+      .and {
+        maps
+          .reverse
+          .mapRecoverIO {
+            map =>
+              fromLevel
+                .maps
+                .removeLast(map)
+          }.transform(_ => ())
+      }
+
+  def commitPersistedMaps(fromLevel: LevelZero,
+                          maps: List[LevelZeroMap],
+                          mergeResults: Slice[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]]): IO[Error.Level, Unit] =
+    commit(mergeResults)
       .and {
         maps
           .reverse
@@ -113,9 +134,9 @@ protected case object BehaviourCommit extends LazyLogging {
 
   def replace(level: Level,
               old: Iterable[Segment],
-              result: Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
+              result: Iterable[DefIO[SegmentOption, Iterable[Segment]]]): IO[Error.Level, Unit] =
     level.commit(
       old = old,
-      merged = result
+      persisted = result
     )
 }

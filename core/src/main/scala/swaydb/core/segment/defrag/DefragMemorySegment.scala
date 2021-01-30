@@ -49,7 +49,7 @@ object DefragMemorySegment {
                                          nullSegment: NULL_SEG,
                                          headGap: Iterable[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
                                          tailGap: Iterable[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
-                                         mergeable: => Iterator[Assignable],
+                                         newKeyValues: => Iterator[Assignable],
                                          removeDeletes: Boolean,
                                          createdInLevel: Int,
                                          pathsDistributor: PathsDistributor)(implicit executionContext: ExecutionContext,
@@ -67,7 +67,7 @@ object DefragMemorySegment {
         fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Memory.Builder[Memory, ListBuffer]]],
         headGap = headGap,
         tailGap = tailGap,
-        mergeable = mergeable,
+        newKeyValues = newKeyValues,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
         createFence = (_: SEG) => TransientSegment.Fence

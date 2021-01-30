@@ -78,6 +78,8 @@ object TransientSegment {
    */
   sealed trait Fragment[+S]
 
+  sealed trait RemoteRefOrStats[+S]
+
   sealed trait Remote extends Singleton with Fragment[Nothing] {
     def iterator(): Iterator[KeyValue]
   }
@@ -92,7 +94,7 @@ object TransientSegment {
     val futureSuccessful = Future.successful(slice)
   }
 
-  case class Stats[S](stats: S) extends Fragment[S]
+  case class Stats[S](stats: S) extends Fragment[S] with RemoteRefOrStats[S]
 
   sealed trait OneOrRemoteRefOrMany extends Persistent
 
@@ -134,7 +136,7 @@ object TransientSegment {
    * via [[copyWithFileHeader]].
    */
   class RemoteRef private(val fileHeader: Slice[Byte],
-                          val ref: SegmentRef) extends OneOrRemoteRef with Remote {
+                          val ref: SegmentRef) extends OneOrRemoteRef with Remote with RemoteRefOrStats[Nothing] {
 
     override def minKey: Slice[Byte] =
       ref.minKey
@@ -279,6 +281,8 @@ object TransientSegment {
     override def copyWithFileHeader(fileHeader: Slice[Byte]): One =
       copy(fileHeader = fileHeader)
 
+    override def toString: String =
+      s"minKey: $minKey, maxKey: $maxKey, fileHeader: $fileHeader, segmentSize: $segmentSize"
   }
 
   case class Many(minKey: Slice[Byte],
@@ -312,5 +316,9 @@ object TransientSegment {
 
     override val createdInLevel: Int =
       segments.foldLeft(Int.MaxValue)(_ min _.createdInLevel)
+
+    override def toString: String =
+      s"minKey: $minKey, maxKey: $maxKey, fileHeader: $fileHeader, segments: ${segments.size}"
+
   }
 }

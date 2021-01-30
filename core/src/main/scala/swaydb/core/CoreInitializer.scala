@@ -187,7 +187,7 @@ private[core] object CoreInitializer extends LazyLogging {
                         cacheBlocksOnCreate = false,
                         minSize = config.minSegmentSize,
                         maxCount = config.maxKeyValuesPerSegment,
-                        segmentRefCacheWeight = 0,
+                        segmentRefCacheLife = SegmentRefCacheLife.Permanent,
                         enableHashIndexForListSegment = false,
                         mmap = MMAP.Off(ForceSave.Off),
                         deleteDelay = config.deleteDelay,
@@ -210,8 +210,8 @@ private[core] object CoreInitializer extends LazyLogging {
                   val exception = new Exception(s"appendixFlushCheckpointSize ${config.appendixFlushCheckpointSize / 1000000}.MB is too large. Maximum limit is 1.GB.")
                   logger.error(exception.getMessage, exception)
                   IO.failed[swaydb.Error.Level, NextLevel](exception)
-                } else if (config.segmentConfig.segmentFormat.groupCacheStrategy.defaultWeight > 0 && blockCacheSweeper.isEmpty && keyValueMemorySweeper.isEmpty) {
-                  val exception = new Exception(s"groupWeight ${config.segmentConfig.segmentFormat.groupCacheStrategy.defaultWeight} is > 0 but no cache management configured. See memoryCache configuration.")
+                } else if (config.segmentConfig.segmentFormat.segmentRefCacheLife.isTemporary && blockCacheSweeper.isEmpty && keyValueMemorySweeper.isEmpty) {
+                  val exception = new Exception(s"${SegmentRefCacheLife.productPrefix} is ${SegmentRefCacheLife.Temporary.productPrefix} but no cache management configured. See ${MemoryCache.productPrefix} configuration.")
                   logger.error(exception.getMessage, exception)
                   IO.failed[swaydb.Error.Level, NextLevel](exception)
                 } else {

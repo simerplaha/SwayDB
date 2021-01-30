@@ -52,9 +52,9 @@ private[segment] object DefragGap {
                                                                hasNext: Boolean)(implicit segmentConfig: SegmentBlock.Config,
                                                                                  mergeStatsCreator: MergeStatsCreator[S],
                                                                                  mergeStatsSizeCalculator: MergeStatsSizeCalculator[S]): ListBuffer[TransientSegment.Fragment[S]] = {
-    val iterator = gap.iterator
+    val gapIterator = gap.iterator
 
-    iterator.foldLeft(DefragCommon.lastStatsOrNull(fragments)) {
+    gapIterator.foldLeft(DefragCommon.lastStatsOrNull(fragments)) {
       case (statsOrNull, segment: Segment) =>
         processSegment(
           statsOrNull = statsOrNull,
@@ -63,7 +63,7 @@ private[segment] object DefragGap {
           removeDeletes = removeDeletes,
           createdInLevel = createdInLevel,
           //either this iterator hasNext or whatever calling this function hasNext.
-          hasNext = iterator.hasNext || hasNext
+          hasNext = gapIterator.hasNext || hasNext
         )
 
       case (statsOrNull, segmentRef: SegmentRef) =>
@@ -73,7 +73,7 @@ private[segment] object DefragGap {
           ref = segmentRef,
           removeDeletes = removeDeletes,
           //either this iterator hasNext or whatever calling this function hasNext.
-          hasNext = iterator.hasNext || hasNext
+          hasNext = gapIterator.hasNext || hasNext
         )
 
       case (statsOrNull, collection: Assignable.Collection) =>

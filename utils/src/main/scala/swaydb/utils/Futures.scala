@@ -46,12 +46,12 @@ private[swaydb] object Futures {
           result
       }
 
-    @inline def withCallback(onComplete: => Unit)(implicit executionContext: ExecutionContext): Future[A] = {
+    @inline def unitCallback(onComplete: => Unit)(implicit executionContext: ExecutionContext): Future[A] = {
       future1.onComplete(_ => onComplete)
       future1
     }
 
-    @inline def flatMapCarry(future2: => Future[Unit])(implicit executionContext: ExecutionContext): Future[A] =
+    @inline def flatMapCallback(future2: => Future[Unit])(implicit executionContext: ExecutionContext): Future[A] =
       future1 flatMap {
         onesResult =>
           future2.map(_ => onesResult)

@@ -25,7 +25,6 @@
 package swaydb.core.segment.assigner
 
 import swaydb.Aggregator
-import swaydb.core.segment.ref.SegmentRef
 
 object Assignment {
 
@@ -34,9 +33,6 @@ object Assignment {
     def headGapResult: GAP
     def midOverlapResult: MID
     def tailGapResult: GAP
-
-    override def toString: String =
-      s"Target: ${segment.toString}, head: ${headGapResult.toString}, mid: ${midOverlapResult.toString}, tail: ${tailGapResult.toString}"
   }
 }
 
@@ -51,7 +47,7 @@ object Assignment {
  * @tparam GAP [[Aggregator]]'s result type that will store all gap key-values.
  * @tparam MID [[Aggregator]]'s result type that will store all mergeable/overlapping key-values.
  * @tparam SEG Target Segment to which key-values should be assigned to.
- *             This can be a [[swaydb.core.segment.Segment]] or [[SegmentRef]].
+ *             This can be a [[swaydb.core.segment.Segment]] or [[swaydb.core.segment.ref.SegmentRef]].
  */
 
 case class Assignment[+GAP, +MID, +SEG](segment: SEG,

@@ -25,12 +25,13 @@
 package swaydb.core.level
 
 import swaydb.core.data.{DefIO, Memory}
+import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.{Assignable, Assignment}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.data.compaction.{LevelMeter, PushStrategy, Throttle}
+import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 import swaydb.effect.Dir
 import swaydb.{Error, IO}
@@ -95,13 +96,15 @@ trait NextLevel extends LevelRef {
              removeDeletedRecords: Boolean): DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]]
 
   def merge(assigment: DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]],
-            removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]
+            removeDeletedRecords: Boolean)(implicit ec: ExecutionContext,
+                                           compactionIO: CompactionIO.Actor): Future[Iterable[DefIO[SegmentOption, Iterable[Segment]]]]
 
   def refresh(segment: Iterable[Segment],
               removeDeletedRecords: Boolean): IO[Error.Level, Iterable[DefIO[Segment, Slice[TransientSegment]]]]
 
   def collapse(segments: Iterable[Segment],
-               removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[LevelCollapseResult]
+               removeDeletedRecords: Boolean)(implicit ec: ExecutionContext,
+                                              compactionIO: CompactionIO.Actor): Future[LevelCollapseResult]
 
   def commit(mergeResult: DefIO[SegmentOption, Iterable[TransientSegment]]): IO[Error.Level, Unit]
 
@@ -110,7 +113,7 @@ trait NextLevel extends LevelRef {
   def commit(collapsed: LevelCollapseResult.Collapsed): IO[Error.Level, Unit]
 
   def commit(old: Iterable[Segment],
-             merged: Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit]
+             merged: Iterable[DefIO[SegmentOption, Iterable[Segment]]]): IO[Error.Level, Unit]
 
   def remove(segments: Iterable[Segment]): IO[swaydb.Error.Level, Unit]
 

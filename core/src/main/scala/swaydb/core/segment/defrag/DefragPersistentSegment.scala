@@ -27,9 +27,12 @@ package swaydb.core.segment.defrag
 import swaydb.Aggregator
 import swaydb.core.data.{DefIO, Memory}
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.ForceSaveApplier
+import swaydb.core.level.PathsDistributor
+import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
-import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, AssignmentTarget, GapAggregator}
+import swaydb.core.segment.assigner._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
@@ -38,22 +41,27 @@ import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.defrag.DefragSource._
+import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
 import swaydb.core.segment.ref.{SegmentRef, SegmentRefOption}
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.IDGenerator
+import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.utils.Futures
 import swaydb.utils.Futures.FutureUnitImplicits
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Runs defragmentation on [[PersistentSegment]] types.
+ * heap, mid and tail key-values could be of any size. The following defragmentation
+ * ensures that no Segments are too small or too large.
  *
- * It optimises the file [[TransientSegment.Persistent]] such that we defer
- * byte transfer to OS as much as possible and expand segments only if it's
- * too small or have key-values that can be cleared/removed.
+ * It also attempts to defer byte transfer to OS as much as possible and expands
+ * segments only if it's too small or have key-values that can be cleared/removed.
  */
 object DefragPersistentSegment {
 
@@ -64,19 +72,31 @@ object DefragPersistentSegment {
                                          nullSegment: NULL_SEG,
                                          headGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                                          tailGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                         mergeable: => Iterator[Assignable],
+                                         newKeyValues: => Iterator[Assignable],
                                          removeDeletes: Boolean,
-                                         createdInLevel: Int)(implicit executionContext: ExecutionContext,
-                                                              keyOrder: KeyOrder[Slice[Byte]],
-                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                              functionStore: FunctionStore,
-                                                              source: DefragSource[SEG],
-                                                              valuesConfig: ValuesBlock.Config,
-                                                              sortedIndexConfig: SortedIndexBlock.Config,
-                                                              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                                              hashIndexConfig: HashIndexBlock.Config,
-                                                              bloomFilterConfig: BloomFilterBlock.Config,
-                                                              segmentConfig: SegmentBlock.Config): Future[DefIO[NULL_SEG, Slice[TransientSegment.Persistent]]] =
+                                         createdInLevel: Int,
+                                         pathsDistributor: PathsDistributor,
+                                         segmentRefCacheLife: SegmentRefCacheLife,
+                                         mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
+                                                             defragSource: DefragSource[SEG],
+                                                             keyOrder: KeyOrder[Slice[Byte]],
+                                                             valuesConfig: ValuesBlock.Config,
+                                                             sortedIndexConfig: SortedIndexBlock.Config,
+                                                             binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                                             hashIndexConfig: HashIndexBlock.Config,
+                                                             bloomFilterConfig: BloomFilterBlock.Config,
+                                                             segmentConfig: SegmentBlock.Config,
+                                                             timeOrder: TimeOrder[Slice[Byte]],
+                                                             functionStore: FunctionStore,
+                                                             fileSweeper: FileSweeper,
+                                                             bufferCleaner: ByteBufferSweeperActor,
+                                                             keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                             blockCacheSweeper: Option[MemorySweeper.Block],
+                                                             segmentReadIO: SegmentReadIO,
+                                                             idGenerator: IDGenerator,
+                                                             forceSaveApplier: ForceSaveApplier,
+                                                             compactionIO: CompactionIO.Actor,
+                                                             segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment]): Future[DefIO[NULL_SEG, scala.collection.SortedSet[PersistentSegment]]] =
     Future {
       Defrag.runOnSegment(
         segment = segment,
@@ -84,7 +104,7 @@ object DefragPersistentSegment {
         fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
         headGap = headGap,
         tailGap = tailGap,
-        mergeable = mergeable,
+        newKeyValues = newKeyValues,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
         createFence = (_: SEG) => TransientSegment.Fence
@@ -93,7 +113,10 @@ object DefragPersistentSegment {
       mergeResult =>
         commitFragments(
           fragments = mergeResult.output,
-          createdInLevel = createdInLevel
+          createdInLevel = createdInLevel,
+          pathsDistributor = pathsDistributor,
+          segmentRefCacheLife = segmentRefCacheLife,
+          mmap = mmap
         ) map {
           persistentSegments =>
             mergeResult.withOutput(persistentSegments)
@@ -107,17 +130,28 @@ object DefragPersistentSegment {
                                       headGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                                       tailGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                                       removeDeletes: Boolean,
-                                      createdInLevel: Int)(implicit executionContext: ExecutionContext,
-                                                           keyOrder: KeyOrder[Slice[Byte]],
-                                                           timeOrder: TimeOrder[Slice[Byte]],
-                                                           functionStore: FunctionStore,
-                                                           source: DefragSource[SEG],
-                                                           valuesConfig: ValuesBlock.Config,
-                                                           sortedIndexConfig: SortedIndexBlock.Config,
-                                                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                                           hashIndexConfig: HashIndexBlock.Config,
-                                                           bloomFilterConfig: BloomFilterBlock.Config,
-                                                           segmentConfig: SegmentBlock.Config): Future[DefIO[NULL_SEG, Slice[TransientSegment.Persistent]]] =
+                                      createdInLevel: Int,
+                                      pathsDistributor: PathsDistributor,
+                                      segmentRefCacheLife: SegmentRefCacheLife,
+                                      mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
+                                                          keyOrder: KeyOrder[Slice[Byte]],
+                                                          valuesConfig: ValuesBlock.Config,
+                                                          sortedIndexConfig: SortedIndexBlock.Config,
+                                                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                                          hashIndexConfig: HashIndexBlock.Config,
+                                                          bloomFilterConfig: BloomFilterBlock.Config,
+                                                          segmentConfig: SegmentBlock.Config,
+                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                          functionStore: FunctionStore,
+                                                          fileSweeper: FileSweeper,
+                                                          bufferCleaner: ByteBufferSweeperActor,
+                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                          blockCacheSweeper: Option[MemorySweeper.Block],
+                                                          segmentReadIO: SegmentReadIO,
+                                                          idGenerator: IDGenerator,
+                                                          forceSaveApplier: ForceSaveApplier,
+                                                          compactionIO: CompactionIO.Actor,
+                                                          segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment]): Future[DefIO[NULL_SEG, scala.collection.SortedSet[PersistentSegment]]] =
     Defrag.runOnGaps(
       fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
       headGap = headGap,
@@ -129,10 +163,16 @@ object DefragPersistentSegment {
       mergeResult =>
         commitFragments(
           fragments = mergeResult,
-          createdInLevel = createdInLevel
+          createdInLevel = createdInLevel,
+          pathsDistributor = pathsDistributor,
+          segmentRefCacheLife = segmentRefCacheLife,
+          mmap = mmap
         ) map {
           persistentSegments =>
-            DefIO(nullSegment, persistentSegments)
+            DefIO(
+              input = nullSegment,
+              output = persistentSegments
+            )
         }
     }
 
@@ -148,27 +188,41 @@ object DefragPersistentSegment {
               segment: PersistentSegmentMany,
               newKeyValues: Iterator[Assignable],
               removeDeletes: Boolean,
-              createdInLevel: Int)(implicit idGenerator: IDGenerator,
-                                   executionContext: ExecutionContext,
-                                   keyOrder: KeyOrder[Slice[Byte]],
-                                   timeOrder: TimeOrder[Slice[Byte]],
-                                   functionStore: FunctionStore,
-                                   valuesConfig: ValuesBlock.Config,
-                                   sortedIndexConfig: SortedIndexBlock.Config,
-                                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                   hashIndexConfig: HashIndexBlock.Config,
-                                   bloomFilterConfig: BloomFilterBlock.Config,
-                                   segmentConfig: SegmentBlock.Config): Future[DefIO[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] =
+              createdInLevel: Int,
+              pathsDistributor: PathsDistributor,
+              segmentRefCacheLife: SegmentRefCacheLife,
+              mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
+                                  keyOrder: KeyOrder[Slice[Byte]],
+                                  valuesConfig: ValuesBlock.Config,
+                                  sortedIndexConfig: SortedIndexBlock.Config,
+                                  binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                  hashIndexConfig: HashIndexBlock.Config,
+                                  bloomFilterConfig: BloomFilterBlock.Config,
+                                  segmentConfig: SegmentBlock.Config,
+                                  timeOrder: TimeOrder[Slice[Byte]],
+                                  functionStore: FunctionStore,
+                                  fileSweeper: FileSweeper,
+                                  bufferCleaner: ByteBufferSweeperActor,
+                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                  blockCacheSweeper: Option[MemorySweeper.Block],
+                                  segmentReadIO: SegmentReadIO,
+                                  idGenerator: IDGenerator,
+                                  forceSaveApplier: ForceSaveApplier,
+                                  compactionIO: CompactionIO.Actor,
+                                  segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment]): Future[DefIO[PersistentSegmentOption, scala.collection.SortedSet[PersistentSegment]]] =
     if (newKeyValues.isEmpty)
       DefragPersistentSegment.runOnGaps[PersistentSegmentMany, PersistentSegmentOption](
         nullSegment = PersistentSegment.Null,
         headGap = headGap,
         tailGap = tailGap,
         removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel
+        createdInLevel = createdInLevel,
+        pathsDistributor = pathsDistributor,
+        segmentRefCacheLife = segmentRefCacheLife,
+        mmap = mmap
       )
     else
-      Futures
+      Future
         .unit
         .flatMapUnit {
           runHeadDefragAndAssignments(
@@ -208,7 +262,10 @@ object DefragPersistentSegment {
           fragments =>
             commitFragments(
               fragments = fragments,
-              createdInLevel = createdInLevel
+              createdInLevel = createdInLevel,
+              pathsDistributor = pathsDistributor,
+              segmentRefCacheLife = segmentRefCacheLife,
+              mmap = mmap
             ) map {
               transientSegments =>
                 DefIO(
@@ -298,7 +355,7 @@ object DefragPersistentSegment {
               fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
               headGap = assignment.headGap.result,
               tailGap = assignment.tailGap.result,
-              mergeable = assignment.midOverlap.result.iterator,
+              newKeyValues = assignment.midOverlap.result.iterator,
               removeDeletes = removeDeletes,
               createdInLevel = createdInLevel,
               createFence = createFence
@@ -364,69 +421,32 @@ object DefragPersistentSegment {
   }
 
   /**
-   * Converts [[MergeStats]] to [[TransientSegment.One]] instances for grouping.
-   */
-  def commitFragments(fragments: ListBuffer[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                      createdInLevel: Int)(implicit executionContext: ExecutionContext,
-                                           keyOrder: KeyOrder[Slice[Byte]],
-                                           timeOrder: TimeOrder[Slice[Byte]],
-                                           functionStore: FunctionStore,
-                                           valuesConfig: ValuesBlock.Config,
-                                           sortedIndexConfig: SortedIndexBlock.Config,
-                                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                           hashIndexConfig: HashIndexBlock.Config,
-                                           bloomFilterConfig: BloomFilterBlock.Config,
-                                           segmentConfig: SegmentBlock.Config): Future[Slice[TransientSegment.Persistent]] =
-    Future.traverse(fragments) {
-      case TransientSegment.Stats(stats) =>
-        Future {
-          val mergeStats =
-            stats.close(
-              hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
-              optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
-            )
-
-          SegmentBlock.writeOnes(
-            mergeStats = mergeStats,
-            createdInLevel = createdInLevel,
-            bloomFilterConfig = bloomFilterConfig,
-            hashIndexConfig = hashIndexConfig,
-            binarySearchIndexConfig = binarySearchIndexConfig,
-            sortedIndexConfig = sortedIndexConfig,
-            valuesConfig = valuesConfig,
-            segmentConfig = segmentConfig
-          )
-        }
-
-      case segment: TransientSegment.Remote =>
-        Future.successful(Slice(segment))
-
-      case TransientSegment.Fence =>
-        TransientSegment.Fence.futureSuccessful
-
-    } flatMap {
-      singletonOrFence =>
-        commitFencedSingletons(
-          singletonOrFence = singletonOrFence,
-          createdInLevel = createdInLevel
-        )
-    }
-
-  /**
    * Groups [[TransientSegment.Singleton]] for persistence and does a final check and expand small Segments.
    */
-  def commitFencedSingletons(singletonOrFence: ListBuffer[Slice[TransientSegment.SingletonOrFence]],
-                             createdInLevel: Int)(implicit executionContext: ExecutionContext,
-                                                  keyOrder: KeyOrder[Slice[Byte]],
-                                                  valuesConfig: ValuesBlock.Config,
-                                                  sortedIndexConfig: SortedIndexBlock.Config,
-                                                  binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                                  hashIndexConfig: HashIndexBlock.Config,
-                                                  segmentConfig: SegmentBlock.Config): Future[Slice[TransientSegment.Persistent]] = {
-    val singletonOrFences = Slice.of[TransientSegment.SingletonOrFence](singletonOrFence.foldLeft(0)(_ + _.size))
-    singletonOrFence foreach singletonOrFences.addAll
-
-    val groups = ListBuffer(ListBuffer.empty[TransientSegment.OneOrRemoteRef])
+  def commitFragments(fragments: ListBuffer[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+                      createdInLevel: Int,
+                      pathsDistributor: PathsDistributor,
+                      segmentRefCacheLife: SegmentRefCacheLife,
+                      mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
+                                          keyOrder: KeyOrder[Slice[Byte]],
+                                          valuesConfig: ValuesBlock.Config,
+                                          sortedIndexConfig: SortedIndexBlock.Config,
+                                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                          hashIndexConfig: HashIndexBlock.Config,
+                                          bloomFilterConfig: BloomFilterBlock.Config,
+                                          segmentConfig: SegmentBlock.Config,
+                                          timeOrder: TimeOrder[Slice[Byte]],
+                                          functionStore: FunctionStore,
+                                          fileSweeper: FileSweeper,
+                                          bufferCleaner: ByteBufferSweeperActor,
+                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                          blockCacheSweeper: Option[MemorySweeper.Block],
+                                          segmentReadIO: SegmentReadIO,
+                                          idGenerator: IDGenerator,
+                                          forceSaveApplier: ForceSaveApplier,
+                                          compactionIO: CompactionIO.Actor,
+                                          segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment]): Future[scala.collection.SortedSet[PersistentSegment]] = {
+    val groups = ListBuffer.empty[ListBuffer[TransientSegment.RemoteRefOrStats[MergeStats.Persistent.Builder[Memory, ListBuffer]]]]
 
     val remoteSegments = ListBuffer.empty[TransientSegment.RemotePersistentSegment]
 
@@ -434,85 +454,164 @@ object DefragPersistentSegment {
       if (groups.last.nonEmpty)
         groups += ListBuffer.empty
 
-    //do another check and expand small Segments.
-    singletonOrFences foreach {
-      case ref: TransientSegment.RemoteRef =>
-        groups.last += ref
+    @inline def addLast(last: TransientSegment.RemoteRefOrStats[MergeStats.Persistent.Builder[Memory, ListBuffer]]) =
+      if (groups.isEmpty)
+        groups += ListBuffer(last)
+      else
+        groups.last += last
 
-      case remoteSegment: TransientSegment.RemotePersistentSegment =>
-        if (remoteSegment.segment.segmentSize < segmentConfig.minSize) {
-          remoteSegment.segment match {
-            case many: PersistentSegmentMany =>
-              many.segmentRefs() foreach (ref => groups.last += TransientSegment.RemoteRef(ref))
+    val fragmentsIterator = fragments.iterator
 
-            case one: PersistentSegmentOne =>
-              groups.last += TransientSegment.RemoteRef(one.ref)
+    while (fragmentsIterator.hasNext)
+      fragmentsIterator.next() match {
+        case ref: TransientSegment.RemoteRef =>
+          addLast(ref)
+
+        case remoteSegment: TransientSegment.RemotePersistentSegment =>
+          if (remoteSegment.segment.segmentSize < segmentConfig.minSize) {
+            remoteSegment.segment match {
+              case many: PersistentSegmentMany =>
+                many.segmentRefs() foreach (ref => addLast(TransientSegment.RemoteRef(ref)))
+
+              case one: PersistentSegmentOne =>
+                addLast(TransientSegment.RemoteRef(one.ref))
+            }
+          } else {
+            startNewGroup()
+            remoteSegments += remoteSegment
           }
-        } else {
-          startNewGroup()
-          remoteSegments += remoteSegment
+
+        case one @ TransientSegment.Stats(_) =>
+          addLast(one)
+
+        case TransientSegment.Fence =>
+          if (fragmentsIterator.hasNext)
+            startNewGroup()
+      }
+
+    def runGroupCommits(groups: Iterator[ListBuffer[ListBuffer[TransientSegment.RemoteRefOrStats[MergeStats.Persistent.Builder[Memory, ListBuffer]]]]],
+                        buffer: mutable.SortedSet[PersistentSegment]): Future[mutable.SortedSet[PersistentSegment]] =
+      if (!groups.hasNext)
+        Future.successful(buffer)
+      else
+        Future.traverse(groups.next()) {
+          group =>
+            commitGroup(
+              group = group,
+              createdInLevel = createdInLevel,
+              pathsDistributor = pathsDistributor,
+              segmentRefCacheLife = segmentRefCacheLife,
+              mmap = mmap
+            )
+        } flatMap {
+          newSegments =>
+            newSegments foreach {
+              newSegments =>
+                buffer ++= newSegments
+            }
+
+            runGroupCommits(
+              groups = groups,
+              buffer = buffer
+            )
         }
 
-      case one: TransientSegment.One =>
-        groups.last += one
-
-      case TransientSegment.Fence =>
-        startNewGroup()
+    runGroupCommits(
+      groups = groups.grouped(1),
+      buffer = mutable.SortedSet.empty(Ordering.by[PersistentSegment, Slice[Byte]](_.minKey)(keyOrder))
+    ) flatMap {
+      buffer =>
+        if (remoteSegments.isEmpty)
+          Future.successful(buffer)
+        else
+          compactionIO.ask.flatMap {
+            (instance, _) =>
+              instance.persist(
+                pathsDistributor = pathsDistributor,
+                segmentRefCacheLife = segmentRefCacheLife,
+                mmap = mmap,
+                transient = remoteSegments
+              )
+          } map {
+            persistedRemote =>
+              buffer ++= persistedRemote
+          }
     }
-
-    commitGroups(
-      groups = groups,
-      remoteSegments = remoteSegments,
-      createdInLevel = createdInLevel
-    )
   }
 
   /**
    * Commits Groups.
    */
-  private def commitGroups(groups: Iterable[Iterable[TransientSegment.OneOrRemoteRef]],
-                           remoteSegments: Iterable[TransientSegment.RemotePersistentSegment],
-                           createdInLevel: Int)(implicit executionContext: ExecutionContext,
-                                                keyOrder: KeyOrder[Slice[Byte]],
-                                                valuesConfig: ValuesBlock.Config,
-                                                sortedIndexConfig: SortedIndexBlock.Config,
-                                                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                                hashIndexConfig: HashIndexBlock.Config,
-                                                segmentConfig: SegmentBlock.Config): Future[Slice[TransientSegment.Persistent]] =
-    Future.traverse(groups) {
-      ones =>
-        Future {
+  private def commitGroup(group: Iterable[TransientSegment.RemoteRefOrStats[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+                          createdInLevel: Int,
+                          pathsDistributor: PathsDistributor,
+                          segmentRefCacheLife: SegmentRefCacheLife,
+                          mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
+                                              keyOrder: KeyOrder[Slice[Byte]],
+                                              valuesConfig: ValuesBlock.Config,
+                                              sortedIndexConfig: SortedIndexBlock.Config,
+                                              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                              hashIndexConfig: HashIndexBlock.Config,
+                                              bloomFilterConfig: BloomFilterBlock.Config,
+                                              segmentConfig: SegmentBlock.Config,
+                                              timeOrder: TimeOrder[Slice[Byte]],
+                                              functionStore: FunctionStore,
+                                              fileSweeper: FileSweeper,
+                                              bufferCleaner: ByteBufferSweeperActor,
+                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                              blockCacheSweeper: Option[MemorySweeper.Block],
+                                              segmentReadIO: SegmentReadIO,
+                                              idGenerator: IDGenerator,
+                                              forceSaveApplier: ForceSaveApplier,
+                                              compactionIO: CompactionIO.Actor,
+                                              segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment]): Future[Iterable[PersistentSegment]] =
+    if (group.isEmpty)
+      Futures.emptyIterable
+    else
+      Future.traverse(group) {
+        case ref: TransientSegment.RemoteRef =>
+          Future.successful(Slice(ref))
+
+        case TransientSegment.Stats(stats) =>
+          Future {
+            val mergeStats =
+              stats.close(
+                hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+                optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+              )
+
+            SegmentBlock.writeOnes(
+              mergeStats = mergeStats,
+              createdInLevel = createdInLevel,
+              bloomFilterConfig = bloomFilterConfig,
+              hashIndexConfig = hashIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              valuesConfig = valuesConfig,
+              segmentConfig = segmentConfig
+            )
+          }
+      } map {
+        segments =>
           SegmentBlock.writeOneOrMany(
             createdInLevel = createdInLevel,
-            ones = Slice.from(ones, ones.size),
+            ones = Slice.from(segments),
             sortedIndexConfig = sortedIndexConfig,
             hashIndexConfig = hashIndexConfig,
             binarySearchIndexConfig = binarySearchIndexConfig,
             valuesConfig = valuesConfig,
             segmentConfig = segmentConfig
           )
-        }
-    } map {
-      slices =>
-        val slice = Slice.of[TransientSegment.Persistent](slices.foldLeft(remoteSegments.size)(_ + _.size))
-
-        @inline def addAll(segments: Iterable[TransientSegment.Persistent]): Unit =
-          segments foreach {
-            case ref: TransientSegment.RemoteRef =>
-              //if a single SegmentRef is being written as an independent Segment then set the header.
-              slice add ref.copyWithFileHeader(PersistentSegmentOne.formatIdSlice)
-
-            case transient =>
-              slice add transient
+      } flatMap {
+        transient =>
+          compactionIO.ask.flatMap {
+            (instance, _) =>
+              instance.persist(
+                pathsDistributor = pathsDistributor,
+                segmentRefCacheLife = segmentRefCacheLife,
+                mmap = mmap,
+                transient = transient
+              )
           }
-
-        slices foreach addAll
-
-        if (remoteSegments.isEmpty) {
-          slice
-        } else {
-          addAll(remoteSegments)
-          slice.sortBy(_.minKey)(keyOrder)
-        }
-    }
+      }
 }

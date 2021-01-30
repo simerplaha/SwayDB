@@ -37,6 +37,7 @@ import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.core.data.{DefIO, KeyValue, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.DBFile
+import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
@@ -68,9 +69,12 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{Level0Storage, LevelStorage}
 import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
+import swaydb.effect.{Dir, IOAction, IOStrategy}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.{Aggregator, Error, Glass, IO}
+import swaydb.utils.StorageUnits._
+import swaydb.utils.{FiniteDurations, OperatingSystem}
+import swaydb.{ActorConfig, Aggregator, Error, Glass, IO}
 
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
@@ -81,10 +85,6 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.Random
-import swaydb.ActorConfig
-import swaydb.effect.{Dir, IOAction, IOStrategy}
-import swaydb.utils.{FiniteDurations, OperatingSystem}
-import swaydb.utils.StorageUnits._
 
 object TestData {
 
@@ -99,6 +99,12 @@ object TestData {
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
   val functionIdGenerator = new AtomicInteger(0)
+
+  def randomSegmentRefCacheLife(): SegmentRefCacheLife =
+    if (randomBoolean())
+      SegmentRefCacheLife.Permanent
+    else
+      SegmentRefCacheLife.Temporary
 
   def randomNextInt(max: Int): Int =
     Math.abs(Random.nextInt(max))
@@ -125,7 +131,7 @@ object TestData {
           path = path,
           formatId = segment.formatId,
           createdInLevel = segment.createdInLevel,
-          segmentRefCacheWeight = randomIntMax(Byte.MaxValue),
+          segmentRefCacheLife = randomSegmentRefCacheLife(),
           mmap = MMAP.randomForSegment(),
           minKey = segment.minKey,
           maxKey = segment.maxKey,
@@ -241,9 +247,13 @@ object TestData {
       if (segments.isEmpty) {
         IO.failed("Segments are empty")
       } else {
+        implicit val compactionActor: CompactionIO.Actor =
+          CompactionIO.create().sweep()
+
         val assign = level.assign(segments, level.segments(), removeDeletes)
         val merge = level.merge(assign, removeDeletes).awaitInf
-        level.commit(merge)
+        val result = level.commitPersisted(merge)
+        result
       }
     }
 
@@ -253,10 +263,13 @@ object TestData {
       if (map.cache.isEmpty) {
         IO.failed("Map is empty")
       } else {
+        implicit val compactionActor: CompactionIO.Actor =
+          CompactionIO.create().sweep()
+
         val removeDeletes = false
         val assign = level.assign(newKeyValues = map, targetSegments = level.segments(), removeDeletedRecords = removeDeletes)
         val merge = level.merge(assigment = assign, removeDeletedRecords = removeDeletes).awaitInf
-        level.commit(merge)
+        level.commitPersisted(merge)
       }
     }
 
@@ -500,14 +513,14 @@ object TestData {
                cacheBlocksOnCreate: Boolean = randomBoolean(),
                enableHashIndexForListSegment: Boolean = randomBoolean(),
                cacheOnAccess: Boolean = randomBoolean(),
-               segmentRefCacheWeight: Int = randomIntMax(Byte.MaxValue)): SegmentBlock.Config =
+               segmentRefCacheLife: SegmentRefCacheLife = randomSegmentRefCacheLife()): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
         fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess),
         blockIOStrategy = _ => randomIOStrategy(cacheOnAccess),
         cacheBlocksOnCreate = cacheBlocksOnCreate,
         minSize = minSegmentSize,
         maxCount = maxKeyValuesPerSegment,
-        segmentRefCacheWeight = segmentRefCacheWeight,
+        segmentRefCacheLife = segmentRefCacheLife,
         enableHashIndexForListSegment = enableHashIndexForListSegment,
         mmap = mmap,
         deleteDelay = deleteDelay,
@@ -523,14 +536,14 @@ object TestData {
                 mmap: MMAP.Segment = MMAP.randomForSegment(),
                 enableHashIndexForListSegment: Boolean = randomBoolean(),
                 minSegmentSize: Int = randomIntMax(30.mb),
-                segmentRefCacheWeight: Int = randomIntMax(Byte.MaxValue)): SegmentBlock.Config =
+                segmentRefCacheLife: SegmentRefCacheLife = randomSegmentRefCacheLife()): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
         fileOpenIOStrategy = fileOpenIOStrategy,
         blockIOStrategy = blockIOStrategy,
         cacheBlocksOnCreate = cacheBlocksOnCreate,
         minSize = minSegmentSize,
         maxCount = maxKeyValuesPerSegment,
-        segmentRefCacheWeight = segmentRefCacheWeight,
+        segmentRefCacheLife = segmentRefCacheLife,
         enableHashIndexForListSegment = enableHashIndexForListSegment,
         mmap = mmap,
         deleteDelay = deleteDelay,
@@ -2048,7 +2061,7 @@ object TestData {
   implicit class TransientSegmentPersistentImplicits(segment: TransientSegment.Persistent) {
 
     def persist(pathDistributor: PathsDistributor,
-                segmentRefCacheWeight: Int = randomIntMax(Byte.MaxValue),
+                segmentRefCacheLife: SegmentRefCacheLife = randomSegmentRefCacheLife(),
                 mmap: MMAP.Segment = MMAP.randomForSegment())(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                               idGenerator: IDGenerator,
                                                               segmentReadIO: SegmentReadIO,
@@ -2056,7 +2069,7 @@ object TestData {
                                                               testCaseSweeper: TestCaseSweeper): IO[Error.Segment, Slice[PersistentSegment]] =
       Slice(segment).persist(
         pathDistributor = pathDistributor,
-        segmentRefCacheWeight = segmentRefCacheWeight,
+        segmentRefCacheLife = segmentRefCacheLife,
         mmap = mmap
       )
   }
@@ -2064,7 +2077,7 @@ object TestData {
   implicit class TransientSegmentsImplicits(segments: Slice[TransientSegment.Persistent]) {
 
     def persist(pathDistributor: PathsDistributor,
-                segmentRefCacheWeight: Int = randomIntMax(Byte.MaxValue),
+                segmentRefCacheLife: SegmentRefCacheLife = randomSegmentRefCacheLife(),
                 mmap: MMAP.Segment = MMAP.randomForSegment())(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                               idGenerator: IDGenerator,
                                                               segmentReadIO: SegmentReadIO,
@@ -2075,7 +2088,7 @@ object TestData {
       val persistedSegments =
         SegmentWritePersistentIO.persistTransient(
           pathsDistributor = pathDistributor,
-          segmentRefCacheWeight = segmentRefCacheWeight,
+          segmentRefCacheLife = segmentRefCacheLife,
           mmap = mmap,
           transient = segments
         )
@@ -2106,7 +2119,7 @@ object TestData {
 
     def put(headGap: Iterable[KeyValue],
             tailGap: Iterable[KeyValue],
-            mergeable: Iterator[Assignable],
+            newKeyValues: Iterator[Assignable],
             removeDeletes: Boolean,
             createdInLevel: Int,
             valuesConfig: ValuesBlock.Config,
@@ -2115,12 +2128,14 @@ object TestData {
             hashIndexConfig: HashIndexBlock.Config,
             bloomFilterConfig: BloomFilterBlock.Config,
             segmentConfig: SegmentBlock.Config,
-            pathDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
-                                               executionContext: ExecutionContext,
-                                               keyOrder: KeyOrder[Slice[Byte]],
-                                               segmentReadIO: SegmentReadIO,
-                                               timeOrder: TimeOrder[Slice[Byte]],
-                                               testCaseSweeper: TestCaseSweeper): DefIO[SegmentOption, Slice[Segment]] = {
+            pathDistributor: PathsDistributor,
+            segmentRefCacheLife: SegmentRefCacheLife,
+            mmapSegment: MMAP.Segment)(implicit idGenerator: IDGenerator,
+                                       executionContext: ExecutionContext,
+                                       keyOrder: KeyOrder[Slice[Byte]],
+                                       segmentReadIO: SegmentReadIO,
+                                       timeOrder: TimeOrder[Slice[Byte]],
+                                       testCaseSweeper: TestCaseSweeper): DefIO[SegmentOption, Slice[Segment]] = {
       def toMemory(keyValue: KeyValue) = if (removeDeletes) KeyValueGrouper.toLastLevelOrNull(keyValue) else keyValue.toMemory()
 
       segment match {
@@ -2130,7 +2145,7 @@ object TestData {
             segment.put(
               headGap = ListBuffer(Assignable.Stats(MergeStats.memoryBuilder(headGap)(toMemory))),
               tailGap = ListBuffer(Assignable.Stats(MergeStats.memoryBuilder(tailGap)(toMemory))),
-              newKeyValues = mergeable,
+              newKeyValues = newKeyValues,
               removeDeletes = removeDeletes,
               createdInLevel = createdInLevel,
               segmentConfig = segmentConfig
@@ -2151,11 +2166,14 @@ object TestData {
           }
 
         case segment: PersistentSegment =>
+          implicit val compactionActor: CompactionIO.Actor =
+            CompactionIO.create().sweep()
+
           val putResult =
             segment.put(
               headGap = ListBuffer(Assignable.Stats(MergeStats.persistentBuilder(headGap)(toMemory))),
               tailGap = ListBuffer(Assignable.Stats(MergeStats.persistentBuilder(tailGap)(toMemory))),
-              mergeable = mergeable,
+              newKeyValues = newKeyValues,
               removeDeletes = removeDeletes,
               createdInLevel = createdInLevel,
               valuesConfig = valuesConfig,
@@ -2163,22 +2181,23 @@ object TestData {
               binarySearchIndexConfig = binarySearchIndexConfig,
               hashIndexConfig = hashIndexConfig,
               bloomFilterConfig = bloomFilterConfig,
-              segmentConfig = segmentConfig
+              segmentConfig = segmentConfig,
+              pathsDistributor = pathDistributor,
+              segmentRefCacheLife = segmentRefCacheLife,
+              mmap = mmapSegment
             ).awaitInf
-
-          val segments = putResult.output.persist(pathDistributor).value
 
           putResult.input match {
             case PersistentSegment.Null =>
               DefIO(
                 input = Segment.Null,
-                output = segments
+                output = putResult.output.toSlice
               )
 
             case segment: PersistentSegment =>
               DefIO(
                 input = segment,
-                output = segments
+                output = putResult.output.toSlice
               )
           }
 

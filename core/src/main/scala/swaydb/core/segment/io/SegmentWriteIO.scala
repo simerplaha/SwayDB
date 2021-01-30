@@ -33,7 +33,7 @@ import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.IDGenerator
-import swaydb.data.config.MMAP
+import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
@@ -46,12 +46,12 @@ import swaydb.{Error, IO}
  * [[TransientSegment]] on dedicated IO ExecutionContext.
  *
  */
-trait SegmentWriteIO[T <: TransientSegment, S] {
+trait SegmentWriteIO[-T <: TransientSegment, S] {
 
   def minKey(segment: S): Slice[Byte]
 
   def persistMerged(pathsDistributor: PathsDistributor,
-                    segmentRefCacheWeight: Int,
+                    segmentRefCacheLife: SegmentRefCacheLife,
                     mmap: MMAP.Segment,
                     mergeResult: Iterable[DefIO[SegmentOption, Iterable[T]]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                               timeOrder: TimeOrder[Slice[Byte]],
@@ -65,7 +65,7 @@ trait SegmentWriteIO[T <: TransientSegment, S] {
                                                                               forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[DefIO[SegmentOption, Iterable[S]]]]
 
   def persistTransient(pathsDistributor: PathsDistributor,
-                       segmentRefCacheWeight: Int,
+                       segmentRefCacheLife: SegmentRefCacheLife,
                        mmap: MMAP.Segment,
                        transient: Iterable[T])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
@@ -77,4 +77,9 @@ trait SegmentWriteIO[T <: TransientSegment, S] {
                                                segmentReadIO: SegmentReadIO,
                                                idGenerator: IDGenerator,
                                                forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[S]]
+}
+
+object SegmentWriteIO {
+  implicit val persistentSegmentWriteIO: SegmentWritePersistentIO.type = SegmentWritePersistentIO
+  implicit val memorySegmentWriteIO: SegmentWriteMemoryIO.type = SegmentWriteMemoryIO
 }

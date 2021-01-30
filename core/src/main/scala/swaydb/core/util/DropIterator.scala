@@ -166,29 +166,27 @@ private[core] object DropIterator {
                                                                             right: DropIterator[H, T]) extends DropIterator[H, T] {
 
     override def dropHead(): DropIterator[H, T] =
-      (left.isEmpty, right.isEmpty) match {
-        case (true, true) =>
-          DropIterator.empty
-        case (true, false) =>
-          right.dropHead()
-        case (false, true) =>
-          left.dropHead()
-        case (false, false) =>
-          left = left.dropHead()
-          this
+      if (left.isEmpty && right.isEmpty) {
+        DropIterator.empty
+      } else if (left.isEmpty && !right.isEmpty) {
+        right.dropHead()
+      } else if (!left.isEmpty && right.isEmpty) {
+        left.dropHead()
+      } else {
+        left = left.dropHead()
+        this
       }
 
     override def dropPrepend(head: H): DropIterator[H, T] =
-      (left.isEmpty, right.isEmpty) match {
-        case (true, true) =>
-          new Flat[H, T](head, null, Iterator.empty)
-        case (true, false) =>
-          right.dropPrepend(head)
-        case (false, true) =>
-          left.dropPrepend(head)
-        case (false, false) =>
-          left = left.dropPrepend(head)
-          this
+      if (left.isEmpty && right.isEmpty) {
+        new Flat[H, T](head, null, Iterator.empty)
+      } else if (left.isEmpty && !right.isEmpty) {
+        right.dropPrepend(head)
+      } else if (!left.isEmpty && right.isEmpty) {
+        left.dropPrepend(head)
+      } else {
+        left = left.dropPrepend(head)
+        this
       }
 
     override def headOrNull: T =

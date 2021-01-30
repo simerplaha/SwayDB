@@ -30,6 +30,8 @@ import swaydb.IO
 import swaydb.core.data.{DefIO, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
+import swaydb.core.level.PathsDistributor
+import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
@@ -50,6 +52,7 @@ import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util._
 import swaydb.data.MaxKey
+import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -312,7 +315,7 @@ protected case class PersistentSegmentOne(file: DBFile,
    */
   def put(headGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           tailGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-          mergeable: Iterator[Assignable],
+          newKeyValues: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -320,8 +323,12 @@ protected case class PersistentSegmentOne(file: DBFile,
           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
-          segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[DefIO[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] = {
+          segmentConfig: SegmentBlock.Config,
+          pathsDistributor: PathsDistributor,
+          segmentRefCacheLife: SegmentRefCacheLife,
+          mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
+                              executionContext: ExecutionContext,
+                              compactionIO: CompactionIO.Actor): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]] = {
     implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
     implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexBlock.Config = binarySearchIndexConfig
@@ -334,9 +341,12 @@ protected case class PersistentSegmentOne(file: DBFile,
       nullSegment = PersistentSegment.Null,
       headGap = headGap,
       tailGap = tailGap,
-      mergeable = mergeable,
+      newKeyValues = newKeyValues,
       removeDeletes = removeDeletes,
-      createdInLevel = createdInLevel
+      createdInLevel = createdInLevel,
+      pathsDistributor = pathsDistributor,
+      segmentRefCacheLife = segmentRefCacheLife,
+      mmap = mmap
     )
   }
 

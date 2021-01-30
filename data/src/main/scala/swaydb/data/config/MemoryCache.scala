@@ -32,7 +32,7 @@ import scala.compat.java8.OptionConverters.RichOptionalGeneric
 
 sealed trait MemoryCache
 
-object MemoryCache {
+case object MemoryCache {
 
   def off: MemoryCache = Off
   case object Off extends MemoryCache

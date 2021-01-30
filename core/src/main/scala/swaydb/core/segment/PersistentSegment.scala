@@ -26,6 +26,8 @@ package swaydb.core.segment
 
 import swaydb.core.data.{DefIO, Memory}
 import swaydb.core.io.file.DBFile
+import swaydb.core.level.PathsDistributor
+import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
@@ -36,6 +38,7 @@ import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.util.IDGenerator
+import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.slice.Slice
 
 import java.nio.file.Path
@@ -62,7 +65,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
 
   def put(headGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           tailGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-          mergeable: Iterator[Assignable],
+          newKeyValues: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -70,8 +73,12 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
-          segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[DefIO[PersistentSegmentOption, Slice[TransientSegment.Persistent]]]
+          segmentConfig: SegmentBlock.Config,
+          pathsDistributor: PathsDistributor,
+          segmentRefCacheLife: SegmentRefCacheLife,
+          mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
+                              executionContext: ExecutionContext,
+                              compactionIO: CompactionIO.Actor): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

@@ -35,7 +35,7 @@ import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.IDGenerator
-import swaydb.data.config.{ForceSave, MMAP}
+import swaydb.data.config.{ForceSave, MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.SliceIOImplicits._
@@ -50,7 +50,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
     segment.minKey
 
   def persistMerged(pathsDistributor: PathsDistributor,
-                    segmentRefCacheWeight: Int,
+                    segmentRefCacheLife: SegmentRefCacheLife,
                     mmap: MMAP.Segment,
                     mergeResult: Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Persistent]]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                         timeOrder: TimeOrder[Slice[Byte]],
@@ -71,7 +71,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
       mergeResult =>
         persistTransient(
           pathsDistributor = pathsDistributor,
-          segmentRefCacheWeight = segmentRefCacheWeight,
+          segmentRefCacheLife = segmentRefCacheLife,
           mmap = mmap,
           transient = mergeResult.output
         ) map {
@@ -93,7 +93,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
     )
 
   def persistTransient(pathsDistributor: PathsDistributor,
-                       segmentRefCacheWeight: Int,
+                       segmentRefCacheLife: SegmentRefCacheLife,
                        mmap: MMAP.Segment,
                        transient: Iterable[TransientSegment.Persistent])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                          timeOrder: TimeOrder[Slice[Byte]],
@@ -164,7 +164,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                     Segment.copyToPersist(
                       segment = segment.segment,
                       pathsDistributor = pathsDistributor,
-                      segmentRefCacheWeight = segmentRefCacheWeight,
+                      segmentRefCacheLife = segmentRefCacheLife,
                       mmap = mmap
                     )
                   )
@@ -190,7 +190,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                   Slice(
                     PersistentSegmentMany(
                       file = file,
-                      segmentRefCacheWeight = segmentRefCacheWeight,
+                      segmentRefCacheLife = segmentRefCacheLife,
                       segment = segment
                     )
                   )

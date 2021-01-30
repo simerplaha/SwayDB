@@ -136,7 +136,7 @@ def commonDependencies(scalaVersion: String) =
 
 lazy val SwayDB =
   (project in file("."))
-    .settings(name := "SwayDB-root")
+    .settings(name := "SwayDB-source")
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(swaydb)
@@ -144,16 +144,16 @@ lazy val SwayDB =
       utils,
       effect,
       core,
-      swaydb,
       data,
+      `data-java`,
       actor,
       stream,
       cache,
+      swaydb,
+      `swaydb-java`,
       compression,
       configs,
       serializers,
-      `data-java`,
-      `swaydb-java`,
       `z-interop-boopickle`,
       `z-interop-monix`,
       `z-interop-zio`,
@@ -219,6 +219,18 @@ lazy val data =
       testkit % Test
     )
 
+lazy val `data-java` =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonJavaDependencies)
+    .dependsOn(
+      data,
+      actor,
+      stream,
+      utils
+    )
+
 lazy val actor =
   project
     .settings(commonSettings)
@@ -242,18 +254,6 @@ lazy val cache =
       effect,
       utils,
       testkit % Test
-    )
-
-lazy val `data-java` =
-  project
-    .settings(commonSettings)
-    .settings(publishSettings)
-    .settings(libraryDependencies ++= commonJavaDependencies)
-    .dependsOn(
-      data,
-      actor,
-      stream,
-      utils
     )
 
 lazy val swaydb =

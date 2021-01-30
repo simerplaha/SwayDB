@@ -76,7 +76,7 @@ object Defrag {
                                                                                               fragments: ListBuffer[TransientSegment.Fragment[S]],
                                                                                               headGap: Iterable[Assignable.Gap[S]],
                                                                                               tailGap: Iterable[Assignable.Gap[S]],
-                                                                                              mergeable: Iterator[Assignable],
+                                                                                              newKeyValues: Iterator[Assignable],
                                                                                               removeDeletes: Boolean,
                                                                                               createdInLevel: Int,
                                                                                               createFence: SEG => TransientSegment.Fragment[S])(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -99,14 +99,14 @@ object Defrag {
           fragments = fragments,
           removeDeletes = removeDeletes,
           createdInLevel = createdInLevel,
-          hasNext = mergeable.hasNext || forceExpand
+          hasNext = newKeyValues.hasNext || forceExpand
         )
 
     val source =
       DefragMerge.run(
         segment = segment,
         nullSegment = nullSegment,
-        mergeable = mergeable,
+        newKeyValues = newKeyValues,
         removeDeletes = removeDeletes,
         forceExpand = forceExpand,
         fragments = newFragments

@@ -32,7 +32,7 @@ import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
-import swaydb.data.config.MMAP
+import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.effect.{Effect, Extension}
@@ -51,16 +51,16 @@ private[core] sealed trait SegmentSerialiser {
 
   def read(reader: ReaderBase[Byte],
            mmapSegment: MMAP.Segment,
-           segmentRefCacheWeight: Int,
+           segmentRefCacheLife: SegmentRefCacheLife,
            checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                   timeOrder: TimeOrder[Slice[Byte]],
-                                   functionStore: FunctionStore,
-                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                   fileSweeper: FileSweeper,
-                                   bufferCleaner: ByteBufferSweeperActor,
-                                   blockCacheSweeper: Option[MemorySweeper.Block],
-                                   forceSaveApplier: ForceSaveApplier,
-                                   segmentIO: SegmentReadIO): Segment
+                                 timeOrder: TimeOrder[Slice[Byte]],
+                                 functionStore: FunctionStore,
+                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                 fileSweeper: FileSweeper,
+                                 bufferCleaner: ByteBufferSweeperActor,
+                                 blockCacheSweeper: Option[MemorySweeper.Block],
+                                 forceSaveApplier: ForceSaveApplier,
+                                 segmentIO: SegmentReadIO): Segment
 
   def bytesRequired(value: Segment): Int
 
@@ -107,16 +107,16 @@ private[core] object SegmentSerialiser {
 
     def read(reader: ReaderBase[Byte],
              mmapSegment: MMAP.Segment,
-             segmentRefCacheWeight: Int,
+             segmentRefCacheLife: SegmentRefCacheLife,
              checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                     timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore,
-                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                     fileSweeper: FileSweeper,
-                                     bufferCleaner: ByteBufferSweeperActor,
-                                     blockCacheSweeper: Option[MemorySweeper.Block],
-                                     forceSaveApplier: ForceSaveApplier,
-                                     segmentIO: SegmentReadIO): Segment = {
+                                   timeOrder: TimeOrder[Slice[Byte]],
+                                   functionStore: FunctionStore,
+                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                   fileSweeper: FileSweeper,
+                                   bufferCleaner: ByteBufferSweeperActor,
+                                   blockCacheSweeper: Option[MemorySweeper.Block],
+                                   forceSaveApplier: ForceSaveApplier,
+                                   segmentIO: SegmentReadIO): Segment = {
 
       val formatId = reader.get() //formatId
 
@@ -169,7 +169,7 @@ private[core] object SegmentSerialiser {
         path = segmentPath,
         formatId = segmentFormatId,
         createdInLevel = createdInLevel,
-        segmentRefCacheWeight = segmentRefCacheWeight,
+        segmentRefCacheLife = segmentRefCacheLife,
         mmap = mmapSegment,
         minKey = minKey,
         maxKey = maxKey,
