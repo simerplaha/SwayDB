@@ -27,6 +27,7 @@ package swaydb.data.cache
 import swaydb.IO
 
 private[swaydb] object Lazy {
+
   def value[A](synchronised: Boolean,
                stored: Boolean,
                initial: Option[A]): LazyValue[A] = {

@@ -27,6 +27,7 @@ package swaydb.core.map.serializer
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.compression.CompressionInternal
+import swaydb.compression.CompressionTestGen._
 import swaydb.core.TestData._
 import swaydb.core.map.serializer.ValueSerializer.IntMapListBufferSerializer
 import swaydb.data.slice.Slice

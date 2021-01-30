@@ -72,24 +72,4 @@ private[swaydb] object CompressionInternal extends LazyLogging {
     val compressor: CompressorInternal = CompressorInternal.Snappy(minCompressionPercentage)
     val decompressor: DecompressorInternal = DecompressorInternal.Snappy
   }
-
-  def random(minCompressionPercentage: Double = Double.MinValue) =
-    if (Random.nextBoolean())
-      LZ4(CompressorInternal.randomLZ4(minCompressionSavingsPercent = minCompressionPercentage), DecompressorInternal.randomLZ4())
-    else if (Random.nextBoolean())
-      Snappy(minCompressionPercentage = minCompressionPercentage)
-    else
-      UnCompressed
-
-  def randomLZ4OrSnappy(minCompressionPercentage: Double = Double.MinValue) =
-    if (Random.nextBoolean())
-      randomLZ4(minCompressionPercentage = minCompressionPercentage)
-    else
-      randomSnappy(minCompressionPercentage = minCompressionPercentage)
-
-  def randomSnappy(minCompressionPercentage: Double = Double.MinValue) =
-    Snappy(minCompressionPercentage = minCompressionPercentage)
-
-  def randomLZ4(minCompressionPercentage: Double = Double.MinValue) =
-    LZ4(CompressorInternal.randomLZ4(minCompressionSavingsPercent = minCompressionPercentage), DecompressorInternal.randomLZ4())
 }

@@ -190,14 +190,32 @@ lazy val core =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(data, effect, utils, cache, actor, testkit % Test, data % "test->test", macros % "test->test;compile-internal", compression, configs % "test->test", serializers % "test->test")
+    .dependsOn(
+      data,
+      effect,
+      utils,
+      cache,
+      actor,
+      compression,
+      testkit % Test,
+      macros % "test->test;compile-internal",
+      compression % "test->test",
+      data % "test->test",
+      configs % "test->test",
+      serializers % "test->test"
+    )
 
 lazy val data =
   project
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(macros % "compile-internal", effect, utils, testkit % Test)
+    .dependsOn(
+      macros % "compile-internal",
+      effect,
+      utils,
+      testkit % Test
+    )
 
 lazy val actor =
   project
@@ -232,7 +250,13 @@ lazy val swaydb =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(core % "test->test;compile->compile", serializers, `z-interop-boopickle` % "test->test", configs, stream)
+    .dependsOn(
+      serializers,
+      configs,
+      stream,
+      core % "test->test;compile->compile",
+      `z-interop-boopickle` % "test->test"
+    )
 
 lazy val configs =
   project

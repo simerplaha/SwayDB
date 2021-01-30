@@ -138,10 +138,4 @@ private[swaydb] object DecompressorInternal {
                             decompressLength: Int): Slice[Byte] =
       Slice(snappy.Snappy.uncompress(slice.toArray))
   }
-
-  def random(): DecompressorInternal =
-    DecompressorInternal(DecompressorId.randomIntId())
-
-  def randomLZ4(): DecompressorInternal.LZ4 =
-    DecompressorInternal(DecompressorId.randomLZ4Id())
 }

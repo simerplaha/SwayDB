@@ -30,6 +30,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import CompressionTestGen._
 
 import scala.util.Random
 
