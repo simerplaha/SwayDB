@@ -24,7 +24,7 @@
 
 package swaydb.java
 
-import swaydb.data.util.Java._
+import swaydb.util.Java._
 import swaydb.{Bag, Glass, Pair}
 
 import java.util.Optional

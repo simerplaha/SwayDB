@@ -24,12 +24,11 @@
 
 package swaydb.java
 
+import swaydb.util.Java._
+
 import java.util.Optional
 import java.util.concurrent.CompletionStage
 import java.util.function.{Consumer, Predicate, Supplier}
-
-import swaydb.data.util.Java._
-
 import scala.compat.java8.FutureConverters._
 
 object IO {

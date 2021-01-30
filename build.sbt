@@ -183,6 +183,7 @@ lazy val effect =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(utils)
 
 lazy val core =
   project
@@ -213,6 +214,7 @@ lazy val data =
     .dependsOn(
       macros % "compile-internal",
       effect,
+      actor,
       utils,
       testkit % Test
     )
@@ -236,14 +238,23 @@ lazy val cache =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(data, effect)
+    .dependsOn(
+      effect,
+      utils,
+      testkit % Test
+    )
 
 lazy val `data-java` =
   project
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonJavaDependencies)
-    .dependsOn(data, actor, stream)
+    .dependsOn(
+      data,
+      actor,
+      stream,
+      utils
+    )
 
 lazy val swaydb =
   project

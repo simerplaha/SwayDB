@@ -24,17 +24,17 @@
 
 package swaydb.java
 
+import swaydb.KeyVal._
+import swaydb.data.accelerate.LevelZeroMeter
+import swaydb.data.compaction.LevelMeter
+import swaydb.java.data.util.Java._
+import swaydb.util.Java._
+import swaydb.{Expiration, Glass, KeyVal}
+
 import java.nio.file.Path
 import java.time.Duration
 import java.util
 import java.util.Optional
-
-import swaydb.data.accelerate.LevelZeroMeter
-import swaydb.data.compaction.LevelMeter
-import swaydb.data.util.Java._
-import swaydb.java.data.util.Java._
-import swaydb.{Expiration, Glass, KeyVal}
-
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
 
@@ -170,6 +170,4 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Glass]) extends SetMapT[K, 
 
   override def toString(): String =
     asScala.toString()
-
-
 }

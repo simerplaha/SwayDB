@@ -30,7 +30,7 @@ import java.util.{Comparator, TimerTask, UUID}
 
 import swaydb.Bag
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.data.util.Java.JavaFunction
+import swaydb.util.Java.JavaFunction
 import swaydb.java.data.TriFunctionVoid
 
 import scala.compat.java8.DurationConverters._

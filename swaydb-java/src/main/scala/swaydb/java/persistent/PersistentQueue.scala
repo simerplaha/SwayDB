@@ -28,7 +28,7 @@ import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
 import swaydb.data.config._
-import swaydb.data.util.Java.JavaFunction
+import swaydb.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}

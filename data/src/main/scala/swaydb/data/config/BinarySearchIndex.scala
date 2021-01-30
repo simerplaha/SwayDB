@@ -26,7 +26,7 @@ package swaydb.data.config
 
 import swaydb.Compression
 import swaydb.data.config.builder.{BinarySearchIndexFullIndexBuilder, BinarySearchIndexSecondaryIndexBuilder}
-import swaydb.data.util.Java.JavaFunction
+import swaydb.util.Java._
 
 import scala.jdk.CollectionConverters._
 

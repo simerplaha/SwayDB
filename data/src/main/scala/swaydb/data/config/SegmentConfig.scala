@@ -26,7 +26,7 @@ package swaydb.data.config
 
 import swaydb.Compression
 import swaydb.data.config.builder.SegmentConfigBuilder
-import swaydb.data.util.Java.JavaFunction
+import swaydb.util.Java.JavaFunction
 
 import java.time.Duration
 import scala.compat.java8.DurationConverters._

@@ -23,7 +23,8 @@
  */
 package swaydb.data.config
 
-import swaydb.data.util.Java.JavaFunction
+
+import swaydb.util.Java.JavaFunction
 
 import scala.compat.java8.FunctionConverters._
 

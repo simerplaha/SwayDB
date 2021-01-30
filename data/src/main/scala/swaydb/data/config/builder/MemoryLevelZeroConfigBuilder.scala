@@ -26,7 +26,7 @@ package swaydb.data.config.builder
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.ConfigWizard
-import swaydb.data.util.Java.JavaFunction
+import swaydb.util.Java.JavaFunction
 import swaydb.data.{Atomic, OptimiseWrites}
 
 import scala.concurrent.duration.FiniteDuration

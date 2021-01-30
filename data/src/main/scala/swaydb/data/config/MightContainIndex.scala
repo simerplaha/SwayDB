@@ -26,7 +26,7 @@ package swaydb.data.config
 
 import swaydb.Compression
 import swaydb.data.config.builder.MightContainIndexBuilder
-import swaydb.data.util.Java.JavaFunction
+import swaydb.util.Java.JavaFunction
 
 import scala.jdk.CollectionConverters._
 
@@ -53,6 +53,7 @@ object MightContainIndex {
                 minimumNumberOfKeys: Int,
                 blockIOStrategy: IOAction => IOStrategy,
                 compression: UncompressedBlockInfo => Iterable[Compression]) extends MightContainIndex {
+
     def copyWithFalsePositiveRate(falsePositiveRate: Double) =
       this.copy(falsePositiveRate = falsePositiveRate)
 

@@ -24,10 +24,10 @@
 
 package swaydb.data.config.builder
 
-import java.util.Optional
-
 import swaydb.data.config.{ActorConfig, MemoryCache}
-import swaydb.data.util.Java._
+import swaydb.util.Java._
+
+import java.util.Optional
 
 class KeyValueCacheOnlyBuilder {
   private var cacheCapacity: Int = _

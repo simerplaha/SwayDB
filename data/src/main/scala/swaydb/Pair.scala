@@ -25,12 +25,19 @@
 package swaydb
 
 import scala.compat.java8.DurationConverters._
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object Pair {
 
-  implicit class PairImplicit[K](keyVal: Pair[K, java.time.Duration]) {
+  implicit class PairImplicit[K](pair: Pair[K, java.time.Duration]) {
     @inline final def toScala: (K, scala.concurrent.duration.Deadline) =
-      (keyVal.left, keyVal.right.toScala.fromNow)
+      (pair.left, pair.right.toScala.fromNow)
+
+    @inline final def asScala: (K, FiniteDuration) =
+      (pair.left, pair.right.toScala)
+
+    @inline final def asScalaDeadline: (K, Deadline) =
+      (pair.left, pair.right.toScala.fromNow)
   }
 
   implicit class TupleImplicits[L, R](tuple: (L, R)) {

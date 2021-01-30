@@ -24,14 +24,13 @@
 
 package swaydb.data.java
 
-import java.util.Optional
-import java.util.function.{Consumer, Supplier}
-
 import org.scalatest.OptionValues._
 import org.scalatest.matchers.should.Matchers._
 import swaydb.data.java.JavaEventually._
-import swaydb.data.util.Java._
+import swaydb.util.Java._
 
+import java.util.Optional
+import java.util.function.{Consumer, Supplier}
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._

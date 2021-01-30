@@ -31,7 +31,7 @@ import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.Java.JavaFunction
+import swaydb.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, Functions, OptimiseWrites}
 import swaydb.java._

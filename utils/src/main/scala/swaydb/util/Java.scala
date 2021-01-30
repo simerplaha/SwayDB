@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -22,13 +22,10 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.data.util
+package swaydb.util
 
 import java.util.concurrent.ExecutorService
 import java.util.{Comparator, Optional}
-
-import swaydb.{KeyVal, Pair}
-
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -46,31 +43,6 @@ object Java {
     @inline final def asScala: Ordering[T] =
       Ordering.comparatorToOrdering(comparator)
   }
-
-  implicit class TupleImplicits[K, V](tuple: (K, V)) {
-    @inline final def asKeyVal: KeyVal[K, V] =
-      KeyVal(tuple._1, tuple._2)
-
-    @inline final def asPair: Pair[K, V] =
-      Pair(tuple._1, tuple._2)
-  }
-
-  implicit class TupleDurationImplicits[K](tuple: (K, java.time.Duration)) {
-    @inline final def asScala: (K, FiniteDuration) =
-      (tuple._1, tuple._2.toScala)
-
-    @inline final def asScalaDeadline: (K, Deadline) =
-      (tuple._1, tuple._2.toScala.fromNow)
-  }
-
-  implicit class PairDurationImplicits[K](pair: Pair[K, java.time.Duration]) {
-    @inline final def asScala: (K, FiniteDuration) =
-      (pair.left, pair.right.toScala)
-
-    @inline final def asScalaDeadline: (K, Deadline) =
-      (pair.left, pair.right.toScala.fromNow)
-  }
-
 
   implicit class OptionalConverter[T](optional: Optional[T]) {
     @inline final def asScala: Option[T] =
@@ -106,4 +78,13 @@ object Java {
           Optional.empty()
       }
   }
+
+  implicit class TupleDurationImplicits[K](tuple: (K, java.time.Duration)) {
+    @inline final def asScala: (K, FiniteDuration) =
+      (tuple._1, tuple._2.toScala)
+
+    @inline final def asScalaDeadline: (K, Deadline) =
+      (tuple._1, tuple._2.toScala.fromNow)
+  }
+
 }

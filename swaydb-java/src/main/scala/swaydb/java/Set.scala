@@ -24,16 +24,15 @@
 
 package swaydb.java
 
+import swaydb.data.accelerate.LevelZeroMeter
+import swaydb.data.compaction.LevelMeter
+import swaydb.java.data.util.Java._
+import swaydb.util.Java._
+import swaydb.{Apply, Expiration, Glass, Pair, Prepare, PureFunction}
+
 import java.nio.file.Path
 import java.util.Optional
 import java.{lang, util}
-
-import swaydb.data.accelerate.LevelZeroMeter
-import swaydb.data.compaction.LevelMeter
-import swaydb.data.util.Java._
-import swaydb.java.data.util.Java._
-import swaydb.{Apply, Expiration, Glass, Pair, Prepare, PureFunction}
-
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
 
@@ -212,5 +211,4 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Glass])(implicit evd: F <:< PureF
 
   override def toString(): String =
     asScala.toString()
-
 }

@@ -33,6 +33,14 @@ object KeyVal {
 
   def of[T](keyAndVal: T): KeyVal[T, T] =
     new KeyVal(keyAndVal, keyAndVal)
+
+  implicit class TupleImplicits[K, V](tuple: (K, V)) {
+    @inline final def asKeyVal: KeyVal[K, V] =
+      KeyVal(tuple._1, tuple._2)
+
+    @inline final def asPair: Pair[K, V] =
+      Pair(tuple._1, tuple._2)
+  }
 }
 
 case class KeyVal[+K, +V](key: K, value: V) extends Pair(key, value) {

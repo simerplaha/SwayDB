@@ -31,7 +31,7 @@ import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.Java.JavaFunction
+import swaydb.util.Java.JavaFunction
 import swaydb.data.{Atomic, Functions, OptimiseWrites}
 import swaydb.java._
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
