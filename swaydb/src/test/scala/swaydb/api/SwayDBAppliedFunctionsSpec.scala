@@ -19,19 +19,17 @@
 
 package swaydb.api
 
-import java.nio.file.Files
-import swaydb.core.TestCaseSweeper._
-
-import swaydb.Glass
 import swaydb.PureFunctionScala._
-import swaydb._
+import swaydb.{Glass, _}
 import swaydb.core.TestCaseSweeper
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.map.applied.AppliedFunctionsMap
 import swaydb.core.util.Benchmark
 import swaydb.data.Functions
-import swaydb.data.RunThis.{eventual, runThis}
 import swaydb.serializers.Default._
+import swaydb.testkit.RunThis.{eventual, runThis}
 
+import java.nio.file.Files
 import scala.concurrent.duration.DurationInt
 import scala.util.Try
 

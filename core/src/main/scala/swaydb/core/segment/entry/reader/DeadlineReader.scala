@@ -29,7 +29,7 @@ import swaydb.core.segment.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.core.util.Times._
 import swaydb.data.slice.ReaderBase
-import swaydb.data.util.ByteSizeOf
+import swaydb.utils.ByteSizeOf
 
 import scala.annotation.implicitNotFound
 import scala.concurrent.duration

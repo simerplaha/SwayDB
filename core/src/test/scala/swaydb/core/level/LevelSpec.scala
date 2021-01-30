@@ -31,20 +31,19 @@ import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data._
-import swaydb.core.io.file.Effect
-import swaydb.core.io.file.Effect._
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlock
-import swaydb.core.util.Extension
-import swaydb.data.config.{Dir, MMAP}
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
+import swaydb.effect.Effect._
+import swaydb.effect.{Dir, Effect, Extension}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
 
 import java.nio.channels.OverlappingFileLockException
 

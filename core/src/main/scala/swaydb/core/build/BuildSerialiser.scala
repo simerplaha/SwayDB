@@ -24,12 +24,12 @@
 
 package swaydb.core.build
 
-import java.nio.file.Path
-
 import swaydb.core.util.CRC32
 import swaydb.data.DataType
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
+import swaydb.utils.ByteSizeOf
+
+import java.nio.file.Path
 
 sealed trait BuildSerialiser {
 

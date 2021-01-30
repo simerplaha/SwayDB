@@ -25,14 +25,14 @@
 package swaydb.core.util
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Bag.Implicits._
+import swaydb.utils.Maths
 import swaydb.{Bag, Glass}
-import swaydb.data.util.Maths
 
 import java.lang.management.ManagementFactory
 import java.util.function.Supplier
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
-import Bag.Implicits._
 
 object Benchmark extends LazyLogging {
 

@@ -24,7 +24,6 @@
 
 package swaydb.core.map.counter
 
-import java.nio.file.Path
 import swaydb.IO
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.MapEntry
@@ -32,6 +31,8 @@ import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.config.MMAP
 import swaydb.data.slice.Slice
+
+import java.nio.file.Path
 
 private[swaydb] trait CounterMap {
   def next: Long

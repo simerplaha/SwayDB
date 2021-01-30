@@ -29,9 +29,9 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.util.Benchmark
-import swaydb.data.Reserve
+import swaydb.effect.Reserve
+import swaydb.testkit.RunThis._
 
 import scala.collection.parallel.CollectionConverters._
 

@@ -27,17 +27,17 @@ package swaydb.core.level.compaction.throttle.behaviour
 import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
+import swaydb.core._
 import swaydb.core.data.Memory
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
-import swaydb.core._
-import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
+import swaydb.utils.OperatingSystem
 
 import scala.collection.SortedSet
 

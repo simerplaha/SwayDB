@@ -27,11 +27,11 @@ package swaydb.core.map.serializer
 import swaydb.IO
 import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
-import swaydb.core.util.{Bytes, MinMax}
 import swaydb.core.util.Times._
+import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.slice.{ReaderBase, Slice, SliceOption}
-import swaydb.data.util.ByteSizeOf
-import swaydb.data.util.Options.OptionsImplicits
+import swaydb.utils.ByteSizeOf
+import swaydb.utils.Options.OptionsImplicits
 
 import scala.annotation.implicitNotFound
 import scala.collection.mutable

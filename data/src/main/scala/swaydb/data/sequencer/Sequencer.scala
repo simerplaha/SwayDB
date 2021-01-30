@@ -24,11 +24,10 @@
 
 package swaydb.data.sequencer
 
-import java.util.concurrent.{Callable, ExecutorService, Executors, TimeUnit}
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
 
+import java.util.concurrent.{Callable, ExecutorService, Executors, TimeUnit}
 import scala.concurrent.Promise
 import scala.util.Try
 

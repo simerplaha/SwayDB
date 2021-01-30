@@ -24,6 +24,9 @@
 
 package swaydb.data.config
 
+import swaydb.utils
+import swaydb.utils.OperatingSystem
+
 /**
  * Configurations to enable or disable memory-mapping of all files.
  */
@@ -63,7 +66,7 @@ object MMAP {
    * Enables memory-mapped files for both reads and writes.
    *
    * @param deleteAfterClean If true deletes memory-mapped files only after they in-memory buffer is cleared.
-   *                         This configurations is required for windows. Use [[swaydb.data.util.OperatingSystem.isWindows]]
+   *                         This configurations is required for windows. Use [[OperatingSystem.isWindows]]
    *                         to set this.
    * @param forceSave        Sets the configurations for force saving memory-mapped files.
    *                         See - https://github.com/simerplaha/SwayDB/issues/251.
@@ -86,7 +89,7 @@ object MMAP {
    * Enables memory-mapped files for read only. This does not require force safe as
    *
    * @param deleteAfterClean If true deletes memory-mapped files only after they in-memory buffer is cleared.
-   *                         This configurations is required for windows. Use [[swaydb.data.util.OperatingSystem.isWindows]]
+   *                         This configurations is required for windows. Use [[utils.OperatingSystem.isWindows]]
    *                         to set this.
    */
   case class ReadOnly(deleteAfterClean: Boolean) extends MMAP.Segment {

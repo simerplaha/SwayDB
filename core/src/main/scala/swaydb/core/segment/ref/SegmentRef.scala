@@ -44,7 +44,7 @@ import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListConcurre
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.SomeOrNoneCovariant
+import swaydb.utils.SomeOrNoneCovariant
 
 import java.nio.file.Path
 import scala.concurrent.duration._

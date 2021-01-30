@@ -32,13 +32,16 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
 
 import scala.util.{Failure, Success, Try}
+import swaydb.utils.OperatingSystem
+import swaydb.utils.OperatingSystem._
+import swaydb.utils.FiniteDurations._
+import swaydb.utils.StorageUnits._
 
 class LevelReadSomeSpec0 extends LevelReadSomeSpec
 

@@ -24,21 +24,20 @@
 
 package swaydb.core.map.timer
 
-import java.nio.file.Path
-
-import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.MapEntry
 import swaydb.core.map.MapTestUtil._
 import swaydb.core.map.counter.CounterMap
 import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter, MapEntryReader, MapEntryWriter}
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
+import swaydb.utils.OperatingSystem
 
+import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 
 class PersistentTimerSpec extends TimerSpec {
@@ -116,7 +115,7 @@ sealed trait TimerSpec extends TestBase {
               reopenedTimer2.close
 
             case _ =>
-              //cannot reopen non-persistent timers.
+            //cannot reopen non-persistent timers.
           }
 
       }

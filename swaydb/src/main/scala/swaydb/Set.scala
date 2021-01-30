@@ -30,7 +30,7 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.stream.{From, SourceFree}
+import swaydb.stream.{From, SourceFree}
 import swaydb.serializers.{Serializer, _}
 
 import java.nio.file.Path

@@ -24,7 +24,7 @@
 
 package swaydb.data.java;
 
-import swaydb.data.util.OperatingSystem;
+import swaydb.utils.OperatingSystem;
 
 import java.io.IOException;
 import java.nio.file.*;

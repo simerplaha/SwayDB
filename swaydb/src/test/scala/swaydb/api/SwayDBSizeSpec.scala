@@ -23,8 +23,8 @@ import swaydb.IOValues._
 import swaydb._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.data.RunThis._
 import swaydb.serializers.Default._
+import swaydb.testkit.RunThis._
 
 class SwayDBSize_Persistent_Spec extends SwayDBSizeSpec {
   val keyValueCount: Int = 10000

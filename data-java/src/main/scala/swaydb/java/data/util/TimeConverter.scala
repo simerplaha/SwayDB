@@ -24,11 +24,10 @@
 
 package swaydb.java.data.util
 
-import java.time.Duration
-import java.util.Optional
-
 import swaydb.Expiration
 
+import java.time.Duration
+import java.util.Optional
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 

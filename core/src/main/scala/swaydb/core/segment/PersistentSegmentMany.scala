@@ -29,7 +29,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.{DefIO, _}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
+import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.io.reader.Reader
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
@@ -54,6 +54,7 @@ import swaydb.data.MaxKey
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.effect.{Effect, Extension}
 
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap

@@ -25,8 +25,8 @@
 package swaydb.data.accelerate
 
 import swaydb.data.accelerate.builder.{BrakeBuilder, NoBrakesBuilder}
-import swaydb.data.util.StorageUnits._
-import swaydb.util.Java._
+import swaydb.utils.Java.OptionalConverter
+import swaydb.utils.StorageUnits._
 
 import java.util.Optional
 import scala.concurrent.duration._

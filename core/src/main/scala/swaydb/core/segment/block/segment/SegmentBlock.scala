@@ -39,10 +39,12 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.{Bytes, Collections, MinMax}
+import swaydb.effect.IOStrategy
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
+import swaydb.effect.{IOAction, IOStrategy}
+import swaydb.utils.ByteSizeOf
 
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer

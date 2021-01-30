@@ -24,11 +24,10 @@
 
 package swaydb.core.level
 
-import java.nio.file.Path
-
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.{TestBase, TestCaseSweeper}
 
+import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
 
 class LevelRefSpec extends TestBase with MockFactory {

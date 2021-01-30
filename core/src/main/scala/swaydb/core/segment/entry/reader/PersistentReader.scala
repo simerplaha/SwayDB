@@ -25,7 +25,6 @@
 package swaydb.core.segment.entry.reader
 
 import java.util
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.io.reader.Reader
@@ -35,7 +34,7 @@ import swaydb.core.segment.entry.id.PersistentToKeyValueIdBinder
 import swaydb.core.segment.entry.reader.base.BaseEntryReader
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice, SliceOption}
-import swaydb.data.util.TupleOrNone
+import swaydb.utils.TupleOrNone
 
 object PersistentReader extends LazyLogging {
 

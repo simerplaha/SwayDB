@@ -30,11 +30,11 @@ import swaydb.core.TestData._
 import swaydb.core.segment.Segment
 import swaydb.core.{merge => _, _}
 import swaydb.data.MaxKey
-import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.FiniteDurations.FiniteDurationImplicits
 import swaydb.serializers.Default._
+import swaydb.testkit.RunThis._
+import swaydb.utils.FiniteDurations._
 
 import scala.concurrent.duration.DurationInt
 

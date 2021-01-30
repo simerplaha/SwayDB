@@ -24,10 +24,11 @@
 
 package swaydb.memory
 
+import swaydb.ActorConfig
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.{ActorConfig, FileCache}
-import swaydb.data.util.StorageUnits._
+import swaydb.data.config.FileCache
+import swaydb.utils.StorageUnits._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

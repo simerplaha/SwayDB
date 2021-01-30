@@ -24,8 +24,6 @@
 
 package swaydb.function
 
-import java.util.Optional
-
 import swaydb.core.data.SwayFunctionOutput
 import swaydb.core.function.FunctionStore
 import swaydb.data.Functions
@@ -34,6 +32,7 @@ import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Expiration, MultiMap, PureFunction, PureFunctionJava, PureFunctionScala}
 
+import java.util.Optional
 import scala.concurrent.duration.Deadline
 
 private[swaydb] case object FunctionConverter {

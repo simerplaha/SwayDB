@@ -31,13 +31,13 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data.Value.FromValue
-import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
+import swaydb.utils.OperatingSystem
 
 class LevelMergeSpec0 extends LevelMergeSpec
 

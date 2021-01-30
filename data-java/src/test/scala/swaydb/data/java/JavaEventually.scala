@@ -24,7 +24,7 @@
 
 package swaydb.data.java
 
-import swaydb.data.util.FiniteDurations.FiniteDurationImplicits
+import swaydb.utils.FiniteDurations._
 
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.TimeoutException

@@ -24,7 +24,6 @@
 
 package swaydb.core.map.counter
 
-import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
@@ -36,6 +35,8 @@ import swaydb.core.sweeper.FileSweeper
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+
+import java.nio.file.Path
 
 private[core] case object PersistentCounterMap extends LazyLogging {
 

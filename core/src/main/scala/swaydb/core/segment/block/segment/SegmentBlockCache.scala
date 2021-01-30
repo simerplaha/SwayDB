@@ -38,10 +38,10 @@ import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.block.{Block, BlockCache, BlockOffset, BlockOps}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.sweeper.MemorySweeper
-import swaydb.data.Reserve
+import swaydb.effect.IOStrategy
 import swaydb.data.cache.{Cache, Lazy}
-import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
+import swaydb.effect.{IOAction, IOStrategy, Reserve}
 import swaydb.{Error, IO}
 
 private[core] object SegmentBlockCache {

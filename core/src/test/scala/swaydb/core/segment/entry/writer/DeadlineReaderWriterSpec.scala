@@ -33,7 +33,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Times._
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

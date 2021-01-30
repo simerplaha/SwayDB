@@ -29,15 +29,15 @@ import swaydb.DefActor
 import swaydb.core.level._
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.level.compaction.task.assigner.{LevelTaskAssigner, LevelZeroTaskAssigner}
-import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorContext, ThrottleLevelOrdering, LevelState}
+import swaydb.core.level.compaction.throttle.{LevelState, ThrottleCompactor, ThrottleCompactorContext, ThrottleLevelOrdering}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.sweeper.FileSweeper
 import swaydb.data.NonEmptyList
 import swaydb.data.compaction.PushStrategy
 import swaydb.data.slice.Slice
-import swaydb.data.util.FiniteDurations
-import swaydb.data.util.FiniteDurations.FiniteDurationImplicits
-import swaydb.data.util.Futures._
+import swaydb.utils.FiniteDurations
+import swaydb.utils.FiniteDurations.FiniteDurationImplicits
+import swaydb.utils.Futures.{FutureUnitImplicits, _}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}

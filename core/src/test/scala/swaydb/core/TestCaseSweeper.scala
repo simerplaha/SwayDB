@@ -29,16 +29,17 @@ import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.TestSweeper._
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.MemorySweeper
-import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
+import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.LevelRef
 import swaydb.core.map.Maps
 import swaydb.core.map.counter.CounterMap
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, MemorySweeper}
-import swaydb.data.RunThis._
+import swaydb.effect.Effect
+import swaydb.testkit.RunThis._
 import swaydb.data.cache.{Cache, CacheNoIO}
-import swaydb.{ActorRef, DefActor, Bag, Glass, Scheduler}
+import swaydb.{ActorRef, Bag, DefActor, Glass, Scheduler}
 
 import java.nio.file.Path
 import scala.collection.mutable.ListBuffer

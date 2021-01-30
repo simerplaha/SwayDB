@@ -24,7 +24,7 @@
 
 package swaydb.data.slice
 
-import swaydb.data.util.ByteOps
+import swaydb.data.utils.ByteOps
 
 import java.io.ByteArrayInputStream
 import java.lang

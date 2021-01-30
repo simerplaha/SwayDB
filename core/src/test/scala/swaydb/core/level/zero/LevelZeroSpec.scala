@@ -32,21 +32,21 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
-import swaydb.core.io.file.Effect
 import swaydb.core.map.applied.AppliedFunctionsMap
 import swaydb.core.map.timer.Timer
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.data.RunThis._
 import swaydb.data.compaction.Throttle
-import swaydb.data.config.{Dir, MMAP}
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
+import swaydb.effect.{Dir, Effect}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
+import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
 import scala.util.Random

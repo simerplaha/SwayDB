@@ -24,9 +24,9 @@
 
 package swaydb.data.slice
 
-import java.nio.file.Paths
+import swaydb.data.utils.ByteOps
 
-import swaydb.data.util.ByteOps
+import java.nio.file.Paths
 
 /**
  * http://www.swaydb.io/slice/byte-slice

@@ -32,11 +32,11 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.util.AtomicRanges
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 import swaydb.{Error, IO}
 
 import scala.concurrent.Promise

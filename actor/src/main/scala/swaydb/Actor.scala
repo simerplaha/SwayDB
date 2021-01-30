@@ -25,12 +25,11 @@
 package swaydb
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.ActorConfig.QueueOrder
 import swaydb.Bag.Implicits._
-import swaydb.data.Reserve
 import swaydb.data.cache.{Cache, CacheNoIO}
-import swaydb.data.config.ActorConfig
-import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.data.util.{AtomicThreadLocalBoolean, FunctionSafe, Options}
+import swaydb.effect.Reserve
+import swaydb.utils.{AtomicThreadLocalBoolean, FunctionSafe, Options}
 
 import java.util.TimerTask
 import java.util.concurrent.TimeUnit

@@ -24,19 +24,18 @@
 
 package swaydb.core.util
 
-import java.util.concurrent.ConcurrentSkipListMap
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.EitherValues.EitherTestUtils
-import swaydb.Glass
 import swaydb.IO.ApiIO
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestExecutionContext
 import swaydb.core.util.AtomicRanges.Action
-import swaydb.data.RunThis._
-import swaydb.{Bag, IO}
+import swaydb.testkit.RunThis._
+import swaydb.{Bag, Glass, IO}
 
+import java.util.concurrent.ConcurrentSkipListMap
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Random, Try}

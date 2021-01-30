@@ -24,10 +24,10 @@
 
 package swaydb.core.map
 
-import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.config.{ForceSave, MMAP}
+
+import java.nio.file.Path
 
 protected class MemoryMap[K, V, C <: MapCache[K, V]](val cache: C,
                                                      flushOnOverflow: Boolean,

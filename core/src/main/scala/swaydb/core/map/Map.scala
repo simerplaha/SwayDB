@@ -24,7 +24,6 @@
 
 package swaydb.core.map
 
-import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.io.file.ForceSaveApplier
@@ -34,7 +33,9 @@ import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util.IDGenerator
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
-import swaydb.data.util.StorageUnits._
+import swaydb.utils.StorageUnits._
+
+import java.nio.file.Path
 
 private[core] object Map extends LazyLogging {
 

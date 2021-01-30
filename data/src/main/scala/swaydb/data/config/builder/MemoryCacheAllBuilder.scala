@@ -24,8 +24,9 @@
 
 package swaydb.data.config.builder
 
-import swaydb.data.config.{ActorConfig, MemoryCache}
-import swaydb.util.Java._
+import swaydb.ActorConfig
+import swaydb.data.config.MemoryCache
+import swaydb.utils.Java.OptionalConverter
 
 import java.util.Optional
 

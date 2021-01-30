@@ -30,12 +30,12 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
-import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
+import swaydb.utils.OperatingSystem
 
 class SegmentHigherSpec0 extends SegmentHigherSpec {
   val keyValuesCount: Int = 100

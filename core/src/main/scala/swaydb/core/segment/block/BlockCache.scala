@@ -29,7 +29,7 @@ import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.HashedMap
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.Options
+import swaydb.utils.Options
 
 import java.util.concurrent.ConcurrentHashMap
 import scala.annotation.tailrec

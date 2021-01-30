@@ -24,15 +24,14 @@
 
 package swaydb.core.util.skiplist
 
-import java.util
-import java.util.Map
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.function.{BiConsumer, Consumer}
-
 import swaydb.core.util.NullOps
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
+import java.util
+import java.util.Map
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.function.{BiConsumer, Consumer}
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._

@@ -21,12 +21,13 @@ package swaydb.api
 
 import org.scalatest.OptionValues._
 import swaydb._
-import swaydb.core.TestCaseSweeper
-import swaydb.core.TestData._
-import swaydb.data.RunThis.runThis
 import swaydb.core.CommonAssertions._
+import swaydb.core.TestCaseSweeper
+import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestData._
+import swaydb.testkit.RunThis.runThis
+
 import scala.util.Random
-import TestCaseSweeper._
 
 class SwayDBBooPickleSpec extends TestBaseEmbedded {
 

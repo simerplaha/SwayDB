@@ -19,7 +19,7 @@
 //
 //package swaydb.core.sweeper
 //
-//import swaydb.data.RunThis._
+//import swaydb.testkit.RunThis._
 //import swaydb.core.TestBase
 //
 //import scala.concurrent.Future

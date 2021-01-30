@@ -24,10 +24,10 @@
 
 package swaydb.data.config
 
-import java.util.Optional
-
+import swaydb.ActorConfig
 import swaydb.data.config.builder.{ByteCacheOnlyBuilder, KeyValueCacheOnlyBuilder, MemoryCacheAllBuilder}
 
+import java.util.Optional
 import scala.compat.java8.OptionConverters.RichOptionalGeneric
 
 sealed trait MemoryCache

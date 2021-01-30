@@ -27,8 +27,6 @@ package swaydb.compression
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Compression
 
-import scala.util.Random
-
 /**
  * Internal types that have 1 to 1 mapping with the more configurable [[Compression]] type.
  */

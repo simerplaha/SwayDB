@@ -27,7 +27,7 @@ package swaydb.core.io.reader
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.file.DBFile
 import swaydb.data.slice.{Reader, Slice}
-import swaydb.data.util.ByteOps
+import swaydb.data.utils.ByteOps
 
 private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[Byte]) extends Reader[Byte] with LazyLogging {
 

@@ -24,12 +24,12 @@
 
 package swaydb.core.build
 
-import java.nio.file.Path
-
 import swaydb.Exception.{IncompatibleVersions, MissingMultiMapGenFolder}
-import swaydb.core.io.file.Effect
 import swaydb.data.DataType
+import swaydb.effect.Effect
 import swaydb.{Exception, IO}
+
+import java.nio.file.Path
 
 sealed trait BuildValidator { self =>
 

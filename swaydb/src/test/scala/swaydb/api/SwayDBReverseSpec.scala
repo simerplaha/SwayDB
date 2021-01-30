@@ -23,10 +23,10 @@ import swaydb.IOValues._
 import swaydb._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
+import swaydb.testkit.RunThis._
 
 class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
   implicit val order: KeyOrder[Slice[Byte]] = KeyOrder.reverseLexicographic

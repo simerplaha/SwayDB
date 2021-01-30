@@ -32,22 +32,27 @@ import swaydb.core.TestCaseSweeper.TestLevelPathSweeperImplicits
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data._
-import swaydb.core.io.file.Effect
-import swaydb.core.io.file.Effect._
+import swaydb.effect.Effect._
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.util.PipeOps._
-import swaydb.core.util.{Extension, IDGenerator}
-import swaydb.data.RunThis._
-import swaydb.data.config.{Dir, MMAP}
+import swaydb.core.util.IDGenerator
+import swaydb.effect.{Dir, Effect, Extension}
+import swaydb.testkit.RunThis._
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
+import swaydb.utils.OperatingSystem
 
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.Random
+import swaydb.utils.OperatingSystem._
+import swaydb.utils.FiniteDurations._
+import swaydb.utils.OperatingSystem
+import swaydb.utils.OperatingSystem._
+import swaydb.utils.FiniteDurations._
+import swaydb.utils.StorageUnits._
 
 class LevelSegmentSpec0 extends LevelSegmentSpec
 

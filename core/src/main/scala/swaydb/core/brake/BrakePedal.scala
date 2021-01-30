@@ -48,7 +48,7 @@ private[core] class BrakePedal(private var brakeFor: FiniteDuration,
 
     val isOverdue = brakeFor.fromNow.isOverdue()
 
-    if(logAsWarning && isOverdue)
+    if (logAsWarning && isOverdue)
       logger.warn(s"Blocking-backpressure - Brake released!")
 
     isOverdue

@@ -32,14 +32,14 @@ import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data._
 import swaydb.core.segment.block.segment.SegmentBlock
-import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
+import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
 

@@ -23,8 +23,8 @@ import swaydb.IOValues._
 import swaydb._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.data.RunThis.runThis
 import swaydb.serializers.Default._
+import swaydb.testkit.RunThis.runThis
 
 class SwayDBSourceSpec0 extends SwayDBSourceSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
@@ -80,7 +80,7 @@ class MultiMapSwayDBSourceSpec5 extends SwayDBSourceSpec {
 
 sealed trait SwayDBSourceSpec extends TestBaseEmbedded {
 
-  def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String,  IO.ApiIO]
+  def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, IO.ApiIO]
 
   implicit val bag = Bag.glass
 
@@ -100,11 +100,11 @@ sealed trait SwayDBSourceSpec extends TestBaseEmbedded {
 
             val result =
               db
-              .from(10)
-              .transformValue {
-                item =>
-                  item._2
-              }
+                .from(10)
+                .transformValue {
+                  item =>
+                    item._2
+                }
 
             result.materialize.value shouldBe (10 to 100).toList.map(_.toString)
 

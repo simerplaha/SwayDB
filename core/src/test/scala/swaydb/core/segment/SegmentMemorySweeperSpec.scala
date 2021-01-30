@@ -25,6 +25,7 @@
 package swaydb.core.segment
 
 import org.scalatest.OptionValues._
+import swaydb.ActorConfig
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
@@ -32,8 +33,8 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
-import swaydb.data.RunThis._
-import swaydb.data.config.{ActorConfig, MemoryCache}
+import swaydb.testkit.RunThis._
+import swaydb.data.config.MemoryCache
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 

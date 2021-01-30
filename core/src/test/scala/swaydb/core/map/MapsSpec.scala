@@ -24,30 +24,29 @@
 
 package swaydb.core.map
 
-import java.nio.file.NoSuchFileException
-
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
-import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.CommonAssertions._
+import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, MemoryOption, Value}
-import swaydb.core.io.file.Effect
-import swaydb.core.io.file.Effect._
 import swaydb.core.level.zero.LevelZeroMapCache
-import swaydb.core.util.Extension
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.data.{Atomic, OptimiseWrites}
-import swaydb.data.RunThis._
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
+import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.effect.Effect._
+import swaydb.effect.{Effect, Extension}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
+import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
+
+import java.nio.file.NoSuchFileException
 
 class MapsSpec extends TestBase {
 

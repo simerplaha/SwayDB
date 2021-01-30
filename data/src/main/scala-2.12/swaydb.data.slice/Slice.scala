@@ -25,7 +25,7 @@
 package swaydb.data.slice
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.util.SomeOrNoneCovariant
+import swaydb.utils.SomeOrNoneCovariant
 
 import scala.annotation.tailrec
 import scala.collection.compat.IterableOnce

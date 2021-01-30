@@ -28,7 +28,7 @@ import swaydb.Aggregator
 import swaydb.core.data
 import swaydb.core.segment.entry.id.KeyValueId
 import swaydb.core.util.Bytes
-import swaydb.data.util.ByteSizeOf
+import swaydb.utils.ByteSizeOf
 
 import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer

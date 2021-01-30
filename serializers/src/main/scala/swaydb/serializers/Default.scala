@@ -24,11 +24,12 @@
 
 package swaydb.serializers
 
+import swaydb.data.slice.Slice
+import swaydb.data.utils.ScalaByteOps
+import swaydb.utils.ByteSizeOf
+
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
-
-import swaydb.data.slice.Slice
-import swaydb.data.util.{ByteSizeOf, ScalaByteOps}
 
 /**
  * Default serializers.

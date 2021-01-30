@@ -24,13 +24,13 @@
 
 package swaydb.core.io.file
 
-import java.nio.MappedByteBuffer
-import java.nio.file.Path
-import java.util.concurrent.atomic.AtomicBoolean
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Benchmark
 import swaydb.data.config.ForceSave
+
+import java.nio.MappedByteBuffer
+import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Applies [[ForceSave]] configuration for applied forceSave to files.

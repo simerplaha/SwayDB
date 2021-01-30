@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.data.config
+package swaydb
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration

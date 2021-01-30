@@ -35,7 +35,7 @@
 //import swaydb.core.segment.Segment
 //import swaydb.core.segment.block.segment.SegmentBlock
 //import swaydb.core._
-//import swaydb.data.RunThis._
+//import swaydb.testkit.RunThis._
 //import swaydb.data.compaction.ParallelMerge
 //import swaydb.data.config.{MMAP, PushForwardStrategy}
 //import swaydb.data.order.{KeyOrder, TimeOrder}

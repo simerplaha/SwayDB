@@ -24,10 +24,10 @@
 
 package swaydb.core.util
 
-import java.lang.Long.rotateLeft
-
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
+
+import java.lang.Long.rotateLeft
 
 
 /**

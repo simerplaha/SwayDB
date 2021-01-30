@@ -29,6 +29,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.effect.Dir
 
 import java.nio.file.Path
 import scala.concurrent.duration._

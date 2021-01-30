@@ -22,8 +22,8 @@
  * permission to convey the resulting work.
  */
 
-import swaydb.data.config.Dir
-import swaydb.data.util.StorageUnits.StorageDoubleImplicits
+import swaydb.effect.Dir
+import swaydb.utils.StorageUnits.StorageDoubleImplicits
 
 import java.nio.file.{Path, Paths}
 

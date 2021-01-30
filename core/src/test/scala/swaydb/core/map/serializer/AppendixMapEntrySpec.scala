@@ -32,14 +32,14 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
+import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.utils.OperatingSystem
 
 class AppendixMapEntrySpec extends TestBase {
 

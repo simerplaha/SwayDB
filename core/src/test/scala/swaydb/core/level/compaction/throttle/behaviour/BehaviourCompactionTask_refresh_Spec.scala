@@ -31,11 +31,11 @@ import swaydb.core._
 import swaydb.core.data.Memory
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
-import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 
 class BehaviourCompactionTask_refresh_Spec0 extends BehaviourCompactionTask_refresh_Spec
 

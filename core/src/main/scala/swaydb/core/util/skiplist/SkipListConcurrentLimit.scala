@@ -24,12 +24,10 @@
 
 package swaydb.core.util.skiplist
 
-import java.util
-import java.util.concurrent.atomic.AtomicInteger
-
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
+import java.util
 import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.util.Random

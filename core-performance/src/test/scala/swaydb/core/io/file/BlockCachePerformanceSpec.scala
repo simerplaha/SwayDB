@@ -29,7 +29,7 @@ import swaydb.core.segment.block.BlockCache
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.util.StorageUnits._
+import swaydb.utils.StorageUnits._
 
 class BlockCachePerformanceSpec extends TestBase {
 

@@ -24,7 +24,7 @@
 
 package swaydb
 
-import swaydb.data.Reserve
+import swaydb.effect.Reserve
 
 import java.lang
 import java.nio.channels.OverlappingFileLockException

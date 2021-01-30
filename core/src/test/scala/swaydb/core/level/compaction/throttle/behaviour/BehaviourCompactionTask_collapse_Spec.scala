@@ -32,14 +32,14 @@ import swaydb.core.data.Memory
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlock
-import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
+import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
 
 import java.nio.file.FileAlreadyExistsException
 import scala.concurrent.duration.Duration

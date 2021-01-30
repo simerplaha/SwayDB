@@ -26,6 +26,7 @@ package swaydb.core.level.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
+import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
@@ -35,10 +36,10 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.{IO, StorageByteImplicits}
+import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
 

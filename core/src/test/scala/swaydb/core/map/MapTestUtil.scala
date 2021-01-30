@@ -25,23 +25,23 @@
 package swaydb.core.map
 
 import org.scalatest.matchers.should.Matchers._
-import swaydb.{Bag, Glass, OK}
 import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.sweeper.ByteBufferSweeper.{ByteBufferSweeperActor, State}
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.counter.{CounterMap, PersistentCounterMap}
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.timer.Timer.PersistentTimer
 import swaydb.core.sweeper.ByteBufferSweeper
+import swaydb.core.sweeper.ByteBufferSweeper.{ByteBufferSweeperActor, State}
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
-import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
+import swaydb.testkit.RunThis._
+import swaydb.utils.OperatingSystem
+import swaydb.{Bag, Glass}
 
 import scala.concurrent.duration.DurationInt
 

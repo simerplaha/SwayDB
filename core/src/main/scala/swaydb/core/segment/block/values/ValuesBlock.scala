@@ -32,9 +32,11 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.{Block, BlockOffset, BlockOps}
 import swaydb.core.segment.entry.writer.EntryWriter
-import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
+import swaydb.effect.IOStrategy
+import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.slice.Slice
-import swaydb.data.util.FunctionSafe
+import swaydb.effect.{IOAction, IOStrategy}
+import swaydb.utils.FunctionSafe
 
 private[core] case object ValuesBlock {
 

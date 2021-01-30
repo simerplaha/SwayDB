@@ -31,13 +31,14 @@ import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.util.Java.JavaFunction
-import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.effect.Dir
 import swaydb.java._
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
+import swaydb.utils.Java.JavaFunction
+import swaydb.utils.StorageUnits._
 import swaydb.{Bag, CommonConfigs, Glass}
 
 import java.nio.file.Path

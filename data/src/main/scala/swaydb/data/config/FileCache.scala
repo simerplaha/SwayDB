@@ -24,7 +24,7 @@
 
 package swaydb.data.config
 
-import swaydb.Bagged
+import swaydb.{ActorConfig, Bagged}
 
 sealed trait FileCache extends Bagged[FileCache.On, Option]
 

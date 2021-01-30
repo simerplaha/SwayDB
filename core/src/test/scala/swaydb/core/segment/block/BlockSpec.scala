@@ -9,9 +9,9 @@ import swaydb.core.segment.block.reader.BlockRefReader
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegmentRef
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.data.RunThis._
-import swaydb.data.config.IOAction
+import swaydb.testkit.RunThis._
 import swaydb.data.slice.Slice
+import swaydb.effect.IOAction
 
 class BlockSpec extends TestBase {
 

@@ -24,10 +24,9 @@
 
 package swaydb
 
-import java.util.Optional
-
 import swaydb.data.Functions
 
+import java.util.Optional
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag

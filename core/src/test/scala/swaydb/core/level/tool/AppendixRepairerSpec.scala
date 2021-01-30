@@ -24,27 +24,27 @@
 
 package swaydb.core.level.tool
 
-import java.nio.file.NoSuchFileException
-import swaydb.{Bag, Glass}
+import swaydb.Glass
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.io.file.Effect
-import swaydb.core.io.file.Effect._
-import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
-import swaydb.data.RunThis._
 import swaydb.data.compaction.Throttle
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
+import swaydb.effect.Effect
+import swaydb.effect.Effect._
+import swaydb.testkit.RunThis._
+import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
 
+import java.nio.file.NoSuchFileException
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.Random
+
 
 class AppendixRepairerSpec extends TestBase {
 

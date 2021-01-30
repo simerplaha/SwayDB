@@ -30,7 +30,7 @@ import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.data.config.{IOAction, IOStrategy}
+import swaydb.effect.{IOAction, IOStrategy}
 
 private[core] object SegmentReadIO {
 

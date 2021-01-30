@@ -28,8 +28,8 @@ import org.scalatest.OptionValues._
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
+import swaydb.utils.StorageUnits._
 import swaydb.{Bag, Glass, MultiMap}
 
 class MultiMapIterationSpec0 extends MultiMapIterationSpec {

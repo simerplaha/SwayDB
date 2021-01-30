@@ -25,8 +25,9 @@
 package swaydb.data.slice
 
 import swaydb.Aggregator
-import swaydb.data.util.{ByteOps, ByteSizeOf}
+import swaydb.data.utils.ByteOps
 import swaydb.data.{MaxKey, slice}
+import swaydb.utils.ByteSizeOf
 
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}

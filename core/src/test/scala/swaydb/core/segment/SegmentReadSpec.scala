@@ -33,22 +33,27 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.io.file.Effect
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.Segment
 import swaydb.core._
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.data.MaxKey
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
+import swaydb.effect.Effect
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.utils.OperatingSystem
 
 import scala.concurrent.duration._
 import scala.util.Random
+import swaydb.utils.OperatingSystem
+import swaydb.utils.OperatingSystem._
+import swaydb.utils.FiniteDurations._
+import swaydb.utils.StorageUnits._
+import swaydb.utils.ByteSizeOf._
 
 class SegmentReadSpec0 extends SegmentReadSpec {
   val keyValuesCount = 100

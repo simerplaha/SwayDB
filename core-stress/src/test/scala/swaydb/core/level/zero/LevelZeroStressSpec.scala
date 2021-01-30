@@ -51,7 +51,7 @@
 //import swaydb.serializers._
 //import swaydb.core.TestData._
 //import swaydb.core.CommonAssertions._
-//import swaydb.data.RunThis._
+//import swaydb.testkit.RunThis._
 //
 //
 ////@formatter:off

@@ -26,10 +26,10 @@ import swaydb.IOValues._
 import swaydb._
 import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.{Core, TestBase, TestExecutionContext}
-import swaydb.data.RunThis._
 import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.Slice
 import swaydb.multimap.{MultiKey, MultiValue}
+import swaydb.testkit.RunThis._
 
 import scala.annotation.tailrec
 import scala.concurrent.Future

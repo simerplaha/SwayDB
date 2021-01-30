@@ -28,7 +28,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestData._
 import swaydb.core.TestExecutionContext
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
 
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.Future

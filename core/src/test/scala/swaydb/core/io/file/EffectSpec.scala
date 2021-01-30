@@ -24,15 +24,17 @@
 
 package swaydb.core.io.file
 
-import java.nio.file.Paths
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.TestData._
-import swaydb.core.util.{Benchmark, Extension}
+import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
+import swaydb.effect.{Effect, Extension}
+import swaydb.testkit.RunThis._
+import swaydb.utils.StorageUnits._
+
+import java.nio.file.Paths
 
 class EffectSpec extends TestBase {
 

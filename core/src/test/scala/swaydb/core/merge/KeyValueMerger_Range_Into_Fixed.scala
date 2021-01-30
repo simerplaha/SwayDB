@@ -30,7 +30,7 @@ import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.merge.FixedMerger
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

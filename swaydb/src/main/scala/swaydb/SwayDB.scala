@@ -24,7 +24,6 @@
 
 package swaydb
 
-import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.build.Build
 import swaydb.core.level.tool.AppendixRepairer
@@ -35,6 +34,8 @@ import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
+
+import java.nio.file.Path
 
 /**
  * Instance used for creating/initialising databases.

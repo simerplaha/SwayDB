@@ -33,8 +33,8 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.FileSweeper._
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
-import swaydb.data.RunThis._
-import swaydb.data.config.ActorConfig
+import swaydb.testkit.RunThis._
+import swaydb.ActorConfig
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

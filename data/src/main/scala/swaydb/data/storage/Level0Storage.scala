@@ -24,9 +24,9 @@
 
 package swaydb.data.storage
 
-import java.nio.file.Path
-
 import swaydb.data.config.{MMAP, RecoveryMode}
+
+import java.nio.file.Path
 
 sealed trait Level0Storage {
   val memory: Boolean

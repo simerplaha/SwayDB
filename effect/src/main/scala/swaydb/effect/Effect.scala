@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -22,11 +22,10 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.io.file
+package swaydb.effect
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
-import swaydb.core.util.Extension
 
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -35,11 +34,11 @@ import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import java.util
 import java.util.function.BiPredicate
+import scala.collection.compat.IterableOnce
 import scala.jdk.CollectionConverters._
 import scala.util.Try
-import scala.collection.compat.IterableOnce
 
-private[core] object Effect extends LazyLogging {
+private[swaydb] object Effect extends LazyLogging {
 
   implicit class PathExtensionImplicits(path: Path) {
     @inline def fileId =

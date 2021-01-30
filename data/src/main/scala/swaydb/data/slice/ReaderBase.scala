@@ -24,13 +24,12 @@
 
 package swaydb.data.slice
 
-import java.nio.charset.{Charset, StandardCharsets}
-import java.nio.file.Path
-
-import swaydb.data.util.ByteOps
-import swaydb.data.util.Maybe.Maybe
+import swaydb.data.utils.ByteOps
+import swaydb.utils.Maybe.Maybe
 import swaydb.{IO, Pair}
 
+import java.nio.charset.{Charset, StandardCharsets}
+import java.nio.file.Path
 import scala.annotation.tailrec
 
 trait ReaderBase[B] { self =>

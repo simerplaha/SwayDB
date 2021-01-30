@@ -29,7 +29,7 @@ import swaydb.core.data.{DefIO, Memory}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
-import swaydb.core.segment.assigner.{Assignable, AssignmentTarget, GapAggregator, Assigner, Assignment}
+import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, AssignmentTarget, GapAggregator}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
@@ -42,8 +42,8 @@ import swaydb.core.segment.ref.{SegmentRef, SegmentRefOption}
 import swaydb.core.util.IDGenerator
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.Futures
-import swaydb.data.util.Futures._
+import swaydb.utils.Futures
+import swaydb.utils.Futures.FutureUnitImplicits
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}

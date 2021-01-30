@@ -30,7 +30,7 @@ import swaydb.core.segment.entry.id.BaseEntryId.DeadlineId
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.core.util.Times._
-import swaydb.data.util.Options._
+import swaydb.utils.Options.when
 
 import scala.concurrent.duration.Deadline
 

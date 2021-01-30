@@ -33,11 +33,12 @@ import swaydb.data.config.{ThreadStateCache, _}
 import swaydb.data.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, DataType, Functions, OptimiseWrites}
+import swaydb.effect.Dir
 import swaydb.function.FunctionConverter
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
+import swaydb.utils.StorageUnits._
 import swaydb.{Apply, CommonConfigs, KeyOrderConverter, MultiMap, PureFunction}
 
 import java.nio.file.Path

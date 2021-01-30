@@ -28,14 +28,12 @@ import java.nio.file.Path
 import java.util
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicBoolean
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.segment.Segment
-import swaydb.data.Reserve
-import swaydb.data.config.Dir
-import swaydb.data.util.Options
+import swaydb.effect.{Dir, Reserve}
+import swaydb.utils.Options
 
 import scala.annotation.tailrec
 import scala.collection.compat._

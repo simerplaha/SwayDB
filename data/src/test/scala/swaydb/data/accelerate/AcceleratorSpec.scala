@@ -26,7 +26,7 @@ package swaydb.data.accelerate
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.data.util.StorageUnits._
+import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
 

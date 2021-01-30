@@ -24,8 +24,6 @@
 
 package swaydb.core.util
 
-import java.util.concurrent.ConcurrentHashMap
-
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

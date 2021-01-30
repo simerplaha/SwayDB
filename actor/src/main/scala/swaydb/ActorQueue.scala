@@ -24,9 +24,9 @@
 
 package swaydb
 
-import java.util.concurrent.{ConcurrentLinkedQueue, ConcurrentSkipListSet}
+import swaydb.ActorConfig.QueueOrder
 
-import swaydb.data.config.ActorConfig.QueueOrder
+import java.util.concurrent.{ConcurrentLinkedQueue, ConcurrentSkipListSet}
 
 protected sealed trait ActorQueue[T] {
   def add(item: T): Boolean

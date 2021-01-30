@@ -25,18 +25,19 @@
 package swaydb.core.segment
 
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{Effect, ForceSaveApplier}
+import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.serializer.ValueSerializer.MinMaxSerialiser
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
-import swaydb.core.util.{Bytes, Extension}
+import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{ReaderBase, Slice}
-import swaydb.data.util.ByteSizeOf
-import swaydb.data.util.Options._
+import swaydb.effect.{Effect, Extension}
+import swaydb.utils.ByteSizeOf
+import swaydb.utils.Options.OptionsImplicits
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Paths

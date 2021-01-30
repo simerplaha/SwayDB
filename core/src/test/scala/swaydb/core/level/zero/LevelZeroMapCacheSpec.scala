@@ -34,9 +34,9 @@ import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.util.skiplist.{SkipListConcurrent, SkipListSeries}
-import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

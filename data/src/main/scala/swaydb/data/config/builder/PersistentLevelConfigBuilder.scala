@@ -26,7 +26,8 @@ package swaydb.data.config.builder
 
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
-import swaydb.util.Java.JavaFunction
+import swaydb.effect.Dir
+import swaydb.utils.Java.JavaFunction
 
 import java.nio.file.Path
 import scala.jdk.CollectionConverters._

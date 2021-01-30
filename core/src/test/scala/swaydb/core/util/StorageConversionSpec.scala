@@ -26,7 +26,7 @@ package swaydb.core.util
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.data.util.StorageUnits._
+import swaydb.utils.StorageUnits._
 
 class StorageConversionSpec extends AnyWordSpec with Matchers {
 

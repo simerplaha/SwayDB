@@ -28,8 +28,9 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
 import swaydb.Bag.Implicits._
 import swaydb.core.util.AtomicRanges.{Action, Value}
+import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
-import swaydb.data.{MaxKey, Reserve}
+import swaydb.effect.Reserve
 
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicLong

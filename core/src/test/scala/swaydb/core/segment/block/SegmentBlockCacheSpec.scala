@@ -1,13 +1,12 @@
 package swaydb.core.segment.block
 
-import java.util.concurrent.ConcurrentLinkedQueue
 import org.scalatest.OptionValues._
+import swaydb.ActorConfig
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
-import swaydb.core.segment.{MemorySegment, PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
@@ -15,20 +14,27 @@ import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
-import swaydb.data.RunThis._
-import swaydb.data.config.{ActorConfig, MemoryCache}
+import swaydb.testkit.RunThis._
+import swaydb.data.config.MemoryCache
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
+import swaydb.effect.IOStrategy
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
+import java.util.concurrent.ConcurrentLinkedQueue
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.Random
+import swaydb.utils.OperatingSystem
+import swaydb.utils.OperatingSystem._
+import swaydb.utils.FiniteDurations._
+import swaydb.utils.StorageUnits._
+import swaydb.utils.ByteSizeOf._
 
 class SegmentBlockCacheSpec extends TestBase {
   implicit val order = KeyOrder.default
@@ -37,7 +43,7 @@ class SegmentBlockCacheSpec extends TestBase {
 
   /**
    * Running this test with [[SegmentBlockCache.segmentIOStrategyCache]]'s stored set to false will
-   * result is offset conflicts. Segment's [[swaydb.data.config.IOStrategy]] should be fixed ones read.
+   * result is offset conflicts. Segment's [[IOStrategy]] should be fixed ones read.
    */
 
   "it" should {

@@ -33,8 +33,8 @@ import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.IndexFormat
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
 import swaydb.macros.Sealed
+import swaydb.utils.ByteSizeOf
 
 private[core] sealed trait HashIndexEntryFormat {
   def id: Byte

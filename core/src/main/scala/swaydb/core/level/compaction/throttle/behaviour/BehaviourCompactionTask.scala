@@ -32,7 +32,7 @@ import swaydb.core.segment.SegmentOption
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.sweeper.FileSweeper
-import swaydb.data.util.Futures._
+import swaydb.utils.Futures.FutureImplicits
 
 import scala.concurrent.{ExecutionContext, Future}
 

@@ -24,14 +24,15 @@
 
 package swaydb.persistent
 
-import swaydb.CommonConfigs
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.MemoryCache.ByteCacheOnly
 import swaydb.data.config.SegmentFormat.GroupCacheStrategy
 import swaydb.data.config._
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
+import swaydb.effect.{IOAction, IOStrategy}
+import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
+import swaydb.{ActorConfig, CommonConfigs}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

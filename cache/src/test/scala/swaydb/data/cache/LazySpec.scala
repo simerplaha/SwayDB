@@ -28,12 +28,12 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IO
-import swaydb.data.RunThis._
-import swaydb.data.Base._
+import swaydb.effect.Base._
+import swaydb.testkit.RunThis._
 
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.util.Random
-import scala.collection.parallel.CollectionConverters._
 
 class LazySpec extends AnyWordSpec with Matchers with MockFactory {
 

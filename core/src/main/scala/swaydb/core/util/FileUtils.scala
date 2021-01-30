@@ -24,9 +24,9 @@
 
 package swaydb.core.util
 
-import java.nio.file.Path
+import swaydb.effect.Effect
 
-import swaydb.core.io.file.Effect
+import java.nio.file.Path
 
 object FileUtils {
 

@@ -19,18 +19,17 @@
 
 package swaydb.api
 
-import java.nio.file.Files
-
 import org.scalatest.OptionValues._
 import swaydb.Exception.InvalidDirectoryType
 import swaydb.IOValues._
 import swaydb._
-import swaydb.data.RunThis.runThis
-import swaydb.core.{Core, TestCaseSweeper}
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.build.BuildValidator
+import swaydb.core.{Core, TestCaseSweeper}
 import swaydb.data.DataType
 import swaydb.serializers.Default._
+import swaydb.testkit.RunThis.runThis
+
+import java.nio.file.Files
 
 class SwayDBSpec0 extends SwayDBSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =

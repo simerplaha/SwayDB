@@ -1,15 +1,14 @@
 package swaydb.core.util
 
-import java.nio.charset.StandardCharsets
-
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
-import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
+import swaydb.testkit.RunThis._
+import swaydb.utils.ByteSizeOf
 
+import java.nio.charset.StandardCharsets
 import scala.util.Random
 
 class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {

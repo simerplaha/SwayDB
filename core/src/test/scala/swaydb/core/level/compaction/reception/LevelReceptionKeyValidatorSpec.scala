@@ -32,11 +32,11 @@ import swaydb.core.TestData._
 import swaydb.core.level.compaction.reception.LevelReceptionKeyValidator.IterableCollectionKeyValidator
 import swaydb.core.util.AtomicRanges
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 
 class LevelReceptionKeyValidatorSpec extends TestBase {
 

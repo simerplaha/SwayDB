@@ -26,29 +26,29 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.io.file.Effect._
+import swaydb.core._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core._
 import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.compaction.Throttle
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
+import swaydb.effect.Effect._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import TestData._
-import CommonAssertions._
+import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
+
 
 class LevelReadSpec0 extends LevelReadSpec
 

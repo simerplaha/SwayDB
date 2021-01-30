@@ -24,9 +24,9 @@
 
 package swaydb.java.data.util
 
-import java.util.Optional
-
 import swaydb.Expiration
+
+import java.util.Optional
 
 object Java {
 

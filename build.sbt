@@ -183,7 +183,7 @@ lazy val effect =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(utils)
+    .dependsOn(utils, testkit % Test)
 
 lazy val core =
   project

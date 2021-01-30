@@ -43,7 +43,7 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.TupleOrNone
+import swaydb.utils.TupleOrNone
 
 import java.nio.file.Path
 import scala.collection.compat.IterableOnce

@@ -27,7 +27,7 @@ package swaydb.core.map.serializer
 import swaydb.core.map.MapEntry
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
+import swaydb.utils.ByteSizeOf
 
 private[swaydb] object CounterMapEntryWriter {
 

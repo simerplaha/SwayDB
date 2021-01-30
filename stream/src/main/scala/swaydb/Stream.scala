@@ -24,11 +24,11 @@
 
 package swaydb
 
-import swaydb.data.stream.StreamFree
+import swaydb.stream.StreamFree
 
+import scala.collection.compat._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.collection.compat._
 
 object Stream {
 

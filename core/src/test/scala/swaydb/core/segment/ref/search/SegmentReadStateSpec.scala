@@ -29,11 +29,11 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, Time}
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
 import swaydb.data.slice.Slice
-import swaydb.data.util.TupleOrNone
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.utils.TupleOrNone
 
 import java.nio.file.Paths
 

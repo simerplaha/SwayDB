@@ -32,17 +32,16 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
+import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.{ByteSizeOf, OperatingSystem}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.utils.{ByteSizeOf, OperatingSystem}
 
 import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
 
 class MapEntrySpec extends TestBase {
 

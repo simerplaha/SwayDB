@@ -28,13 +28,14 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb.Error.IO.ExceptionHandler
 import swaydb._
-import swaydb.core.io.file.{Effect, ForceSaveApplier}
+import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.sweeper.ByteBufferCleaner.Cleaner
 import swaydb.core.util.English
 import swaydb.data.cache.{Cache, CacheNoIO}
-import swaydb.data.config.ActorConfig.QueueOrder
+import swaydb.ActorConfig.QueueOrder
+import swaydb.effect.Effect
 import swaydb.data.config.ForceSave
-import swaydb.data.util.FiniteDurations._
+import swaydb.utils.FiniteDurations.FiniteDurationImplicits
 
 import java.io.FileNotFoundException
 import java.nio.file.{AccessDeniedException, NoSuchFileException, Path}

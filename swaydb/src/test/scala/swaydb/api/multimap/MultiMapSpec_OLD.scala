@@ -29,12 +29,12 @@ import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
-import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Default._
+import swaydb.testkit.RunThis._
+import swaydb.utils.StorageUnits._
 import swaydb.{Bag, Glass, MultiMap, Prepare}
 
 import scala.collection.mutable.ListBuffer

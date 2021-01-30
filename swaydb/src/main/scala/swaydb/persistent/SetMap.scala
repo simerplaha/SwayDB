@@ -35,9 +35,10 @@ import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, DataType, Functions, OptimiseWrites}
+import swaydb.effect.Dir
 import swaydb.serializers.Serializer
+import swaydb.utils.StorageUnits._
 
 import java.nio.file.Path
 import scala.concurrent.duration.FiniteDuration

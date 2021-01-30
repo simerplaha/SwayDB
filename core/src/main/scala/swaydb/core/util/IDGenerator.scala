@@ -24,6 +24,8 @@
 
 package swaydb.core.util
 
+import swaydb.effect.Extension
+
 import java.util.concurrent.atomic.AtomicLong
 
 private[core] object IDGenerator {

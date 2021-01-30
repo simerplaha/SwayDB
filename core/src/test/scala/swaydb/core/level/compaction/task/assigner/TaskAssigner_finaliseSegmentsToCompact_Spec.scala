@@ -30,7 +30,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.level.compaction.task.CompactionDataType
 import swaydb.core.segment.assigner.AssignmentResult
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
 
 import scala.collection.mutable.ListBuffer
 

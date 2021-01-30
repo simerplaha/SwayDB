@@ -24,15 +24,14 @@
 
 package swaydb.java
 
+import swaydb.ActorConfig.QueueOrder
+import swaydb.Bag
+import swaydb.java.data.TriFunctionVoid
+import swaydb.utils.Java.JavaFunction
+
 import java.util.concurrent.{CompletionStage, ExecutorService}
 import java.util.function.{BiConsumer, Consumer}
 import java.util.{Comparator, TimerTask, UUID}
-
-import swaydb.Bag
-import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.util.Java.JavaFunction
-import swaydb.java.data.TriFunctionVoid
-
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FutureConverters._
 import scala.concurrent.ExecutionContext

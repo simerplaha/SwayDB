@@ -24,9 +24,9 @@
 
 package swaydb.core.actor
 
+import swaydb.ActorConfig.QueueOrder
 import swaydb.core.TestExecutionContext
-import swaydb.data.RunThis._
-import swaydb.data.config.ActorConfig.QueueOrder
+import swaydb.testkit.RunThis._
 import swaydb.{Actor, ActorRef}
 
 import scala.concurrent.duration._

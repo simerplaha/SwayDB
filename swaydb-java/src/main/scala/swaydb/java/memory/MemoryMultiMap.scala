@@ -31,17 +31,18 @@ import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.util.Java.JavaFunction
 import swaydb.data.{Atomic, Functions, OptimiseWrites}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{KeyComparator, KeyOrderConverter, MultiMap}
 import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer
+import swaydb.utils.Java.JavaFunction
 import swaydb.{Apply, Bag, CommonConfigs, Glass, PureFunction}
 
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
+import swaydb.utils.Java._
 
 object MemoryMultiMap {
 

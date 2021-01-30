@@ -25,20 +25,18 @@
 package swaydb.api.multimap
 
 import org.scalatest.OptionValues._
-import swaydb.Glass
 import swaydb.api.{TestBaseEmbedded, repeatTest}
-import swaydb.data.RunThis._
-import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
-import swaydb.serializers.Default._
-import swaydb.{Bag, IO, MultiMap, Prepare}
-import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.util.Benchmark
+import swaydb.core.TestData._
+import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
 import swaydb.multimap.MultiPrepare
+import swaydb.serializers.Default._
+import swaydb.testkit.RunThis._
+import swaydb.utils.StorageUnits._
+import swaydb.{Bag, Glass, IO, MultiMap, Prepare}
 
 import scala.concurrent.duration._
 import scala.util.Random

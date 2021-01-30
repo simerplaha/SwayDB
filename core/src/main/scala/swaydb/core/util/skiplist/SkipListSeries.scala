@@ -31,7 +31,6 @@ import swaydb.data.OptimiseWrites
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
-import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
@@ -546,7 +545,10 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def toIterable: Iterable[(K, V)] =
-    self.iteratorKeyValue().map(_.toTuple).to(Iterable)
+    new Iterable[(K, V)] {
+      override def iterator: Iterator[(K, V)] =
+        self.iteratorKeyValue().map(_.toTuple)
+    }
 
   def toValuesSlice()(implicit classTag: ClassTag[V]): Slice[V] = {
     val slice = Slice.of[V](self.size)

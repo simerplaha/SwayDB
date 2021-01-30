@@ -26,7 +26,8 @@ package swaydb.data.config.builder
 
 import swaydb.Compression
 import swaydb.data.config._
-import swaydb.util.Java.JavaFunction
+import swaydb.effect.{IOAction, IOStrategy}
+import swaydb.utils.Java.JavaFunction
 
 import scala.jdk.CollectionConverters._
 

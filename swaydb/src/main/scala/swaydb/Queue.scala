@@ -30,7 +30,7 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.stream.StreamFree
+import swaydb.stream.StreamFree
 import swaydb.serializers.Serializer
 
 import java.nio.file.Path

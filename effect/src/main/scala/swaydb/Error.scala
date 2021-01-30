@@ -24,13 +24,13 @@
 
 package swaydb
 
+import swaydb.IO.RecoverableExceptionHandler
+import swaydb.effect.Reserve
+
 import java.io.FileNotFoundException
 import java.nio.ReadOnlyBufferException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.{NoSuchFileException, Path}
-
-import swaydb.IO.RecoverableExceptionHandler
-import swaydb.data.Reserve
 
 protected sealed trait Error {
   def exception: Throwable

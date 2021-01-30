@@ -36,10 +36,11 @@ import swaydb.core.segment.entry.writer._
 import swaydb.core.segment.ref.search.KeyMatcher
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey
-import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
+import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.{ByteSizeOf, FiniteDurations, FunctionSafe}
+import swaydb.effect.{IOAction, IOStrategy}
+import swaydb.utils.{ByteSizeOf, FiniteDurations, FunctionSafe}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer

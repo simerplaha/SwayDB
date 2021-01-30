@@ -24,9 +24,9 @@
 
 package swaydb.core.util.skiplist
 
-import java.util
-
 import swaydb.data.order.KeyOrder
+
+import java.util
 
 object SkipListTreeMap {
 

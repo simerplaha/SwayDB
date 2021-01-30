@@ -26,7 +26,7 @@ package swaydb.java.table.domain.table.value;
 
 import swaydb.data.slice.Slice;
 import swaydb.data.slice.SliceReader;
-import swaydb.data.util.ByteOps;
+import swaydb.data.utils.ByteOps;
 import swaydb.java.serializers.Serializer;
 
 public class ValueSerializer implements Serializer<Value> {

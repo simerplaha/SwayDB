@@ -37,9 +37,9 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.block.{Block, BlockOffset, BlockOps}
 import swaydb.core.util.{Bytes, CRC32}
-import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
+import swaydb.effect.{IOAction, IOStrategy}
+import swaydb.utils.ByteSizeOf
 
 private[core] case object SegmentFooterBlock {
 

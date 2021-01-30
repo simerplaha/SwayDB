@@ -24,10 +24,6 @@
 
 package swaydb.core.io.file
 
-import java.nio.ReadOnlyBufferException
-import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
-import java.nio.file.FileAlreadyExistsException
-
 import org.scalamock.scalatest.MockFactory
 import swaydb.IO
 import swaydb.IOValues._
@@ -36,9 +32,14 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
-import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
+import swaydb.effect.Effect
+import swaydb.testkit.RunThis._
+import swaydb.utils.OperatingSystem
+
+import java.nio.ReadOnlyBufferException
+import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
+import java.nio.file.FileAlreadyExistsException
 
 class DBFileSpec extends TestBase with MockFactory {
 
@@ -1065,7 +1066,7 @@ class DBFileSpec extends TestBase with MockFactory {
   //  "copying large number of memory-mapped files" in {
   //    TestCaseSweeper {
   //      implicit sweeper =>
-  //        import swaydb.data.RunThis._
+  //        import swaydb.testkit.RunThis._
   //
   //        runThis(1000.times, log = true) {
   //          import sweeper._

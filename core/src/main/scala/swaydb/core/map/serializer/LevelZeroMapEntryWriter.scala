@@ -28,7 +28,7 @@ import swaydb.core.data.Memory
 import swaydb.core.map.MapEntry
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
+import swaydb.utils.ByteSizeOf
 
 /**
  * TODO move to using varints and see if that makes a difference in performance.

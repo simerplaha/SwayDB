@@ -24,12 +24,11 @@
 
 package swaydb.core.map.serializer
 
-import java.util.concurrent.TimeUnit
-
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.{ReaderBase, Slice}
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.Deadline
 
 private[core] object LevelZeroMapEntryReader {

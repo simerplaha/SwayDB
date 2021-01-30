@@ -24,9 +24,9 @@
 
 package swaydb.data.config.builder
 
-import swaydb.data.compaction.{LevelMeter, PushStrategy, Throttle}
+import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.MemoryLevelConfig
-import swaydb.util.Java.JavaFunction
+import swaydb.utils.Java.JavaFunction
 
 import java.time.Duration
 import scala.compat.java8.DurationConverters._

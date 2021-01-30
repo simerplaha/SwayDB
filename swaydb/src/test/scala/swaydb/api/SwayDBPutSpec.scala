@@ -21,13 +21,12 @@ package swaydb.api
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
-import swaydb.api.{TestBaseEmbedded, repeatTest}
-import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
-import swaydb.core.TestCaseSweeper
-import TestCaseSweeper._
-import swaydb.serializers.Default._
 import swaydb._
+import swaydb.core.CommonAssertions._
+import swaydb.core.TestCaseSweeper
+import swaydb.core.TestCaseSweeper._
+import swaydb.serializers.Default._
+import swaydb.testkit.RunThis._
 
 import scala.concurrent.duration._
 

@@ -37,7 +37,7 @@ import swaydb.data.MaxKey
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.{SomeOrNone, SomeOrNoneCovariant, TupleOrNone}
+import swaydb.utils.{SomeOrNone, SomeOrNoneCovariant, TupleOrNone}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 

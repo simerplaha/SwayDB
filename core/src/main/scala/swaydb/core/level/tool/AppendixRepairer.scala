@@ -27,21 +27,21 @@ package swaydb.core.level.tool
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
-import swaydb.core.io.file.{Effect, ForceSaveApplier}
+import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.AppendixMapCache
 import swaydb.core.map.serializer.MapEntryWriter
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.Segment
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
-import swaydb.core.util.Extension
 import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.KeyOrder
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.SliceIOImplicits._
-import swaydb.data.util.StorageUnits._
+import swaydb.effect.{Effect, Extension}
+import swaydb.utils.StorageUnits._
 
 import java.nio.file.Path
 

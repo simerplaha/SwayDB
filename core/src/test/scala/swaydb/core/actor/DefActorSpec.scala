@@ -28,7 +28,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
 import swaydb.{Actor, DefActor}
 
 import scala.collection.mutable.ListBuffer

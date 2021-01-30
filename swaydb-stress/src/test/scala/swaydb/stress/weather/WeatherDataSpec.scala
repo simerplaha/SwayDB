@@ -29,7 +29,7 @@ import org.scalatest.Assertion
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
 import swaydb.{Bag, IO, OK}
 
 import scala.concurrent.ExecutionContext.Implicits.global

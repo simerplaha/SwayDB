@@ -25,13 +25,13 @@
 package swaydb.core.level
 
 import swaydb.IOValues._
-import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.core.io.file.Effect
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.segment.Segment
 import swaydb.core.util.Benchmark
-import swaydb.data.config.Dir
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.order.KeyOrder
-import TestCaseSweeper._
+import swaydb.effect
+import swaydb.effect.{Dir, Effect}
 
 import scala.util.Random
 
@@ -67,10 +67,10 @@ class PathsDistributorPerformanceSpec extends TestBase {
             dirs =
               Seq(
                 Dir(path1, 1),
-                Dir(path2, 2),
-                Dir(path3, 3),
-                Dir(path4, 4),
-                Dir(path5, 5)
+                effect.Dir(path2, 2),
+                effect.Dir(path3, 3),
+                effect.Dir(path4, 4),
+                effect.Dir(path5, 5)
               ),
             segments =
               //for each Segment's request randomly distribute Segments so that there is always un-even distribution

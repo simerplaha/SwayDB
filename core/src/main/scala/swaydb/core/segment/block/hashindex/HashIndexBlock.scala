@@ -33,10 +33,12 @@ import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.util.{Bytes, CRC32}
-import swaydb.data.config.{IOAction, IOStrategy, RandomSearchIndex, UncompressedBlockInfo}
+import swaydb.effect.IOStrategy
+import swaydb.data.config.{RandomSearchIndex, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.{ByteSizeOf, FunctionSafe}
+import swaydb.effect.{IOAction, IOStrategy}
+import swaydb.utils.{ByteSizeOf, FunctionSafe}
 
 import scala.annotation.tailrec
 import scala.beans.BeanProperty

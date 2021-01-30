@@ -38,8 +38,8 @@ import swaydb.core.segment.assigner.Assignable
 import swaydb.data.compaction.PushStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.Futures
 import swaydb.data.{MaxKey, NonEmptyList}
+import swaydb.utils.Futures
 
 import java.util
 import scala.collection.compat._
@@ -359,6 +359,6 @@ case object LevelZeroTaskAssigner {
             }
       } flatMap {
         mergedResult =>
-          mergeStack(mergedResult.to(Iterable))
+          mergeStack(mergedResult.toList)
       }
 }

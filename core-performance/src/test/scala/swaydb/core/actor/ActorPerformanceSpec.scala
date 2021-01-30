@@ -24,15 +24,14 @@
 
 package swaydb.core.actor
 
-import java.util.concurrent.ConcurrentLinkedQueue
-
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import swaydb.ActorConfig.QueueOrder
 import swaydb.core.TestExecutionContext
 import swaydb.core.util.Benchmark
-import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.{Actor, ActorRef}
 
+import java.util.concurrent.ConcurrentLinkedQueue
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 

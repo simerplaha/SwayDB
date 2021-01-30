@@ -25,7 +25,7 @@
 package swaydb
 
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.TupleOrNone
+import swaydb.utils.TupleOrNone
 
 package object serializers {
 

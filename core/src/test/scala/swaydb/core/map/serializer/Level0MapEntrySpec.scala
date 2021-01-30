@@ -32,13 +32,13 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
-import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
+import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.utils.ByteSizeOf
 
 class Level0MapEntrySpec extends TestBase {
 

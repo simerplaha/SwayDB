@@ -24,7 +24,7 @@
 
 package swaydb.core.level.compaction.throttle
 
-import swaydb.data.util.FiniteDurations._
+import swaydb.utils.FiniteDurations.FiniteDurationImplicits
 
 import scala.concurrent.Future
 import scala.concurrent.duration._

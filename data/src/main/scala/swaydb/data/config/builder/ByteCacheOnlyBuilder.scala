@@ -24,7 +24,8 @@
 
 package swaydb.data.config.builder
 
-import swaydb.data.config.{ActorConfig, MemoryCache}
+import swaydb.ActorConfig
+import swaydb.data.config.MemoryCache
 
 class ByteCacheOnlyBuilder {
   private var minIOSeekSize: Int = _

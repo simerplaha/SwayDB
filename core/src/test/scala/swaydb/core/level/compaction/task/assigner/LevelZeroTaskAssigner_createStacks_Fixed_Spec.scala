@@ -31,11 +31,11 @@ import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.MaxKey
-import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 
 import scala.jdk.CollectionConverters._
 import scala.util.Random

@@ -25,10 +25,10 @@
 package swaydb.core.io.file
 
 import swaydb.core.sweeper.FileSweeperItem
+import swaydb.data.slice.Slice
 
 import java.nio.channels.WritableByteChannel
 import java.nio.file.Path
-import swaydb.data.slice.Slice
 
 private[file] trait DBFileType extends FileSweeperItem {
 

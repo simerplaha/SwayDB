@@ -24,18 +24,18 @@
 
 package swaydb.core.io.file
 
-import java.nio.channels.{FileChannel, WritableByteChannel}
-import java.nio.channels.FileChannel.MapMode
-import java.nio.file.{Path, StandardOpenOption}
-import java.nio.{BufferOverflowException, MappedByteBuffer}
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.sweeper.ByteBufferSweeper
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.data.Reserve
 import swaydb.data.config.ForceSave
 import swaydb.data.slice.Slice
+import swaydb.effect.{Effect, Reserve}
 
+import java.nio.channels.FileChannel.MapMode
+import java.nio.channels.{FileChannel, WritableByteChannel}
+import java.nio.file.{Path, StandardOpenOption}
+import java.nio.{BufferOverflowException, MappedByteBuffer}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 import scala.annotation.tailrec
 
 private[file] object MMAPFile {

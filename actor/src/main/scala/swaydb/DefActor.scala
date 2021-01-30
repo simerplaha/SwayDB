@@ -24,13 +24,12 @@
 
 package swaydb
 
-import java.util.{TimerTask, UUID}
 import swaydb.Actor.Task
-import swaydb.data.config.ActorConfig.QueueOrder
+import swaydb.ActorConfig.QueueOrder
 
-import scala.annotation.unchecked.uncheckedVariance
-import scala.concurrent.{ExecutionContext, Promise}
+import java.util.{TimerTask, UUID}
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{ExecutionContext, Promise}
 import scala.util.Try
 
 object DefActor {

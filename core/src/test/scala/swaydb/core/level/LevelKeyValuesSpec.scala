@@ -34,16 +34,16 @@ import swaydb.core.data._
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core._
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.utils.OperatingSystem
 
 import scala.concurrent.duration._
+import swaydb.utils.StorageUnits._
 
 class LevelKeyValuesSpec0 extends LevelKeyValuesSpec
 

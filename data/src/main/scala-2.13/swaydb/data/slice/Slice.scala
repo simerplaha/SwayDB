@@ -25,7 +25,7 @@
 package swaydb.data.slice
 
 import swaydb.data.slice.Slice.SliceFactory
-import swaydb.data.util.SomeOrNoneCovariant
+import swaydb.utils.SomeOrNoneCovariant
 
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance

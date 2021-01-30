@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -21,7 +21,7 @@
  * it with separate works, the licensors of this Program grant you additional
  * permission to convey the resulting work.
  */
-package swaydb.data.config
+package swaydb.effect
 
 sealed trait IOAction {
   def isCompressed: Boolean

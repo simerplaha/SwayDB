@@ -24,8 +24,10 @@
 
 package swaydb.data.storage
 
+import swaydb.data.config.MMAP
+import swaydb.effect.Dir
+
 import java.nio.file.Path
-import swaydb.data.config.{Dir, MMAP}
 
 sealed trait LevelStorage {
   val dir: Path

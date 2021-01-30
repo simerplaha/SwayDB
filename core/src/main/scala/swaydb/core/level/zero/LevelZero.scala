@@ -32,7 +32,7 @@ import swaydb.core.data.KeyValue.{Put, PutOption}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
+import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
@@ -54,8 +54,9 @@ import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
-import swaydb.data.util.Options
 import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.effect.{Effect, FileLocker}
+import swaydb.utils.Options
 import swaydb.{Bag, Error, Glass, IO, OK}
 
 import java.nio.channels.FileChannel

@@ -28,7 +28,8 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.level.Level
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.config.MMAP
-import swaydb.data.util.OperatingSystem
+import swaydb.utils.OperatingSystem
+
 
 class BehaviourWakeUp_buildLowerLevels_Spec0 extends BehaviourWakeUp_buildLowerLevels_Spec
 

@@ -27,7 +27,7 @@ package swaydb.core.segment.entry.reader
 import swaydb.core.data.PersistentOption
 import swaydb.core.segment.entry.id.BaseEntryId
 import swaydb.data.slice.ReaderBase
-import swaydb.data.util.TupleOrNone
+import swaydb.utils.TupleOrNone
 
 import scala.annotation.implicitNotFound
 

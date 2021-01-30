@@ -26,10 +26,10 @@ package swaydb.api.multimap
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.multimap.MultiKey
 import swaydb.core.TestData._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.multimap.MultiKey
 import swaydb.serializers.Default._
 import swaydb.serializers.Serializer
 
@@ -40,7 +40,7 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
 
   "mapKeySerializer" should {
     def doAssert[T, K](key: MultiKey[T, K])(implicit keySerializer: Serializer[K],
-                                               tableSerializer: Serializer[T]) = {
+                                            tableSerializer: Serializer[T]) = {
       val mapKeySerializer = MultiKey.serializer[T, K](keySerializer, tableSerializer)
       val wrote = mapKeySerializer.write(key)
       val read = mapKeySerializer.read(wrote)

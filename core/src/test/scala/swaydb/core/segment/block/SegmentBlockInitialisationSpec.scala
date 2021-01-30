@@ -37,15 +37,20 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
-import swaydb.data.RunThis._
-import swaydb.data.config.{IOStrategy, MMAP}
+import swaydb.testkit.RunThis._
+import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
+import swaydb.effect.IOStrategy
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.util.Random
+import swaydb.utils.OperatingSystem
+import swaydb.utils.OperatingSystem._
+import swaydb.utils.FiniteDurations._
+import swaydb.utils.StorageUnits._
+import swaydb.utils.ByteSizeOf._
 
 class SegmentBlockInitialisationSpec extends TestBase {
 

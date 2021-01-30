@@ -67,8 +67,6 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{Level0Storage, LevelStorage}
-import swaydb.data.util.StorageUnits._
-import swaydb.data.util.{FiniteDurations, OperatingSystem}
 import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -83,6 +81,10 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.Random
+import swaydb.ActorConfig
+import swaydb.effect.{Dir, IOAction, IOStrategy}
+import swaydb.utils.{FiniteDurations, OperatingSystem}
+import swaydb.utils.StorageUnits._
 
 object TestData {
 
@@ -171,7 +173,7 @@ object TestData {
                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long) {
 
     import swaydb.Error.Level.ExceptionHandler
-    import swaydb.data.RunThis._
+    import swaydb.testkit.RunThis._
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
@@ -2100,7 +2102,7 @@ object TestData {
 
   implicit class TestSegmentImplicits(segment: Segment) {
 
-    import swaydb.data.RunThis._
+    import swaydb.testkit.RunThis._
 
     def put(headGap: Iterable[KeyValue],
             tailGap: Iterable[KeyValue],

@@ -24,15 +24,12 @@
 
 package swaydb.core.merge
 
-import swaydb.Aggregator
-import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Time}
-import swaydb.core.merge.stats.MergeStats
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.testkit.RunThis._
 
 class SegmentMerge_Performance_Spec extends TestBase {
 

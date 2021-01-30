@@ -27,6 +27,7 @@ package swaydb.api.multimap.multiprepare
 import boopickle.Default.{Pickle, Unpickle, _}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
+
 /**
  * All Primary Keys for [[Table]]s.
  */

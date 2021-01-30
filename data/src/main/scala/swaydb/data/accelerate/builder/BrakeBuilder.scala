@@ -24,10 +24,9 @@
 
 package swaydb.data.accelerate.builder
 
-import java.time.Duration
-
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 
+import java.time.Duration
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration.FiniteDuration
 

@@ -26,7 +26,7 @@ package swaydb.data
 
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.SomeOrNoneCovariant
+import swaydb.utils.SomeOrNoneCovariant
 
 sealed trait MaxKeyOption[+T] extends SomeOrNoneCovariant[MaxKeyOption[T], MaxKey[T]] {
   override def noneC: MaxKeyOption[Nothing] = MaxKey.Null

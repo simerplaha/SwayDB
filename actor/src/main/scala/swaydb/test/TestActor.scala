@@ -24,11 +24,10 @@
 
 package swaydb.test
 
-import java.util.concurrent.ConcurrentLinkedQueue
-
-import swaydb.data.config.ActorConfig.QueueOrder
+import swaydb.ActorConfig.QueueOrder
 import swaydb.{Actor, ActorQueue, IO, Scheduler}
 
+import java.util.concurrent.ConcurrentLinkedQueue
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{Await, ExecutionContext, TimeoutException}
 import scala.util.{Failure, Success, Try}

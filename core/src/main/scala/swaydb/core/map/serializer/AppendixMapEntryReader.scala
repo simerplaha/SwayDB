@@ -38,14 +38,14 @@ import swaydb.data.slice.{ReaderBase, Slice}
 private[core] object AppendixMapEntryReader {
   def apply(mmapSegment: MMAP.Segment,
             segmentRefCacheWeight: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                         timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore,
-                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                         fileSweeper: FileSweeper,
-                                         bufferCleaner: ByteBufferSweeperActor,
-                                         blockCacheSweeper: Option[MemorySweeper.Block],
-                                         forceSaveApplier: ForceSaveApplier,
-                                         segmentIO: SegmentReadIO): AppendixMapEntryReader =
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore,
+                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                        fileSweeper: FileSweeper,
+                                        bufferCleaner: ByteBufferSweeperActor,
+                                        blockCacheSweeper: Option[MemorySweeper.Block],
+                                        forceSaveApplier: ForceSaveApplier,
+                                        segmentIO: SegmentReadIO): AppendixMapEntryReader =
     new AppendixMapEntryReader(
       mmapSegment = mmapSegment,
       segmentRefCacheWeight = segmentRefCacheWeight

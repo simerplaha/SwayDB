@@ -31,8 +31,8 @@ import swaydb.core.segment.assigner.{Assignable, Assignment}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.compaction.{LevelMeter, PushStrategy, Throttle}
-import swaydb.data.config.Dir
 import swaydb.data.slice.Slice
+import swaydb.effect.Dir
 import swaydb.{Error, IO}
 
 import scala.collection.compat.IterableOnce

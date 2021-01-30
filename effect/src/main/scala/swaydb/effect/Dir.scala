@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -22,10 +22,9 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.data.config
+package swaydb.effect
 
 import java.nio.file.Path
-
 import scala.collection.compat._
 
 trait DistributionDir {

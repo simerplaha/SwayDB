@@ -29,7 +29,7 @@ import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

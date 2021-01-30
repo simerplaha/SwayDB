@@ -24,9 +24,9 @@ import swaydb.Bag.Implicits._
 import swaydb._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
-import swaydb.data.RunThis.FutureImplicits
 import swaydb.data.sequencer.Sequencer
 import swaydb.serializers.Default._
+import swaydb.testkit.RunThis.FutureImplicits
 
 import scala.concurrent.Future
 import scala.util.Try

@@ -24,7 +24,7 @@
 
 package swaydb.java
 
-import swaydb.util.Java._
+import swaydb.utils.Java.{JavaFunction, OptionConverter}
 
 import java.util.Optional
 import java.util.concurrent.CompletionStage

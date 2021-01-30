@@ -24,9 +24,9 @@
 
 package swaydb.core.util.skiplist
 
-import java.util.concurrent.ConcurrentSkipListMap
-
 import swaydb.data.order.KeyOrder
+
+import java.util.concurrent.ConcurrentSkipListMap
 
 object SkipListConcurrent {
 

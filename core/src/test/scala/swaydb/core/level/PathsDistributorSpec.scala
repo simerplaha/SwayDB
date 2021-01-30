@@ -25,16 +25,16 @@
 package swaydb.core.level
 
 import java.nio.file.{Path, Paths}
-
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.io.file.Effect
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.RunThis._
-import swaydb.data.config.Dir
+import swaydb.{data, effect}
+import swaydb.effect.Effect
+import swaydb.testkit.RunThis._
 import swaydb.data.order.KeyOrder
+import swaydb.effect.Dir
 
 class PathsDistributorSpec extends TestBase with MockFactory {
 
@@ -62,8 +62,8 @@ class PathsDistributorSpec extends TestBase with MockFactory {
           val dirs =
             Seq(
               Dir(path1, 1),
-              Dir(path2, 2),
-              Dir(path3, 3)
+              effect.Dir(path2, 2),
+              effect.Dir(path3, 3)
             )
 
           val (distributions, segmentsCount) =
@@ -222,9 +222,9 @@ class PathsDistributorSpec extends TestBase with MockFactory {
           val distributor =
             PathsDistributor(
               Seq(
-                Dir(path1, 1),
-                Dir(path2, 2),
-                Dir(path3, 3)
+                effect.Dir(path1, 1),
+                effect.Dir(path2, 2),
+                effect.Dir(path3, 3)
               ),
               segments
             )

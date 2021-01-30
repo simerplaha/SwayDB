@@ -28,7 +28,6 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.build.{Build, BuildValidator}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.throttle.ThrottleCompactorCreator
@@ -48,8 +47,10 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{Level0Storage, LevelStorage}
-import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.effect.Effect._
+import swaydb.effect.IOStrategy
+import swaydb.utils.StorageUnits._
 import swaydb.{Bag, DefActor, Error, Glass, IO}
 
 import java.util.function.Supplier

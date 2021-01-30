@@ -24,17 +24,16 @@
 
 package swaydb.core.actor
 
-import java.util.concurrent.{ConcurrentLinkedDeque, ConcurrentSkipListSet}
-
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import swaydb.ActorConfig.QueueOrder
 import swaydb._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
-import swaydb.data.RunThis._
-import swaydb.data.config.ActorConfig.QueueOrder
+import swaydb.testkit.RunThis._
 
+import java.util.concurrent.{ConcurrentLinkedDeque, ConcurrentSkipListSet}
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._

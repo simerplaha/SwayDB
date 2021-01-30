@@ -29,8 +29,7 @@ import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.data.{DefIO, KeyValue, _}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
+import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.map.serializer._
@@ -54,11 +53,12 @@ import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.Exceptions._
 import swaydb.core.util.{MinMax, _}
 import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.SliceIOImplicits._
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.LevelStorage
+import swaydb.effect.Effect._
+import swaydb.effect.{Dir, Effect, Extension, FileLocker}
 import swaydb.{Aggregator, Bag, Error, IO}
 
 import java.nio.channels.FileChannel

@@ -28,15 +28,16 @@ import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
-import swaydb.util.Java.JavaFunction
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer
+import swaydb.utils.Java.JavaFunction
 import swaydb.{Bag, CommonConfigs, Glass}
 
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration._
+import swaydb.utils.Java._
 
 object MemoryQueue {
 

@@ -24,32 +24,30 @@
 
 package swaydb.core.segment
 
-import java.nio.file.Path
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.io.file.ForceSaveApplier
+import swaydb.core.level.PathsDistributor
+import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
+import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.entry.reader.PersistentReader
-import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne, Segment}
-import swaydb.core.util.Benchmark
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestSweeper, TestTimer}
-import swaydb.data.config.{Dir, IOAction, IOStrategy, MMAP}
-import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
-import TestCaseSweeper._
-import swaydb.core.level.PathsDistributor
-import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
-import swaydb.data.util.StorageUnits._
+import swaydb.core.sweeper.MemorySweeper
+import swaydb.core.util.Benchmark
+import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
+import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice
+import swaydb.effect.{Dir, IOAction, IOStrategy}
+import swaydb.utils.StorageUnits._
 
+import java.nio.file.Path
 import scala.concurrent.duration._
 import scala.util.Random
 

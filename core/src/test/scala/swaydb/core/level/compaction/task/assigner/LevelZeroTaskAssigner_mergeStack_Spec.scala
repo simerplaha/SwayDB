@@ -32,11 +32,11 @@ import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
-import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 
 class LevelZeroTaskAssigner_mergeStack_Spec extends TestBase with MockFactory {
 

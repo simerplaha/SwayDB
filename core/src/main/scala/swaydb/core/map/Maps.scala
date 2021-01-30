@@ -27,8 +27,7 @@ package swaydb.core.map
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
 import swaydb.core.brake.BrakePedal
-import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{Effect, ForceSaveApplier}
+import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
@@ -39,6 +38,8 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.SliceIOImplicits._
+import swaydb.effect.Effect
+import swaydb.effect.Effect._
 import swaydb.{Error, IO}
 
 import java.nio.file.Path

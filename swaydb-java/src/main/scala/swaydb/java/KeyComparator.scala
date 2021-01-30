@@ -25,10 +25,9 @@
 package swaydb.java
 
 import java.util.Comparator
-
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.util.Java.JavaFunction
+import swaydb.utils.Java.JavaFunction
 
 object KeyComparator {
   final val lexicographic: KeyComparator[Slice[java.lang.Byte]] =

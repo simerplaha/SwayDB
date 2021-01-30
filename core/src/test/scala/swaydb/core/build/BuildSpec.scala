@@ -24,19 +24,17 @@
 
 package swaydb.core.build
 
-import java.nio.file.FileAlreadyExistsException
-
 import swaydb.Error.IO
 import swaydb.Exception.InvalidDirectoryType
 import swaydb.IOValues._
 import swaydb.core.TestData._
-import swaydb.core.io.file.Effect
-import swaydb.core.util.Extension
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.DataType
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
+import swaydb.effect.{Effect, Extension}
+import swaydb.utils.ByteSizeOf
 
+import java.nio.file.FileAlreadyExistsException
 import scala.util.Random
 
 class BuildSpec extends TestBase {

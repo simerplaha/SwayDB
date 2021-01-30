@@ -29,11 +29,11 @@ import swaydb.IO
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
-import swaydb.core.segment.block.segment.data.{TransientSegmentRef, TransientSegment}
+import swaydb.core.segment.block.segment.data.{TransientSegment, TransientSegmentRef}
 import swaydb.core.util.Collections._
-import swaydb.data.config.IOAction
 import swaydb.data.slice.{ReaderBase, Slice}
-import swaydb.data.util.ByteSizeOf
+import swaydb.effect.IOAction
+import swaydb.utils.ByteSizeOf
 
 /**
  * A block is a group of compressed or uncompressed bytes.

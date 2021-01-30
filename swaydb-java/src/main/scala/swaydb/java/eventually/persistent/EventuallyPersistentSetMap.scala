@@ -31,9 +31,8 @@ import swaydb.data.compaction.CompactionConfig
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.util.Java.JavaFunction
-import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.effect.Dir
 import swaydb.eventually.persistent.DefaultConfigs
 import swaydb.java._
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
@@ -46,6 +45,8 @@ import scala.compat.java8.DurationConverters.DurationOps
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
+import swaydb.utils.Java._
+import swaydb.utils.StorageUnits._
 
 object EventuallyPersistentSetMap {
 

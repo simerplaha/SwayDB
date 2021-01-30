@@ -29,7 +29,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.level.compaction.task.CompactionDataType
 import swaydb.core.segment.assigner.AssignmentResult
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
 
 import scala.util.Random
 

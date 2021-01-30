@@ -25,15 +25,14 @@
 package swaydb.api.multimap
 
 import org.scalatest.OptionValues._
-import swaydb.Glass
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
-import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
-import swaydb.{Bag, MultiMap}
-import TestCaseSweeper._
+import swaydb.testkit.RunThis._
+import swaydb.utils.StorageUnits._
+import swaydb.{Bag, Glass, MultiMap}
 
 import scala.util.Random
 

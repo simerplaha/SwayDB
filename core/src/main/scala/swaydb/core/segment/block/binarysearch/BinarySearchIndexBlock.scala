@@ -32,11 +32,13 @@ import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.util.MinMax
-import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
+import swaydb.effect.IOStrategy
+import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.Maybe.{Maybe, _}
-import swaydb.data.util.{FunctionSafe, Maybe}
+import swaydb.effect.{IOAction, IOStrategy}
+import swaydb.utils.{FunctionSafe, Maybe}
+import swaydb.utils.Maybe.{Maybe, _}
 
 import scala.annotation.tailrec
 

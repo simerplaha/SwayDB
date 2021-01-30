@@ -32,11 +32,11 @@ import swaydb.core.TestData._
 import swaydb.core.data.KeyValue
 import swaydb.core.level.LevelSeek
 import swaydb.core.{TestData, TestTimer}
-import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 
 class LowerRangeNoneSpec extends AnyWordSpec with Matchers with MockFactory {
 

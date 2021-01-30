@@ -21,13 +21,12 @@ package swaydb.api
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
-import swaydb.api.{ScalaMapSpec, TestBaseEmbedded, repeatTest}
-import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
-import swaydb.core.TestCaseSweeper
-import swaydb.serializers.Default._
-import TestCaseSweeper._
 import swaydb._
+import swaydb.core.CommonAssertions._
+import swaydb.core.TestCaseSweeper
+import swaydb.core.TestCaseSweeper._
+import swaydb.serializers.Default._
+import swaydb.testkit.RunThis._
 
 import scala.concurrent.duration._
 
@@ -116,7 +115,6 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
             val db = newDB()
             //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
             val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
-            import swaydb.data.util.FiniteDurations._
 
             (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 

@@ -27,7 +27,7 @@ package swaydb.data.java
 import org.scalatest.OptionValues._
 import org.scalatest.matchers.should.Matchers._
 import swaydb.data.java.JavaEventually._
-import swaydb.util.Java._
+import swaydb.utils.Java._
 
 import java.util.Optional
 import java.util.function.{Consumer, Supplier}

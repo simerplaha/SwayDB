@@ -29,9 +29,11 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.{Block, BlockOffset, BlockOps}
 import swaydb.core.util.MurmurHash3Generic
-import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
+import swaydb.effect.IOStrategy
+import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.slice.Slice
-import swaydb.data.util.{ByteSizeOf, FunctionSafe}
+import swaydb.effect.{IOAction, IOStrategy}
+import swaydb.utils.{ByteSizeOf, FunctionSafe}
 
 private[core] case object BloomFilterBlock extends LazyLogging {
 

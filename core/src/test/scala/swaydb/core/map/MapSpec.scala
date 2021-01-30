@@ -31,25 +31,25 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data.{Memory, MemoryOption, Value}
-import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{DBFile, Effect}
+import swaydb.core.io.file.DBFile
 import swaydb.core.level.AppendixMapCache
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.MapTestUtil._
 import swaydb.core.map.serializer._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.util.Extension
 import swaydb.core.util.skiplist.SkipListConcurrent
-import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.effect.Effect._
+import swaydb.effect.{Effect, Extension}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
+import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
 
 import java.nio.file.{FileAlreadyExistsException, Path}
 

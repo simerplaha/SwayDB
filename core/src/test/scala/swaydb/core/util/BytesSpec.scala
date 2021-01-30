@@ -32,11 +32,11 @@ import swaydb.OK
 import swaydb.core.TestData._
 import swaydb.core.TestExecutionContext
 import swaydb.core.io.reader.Reader
-import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
+import swaydb.utils.StorageUnits._
 
 class BytesSpec extends AnyWordSpec with Matchers {
 

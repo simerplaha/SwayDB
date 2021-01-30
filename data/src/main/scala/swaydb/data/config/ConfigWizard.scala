@@ -29,7 +29,8 @@ import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.builder.{MemoryLevelConfigBuilder, MemoryLevelZeroConfigBuilder, PersistentLevelConfigBuilder, PersistentLevelZeroConfigBuilder}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.{Atomic, OptimiseWrites}
-import swaydb.util.Java.JavaFunction
+import swaydb.effect.Dir
+import swaydb.utils.Java.JavaFunction
 
 import java.nio.file.Path
 import scala.compat.java8.DurationConverters.DurationOps

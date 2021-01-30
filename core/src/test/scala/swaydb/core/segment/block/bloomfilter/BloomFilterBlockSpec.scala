@@ -30,7 +30,7 @@ import swaydb.core.TestData._
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.{Block, BlockCache}
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._

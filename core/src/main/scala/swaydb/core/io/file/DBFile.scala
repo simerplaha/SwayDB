@@ -24,17 +24,17 @@
 
 package swaydb.core.io.file
 
-import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, FileSweeperItem}
-import swaydb.data.Reserve
 import swaydb.data.cache.Cache
-import swaydb.data.config.{ForceSave, IOStrategy}
+import swaydb.data.config.ForceSave
 import swaydb.data.slice.Slice
+import swaydb.effect.{Effect, IOStrategy, Reserve}
 import swaydb.{Error, IO}
 
+import java.nio.file.Path
 import scala.util.hashing.MurmurHash3
 
 object DBFile extends LazyLogging {

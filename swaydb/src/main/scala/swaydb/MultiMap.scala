@@ -31,7 +31,7 @@ import swaydb.core.util.Times._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
-import swaydb.data.stream.{From, SourceFree, StreamFree}
+import swaydb.stream.{From, SourceFree, StreamFree}
 import swaydb.multimap.{MultiKey, MultiPrepare, MultiValue, Schema}
 import swaydb.serializers.{Serializer, _}
 

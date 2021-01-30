@@ -28,9 +28,10 @@ import org.scalatest.OptionValues._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.MaxKey
-import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
-import swaydb.data.util.{ByteSizeOf, ScalaByteOps}
+import swaydb.data.utils.ScalaByteOps
+import swaydb.testkit.RunThis._
+import swaydb.utils.ByteSizeOf
 
 import scala.util.Random
 

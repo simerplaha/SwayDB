@@ -27,14 +27,14 @@ package swaydb.core.map.counter
 import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.{TestBase, _}
 import swaydb.core.map.MapTestUtil._
 import swaydb.core.map.serializer._
+import swaydb.core.{TestBase, _}
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
+import swaydb.utils.StorageUnits._
 
 import scala.collection.mutable.ListBuffer
 

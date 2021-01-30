@@ -24,18 +24,20 @@
 
 package swaydb.core.io.file
 
-import java.nio.channels.FileChannel
-import java.nio.channels.FileChannel.MapMode
-import java.nio.file.StandardOpenOption
-import java.util.concurrent.atomic.AtomicBoolean
 import swaydb.core.TestData.randomBytesSlice
 import swaydb.core.sweeper.ByteBufferCleaner
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.RunThis._
 import swaydb.data.config.ForceSave
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
+import swaydb.effect.Effect
+import swaydb.testkit.RunThis._
+import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
+
+import java.nio.channels.FileChannel
+import java.nio.channels.FileChannel.MapMode
+import java.nio.file.StandardOpenOption
+import java.util.concurrent.atomic.AtomicBoolean
 
 class ForceSavePerformanceSpec extends TestBase {
 

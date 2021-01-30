@@ -34,7 +34,6 @@ import swaydb.core.TestData._
 import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{KeyValue, Memory, Value, _}
-import swaydb.core.io.file.Effect
 import swaydb.core.io.reader.{FileReader, Reader}
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
@@ -58,12 +57,12 @@ import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment.ref.search.{KeyMatcher, SegmentSearcher, ThreadReadState}
 import swaydb.core.sweeper.{ByteBufferSweeper, MemorySweeper}
 import swaydb.core.util.skiplist.SkipListConcurrent
-import swaydb.data.RunThis._
+import swaydb.testkit.RunThis._
 import swaydb.data.compaction.PushStrategy
-import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice, SliceOption, SliceReader}
 import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.effect.Effect
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.{Aggregator, Bag, Error, Glass, IO}
@@ -77,6 +76,7 @@ import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.{Random, Try}
 import swaydb.data.slice.SliceIOImplicits._
+import swaydb.effect.IOStrategy
 
 object CommonAssertions {
 

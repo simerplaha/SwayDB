@@ -21,10 +21,10 @@ package swaydb.api
 
 import swaydb.IOValues._
 import swaydb._
-import swaydb.serializers.Default._
-import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper
-import TestCaseSweeper._
+import swaydb.core.TestCaseSweeper._
+import swaydb.serializers.Default._
+import swaydb.testkit.RunThis._
 
 class ScalaMapSpec0 extends ScalaMapSpec {
   val keyValueCount: Int = 1000

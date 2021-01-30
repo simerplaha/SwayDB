@@ -24,14 +24,15 @@
 
 package swaydb.core.io.file
 
+import com.typesafe.scalalogging.LazyLogging
+import swaydb.data.config.ForceSave
+import swaydb.data.slice.Slice
+import swaydb.effect.Effect
+
 import java.nio.ByteBuffer
 import java.nio.channels.{FileChannel, WritableByteChannel}
 import java.nio.file.{Path, StandardOpenOption}
 import java.util.concurrent.atomic.AtomicBoolean
-
-import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.config.ForceSave
-import swaydb.data.slice.Slice
 
 private[file] object ChannelFile {
 

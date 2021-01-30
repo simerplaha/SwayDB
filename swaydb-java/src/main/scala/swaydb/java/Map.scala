@@ -28,7 +28,7 @@ import swaydb.KeyVal._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.java.data.util.Java._
-import swaydb.util.Java._
+import swaydb.utils.Java._
 import swaydb.{Expiration, Glass, KeyVal, Pair, Prepare, PureFunction}
 
 import java.nio.file.Path

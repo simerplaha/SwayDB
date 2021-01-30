@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 import scala.Int;
 import swaydb.data.slice.Slice;
 import swaydb.data.slice.SliceReader;
-import swaydb.data.util.ByteOps;
+import swaydb.data.utils.ByteOps;
 
 import java.util.ArrayList;
 import java.util.Arrays;

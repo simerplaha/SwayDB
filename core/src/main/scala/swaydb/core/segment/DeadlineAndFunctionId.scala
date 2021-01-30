@@ -28,7 +28,7 @@ import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.segment.Segment.getNearestPutDeadline
 import swaydb.core.util.MinMax
 import swaydb.data.slice.Slice
-import swaydb.data.util.FiniteDurations
+import swaydb.utils.FiniteDurations
 
 import scala.concurrent.duration.Deadline
 

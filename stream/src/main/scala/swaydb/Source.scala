@@ -24,7 +24,7 @@
 
 package swaydb
 
-import swaydb.data.stream.SourceFree
+import swaydb.stream.SourceFree
 
 object Source {
   @inline def apply[K, T, BAG[_]](nextFree: => SourceFree[K, T])(implicit bag: Bag[BAG]): Source[K, T, BAG] =

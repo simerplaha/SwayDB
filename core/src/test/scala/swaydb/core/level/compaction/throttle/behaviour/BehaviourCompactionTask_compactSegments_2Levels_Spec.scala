@@ -32,13 +32,13 @@ import swaydb.core.data.Memory
 import swaydb.core.level.Level
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
-import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
+import swaydb.utils.OperatingSystem
 
 import scala.collection.SortedSet
 
@@ -328,7 +328,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
                 //state remains unchanged
                 assertNoChange(sourceLevel, targetLevel)
 
-                if(persistent) {
+                if (persistent) {
                   val reopenSource = sourceLevel.reopen
                   val reopenTarget = targetLevel.reopen
                   assertNoChange(reopenSource, reopenTarget)

@@ -30,19 +30,19 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
+import swaydb.core._
 import swaydb.core.data._
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
 
 class LevelMapSpec0 extends LevelMapSpec
 

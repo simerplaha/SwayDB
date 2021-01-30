@@ -33,7 +33,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Time}
-import swaydb.core.io.file.{DBFile, Effect}
+import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.throttle.ThrottleCompactorCreator
@@ -53,13 +53,14 @@ import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
-import swaydb.data.config.{Dir, MMAP, RecoveryMode}
+import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{Level0Storage, LevelStorage}
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.effect.{Dir, Effect}
+import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
 import swaydb.{DefActor, Glass, IO}
 
 import java.nio.file._
@@ -791,7 +792,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     if (level1KeyValues.nonEmpty) level1.put(level1KeyValues).runRandomIO.right.value
     println("level0.putKeyValues")
     if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).runRandomIO.right.value
-    import swaydb.data.RunThis._
+    import swaydb.testkit.RunThis._
 
     Seq(
       () => {

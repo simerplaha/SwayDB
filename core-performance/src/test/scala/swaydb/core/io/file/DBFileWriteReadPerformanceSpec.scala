@@ -24,22 +24,15 @@
 
 package swaydb.core.io.file
 
-import java.nio.channels.FileChannel
-import java.nio.file.StandardOpenOption
-import java.util.concurrent.ConcurrentHashMap
-import swaydb.IOValues._
-import swaydb.core.CommonAssertions.{randomIOStrategy, randomThreadSafeIOStrategy}
 import swaydb.core.TestData._
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.block.reader.BlockRefReader
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
-import swaydb.core.util.{Benchmark, Bytes}
+import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
-import swaydb.data.config.{ForceSave, IOStrategy}
-import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
-import swaydb.data.util.StorageUnits._
+import swaydb.effect.{Effect, IOStrategy}
+import swaydb.utils.StorageUnits._
 
 import scala.util.Random
 

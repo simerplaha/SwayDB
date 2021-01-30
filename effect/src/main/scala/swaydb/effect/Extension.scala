@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.util
+package swaydb.effect
 
 private[swaydb] sealed trait Extension
 private[swaydb] object Extension {
