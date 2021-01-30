@@ -24,7 +24,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Bag._
 import swaydb.IO.ApiIO
 import swaydb.data.RunThis._
-import swaydb.data.slice.Slice
 import swaydb.{Glass, _}
 
 import scala.collection.mutable.ListBuffer
@@ -204,7 +203,7 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
         .await shouldBe (1 to 1000).map(_ + " one two three")
 
       mapStream
-        .materialize(Slice.newBuilder(1)).await shouldBe a[Slice[Int]]
+        .materialize(List.newBuilder).await shouldBe a[List[Int]]
 
       mapStream
         .materialize(List.newBuilder)
@@ -245,12 +244,12 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
         .materialize
         .await should contain only 13
 
-      val sliceBuilder = stream.materialize(Slice.newBuilder(20))
+      val ListBuilder = stream.materialize(List.newBuilder)
 
-      sliceBuilder
-        .await shouldBe a[Slice[Int]]
+      ListBuilder
+        .await shouldBe a[List[Int]]
 
-      sliceBuilder
+      ListBuilder
         .await should contain only 13
     }
 

@@ -101,10 +101,10 @@ val publishSettings = Seq[Setting[_]](
     )
 )
 
-def scalaParallelCollections(scalaVersion: String) =
+def scalaParallelCollections(scalaVersion: String, scope: sbt.librarymanagement.Configuration): Option[ModuleID] =
   CrossVersion.partialVersion(scalaVersion) match {
     case Some((2, major)) if major >= 13 =>
-      Some("org.scala-lang.modules" %% "scala-parallel-collections" % scalaParallelCollectionsVersion % Test)
+      Some("org.scala-lang.modules" %% "scala-parallel-collections" % scalaParallelCollectionsVersion % scope)
 
     case _ =>
       None
@@ -116,7 +116,7 @@ def testDependencies(scalaVersion: String) =
     "org.scalamock" %% "scalamock" % scalaMockVersion % Test,
     "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test,
     "io.suzaku" %% "boopickle" % boopickleVersion % Test
-  ) ++ scalaParallelCollections(scalaVersion)
+  ) ++ scalaParallelCollections(scalaVersion, Test)
 
 val commonJavaDependencies =
   Seq(
@@ -136,28 +136,47 @@ def commonDependencies(scalaVersion: String) =
 
 lazy val SwayDB =
   (project in file("."))
-    .settings(name := "SwayDB-source")
+    .settings(name := "SwayDB-root")
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(swaydb)
     .aggregate(
-      swaydb,
-      core,
-      compression,
-      data,
+      utils,
       effect,
+      core,
+      swaydb,
+      data,
       actor,
       stream,
       cache,
+      compression,
       configs,
       serializers,
       `data-java`,
       `swaydb-java`,
-      `swaydb-boopickle`,
-      `swaydb-monix`,
-      `swaydb-zio`,
-      `swaydb-cats-effect`
+      `z-interop-boopickle`,
+      `z-interop-monix`,
+      `z-interop-zio`,
+      `z-interop-cats-effect`
     )
+
+lazy val testkit =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies ++=
+        commonDependencies(scalaVersion.value) ++
+          scalaParallelCollections(scalaVersion.value, Compile) :+
+          "org.scalatest" %% "scalatest" % scalaTestVersion
+    )
+    .dependsOn(utils)
+
+lazy val utils =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
 
 lazy val effect =
   project
@@ -171,28 +190,28 @@ lazy val core =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(data, effect, cache, actor, data % "test->test", macros % "test->test;compile-internal", compression, configs % "test->test", serializers % "test->test")
+    .dependsOn(data, effect, utils, cache, actor, testkit % Test, data % "test->test", macros % "test->test;compile-internal", compression, configs % "test->test", serializers % "test->test")
 
 lazy val data =
   project
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(macros % "compile-internal", effect)
+    .dependsOn(macros % "compile-internal", effect, utils, testkit % Test)
 
 lazy val actor =
   project
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(data, cache)
+    .dependsOn(effect, cache)
 
 lazy val stream =
   project
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(data, effect)
+    .dependsOn(effect, utils, testkit % Test)
 
 lazy val cache =
   project
@@ -213,7 +232,7 @@ lazy val swaydb =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(core % "test->test;compile->compile", serializers, `swaydb-boopickle` % "test->test", configs, stream)
+    .dependsOn(core % "test->test;compile->compile", serializers, `z-interop-boopickle` % "test->test", configs, stream)
 
 lazy val configs =
   project
@@ -276,7 +295,7 @@ lazy val `swaydb-java` =
 /**
  * Support modules - Effect
  */
-lazy val `swaydb-monix` =
+lazy val `z-interop-monix` =
   project
     .settings(name := "monix")
     .settings(commonSettings)
@@ -284,7 +303,7 @@ lazy val `swaydb-monix` =
     .settings(libraryDependencies += "io.monix" %% "monix" % monixVersion)
     .dependsOn(data)
 
-lazy val `swaydb-zio` =
+lazy val `z-interop-zio` =
   project
     .settings(name := "zio")
     .settings(commonSettings)
@@ -292,7 +311,7 @@ lazy val `swaydb-zio` =
     .settings(libraryDependencies += "dev.zio" %% "zio" % zioVersion)
     .dependsOn(data)
 
-lazy val `swaydb-cats-effect` =
+lazy val `z-interop-cats-effect` =
   project
     .settings(name := "cats-effect")
     .settings(commonSettings)
@@ -303,7 +322,7 @@ lazy val `swaydb-cats-effect` =
 /**
  * Support modules - Serialisers.
  */
-lazy val `swaydb-boopickle` =
+lazy val `z-interop-boopickle` =
   project
     .settings(name := "boopickle")
     .settings(commonSettings)
