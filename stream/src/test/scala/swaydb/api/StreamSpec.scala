@@ -25,7 +25,7 @@ import swaydb.Bag._
 import swaydb.IO.ApiIO
 import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
-import swaydb.{Bag, Glass, IO, Stream}
+import swaydb.{Glass, _}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
