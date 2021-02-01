@@ -72,7 +72,7 @@ object DefragPersistentSegment {
                                          nullSegment: NULL_SEG,
                                          headGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                                          tailGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                         newKeyValues: => Iterator[Assignable],
+                                         newKeyValues: Iterator[Assignable],
                                          removeDeletes: Boolean,
                                          createdInLevel: Int,
                                          pathsDistributor: PathsDistributor,
@@ -279,7 +279,7 @@ object DefragPersistentSegment {
    * Run headGap's defragmentation and mid key-values assignment concurrently.
    */
   private def runHeadDefragAndAssignments[NULL_SEG >: SEG, SEG >: Null](headGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                                                        segments: => Iterator[SEG],
+                                                                        segments: Iterator[SEG],
                                                                         newKeyValues: Iterator[Assignable],
                                                                         removeDeletes: Boolean,
                                                                         createdInLevel: Int)(implicit executionContext: ExecutionContext,
@@ -362,11 +362,14 @@ object DefragPersistentSegment {
             ).output
           }
     } map {
-      buffer =>
+      buffers =>
         if (headFragmentsAndAssignments.fragments.isEmpty)
-          buffer.flatten
+          buffers.flatten
         else
-          headFragmentsAndAssignments.fragments ++= buffer.flatten
+          buffers.foldLeft(headFragmentsAndAssignments.fragments) {
+            case (flattened, next) =>
+              flattened ++= next
+          }
     }
 
   /**
@@ -451,7 +454,7 @@ object DefragPersistentSegment {
     val remoteSegments = ListBuffer.empty[TransientSegment.RemotePersistentSegment]
 
     @inline def startNewGroup(): Unit =
-      if (groups.last.nonEmpty)
+      if (groups.isEmpty || groups.last.nonEmpty)
         groups += ListBuffer.empty
 
     @inline def addLast(last: TransientSegment.RemoteRefOrStats[MergeStats.Persistent.Builder[Memory, ListBuffer]]) =

@@ -39,14 +39,14 @@ import scala.concurrent.duration._
 object DefaultConfigs {
 
   //4098 being the default file-system blockSize.
-  def mapSize: Int = 64.mb
+  def mapSize: Int = 4.mb
 
   def accelerator: LevelZeroMeter => Accelerator =
     Accelerator.brake(
-      increaseMapSizeOnMapCount = 1,
-      increaseMapSizeBy = 1,
-      maxMapSize = mapSize,
-      brakeOnMapCount = 6,
+      increaseMapSizeOnMapCount = 3,
+      increaseMapSizeBy = 2,
+      maxMapSize = 16.mb,
+      brakeOnMapCount = 10,
       brakeFor = 1.milliseconds,
       releaseRate = 0.01.millisecond,
       logAsWarning = false
@@ -135,7 +135,7 @@ object DefaultConfigs {
       cacheSegmentBlocksOnCreate = true,
       deleteDelay = CommonConfigs.segmentDeleteDelay,
       mmap = MMAP.Off(forceSave = ForceSave.BeforeClose(enableBeforeCopy = false, enableForReadOnlyMode = false, logBenchmark = false)),
-      minSegmentSize = 32.mb,
+      minSegmentSize = 6.mb,
       //      segmentFormat = SegmentFormat.Flattened,
       segmentFormat = SegmentFormat.Grouped(count = 10000, enableRootHashIndex = false, segmentRefCacheLife = SegmentRefCacheLife.Temporary),
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
@@ -176,12 +176,10 @@ object DefaultConfigs {
     //when there are more than 4 maps/logs in LevelZero
     //then give LevelZero highest priority.
     //This will compact all LevelZero maps at once.
-    if (count >= 4) {
-      -365.days
-    } else {
-      //else give it some delay
-      count.seconds
-    }
+    if (count >= 4)
+      -count.seconds
+    else
+      count.seconds //else give it some delay
   }
 
   /**
@@ -207,7 +205,7 @@ object DefaultConfigs {
       )
   }
 
-  val levelOneSize = 600.mb
+  val levelOneSize = 100.mb
 
   def levelOneThrottle(meter: LevelMeter): Throttle =
     calculateThrottle(maxLevelSize = levelOneSize, meter = meter)
