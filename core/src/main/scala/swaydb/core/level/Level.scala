@@ -423,33 +423,29 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   def refresh(segments: Iterable[Segment],
-              removeDeletedRecords: Boolean): IO[Error.Level, Iterable[DefIO[Segment, Slice[TransientSegment]]]] = {
+              removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[DefIO[Segment, Slice[TransientSegment]]]] = {
     logger.debug("{}: Running refresh.", pathDistributor.head)
-    IO {
-      segments map {
-        case segment: MemorySegment =>
-          assert(inMemory) //yea should be typed
-
+    Future.traverse(segments) {
+      case segment: MemorySegment =>
+        Future {
           segment.refresh(
             removeDeletes = removeDeletedRecords,
             createdInLevel = levelNumber,
             segmentConfig = segmentConfig
           ).map(_.map(TransientSegment.Memory))
+        }
 
-        case segment: PersistentSegment =>
-          assert(!inMemory) //yea should be typed
-
-          segment.refresh(
-            removeDeletes = removeDeletedRecords,
-            createdInLevel = levelNumber,
-            valuesConfig = valuesConfig,
-            sortedIndexConfig = sortedIndexConfig,
-            binarySearchIndexConfig = binarySearchIndexConfig,
-            hashIndexConfig = hashIndexConfig,
-            bloomFilterConfig = bloomFilterConfig,
-            segmentConfig = segmentConfig
-          )
-      }
+      case segment: PersistentSegment =>
+        segment.refresh(
+          removeDeletes = removeDeletedRecords,
+          createdInLevel = levelNumber,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig
+        )
     }
   }
 

@@ -429,7 +429,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             assert = doAssert
           )
 
-          runThisParallel(100.times) {
+          runThis(100.times) {
             assertSegment(
               keyValues = Slice(Memory.put(0), randomRangeKeyValue(1, 10)),
               assert = doAssert
@@ -888,7 +888,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               bloomFilterConfig = bloomFilterConfig,
               segmentConfig = segmentConfig.copy(minSize = Segment.segmentSizeForMerge(segment) / 10),
               removeDeletes = false
-            ).map(_.sweep())
+            ).awaitInf.map(_.sweep())
 
           if (persistent)
             segments.size shouldBe 1
@@ -930,7 +930,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 bloomFilterConfig = bloomFilterConfig,
                 segmentConfig = segmentConfig,
                 removeDeletes = true
-              ).map(_.sweep())
+              ).awaitInf.map(_.sweep())
 
             segments.foreach(_.existsOnDisk shouldBe true)
 
@@ -994,8 +994,9 @@ sealed trait SegmentWriteSpec extends TestBase {
               blockCacheSweeper = blockSweeperCache,
               forceSaveApplier = forceSaveApplier,
               segmentIO = segmentIO,
-              idGenerator = segmentIDGenerator
-            ).map(_.sweep())
+              idGenerator = segmentIDGenerator,
+              ec = TestExecutionContext.executionContext
+            ).awaitInf.map(_.sweep())
           }
 
           //windows
@@ -1062,7 +1063,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               bloomFilterConfig = bloomFilterConfig,
               segmentConfig = segmentConfig.copy(minSize = Segment.segmentSizeForMerge(temporarySegment) / 20),
               removeDeletes = false
-            ).map(_.sweep())
+            ).awaitInf.map(_.sweep())
           }
 
           //process all delete requests
@@ -1161,7 +1162,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   bloomFilterConfig = bloomFilterConfig,
                   segmentConfig = segmentConfig,
                   removeDeletes = false
-                ).map(_.sweep())
+                ).awaitInf.map(_.sweep())
 
               copiedSegments should have size 1
               val copiedSegment = copiedSegments.head
@@ -2091,7 +2092,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               hashIndexConfig = HashIndexBlock.Config.random,
               bloomFilterConfig = BloomFilterBlock.Config.random,
               segmentConfig = SegmentBlock.Config.random
-            ).output shouldBe empty
+            ).await.output shouldBe empty
         }
       }
     }

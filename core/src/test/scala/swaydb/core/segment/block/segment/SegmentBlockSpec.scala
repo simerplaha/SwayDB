@@ -36,7 +36,7 @@ import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.testkit.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -53,6 +53,7 @@ class SegmentBlockSpec extends TestBase {
 
   implicit def testTimer: TestTimer = TestTimer.random
   implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
+  implicit val ec = TestExecutionContext.executionContext
 
   "SegmentBlock" should {
     "convert empty KeyValues and not throw exception but return empty bytes" in {
@@ -74,7 +75,7 @@ class SegmentBlockSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentConfig = SegmentBlock.Config.random
-        )
+        ).awaitInf
 
       closedSegment shouldBe empty
     }

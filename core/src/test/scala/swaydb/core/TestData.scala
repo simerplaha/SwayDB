@@ -72,6 +72,7 @@ import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
 import swaydb.effect.{Dir, IOAction, IOStrategy}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis.FutureImplicits
 import swaydb.utils.StorageUnits._
 import swaydb.utils.{FiniteDurations, OperatingSystem}
 import swaydb.{ActorConfig, Aggregator, Error, Glass, IO}
@@ -227,7 +228,7 @@ object TestData {
               hashIndexConfig = level.hashIndexConfig,
               bloomFilterConfig = level.bloomFilterConfig,
               segmentConfig = level.segmentConfig //level.segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
-            ).map(_.sweep())
+            ).awaitInf.map(_.sweep())
 
         //        segments should have size 1
 
@@ -1852,7 +1853,8 @@ object TestData {
                        binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                        sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                        valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
-                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]]): TransientSegment.One = {
+                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                        ec: ExecutionContext): TransientSegment.One = {
       val segments =
         SegmentBlock.writeOnes(
           mergeStats =
@@ -1869,7 +1871,7 @@ object TestData {
           sortedIndexConfig = sortedIndexConfig,
           valuesConfig = valuesConfig,
           segmentConfig = segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
-        )
+        ).awaitInf
 
       segments should have size 1
       segments.head
@@ -2237,7 +2239,7 @@ object TestData {
               hashIndexConfig = hashIndexConfig,
               bloomFilterConfig = bloomFilterConfig,
               segmentConfig = segmentConfig
-            ).output
+            ).awaitInf.output
 
           putResult.persist(pathDistributor).value
       }

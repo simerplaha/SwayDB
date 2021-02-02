@@ -170,13 +170,13 @@ lazy val testkit =
           scalaParallelCollections(scalaVersion.value, Compile) :+
           "org.scalatest" %% "scalatest" % scalaTestVersion
     )
-    .dependsOn(utils)
 
 lazy val utils =
   project
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(testkit % Test)
 
 lazy val effect =
   project

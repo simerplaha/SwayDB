@@ -46,7 +46,7 @@ import scala.concurrent.{ExecutionContext, Future}
  * Responsible for performing write and read IO during compaction.
  *
  * This actor is created per compaction cycle and accumulates Segments created.
- * On error cases those segments are deleted when the Actor is terminated.
+ * On error those segments are deleted when the Actor is terminated.
  */
 case object CompactionIO {
 

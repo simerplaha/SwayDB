@@ -54,6 +54,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.SliceIOImplicits._
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.effect.Effect
+import swaydb.utils.Futures.FutureUnitImplicits
 import swaydb.utils.{FiniteDurations, SomeOrNone}
 import swaydb.{Aggregator, IO}
 
@@ -62,6 +63,7 @@ import scala.annotation.tailrec
 import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.concurrent.{ExecutionContext, Future}
 
 private[swaydb] sealed trait SegmentOption extends SomeOrNone[SegmentOption, Segment] {
   override def noneS: SegmentOption =
@@ -231,26 +233,26 @@ private[core] case object Segment extends LazyLogging {
                                                                      blockCacheSweeper: Option[MemorySweeper.Block],
                                                                      segmentIO: SegmentReadIO,
                                                                      idGenerator: IDGenerator,
-                                                                     forceSaveApplier: ForceSaveApplier): Iterable[PersistentSegment] = {
-    val transient =
-      SegmentBlock.writeOneOrMany(
-        mergeStats = mergeStats,
-        createdInLevel = createdInLevel,
-        bloomFilterConfig = bloomFilterConfig,
-        hashIndexConfig = hashIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        valuesConfig = valuesConfig,
-        segmentConfig = segmentConfig
-      )
-
-    SegmentWritePersistentIO.persistTransient(
-      pathsDistributor = pathsDistributor,
-      segmentRefCacheLife = segmentConfig.segmentRefCacheLife,
-      mmap = segmentConfig.mmap,
-      transient = transient
-    ).get
-  }
+                                                                     forceSaveApplier: ForceSaveApplier,
+                                                                     ec: ExecutionContext): Future[Iterable[PersistentSegment]] =
+    SegmentBlock.writeOneOrMany(
+      mergeStats = mergeStats,
+      createdInLevel = createdInLevel,
+      bloomFilterConfig = bloomFilterConfig,
+      hashIndexConfig = hashIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      valuesConfig = valuesConfig,
+      segmentConfig = segmentConfig
+    ) flatMap {
+      transient =>
+        SegmentWritePersistentIO.persistTransient(
+          pathsDistributor = pathsDistributor,
+          segmentRefCacheLife = segmentConfig.segmentRefCacheLife,
+          mmap = segmentConfig.mmap,
+          transient = transient
+        ).toFuture
+    }
 
   def copyToPersist(segment: Segment,
                     createdInLevel: Int,
@@ -270,17 +272,20 @@ private[core] case object Segment extends LazyLogging {
                                                         blockCacheSweeper: Option[MemorySweeper.Block],
                                                         segmentIO: SegmentReadIO,
                                                         idGenerator: IDGenerator,
-                                                        forceSaveApplier: ForceSaveApplier): Iterable[PersistentSegment] =
+                                                        forceSaveApplier: ForceSaveApplier,
+                                                        ec: ExecutionContext): Future[Iterable[PersistentSegment]] =
     segment match {
       case segment: PersistentSegment =>
-        Slice(
-          copyToPersist(
-            segment = segment,
-            pathsDistributor = pathsDistributor,
-            segmentRefCacheLife = segmentConfig.segmentRefCacheLife,
-            mmap = segmentConfig.mmap
+        Future {
+          Slice(
+            copyToPersist(
+              segment = segment,
+              pathsDistributor = pathsDistributor,
+              segmentRefCacheLife = segmentConfig.segmentRefCacheLife,
+              mmap = segmentConfig.mmap
+            )
           )
-        )
+        }
 
       case memory: MemorySegment =>
         copyToPersist(
@@ -364,7 +369,8 @@ private[core] case object Segment extends LazyLogging {
                                                         blockCacheSweeper: Option[MemorySweeper.Block],
                                                         segmentIO: SegmentReadIO,
                                                         idGenerator: IDGenerator,
-                                                        forceSaveApplier: ForceSaveApplier): Iterable[PersistentSegment] = {
+                                                        forceSaveApplier: ForceSaveApplier,
+                                                        ec: ExecutionContext): Future[Iterable[PersistentSegment]] = {
     val builder =
       if (removeDeletes)
         MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.toLastLevelOrNull)
@@ -451,7 +457,8 @@ private[core] case object Segment extends LazyLogging {
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                           hashIndexConfig: HashIndexBlock.Config,
                           bloomFilterConfig: BloomFilterBlock.Config,
-                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.OneOrRemoteRefOrMany] = {
+                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                              ec: ExecutionContext): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] = {
 
     val sortedIndexSize =
       sortedIndexBlock.compressionInfo match {
@@ -505,26 +512,31 @@ private[core] case object Segment extends LazyLogging {
                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                          hashIndexConfig: HashIndexBlock.Config,
                          bloomFilterConfig: BloomFilterBlock.Config,
-                         segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.OneOrRemoteRefOrMany] = {
-    val builder =
-      MergeStats
-        .persistentBuilder(Segment.toMemoryIterator(keyValues, removeDeletes))
-        .close(
-          hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
-          optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
-        )
-
-    SegmentBlock.writeOneOrMany(
-      mergeStats = builder,
-      createdInLevel = createdInLevel,
-      bloomFilterConfig = bloomFilterConfig,
-      hashIndexConfig = hashIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      valuesConfig = valuesConfig,
-      segmentConfig = segmentConfig
-    )
-  }
+                         segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                             ec: ExecutionContext): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
+    Future
+      .unit
+      .mapUnit {
+        MergeStats
+          .persistentBuilder(Segment.toMemoryIterator(keyValues, removeDeletes))
+          .close(
+            hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+            optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+          )
+      }
+      .flatMap {
+        builder =>
+          SegmentBlock.writeOneOrMany(
+            mergeStats = builder,
+            createdInLevel = createdInLevel,
+            bloomFilterConfig = bloomFilterConfig,
+            hashIndexConfig = hashIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            valuesConfig = valuesConfig,
+            segmentConfig = segmentConfig
+          )
+      }
 
   def apply(path: Path,
             formatId: Byte,

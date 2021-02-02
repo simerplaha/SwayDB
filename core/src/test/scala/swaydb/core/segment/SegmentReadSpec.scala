@@ -1025,9 +1025,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
     }
 
     "return deadline if one of the Segments contains deadline" in {
-      implicit val ec = TestExecutionContext.executionContext
-
-      runThisParallel(10.times) {
+      runThis(10.times) {
         TestCaseSweeper {
           implicit sweeper =>
             val keyValues = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
@@ -1068,7 +1066,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
     "return deadline" in {
       implicit val ec = TestExecutionContext.executionContext
 
-      runThisParallel(10.times) {
+      runThis(10.times) {
         TestCaseSweeper {
           implicit sweeper =>
             val keyValues1 = randomizedKeyValues(1000)

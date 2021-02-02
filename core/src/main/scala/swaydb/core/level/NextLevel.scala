@@ -100,7 +100,7 @@ trait NextLevel extends LevelRef {
                                            compactionIO: CompactionIO.Actor): Future[Iterable[DefIO[SegmentOption, Iterable[Segment]]]]
 
   def refresh(segment: Iterable[Segment],
-              removeDeletedRecords: Boolean): IO[Error.Level, Iterable[DefIO[Segment, Slice[TransientSegment]]]]
+              removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[DefIO[Segment, Slice[TransientSegment]]]]
 
   def collapse(segments: Iterable[Segment],
                removeDeletedRecords: Boolean)(implicit ec: ExecutionContext,

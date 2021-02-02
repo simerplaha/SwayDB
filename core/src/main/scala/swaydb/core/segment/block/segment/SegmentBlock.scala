@@ -43,11 +43,14 @@ import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.effect.{IOAction, IOStrategy}
-import swaydb.utils.ByteSizeOf
+import swaydb.utils.Futures._
+import swaydb.utils.{ByteSizeOf, Futures}
 
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
+import scala.collection.{BuildFrom, mutable}
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 private[core] case object SegmentBlock extends LazyLogging {
@@ -180,32 +183,32 @@ private[core] case object SegmentBlock extends LazyLogging {
                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                      sortedIndexConfig: SortedIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
-                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.OneOrRemoteRefOrMany] =
-    if (mergeStats.isEmpty) {
-      Slice.empty
-    } else {
-      val ones: Slice[TransientSegment.One] =
-        writeOnes(
-          mergeStats = mergeStats,
-          createdInLevel = createdInLevel,
-          bloomFilterConfig = bloomFilterConfig,
-          hashIndexConfig = hashIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          valuesConfig = valuesConfig,
-          segmentConfig = segmentConfig
-        )
-
-      writeOneOrMany(
+                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                         ec: ExecutionContext): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
+    if (mergeStats.isEmpty)
+      Future.successful(Slice.empty)
+    else
+      writeOnes(
+        mergeStats = mergeStats,
         createdInLevel = createdInLevel,
-        ones = ones,
-        sortedIndexConfig = sortedIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
         hashIndexConfig = hashIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
+        sortedIndexConfig = sortedIndexConfig,
         valuesConfig = valuesConfig,
         segmentConfig = segmentConfig
-      )
-    }
+      ) flatMap {
+        ones =>
+          writeOneOrMany(
+            createdInLevel = createdInLevel,
+            ones = ones,
+            sortedIndexConfig = sortedIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            valuesConfig = valuesConfig,
+            segmentConfig = segmentConfig
+          )
+      }
 
   def writeOneOrMany(createdInLevel: Int,
                      ones: Slice[TransientSegment.OneOrRemoteRef],
@@ -213,28 +216,62 @@ private[core] case object SegmentBlock extends LazyLogging {
                      hashIndexConfig: HashIndexBlock.Config,
                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
-                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.OneOrRemoteRefOrMany] =
-    if (ones.isEmpty) {
-      Slice.empty
-    } else {
-      val groups: Slice[Slice[TransientSegment.OneOrRemoteRef]] =
-        Collections.groupedBySize[TransientSegment.OneOrRemoteRef](
-          minGroupSize = segmentConfig.minSize,
-          itemSize = _.segmentSize,
-          items = ones
-        )
+                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                         ec: ExecutionContext): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
+    if (ones.isEmpty)
+      Future.successful(Slice.empty)
+    else
+      Future
+        .unit
+        .flatMapUnit {
+          val groups: Slice[Slice[TransientSegment.OneOrRemoteRef]] =
+            Collections.groupedBySize[TransientSegment.OneOrRemoteRef](
+              minGroupSize = segmentConfig.minSize,
+              itemSize = _.segmentSize,
+              items = ones
+            )
 
-      val many = Slice.of[TransientSegment.OneOrRemoteRefOrMany](groups.size)
+          //Be explicit since we know the maximum size already.
+          val buildFrom =
+            new BuildFrom[Slice[Slice[TransientSegment.OneOrRemoteRef]], TransientSegment.OneOrRemoteRefOrMany, Slice[TransientSegment.OneOrRemoteRefOrMany]] {
+              override def fromSpecific(from: Slice[Slice[TransientSegment.OneOrRemoteRef]])(it: IterableOnce[TransientSegment.OneOrRemoteRefOrMany]): Slice[TransientSegment.OneOrRemoteRefOrMany] =
+                Slice.of[TransientSegment.OneOrRemoteRefOrMany](groups.size)
 
-      var index = 0
+              override def newBuilder(from: Slice[Slice[TransientSegment.OneOrRemoteRef]]): mutable.Builder[TransientSegment.OneOrRemoteRefOrMany, Slice[TransientSegment.OneOrRemoteRefOrMany]] =
+                Slice.newBuilder(groups.size)
+            }
 
-      while (index < groups.size) {
+          Future.traverse(groups)(
+            segments =>
+              writeGroupedOneOrMany(
+                createdInLevel = createdInLevel,
+                segments = segments,
+                sortedIndexConfig = sortedIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                valuesConfig = valuesConfig,
+                segmentConfig = segmentConfig
+              )
+          )(buildFrom, ec)
+        }
 
-        val segments = groups.get(index)
-
-        if (segments.size == 1) {
-          many add segments.head.copyWithFileHeader(headerBytes = PersistentSegmentOne.formatIdSlice)
-        } else {
+  /**
+   * Segments are already groups and ready to persisted.
+   */
+  private def writeGroupedOneOrMany(createdInLevel: Int,
+                                    segments: Slice[TransientSegment.OneOrRemoteRef],
+                                    sortedIndexConfig: SortedIndexBlock.Config,
+                                    hashIndexConfig: HashIndexBlock.Config,
+                                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                    valuesConfig: ValuesBlock.Config,
+                                    segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                        ec: ExecutionContext): Future[TransientSegment.OneOrRemoteRefOrMany] =
+    if (segments.size == 1)
+      Future.successful(segments.head.copyWithFileHeader(headerBytes = PersistentSegmentOne.formatIdSlice))
+    else
+      Future
+        .unit
+        .flatMapUnit {
           val listKeyValue: MergeStats.Persistent.Builder[Memory, Slice] =
             MergeStats.persistent(Slice.newAggregator(segments.size * 2))
 
@@ -257,50 +294,44 @@ private[core] case object SegmentBlock extends LazyLogging {
             else
               sortedIndexConfig
 
-          val listSegments =
-            writeOnes(
-              mergeStats = closedListKeyValues,
-              createdInLevel = createdInLevel,
-              bloomFilterConfig = BloomFilterBlock.Config.disabled,
-              hashIndexConfig = if (segmentConfig.enableHashIndexForListSegment) hashIndexConfig else HashIndexBlock.Config.disabled,
-              binarySearchIndexConfig = binarySearchIndexConfig,
-              sortedIndexConfig = modifiedSortedIndex,
-              valuesConfig = valuesConfig,
-              segmentConfig = segmentConfig.singleton
-            )
+          writeOnes(
+            mergeStats = closedListKeyValues,
+            createdInLevel = createdInLevel,
+            bloomFilterConfig = BloomFilterBlock.Config.disabled,
+            hashIndexConfig = if (segmentConfig.enableHashIndexForListSegment) hashIndexConfig else HashIndexBlock.Config.disabled,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            sortedIndexConfig = modifiedSortedIndex,
+            valuesConfig = valuesConfig,
+            segmentConfig = segmentConfig.singleton
+          ) map {
+            listSegments =>
+              assert(listSegments.size == 1, s"listSegments.size: ${listSegments.size} != 1")
 
-          assert(listSegments.size == 1, s"listSegments.size: ${listSegments.size} != 1")
+              val listSegment = listSegments.head
+              val listSegmentSize = listSegment.segmentSize
 
-          val listSegment = listSegments.head
-          val listSegmentSize = listSegment.segmentSize
+              val headerSize =
+                ByteSizeOf.byte +
+                  Bytes.sizeOfUnsignedInt(listSegmentSize)
 
-          val headerSize =
-            ByteSizeOf.byte +
-              Bytes.sizeOfUnsignedInt(listSegmentSize)
+              val fileHeader = Slice.of[Byte](headerSize)
+              fileHeader add PersistentSegmentMany.formatId
+              fileHeader addUnsignedInt listSegmentSize
 
-          val fileHeader = Slice.of[Byte](headerSize)
-          fileHeader add PersistentSegmentMany.formatId
-          fileHeader addUnsignedInt listSegmentSize
+              assert(listSegment.minMaxFunctionId.isEmpty, "minMaxFunctionId was not empty")
 
-          assert(listSegment.minMaxFunctionId.isEmpty, "minMaxFunctionId was not empty")
 
-          many add
-            TransientSegment.Many(
-              minKey = segments.head.minKey,
-              maxKey = segments.last.maxKey,
-              minMaxFunctionId = minMaxFunctionId,
-              fileHeader = fileHeader,
-              nearestPutDeadline = listSegment.nearestPutDeadline,
-              listSegment = listSegment,
-              segments = segments
-            )
+              TransientSegment.Many(
+                minKey = segments.head.minKey,
+                maxKey = segments.last.maxKey,
+                minMaxFunctionId = minMaxFunctionId,
+                fileHeader = fileHeader,
+                nearestPutDeadline = listSegment.nearestPutDeadline,
+                listSegment = listSegment,
+                segments = segments
+              )
+          }
         }
-
-        index += 1
-      }
-
-      many
-    }
 
   def writeOnes(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
                 createdInLevel: Int,
@@ -309,9 +340,10 @@ private[core] case object SegmentBlock extends LazyLogging {
                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                 sortedIndexConfig: SortedIndexBlock.Config,
                 valuesConfig: ValuesBlock.Config,
-                segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.One] =
+                segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                    ec: ExecutionContext): Future[Slice[TransientSegment.One]] =
     if (mergeStats.isEmpty)
-      Slice.empty
+      Future.successful(Slice.empty)
     else
       writeSegmentRefs(
         mergeStats = mergeStats,
@@ -322,13 +354,18 @@ private[core] case object SegmentBlock extends LazyLogging {
         sortedIndexConfig = sortedIndexConfig,
         valuesConfig = valuesConfig,
         segmentConfig = segmentConfig
-      ) map {
-        segment =>
-          Block.block(
-            blocks = segment,
-            compressions = segmentConfig.compressions(UncompressedBlockInfo(segment.segmentSize)),
-            blockName = blockName
-          )
+      ) flatMap {
+        segments =>
+          Future.traverse(segments) {
+            segment =>
+              Future {
+                Block.block(
+                  blocks = segment,
+                  compressions = segmentConfig.compressions(UncompressedBlockInfo(segment.segmentSize)),
+                  blockName = blockName
+                )
+              }
+          }
       }
 
   def writeSegmentRefs(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
@@ -338,140 +375,146 @@ private[core] case object SegmentBlock extends LazyLogging {
                        binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                        sortedIndexConfig: SortedIndexBlock.Config,
                        valuesConfig: ValuesBlock.Config,
-                       segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegmentRef] =
-    if (mergeStats.isEmpty) {
-      Slice.empty
-    } else {
-      //IMPORTANT! - The following is critical for compaction performance!
+                       segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                           ec: ExecutionContext): Future[Slice[TransientSegmentRef]] =
+    if (mergeStats.isEmpty)
+      Future.successful(Slice.empty)
+    else
+      Future
+        .unit
+        .flatMapUnit {
+          //IMPORTANT! - The following is critical for compaction performance!
 
-      //start sortedIndex for a new Segment.
-      var sortedIndex =
-        SortedIndexBlock.init(
-          stats = mergeStats,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig
-        )
-
-      //start valuesBlock for a new Segment.
-      var values =
-        ValuesBlock.init(
-          stats = mergeStats,
-          valuesConfig = valuesConfig,
-          builder = sortedIndex.builder
-        )
-
-      val keyValuesCount = mergeStats.keyValuesCount
-
-      val totalAllocatedSize = sortedIndex.compressibleBytes.allocatedSize + values.fold(0)(_.compressibleBytes.allocatedSize)
-      val maxSegmentCountBasedOnSize = totalAllocatedSize / segmentConfig.minSize
-      val maxSegmentCountBasedOnCount = keyValuesCount / segmentConfig.maxCount
-      val maxSegmentsCount = (maxSegmentCountBasedOnSize max maxSegmentCountBasedOnCount) + 2
-      val segments = Slice.of[TransientSegmentRef](maxSegmentsCount)
-
-      def unwrittenTailSegmentBytes() =
-        sortedIndex.compressibleBytes.unwrittenTailSize() + {
-          if (values.isDefined)
-            values.get.compressibleBytes.unwrittenTailSize()
-          else
-            0
-        }
-
-      //keys to write to bloomFilter.
-      val bloomFilterIndexableKeys = ListBuffer.empty[Slice[Byte]]
-
-      var totalProcessedCount = 0 //numbers of key-values written
-      var processedInThisSegment = 0 //numbers of key-values written
-      //start off with true for cases with keyValues are empty.
-      //true if the following iteration exited after closing the Segment.
-      var closed = true
-
-      //start building the segment.
-      for (keyValue <- mergeStats.keyValues) {
-        closed = false
-        totalProcessedCount += 1
-        processedInThisSegment += 1
-
-        val comparableKey = keyOrder.comparableKey(keyValue.key)
-        bloomFilterIndexableKeys += comparableKey
-
-        SortedIndexBlock.write(keyValue = keyValue, state = sortedIndex)
-        values foreach (ValuesBlock.write(keyValue, _))
-
-        //Do not include SegmentFooterBlock.optimalBytesRequired here. Screws up the above max segments count estimation.
-        var currentSegmentSize = sortedIndex.compressibleBytes.size
-        values foreach (currentSegmentSize += _.compressibleBytes.size)
-
-        //check and close segment if segment size limit is reached.
-        //to do - maybe check if compression is defined and increase the segmentSize.
-        def segmentSizeLimitReached: Boolean =
-          currentSegmentSize >= segmentConfig.minSize && unwrittenTailSegmentBytes() > segmentConfig.minSize
-
-        def segmentCountLimitReached: Boolean =
-          processedInThisSegment >= segmentConfig.maxCount && (keyValuesCount - totalProcessedCount >= segmentConfig.maxCount)
-
-        if (segmentCountLimitReached || segmentSizeLimitReached) {
-          logger.debug(s"Creating segment of size: $currentSegmentSize.bytes. segmentCountLimitReached: $segmentCountLimitReached. segmentSizeLimitReached: $segmentSizeLimitReached")
-
-          val (closedSegment, nextSortedIndex, nextValues) =
-            writeSegmentRef(
-              createdInLevel = createdInLevel,
-              hasMoreKeyValues = totalProcessedCount < keyValuesCount,
-              bloomFilterIndexableKeys = bloomFilterIndexableKeys,
-              sortedIndex = sortedIndex,
-              values = values,
-              bloomFilterConfig = bloomFilterConfig,
-              hashIndexConfig = hashIndexConfig,
-              binarySearchIndexConfig = binarySearchIndexConfig,
-              sortedIndexConfig = sortedIndexConfig,
+          //start sortedIndex for a new Segment.
+          var sortedIndex =
+            SortedIndexBlock.init(
+              stats = mergeStats,
               valuesConfig = valuesConfig,
-              prepareForCachingSegmentBlocksOnCreate = segmentConfig.cacheBlocksOnCreate
+              sortedIndexConfig = sortedIndexConfig
             )
 
-          segments add closedSegment
+          //start valuesBlock for a new Segment.
+          var values =
+            ValuesBlock.init(
+              stats = mergeStats,
+              valuesConfig = valuesConfig,
+              builder = sortedIndex.builder
+            )
 
-          //segment's closed. Prepare for next Segment.
-          bloomFilterIndexableKeys.clear() //clear bloomFilter keys.
+          val keyValuesCount = mergeStats.keyValuesCount
 
-          nextSortedIndex foreach { //set the newSortedIndex if it was created.
-            newSortedIndex =>
-              sortedIndex = newSortedIndex
+          val totalAllocatedSize = sortedIndex.compressibleBytes.allocatedSize + values.fold(0)(_.compressibleBytes.allocatedSize)
+          val maxSegmentCountBasedOnSize = totalAllocatedSize / segmentConfig.minSize
+          val maxSegmentCountBasedOnCount = keyValuesCount / segmentConfig.maxCount
+          val maxSegmentsCount = (maxSegmentCountBasedOnSize max maxSegmentCountBasedOnCount) + 2
+          val segments = Slice.of[Future[TransientSegmentRef]](maxSegmentsCount)
+
+          def unwrittenTailSegmentBytes() =
+            sortedIndex.compressibleBytes.unwrittenTailSize() + {
+              if (values.isDefined)
+                values.get.compressibleBytes.unwrittenTailSize()
+              else
+                0
+            }
+
+          //keys to write to bloomFilter.
+          var bloomFilterIndexableKeys = ListBuffer.empty[Slice[Byte]]
+
+          var totalProcessedCount = 0 //numbers of key-values written
+          var processedInThisSegment = 0 //numbers of key-values written
+          //start off with true for cases with keyValues are empty.
+          //true if the following iteration exited after closing the Segment.
+          var closed = true
+
+          //start building the segment.
+          for (keyValue <- mergeStats.keyValues) {
+            closed = false
+            totalProcessedCount += 1
+            processedInThisSegment += 1
+
+            val comparableKey = keyOrder.comparableKey(keyValue.key)
+            bloomFilterIndexableKeys += comparableKey
+
+            SortedIndexBlock.write(keyValue = keyValue, state = sortedIndex)
+            values foreach (ValuesBlock.write(keyValue, _))
+
+            //Do not include SegmentFooterBlock.optimalBytesRequired here. Screws up the above max segments count estimation.
+            var currentSegmentSize = sortedIndex.compressibleBytes.size
+            values foreach (currentSegmentSize += _.compressibleBytes.size)
+
+            //check and close segment if segment size limit is reached.
+            //to do - maybe check if compression is defined and increase the segmentSize.
+            def segmentSizeLimitReached: Boolean =
+              currentSegmentSize >= segmentConfig.minSize && unwrittenTailSegmentBytes() > segmentConfig.minSize
+
+            def segmentCountLimitReached: Boolean =
+              processedInThisSegment >= segmentConfig.maxCount && (keyValuesCount - totalProcessedCount >= segmentConfig.maxCount)
+
+            if (segmentCountLimitReached || segmentSizeLimitReached) {
+              logger.debug(s"Creating segment of size: $currentSegmentSize.bytes. segmentCountLimitReached: $segmentCountLimitReached. segmentSizeLimitReached: $segmentSizeLimitReached")
+
+              val (closedSegment, nextSortedIndex, nextValues) =
+                writeSegmentRef(
+                  createdInLevel = createdInLevel,
+                  hasMoreKeyValues = totalProcessedCount < keyValuesCount,
+                  bloomFilterIndexableKeys = bloomFilterIndexableKeys,
+                  sortedIndex = sortedIndex,
+                  values = values,
+                  bloomFilterConfig = bloomFilterConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  valuesConfig = valuesConfig,
+                  prepareForCachingSegmentBlocksOnCreate = segmentConfig.cacheBlocksOnCreate
+                )
+
+              segments add closedSegment
+
+              //segment's closed. Prepare for next Segment.
+              bloomFilterIndexableKeys = ListBuffer.empty[Slice[Byte]] //clear bloomFilter keys.
+
+              nextSortedIndex foreach { //set the newSortedIndex if it was created.
+                newSortedIndex =>
+                  sortedIndex = newSortedIndex
+              }
+
+              values = nextValues
+              processedInThisSegment = 0
+              closed = true
+            }
           }
 
-          values = nextValues
-          processedInThisSegment = 0
-          closed = true
+          //if the segment was closed and all key-values were written then close Segment.
+          if (closed) {
+            Future.sequence(segments)
+          } else {
+            val (segmentRef, nextSortedIndex, nextValuesBlock) =
+              writeSegmentRef(
+                createdInLevel = createdInLevel,
+                hasMoreKeyValues = false,
+                bloomFilterIndexableKeys = bloomFilterIndexableKeys,
+                sortedIndex = sortedIndex,
+                values = values,
+                bloomFilterConfig = bloomFilterConfig,
+                hashIndexConfig = hashIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                valuesConfig = valuesConfig,
+                prepareForCachingSegmentBlocksOnCreate = segmentConfig.cacheBlocksOnCreate
+              )
+
+            //temporary check.
+            assert(nextSortedIndex.isEmpty && nextValuesBlock.isEmpty, s"${nextSortedIndex.isEmpty} && ${nextValuesBlock.isEmpty} is not empty.")
+
+            segments add segmentRef
+
+            Future.sequence(segments)
+          }
         }
-      }
-
-      //if the segment was closed and all key-values were written then close Segment.
-      if (closed) {
-        segments
-      } else {
-        val (segmentRef, nextSortedIndex, nextValuesBlock) =
-          writeSegmentRef(
-            createdInLevel = createdInLevel,
-            hasMoreKeyValues = false,
-            bloomFilterIndexableKeys = bloomFilterIndexableKeys,
-            sortedIndex = sortedIndex,
-            values = values,
-            bloomFilterConfig = bloomFilterConfig,
-            hashIndexConfig = hashIndexConfig,
-            binarySearchIndexConfig = binarySearchIndexConfig,
-            sortedIndexConfig = sortedIndexConfig,
-            valuesConfig = valuesConfig,
-            prepareForCachingSegmentBlocksOnCreate = segmentConfig.cacheBlocksOnCreate
-          )
-
-        //temporary check.
-        assert(nextSortedIndex.isEmpty && nextValuesBlock.isEmpty, s"${nextSortedIndex.isEmpty} && ${nextValuesBlock.isEmpty} is not empty.")
-
-        segments add segmentRef
-      }
-    }
 
   private def writeSegmentRef(createdInLevel: Int,
                               hasMoreKeyValues: Boolean,
-                              bloomFilterIndexableKeys: ListBuffer[Slice[Byte]],
+                              bloomFilterIndexableKeys: Iterable[Slice[Byte]],
                               sortedIndex: SortedIndexBlock.State,
                               values: Option[ValuesBlock.State],
                               bloomFilterConfig: BloomFilterBlock.Config,
@@ -479,12 +522,15 @@ private[core] case object SegmentBlock extends LazyLogging {
                               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                               sortedIndexConfig: SortedIndexBlock.Config,
                               valuesConfig: ValuesBlock.Config,
-                              prepareForCachingSegmentBlocksOnCreate: Boolean): (TransientSegmentRef, Option[SortedIndexBlock.State], Option[ValuesBlock.State]) = {
+                              prepareForCachingSegmentBlocksOnCreate: Boolean)(implicit ec: ExecutionContext): (Future[TransientSegmentRef], Option[SortedIndexBlock.State], Option[ValuesBlock.State]) = {
     //tail bytes before closing and compression is applied.
     val unwrittenTailSortedIndexBytes = sortedIndex.compressibleBytes.unwrittenTail()
     val unwrittenTailValueBytes = values.map(_.compressibleBytes.unwrittenTail())
 
-    val closedBlocks =
+    //Run closeBlocks concurrently in another thread while the
+    //next slot of sortedIndex and valuesBlock is being created.
+
+    val ref: Future[TransientSegmentRef] =
       closeBlocks(
         sortedIndex = sortedIndex,
         values = values,
@@ -493,63 +539,63 @@ private[core] case object SegmentBlock extends LazyLogging {
         hashIndexConfig = hashIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
         prepareForCachingSegmentBlocksOnCreate = prepareForCachingSegmentBlocksOnCreate
-      )
+      ) map {
+        closedBlocks =>
+          val footer =
+            SegmentFooterBlock.init(
+              keyValuesCount = closedBlocks.sortedIndex.entriesCount,
+              rangesCount = closedBlocks.sortedIndex.rangeCount,
+              updateCount = closedBlocks.sortedIndex.updateCount,
+              putCount = closedBlocks.sortedIndex.putCount,
+              putDeadlineCount = closedBlocks.sortedIndex.putDeadlineCount,
+              createdInLevel = createdInLevel
+            )
 
-    val footer =
-      SegmentFooterBlock.init(
-        keyValuesCount = closedBlocks.sortedIndex.entriesCount,
-        rangesCount = closedBlocks.sortedIndex.rangeCount,
-        updateCount = closedBlocks.sortedIndex.updateCount,
-        putCount = closedBlocks.sortedIndex.putCount,
-        putDeadlineCount = closedBlocks.sortedIndex.putDeadlineCount,
-        createdInLevel = createdInLevel
-      )
+          val closedFooter: SegmentFooterBlock.State =
+            SegmentFooterBlock.writeAndClose(
+              state = footer,
+              closedBlocks = closedBlocks
+            )
 
-    val closedFooter: SegmentFooterBlock.State =
-      SegmentFooterBlock.writeAndClose(
-        state = footer,
-        closedBlocks = closedBlocks
-      )
+          new TransientSegmentRef(
+            minKey = closedBlocks.sortedIndex.minKey,
+            maxKey = closedBlocks.sortedIndex.maxKey,
 
-    val ref =
-      new TransientSegmentRef(
-        minKey = closedBlocks.sortedIndex.minKey,
-        maxKey = closedBlocks.sortedIndex.maxKey,
+            functionMinMax = closedBlocks.minMaxFunction,
 
-        functionMinMax = closedBlocks.minMaxFunction,
+            nearestDeadline = closedBlocks.nearestDeadline,
+            updateCount = closedBlocks.sortedIndex.updateCount,
+            putCount = closedBlocks.sortedIndex.putCount,
+            putDeadlineCount = closedBlocks.sortedIndex.putDeadlineCount,
+            rangeCount = closedBlocks.sortedIndex.rangeCount,
+            keyValueCount = closedBlocks.sortedIndex.entriesCount,
+            createdInLevel = createdInLevel,
 
-        nearestDeadline = closedBlocks.nearestDeadline,
-        updateCount = closedBlocks.sortedIndex.updateCount,
-        putCount = closedBlocks.sortedIndex.putCount,
-        putDeadlineCount = closedBlocks.sortedIndex.putDeadlineCount,
-        rangeCount = closedBlocks.sortedIndex.rangeCount,
-        keyValueCount = closedBlocks.sortedIndex.entriesCount,
-        createdInLevel = createdInLevel,
+            valuesBlockHeader = closedBlocks.values.map(_.header.close()),
 
-        valuesBlockHeader = closedBlocks.values.map(_.header.close()),
+            valuesBlock = closedBlocks.values.map(_.compressibleBytes.close()),
+            valuesUnblockedReader = closedBlocks.valuesUnblockedReader,
 
-        valuesBlock = closedBlocks.values.map(_.compressibleBytes.close()),
-        valuesUnblockedReader = closedBlocks.valuesUnblockedReader,
+            sortedIndexBlockHeader = closedBlocks.sortedIndex.header.close(),
+            sortedIndexBlock = closedBlocks.sortedIndex.compressibleBytes.close(),
+            sortedIndexUnblockedReader = closedBlocks.sortedIndexUnblockedReader,
+            sortedIndexClosedState = closedBlocks.sortedIndex,
 
-        sortedIndexBlockHeader = closedBlocks.sortedIndex.header.close(),
-        sortedIndexBlock = closedBlocks.sortedIndex.compressibleBytes.close(),
-        sortedIndexUnblockedReader = closedBlocks.sortedIndexUnblockedReader,
-        sortedIndexClosedState = closedBlocks.sortedIndex,
+            hashIndexBlockHeader = closedBlocks.hashIndex map (_.header.close()),
+            hashIndexBlock = closedBlocks.hashIndex map (_.compressibleBytes.close()),
+            hashIndexUnblockedReader = closedBlocks.hashIndexUnblockedReader,
 
-        hashIndexBlockHeader = closedBlocks.hashIndex map (_.header.close()),
-        hashIndexBlock = closedBlocks.hashIndex map (_.compressibleBytes.close()),
-        hashIndexUnblockedReader = closedBlocks.hashIndexUnblockedReader,
+            binarySearchIndexBlockHeader = closedBlocks.binarySearchIndex map (_.header.close()),
+            binarySearchIndexBlock = closedBlocks.binarySearchIndex map (_.compressibleBytes.close()),
+            binarySearchUnblockedReader = closedBlocks.binarySearchUnblockedReader,
 
-        binarySearchIndexBlockHeader = closedBlocks.binarySearchIndex map (_.header.close()),
-        binarySearchIndexBlock = closedBlocks.binarySearchIndex map (_.compressibleBytes.close()),
-        binarySearchUnblockedReader = closedBlocks.binarySearchUnblockedReader,
+            bloomFilterBlockHeader = closedBlocks.bloomFilter map (_.header.close()),
+            bloomFilterBlock = closedBlocks.bloomFilter map (_.compressibleBytes.close()),
+            bloomFilterUnblockedReader = closedBlocks.bloomFilterUnblockedReader,
 
-        bloomFilterBlockHeader = closedBlocks.bloomFilter map (_.header.close()),
-        bloomFilterBlock = closedBlocks.bloomFilter map (_.compressibleBytes.close()),
-        bloomFilterUnblockedReader = closedBlocks.bloomFilterUnblockedReader,
-
-        footerBlock = closedFooter.bytes.close()
-      )
+            footerBlock = closedFooter.bytes.close()
+          )
+      }
 
     //start new sortedIndex block only if there are more key-values to process
     val newSortedIndex =
@@ -585,78 +631,188 @@ private[core] case object SegmentBlock extends LazyLogging {
     (ref, newSortedIndex, newValues)
   }
 
+  /**
+   * Build closed Blocks and runs each block index concurrently.
+   */
   private def closeBlocks(sortedIndex: SortedIndexBlock.State,
                           values: Option[ValuesBlock.State],
-                          bloomFilterIndexableKeys: ListBuffer[Slice[Byte]],
+                          bloomFilterIndexableKeys: Iterable[Slice[Byte]],
                           bloomFilterConfig: BloomFilterBlock.Config,
                           hashIndexConfig: HashIndexBlock.Config,
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                          prepareForCachingSegmentBlocksOnCreate: Boolean): ClosedBlocks = {
-    val sortedIndexState = SortedIndexBlock.close(sortedIndex)
-    val valuesState = values map ValuesBlock.close
-
-    val bloomFilter =
-      if (sortedIndexState.mightContainRemoveRange || bloomFilterIndexableKeys.size < bloomFilterConfig.minimumNumberOfKeys)
-        None
-      else
-        BloomFilterBlock.init(
-          numberOfKeys = bloomFilterIndexableKeys.size,
-          falsePositiveRate = bloomFilterConfig.falsePositiveRate,
-          updateMaxProbe = bloomFilterConfig.optimalMaxProbe,
-          compressions = bloomFilterConfig.compressions
-        )
-
-    val hashIndex =
-      HashIndexBlock.init(
-        sortedIndexState = sortedIndexState,
-        hashIndexConfig = hashIndexConfig
-      )
-
-    val binarySearchIndex =
-      BinarySearchIndexBlock.init(
-        sortedIndexState = sortedIndexState,
-        binarySearchConfig = binarySearchIndexConfig
-      )
-
-    if (hashIndex.isDefined || binarySearchIndex.isDefined)
-      for (indexEntry <- sortedIndexState.secondaryIndexEntries) {
-        val hit =
-          if (hashIndex.isDefined)
-            HashIndexBlock.write(
-              entry = indexEntry,
-              state = hashIndex.get
-            )
+                          prepareForCachingSegmentBlocksOnCreate: Boolean)(implicit ec: ExecutionContext): Future[ClosedBlocks] =
+    Future
+      .unit
+      .flatMapUnit {
+        //close the Values block first since no other block depends on it
+        val closedValuesFuture =
+          if (values.isDefined)
+            Future(Some(ValuesBlock.close(values.get)))
           else
-            false
+            Futures.none
 
-        //if it's a hit and binary search is not configured to be full.
-        //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
-        if (binarySearchIndex.isDefined && (binarySearchIndexConfig.fullIndex || !hit))
-          BinarySearchIndexBlock.write(
-            entry = indexEntry,
-            state = binarySearchIndex.get
-          )
+        //close bloomFilter since no other block depends on it
+        val closedBloomFilterFuture =
+          if (sortedIndex.mightContainRemoveRange || bloomFilterIndexableKeys.size < bloomFilterConfig.minimumNumberOfKeys)
+            Futures.none
+          else
+            Future { //build bloomFilter concurrently
+              val bloomFilterOption =
+                BloomFilterBlock.init(
+                  numberOfKeys = bloomFilterIndexableKeys.size,
+                  falsePositiveRate = bloomFilterConfig.falsePositiveRate,
+                  updateMaxProbe = bloomFilterConfig.optimalMaxProbe,
+                  compressions = bloomFilterConfig.compressions
+                )
+
+              if (bloomFilterOption.isDefined) {
+                val bloomFilter = bloomFilterOption.get
+
+                for (comparableKey <- bloomFilterIndexableKeys)
+                  BloomFilterBlock.add(
+                    comparableKey = comparableKey,
+                    state = bloomFilter
+                  )
+
+                BloomFilterBlock.close(bloomFilter)
+              } else {
+                None
+              }
+            }
+
+        //close sorted index and initialise build hashIndex and binarySearchIndex blocks
+        val closedSortedIndex = SortedIndexBlock.close(sortedIndex)
+
+        closeIndexBlocks(
+          closedSortedIndex = closedSortedIndex,
+          hashIndexConfig = hashIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig
+        ) flatMap {
+          case (closedHashIndex, closedBinarySearchIndex) =>
+            for {
+              closedBloomFilter <- closedBloomFilterFuture
+              closedValues <- closedValuesFuture
+            } yield {
+              new ClosedBlocks(
+                sortedIndex = closedSortedIndex,
+                values = closedValues,
+                hashIndex = closedHashIndex,
+                binarySearchIndex = closedBinarySearchIndex,
+                bloomFilter = closedBloomFilter,
+                minMaxFunction = closedSortedIndex.minMaxFunctionId,
+                prepareForCachingSegmentBlocksOnCreate = prepareForCachingSegmentBlocksOnCreate
+              )
+            }
+        }
       }
 
-    bloomFilter foreach {
-      bloomFilter =>
-        for (comparableKey <- bloomFilterIndexableKeys)
-          BloomFilterBlock.add(
-            comparableKey = comparableKey,
-            state = bloomFilter
+  /**
+   * Pre-condition: Input [[SortedIndexBlock.State]] MUST be closed.
+   *
+   * Concurrently builds hashIndex and binarySearch index.
+   */
+  private def closeIndexBlocks(closedSortedIndex: SortedIndexBlock.State, //SortedIndexBlock must be closed
+                               hashIndexConfig: HashIndexBlock.Config,
+                               binarySearchIndexConfig: BinarySearchIndexBlock.Config)(implicit ec: ExecutionContext): Future[(Option[HashIndexBlock.State], Option[BinarySearchIndexBlock.State])] =
+    Future
+      .unit
+      .flatMapUnit {
+        //initialise hashIndex
+        val hashIndexOption =
+          HashIndexBlock.init(
+            sortedIndexState = closedSortedIndex,
+            hashIndexConfig = hashIndexConfig
           )
-    }
 
-    new ClosedBlocks(
-      sortedIndex = sortedIndexState,
-      values = valuesState,
-      hashIndex = hashIndex.flatMap(HashIndexBlock.close),
-      binarySearchIndex = binarySearchIndex.flatMap(state => BinarySearchIndexBlock.close(state, sortedIndexState.uncompressedPrefixCount)),
-      bloomFilter = bloomFilter.flatMap(BloomFilterBlock.close),
-      minMaxFunction = sortedIndexState.minMaxFunctionId,
-      prepareForCachingSegmentBlocksOnCreate = prepareForCachingSegmentBlocksOnCreate
-    )
-  }
+        //initialise binarySearchIndex
+        val binarySearchIndexOption =
+          BinarySearchIndexBlock.init(
+            sortedIndexState = closedSortedIndex,
+            binarySearchConfig = binarySearchIndexConfig
+          )
+
+        //if either one is defined then build the index
+        if (hashIndexOption.isDefined || binarySearchIndexOption.isDefined)
+          if (binarySearchIndexConfig.fullIndex) {
+            //fullIndex is required for binary search for binarySearch has no dependency
+            //on hashIndex therefore we can build both indexes concurrently
+
+            val hashIndexFuture: Future[Option[HashIndexBlock.State]] =
+              if (hashIndexOption.isDefined)
+                Future {
+                  val hashIndexState = hashIndexOption.get
+
+                  for (indexEntry <- closedSortedIndex.secondaryIndexEntries)
+                    HashIndexBlock.write(
+                      entry = indexEntry,
+                      state = hashIndexState
+                    )
+
+                  HashIndexBlock.close(hashIndexState)
+                }
+              else
+                Futures.none
+
+            //concurrently build binarySearch
+            val binarySearchIndexFuture: Future[Option[BinarySearchIndexBlock.State]] =
+              if (binarySearchIndexOption.isDefined)
+                Future {
+                  val binarySearchIndexState = binarySearchIndexOption.get
+
+                  for (indexEntry <- closedSortedIndex.secondaryIndexEntries)
+                    BinarySearchIndexBlock.write(
+                      entry = indexEntry,
+                      state = binarySearchIndexState
+                    )
+
+                  BinarySearchIndexBlock.close(binarySearchIndexState, closedSortedIndex.uncompressedPrefixCount)
+                }
+              else
+                Futures.none
+
+            hashIndexFuture.join(binarySearchIndexFuture)
+          } else {
+            //else binarySearch is partial index and has dependency on hashIndex
+            Future {
+              for (indexEntry <- closedSortedIndex.secondaryIndexEntries) {
+                //write to hashIndex first
+                val hit =
+                  if (hashIndexOption.isDefined)
+                    HashIndexBlock.write(
+                      entry = indexEntry,
+                      state = hashIndexOption.get
+                    )
+                  else
+                    false
+
+                //if it's a hit and binary search is not configured to be full.
+                //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
+                if (binarySearchIndexOption.isDefined && !hit)
+                  BinarySearchIndexBlock.write(
+                    entry = indexEntry,
+                    state = binarySearchIndexOption.get
+                  )
+              }
+            } flatMapUnit {
+              //finally close both indexes concurrently.
+              val hashIndexFuture =
+                if (hashIndexOption.isDefined)
+                  Future(HashIndexBlock.close(hashIndexOption.get))
+                else
+                  Futures.none
+
+              val binarySearchIndexFuture =
+                if (binarySearchIndexOption.isDefined)
+                  Future(BinarySearchIndexBlock.close(binarySearchIndexOption.get, closedSortedIndex.uncompressedPrefixCount))
+                else
+                  Futures.none
+
+              hashIndexFuture.join(binarySearchIndexFuture)
+            }
+          }
+        else
+          Future.successful((None, None))
+      }
 
   implicit object SegmentBlockOps extends BlockOps[SegmentBlock.Offset, SegmentBlock] {
     override def updateBlockOffset(block: SegmentBlock, start: Int, size: Int): SegmentBlock =

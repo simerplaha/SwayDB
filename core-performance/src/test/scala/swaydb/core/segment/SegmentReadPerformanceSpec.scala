@@ -41,11 +41,12 @@ import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.Benchmark
-import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestSweeper}
 import swaydb.data.config.SegmentRefCacheLife
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.effect.{Dir, IOAction, IOStrategy}
+import swaydb.testkit.RunThis.FutureImplicits
 import swaydb.utils.StorageUnits._
 
 import java.nio.file.Path
@@ -56,6 +57,7 @@ class SegmentReadPerformanceSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val ec = TestExecutionContext.executionContext
 
   val keyValuesCount = 1000000
 
@@ -219,7 +221,7 @@ class SegmentReadPerformanceSpec extends TestBase {
                 hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
                 optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
               )
-        )
+        ).awaitInf
       }
 
     segments should have size 1

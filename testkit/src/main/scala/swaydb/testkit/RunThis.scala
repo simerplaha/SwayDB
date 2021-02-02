@@ -25,7 +25,6 @@
 package swaydb.testkit
 
 import org.scalatest.concurrent.Eventually
-import swaydb.utils.FiniteDurations._
 
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.{Deadline, FiniteDuration, _}
@@ -33,6 +32,9 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Random
 
 object RunThis extends Eventually {
+
+  @inline def round(double: Double, scale: Int = 6): BigDecimal =
+    BigDecimal(double).setScale(scale, BigDecimal.RoundingMode.HALF_UP)
 
   implicit class RunThisImplicits[R](f: => R) {
     def runThis(times: Int): Unit =
@@ -48,6 +50,18 @@ object RunThis extends Eventually {
 
     def runThisRandomlyValue: Iterable[T] =
       Random.shuffle(input).map(_ ())
+  }
+
+  implicit class FiniteDurationImplicits(duration: Duration) {
+
+    @inline final def asString: String =
+      asString(scale = 6)
+
+    @inline final def asString(scale: Int): String = {
+      val seconds: Double = duration.toMillis / 1000D
+      val scaledSeconds = RunThis.round(seconds, scale)
+      s"$scaledSeconds seconds"
+    }
   }
 
   implicit class FutureImplicits[T](f: => Future[T]) {

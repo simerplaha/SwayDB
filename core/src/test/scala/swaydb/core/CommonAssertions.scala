@@ -57,14 +57,15 @@ import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment.ref.search.{KeyMatcher, SegmentSearcher, ThreadReadState}
 import swaydb.core.sweeper.{ByteBufferSweeper, MemorySweeper}
 import swaydb.core.util.skiplist.SkipListConcurrent
-import swaydb.testkit.RunThis._
 import swaydb.data.compaction.PushStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.SliceIOImplicits._
 import swaydb.data.slice.{Reader, Slice, SliceOption, SliceReader}
 import swaydb.data.{Atomic, OptimiseWrites}
-import swaydb.effect.Effect
+import swaydb.effect.{Effect, IOStrategy}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 import swaydb.{Aggregator, Bag, Error, Glass, IO}
 
 import java.nio.file.Paths
@@ -75,8 +76,6 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.{Random, Try}
-import swaydb.data.slice.SliceIOImplicits._
-import swaydb.effect.IOStrategy
 
 object CommonAssertions {
 
@@ -1381,7 +1380,8 @@ object CommonAssertions {
     readAll(segment.flattenSegmentBytes)
 
   def writeAndRead(keyValues: Iterable[Memory])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Slice[KeyValue]] = {
+                                                keyOrder: KeyOrder[Slice[Byte]],
+                                                ec: ExecutionContext): IO[swaydb.Error.Segment, Slice[KeyValue]] = {
     val sortedIndexBlock = SortedIndexBlock.Config.random
 
     val segment =
@@ -1400,7 +1400,7 @@ object CommonAssertions {
         sortedIndexConfig = sortedIndexBlock,
         valuesConfig = ValuesBlock.Config.random,
         segmentConfig = SegmentBlock.Config.random.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
-      )
+      ).awaitInf
 
     segment should have size 1
 
@@ -1438,7 +1438,8 @@ object CommonAssertions {
                 hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                 bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                 segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                                 keyOrder: KeyOrder[Slice[Byte]]): IO[Error.Segment, Slice[SegmentBlocks]] = {
+                                                                                 keyOrder: KeyOrder[Slice[Byte]],
+                                                                                 ec: ExecutionContext = TestExecutionContext.executionContext): IO[Error.Segment, Slice[SegmentBlocks]] = {
     val closedSegments =
       SegmentBlock.writeOnes(
         mergeStats =
@@ -1455,9 +1456,8 @@ object CommonAssertions {
         sortedIndexConfig = sortedIndexConfig,
         valuesConfig = valuesConfig,
         segmentConfig = segmentConfig
-      )
+      ).awaitInf
 
-    import IO._
     import swaydb.Error.Segment.ExceptionHandler
 
     val segmentIO =
@@ -1487,7 +1487,8 @@ object CommonAssertions {
                       hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                       bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                                       keyOrder: KeyOrder[Slice[Byte]]): IO[Error.Segment, SegmentBlocks] =
+                                                                                       keyOrder: KeyOrder[Slice[Byte]],
+                                                                                       ec: ExecutionContext = TestExecutionContext.executionContext): IO[Error.Segment, SegmentBlocks] =
     getBlocks(
       keyValues = keyValues,
       bloomFilterConfig = bloomFilterConfig,
@@ -1516,7 +1517,8 @@ object CommonAssertions {
                            hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                            bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                            segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                                            keyOrder: KeyOrder[Slice[Byte]]): Slice[SegmentBlockCache] =
+                                                                                            keyOrder: KeyOrder[Slice[Byte]],
+                                                                                            ec: ExecutionContext): Slice[SegmentBlockCache] =
     SegmentBlock.writeOnes(
       mergeStats =
         MergeStats
@@ -1532,7 +1534,7 @@ object CommonAssertions {
       sortedIndexConfig = sortedIndexConfig,
       valuesConfig = valuesConfig,
       segmentConfig = segmentConfig
-    ) map {
+    ).awaitInf map {
       closed =>
         val segmentIO =
           SegmentReadIO(
@@ -1554,7 +1556,8 @@ object CommonAssertions {
                                  hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                                  bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                                  segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                                                  keyOrder: KeyOrder[Slice[Byte]]): SegmentBlockCache = {
+                                                                                                  keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                  ec: ExecutionContext = TestExecutionContext.executionContext): SegmentBlockCache = {
     val blockCaches =
       getSegmentBlockCache(
         keyValues = keyValues,

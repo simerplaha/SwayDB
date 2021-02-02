@@ -30,20 +30,20 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
+import swaydb.core._
 import swaydb.core.data._
 import swaydb.core.segment.block.segment.SegmentBlock
-import swaydb.core._
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.testkit.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
-import swaydb.utils.StorageUnits._
 
 class LevelKeyValuesSpec0 extends LevelKeyValuesSpec
 
@@ -71,6 +71,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   val keyValuesCount = 100
+  implicit val ec = TestExecutionContext.executionContext
 
   //  override def deleteFiles: Boolean =
   //    false
@@ -197,6 +198,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "return an empty level if all the key values in the Level were EXPIRED and if Level is the only Level" in {
       TestCaseSweeper {
         implicit sweeper =>
+
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
@@ -223,7 +225,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
 
           level.segments() foreach {
             segment =>
-              level.commit(level.refresh(Seq(segment), removeDeletedRecords = false).get) shouldBe IO.unit
+              level.commit(level.refresh(Seq(segment), removeDeletedRecords = false).awaitInf) shouldBe IO.unit
           }
 
           //expired key-values return empty after 2.seconds
@@ -302,7 +304,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
             }
           }
 
-          level.commit(level.refresh(level.segments(), removeDeletedRecords = false).get) shouldBe IO.unit
+          level.commit(level.refresh(level.segments(), removeDeletedRecords = false).await) shouldBe IO.unit
 
           level.segmentFilesInAppendix shouldBe 0
 

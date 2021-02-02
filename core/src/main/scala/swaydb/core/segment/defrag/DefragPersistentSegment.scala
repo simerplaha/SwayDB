@@ -492,12 +492,12 @@ object DefragPersistentSegment {
             startNewGroup()
       }
 
-    def runGroupCommits(groups: Iterator[ListBuffer[ListBuffer[TransientSegment.RemoteRefOrStats[MergeStats.Persistent.Builder[Memory, ListBuffer]]]]],
-                        buffer: mutable.SortedSet[PersistentSegment]): Future[mutable.SortedSet[PersistentSegment]] =
-      if (!groups.hasNext)
+    def runMerge(groups: ListBuffer[ListBuffer[TransientSegment.RemoteRefOrStats[MergeStats.Persistent.Builder[Memory, ListBuffer]]]],
+                 buffer: mutable.SortedSet[PersistentSegment]): Future[mutable.SortedSet[PersistentSegment]] =
+      if (groups.isEmpty)
         Future.successful(buffer)
       else
-        Future.traverse(groups.next()) {
+        Future.traverse(groups) {
           group =>
             commitGroup(
               group = group,
@@ -506,26 +506,21 @@ object DefragPersistentSegment {
               segmentRefCacheLife = segmentRefCacheLife,
               mmap = mmap
             )
-        } flatMap {
+        } map {
           newSegments =>
-            newSegments foreach {
-              newSegments =>
-                buffer ++= newSegments
-            }
+            for (segments <- newSegments)
+              buffer ++= segments
 
-            runGroupCommits(
-              groups = groups,
-              buffer = buffer
-            )
+            buffer
         }
 
-    runGroupCommits(
-      groups = groups.grouped(1),
+    runMerge(
+      groups = groups,
       buffer = mutable.SortedSet.empty(Ordering.by[PersistentSegment, Slice[Byte]](_.minKey)(keyOrder))
     ) flatMap {
-      buffer =>
+      mergedSegments =>
         if (remoteSegments.isEmpty)
-          Future.successful(buffer)
+          Future.successful(mergedSegments)
         else
           compactionIO.ask.flatMap {
             (instance, _) =>
@@ -537,7 +532,7 @@ object DefragPersistentSegment {
               )
           } map {
             persistedRemote =>
-              buffer ++= persistedRemote
+              mergedSegments ++= persistedRemote
           }
     }
   }
@@ -576,25 +571,28 @@ object DefragPersistentSegment {
           Future.successful(Slice(ref))
 
         case TransientSegment.Stats(stats) =>
-          Future {
-            val mergeStats =
+          Future
+            .unit
+            .mapUnit {
               stats.close(
                 hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
                 optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
               )
-
-            SegmentBlock.writeOnes(
-              mergeStats = mergeStats,
-              createdInLevel = createdInLevel,
-              bloomFilterConfig = bloomFilterConfig,
-              hashIndexConfig = hashIndexConfig,
-              binarySearchIndexConfig = binarySearchIndexConfig,
-              sortedIndexConfig = sortedIndexConfig,
-              valuesConfig = valuesConfig,
-              segmentConfig = segmentConfig
-            )
-          }
-      } map {
+            }
+            .flatMap {
+              mergeStats =>
+                SegmentBlock.writeOnes(
+                  mergeStats = mergeStats,
+                  createdInLevel = createdInLevel,
+                  bloomFilterConfig = bloomFilterConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  valuesConfig = valuesConfig,
+                  segmentConfig = segmentConfig
+                )
+            }
+      } flatMap {
         segments =>
           SegmentBlock.writeOneOrMany(
             createdInLevel = createdInLevel,

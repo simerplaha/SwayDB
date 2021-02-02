@@ -195,8 +195,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
               BehaviourCommit.commit(
                 level = task.source,
                 result = result
-              )
+              ).toFuture
           }
-          .toFuture
       }
 }

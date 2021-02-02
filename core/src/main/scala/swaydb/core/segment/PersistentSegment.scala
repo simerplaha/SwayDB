@@ -87,7 +87,8 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
+                                                  ec: ExecutionContext): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]]
 
 
 }

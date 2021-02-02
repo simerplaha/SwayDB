@@ -357,9 +357,9 @@ protected case class PersistentSegmentOne(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]] = {
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
+                                                  ec: ExecutionContext): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]] = {
     //    val footer = ref.getFooter()
-    val iterator = ref.iterator()
     //if it's created in the same level the required spaces for sortedIndex and values
     //will be the same as existing or less than the current sizes so there is no need to create a
     //MergeState builder.
@@ -382,20 +382,23 @@ protected case class PersistentSegmentOne(file: DBFile,
     //      )
     //    else
 
-    val refreshed =
-      Segment.refreshForNewLevel(
-        keyValues = iterator,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
-
-    DefIO(this, refreshed)
+    Segment.refreshForNewLevel(
+      keyValues = ref.iterator(),
+      removeDeletes = removeDeletes,
+      createdInLevel = createdInLevel,
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig,
+      segmentConfig = segmentConfig
+    ) map {
+      refreshed =>
+        DefIO(
+          input = this,
+          output = refreshed
+        )
+    }
   }
 
   def getFromCache(key: Slice[Byte]): PersistentOption =

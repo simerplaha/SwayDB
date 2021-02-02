@@ -874,22 +874,25 @@ protected case class PersistentSegmentMany(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): DefIO[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]] = {
-    val refreshed =
-      Segment.refreshForNewLevel(
-        keyValues = iterator(),
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
-
-    DefIO(this, refreshed)
-  }
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
+                                                  ec: ExecutionContext): Future[DefIO[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]]] =
+    Segment.refreshForNewLevel(
+      keyValues = iterator(),
+      removeDeletes = removeDeletes,
+      createdInLevel = createdInLevel,
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig,
+      segmentConfig = segmentConfig
+    ) map {
+      refreshed =>
+        DefIO(
+          input = this,
+          output = refreshed
+        )
+    }
 
   def getFromCache(key: Slice[Byte]): PersistentOption = {
     segmentsCache.forEach {

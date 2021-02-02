@@ -40,6 +40,15 @@ private[swaydb] object Futures {
     @inline def and[B](future2: => Future[B])(implicit executionContext: ExecutionContext): Future[B] =
       future1.flatMap(_ => future2)
 
+    @inline def join[B](future2: => Future[B])(implicit executionContext: ExecutionContext): Future[(A, B)] =
+      future1 flatMap {
+        a =>
+          future2 map {
+            b =>
+              (a, b)
+          }
+      }
+
     @inline def onError[B >: A](result: => B)(implicit executionContext: ExecutionContext): Future[B] =
       future1.recover {
         case _ =>
