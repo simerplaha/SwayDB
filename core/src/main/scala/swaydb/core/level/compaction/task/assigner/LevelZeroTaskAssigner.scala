@@ -70,9 +70,13 @@ case object LevelZeroTaskAssigner {
     //covert to List because now BehaviourCommit.commit requires
     //this maps to be reversible so do the conversion here instead
     //of working with iterators
-    val maps = source.maps.compactionIterator().toList
 
-    flatten(maps)
+    val mapsToCompact =
+      List
+        .from(source.maps.compactionIterator())
+        .takeRight(source.mapsToCompact)
+
+    flatten(mapsToCompact)
       .map {
         collections =>
           TaskAssigner.assignQuick(
@@ -86,7 +90,7 @@ case object LevelZeroTaskAssigner {
         tasks =>
           CompactionTask.CompactMaps(
             source = source,
-            maps = maps,
+            maps = mapsToCompact,
             tasks = tasks
           )
       }

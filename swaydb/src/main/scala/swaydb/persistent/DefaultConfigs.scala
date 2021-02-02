@@ -25,7 +25,7 @@
 package swaydb.persistent
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config.MemoryCache.ByteCacheOnly
 import swaydb.data.config._
 import swaydb.effect.{IOAction, IOStrategy}
@@ -171,19 +171,26 @@ object DefaultConfigs {
         )
     )
 
-  def levelZeroThrottle(meter: LevelZeroMeter): FiniteDuration = {
+  def levelZeroThrottle(meter: LevelZeroMeter): LevelZeroThrottle = {
     val count = meter.mapsCount
     //when there are more than 4 maps/logs in LevelZero
     //then give LevelZero highest priority.
     //This will compact all LevelZero maps at once.
-    if (count >= 4)
-      -count.seconds
-    else
-      count.seconds //else give it some delay
+
+    val delay =
+      if (count >= 4)
+        -count.seconds
+      else
+        count.seconds //else give it some delay
+
+    LevelZeroThrottle(
+      compactionDelay = delay,
+      mapsToCompact = 4
+    )
   }
 
   /**
-   * The general idea for the following [[Throttle]] functions
+   * The general idea for the following [[LevelThrottle]] functions
    * is that we set the urgency of compaction for each level
    * compared to other levels. The returned [[FiniteDuration]]
    * tells compaction which level's compaction is urgent.
@@ -191,7 +198,7 @@ object DefaultConfigs {
    * The lower the [[FiniteDuration]] the higher it's priority.
    */
 
-  val idle = Throttle(compactionDelay = 365.day, compactDataSize = 0)
+  val idle = LevelThrottle(compactionDelay = 365.day, compactDataSize = 0)
 
   @inline def calculateThrottle(maxLevelSize: Long, meter: LevelMeter) = {
     val levelSize = meter.levelSize
@@ -199,7 +206,7 @@ object DefaultConfigs {
     if (delay == Double.PositiveInfinity)
       idle
     else
-      Throttle(
+      LevelThrottle(
         compactionDelay = delay.seconds,
         compactDataSize = levelSize - maxLevelSize
       )
@@ -207,24 +214,24 @@ object DefaultConfigs {
 
   val levelOneSize = 100.mb
 
-  def levelOneThrottle(meter: LevelMeter): Throttle =
+  def levelOneThrottle(meter: LevelMeter): LevelThrottle =
     calculateThrottle(maxLevelSize = levelOneSize, meter = meter)
 
-  def levelTwoThrottle(meter: LevelMeter): Throttle =
+  def levelTwoThrottle(meter: LevelMeter): LevelThrottle =
     calculateThrottle(maxLevelSize = levelOneSize * 10, meter = meter)
 
-  def levelThreeThrottle(meter: LevelMeter): Throttle =
+  def levelThreeThrottle(meter: LevelMeter): LevelThrottle =
     calculateThrottle(maxLevelSize = levelOneSize * 100, meter = meter)
 
-  def levelFourThrottle(meter: LevelMeter): Throttle =
+  def levelFourThrottle(meter: LevelMeter): LevelThrottle =
     calculateThrottle(maxLevelSize = levelOneSize * 1000, meter = meter)
 
-  def levelFiveThrottle(meter: LevelMeter): Throttle =
+  def levelFiveThrottle(meter: LevelMeter): LevelThrottle =
     calculateThrottle(maxLevelSize = levelOneSize * 10000, meter = meter)
 
-  def levelSixThrottle(meter: LevelMeter): Throttle =
+  def levelSixThrottle(meter: LevelMeter): LevelThrottle =
     if (meter.requiresCleanUp)
-      Throttle(10.seconds, 1)
+      LevelThrottle(10.seconds, 1)
     else
-      Throttle(1.hour, 1)
+      LevelThrottle(1.hour, 1)
 }

@@ -52,7 +52,7 @@ import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -365,22 +365,22 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
   object TestLevel {
 
-    def testDefaultThrottle(meter: LevelMeter): Throttle =
+    def testDefaultThrottle(meter: LevelMeter): LevelThrottle =
       if (meter.segmentsCount > 15)
-        Throttle(Duration.Zero, 20)
+        LevelThrottle(Duration.Zero, 20)
       else if (meter.segmentsCount > 10)
-        Throttle(1.second, 20)
+        LevelThrottle(1.second, 20)
       else if (meter.segmentsCount > 5)
-        Throttle(2.seconds, 10)
+        LevelThrottle(2.seconds, 10)
       else
-        Throttle(3.seconds, 10)
+        LevelThrottle(3.seconds, 10)
 
     implicit def toSome[T](input: T): Option[T] =
       Some(input)
 
     def apply(levelStorage: LevelStorage = levelStorage,
               nextLevel: Option[NextLevel] = None,
-              throttle: LevelMeter => Throttle = testDefaultThrottle,
+              throttle: LevelMeter => LevelThrottle = testDefaultThrottle,
               valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
               sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
@@ -426,11 +426,11 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               clearAppliedFunctionsOnBoot: Boolean = false,
               enableTimer: Boolean = true,
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
-              throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                               timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                               sweeper: TestCaseSweeper,
-                                                                               optimiseWrites: OptimiseWrites = OptimiseWrites.random,
-                                                                               atomimc: Atomic = Atomic.random): LevelZero = {
+              throttle: LevelZeroMeter => LevelZeroThrottle = _ => LevelZeroThrottle(Duration.Zero, 1))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                                        sweeper: TestCaseSweeper,
+                                                                                                        optimiseWrites: OptimiseWrites = OptimiseWrites.random,
+                                                                                                        atomimc: Atomic = Atomic.random): LevelZero = {
       import sweeper._
 
       LevelZero(
@@ -612,8 +612,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
      * If [[throttleOn]] is true then enable fast throttling
      * so that this test covers as many scenarios as possible.
      */
-    val levelThrottle: LevelMeter => Throttle = if (throttleOn) _ => Throttle(Duration.Zero, randomNextInt(3) max 1) else _ => Throttle(Duration.Zero, 0)
-    val levelZeroThrottle: LevelZeroMeter => FiniteDuration = if (throttleOn) _ => Duration.Zero else _ => 365.days
+    val levelThrottle: LevelMeter => LevelThrottle = if (throttleOn) _ => LevelThrottle(Duration.Zero, randomNextInt(3) max 1) else _ => LevelThrottle(Duration.Zero, 0)
+    val levelZeroThrottle: LevelZeroMeter => LevelZeroThrottle = if (throttleOn) _ => LevelZeroThrottle(Duration.Zero, 1) else _ => LevelZeroThrottle(365.days, 0)
 
     println("Starting levels")
 

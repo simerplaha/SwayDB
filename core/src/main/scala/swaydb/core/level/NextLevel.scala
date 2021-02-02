@@ -31,7 +31,7 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.{Assignable, Assignment}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, LevelThrottle}
 import swaydb.data.slice.Slice
 import swaydb.effect.Dir
 import swaydb.{Error, IO}
@@ -77,7 +77,7 @@ trait NextLevel extends LevelRef {
 
   def pathDistributor: PathsDistributor
 
-  def throttle: LevelMeter => Throttle
+  def throttle: LevelMeter => LevelThrottle
 
   def isNonEmpty(): Boolean
 

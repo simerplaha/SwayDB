@@ -50,7 +50,7 @@ private[throttle] object ThrottleLevelOrdering extends LazyLogging {
 
   def order(left: LevelZero,
             right: Level): Int = {
-    val leftPushDelay = left.throttle(left.levelZeroMeter)
+    val leftPushDelay = left.throttle(left.levelZeroMeter).compactionDelay
     val rightPushDelay = right.throttle(right.meter).compactionDelay
     val compare = leftPushDelay compare rightPushDelay
     logger.debug(s"Levels (${left.levelNumber} -> ${right.levelNumber}) - leftPushDelay: ${leftPushDelay.asString}/${leftPushDelay.toNanos} -> rightPushDelay: ${rightPushDelay.asString}/${rightPushDelay.toNanos} = $compare ")

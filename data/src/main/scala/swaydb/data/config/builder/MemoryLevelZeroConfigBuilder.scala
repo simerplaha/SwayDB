@@ -25,6 +25,7 @@
 package swaydb.data.config.builder
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.data.compaction.LevelZeroThrottle
 import swaydb.data.config.ConfigWizard
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.utils.Java.JavaFunction
@@ -88,7 +89,7 @@ object MemoryLevelZeroConfigBuilder {
   }
 
   class Step7(builder: MemoryLevelZeroConfigBuilder) {
-    def throttle(throttle: JavaFunction[LevelZeroMeter, FiniteDuration]) =
+    def throttle(throttle: JavaFunction[LevelZeroMeter, LevelZeroThrottle]) =
       ConfigWizard.withMemoryLevel0(
         mapSize = builder.mapSize,
         appliedFunctionsMapSize = builder.appliedFunctionsMapSize,

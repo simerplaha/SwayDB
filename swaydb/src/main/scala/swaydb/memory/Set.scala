@@ -30,7 +30,7 @@ import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config.{FileCache, MemoryCache, ThreadStateCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
@@ -57,8 +57,8 @@ object Set extends LazyLogging {
                                                  optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                  atomic: Atomic = CommonConfigs.atomic(),
                                                  acceleration: LevelZeroMeter => Accelerator = DefaultConfigs.accelerator,
-                                                 levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
-                                                 lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
+                                                 levelZeroThrottle: LevelZeroMeter => LevelZeroThrottle = DefaultConfigs.levelZeroThrottle,
+                                                 lastLevelThrottle: LevelMeter => LevelThrottle = DefaultConfigs.lastLevelThrottle,
                                                  threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
                                                                                                                                                    functionClassTag: ClassTag[F],
                                                                                                                                                    functions: Functions[F],

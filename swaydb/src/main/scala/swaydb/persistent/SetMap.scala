@@ -30,7 +30,7 @@ import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
@@ -41,7 +41,6 @@ import swaydb.serializers.Serializer
 import swaydb.utils.StorageUnits._
 
 import java.nio.file.Path
-import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
 object SetMap extends LazyLogging {
@@ -67,19 +66,19 @@ object SetMap extends LazyLogging {
                           segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                           fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                           memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
-                          levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
-                          levelOneThrottle: LevelMeter => Throttle = DefaultConfigs.levelOneThrottle,
-                          levelTwoThrottle: LevelMeter => Throttle = DefaultConfigs.levelTwoThrottle,
-                          levelThreeThrottle: LevelMeter => Throttle = DefaultConfigs.levelThreeThrottle,
-                          levelFourThrottle: LevelMeter => Throttle = DefaultConfigs.levelFourThrottle,
-                          levelFiveThrottle: LevelMeter => Throttle = DefaultConfigs.levelFiveThrottle,
-                          levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit keySerializer: Serializer[K],
-                                                                                                      valueSerializer: Serializer[V],
-                                                                                                      bag: swaydb.Bag[BAG],
-                                                                                                      sequencer: Sequencer[BAG] = null,
-                                                                                                      byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                      typedKeyOrder: KeyOrder[K] = null,
-                                                                                                      buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap)): BAG[swaydb.SetMap[K, V, BAG]] =
+                          levelZeroThrottle: LevelZeroMeter => LevelZeroThrottle = DefaultConfigs.levelZeroThrottle,
+                          levelOneThrottle: LevelMeter => LevelThrottle = DefaultConfigs.levelOneThrottle,
+                          levelTwoThrottle: LevelMeter => LevelThrottle = DefaultConfigs.levelTwoThrottle,
+                          levelThreeThrottle: LevelMeter => LevelThrottle = DefaultConfigs.levelThreeThrottle,
+                          levelFourThrottle: LevelMeter => LevelThrottle = DefaultConfigs.levelFourThrottle,
+                          levelFiveThrottle: LevelMeter => LevelThrottle = DefaultConfigs.levelFiveThrottle,
+                          levelSixThrottle: LevelMeter => LevelThrottle = DefaultConfigs.levelSixThrottle)(implicit keySerializer: Serializer[K],
+                                                                                                           valueSerializer: Serializer[V],
+                                                                                                           bag: swaydb.Bag[BAG],
+                                                                                                           sequencer: Sequencer[BAG] = null,
+                                                                                                           byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                           typedKeyOrder: KeyOrder[K] = null,
+                                                                                                           buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap)): BAG[swaydb.SetMap[K, V, BAG]] =
     bag.suspend {
       val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
       val nullCheckedOrder = Eithers.nullCheck(byteKeyOrder, typedKeyOrder, KeyOrder.default)

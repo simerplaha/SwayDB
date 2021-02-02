@@ -26,7 +26,7 @@ package swaydb.memory
 
 import swaydb.ActorConfig
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config.FileCache
 import swaydb.utils.StorageUnits._
 
@@ -62,10 +62,10 @@ object DefaultConfigs {
         )
     )
 
-  def levelZeroThrottle(meter: LevelZeroMeter): FiniteDuration =
+  def levelZeroThrottle(meter: LevelZeroMeter): LevelZeroThrottle =
     swaydb.persistent.DefaultConfigs.levelZeroThrottle(meter)
 
-  def lastLevelThrottle(meter: LevelMeter): Throttle =
+  def lastLevelThrottle(meter: LevelMeter): LevelThrottle =
     swaydb.persistent.DefaultConfigs.levelSixThrottle(meter)
 
 }

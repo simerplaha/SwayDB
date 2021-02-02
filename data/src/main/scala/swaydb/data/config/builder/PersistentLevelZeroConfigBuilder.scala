@@ -25,12 +25,12 @@
 package swaydb.data.config.builder
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.data.compaction.LevelZeroThrottle
 import swaydb.data.config.{ConfigWizard, MMAP, RecoveryMode}
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.utils.Java.JavaFunction
 
 import java.nio.file.Path
-import scala.concurrent.duration.FiniteDuration
 
 /**
  * Java Builder class for [[swaydb.data.config.PersistentLevelZeroConfig]]
@@ -113,7 +113,7 @@ object PersistentLevelZeroConfigBuilder {
   }
 
   class Step10(builder: PersistentLevelZeroConfigBuilder) {
-    def throttle(throttle: JavaFunction[LevelZeroMeter, FiniteDuration]) =
+    def throttle(throttle: JavaFunction[LevelZeroMeter, LevelZeroThrottle]) =
       ConfigWizard.withPersistentLevel0(
         dir = builder.dir,
         mapSize = builder.mapSize,

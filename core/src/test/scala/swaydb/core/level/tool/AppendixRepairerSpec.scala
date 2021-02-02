@@ -30,7 +30,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
-import swaydb.data.compaction.Throttle
+import swaydb.data.compaction.LevelThrottle
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
@@ -129,7 +129,7 @@ class AppendixRepairerSpec extends TestBase {
             val level = TestLevel(
               segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = MMAP.Off(TestForceSave.channel())),
               nextLevel = Some(TestLevel()),
-              throttle = _ => Throttle(Duration.Zero, 0)
+              throttle = _ => LevelThrottle(Duration.Zero, 0)
             )
 
             val keyValues = randomizedKeyValues(1000)
@@ -182,7 +182,7 @@ class AppendixRepairerSpec extends TestBase {
           val level = TestLevel(
             segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = MMAP.Off(TestForceSave.channel())),
             nextLevel = Some(TestLevel()),
-            throttle = (_) => Throttle(Duration.Zero, 0)
+            throttle = (_) => LevelThrottle(Duration.Zero, 0)
           )
 
           level.put(keyValues).value

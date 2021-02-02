@@ -47,7 +47,7 @@ case object PushStrategy {
    *
    * Disables pushing key-values directly to the lowest non-overlapping Level.
    * These key-values will only be pushed to lower levels if the Level is overflown
-   * as defined by the configuration [[Throttle]].
+   * as defined by the configuration [[LevelThrottle]].
    */
   sealed trait OnOverflow extends PushStrategy
   case object OnOverflow extends OnOverflow {

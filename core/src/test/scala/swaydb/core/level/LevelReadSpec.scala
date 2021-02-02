@@ -37,7 +37,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.data.compaction.Throttle
+import swaydb.data.compaction.LevelThrottle
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -108,7 +108,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
       TestCaseSweeper {
         implicit sweeper =>
           //disable throttling so small segment compaction does not occur
-          val level = TestLevel(nextLevel = None, throttle = (_) => Throttle(Duration.Zero, 0), segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 1.kb))
+          val level = TestLevel(nextLevel = None, throttle = (_) => LevelThrottle(Duration.Zero, 0), segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 1.kb))
 
           val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)
           level.put(keyValues).runRandomIO.right.value

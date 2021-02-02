@@ -26,7 +26,7 @@ package swaydb.configs.level
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config._
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.effect.Dir
@@ -68,7 +68,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
         optimiseWrites = optimiseWrites,
         atomic = atomic,
         acceleration = acceleration,
-        throttle = _ => Duration.Zero
+        throttle = _ => LevelZeroThrottle(Duration.Zero, 4)
       )
       .withMemoryLevel1(
         minSegmentSize = memoryLevelMinSegmentSize,
@@ -77,9 +77,9 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
         throttle =
           levelMeter => {
             if (levelMeter.levelSize > maxMemoryLevelSize)
-              Throttle(Duration.Zero, maxSegmentsToPush)
+              LevelThrottle(Duration.Zero, maxSegmentsToPush)
             else
-              Throttle(Duration.Zero, 0)
+              LevelThrottle(Duration.Zero, 0)
           }
       )
       .withPersistentLevel(
@@ -95,7 +95,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
         segmentConfig = persistentLevelSegmentConfig,
         throttle =
           (_: LevelMeter) =>
-            Throttle(
+            LevelThrottle(
               compactionDelay = 10.seconds,
               compactDataSize = maxSegmentsToPush
             )

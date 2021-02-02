@@ -28,7 +28,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.map.counter.CounterMap
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionConfig, LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
@@ -63,8 +63,8 @@ object MultiMap extends LazyLogging {
                                                           optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                           atomic: Atomic = CommonConfigs.atomic(),
                                                           acceleration: LevelZeroMeter => Accelerator = DefaultConfigs.accelerator,
-                                                          levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
-                                                          lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
+                                                          levelZeroThrottle: LevelZeroMeter => LevelZeroThrottle = DefaultConfigs.levelZeroThrottle,
+                                                          lastLevelThrottle: LevelMeter => LevelThrottle = DefaultConfigs.lastLevelThrottle,
                                                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
                                                                                                                                                             mapKeySerializer: Serializer[M],
                                                                                                                                                             valueSerializer: Serializer[V],

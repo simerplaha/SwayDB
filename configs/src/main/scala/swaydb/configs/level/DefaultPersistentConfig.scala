@@ -26,13 +26,12 @@ package swaydb.configs.level
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config._
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.effect.Dir
 
 import java.nio.file.Path
-import scala.concurrent.duration._
 
 object DefaultPersistentConfig extends LazyLogging {
 
@@ -57,13 +56,13 @@ object DefaultPersistentConfig extends LazyLogging {
             optimiseWrites: OptimiseWrites,
             atomic: Atomic,
             acceleration: LevelZeroMeter => Accelerator,
-            levelZeroThrottle: LevelZeroMeter => FiniteDuration,
-            levelOneThrottle: LevelMeter => Throttle,
-            levelTwoThrottle: LevelMeter => Throttle,
-            levelThreeThrottle: LevelMeter => Throttle,
-            levelFourThrottle: LevelMeter => Throttle,
-            levelFiveThrottle: LevelMeter => Throttle,
-            levelSixThrottle: LevelMeter => Throttle): SwayDBPersistentConfig = {
+            levelZeroThrottle: LevelZeroMeter => LevelZeroThrottle,
+            levelOneThrottle: LevelMeter => LevelThrottle,
+            levelTwoThrottle: LevelMeter => LevelThrottle,
+            levelThreeThrottle: LevelMeter => LevelThrottle,
+            levelFourThrottle: LevelMeter => LevelThrottle,
+            levelFiveThrottle: LevelMeter => LevelThrottle,
+            levelSixThrottle: LevelMeter => LevelThrottle): SwayDBPersistentConfig = {
 
     /**
      * Default config for each level. Only throttle is adjusted for each level.

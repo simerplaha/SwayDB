@@ -63,7 +63,7 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.{AtomicRanges, IDGenerator}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.cache.Cache
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, LevelThrottle}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -280,7 +280,7 @@ object TestData {
       tryReopen()
 
     def reopen(segmentSize: Int = level.minSegmentSize,
-               throttle: LevelMeter => Throttle = level.throttle,
+               throttle: LevelMeter => LevelThrottle = level.throttle,
                nextLevel: Option[NextLevel] = level.nextLevel)(implicit sweeper: TestCaseSweeper): Level =
       tryReopen(
         segmentSize = segmentSize,
@@ -289,7 +289,7 @@ object TestData {
       ).right.value
 
     def tryReopen(segmentSize: Int = level.minSegmentSize,
-                  throttle: LevelMeter => Throttle = level.throttle,
+                  throttle: LevelMeter => LevelThrottle = level.throttle,
                   nextLevel: Option[NextLevel] = level.nextLevel)(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Level] = {
 
       val closeResult =

@@ -53,7 +53,7 @@ import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.Exceptions._
 import swaydb.core.util.{MinMax, _}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, LevelThrottle}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.SliceIOImplicits._
 import swaydb.data.slice.{Slice, SliceOption}
@@ -105,14 +105,14 @@ private[core] case object Level extends LazyLogging {
             segmentConfig: SegmentBlock.Config,
             levelStorage: LevelStorage,
             nextLevel: Option[NextLevel],
-            throttle: LevelMeter => Throttle)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                              timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore,
-                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                              blockSweeper: Option[MemorySweeper.Block],
-                                              fileSweeper: FileSweeper,
-                                              bufferCleaner: ByteBufferSweeperActor,
-                                              forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Level, Level] =
+            throttle: LevelMeter => LevelThrottle)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   functionStore: FunctionStore,
+                                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                   blockSweeper: Option[MemorySweeper.Block],
+                                                   fileSweeper: FileSweeper,
+                                                   bufferCleaner: ByteBufferSweeperActor,
+                                                   forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Level, Level] =
     acquireLock(levelStorage) flatMap { //acquire lock on folder
       lock =>
         //lock acquired.
@@ -290,7 +290,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                valuesConfig: ValuesBlock.Config,
                                segmentConfig: SegmentBlock.Config,
                                inMemory: Boolean,
-                               throttle: LevelMeter => Throttle,
+                               throttle: LevelMeter => LevelThrottle,
                                nextLevel: Option[NextLevel],
                                appendix: Map[Slice[Byte], Segment, AppendixMapCache],
                                lock: Option[FileLocker],

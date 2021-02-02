@@ -24,7 +24,7 @@
 
 package swaydb.data.config.builder
 
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, LevelThrottle}
 import swaydb.data.config._
 import swaydb.effect.Dir
 import swaydb.utils.Java.JavaFunction
@@ -130,7 +130,7 @@ object PersistentLevelConfigBuilder {
   }
 
   class Step10(builder: PersistentLevelConfigBuilder) {
-    def throttle(throttle: JavaFunction[LevelMeter, Throttle]) =
+    def throttle(throttle: JavaFunction[LevelMeter, LevelThrottle]) =
       new PersistentLevelConfig(
         dir = builder.dir,
         otherDirs = builder.otherDirs,

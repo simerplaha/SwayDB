@@ -44,7 +44,7 @@ import scala.collection.mutable.ListBuffer
 
 /**
  * Builds optimal compaction tasks to perform that meet the configured
- * [[swaydb.data.compaction.Throttle]] criteria.
+ * [[swaydb.data.compaction.LevelThrottle]] criteria.
  */
 protected case object TaskAssigner {
 
@@ -80,7 +80,7 @@ protected case object TaskAssigner {
    * @param copyToLevel  Level to with data can be copied to.
    * @param lowerLevels  Remaining levels.
    * @param dataOverflow Sets the total size of data to compact. This is dictated
-   *                     by the [[swaydb.data.compaction.Throttle]] configuration.
+   *                     by the [[swaydb.data.compaction.LevelThrottle]] configuration.
    * @param tasks        Final [[CompactionTask.Task]] that will contain optimal
    *                     assignments.
    * @tparam A the type of input data.

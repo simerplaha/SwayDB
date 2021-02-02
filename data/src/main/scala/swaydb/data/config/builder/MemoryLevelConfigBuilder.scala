@@ -24,7 +24,7 @@
 
 package swaydb.data.config.builder
 
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, LevelThrottle}
 import swaydb.data.config.MemoryLevelConfig
 import swaydb.utils.Java.JavaFunction
 
@@ -65,7 +65,7 @@ object MemoryLevelConfigBuilder {
   }
 
   class Step3(builder: MemoryLevelConfigBuilder) {
-    def throttle(throttle: JavaFunction[LevelMeter, Throttle]) =
+    def throttle(throttle: JavaFunction[LevelMeter, LevelThrottle]) =
       new MemoryLevelConfig(
         minSegmentSize = builder.minSegmentSize,
         maxKeyValuesPerSegment = builder.maxKeyValuesPerSegment,

@@ -49,7 +49,7 @@ import swaydb.core.util.skiplist.SkipList
 import swaydb.core.util.{DropIterator, MinMax}
 import swaydb.core.{CoreState, MemoryPathGenerator, map}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.LevelMeter
+import swaydb.data.compaction.{LevelMeter, LevelZeroThrottle}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -77,7 +77,7 @@ private[core] case object LevelZero extends LazyLogging {
             coreState: CoreState,
             nextLevel: Option[NextLevel],
             acceleration: LevelZeroMeter => Accelerator,
-            throttle: LevelZeroMeter => FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            throttle: LevelZeroMeter => LevelZeroThrottle)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         bufferCleaner: ByteBufferSweeperActor,
                                                         functionStore: FunctionStore,
@@ -268,7 +268,7 @@ private[swaydb] case class LevelZero(path: Path,
                                      maps: Maps[Slice[Byte], Memory, LevelZeroMapCache],
                                      nextLevel: Option[NextLevel],
                                      inMemory: Boolean,
-                                     throttle: LevelZeroMeter => FiniteDuration,
+                                     throttle: LevelZeroMeter => LevelZeroThrottle,
                                      appliedFunctionsMap: Option[map.Map[Slice[Byte], Slice.Null.type, AppliedFunctionsMapCache]],
                                      coreState: CoreState,
                                      private val lock: Option[FileLocker])(implicit val keyOrder: KeyOrder[Slice[Byte]],
@@ -1111,7 +1111,10 @@ private[swaydb] case class LevelZero(path: Path,
     maps.stateId
 
   override def nextCompactionDelay: FiniteDuration =
-    throttle(levelZeroMeter)
+    throttle(levelZeroMeter).compactionDelay
+
+  def mapsToCompact: Int =
+    throttle(levelZeroMeter).mapsToCompact
 
   def iterator(state: ThreadReadState): Iterator[PutOption] =
     new Iterator[PutOption] {

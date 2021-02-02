@@ -36,7 +36,7 @@ import swaydb.core.map.applied.AppliedFunctionsMap
 import swaydb.core.map.timer.Timer
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.data.compaction.Throttle
+import swaydb.data.compaction.LevelThrottle
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -115,7 +115,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
             zero.get("2", ThreadReadState.random).getPut.getOrFetchValue shouldBe ("two": Slice[Byte])
           }
 
-          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))))
+          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))))
           assert(zero)
           if (persistent) assert(zero.reopen)
       }
@@ -124,7 +124,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     "write key-values that have empty bytes but the Slices are closed" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(throttle = (_) => Throttle(10.seconds, 0))
+          val level = TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))
           val zero = TestLevelZero(Some(level))
           val one = Slice.of[Byte](10).addInt(1).close()
 
@@ -185,7 +185,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
             zero.get(key2, ThreadReadState.random).getPut.getOrFetchValue shouldBe value2
           }
 
-          val zero = TestLevelZero(Some(TestLevel(throttle = _ => Throttle(10.seconds, 0))))
+          val zero = TestLevelZero(Some(TestLevel(throttle = _ => LevelThrottle(10.seconds, 0))))
 
           assertWrite(zero)
           assertRead(zero)
@@ -248,7 +248,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     "remove key-values" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))), mapSize = 1.byte)
+          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), mapSize = 1.byte)
           val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(0))
 
           keyValues foreach {
@@ -291,7 +291,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     "a database with single key-value" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))), mapSize = 1.byte)
+          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), mapSize = 1.byte)
           val keyValues = randomIntKeyStringValues(1)
 
           keyValues foreach {
@@ -312,7 +312,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       runThis(10.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
-            val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))), mapSize = 1.byte)
+            val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), mapSize = 1.byte)
             val keyValues = randomIntKeyStringValues(randomIntMax(20) max keyValuesCount)
 
             keyValues foreach {
@@ -334,7 +334,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       //disable throttle
       TestCaseSweeper {
         implicit sweeper =>
-          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))), mapSize = 1.byte)
+          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), mapSize = 1.byte)
 
           zero.put(1, "one").runRandomIO.value
           zero.put(2, "two").runRandomIO.value

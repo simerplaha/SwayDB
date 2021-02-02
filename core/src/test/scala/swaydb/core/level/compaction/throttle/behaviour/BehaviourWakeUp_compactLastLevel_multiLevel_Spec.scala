@@ -32,7 +32,7 @@ import swaydb.core.level.compaction.throttle.LevelState
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
-import swaydb.data.compaction.Throttle
+import swaydb.data.compaction.LevelThrottle
 import swaydb.data.config.MMAP
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -117,7 +117,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends TestBase {
               TestLevel(
                 keyValues = keyValues,
                 //compaction is never overdue
-                throttle = _ => Throttle(10.seconds, 20),
+                throttle = _ => LevelThrottle(10.seconds, 20),
                 //segments are too large means all existing segments are small
                 segmentConfig = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 100.mb),
                 nextLevel = Some(level2)
@@ -173,7 +173,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends TestBase {
               TestLevel(
                 keyValues = keyValues,
                 //compaction is never overdue
-                throttle = _ => Throttle(10.seconds, 20),
+                throttle = _ => LevelThrottle(10.seconds, 20),
                 //segments are too large means all existing segments are small
                 segmentConfig = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 100.mb),
                 nextLevel = Some(level2)
@@ -241,7 +241,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends TestBase {
               TestLevel(
                 keyValues = keyValues,
                 //compaction is always overdue
-                throttle = _ => Throttle(Duration.Zero, 100.mb),
+                throttle = _ => LevelThrottle(Duration.Zero, 100.mb),
                 //segments are too large means all existing segments are small
                 segmentConfig = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 100.mb),
                 nextLevel = Some(level2)

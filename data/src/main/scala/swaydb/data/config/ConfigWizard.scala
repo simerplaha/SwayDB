@@ -25,7 +25,7 @@
 package swaydb.data.config
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config.builder.{MemoryLevelConfigBuilder, MemoryLevelZeroConfigBuilder, PersistentLevelConfigBuilder, PersistentLevelZeroConfigBuilder}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.{Atomic, OptimiseWrites}
@@ -56,7 +56,7 @@ object ConfigWizard {
                            optimiseWrites: OptimiseWrites,
                            atomic: Atomic,
                            acceleration: LevelZeroMeter => Accelerator,
-                           throttle: LevelZeroMeter => FiniteDuration): PersistentLevelZeroConfig =
+                           throttle: LevelZeroMeter => LevelZeroThrottle): PersistentLevelZeroConfig =
     PersistentLevelZeroConfig(
       mapSize = mapSize,
       appliedFunctionsMapSize = appliedFunctionsMapSize,
@@ -77,7 +77,7 @@ object ConfigWizard {
                        optimiseWrites: OptimiseWrites,
                        atomic: Atomic,
                        acceleration: LevelZeroMeter => Accelerator,
-                       throttle: LevelZeroMeter => FiniteDuration): MemoryLevelZeroConfig =
+                       throttle: LevelZeroMeter => LevelZeroThrottle): MemoryLevelZeroConfig =
     MemoryLevelZeroConfig(
       mapSize = mapSize,
       appliedFunctionsMapSize = appliedFunctionsMapSize,
@@ -99,7 +99,7 @@ sealed trait LevelZeroConfig {
   val atomic: Atomic
 
   def acceleration: LevelZeroMeter => Accelerator
-  def throttle: LevelZeroMeter => FiniteDuration
+  def throttle: LevelZeroMeter => LevelZeroThrottle
 }
 
 object PersistentLevelZeroConfig {
@@ -114,7 +114,7 @@ case class PersistentLevelZeroConfig private(mapSize: Long,
                                              optimiseWrites: OptimiseWrites,
                                              atomic: Atomic,
                                              acceleration: LevelZeroMeter => Accelerator,
-                                             throttle: LevelZeroMeter => FiniteDuration) extends LevelZeroConfig {
+                                             throttle: LevelZeroMeter => LevelZeroThrottle) extends LevelZeroConfig {
   def withPersistentLevel1(dir: Path,
                            otherDirs: Seq[Dir],
                            mmapAppendix: MMAP.Map,
@@ -125,7 +125,7 @@ case class PersistentLevelZeroConfig private(mapSize: Long,
                            mightContainIndex: MightContainIndex,
                            valuesConfig: ValuesConfig,
                            segmentConfig: SegmentConfig,
-                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
+                           throttle: LevelMeter => LevelThrottle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = this,
       level1 =
@@ -155,7 +155,7 @@ case class PersistentLevelZeroConfig private(mapSize: Long,
   def withMemoryLevel1(minSegmentSize: Int,
                        maxKeyValuesPerSegment: Int,
                        deleteDelay: FiniteDuration,
-                       throttle: LevelMeter => Throttle) =
+                       throttle: LevelMeter => LevelThrottle) =
     SwayDBPersistentConfig(
       level0 = this,
       level1 =
@@ -188,7 +188,7 @@ case class MemoryLevelZeroConfig(mapSize: Long,
                                  optimiseWrites: OptimiseWrites,
                                  atomic: Atomic,
                                  acceleration: LevelZeroMeter => Accelerator,
-                                 throttle: LevelZeroMeter => FiniteDuration) extends LevelZeroConfig {
+                                 throttle: LevelZeroMeter => LevelZeroThrottle) extends LevelZeroConfig {
 
   def withPersistentLevel1(dir: Path,
                            otherDirs: Seq[Dir],
@@ -200,7 +200,7 @@ case class MemoryLevelZeroConfig(mapSize: Long,
                            mightContainKey: MightContainIndex,
                            valuesConfig: ValuesConfig,
                            segmentConfig: SegmentConfig,
-                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
+                           throttle: LevelMeter => LevelThrottle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = this,
       level1 =
@@ -230,7 +230,7 @@ case class MemoryLevelZeroConfig(mapSize: Long,
   def withMemoryLevel1(minSegmentSize: Int,
                        maxKeyValuesPerSegment: Int,
                        deleteDelay: FiniteDuration,
-                       throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
+                       throttle: LevelMeter => LevelThrottle): SwayDBMemoryConfig =
     SwayDBMemoryConfig(
       level0 = this,
       level1 =
@@ -261,7 +261,7 @@ object MemoryLevelConfig {
 case class MemoryLevelConfig(minSegmentSize: Int,
                              maxKeyValuesPerSegment: Int,
                              deleteDelay: FiniteDuration,
-                             throttle: LevelMeter => Throttle) extends LevelConfig {
+                             throttle: LevelMeter => LevelThrottle) extends LevelConfig {
 
   def copyWithMinSegmentSize(minSegmentSize: Int) =
     this.copy(minSegmentSize = minSegmentSize)
@@ -272,7 +272,7 @@ case class MemoryLevelConfig(minSegmentSize: Int,
   def copyWithDeleteDelay(deleteDelay: java.time.Duration) =
     this.copy(deleteDelay = deleteDelay.toScala)
 
-  def copyWithThrottle(throttle: JavaFunction[LevelMeter, Throttle]) =
+  def copyWithThrottle(throttle: JavaFunction[LevelMeter, LevelThrottle]) =
     this.copy(throttle = throttle.apply)
 }
 
@@ -291,7 +291,7 @@ case class PersistentLevelConfig(dir: Path,
                                  mightContainIndex: MightContainIndex,
                                  valuesConfig: ValuesConfig,
                                  segmentConfig: SegmentConfig,
-                                 throttle: LevelMeter => Throttle) extends LevelConfig {
+                                 throttle: LevelMeter => LevelThrottle) extends LevelConfig {
   def copyWithDir(dir: Path) =
     this.copy(dir = dir)
 
@@ -325,7 +325,7 @@ case class PersistentLevelConfig(dir: Path,
   def copyWithSegmentConfig(segmentConfig: SegmentConfig) =
     this.copy(segmentConfig = segmentConfig)
 
-  def copyWithThrottle(throttle: JavaFunction[LevelMeter, Throttle]) =
+  def copyWithThrottle(throttle: JavaFunction[LevelMeter, LevelThrottle]) =
     this.copy(throttle = throttle.apply)
 }
 
@@ -371,7 +371,7 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
                           mightContainKey: MightContainIndex,
                           valuesConfig: ValuesConfig,
                           segmentConfig: SegmentConfig,
-                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
+                          throttle: LevelMeter => LevelThrottle): SwayDBPersistentConfig =
     withPersistentLevel(
       PersistentLevelConfig(
         dir = dir,
@@ -395,7 +395,7 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
   def withMemoryLevel(minSegmentSize: Int,
                       maxKeyValuesPerSegment: Int,
                       deleteDelay: FiniteDuration,
-                      throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
+                      throttle: LevelMeter => LevelThrottle): SwayDBMemoryConfig =
 
     withMemoryLevel(
       MemoryLevelConfig(
@@ -426,7 +426,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
                           mightContainIndex: MightContainIndex,
                           valuesConfig: ValuesConfig,
                           segmentConfig: SegmentConfig,
-                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
+                          throttle: LevelMeter => LevelThrottle): SwayDBPersistentConfig =
     copy(
       otherLevels = otherLevels :+
         PersistentLevelConfig(
@@ -450,7 +450,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
   def withMemoryLevel(minSegmentSize: Int,
                       maxKeyValuesPerSegment: Int,
                       deleteDelay: FiniteDuration,
-                      throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
+                      throttle: LevelMeter => LevelThrottle): SwayDBPersistentConfig =
 
     copy(
       otherLevels = otherLevels :+

@@ -26,7 +26,7 @@ package swaydb.configs.level
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config._
 import swaydb.data.{Atomic, OptimiseWrites}
 
@@ -44,8 +44,8 @@ object DefaultMemoryConfig extends LazyLogging {
             maxKeyValuesPerSegment: Int,
             deleteDelay: FiniteDuration,
             acceleration: LevelZeroMeter => Accelerator,
-            levelZeroThrottle: LevelZeroMeter => FiniteDuration,
-            lastLevelThrottle: LevelMeter => Throttle,
+            levelZeroThrottle: LevelZeroMeter => LevelZeroThrottle,
+            lastLevelThrottle: LevelMeter => LevelThrottle,
             optimiseWrites: OptimiseWrites,
             atomic: Atomic): SwayDBMemoryConfig =
     ConfigWizard
