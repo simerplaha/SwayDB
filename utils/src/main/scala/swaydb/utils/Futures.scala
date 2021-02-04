@@ -24,7 +24,11 @@
 
 package swaydb.utils
 
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicInteger
+import scala.collection.BuildFrom
 import scala.concurrent.{ExecutionContext, Future}
+import scala.jdk.CollectionConverters._
 
 private[swaydb] object Futures {
 
@@ -74,4 +78,60 @@ private[swaydb] object Futures {
     @inline def mapUnit[A](future2: => A)(implicit executionContext: ExecutionContext): Future[A] =
       future1.map(_ => future2)
   }
+
+  def traverseBounded[A, B, C[X] <: Iterable[X]](parallelism: Int,
+                                                 input: C[A])(f: A => Future[B])(implicit bf: BuildFrom[C[A], B, C[B]], ec: ExecutionContext): Future[C[B]] =
+    if (parallelism <= 0) {
+      Future.failed(new Exception(s"Invalid parallelism $parallelism. Should be >= 1."))
+    } else {
+      val items = new ConcurrentLinkedQueue[A](input.asJavaCollection) //queue all the items
+      val resultQueue = new ConcurrentLinkedQueue[Future[B]]() //final result
+      val remaining = new AtomicInteger(parallelism) //remaining parallelism left
+      @volatile var failed: Throwable = null //indicates if the traverse has failed
+
+      def run(previousFuture: Future[_]): Future[_] =
+        if (failed != null) {
+          Future.failed(failed)
+        } else if (remaining.decrementAndGet() < 0) { //attempt at reserving execution
+          remaining.incrementAndGet() //if it goes negative then fix this error by reverting the decrement
+          previousFuture
+        } else {
+          val nextItem = items.poll()
+          if (nextItem != null) {
+            val executedFuture = f(nextItem)
+            resultQueue add executedFuture
+
+            val nextFuture =
+              executedFuture
+                .flatMap {
+                  _ =>
+                    //return this parallelism before continuing
+                    remaining.incrementAndGet()
+                    run(Future.unit)
+                }
+                .recoverWith {
+                  throwable =>
+                    failed = throwable
+                    Future.failed(throwable)
+                }
+
+            //call run again and chain tail previous and nextFuture
+            run(previousFuture.and(nextFuture))
+          } else if (failed != null) {
+            Future.failed(failed)
+          } else {
+            previousFuture
+          }
+        }
+
+      run(Future.unit)
+        .and {
+          resultQueue
+            .asScala
+            .foldLeft(Future.successful(bf.newBuilder(input))) {
+              case (builder, future) =>
+                builder.zipWith(future)(_ += _)
+            }.map(_.result())
+        }
+    }
 }
