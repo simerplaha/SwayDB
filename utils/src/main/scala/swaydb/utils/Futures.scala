@@ -26,7 +26,7 @@ package swaydb.utils
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
-import scala.collection.BuildFrom
+import scala.collection.compat.BuildFrom
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 
@@ -110,7 +110,7 @@ private[swaydb] object Futures {
                     run(Future.unit)
                 }
                 .recoverWith {
-                  throwable =>
+                  case throwable =>
                     failed = throwable
                     Future.failed(throwable)
                 }

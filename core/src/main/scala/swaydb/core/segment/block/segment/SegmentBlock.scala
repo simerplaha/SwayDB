@@ -49,7 +49,6 @@ import swaydb.utils.{ByteSizeOf, Futures}
 
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
-import scala.collection.{BuildFrom, mutable}
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -241,15 +240,16 @@ private[core] case object SegmentBlock extends LazyLogging {
               items = ones
             )
 
-          //Be explicit since we know the maximum size already.
-          val buildFrom =
-            new BuildFrom[Slice[Slice[TransientSegment.OneOrRemoteRef]], TransientSegment.OneOrRemoteRefOrMany, Slice[TransientSegment.OneOrRemoteRefOrMany]] {
-              override def fromSpecific(from: Slice[Slice[TransientSegment.OneOrRemoteRef]])(it: IterableOnce[TransientSegment.OneOrRemoteRefOrMany]): Slice[TransientSegment.OneOrRemoteRefOrMany] =
-                Slice.of[TransientSegment.OneOrRemoteRefOrMany](groups.size)
-
-              override def newBuilder(from: Slice[Slice[TransientSegment.OneOrRemoteRef]]): mutable.Builder[TransientSegment.OneOrRemoteRefOrMany, Slice[TransientSegment.OneOrRemoteRefOrMany]] =
-                Slice.newBuilder(groups.size)
-            }
+          //FIXME: DOES NOT WORK WITH 2.12
+          //          //Be explicit since we know the maximum size already.
+          //          val buildFrom =
+          //            new CanBuildFrom[Slice[Slice[TransientSegment.OneOrRemoteRef]], TransientSegment.OneOrRemoteRefOrMany, Slice[TransientSegment.OneOrRemoteRefOrMany]] {
+          //              override def fromSpecific(from: Slice[Slice[TransientSegment.OneOrRemoteRef]])(it: IterableOnce[TransientSegment.OneOrRemoteRefOrMany]): Slice[TransientSegment.OneOrRemoteRefOrMany] =
+          //                Slice.of[TransientSegment.OneOrRemoteRefOrMany](groups.size)
+          //
+          //              override def newBuilder(from: Slice[Slice[TransientSegment.OneOrRemoteRef]]): mutable.Builder[TransientSegment.OneOrRemoteRefOrMany, Slice[TransientSegment.OneOrRemoteRefOrMany]] =
+          //                Slice.newBuilder(groups.size)
+          //            }
 
           Future.traverse(groups)(
             segments =>
@@ -262,7 +262,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                 valuesConfig = valuesConfig,
                 segmentConfig = segmentConfig
               )
-          )(buildFrom, ec)
+          )
         }
 
   /**

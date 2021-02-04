@@ -7,7 +7,7 @@ import xerial.sbt.Sonatype._
 val lz4Version = "1.7.1"
 val snappyVersion = "1.1.8.1"
 val scalaJava8CompatVersion = "0.9.1"
-val scalaCollectionsCompat = "2.3.2"
+val scalaCollectionsCompat = "2.4.1"
 
 //TEST dependencies - Libraries used for tests
 val logbackClassicVersion = "1.2.3"
