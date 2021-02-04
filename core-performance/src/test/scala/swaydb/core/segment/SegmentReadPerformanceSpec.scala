@@ -181,7 +181,8 @@ class SegmentReadPerformanceSpec extends TestBase {
         mmap = mmapSegments,
         deleteDelay = 0.seconds,
         //              compressions = _ => Seq(CompressionInternal.randomLZ4(Double.MinValue))
-        compressions = _ => Seq.empty
+        compressions = _ => Seq.empty,
+        initialiseIteratorsInOneSeek = false
       )
 
     implicit val fileSweeper = TestSweeper.createFileSweeper()

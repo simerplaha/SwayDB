@@ -340,7 +340,8 @@ object CommonAssertions {
       newKeyValues = newKeyValues,
       oldKeyValues = oldKeyValues,
       stats = builder,
-      isLastLevel = isLastLevel
+      isLastLevel = isLastLevel,
+      initialiseIteratorsInOneSeek = randomBoolean()
     )
 
     val result = builder.keyValues
@@ -549,7 +550,7 @@ object CommonAssertions {
       }
 
     def shouldHaveSameKeyValuesAs(expected: Iterable[Segment]): Unit =
-      actual.flatMap(_.iterator()).runRandomIO.right.value shouldBe expected.flatMap(_.iterator()).runRandomIO.right.value
+      actual.flatMap(_.iterator(randomBoolean())).runRandomIO.right.value shouldBe expected.flatMap(_.iterator(randomBoolean())).runRandomIO.right.value
   }
 
   implicit class SliceByteImplicits(actual: Slice[Byte]) {
@@ -625,7 +626,7 @@ object CommonAssertions {
       actual.segmentNumber shouldBe expected.segmentNumber
       actual.getClass shouldBe expected.getClass
       if (!ignoreReads)
-        assertReads(Slice.from(expected.iterator(), expected.keyValueCount).runRandomIO.right.value, actual)
+        assertReads(Slice.from(expected.iterator(randomBoolean()), expected.keyValueCount).runRandomIO.right.value, actual)
     }
 
     def shouldContainAll(keyValues: Slice[KeyValue]): Unit =
@@ -935,7 +936,7 @@ object CommonAssertions {
       segments map {
         segment =>
           val stringInfos: Slice[String] =
-            Slice.from(segment.iterator(), segment.keyValueCount) map {
+            Slice.from(segment.iterator(randomBoolean()), segment.keyValueCount) map {
               keyValue =>
                 keyValue.toMemory() match {
                   case response: Memory =>

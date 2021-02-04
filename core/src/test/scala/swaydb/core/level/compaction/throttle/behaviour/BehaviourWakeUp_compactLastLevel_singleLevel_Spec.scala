@@ -229,7 +229,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends T
             sleeping.sleepDeadline should be > expectedDeadline
 
             level.segments() should have size testSegments.size
-            level.segments().flatMap(_.iterator()) shouldBe keyValues
+            level.segments().flatMap(_.iterator(randomBoolean())) shouldBe keyValues
 
             //segments are not deleted
             testSegments.foreach(_.existsOnDiskOrMemory shouldBe true)
@@ -289,7 +289,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends T
             sleeping.sleepDeadline should be > expectedDeadline
 
             level.segments() should have size 1
-            level.segments().flatMap(_.iterator()) shouldBe keyValues
+            level.segments().flatMap(_.iterator(randomBoolean())) shouldBe keyValues
 
             //segments are deleted
             testSegments.foreach(_.existsOnDiskOrMemory shouldBe false)
@@ -348,7 +348,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends T
 
             //3 segments are deleted because their key-values are expired
             level.segments() should have size (testSegments.size - 3)
-            level.segments().flatMap(_.iterator()) shouldBe unexpiredPuts(keyValues)
+            level.segments().flatMap(_.iterator(randomBoolean())) shouldBe unexpiredPuts(keyValues)
         }
       }
     }

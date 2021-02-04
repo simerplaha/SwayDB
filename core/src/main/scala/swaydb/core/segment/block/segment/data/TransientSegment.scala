@@ -81,7 +81,7 @@ object TransientSegment {
   sealed trait RemoteRefOrStats[+S]
 
   sealed trait Remote extends Singleton with Fragment[Nothing] {
-    def iterator(): Iterator[KeyValue]
+    def iterator(inOneSeek: Boolean): Iterator[KeyValue]
   }
 
   /**
@@ -180,8 +180,8 @@ object TransientSegment {
     override def footerUnblocked: Option[SegmentFooterBlock] =
       ref.segmentBlockCache.cachedFooter()
 
-    override def iterator(): Iterator[KeyValue] =
-      ref.iterator()
+    override def iterator(inOneSeek: Boolean): Iterator[KeyValue] =
+      ref.iterator(inOneSeek)
 
     override def copyWithFileHeader(fileHeader: Slice[Byte]): RemoteRef =
       new RemoteRef(fileHeader = fileHeader, ref = ref)
@@ -228,8 +228,8 @@ object TransientSegment {
     override def segmentSize: Int =
       segment.segmentSize
 
-    override def iterator(): Iterator[KeyValue] =
-      segment.iterator()
+    override def iterator(inOneSeek: Boolean): Iterator[KeyValue] =
+      segment.iterator(inOneSeek)
 
     override def updateCount: Int =
       segment.updateCount

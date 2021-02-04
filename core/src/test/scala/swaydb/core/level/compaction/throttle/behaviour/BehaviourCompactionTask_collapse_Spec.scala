@@ -87,7 +87,7 @@ sealed trait BehaviourCompactionTask_collapse_Spec extends TestBase {
                 TestSegment(Slice(Memory.put(key)))
             }
 
-          val keyValues = segments.iterator.flatMap(_.iterator()).toSlice
+          val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 
           level.putSegments(segments) shouldBe IO.unit
           level.segmentsCount() shouldBe segments.size
@@ -122,7 +122,7 @@ sealed trait BehaviourCompactionTask_collapse_Spec extends TestBase {
                 TestSegment(Slice(Memory.put(key)))
             }
 
-          val keyValues = segments.iterator.flatMap(_.iterator()).toSlice
+          val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 
           level.putSegments(segments) shouldBe IO.unit
           level.segmentsCount() shouldBe segments.size

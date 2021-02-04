@@ -607,12 +607,14 @@ private[core] case class Level(dirs: Seq[Dir],
     if (noGaps)
       Assigner.assignUnsafeNoGaps(
         keyValues = newKeyValues,
-        segments = targetSegments
+        segments = targetSegments,
+        initialiseIteratorsInOneSeek = segmentConfig.initialiseIteratorsInOneSeek
       )
     else
       Assigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]]](
         keyValues = newKeyValues,
-        segments = targetSegments
+        segments = targetSegments,
+        initialiseIteratorsInOneSeek = segmentConfig.initialiseIteratorsInOneSeek
       )
   }
 
@@ -626,12 +628,14 @@ private[core] case class Level(dirs: Seq[Dir],
     if (noGaps)
       Assigner.assignUnsafeNoGaps(
         keyValues = newKeyValues,
-        segments = targetSegments
+        segments = targetSegments,
+        initialiseIteratorsInOneSeek = segmentConfig.initialiseIteratorsInOneSeek
       )
     else
       Assigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]](
         keyValues = newKeyValues,
-        segments = targetSegments
+        segments = targetSegments,
+        initialiseIteratorsInOneSeek = segmentConfig.initialiseIteratorsInOneSeek
       )
   }
 

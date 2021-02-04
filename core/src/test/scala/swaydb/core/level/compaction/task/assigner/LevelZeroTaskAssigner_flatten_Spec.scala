@@ -92,15 +92,15 @@ class LevelZeroTaskAssigner_flatten_Spec extends TestBase with MockFactory {
                 level.put(keyValues = keyValues, removeDeletes = true).get
             }
 
-            level.segments().flatMap(_.iterator()).map(_.toMemory()).toSlice
+            level.segments().flatMap(_.iterator(randomBoolean())).map(_.toMemory()).toSlice
           }
 
           //get the actual merged key-values and write it to a Level to final cleanup merges
           def buildActualKeyValues() = {
             val level = TestLevel()
-            val flattenedKeyValues = flattenedMaps.flatMap(_.iterator()).map(_.toMemory())
+            val flattenedKeyValues = flattenedMaps.flatMap(_.iterator(randomBoolean())).map(_.toMemory())
             level.put(keyValues = flattenedKeyValues, removeDeletes = true)
-            level.segments().flatMap(_.iterator()).map(_.toMemory()).toSlice
+            level.segments().flatMap(_.iterator(randomBoolean())).map(_.toMemory()).toSlice
           }
 
           //get all expected key-values

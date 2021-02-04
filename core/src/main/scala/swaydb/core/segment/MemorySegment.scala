@@ -118,7 +118,7 @@ private[core] final case class MemorySegment(path: Path,
       val mergeStats =
         new MergeStats.Memory.ClosedIgnoreStats[Iterator](
           isEmpty = false,
-          keyValues = Segment.toMemoryIterator(iterator(), removeDeletes)
+          keyValues = Segment.toMemoryIterator(iterator(segmentConfig.initialiseIteratorsInOneSeek), removeDeletes)
         )
 
       val refreshed =
@@ -215,7 +215,7 @@ private[core] final case class MemorySegment(path: Path,
     else
       skipList.higher(key)
 
-  override def iterator(): Iterator[Memory] =
+  override def iterator(inOneSeek: Boolean): Iterator[Memory] =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else

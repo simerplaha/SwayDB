@@ -81,8 +81,8 @@ case object CompactionIO {
 
 class CompactionIO(@volatile private var state: CompactionIO.State) {
 
-  def iterator[S <: Segment](segment: S): Future[Iterator[KeyValue]] =
-    Future.successful(segment.iterator())
+  def iterator[S <: Segment](segment: S, inOneSeek: Boolean): Future[Iterator[KeyValue]] =
+    Future.successful(segment.iterator(inOneSeek))
 
   def persist[T <: TransientSegment, S <: Segment](pathsDistributor: PathsDistributor,
                                                    segmentRefCacheLife: SegmentRefCacheLife,

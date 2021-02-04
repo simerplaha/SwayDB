@@ -517,17 +517,17 @@ private[core] class SegmentBlockCache private(path: Path,
    * Read all but also cache sortedIndex and valueBytes if they are not already cached.
    */
 
-  def iterator(): Iterator[Persistent] =
+  def iterator(inOneSeek: Boolean): Iterator[Persistent] =
     try {
       var sortedIndexReader = createSortedIndexReader()
-      if (sortedIndexReader.isFile) {
+      if (inOneSeek && sortedIndexReader.isFile) {
         forceCacheSortedIndexAndValueReaders = true
         sortedIndexReaderCache.clear()
         sortedIndexReader = createSortedIndexReader()
       }
 
       var valuesReaderOrNull = createValuesReaderOrNull()
-      if (valuesReaderOrNull != null && valuesReaderOrNull.isFile) {
+      if (inOneSeek && valuesReaderOrNull != null && valuesReaderOrNull.isFile) {
         forceCacheSortedIndexAndValueReaders = true
         valuesReaderCacheOrNull.clear()
         valuesReaderOrNull = createValuesReaderOrNull()

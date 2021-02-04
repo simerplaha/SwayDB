@@ -41,31 +41,35 @@ private[core] object KeyValueMerger extends LazyLogging {
   def merge(newKeyValue: Memory,
             oldKeyValue: Memory,
             builder: MergeStats[Memory, Iterable],
-            isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  timeOrder: TimeOrder[Slice[Byte]],
-                                  functionStore: FunctionStore): Unit =
+            isLastLevel: Boolean,
+            initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   functionStore: FunctionStore): Unit =
     merge(
       headGap = Assignable.emptyIterable,
       tailGap = Assignable.emptyIterable,
       newKeyValues = Slice(newKeyValue),
       oldKeyValues = Slice(oldKeyValue),
       stats = builder,
-      isLastLevel = isLastLevel
+      isLastLevel = isLastLevel,
+      initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek
     )
 
   def merge(newKeyValues: Slice[KeyValue],
             oldKeyValues: Slice[KeyValue],
             stats: MergeStats[Memory, Iterable],
-            isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  timeOrder: TimeOrder[Slice[Byte]],
-                                  functionStore: FunctionStore): Unit =
+            isLastLevel: Boolean,
+            initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   functionStore: FunctionStore): Unit =
     merge(
       headGap = Assignable.emptyIterable,
       tailGap = Assignable.emptyIterable,
       newKeyValues = DropIterator[Memory.Range, Assignable](newKeyValues),
       oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValues),
       builder = stats,
-      isLastLevel = isLastLevel
+      isLastLevel = isLastLevel,
+      initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek
     )
 
   def merge(headGap: Iterable[Assignable],
@@ -73,16 +77,18 @@ private[core] object KeyValueMerger extends LazyLogging {
             newKeyValues: Slice[KeyValue],
             oldKeyValues: Slice[KeyValue],
             stats: MergeStats[Memory, Iterable],
-            isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  timeOrder: TimeOrder[Slice[Byte]],
-                                  functionStore: FunctionStore): Unit =
+            isLastLevel: Boolean,
+            initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   functionStore: FunctionStore): Unit =
     merge(
       headGap = headGap,
       tailGap = tailGap,
       newKeyValues = DropIterator[Memory.Range, Assignable](newKeyValues),
       oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValues),
       builder = stats,
-      isLastLevel = isLastLevel
+      isLastLevel = isLastLevel,
+      initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek
     )
 
   def merge[T[_]](headGap: Iterable[Assignable],
@@ -90,16 +96,18 @@ private[core] object KeyValueMerger extends LazyLogging {
                   newKeyValues: Slice[KeyValue],
                   oldKeyValues: Iterator[KeyValue],
                   stats: MergeStats[Memory, T],
-                  isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]],
-                                        functionStore: FunctionStore): Unit =
+                  isLastLevel: Boolean,
+                  inOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                      timeOrder: TimeOrder[Slice[Byte]],
+                                      functionStore: FunctionStore): Unit =
     merge(
       headGap = headGap,
       tailGap = tailGap,
       newKeyValues = DropIterator[Memory.Range, Assignable](newKeyValues),
       oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValues),
       builder = stats,
-      isLastLevel = isLastLevel
+      isLastLevel = isLastLevel,
+      initialiseIteratorsInOneSeek = inOneSeek
     )
 
   def merge[T[_]](headGap: Iterable[Assignable],
@@ -107,46 +115,52 @@ private[core] object KeyValueMerger extends LazyLogging {
                   newKeyValues: Iterator[Assignable],
                   oldKeyValues: Iterator[KeyValue],
                   stats: MergeStats[Memory, T],
-                  isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]],
-                                        functionStore: FunctionStore): Unit =
+                  isLastLevel: Boolean,
+                  initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                         functionStore: FunctionStore): Unit =
     merge(
       headGap = headGap,
       tailGap = tailGap,
       newKeyValues = DropIterator[Memory.Range, Assignable](newKeyValues),
       oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValues),
       builder = stats,
-      isLastLevel = isLastLevel
+      isLastLevel = isLastLevel,
+      initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek
     )
 
   def mergeAssignable[T[_]](newKeyValues: Slice[Assignable],
                             oldKeyValues: Slice[KeyValue],
                             stats: MergeStats[Memory, T],
-                            isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                  functionStore: FunctionStore): Unit =
+                            isLastLevel: Boolean,
+                            initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                                   functionStore: FunctionStore): Unit =
     merge(
       headGap = Assignable.emptyIterable,
       tailGap = Assignable.emptyIterable,
       newKeyValues = DropIterator[Memory.Range, Assignable](newKeyValues),
       oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValues),
       builder = stats,
-      isLastLevel = isLastLevel
+      isLastLevel = isLastLevel,
+      initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek
     )
 
   def merge[T[_]](newKeyValues: Iterator[Assignable],
                   oldKeyValues: Iterator[KeyValue],
                   stats: MergeStats[Memory, T],
-                  isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]],
-                                        functionStore: FunctionStore): Unit =
+                  isLastLevel: Boolean,
+                  initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                         functionStore: FunctionStore): Unit =
     merge(
       headGap = Assignable.emptyIterable,
       tailGap = Assignable.emptyIterable,
       newKeyValues = DropIterator[Memory.Range, Assignable](newKeyValues),
       oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValues),
       builder = stats,
-      isLastLevel = isLastLevel
+      isLastLevel = isLastLevel,
+      initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek
     )
 
   private def merge[T[_]](headGap: Iterable[Assignable], //head key-values that do not require merging
@@ -154,9 +168,10 @@ private[core] object KeyValueMerger extends LazyLogging {
                           newKeyValues: DropIterator[Memory.Range, Assignable],
                           oldKeyValues: DropIterator[Memory.Range, KeyValue],
                           builder: MergeStats[Memory, T],
-                          isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): Unit = {
+                          isLastLevel: Boolean,
+                          initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                                 functionStore: FunctionStore): Unit = {
 
     import keyOrder._
 
@@ -170,7 +185,7 @@ private[core] object KeyValueMerger extends LazyLogging {
     @inline def addAll(toAdd: Iterator[Assignable]) =
       toAdd foreach {
         case collection: Assignable.Collection =>
-          collection.iterator() foreach add
+          collection.iterator(initialiseIteratorsInOneSeek) foreach add
 
         case value: KeyValue =>
           add(value)
@@ -192,7 +207,7 @@ private[core] object KeyValueMerger extends LazyLogging {
          */
 
         case collection: Assignable.Collection =>
-          val expanded = DropIterator[Memory.Range, Assignable](collection.iterator())
+          val expanded = DropIterator[Memory.Range, Assignable](collection.iterator(initialiseIteratorsInOneSeek))
           val newIterator = expanded append newKeyValues.dropHead()
 
           doMerge(newIterator, oldKeyValues)

@@ -407,13 +407,14 @@ private[core] case object Segment extends LazyLogging {
                    pathsDistributor: PathsDistributor,
                    removeDeletes: Boolean,
                    minSegmentSize: Int,
-                   maxKeyValueCountPerSegment: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                    functionStore: FunctionStore,
-                                                    fileSweeper: FileSweeper,
-                                                    idGenerator: IDGenerator): Slice[MemorySegment] =
+                   maxKeyValueCountPerSegment: Int,
+                   initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                          functionStore: FunctionStore,
+                                                          fileSweeper: FileSweeper,
+                                                          idGenerator: IDGenerator): Slice[MemorySegment] =
     copyToMemory(
-      keyValues = segment.iterator(),
+      keyValues = segment.iterator(initialiseIteratorsInOneSeek),
       pathsDistributor = pathsDistributor,
       removeDeletes = removeDeletes,
       minSegmentSize = minSegmentSize,
@@ -742,7 +743,8 @@ private[core] case object Segment extends LazyLogging {
     segment
   }
 
-  def segmentSizeForMerge(segment: Segment): Int =
+  def segmentSizeForMerge(segment: Segment,
+                          initialiseIteratorsInOneSeek: Boolean): Int =
     segment match {
       case segment: MemorySegment =>
         segment.segmentSize
@@ -754,7 +756,7 @@ private[core] case object Segment extends LazyLogging {
         val listSegmentSize = segmentSizeForMerge(segment.listSegmentCache.value(()))
 
         //1+ for formatId
-        segment.segmentRefs().foldLeft(1 + listSegmentSize) {
+        segment.segmentRefs(initialiseIteratorsInOneSeek).foldLeft(1 + listSegmentSize) {
           case (size, ref) =>
             size + segmentSizeForMerge(ref)
         }
@@ -1052,9 +1054,9 @@ private[core] case object Segment extends LazyLogging {
       } yield {
         val assignments =
           if (keyOrder.equiv(head.key, last.key))
-            Assigner.assignUnsafeNoGaps(keyValues = Slice(head), segments = appendixSegments)
+            Assigner.assignUnsafeNoGaps(keyValues = Slice(head), segments = appendixSegments, initialiseIteratorsInOneSeek = false)
           else
-            Assigner.assignUnsafeNoGaps(keyValues = Slice(head, last), segments = appendixSegments)
+            Assigner.assignUnsafeNoGaps(keyValues = Slice(head, last), segments = appendixSegments, initialiseIteratorsInOneSeek = false)
 
         Segment.overlaps(
           segments1 = busySegments,
@@ -1245,7 +1247,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
 
   def higher(key: Slice[Byte], threadState: ThreadReadState): KeyValueOption
 
-  def iterator(): Iterator[KeyValue]
+  def iterator(initialiseIteratorsInOneSeek: Boolean): Iterator[KeyValue]
 
   def delete: Unit
 

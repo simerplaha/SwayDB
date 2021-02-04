@@ -78,7 +78,7 @@ object Assignable {
    */
   trait Collection extends Assignable with Gap[Nothing] {
     def maxKey: MaxKey[Slice[Byte]]
-    def iterator(): Iterator[KeyValue]
+    def iterator(inOneSeek: Boolean): Iterator[KeyValue]
     def keyValueCount: Int
   }
 
@@ -93,7 +93,7 @@ object Assignable {
         override def maxKey: MaxKey[Slice[Byte]] =
           map.cache.maxKey().getC
 
-        override def iterator(): Iterator[KeyValue] =
+        override def iterator(inOneSeek: Boolean): Iterator[KeyValue] =
           map.cache.skipList.valuesIterator
 
         override def keyValueCount: Int =

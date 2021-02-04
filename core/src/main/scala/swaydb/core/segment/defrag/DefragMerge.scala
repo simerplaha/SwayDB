@@ -56,6 +56,7 @@ private[segment] object DefragMerge {
                                                                              newKeyValues: Iterator[Assignable],
                                                                              removeDeletes: Boolean,
                                                                              forceExpand: Boolean,
+                                                                             initialiseIteratorsInOneSeek: Boolean,
                                                                              fragments: ListBuffer[TransientSegment.Fragment[S]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                                   functionStore: FunctionStore,
@@ -68,9 +69,10 @@ private[segment] object DefragMerge {
             headGap = Assignable.emptyIterable,
             tailGap = Assignable.emptyIterable,
             newKeyValues = newKeyValues,
-            oldKeyValues = segment.iterator(),
+            oldKeyValues = segment.iterator(initialiseIteratorsInOneSeek),
             stats = stats,
-            isLastLevel = removeDeletes
+            isLastLevel = removeDeletes,
+            initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek
           )
 
           segment
@@ -82,9 +84,10 @@ private[segment] object DefragMerge {
             headGap = Assignable.emptyIterable,
             tailGap = Assignable.emptyIterable,
             newKeyValues = newKeyValues,
-            oldKeyValues = segment.iterator(),
+            oldKeyValues = segment.iterator(initialiseIteratorsInOneSeek),
             stats = newStats,
-            isLastLevel = removeDeletes
+            isLastLevel = removeDeletes,
+            initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek
           )
 
           if (!newStats.isEmpty)
@@ -95,7 +98,7 @@ private[segment] object DefragMerge {
     else if (forceExpand)
       fragments.lastOption match {
         case Some(TransientSegment.Stats(lastStats)) =>
-          segment.iterator() foreach (keyValue => lastStats.add(keyValue.toMemory()))
+          segment.iterator(initialiseIteratorsInOneSeek) foreach (keyValue => lastStats.add(keyValue.toMemory()))
           segment
 
         case Some(_) | None =>
@@ -105,9 +108,10 @@ private[segment] object DefragMerge {
             headGap = Assignable.emptyIterable,
             tailGap = Assignable.emptyIterable,
             newKeyValues = newKeyValues,
-            oldKeyValues = segment.iterator(),
+            oldKeyValues = segment.iterator(initialiseIteratorsInOneSeek),
             stats = newStats,
-            isLastLevel = removeDeletes
+            isLastLevel = removeDeletes,
+            initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek
           )
 
           if (!newStats.isEmpty)

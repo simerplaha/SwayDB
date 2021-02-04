@@ -557,7 +557,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       enableHashIndexForListSegment = randomBoolean(),
                       mmap = MMAP.randomForSegment(),
                       deleteDelay = randomFiniteDuration(),
-                      compressions = _ => compressions(4)
+                      compressions = _ => compressions(4),
+                      initialiseIteratorsInOneSeek = randomBoolean()
                     )
                 )
               }
@@ -635,7 +636,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               val refs =
                 segment match {
                   case segment: PersistentSegmentMany =>
-                    segment.segmentRefs().toList
+                    segment.segmentRefs(randomBoolean()).toList
 
                   case segment: PersistentSegmentOne =>
                     List(segment.ref)

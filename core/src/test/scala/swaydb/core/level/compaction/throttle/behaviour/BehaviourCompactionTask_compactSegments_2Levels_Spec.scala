@@ -85,7 +85,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
               val targetLevel = TestLevel()
 
               val segments = SortedSet(TestSegment(Slice(Memory.put(1))), TestSegment(Slice(Memory.put(2))))
-              val keyValues = segments.iterator.flatMap(_.iterator()).toSlice
+              val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 
               sourceLevel.putSegments(segments) shouldBe IO.unit
 
@@ -125,7 +125,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
               val targetLevel = TestLevel()
 
               val segments = SortedSet(TestSegment(Slice(Memory.put(1))), TestSegment(Slice(Memory.put(2))))
-              val keyValues = segments.iterator.flatMap(_.iterator()).toSlice
+              val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 
               sourceLevel.putSegments(segments) shouldBe IO.unit
               //write data to Level as a single Segment or multiple Segments
@@ -178,7 +178,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
                     TestSegment(Slice(randomUpdateKeyValue(3)))
                   )
 
-                val keyValues = segments.iterator.flatMap(_.iterator()).toSlice
+                val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 
                 sourceLevel.putSegments(segments) shouldBe IO.unit
 
@@ -224,7 +224,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
                     TestSegment(Slice(randomUpdateKeyValue(3, deadline = randomExpiredDeadlineOption())))
                   )
 
-                val sourceLevelKeyValues = sourceLevelSegment.iterator.flatMap(_.iterator()).toSlice
+                val sourceLevelKeyValues = sourceLevelSegment.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 
                 //all target key-values are expired or update
                 val targetLevelSegment =
@@ -233,7 +233,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
                     TestSegment(Slice(randomUpdateKeyValue(4), randomUpdateKeyValue(5)))
                   )
 
-                val targetLevelKeyValues = targetLevelSegment.iterator.flatMap(_.iterator()).toSlice
+                val targetLevelKeyValues = targetLevelSegment.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 
                 sourceLevel.putSegments(sourceLevelSegment) shouldBe IO.unit
                 //write data to Level as a single Segment or multiple Segments
@@ -287,7 +287,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
                     TestSegment(Slice(Memory.put(2)))
                   )
 
-                val keyValues = segments.iterator.flatMap(_.iterator()).toSlice
+                val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 
                 sourceLevel.putSegments(segments) shouldBe IO.unit
 

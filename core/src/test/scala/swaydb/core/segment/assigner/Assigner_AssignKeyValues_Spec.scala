@@ -28,26 +28,21 @@ import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Value}
-import swaydb.effect.Effect._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.testkit.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.effect.Effect._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import swaydb.utils.OperatingSystem
-import swaydb.utils.OperatingSystem._
-import swaydb.utils.FiniteDurations._
-import swaydb.utils.StorageUnits._
-import swaydb.utils.ByteSizeOf._
 
 class Segment_AssignerAssignKeyValues_Spec0 extends Assigner_AssignKeyValues_Spec {
   val keyValueCount = 100
@@ -95,14 +90,14 @@ sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
             /**
              * Test with no gaps
              */
-            val noGaps = Assigner.assignUnsafeNoGaps(keyValues, Slice(segment))
+            val noGaps = Assigner.assignUnsafeNoGaps(keyValues, Slice(segment), randomBoolean())
             noGaps should have size 1
             noGaps.head.midOverlap.result.expectKeyValues() shouldBe keyValues
 
             /**
              * Test with gaps
              */
-            val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](keyValues, Slice(segment))
+            val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](keyValues, Slice(segment), randomBoolean())
             gaps should have size 1
             gaps.head.headGap.result shouldBe empty
             gaps.head.midOverlap.result.expectKeyValues() shouldBe keyValues
@@ -122,7 +117,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
             /**
              * Test with no gaps
              */
-            val noGaps = Assigner.assignUnsafeNoGaps(Slice(segment), Slice(segment))
+            val noGaps = Assigner.assignUnsafeNoGaps(Slice(segment), Slice(segment), randomBoolean())
             noGaps should have size 1
 
             val assignedSegments = noGaps.head.midOverlap.result.expectSegments()
@@ -132,7 +127,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
             /**
              * Test with gaps
              */
-            val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segment), Slice(segment))
+            val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segment), Slice(segment), randomBoolean())
             gaps should have size 1
             gaps.head.headGap.result shouldBe empty
             gaps.head.tailGap.result shouldBe empty
@@ -154,7 +149,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
           val segmentKeyValues = randomizedKeyValues(10, startId = Some(0))(TestTimer.Incremental())
           val segment = TestSegment(segmentKeyValues)
 
-          val result = Assigner.assignUnsafeNoGaps(keyValues, List(segment))
+          val result = Assigner.assignUnsafeNoGaps(keyValues, List(segment), randomBoolean())
           result.size shouldBe 1
           val assignment = result.head
           assignment.segment.path shouldBe segment.path
@@ -176,7 +171,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
 
             val newKeyValues = headGap ++ midKeyValues ++ tailGap
 
-            val result = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](newKeyValues, List(segment))
+            val result = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](newKeyValues, List(segment), randomBoolean())
             result.size shouldBe 1
             val assignment = result.head
             assignment.segment.path shouldBe segment.path
@@ -204,7 +199,8 @@ sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
                 randomRangeKeyValue(11, 20),
                 randomFixedKeyValue(20)
               ),
-            segments = segments
+            segments = segments,
+            initialiseIteratorsInOneSeek = randomBoolean()
           )
 
         result.size shouldBe 1
@@ -227,7 +223,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
             Memory.Range(16, 20, Value.FromValue.Null, Value.update(16))
           )
 
-        val result = Assigner.assignUnsafeNoGaps(keyValues, segments)
+        val result = Assigner.assignUnsafeNoGaps(keyValues, segments, randomBoolean())
         result.size shouldBe 1
         result.head.segment.path shouldBe segment1.path
         result.head.midOverlap.result.expectKeyValues() shouldBe keyValues
@@ -252,7 +248,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
               randomRangeKeyValue(20, 100)
             )
 
-          val result = Assigner.assignUnsafeNoGaps(keyValues, segments)
+          val result = Assigner.assignUnsafeNoGaps(keyValues, segments, randomBoolean())
           result.size shouldBe 1
           result.head.segment.path shouldBe segment2.path
           result.head.midOverlap.result.expectKeyValues() shouldBe keyValues
@@ -289,7 +285,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
           assignments.find(_.segment == segment4).value.midOverlap.result.expectKeyValues() should contain only Memory.Range(40, 50, Value.FromValue.Null, Value.update(10))
         }
 
-        assertResult(Assigner.assignUnsafeNoGaps(keyValues, segments))
+        assertResult(Assigner.assignUnsafeNoGaps(keyValues, segments, randomBoolean()))
     }
   }
 
@@ -303,7 +299,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
         //segment2 - 4 - 5
         val segments = Seq(segment1, segment2)
 
-        val assignments = Assigner.assignUnsafeNoGaps(Slice(Memory.put(0)), segments)
+        val assignments = Assigner.assignUnsafeNoGaps(Slice(Memory.put(0)), segments, randomBoolean())
         assignments.size shouldBe 1
         assignments.head.segment.path shouldBe segment1.path
     }
@@ -322,7 +318,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
         val segments = Seq(segment1, segment2, segment3)
 
         //insert range 0 - 20. This overlaps all 3 Segment and key-values will value sliced and distributed to all Segments.
-        val assignments = Assigner.assignUnsafeNoGaps(Slice(Memory.Range(0, 20, Value.put(0), Value.remove(None))), segments)
+        val assignments = Assigner.assignUnsafeNoGaps(Slice(Memory.Range(0, 20, Value.put(0), Value.remove(None))), segments, randomBoolean())
         assignments.size shouldBe 3
         assignments.find(_.segment == segment1).value.midOverlap.result.expectKeyValues() should contain only Memory.Range(0, 4, Value.put(0), Value.remove(None))
         assignments.find(_.segment == segment2).value.midOverlap.result.expectKeyValues() should contain only Memory.Range(4, 6, Value.FromValue.Null, Value.remove(None))
@@ -341,7 +337,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
 
         val segments = Seq(segment1, segment2, segment3, segment4, segment5)
 
-        val assignments = Assigner.assignUnsafeNoGaps(Slice(Memory.put(1), Memory.put(100000)), segments)
+        val assignments = Assigner.assignUnsafeNoGaps(Slice(Memory.put(1), Memory.put(100000)), segments, randomBoolean())
         assignments.size shouldBe 2
         assignments.find(_.segment == segment1).value.midOverlap.result.expectKeyValues() should contain only Memory.put(1)
         assignments.find(_.segment == segment5).value.midOverlap.result.expectKeyValues() should contain only Memory.put(100000)
@@ -357,21 +353,21 @@ sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
         val segment4 = TestSegment(Slice(Memory.put(8), Memory.put(9)))
         val segments = Seq(segment1, segment2, segment3, segment4)
 
-        Assigner.assignUnsafeNoGaps(Slice(Memory.put(10, "ten")), segments) ==> {
+        Assigner.assignUnsafeNoGaps(Slice(Memory.put(10, "ten")), segments, randomBoolean()) ==> {
           assignments =>
             assignments.size shouldBe 1
             assignments.head.segment.path shouldBe segment4.path
             assignments.head.midOverlap.result.expectKeyValues() should contain only Memory.put(10, "ten")
         }
 
-        Assigner.assignUnsafeNoGaps(Slice(Memory.remove(10)), segments) ==> {
+        Assigner.assignUnsafeNoGaps(Slice(Memory.remove(10)), segments, randomBoolean()) ==> {
           assignments =>
             assignments.size shouldBe 1
             assignments.head.segment.path shouldBe segment4.path
             assignments.head.midOverlap.result.expectKeyValues() should contain only Memory.remove(10)
         }
 
-        Assigner.assignUnsafeNoGaps(Slice(Memory.Range(10, 20, Value.put(10), Value.remove(None))), segments) ==> {
+        Assigner.assignUnsafeNoGaps(Slice(Memory.Range(10, 20, Value.put(10), Value.remove(None))), segments, randomBoolean()) ==> {
           assignments =>
             assignments.size shouldBe 1
             assignments.head.segment.path shouldBe segment4.path
@@ -392,7 +388,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
 
         val segments = List(segment1, segment2, segment3, segment4, segment5)
 
-        val result = Assigner.assignUnsafeNoGaps(keyValues, segments)
+        val result = Assigner.assignUnsafeNoGaps(keyValues, segments, randomBoolean())
         result.size shouldBe 5
 
         //sort them by the fileId, so it's easier to test

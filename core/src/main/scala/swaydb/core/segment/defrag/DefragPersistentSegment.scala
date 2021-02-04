@@ -231,7 +231,7 @@ object DefragPersistentSegment {
         .flatMapUnit {
           runHeadDefragAndAssignments(
             headGap = headGap,
-            segments = segment.segmentRefs(),
+            segments = segment.segmentRefs(segmentConfig.initialiseIteratorsInOneSeek),
             newKeyValues = newKeyValues,
             removeDeletes = removeDeletes,
             createdInLevel = createdInLevel
@@ -311,7 +311,8 @@ object DefragPersistentSegment {
         assignAllSegments(
           segments = segments,
           newKeyValues = newKeyValues,
-          removeDeletes = removeDeletes
+          removeDeletes = removeDeletes,
+          initialiseIteratorsInOneSeek = segmentConfig.initialiseIteratorsInOneSeek
         )
       }
 
@@ -388,9 +389,10 @@ object DefragPersistentSegment {
    */
   def assignAllSegments[SEG >: Null](segments: Iterator[SEG],
                                      newKeyValues: Iterator[Assignable],
-                                     removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             assignmentTarget: AssignmentTarget[SEG],
-                                                             defragSource: DefragSource[SEG]): ListBuffer[Assignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], SEG]] = {
+                                     removeDeletes: Boolean,
+                                     initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                            assignmentTarget: AssignmentTarget[SEG],
+                                                                            defragSource: DefragSource[SEG]): ListBuffer[Assignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], SEG]] = {
     implicit val creator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
       GapAggregator.create(removeDeletes)
 
@@ -400,7 +402,8 @@ object DefragPersistentSegment {
     val assignments =
       Assigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], SEG](
         keyValues = newKeyValues,
-        segments = segmentsIterator
+        segments = segmentsIterator,
+        initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek
       )
 
     val hasMissing =
@@ -481,7 +484,7 @@ object DefragPersistentSegment {
           if (remoteSegment.segment.segmentSize < segmentConfig.minSize) {
             remoteSegment.segment match {
               case many: PersistentSegmentMany =>
-                many.segmentRefs() foreach (ref => addLast(TransientSegment.RemoteRef(ref)))
+                many.segmentRefs(segmentConfig.initialiseIteratorsInOneSeek) foreach (ref => addLast(TransientSegment.RemoteRef(ref)))
 
               case one: PersistentSegmentOne =>
                 addLast(TransientSegment.RemoteRef(one.ref))

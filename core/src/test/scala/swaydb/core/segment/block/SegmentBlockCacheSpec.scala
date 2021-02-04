@@ -349,7 +349,7 @@ class SegmentBlockCacheSpec extends TestBase {
                 case segment: PersistentSegment =>
                   segment match {
                     case segment: PersistentSegmentMany =>
-                      segment.segmentRefs().toList
+                      segment.segmentRefs(randomBoolean()).toList
 
                     case segment: PersistentSegmentOne =>
                       List(segment.ref)
@@ -378,7 +378,7 @@ class SegmentBlockCacheSpec extends TestBase {
                 assertIsNotCached()
 
                 //read all an expect sortedIndex and value bytes to get cached but not hashIndex
-                blockCache.iterator().foreach(_ => ())
+                blockCache.iterator(randomBoolean()).foreach(_ => ())
 
                 assertIsCached()
 
@@ -389,7 +389,7 @@ class SegmentBlockCacheSpec extends TestBase {
                 assertIsNotCached()
 
                 //read all
-                blockCache.iterator().foreach(_ => ())
+                blockCache.iterator(randomBoolean()).foreach(_ => ())
 
                 //caches all again
                 assertIsCached()
@@ -402,7 +402,6 @@ class SegmentBlockCacheSpec extends TestBase {
 
                 segment.close
             }
-
         }
       }
     }

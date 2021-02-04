@@ -109,6 +109,7 @@ object Defrag {
         newKeyValues = newKeyValues,
         removeDeletes = removeDeletes,
         forceExpand = forceExpand,
+        initialiseIteratorsInOneSeek = segmentConfig.initialiseIteratorsInOneSeek,
         fragments = newFragments
       )
 

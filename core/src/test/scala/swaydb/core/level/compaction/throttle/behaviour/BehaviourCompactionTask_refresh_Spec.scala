@@ -80,7 +80,7 @@ sealed trait BehaviourCompactionTask_refresh_Spec extends TestBase {
                 TestSegment(Slice(Memory.update(key)))
             }
 
-          val keyValues = segments.iterator.flatMap(_.iterator()).toSlice
+          val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 
           level.putSegments(segments) shouldBe IO.unit
 
@@ -116,7 +116,7 @@ sealed trait BehaviourCompactionTask_refresh_Spec extends TestBase {
                   TestSegment(Slice(Memory.update(key)))
             }
 
-          val keyValues = segments.iterator.flatMap(_.iterator()).toSlice
+          val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 
           level.putSegments(segments) shouldBe IO.unit
 
@@ -140,7 +140,7 @@ sealed trait BehaviourCompactionTask_refresh_Spec extends TestBase {
             val reopen = level.reopen
             assertReads(keyValues, reopen)
             reopen.segments().map(_.path) shouldBe segmentPathsBeforeRefresh
-            reopen.segments().flatMap(_.iterator()) shouldBe segments.flatMap(_.iterator())
+            reopen.segments().flatMap(_.iterator(randomBoolean())) shouldBe segments.flatMap(_.iterator(randomBoolean()))
           }
       }
     }

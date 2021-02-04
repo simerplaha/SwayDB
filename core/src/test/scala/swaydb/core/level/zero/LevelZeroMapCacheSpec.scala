@@ -170,7 +170,8 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
               newKeyValue = range,
               oldKeyValue = put,
               builder = builder,
-              isLastLevel = false
+              isLastLevel = false,
+              initialiseIteratorsInOneSeek = randomBoolean()
             )
 
             val result = builder.keyValues.map(memory => (memory.key, memory))

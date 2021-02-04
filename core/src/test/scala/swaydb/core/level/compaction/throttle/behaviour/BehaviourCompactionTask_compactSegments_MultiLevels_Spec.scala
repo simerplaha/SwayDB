@@ -98,7 +98,7 @@ sealed trait BehaviourCompactionTask_compactSegments_MultiLevels_Spec extends Te
                   TestSegment(Slice(Memory.put(4)))
                 )
 
-              val keyValues = segments.iterator.flatMap(_.iterator()).toSlice
+              val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 
               level1.putSegments(segments) shouldBe IO.unit
 
@@ -170,7 +170,7 @@ sealed trait BehaviourCompactionTask_compactSegments_MultiLevels_Spec extends Te
                   TestSegment(Slice(Memory.put(4, 4)))
                 )
 
-              val newKeyValues = newSegments.iterator.flatMap(_.iterator()).toSlice
+              val newKeyValues = newSegments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 
               newKeyValues.foreach(_.getOrFetchValue shouldBe defined)
 

@@ -81,7 +81,8 @@ object LevelZeroMerger {
               newKeyValue = insert,
               oldKeyValue = floorRange,
               builder = builder,
-              isLastLevel = false
+              isLastLevel = false,
+              initialiseIteratorsInOneSeek = false
             )
 
             val mergedKeyValues = builder.keyValues
@@ -142,7 +143,8 @@ object LevelZeroMerger {
         newKeyValues = Slice(insert),
         oldKeyValues = oldKeyValues,
         stats = builder,
-        isLastLevel = false
+        isLastLevel = false,
+        initialiseIteratorsInOneSeek = false
       )
 
       val mergedKeyValues = builder.keyValues

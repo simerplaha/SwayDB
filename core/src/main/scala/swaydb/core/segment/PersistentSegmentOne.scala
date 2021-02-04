@@ -386,7 +386,7 @@ protected case class PersistentSegmentOne(file: DBFile,
     //    else
 
     Segment.refreshForNewLevel(
-      keyValues = ref.iterator(),
+      keyValues = ref.iterator(segmentConfig.initialiseIteratorsInOneSeek),
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
       valuesConfig = valuesConfig,
@@ -428,8 +428,8 @@ protected case class PersistentSegmentOne(file: DBFile,
   def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
     ref.higher(key, threadState)
 
-  def iterator(): Iterator[Persistent] =
-    ref.iterator()
+  def iterator(inOneSeek: Boolean): Iterator[Persistent] =
+    ref.iterator(inOneSeek)
 
   def keyValueCount: Int =
     ref.keyValueCount

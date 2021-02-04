@@ -189,6 +189,7 @@ private[core] object CoreInitializer extends LazyLogging {
                         maxCount = config.maxKeyValuesPerSegment,
                         segmentRefCacheLife = SegmentRefCacheLife.Permanent,
                         enableHashIndexForListSegment = false,
+                        initialiseIteratorsInOneSeek = false,
                         mmap = MMAP.Off(ForceSave.Off),
                         deleteDelay = config.deleteDelay,
                         compressions = _ => Seq.empty

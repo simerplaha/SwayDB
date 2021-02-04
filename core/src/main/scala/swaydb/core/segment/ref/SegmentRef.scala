@@ -202,8 +202,8 @@ private[core] class SegmentRef(val path: Path,
       )
   }
 
-  def iterator(): Iterator[Persistent] =
-    segmentBlockCache.iterator()
+  def iterator(inOneSeek: Boolean): Iterator[Persistent] =
+    segmentBlockCache.iterator(inOneSeek)
 
   def getFooter(): SegmentFooterBlock =
     segmentBlockCache.getFooter()

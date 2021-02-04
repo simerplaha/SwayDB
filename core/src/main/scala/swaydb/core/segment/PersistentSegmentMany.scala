@@ -432,7 +432,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
 
     val segmentRefKeyValues =
       listSegment
-        .iterator()
+        .iterator(false)
         .toList
 
     val segmentRefs =
@@ -440,7 +440,8 @@ protected case object PersistentSegmentMany extends LazyLogging {
         file = file,
         segmentSize = segmentSize,
         minKey = null,
-        maxKey = null
+        maxKey = null,
+        initialiseIteratorsInOneSeek = false
       )
 
     val lastSegment =
@@ -454,7 +455,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
 
     val lastKeyValue =
       lastSegment
-        .iterator()
+        .iterator(false)
         .foldLeft(Persistent.Null: PersistentOption) {
           case (_, next) =>
             next
@@ -472,7 +473,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
           throw new Exception("Empty Segment read. Persisted Segments cannot be empty.")
       }
 
-    val allKeyValues = segmentRefs.values().flatMap(_.iterator())
+    val allKeyValues = segmentRefs.values().flatMap(_.iterator(false))
 
     val deadlineFunctionId = DeadlineAndFunctionId(allKeyValues)
 
@@ -528,10 +529,11 @@ protected case object PersistentSegmentMany extends LazyLogging {
   private def parseSkipList(file: DBFile,
                             segmentSize: Int,
                             minKey: Slice[Byte],
-                            maxKey: MaxKey[Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                         blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                         segmentIO: SegmentReadIO): SkipListTreeMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef] = {
+                            maxKey: MaxKey[Slice[Byte]],
+                            initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                   blockCacheMemorySweeper: Option[MemorySweeper.Block],
+                                                                   segmentIO: SegmentReadIO): SkipListTreeMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef] = {
     val blockedReader = Reader(file).moveTo(1)
     val listSegmentSize = blockedReader.readUnsignedInt()
     val listSegment = blockedReader.read(listSegmentSize)
@@ -573,7 +575,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
     var previousPath: Path = null
     var previousSegmentRef: SegmentRef = null
 
-    temporarySegmentRef.iterator() foreach {
+    temporarySegmentRef.iterator(initialiseIteratorsInOneSeek) foreach {
       keyValue =>
 
         val nextSegmentRef =
@@ -751,12 +753,12 @@ protected case class PersistentSegmentMany(file: DBFile,
     }
   }
 
-  @inline def segmentRefs(): Iterator[SegmentRef] =
+  @inline def segmentRefs(initialiseIteratorsInOneSeek: Boolean): Iterator[SegmentRef] =
     new Iterator[SegmentRef] {
       //TODO - do not read sortedIndexBlock if the SegmentRef is already cached in-memory.
       var nextRef: SegmentRef = _
       val listSegment = listSegmentCache.value(())
-      val iter = listSegment.iterator()
+      val iter = listSegment.iterator(initialiseIteratorsInOneSeek)
       var nextInvoked = false
 
       @tailrec
@@ -880,7 +882,7 @@ protected case class PersistentSegmentMany(file: DBFile,
                                                   ec: ExecutionContext,
                                                   compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]]] =
     Segment.refreshForNewLevel(
-      keyValues = iterator(),
+      keyValues = iterator(segmentConfig.initialiseIteratorsInOneSeek),
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
       valuesConfig = valuesConfig,
@@ -998,8 +1000,8 @@ protected case class PersistentSegmentMany(file: DBFile,
       higherFromFloorSegment
   }
 
-  override def iterator(): Iterator[Persistent] =
-    segmentRefs().flatMap(_.iterator())
+  override def iterator(inOneSeek: Boolean): Iterator[Persistent] =
+    segmentRefs(inOneSeek).flatMap(_.iterator(inOneSeek))
 
   override def isFooterDefined: Boolean =
     segmentsCache.asScala.values.exists(_.isFooterDefined)
@@ -1017,7 +1019,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     !file.existsOnDisk
 
   def hasBloomFilter: Boolean =
-    segmentRefs().exists(_.hasBloomFilter)
+    segmentRefs(false).exists(_.hasBloomFilter)
 
   def clearCachedKeyValues(): Unit =
     segmentsCache

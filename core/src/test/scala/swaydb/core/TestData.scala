@@ -519,7 +519,8 @@ object TestData {
                cacheBlocksOnCreate: Boolean = randomBoolean(),
                enableHashIndexForListSegment: Boolean = randomBoolean(),
                cacheOnAccess: Boolean = randomBoolean(),
-               segmentRefCacheLife: SegmentRefCacheLife = randomSegmentRefCacheLife()): SegmentBlock.Config =
+               segmentRefCacheLife: SegmentRefCacheLife = randomSegmentRefCacheLife(),
+               initialiseIteratorsInOneSeek: Boolean = randomBoolean()): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
         fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess),
         blockIOStrategy = _ => randomIOStrategy(cacheOnAccess),
@@ -530,7 +531,8 @@ object TestData {
         enableHashIndexForListSegment = enableHashIndexForListSegment,
         mmap = mmap,
         deleteDelay = deleteDelay,
-        compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
+        compressions = _ => if (hasCompression) randomCompressions() else Seq.empty,
+        initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek
       )
 
     def random2(fileOpenIOStrategy: IOStrategy.ThreadSafe = randomThreadSafeIOStrategy(),
@@ -542,7 +544,8 @@ object TestData {
                 mmap: MMAP.Segment = MMAP.randomForSegment(),
                 enableHashIndexForListSegment: Boolean = randomBoolean(),
                 minSegmentSize: Int = randomIntMax(30.mb),
-                segmentRefCacheLife: SegmentRefCacheLife = randomSegmentRefCacheLife()): SegmentBlock.Config =
+                segmentRefCacheLife: SegmentRefCacheLife = randomSegmentRefCacheLife(),
+                initialiseIteratorsInOneSeek: Boolean = randomBoolean()): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
         fileOpenIOStrategy = fileOpenIOStrategy,
         blockIOStrategy = blockIOStrategy,
@@ -553,7 +556,8 @@ object TestData {
         enableHashIndexForListSegment = enableHashIndexForListSegment,
         mmap = mmap,
         deleteDelay = deleteDelay,
-        compressions = compressions
+        compressions = compressions,
+        initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek
       )
   }
 
@@ -2029,7 +2033,8 @@ object TestData {
       newKeyValues = newKeyValues,
       oldKeyValues = oldKeyValues,
       stats = builder,
-      isLastLevel = isLastLevel
+      isLastLevel = isLastLevel,
+      initialiseIteratorsInOneSeek = randomBoolean()
     )
 
     builder.keyValues

@@ -59,8 +59,8 @@ import swaydb.effect.{Dir, Effect, Extension}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.testkit.RunThis._
-import swaydb.utils.{ByteSizeOf, OperatingSystem}
 import swaydb.utils.StorageUnits._
+import swaydb.utils.{ByteSizeOf, OperatingSystem}
 import swaydb.{ActorConfig, IO}
 
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
@@ -205,7 +205,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   Slice(segment.ref.skipList.get)
 
                 case segment: PersistentSegmentMany =>
-                  segment.segmentRefs().map(_.skipList.get)
+                  segment.segmentRefs(randomBoolean()).map(_.skipList.get)
               }
 
             skipList.size should be > 0
@@ -836,11 +836,11 @@ sealed trait SegmentWriteSpec extends TestBase {
             segment.existsOnDisk shouldBe true
 
             val copiedSegment = segment.reopen(targetPath)
-            copiedSegment.iterator().toSlice shouldBe keyValuesReadOnly
+            copiedSegment.iterator(randomBoolean()).toSlice shouldBe keyValuesReadOnly
             copiedSegment.path shouldBe targetPath
 
             //original segment should still exist
-            segment.iterator().toList shouldBe keyValuesReadOnly
+            segment.iterator(randomBoolean()).toList shouldBe keyValuesReadOnly
         }
       }
     }
@@ -883,8 +883,8 @@ sealed trait SegmentWriteSpec extends TestBase {
               binarySearchIndexConfig = binarySearchIndexConfig,
               hashIndexConfig = hashIndexConfig,
               bloomFilterConfig = bloomFilterConfig,
-              segmentConfig = segmentConfig.copy(minSize = Segment.segmentSizeForMerge(segment) / 10),
-              removeDeletes = false
+              segmentConfig = segmentConfig.copy(minSize = Segment.segmentSizeForMerge(segment, randomBoolean()) / 10),
+              removeDeletes = false,
             ).awaitInf.map(_.sweep())
 
           if (persistent)
@@ -893,7 +893,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             segments.size should be > 1
 
           segments.foreach(_.existsOnDisk shouldBe true)
-          segments.flatMap(_.iterator()) shouldBe keyValues
+          segments.flatMap(_.iterator(randomBoolean())) shouldBe keyValues
       }
     }
 
@@ -911,7 +911,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
             val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
             val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
-            val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = Segment.segmentSizeForMerge(segment) / 10)
+            val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = Segment.segmentSizeForMerge(segment, randomBoolean()) / 10)
 
             val pathDistributor = createPathDistributor
 
@@ -932,9 +932,9 @@ sealed trait SegmentWriteSpec extends TestBase {
             segments.foreach(_.existsOnDisk shouldBe true)
 
             if (persistent)
-              segments.flatMap(_.iterator()) shouldBe keyValues //persistent Segments are simply copied and are not checked for removed key-values.
+              segments.flatMap(_.iterator(randomBoolean())) shouldBe keyValues //persistent Segments are simply copied and are not checked for removed key-values.
             else
-              segments.flatMap(_.iterator()) shouldBe keyValues.collect { //memory Segments does a split/merge and apply lastLevel rules.
+              segments.flatMap(_.iterator(randomBoolean())) shouldBe keyValues.collect { //memory Segments does a split/merge and apply lastLevel rules.
                 case keyValue: Memory.Put if keyValue.hasTimeLeft() =>
                   keyValue
 
@@ -958,7 +958,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
           val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
           val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
-          val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = Segment.segmentSizeForMerge(segment) / 10)
+          val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = Segment.segmentSizeForMerge(segment, randomBoolean()) / 10)
 
           val pathDistributor = createPathDistributor
 
@@ -1059,7 +1059,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               binarySearchIndexConfig = binarySearchIndexConfig,
               hashIndexConfig = hashIndexConfig,
               bloomFilterConfig = bloomFilterConfig,
-              segmentConfig = segmentConfig.copy(minSize = Segment.segmentSizeForMerge(temporarySegment) / 20),
+              segmentConfig = segmentConfig.copy(minSize = Segment.segmentSizeForMerge(temporarySegment, randomBoolean()) / 20),
               removeDeletes = false
             ).awaitInf.map(_.sweep())
           }
@@ -1337,20 +1337,21 @@ sealed trait SegmentWriteSpec extends TestBase {
             val segments =
               Segment.copyToMemory(
                 segment = segment,
-                pathsDistributor = pathDistributor,
                 createdInLevel = 0,
+                pathsDistributor = pathDistributor,
                 removeDeletes = false,
                 minSegmentSize =
                   //there are too many conditions that will not split the segments so set the size of each segment to be too small
                   //for the split to occur.
                   memorySize / 10,
-                maxKeyValueCountPerSegment = randomIntMax(keyValues.size)
+                maxKeyValueCountPerSegment = randomIntMax(keyValues.size),
+                initialiseIteratorsInOneSeek = randomBoolean()
               ).map(_.sweep())
 
             segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not value written to disk without splitting.
 
             segments.foreach(_.existsOnDisk shouldBe false)
-            segments.flatMap(_.iterator()) shouldBe keyValues
+            segments.flatMap(_.iterator(randomBoolean())) shouldBe keyValues
         }
       }
     }
@@ -1376,7 +1377,8 @@ sealed trait SegmentWriteSpec extends TestBase {
                 pathsDistributor = pathDistributor,
                 removeDeletes = true,
                 minSegmentSize = memorySize / 1000,
-                maxKeyValueCountPerSegment = randomIntMax(keyValues.size)
+                maxKeyValueCountPerSegment = randomIntMax(keyValues.size),
+                initialiseIteratorsInOneSeek = randomBoolean()
               ).map(_.sweep())
 
             segments.foreach(_.existsOnDisk shouldBe false)
@@ -1384,7 +1386,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not value written to disk without splitting.
 
             //some key-values could value expired while unexpired key-values are being collected. So try again!
-            segments.flatMap(_.iterator()) shouldBe keyValues.collect {
+            segments.flatMap(_.iterator(randomBoolean())) shouldBe keyValues.collect {
               case keyValue: Memory.Put if keyValue.hasTimeLeft() =>
                 keyValue
               case Memory.Range(fromKey, _, put @ Value.Put(_, deadline, _), _) if deadline.forall(_.hasTimeLeft()) =>
@@ -1437,7 +1439,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 //nothing to assert
               }
 
-            segment.iterator() foreach {
+            segment.iterator(randomBoolean()) foreach {
               case keyValue: KeyValue.Put =>
                 keyValue.getOrFetchValue shouldBe Slice.Null
 
@@ -1539,7 +1541,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           newSegments should have size 1
 
-          val allReadKeyValues = newSegments.flatMap(_.iterator())
+          val allReadKeyValues = newSegments.flatMap(_.iterator(randomBoolean()))
 
           allReadKeyValues should have size 2
 
@@ -1551,7 +1553,8 @@ sealed trait SegmentWriteSpec extends TestBase {
             newKeyValues = newKeyValues.iterator,
             oldKeyValues = keyValues.iterator,
             stats = builder,
-            isLastLevel = false
+            isLastLevel = false,
+            initialiseIteratorsInOneSeek = randomBoolean()
           )
 
           val expectedKeyValues = builder.result
@@ -1585,7 +1588,8 @@ sealed trait SegmentWriteSpec extends TestBase {
                     newKeyValues = mid,
                     oldKeyValues = mid,
                     stats = builder,
-                    isLastLevel = false
+                    isLastLevel = false,
+                    initialiseIteratorsInOneSeek = randomBoolean()
                   )
 
                   val expectedKeyValues =
@@ -1601,7 +1605,8 @@ sealed trait SegmentWriteSpec extends TestBase {
                     newKeyValues = newKeyValues,
                     oldKeyValues = oldKeyValues,
                     stats = builder,
-                    isLastLevel = false
+                    isLastLevel = false,
+                    initialiseIteratorsInOneSeek = randomBoolean()
                   )
 
                   (KeyValue.emptyIterable, newKeyValues, KeyValue.emptyIterable, TestSegment(oldKeyValues), builder.result)
@@ -1634,7 +1639,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
               newSegments.size should be > 1
 
-              newSegments.flatMap(_.iterator()) shouldBe expectedKeyValues
+              newSegments.flatMap(_.iterator(randomBoolean())) shouldBe expectedKeyValues
           }
         }
 
@@ -1756,7 +1761,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           deletedSegment should have size 1
           val newDeletedSegment = deletedSegment.head
-          newDeletedSegment.iterator().toList shouldBe deleteKeyValues
+          newDeletedSegment.iterator(randomBoolean()).toList shouldBe deleteKeyValues
 
           assertGet(keyValues, segment)
           if (persistent) assertGet(keyValues, segment.asInstanceOf[PersistentSegment].reopen)
@@ -1800,7 +1805,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               mmapSegment = mmapSegments
             ).output.map(_.sweep())
 
-          updatedSegments.flatMap(_.iterator()).toList shouldBe updatedKeyValues
+          updatedSegments.flatMap(_.iterator(randomBoolean())).toList shouldBe updatedKeyValues
 
         //          assertGet(updatedKeyValues, updatedSegments)
       }
@@ -1839,7 +1844,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               segment1.put(
                 headGap = KeyValue.emptyIterable,
                 tailGap = KeyValue.emptyIterable,
-                newKeyValues = segment2.iterator(),
+                newKeyValues = segment2.iterator(randomBoolean()),
                 removeDeletes = false,
                 createdInLevel = 0,
                 valuesConfig = valuesConfig,
@@ -1862,7 +1867,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             //                mergedSegment.get(keyValue.key, readState).getUnsafe shouldBe keyValue
             //            }
 
-            mergedSegments.flatMap(_.iterator()) shouldBe keyValues2Closed
+            mergedSegments.flatMap(_.iterator( randomBoolean())) shouldBe keyValues2Closed
         }
       }
     }
@@ -1936,7 +1941,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 pathDistributor = createPathDistributor,
                 segmentRefCacheLife = randomSegmentRefCacheLife(),
                 mmapSegment = mmapSegments
-              ).output.map(_.sweep()).flatMap(_.iterator()).toList
+              ).output.map(_.sweep()).flatMap(_.iterator(randomBoolean())).toList
 
             val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Value.remove(None), Value.update(10))) :+ Memory.remove(10)
 
@@ -1999,7 +2004,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           val dirs = (1 to 6) map (_ => Dir(createRandomIntDirectory, 1))
 
-          val segmentSizeForMerge = Segment.segmentSizeForMerge(segment)
+          val segmentSizeForMerge = Segment.segmentSizeForMerge(segment, randomBoolean())
 
           val pathsDistributor = PathsDistributor(dirs, () => Seq(segment))
 
@@ -2077,7 +2082,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
             val segment = TestSegment(keyValues).asInstanceOf[PersistentSegment]
             segment.keyValueCount shouldBe keyValues.size
-            segment.iterator().toList shouldBe keyValues
+            segment.iterator(randomBoolean()).toList shouldBe keyValues
 
             val reopened = segment.reopen(segment.path)
             reopened.keyValueCount shouldBe keyValues.size
@@ -2153,7 +2158,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 ).map(_.sweep())
               }
 
-            refresh.flatMap(_.iterator()).toList shouldBe keyValues
+            refresh.flatMap(_.iterator(randomBoolean())).toList shouldBe keyValues
         }
       }
     }

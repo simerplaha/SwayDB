@@ -43,6 +43,7 @@ case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
                          deleteDelay: FiniteDuration,
                          mmap: MMAP.Segment,
                          minSegmentSize: Int,
+                         initialiseIteratorsInOneSeek: Boolean,
                          segmentFormat: SegmentFormat,
                          fileOpenIOStrategy: IOStrategy.ThreadSafe,
                          blockIOStrategy: IOAction => IOStrategy,
@@ -59,6 +60,9 @@ case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
 
   def copyWithMinSegmentSize(minSegmentSize: Int): SegmentConfig =
     this.copy(minSegmentSize = minSegmentSize)
+
+  def copyInitialiseIteratorsInOneSeek(initialiseIteratorsInOneSeek: Boolean): SegmentConfig =
+    this.copy(initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek)
 
   def copyWithSegmentFormat(segmentFormat: SegmentFormat): SegmentConfig =
     this.copy(segmentFormat = segmentFormat)

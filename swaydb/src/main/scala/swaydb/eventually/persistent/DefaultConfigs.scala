@@ -130,6 +130,7 @@ object DefaultConfigs {
       //mmap is disabled for eventually persistent databases to give in-memory levels more memory-space.
       mmap = DefaultConfigs.mmap(),
       minSegmentSize = segmentSize,
+      initialiseIteratorsInOneSeek = false,
       segmentFormat = SegmentFormat.Flattened,
       fileOpenIOStrategy = IOStrategy.SynchronisedIO.cached,
       blockIOStrategy = {

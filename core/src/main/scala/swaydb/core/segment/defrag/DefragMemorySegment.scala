@@ -154,7 +154,7 @@ object DefragMemorySegment {
           remote match {
             case ref: TransientSegment.RemoteRef =>
               Segment.copyToMemory(
-                keyValues = ref.iterator(),
+                keyValues = ref.iterator(segmentConfig.initialiseIteratorsInOneSeek),
                 pathsDistributor = pathsDistributor,
                 removeDeletes = removeDeletes,
                 minSegmentSize = segmentConfig.minSize,
@@ -169,7 +169,8 @@ object DefragMemorySegment {
                 pathsDistributor = pathsDistributor,
                 removeDeletes = removeDeletes,
                 minSegmentSize = segmentConfig.minSize,
-                maxKeyValueCountPerSegment = segmentConfig.maxCount
+                maxKeyValueCountPerSegment = segmentConfig.maxCount,
+                initialiseIteratorsInOneSeek = segmentConfig.initialiseIteratorsInOneSeek
               )
           }
         }

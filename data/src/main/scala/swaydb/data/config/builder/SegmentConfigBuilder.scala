@@ -39,6 +39,7 @@ class SegmentConfigBuilder {
   private var deleteDelay: FiniteDuration = _
   private var mmap: MMAP.Segment = _
   private var minSegmentSize: Int = _
+  private var initialiseIteratorsInOneSeek: Boolean = _
   private var segmentFormat: SegmentFormat = _
   private var fileOpenIOStrategy: IOStrategy.ThreadSafe = _
   private var blockIOStrategy: JavaFunction[IOAction, IOStrategy] = _
@@ -82,26 +83,34 @@ object SegmentConfigBuilder {
   }
 
   class Step6(builder: SegmentConfigBuilder) {
-    def fileOpenIOStrategy(fileOpenIOStrategy: IOStrategy.ThreadSafe) = {
-      builder.fileOpenIOStrategy = fileOpenIOStrategy
+    def segmentFormat(initialiseIteratorsInOneSeek: Boolean) = {
+      builder.initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek
       new Step7(builder)
     }
   }
 
   class Step7(builder: SegmentConfigBuilder) {
-    def blockIOStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
-      builder.blockIOStrategy = ioStrategy
+    def fileOpenIOStrategy(fileOpenIOStrategy: IOStrategy.ThreadSafe) = {
+      builder.fileOpenIOStrategy = fileOpenIOStrategy
       new Step8(builder)
     }
   }
 
   class Step8(builder: SegmentConfigBuilder) {
+    def blockIOStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
+      builder.blockIOStrategy = ioStrategy
+      new Step9(builder)
+    }
+  }
+
+  class Step9(builder: SegmentConfigBuilder) {
     def compression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       new SegmentConfig(
         cacheSegmentBlocksOnCreate = builder.cacheSegmentBlocksOnCreate,
         deleteDelay = builder.deleteDelay,
         mmap = builder.mmap,
         minSegmentSize = builder.minSegmentSize,
+        initialiseIteratorsInOneSeek = builder.initialiseIteratorsInOneSeek,
         segmentFormat = builder.segmentFormat,
         fileOpenIOStrategy = builder.fileOpenIOStrategy,
         blockIOStrategy = builder.blockIOStrategy.apply,

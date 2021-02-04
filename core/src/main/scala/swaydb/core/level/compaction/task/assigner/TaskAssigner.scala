@@ -115,7 +115,8 @@ protected case object TaskAssigner {
         val assignments: ListBuffer[Assignment[mutable.SortedSet[A], mutable.SortedSet[A], Segment]] =
           Assigner.assignUnsafeGaps[mutable.SortedSet[A], mutable.SortedSet[A], Segment](
             keyValues = segmentKeyValues.iterator,
-            segments = thisLevel.segments().iterator
+            segments = thisLevel.segments().iterator,
+            initialiseIteratorsInOneSeek = false
           )
 
         //group the assignments that spread

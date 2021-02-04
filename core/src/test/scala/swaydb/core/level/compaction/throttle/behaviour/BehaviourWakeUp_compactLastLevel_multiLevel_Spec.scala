@@ -208,7 +208,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends TestBase {
             sleeping.sleepDeadline should be > expectedDeadline
 
             level1.segments() should have size testSegments.size
-            level1.segments().flatMap(_.iterator()) shouldBe keyValues
+            level1.segments().flatMap(_.iterator(randomBoolean())) shouldBe keyValues
 
             //segments are not deleted
             testSegments.foreach(_.existsOnDiskOrMemory shouldBe true)
@@ -279,7 +279,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends TestBase {
             level1.isEmpty shouldBe true
             //level1 segments are deleted
             testSegments.foreach(_.existsOnDiskOrMemory shouldBe false)
-            level2.segments().flatMap(_.iterator()) shouldBe keyValues
+            level2.segments().flatMap(_.iterator(randomBoolean())) shouldBe keyValues
         }
       }
     }

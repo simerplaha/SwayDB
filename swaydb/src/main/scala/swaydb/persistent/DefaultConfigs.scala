@@ -136,6 +136,7 @@ object DefaultConfigs {
       deleteDelay = CommonConfigs.segmentDeleteDelay,
       mmap = MMAP.Off(forceSave = ForceSave.BeforeClose(enableBeforeCopy = false, enableForReadOnlyMode = false, logBenchmark = false)),
       minSegmentSize = 18.mb,
+      initialiseIteratorsInOneSeek = false,
       //      segmentFormat = SegmentFormat.Flattened,
       segmentFormat = SegmentFormat.Grouped(count = 10000, enableRootHashIndex = false, segmentRefCacheLife = SegmentRefCacheLife.Temporary),
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),

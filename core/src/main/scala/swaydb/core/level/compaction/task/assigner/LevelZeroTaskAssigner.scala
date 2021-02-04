@@ -116,7 +116,7 @@ case object LevelZeroTaskAssigner {
                   override def maxKey: MaxKey[Slice[Byte]] =
                     keyValues.last.maxKey
 
-                  override def iterator(): Iterator[KeyValue] =
+                  override def iterator(inOneSeek: Boolean): Iterator[KeyValue] =
                     keyValues.iterator
 
                   override def keyValueCount: Int =
@@ -357,7 +357,9 @@ case object LevelZeroTaskAssigner {
                 newKeyValues = newKeyValues,
                 oldKeyValues = oldKeyValues,
                 stats = stats,
-                isLastLevel = false
+                isLastLevel = false,
+                //LevelZero key-values are already in-memory so this does not make any difference
+                initialiseIteratorsInOneSeek = false
               )
 
               Right(stats.result)
