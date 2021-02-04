@@ -49,6 +49,7 @@ import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.data.MaxKey
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.SliceIOImplicits._
@@ -234,7 +235,8 @@ private[core] case object Segment extends LazyLogging {
                                                                      segmentIO: SegmentReadIO,
                                                                      idGenerator: IDGenerator,
                                                                      forceSaveApplier: ForceSaveApplier,
-                                                                     ec: ExecutionContext): Future[Iterable[PersistentSegment]] =
+                                                                     ec: ExecutionContext,
+                                                                     compactionParallelism: CompactionParallelism): Future[Iterable[PersistentSegment]] =
     SegmentBlock.writeOneOrMany(
       mergeStats = mergeStats,
       createdInLevel = createdInLevel,
@@ -273,7 +275,8 @@ private[core] case object Segment extends LazyLogging {
                                                         segmentIO: SegmentReadIO,
                                                         idGenerator: IDGenerator,
                                                         forceSaveApplier: ForceSaveApplier,
-                                                        ec: ExecutionContext): Future[Iterable[PersistentSegment]] =
+                                                        ec: ExecutionContext,
+                                                        compactionParallelism: CompactionParallelism): Future[Iterable[PersistentSegment]] =
     segment match {
       case segment: PersistentSegment =>
         Future {
@@ -370,7 +373,8 @@ private[core] case object Segment extends LazyLogging {
                                                         segmentIO: SegmentReadIO,
                                                         idGenerator: IDGenerator,
                                                         forceSaveApplier: ForceSaveApplier,
-                                                        ec: ExecutionContext): Future[Iterable[PersistentSegment]] = {
+                                                        ec: ExecutionContext,
+                                                        compactionParallelism: CompactionParallelism): Future[Iterable[PersistentSegment]] = {
     val builder =
       if (removeDeletes)
         MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.toLastLevelOrNull)
@@ -458,7 +462,8 @@ private[core] case object Segment extends LazyLogging {
                           hashIndexConfig: HashIndexBlock.Config,
                           bloomFilterConfig: BloomFilterBlock.Config,
                           segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                              ec: ExecutionContext): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] = {
+                                                              ec: ExecutionContext,
+                                                              compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] = {
 
     val sortedIndexSize =
       sortedIndexBlock.compressionInfo match {
@@ -513,7 +518,8 @@ private[core] case object Segment extends LazyLogging {
                          hashIndexConfig: HashIndexBlock.Config,
                          bloomFilterConfig: BloomFilterBlock.Config,
                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             ec: ExecutionContext): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
+                                                             ec: ExecutionContext,
+                                                             compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
     Future
       .unit
       .mapUnit {

@@ -36,6 +36,7 @@ import swaydb.core.map.applied.AppliedFunctionsMap
 import swaydb.core.map.timer.Timer
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.LevelThrottle
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -76,6 +77,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder = TimeOrder.long
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 

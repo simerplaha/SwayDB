@@ -57,6 +57,7 @@ import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment.ref.search.{KeyMatcher, SegmentSearcher, ThreadReadState}
 import swaydb.core.sweeper.{ByteBufferSweeper, MemorySweeper}
 import swaydb.core.util.skiplist.SkipListConcurrent
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.PushStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.SliceIOImplicits._
@@ -1381,7 +1382,8 @@ object CommonAssertions {
 
   def writeAndRead(keyValues: Iterable[Memory])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                 keyOrder: KeyOrder[Slice[Byte]],
-                                                ec: ExecutionContext): IO[swaydb.Error.Segment, Slice[KeyValue]] = {
+                                                ec: ExecutionContext,
+                                                compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): IO[swaydb.Error.Segment, Slice[KeyValue]] = {
     val sortedIndexBlock = SortedIndexBlock.Config.random
 
     val segment =
@@ -1439,7 +1441,8 @@ object CommonAssertions {
                 bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                 segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                  keyOrder: KeyOrder[Slice[Byte]],
-                                                                                 ec: ExecutionContext = TestExecutionContext.executionContext): IO[Error.Segment, Slice[SegmentBlocks]] = {
+                                                                                 ec: ExecutionContext = TestExecutionContext.executionContext,
+                                                                                 compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): IO[Error.Segment, Slice[SegmentBlocks]] = {
     val closedSegments =
       SegmentBlock.writeOnes(
         mergeStats =
@@ -1518,7 +1521,8 @@ object CommonAssertions {
                            bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                            segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                             keyOrder: KeyOrder[Slice[Byte]],
-                                                                                            ec: ExecutionContext): Slice[SegmentBlockCache] =
+                                                                                            ec: ExecutionContext,
+                                                                                            compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Slice[SegmentBlockCache] =
     SegmentBlock.writeOnes(
       mergeStats =
         MergeStats

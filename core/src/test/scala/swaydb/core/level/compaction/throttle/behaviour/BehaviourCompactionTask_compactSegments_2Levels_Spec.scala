@@ -32,6 +32,7 @@ import swaydb.core.data.Memory
 import swaydb.core.level.Level
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -68,6 +69,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
   implicit val keyOrder = KeyOrder.default
   implicit val segmentOrdering = keyOrder.on[Segment](_.minKey)
   implicit val ec = TestExecutionContext.executionContext
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "compactSegments" when {
     "there are 2 levels" should {

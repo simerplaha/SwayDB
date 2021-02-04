@@ -52,6 +52,7 @@ import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -321,7 +322,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                                                                                                         pathsDistributor: PathsDistributor,
                                                                                                         idGenerator: IDGenerator,
                                                                                                         sweeper: TestCaseSweeper,
-                                                                                                        ec: ExecutionContext= TestExecutionContext.executionContext): Slice[Segment] = {
+                                                                                                        ec: ExecutionContext = TestExecutionContext.executionContext,
+                                                                                                        compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Slice[Segment] = {
       import sweeper._
 
       implicit val segmentIO: SegmentReadIO =
@@ -394,7 +396,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments),
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                      sweeper: TestCaseSweeper): Level = {
+                                                      sweeper: TestCaseSweeper,
+                                                      compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Level = {
       import sweeper._
 
       val level =
@@ -638,8 +641,15 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
             zero = level0,
             compactionConfig =
               CompactionConfig(
-                compactionExecutionContext = TestExecutionContext.executionContext,
                 resetCompactionPriorityAtInterval = randomIntMax(10).max(1),
+                actorExecutionContext = TestExecutionContext.executionContext,
+                compactionExecutionContext = TestExecutionContext.executionContext,
+                levelZeroFlattenParallelism = randomIntMax(10).max(1),
+                levelZeroMergeParallelism = randomIntMax(10).max(1),
+                multiLevelTaskParallelism = randomIntMax(10).max(1),
+                levelSegmentAssignmentParallelism = randomIntMax(10).max(1),
+                groupedSegmentDefragParallelism = randomIntMax(10).max(1),
+                defragmentedSegmentParallelism = randomIntMax(10).max(1),
                 pushStrategy = randomPushStrategy()
               ),
           ).value
@@ -788,7 +798,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                               level3: Level,
                               assertAllLevels: LevelRef => Unit,
                               assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                 levelSweeper: TestCaseSweeper): Unit = {
+                                                                 levelSweeper: TestCaseSweeper,
+                                                                 compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Unit = {
     println("level3.putKeyValues")
     if (level3KeyValues.nonEmpty) level3.put(level3KeyValues).runRandomIO.right.value
     println("level2.putKeyValues")

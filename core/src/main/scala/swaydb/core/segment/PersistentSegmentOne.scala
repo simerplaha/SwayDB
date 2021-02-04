@@ -52,6 +52,7 @@ import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util._
 import swaydb.data.MaxKey
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -328,7 +329,8 @@ protected case class PersistentSegmentOne(file: DBFile,
           segmentRefCacheLife: SegmentRefCacheLife,
           mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
                               executionContext: ExecutionContext,
-                              compactionIO: CompactionIO.Actor): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]] = {
+                              compactionIO: CompactionIO.Actor,
+                              compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]] = {
     implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
     implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexBlock.Config = binarySearchIndexConfig
@@ -358,7 +360,8 @@ protected case class PersistentSegmentOne(file: DBFile,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                                  ec: ExecutionContext): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]] = {
+                                                  ec: ExecutionContext,
+                                                  compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]] = {
     //    val footer = ref.getFooter()
     //if it's created in the same level the required spaces for sortedIndex and values
     //will be the same as existing or less than the current sizes so there is no need to create a

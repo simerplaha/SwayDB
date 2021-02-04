@@ -30,6 +30,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.LevelThrottle
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -51,6 +52,7 @@ class AppendixRepairerSpec extends TestBase {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "AppendixRepair" should {
     "fail if the input path does not exist" in {

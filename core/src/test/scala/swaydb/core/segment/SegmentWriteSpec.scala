@@ -26,7 +26,6 @@ package swaydb.core.segment
 
 import org.scalatest.OptionValues.convertOptionToValuable
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{ActorConfig, IO}
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.PrivateMethodInvokers._
@@ -35,7 +34,6 @@ import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
-import swaydb.effect.Effect._
 import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.MergeStats
@@ -52,26 +50,24 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.util.{Benchmark, IDGenerator}
 import swaydb.data.MaxKey
-import swaydb.testkit.RunThis._
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.effect.Effect._
 import swaydb.effect.{Dir, Effect, Extension}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 import swaydb.utils.{ByteSizeOf, OperatingSystem}
+import swaydb.utils.StorageUnits._
+import swaydb.{ActorConfig, IO}
 
+import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.Random
-import swaydb.utils.OperatingSystem
-import swaydb.utils.OperatingSystem._
-import swaydb.utils.FiniteDurations._
-import swaydb.utils.StorageUnits._
-import swaydb.utils.ByteSizeOf._
-
-import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 
 class SegmentWriteSpec0 extends SegmentWriteSpec
 
@@ -102,6 +98,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   implicit val ec = TestExecutionContext.executionContext
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
   implicit def segmentIO = SegmentReadIO.random
 
   "Segment" should {
@@ -995,7 +992,8 @@ sealed trait SegmentWriteSpec extends TestBase {
               forceSaveApplier = forceSaveApplier,
               segmentIO = segmentIO,
               idGenerator = segmentIDGenerator,
-              ec = TestExecutionContext.executionContext
+              ec = TestExecutionContext.executionContext,
+              compactionParallelism = CompactionParallelism.availableProcessors()
             ).awaitInf.map(_.sweep())
           }
 

@@ -57,11 +57,18 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
       )
 
     //ExecutionContext is shared by the Actor's executor and the Actor logic.
-    implicit val ec: ExecutionContext = config.executionContext
+    implicit val ec: ExecutionContext = config.actorExecutionContext
 
     Actor.define[ThrottleCompactor](
       name = s"Compaction Actor",
-      init = self => ThrottleCompactor(state)(self = self, behaviorWakeUp = BehaviorWakeUp, fileSweeper = fileSweeper, ec = ec)
+      init = self =>
+        ThrottleCompactor(state)(
+          self = self,
+          behaviorWakeUp = BehaviorWakeUp,
+          fileSweeper = fileSweeper,
+          ec = config.compactionExecutionContext,
+          parallelism = config
+        )
     ).onPreTerminate {
       case (impl, _, _) =>
         impl.terminateASAP()

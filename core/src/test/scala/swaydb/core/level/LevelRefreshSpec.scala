@@ -32,6 +32,7 @@ import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data._
 import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -69,6 +70,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
   val keyValuesCount = 100
 
   "refresh" should {

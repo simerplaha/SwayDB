@@ -38,6 +38,7 @@ import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.util.IDGenerator
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.slice.Slice
 
@@ -78,7 +79,8 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
           segmentRefCacheLife: SegmentRefCacheLife,
           mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
                               executionContext: ExecutionContext,
-                              compactionIO: CompactionIO.Actor): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]]
+                              compactionIO: CompactionIO.Actor,
+                              compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -88,7 +90,8 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                                  ec: ExecutionContext): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]]
+                                                  ec: ExecutionContext,
+                                                  compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]]
 
 
 }

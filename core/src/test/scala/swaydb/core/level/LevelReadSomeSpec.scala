@@ -32,6 +32,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.testkit.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -66,6 +67,7 @@ class LevelReadSomeSpec3 extends LevelReadSomeSpec {
 sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
 
   //  override def deleteFiles = false
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   val keyValuesCount = 100
 

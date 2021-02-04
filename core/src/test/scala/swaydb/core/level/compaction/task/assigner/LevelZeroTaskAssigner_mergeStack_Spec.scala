@@ -32,6 +32,7 @@ import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -45,6 +46,7 @@ class LevelZeroTaskAssigner_mergeStack_Spec extends TestBase with MockFactory {
   implicit val timeOrder = TimeOrder.long
   implicit val segmentOrdering = keyOrder.on[Segment](_.minKey)
   implicit val ec = TestExecutionContext.executionContext
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "stack is empty" in {
     TestCaseSweeper {
@@ -53,7 +55,6 @@ class LevelZeroTaskAssigner_mergeStack_Spec extends TestBase with MockFactory {
           List.empty
 
         LevelZeroTaskAssigner.mergeStack(stack).awaitInf shouldBe Iterable.empty
-
     }
   }
 

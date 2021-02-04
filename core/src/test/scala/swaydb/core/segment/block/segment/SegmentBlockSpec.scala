@@ -37,6 +37,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.testkit.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -54,6 +55,7 @@ class SegmentBlockSpec extends TestBase {
   implicit def testTimer: TestTimer = TestTimer.random
   implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
   implicit val ec = TestExecutionContext.executionContext
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "SegmentBlock" should {
     "convert empty KeyValues and not throw exception but return empty bytes" in {

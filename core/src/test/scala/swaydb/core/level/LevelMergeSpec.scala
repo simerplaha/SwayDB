@@ -40,6 +40,7 @@ import swaydb.serializers._
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
 import TestCaseSweeper._
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 
 class LevelMergeSpec0 extends LevelMergeSpec
 
@@ -67,6 +68,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
   val keyValuesCount = 100
 
   "level is empty" should {

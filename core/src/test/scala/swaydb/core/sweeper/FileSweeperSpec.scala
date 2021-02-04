@@ -35,6 +35,7 @@ import swaydb.core.sweeper.FileSweeper._
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.testkit.RunThis._
 import swaydb.ActorConfig
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -46,6 +47,7 @@ import scala.concurrent.duration._
 class FileSweeperSpec extends TestBase with MockFactory {
 
   implicit val timer = TestTimer.Empty
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   private def file(filePath: String): FileSweeperItem =
     new FileSweeperItem {

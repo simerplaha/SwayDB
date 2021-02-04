@@ -35,6 +35,7 @@ import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.PushStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -62,7 +63,8 @@ case object LevelZeroTaskAssigner {
 
   def run(source: LevelZero,
           pushStrategy: PushStrategy,
-          lowerLevels: NonEmptyList[Level])(implicit ec: ExecutionContext): Future[CompactMaps] = {
+          lowerLevels: NonEmptyList[Level])(implicit ec: ExecutionContext,
+                                            parallelism: CompactionParallelism): Future[CompactMaps] = {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
     implicit val timeOrder: TimeOrder[Slice[Byte]] = source.timeOrder
     implicit val functionStore: FunctionStore = source.functionStore
@@ -99,10 +101,11 @@ case object LevelZeroTaskAssigner {
   def flatten(input: IterableOnce[LevelZeroMap])(implicit ec: ExecutionContext,
                                                  keyOrder: KeyOrder[Slice[Byte]],
                                                  timerOrder: TimeOrder[Slice[Byte]],
-                                                 functionStore: FunctionStore): Future[Iterable[Assignable.Collection]] =
+                                                 functionStore: FunctionStore,
+                                                 parallelism: CompactionParallelism): Future[Iterable[Assignable.Collection]] =
     Future(createStacks(input)) flatMap {
       stacks =>
-        Future.traverse(stacks.values().asScala.map(_.stack))(mergeStack) map {
+        Futures.traverseBounded(parallelism.levelZeroFlattenParallelism, stacks.values().asScala.map(_.stack))(mergeStack) map {
           collection =>
             collection map {
               keyValues =>
@@ -326,7 +329,8 @@ case object LevelZeroTaskAssigner {
   def mergeStack(stack: Iterable[Either[LevelZeroMap, Iterable[Memory]]])(implicit ec: ExecutionContext,
                                                                           keyOrder: KeyOrder[Slice[Byte]],
                                                                           timerOrder: TimeOrder[Slice[Byte]],
-                                                                          functionStore: FunctionStore): Future[Iterable[Memory]] =
+                                                                          functionStore: FunctionStore,
+                                                                          parallelism: CompactionParallelism): Future[Iterable[Memory]] =
     if (stack.isEmpty)
       Futures.emptyIterable
     else if (stack.size == 1)
@@ -338,7 +342,7 @@ case object LevelZeroTaskAssigner {
           Future.successful(keyValues)
       }
     else
-      Future.traverse(stack.grouped(2)) {
+      Futures.traverseBounded(parallelism.levelZeroMergeParallelism, stack.grouped(2).toList) {
         group =>
           if (group.size == 1)
             Future.successful(group.head)
@@ -360,6 +364,6 @@ case object LevelZeroTaskAssigner {
             }
       } flatMap {
         mergedResult =>
-          mergeStack(mergedResult.toList)
+          mergeStack(mergedResult)
       }
 }

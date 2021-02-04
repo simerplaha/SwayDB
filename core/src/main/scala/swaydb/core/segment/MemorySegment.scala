@@ -38,6 +38,7 @@ import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
@@ -89,7 +90,8 @@ private[core] final case class MemorySegment(path: Path,
           removeDeletes: Boolean,
           createdInLevel: Int,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[DefIO[MemorySegmentOption, Iterable[MemorySegment]]] =
+                                              executionContext: ExecutionContext,
+                                              compactionParallelism: CompactionParallelism): Future[DefIO[MemorySegmentOption, Iterable[MemorySegment]]] =
     if (deleted)
       Future.failed(swaydb.Exception.NoSuchFile(path))
     else {

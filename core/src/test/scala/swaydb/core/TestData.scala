@@ -63,6 +63,7 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.{AtomicRanges, IDGenerator}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.cache.Cache
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.{LevelMeter, LevelThrottle}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -184,7 +185,8 @@ object TestData {
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
-    def put(keyValues: Iterable[Memory], removeDeletes: Boolean = false)(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
+    def put(keyValues: Iterable[Memory], removeDeletes: Boolean = false)(implicit sweeper: TestCaseSweeper,
+                                                                         compactionParallelism: CompactionParallelism): IO[Error.Level, Unit] = {
 
       implicit val idGenerator = level.segmentIDGenerator
 
@@ -239,10 +241,12 @@ object TestData {
       }
     }
 
-    def put(segment: Segment)(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] =
+    def put(segment: Segment)(implicit sweeper: TestCaseSweeper,
+                              compactionParallelism: CompactionParallelism): IO[Error.Level, Unit] =
       putSegments(Seq(segment))
 
-    def putSegments(segments: Iterable[Segment], removeDeletes: Boolean = false)(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
+    def putSegments(segments: Iterable[Segment], removeDeletes: Boolean = false)(implicit sweeper: TestCaseSweeper,
+                                                                                 parallelism: CompactionParallelism): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
       if (segments.isEmpty) {
@@ -258,7 +262,8 @@ object TestData {
       }
     }
 
-    def putMap(map: LevelZeroMap)(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
+    def putMap(map: LevelZeroMap)(implicit sweeper: TestCaseSweeper,
+                                  compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
       if (map.cache.isEmpty) {
@@ -1854,7 +1859,8 @@ object TestData {
                        sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                        valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                        segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                        ec: ExecutionContext): TransientSegment.One = {
+                                                                                        ec: ExecutionContext,
+                                                                                        compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): TransientSegment.One = {
       val segments =
         SegmentBlock.writeOnes(
           mergeStats =
@@ -2137,7 +2143,8 @@ object TestData {
                                        keyOrder: KeyOrder[Slice[Byte]],
                                        segmentReadIO: SegmentReadIO,
                                        timeOrder: TimeOrder[Slice[Byte]],
-                                       testCaseSweeper: TestCaseSweeper): DefIO[SegmentOption, Slice[Segment]] = {
+                                       testCaseSweeper: TestCaseSweeper,
+                                       compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): DefIO[SegmentOption, Slice[Segment]] = {
       def toMemory(keyValue: KeyValue) = if (removeDeletes) KeyValueGrouper.toLastLevelOrNull(keyValue) else keyValue.toMemory()
 
       segment match {
@@ -2219,7 +2226,8 @@ object TestData {
                                                    keyOrder: KeyOrder[Slice[Byte]],
                                                    segmentReadIO: SegmentReadIO,
                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                   testCaseSweeper: TestCaseSweeper): Slice[Segment] =
+                                                   testCaseSweeper: TestCaseSweeper,
+                                                   compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Slice[Segment] =
       segment match {
         case segment: MemorySegment =>
           segment.refresh(

@@ -42,6 +42,7 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestSweeper}
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.SegmentRefCacheLife
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -58,6 +59,7 @@ class SegmentReadPerformanceSpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   val keyValuesCount = 1000000
 

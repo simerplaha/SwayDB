@@ -34,6 +34,7 @@ import swaydb.core._
 import swaydb.core.data._
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -72,6 +73,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   val keyValuesCount = 100
   implicit val ec = TestExecutionContext.executionContext
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   //  override def deleteFiles: Boolean =
   //    false

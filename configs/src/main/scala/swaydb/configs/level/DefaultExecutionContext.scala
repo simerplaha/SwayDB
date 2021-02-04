@@ -43,9 +43,6 @@ object DefaultExecutionContext extends LazyLogging {
   def compactionEC(maxThreads: Int): ExecutionContext =
     ExecutionContext.fromExecutor(Executors.newFixedThreadPool(maxThreads max 1, DefaultThreadFactory.create()))
 
-  lazy val compactionCommitterEC: ExecutionContext =
-    ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor(DefaultThreadFactory.create()))
-
   /**
    * ExecutionContext used for [[swaydb.data.config.FileCache]] and [[swaydb.data.config.MemoryCache]].
    *
@@ -63,6 +60,6 @@ object DefaultExecutionContext extends LazyLogging {
    * thread will be active. If [[swaydb.Bag.Async]] bag is used then only 2 threads are needed per instance.
    */
   lazy val sweeperEC: ExecutionContext =
-    ExecutionContext.fromExecutor(Executors.newCachedThreadPool(DefaultThreadFactory.create()))
+    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2, DefaultThreadFactory.create()))
 
 }

@@ -33,6 +33,7 @@ import swaydb.core.data.Memory
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -68,6 +69,7 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
   implicit val segmentOrdering = keyOrder.on[Segment](_.minKey)
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "refresh" when {
     "Level is empty" in {

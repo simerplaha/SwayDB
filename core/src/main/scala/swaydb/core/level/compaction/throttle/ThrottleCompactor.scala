@@ -29,6 +29,7 @@ import swaydb.DefActor
 import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.throttle.behaviour._
 import swaydb.core.sweeper.FileSweeper
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -44,7 +45,8 @@ object ThrottleCompactor {
   def apply(context: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor, Unit],
                                                behaviorWakeUp: BehaviorWakeUp,
                                                fileSweeper: FileSweeper.On,
-                                               ec: ExecutionContext): ThrottleCompactor =
+                                               ec: ExecutionContext,
+                                               parallelism: CompactionParallelism): ThrottleCompactor =
     new ThrottleCompactor(
       context = context,
       currentFuture = Future.unit
@@ -55,7 +57,8 @@ private[core] class ThrottleCompactor private(@volatile private var context: Thr
                                               @volatile private var currentFuture: Future[Unit])(implicit self: DefActor[ThrottleCompactor, Unit],
                                                                                                  behaviour: BehaviorWakeUp,
                                                                                                  fileSweeper: FileSweeper.On,
-                                                                                                 executionContext: ExecutionContext) extends Compactor with LazyLogging {
+                                                                                                 executionContext: ExecutionContext,
+                                                                                                 parallelism: CompactionParallelism) extends Compactor with LazyLogging {
   @inline private def onComplete(nextFuture: => Future[ThrottleCompactorContext]): Unit =
     this.currentFuture =
       currentFuture

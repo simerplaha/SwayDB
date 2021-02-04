@@ -32,6 +32,7 @@ import swaydb.core.level.compaction.throttle.LevelState
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -66,6 +67,7 @@ class BehaviourWakeUp_compactLastLevel_singleLevel_Spec extends BehaviourWakeUp_
 sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends TestBase {
 
   implicit val ec = TestExecutionContext.executionContext
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "ignore compaction" when {
     "empty" in {

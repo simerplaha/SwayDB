@@ -52,7 +52,7 @@ object RunThis extends Eventually {
       Random.shuffle(input).map(_ ())
   }
 
-  implicit class FiniteDurationImplicits(duration: Duration) {
+  implicit class RunThisFiniteDurationImplicits(duration: Duration) {
 
     @inline final def asString: String =
       asString(scale = 6)

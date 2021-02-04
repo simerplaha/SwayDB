@@ -31,6 +31,7 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.{Assignable, Assignment}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.{LevelMeter, LevelThrottle}
 import swaydb.data.slice.Slice
 import swaydb.effect.Dir
@@ -97,14 +98,17 @@ trait NextLevel extends LevelRef {
 
   def merge(assigment: DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]],
             removeDeletedRecords: Boolean)(implicit ec: ExecutionContext,
-                                           compactionIO: CompactionIO.Actor): Future[Iterable[DefIO[SegmentOption, Iterable[Segment]]]]
+                                           compactionIO: CompactionIO.Actor,
+                                           parallelism: CompactionParallelism): Future[Iterable[DefIO[SegmentOption, Iterable[Segment]]]]
 
   def refresh(segment: Iterable[Segment],
-              removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[DefIO[Segment, Slice[TransientSegment]]]]
+              removeDeletedRecords: Boolean)(implicit ec: ExecutionContext,
+                                             parallelism: CompactionParallelism): Future[Iterable[DefIO[Segment, Slice[TransientSegment]]]]
 
   def collapse(segments: Iterable[Segment],
                removeDeletedRecords: Boolean)(implicit ec: ExecutionContext,
-                                              compactionIO: CompactionIO.Actor): Future[LevelCollapseResult]
+                                              compactionIO: CompactionIO.Actor,
+                                              parallelism: CompactionParallelism): Future[LevelCollapseResult]
 
   def commit(mergeResult: DefIO[SegmentOption, Iterable[TransientSegment]]): IO[Error.Level, Unit]
 

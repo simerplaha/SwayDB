@@ -39,6 +39,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.{Bytes, Collections, MinMax}
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -184,7 +185,8 @@ private[core] case object SegmentBlock extends LazyLogging {
                      sortedIndexConfig: SortedIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
                      segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                         ec: ExecutionContext): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
+                                                         ec: ExecutionContext,
+                                                         compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
     if (mergeStats.isEmpty)
       Future.successful(Slice.empty)
     else
@@ -217,7 +219,8 @@ private[core] case object SegmentBlock extends LazyLogging {
                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
                      segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                         ec: ExecutionContext): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
+                                                         ec: ExecutionContext,
+                                                         compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
     if (ones.isEmpty)
       Future.successful(Slice.empty)
     else
@@ -265,7 +268,8 @@ private[core] case object SegmentBlock extends LazyLogging {
                                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                     valuesConfig: ValuesBlock.Config,
                                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                        ec: ExecutionContext): Future[TransientSegment.OneOrRemoteRefOrMany] =
+                                                                        ec: ExecutionContext,
+                                                                        compactionParallelism: CompactionParallelism): Future[TransientSegment.OneOrRemoteRefOrMany] =
     if (segments.size == 1)
       Future.successful(segments.head.copyWithFileHeader(headerBytes = PersistentSegmentOne.formatIdSlice))
     else
@@ -341,7 +345,8 @@ private[core] case object SegmentBlock extends LazyLogging {
                 sortedIndexConfig: SortedIndexBlock.Config,
                 valuesConfig: ValuesBlock.Config,
                 segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                    ec: ExecutionContext): Future[Slice[TransientSegment.One]] =
+                                                    ec: ExecutionContext,
+                                                    compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.One]] =
     if (mergeStats.isEmpty)
       Future.successful(Slice.empty)
     else

@@ -39,7 +39,7 @@ import scala.concurrent.duration._
 object DefaultConfigs {
 
   //4098 being the default file-system blockSize.
-  def mapSize: Int = 4.mb
+  def mapSize: Int = 64.mb
 
   def accelerator: LevelZeroMeter => Accelerator =
     Accelerator.brake(
@@ -132,10 +132,10 @@ object DefaultConfigs {
 
   def segmentConfig(cacheDataBlockOnAccess: Boolean = false): SegmentConfig =
     SegmentConfig(
-      cacheSegmentBlocksOnCreate = true,
+      cacheSegmentBlocksOnCreate = false,
       deleteDelay = CommonConfigs.segmentDeleteDelay,
       mmap = MMAP.Off(forceSave = ForceSave.BeforeClose(enableBeforeCopy = false, enableForReadOnlyMode = false, logBenchmark = false)),
-      minSegmentSize = 6.mb,
+      minSegmentSize = 18.mb,
       //      segmentFormat = SegmentFormat.Flattened,
       segmentFormat = SegmentFormat.Grouped(count = 10000, enableRootHashIndex = false, segmentRefCacheLife = SegmentRefCacheLife.Temporary),
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),

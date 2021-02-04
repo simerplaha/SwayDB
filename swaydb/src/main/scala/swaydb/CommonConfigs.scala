@@ -34,13 +34,23 @@ case object CommonConfigs {
 
   def segmentDeleteDelay: FiniteDuration = 10.seconds
 
-  def compactionConfig(maxThreads: Int = (Runtime.getRuntime.availableProcessors() / 2) max 2): CompactionConfig = {
-    val executionContext = DefaultExecutionContext.compactionEC(maxThreads = maxThreads)
+  def compactionConfig(maxThreads: Int = Runtime.getRuntime.availableProcessors() max 2): CompactionConfig = {
     //create compaction config
+    val actorExecutionContext = DefaultExecutionContext.compactionEC(maxThreads = 1)
+
+    val availableCompactionThreads = maxThreads - 1
+    val compactionExecutionContext = DefaultExecutionContext.compactionEC(maxThreads = availableCompactionThreads)
+
     CompactionConfig(
       resetCompactionPriorityAtInterval = 3,
-      compactionExecutionContext = executionContext,
-
+      actorExecutionContext = actorExecutionContext,
+      compactionExecutionContext = compactionExecutionContext,
+      levelZeroFlattenParallelism = availableCompactionThreads,
+      levelZeroMergeParallelism = availableCompactionThreads,
+      multiLevelTaskParallelism = 1,
+      levelSegmentAssignmentParallelism = 2,
+      groupedSegmentDefragParallelism = 2,
+      defragmentedSegmentParallelism = 2,
       pushStrategy = PushStrategy.OnOverflow
     )
   }

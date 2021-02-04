@@ -36,6 +36,7 @@ import swaydb.effect.Effect._
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.util.PipeOps._
 import swaydb.core.util.IDGenerator
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.effect.{Dir, Effect, Extension}
 import swaydb.testkit.RunThis._
 import swaydb.data.config.MMAP
@@ -81,6 +82,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   val keyValuesCount = 100
   implicit val ec = TestExecutionContext.executionContext
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   //  override def deleteFiles: Boolean =
   //    false

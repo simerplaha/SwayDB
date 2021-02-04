@@ -37,6 +37,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.LevelThrottle
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -77,6 +78,8 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
   implicit val ec = TestExecutionContext.executionContext
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
+
   val keyValuesCount = 100
 
   "Level.mightContainKey" should {

@@ -31,6 +31,7 @@ import swaydb.core._
 import swaydb.core.data.Memory
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -63,6 +64,7 @@ sealed trait BehaviourCompactionTask_refresh_Spec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val segmentOrdering = keyOrder.on[Segment](_.minKey)
   implicit val ec = TestExecutionContext.executionContext
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "succeed" in {
     runThis(10.times, log = true) {

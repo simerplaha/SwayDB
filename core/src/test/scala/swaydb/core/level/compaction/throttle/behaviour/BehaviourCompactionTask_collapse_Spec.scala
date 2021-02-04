@@ -32,6 +32,7 @@ import swaydb.core.data.Memory
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -70,6 +71,7 @@ sealed trait BehaviourCompactionTask_collapse_Spec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val segmentOrdering = keyOrder.on[Segment](_.minKey)
   implicit val ec = TestExecutionContext.executionContext
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "succeed" in {
     runThis(10.times, log = true) {

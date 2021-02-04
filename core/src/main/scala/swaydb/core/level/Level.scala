@@ -53,6 +53,7 @@ import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.Exceptions._
 import swaydb.core.util.{MinMax, _}
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.{LevelMeter, LevelThrottle}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.SliceIOImplicits._
@@ -60,6 +61,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.LevelStorage
 import swaydb.effect.Effect._
 import swaydb.effect.{Dir, Effect, Extension, FileLocker}
+import swaydb.utils.Futures
 import swaydb.{Aggregator, Bag, Error, IO}
 
 import java.nio.channels.FileChannel
@@ -423,9 +425,10 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   def refresh(segments: Iterable[Segment],
-              removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[DefIO[Segment, Slice[TransientSegment]]]] = {
+              removeDeletedRecords: Boolean)(implicit ec: ExecutionContext,
+                                             parallelism: CompactionParallelism): Future[Iterable[DefIO[Segment, Slice[TransientSegment]]]] = {
     logger.debug("{}: Running refresh.", pathDistributor.head)
-    Future.traverse(segments) {
+    Futures.traverseBounded(parallelism.levelSegmentAssignmentParallelism, segments) {
       case segment: MemorySegment =>
         Future {
           segment.refresh(
@@ -454,7 +457,8 @@ private[core] case class Level(dirs: Seq[Dir],
    */
   def collapse(segments: Iterable[Segment],
                removeDeletedRecords: Boolean)(implicit ec: ExecutionContext,
-                                              compactionIO: CompactionIO.Actor): Future[LevelCollapseResult] = {
+                                              compactionIO: CompactionIO.Actor,
+                                              parallelism: CompactionParallelism): Future[LevelCollapseResult] = {
     logger.trace(s"{}: Collapsing '{}' segments", pathDistributor.head, segments.size)
     if (segments.isEmpty || appendix.cache.size == 1) //if there is only one Segment in this Level which is a small segment. No collapse required
       Future.successful(LevelCollapseResult.Empty)
@@ -576,7 +580,8 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def merge(assigment: DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]],
             removeDeletedRecords: Boolean)(implicit ec: ExecutionContext,
-                                           compactionIO: CompactionIO.Actor): Future[Iterable[DefIO[SegmentOption, Iterable[Segment]]]] = {
+                                           compactionIO: CompactionIO.Actor,
+                                           parallelism: CompactionParallelism): Future[Iterable[DefIO[SegmentOption, Iterable[Segment]]]] = {
     logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assigment.input.size)
     if (inMemory)
       mergeMemory(
@@ -632,7 +637,8 @@ private[core] case class Level(dirs: Seq[Dir],
 
   @inline private def mergeMemory(newKeyValues: Iterable[Assignable],
                                   removeDeletedRecords: Boolean,
-                                  assignments: Iterable[Assignment[Iterable[Assignable.Gap[Memory.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]])(implicit ec: ExecutionContext): Future[Iterable[DefIO[SegmentOption, Iterable[MemorySegment]]]] =
+                                  assignments: Iterable[Assignment[Iterable[Assignable.Gap[Memory.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]])(implicit ec: ExecutionContext,
+                                                                                                                                                                    parallelism: CompactionParallelism): Future[Iterable[DefIO[SegmentOption, Iterable[MemorySegment]]]] =
     if (assignments.isEmpty) {
       //if there were not assignments then write new key-values are gap and run Defrag to avoid creating small Segments.
       val gap = GapAggregator.create[MergeStats.Memory.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
@@ -650,7 +656,7 @@ private[core] case class Level(dirs: Seq[Dir],
       ).map(Seq(_))
     } else {
       //Assignment successful. Defer merge to target Segments.
-      Future.traverse(assignments) {
+      Futures.traverseBounded(parallelism.levelSegmentAssignmentParallelism, assignments) {
         assignment =>
           assignment.segment.asInstanceOf[MemorySegment].put(
             //if noGaps == true then headGap and tailGap will be null. Perform null check
@@ -673,7 +679,8 @@ private[core] case class Level(dirs: Seq[Dir],
   @inline private def mergePersistent(newKeyValues: Iterable[Assignable],
                                       removeDeletedRecords: Boolean,
                                       assignments: Iterable[Assignment[Iterable[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]])(implicit ec: ExecutionContext,
-                                                                                                                                                                            compactionIO: CompactionIO.Actor): Future[Iterable[DefIO[SegmentOption, Iterable[PersistentSegment]]]] =
+                                                                                                                                                                            compactionIO: CompactionIO.Actor,
+                                                                                                                                                                            parallelism: CompactionParallelism): Future[Iterable[DefIO[SegmentOption, Iterable[PersistentSegment]]]] =
     if (assignments.isEmpty) {
       //if there were not assignments then write new key-values are gap and run Defrag to avoid creating small Segments.
       val gap = GapAggregator.create[MergeStats.Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
@@ -698,7 +705,7 @@ private[core] case class Level(dirs: Seq[Dir],
       ).map(Seq(_))
     } else {
       //Assignment successful. Defer merge to target Segments.
-      Future.traverse(assignments) {
+      Futures.traverseBounded(parallelism.levelSegmentAssignmentParallelism, assignments) {
         assignment =>
           assignment.segment.asInstanceOf[PersistentSegment].put(
             //if noGaps == true then headGap and tailGap will be null. Perform null check

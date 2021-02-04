@@ -35,6 +35,7 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core._
 import swaydb.core.level.compaction.io.CompactionIO
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.testkit.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -71,6 +72,7 @@ sealed trait LevelCollapseSpec extends TestBase {
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean =

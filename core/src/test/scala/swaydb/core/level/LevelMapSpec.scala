@@ -35,6 +35,7 @@ import swaydb.core.data._
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -70,6 +71,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean =
