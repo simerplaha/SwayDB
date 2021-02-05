@@ -27,18 +27,18 @@ package swaydb.core
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.TestSweeper._
-import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.LevelRef
+import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.map.Maps
 import swaydb.core.map.counter.CounterMap
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.BlockCache
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, MemorySweeper}
+import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._
-import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.{ActorRef, Bag, DefActor, Glass, Scheduler}
 
 import java.nio.file.Path
@@ -65,6 +65,7 @@ object TestCaseSweeper extends LazyLogging {
     new TestCaseSweeper(
       fileSweepers = ListBuffer(Cache.noIO[Unit, FileSweeper.On](true, true, None)((_, _) => createFileSweeper())),
       cleaners = ListBuffer(Cache.noIO[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner())),
+      compactionIOActors = ListBuffer(Cache.noIO[Unit, CompactionIO.Actor](true, true, None)((_, _) => CompactionIO.create()(TestExecutionContext.executionContext))),
       blockCaches = ListBuffer(Cache.noIO[Unit, Option[BlockCache.State]](true, true, None)((_, _) => createBlockCacheRandom())),
       allMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.All]](true, true, None)((_, _) => createMemorySweeperMax())),
       keyValueMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.KeyValue]](true, true, None)((_, _) => createMemorySweeperRandom())),
@@ -79,7 +80,7 @@ object TestCaseSweeper extends LazyLogging {
       paths = ListBuffer.empty,
       actors = ListBuffer.empty,
       counters = ListBuffer.empty,
-      actorWires = ListBuffer.empty,
+      defActors = ListBuffer.empty,
       functions = ListBuffer.empty
     )
 
@@ -94,7 +95,7 @@ object TestCaseSweeper extends LazyLogging {
     logger.info(s"Terminating ${classOf[TestCaseSweeper].getSimpleName}")
 
     sweeper.actors.foreach(_.terminateAndClear[Glass]())
-    sweeper.actorWires.foreach(_.terminateAndClear[Glass]())
+    sweeper.defActors.foreach(_.terminateAndClear[Glass]())
 
     sweeper.schedulers.foreach(_.get().foreach(_.terminate()))
 
@@ -114,6 +115,7 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.fileSweepers.foreach(_.get().foreach(sweeper => FileSweeper.close()(sweeper, Bag.glass)))
     sweeper.cleaners.foreach(_.get().foreach(cleaner => ByteBufferSweeper.close()(cleaner, Bag.glass)))
     sweeper.blockCaches.foreach(_.get().foreach(BlockCache.close))
+    sweeper.compactionIOActors.foreach(_.get().foreach(_.terminate[Glass]()))
 
     //DELETE - delete after closing Levels.
     sweeper.levels.foreach(_.delete[Glass]())
@@ -221,6 +223,11 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepBufferCleaner actor
   }
 
+  implicit class CompactionIOActorImplicits(actor: CompactionIO.Actor) {
+    def sweep()(implicit sweeper: TestCaseSweeper): CompactionIO.Actor =
+      sweeper sweepCompactionIOActors actor
+  }
+
   implicit class FileCleanerSweeperImplicits(actor: FileSweeper.On) {
     def sweep()(implicit sweeper: TestCaseSweeper): FileSweeper.On =
       sweeper sweepFileSweeper actor
@@ -268,6 +275,7 @@ object TestCaseSweeper extends LazyLogging {
 
 class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeper.On]],
                       private val cleaners: ListBuffer[CacheNoIO[Unit, ByteBufferSweeperActor]],
+                      private val compactionIOActors: ListBuffer[CacheNoIO[Unit, CompactionIO.Actor]],
                       private val blockCaches: ListBuffer[CacheNoIO[Unit, Option[BlockCache.State]]],
                       private val allMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.All]]],
                       private val keyValueMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.KeyValue]]],
@@ -281,7 +289,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
                       private val dbFiles: ListBuffer[DBFile],
                       private val paths: ListBuffer[Path],
                       private val actors: ListBuffer[ActorRef[_, _]],
-                      private val actorWires: ListBuffer[DefActor[_, _]],
+                      private val defActors: ListBuffer[DefActor[_, _]],
                       private val counters: ListBuffer[CounterMap],
                       private val functions: ListBuffer[() => Unit]) {
 
@@ -290,6 +298,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
   implicit lazy val fileSweeper: FileSweeper.On = fileSweepers.head.value(())
   implicit lazy val cleaner: ByteBufferSweeperActor = cleaners.head.value(())
   implicit lazy val blockCache: Option[BlockCache.State] = blockCaches.head.value(())
+  implicit lazy val compactionIOActor: CompactionIO.Actor = compactionIOActors.head.value(())
 
   //MemorySweeper.All can also be set which means other sweepers will search for dedicated sweepers first and
   //if not found then the head from allMemorySweeper is fetched.
@@ -330,7 +339,6 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
     dbFiles += file
     file
   }
-
 
   private def removeReplaceOptionalCache[I, O](sweepers: ListBuffer[CacheNoIO[I, Option[O]]], replace: O): O = {
     if (sweepers.lastOption.exists(_.get().isEmpty))
@@ -374,13 +382,16 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
   def sweepScheduler(schedule: Scheduler): Scheduler =
     removeReplaceCache(schedulers, schedule)
 
+  def sweepCompactionIOActors(actor: CompactionIO.Actor): CompactionIO.Actor =
+    removeReplaceCache(compactionIOActors, actor)
+
   def sweepActor[T, S](actor: ActorRef[T, S]): ActorRef[T, S] = {
     actors += actor
     actor
   }
 
   def sweepWireActor[T, S](actor: DefActor[T, S]): DefActor[T, S] = {
-    actorWires += actor
+    defActors += actor
     actor
   }
 

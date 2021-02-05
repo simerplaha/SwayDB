@@ -52,6 +52,8 @@ private[core] case object MergeStats {
 
     def isEmpty: Boolean
 
+    def keyValues: T[data.Memory]
+
   }
 
   sealed trait ClosedStats[+T[_]] {

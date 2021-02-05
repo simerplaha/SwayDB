@@ -82,7 +82,10 @@ object CommonAssertions {
 
   implicit class CommonAssertions[A](instance: A) {
     def shouldBeInstanceOf[B <: A](implicit bClassTag: ClassTag[B]): B = {
-      instance.getClass shouldBe bClassTag.runtimeClass
+      if (!instance.isInstanceOf[B])
+      //shouldBe again for descriptive ScalaTest errors
+        instance.getClass shouldBe bClassTag.runtimeClass
+
       instance.asInstanceOf[B]
     }
   }
@@ -492,6 +495,9 @@ object CommonAssertions {
           left shouldBe right
       }
     }
+
+    def shouldBe(expected: Iterator[KeyValue]): Unit =
+      actual shouldBe expected.toList
 
     def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]]) =
     //LevelZero does not write Groups therefore this unzip is required.
