@@ -49,33 +49,41 @@ object ThrottleCompactor {
                                                parallelism: CompactionParallelism): ThrottleCompactor =
     new ThrottleCompactor(
       context = context,
-      currentFuture = Future.unit
+      currentFuture = Future.unit,
+      currentFutureExecuted = true
     )
 }
 
 private[core] class ThrottleCompactor private(@volatile private var context: ThrottleCompactorContext,
-                                              @volatile private var currentFuture: Future[Unit])(implicit self: DefActor[ThrottleCompactor, Unit],
-                                                                                                 behaviour: BehaviorWakeUp,
-                                                                                                 fileSweeper: FileSweeper.On,
-                                                                                                 executionContext: ExecutionContext,
-                                                                                                 parallelism: CompactionParallelism) extends Compactor with LazyLogging {
-  @inline private def onComplete(nextFuture: => Future[ThrottleCompactorContext]): Unit =
-    this.currentFuture =
-      currentFuture
-        .recoverWith {
-          case _ =>
-            Future.unit
-        }
-        .flatMap {
-          _ =>
-            nextFuture map {
-              newContext =>
-                this.context = newContext
-            }
-        }
+                                              @volatile private var currentFuture: Future[Unit],
+                                              @volatile private var currentFutureExecuted: Boolean)(implicit self: DefActor[ThrottleCompactor, Unit],
+                                                                                                    behaviour: BehaviorWakeUp,
+                                                                                                    fileSweeper: FileSweeper.On,
+                                                                                                    executionContext: ExecutionContext,
+                                                                                                    parallelism: CompactionParallelism) extends Compactor with LazyLogging {
+  @inline private def tailWakeUpCall(nextFuture: => Future[ThrottleCompactorContext]): Unit =
+  //tail Future only if current future (wakeUp) was ignore else ignore. Not point tailing the same message.
+    if (currentFutureExecuted) {
+      currentFutureExecuted = false
+      this.currentFuture =
+        currentFuture
+          .flatMap {
+            _ =>
+              //Set executed! allow the next wakeUp call to be accepted.
+              currentFutureExecuted = true
+              nextFuture map {
+                newContext =>
+                  this.context = newContext
+              }
+          }
+          .recoverWith { //current future should never be a failed future
+            case _ =>
+              Future.unit
+          }
+    }
 
   override def wakeUp(): Unit =
-    onComplete(behaviour.wakeUp(context))
+    tailWakeUpCall(behaviour.wakeUp(context))
 
   def terminateASAP(): Unit =
     context.setTerminateASAP()

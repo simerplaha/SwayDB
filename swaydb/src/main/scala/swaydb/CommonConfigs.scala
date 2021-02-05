@@ -35,9 +35,12 @@ case object CommonConfigs {
   def segmentDeleteDelay: FiniteDuration = 10.seconds
 
   def compactionConfig(maxThreads: Int = Runtime.getRuntime.availableProcessors() max 2): CompactionConfig = {
-    //create compaction config
+    //assign a single thread to compaction Actor so that when writes alter compaction of
+    //a new map available for compaction it does not starve and submits the messages and
+    //continues accepting more writes
     val actorExecutionContext = DefaultExecutionContext.compactionEC(maxThreads = 1)
 
+    //Remaining threads are the maximum threads minus the one reserved above.
     val availableCompactionThreads = maxThreads - 1
     val compactionExecutionContext = DefaultExecutionContext.compactionEC(maxThreads = availableCompactionThreads)
 
@@ -47,10 +50,10 @@ case object CommonConfigs {
       compactionExecutionContext = compactionExecutionContext,
       levelZeroFlattenParallelism = availableCompactionThreads,
       levelZeroMergeParallelism = availableCompactionThreads,
-      multiLevelTaskParallelism = 1,
-      levelSegmentAssignmentParallelism = 2,
-      groupedSegmentDefragParallelism = 2,
-      defragmentedSegmentParallelism = 2,
+      multiLevelTaskParallelism = availableCompactionThreads,
+      levelSegmentAssignmentParallelism = availableCompactionThreads,
+      groupedSegmentDefragParallelism = availableCompactionThreads,
+      defragmentedSegmentParallelism = availableCompactionThreads,
       pushStrategy = PushStrategy.OnOverflow
     )
   }

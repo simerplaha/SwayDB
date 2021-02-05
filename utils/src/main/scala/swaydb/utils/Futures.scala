@@ -89,7 +89,7 @@ private[swaydb] object Futures {
       val remaining = new AtomicInteger(parallelism) //remaining parallelism left
       @volatile var failed: Throwable = null //indicates if the traverse has failed
 
-      def run(previousFuture: Future[_]): Future[_] =
+      def run(previousFuture: Future[Unit]): Future[Unit] =
         if (failed != null) {
           Future.failed(failed)
         } else if (remaining.decrementAndGet() < 0) { //attempt at reserving execution

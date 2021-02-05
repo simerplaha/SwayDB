@@ -25,23 +25,24 @@
 package swaydb.core.sweeper
 
 import org.scalamock.scalatest.MockFactory
-import swaydb._
+import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
+import swaydb.core._
 import swaydb.core.data.Memory
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.FileSweeper._
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
-import swaydb.testkit.RunThis._
-import swaydb.ActorConfig
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
+import swaydb.{ActorConfig, _}
 
 import java.nio.file.{Path, Paths}
 import java.util.concurrent.ConcurrentSkipListSet
 import scala.collection.mutable.ListBuffer
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 
 class FileSweeperSpec extends TestBase with MockFactory {
@@ -120,7 +121,7 @@ class FileSweeperSpec extends TestBase with MockFactory {
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 1.byte, cacheBlocksOnCreate = false))
           fileSweeper.send(FileSweeper.Command.Pause(Seq(level)))
 
-          level.put(Seq(Memory.put(1), Memory.put(2), Memory.put(3), Memory.put(4)))
+          level.put(Seq(Memory.put(1), Memory.put(2), Memory.put(3), Memory.put(4))) shouldBe IO.unit
 
           level.segments() should have size 4
 
@@ -133,6 +134,60 @@ class FileSweeperSpec extends TestBase with MockFactory {
           fileSweeper.send(FileSweeper.Command.Resume(Seq(level)))
 
           //after resume all files are eventually closed
+          eventual(10.seconds) {
+            level.segments().foreach(_.isOpen shouldBe false)
+          }
+      }
+    }
+  }
+
+  "stress" in {
+    runThis(5.times, log = true) {
+      TestCaseSweeper {
+        implicit sweeper =>
+
+          /**
+           * Objective: Concurrently read all Segments in the Level that are being
+           * closed by [[FileSweeper]] and expect all reads to succeed without
+           * any closed file exceptions when the Level is paused and resumed.
+           */
+
+          //set stashCapacity to 0 so files are closed immediately.
+          implicit val fileSweeper = FileSweeper(0, ActorConfig.Timer("FileSweeper Test Timer", 0.second, TestExecutionContext.executionContext)).sweep()
+
+          val keyValuesCount = randomIntMax(100) max 1
+
+          val keyValues = randomPutKeyValues(keyValuesCount)
+
+          //Level with 1.byte segmentSize so each key-values have it's own Segment
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 1.byte, cacheBlocksOnCreate = false))
+
+          fileSweeper.send(FileSweeper.Command.Pause(Seq(level))) //pause closing
+          level.put(keyValues) shouldBe IO.unit //write the Segment
+          fileSweeper.send(FileSweeper.Command.Resume(Seq(level))) //resume closing
+
+          //1 segment per key-value
+          level.segmentsCount() shouldBe keyValues.size
+
+          val levelSegments = level.segments().toSlice.zipWithIndex
+
+          //open all files
+          runThis(1000.times, log = true) {
+            //invoke pause
+            fileSweeper.send(FileSweeper.Command.Pause(Seq(level)))
+
+            //concurrently read all Segments and none should fail due to FileClosedException
+            //because the Level is paused. No randomIO is used so no retry required.
+            levelSegments.par foreach {
+              case (segment, index) =>
+                val keyValue = keyValues(index)
+                segment.get(keyValue.key, ThreadReadState.random).getUnsafe shouldBe keyValue
+            }
+            //resume
+            fileSweeper.send(FileSweeper.Command.Resume(Seq(level)))
+          }
+
+          //eventually all files are closed
           eventual(10.seconds) {
             level.segments().foreach(_.isOpen shouldBe false)
           }

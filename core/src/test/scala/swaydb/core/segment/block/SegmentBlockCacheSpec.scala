@@ -378,7 +378,7 @@ class SegmentBlockCacheSpec extends TestBase {
                 assertIsNotCached()
 
                 //read all an expect sortedIndex and value bytes to get cached but not hashIndex
-                blockCache.iterator(randomBoolean()).foreach(_ => ())
+                blockCache.iterator(true).foreach(_ => ())
 
                 assertIsCached()
 
@@ -389,7 +389,7 @@ class SegmentBlockCacheSpec extends TestBase {
                 assertIsNotCached()
 
                 //read all
-                blockCache.iterator(randomBoolean()).foreach(_ => ())
+                blockCache.iterator(true).foreach(_ => ())
 
                 //caches all again
                 assertIsCached()

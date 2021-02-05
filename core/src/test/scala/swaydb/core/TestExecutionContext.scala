@@ -24,10 +24,9 @@
 
 package swaydb.core
 
-import java.util.concurrent.Executors
-
 import swaydb.configs.level.DefaultThreadFactory
 
+import java.util.concurrent.Executors
 import scala.concurrent.ExecutionContext
 
 object TestExecutionContext {

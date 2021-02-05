@@ -39,18 +39,36 @@ import scala.concurrent.duration._
 object DefaultConfigs {
 
   //4098 being the default file-system blockSize.
-  def mapSize: Int = 64.mb
+  def mapSize: Int = 8.mb
 
   def accelerator: LevelZeroMeter => Accelerator =
     Accelerator.brake(
-      increaseMapSizeOnMapCount = 3,
-      increaseMapSizeBy = 2,
-      maxMapSize = 16.mb,
-      brakeOnMapCount = 10,
+      increaseMapSizeOnMapCount = 1,
+      increaseMapSizeBy = 1,
+      maxMapSize = mapSize,
+      brakeOnMapCount = 7,
       brakeFor = 1.milliseconds,
       releaseRate = 0.01.millisecond,
       logAsWarning = false
     )
+
+  def levelZeroThrottle(meter: LevelZeroMeter): LevelZeroThrottle = {
+    val count = meter.mapsCount
+    //when there are more than 4 maps/logs in LevelZero
+    //then give LevelZero highest priority.
+    //This will compact all LevelZero maps at once.
+
+    val delay =
+      if (count >= 4)
+        -count.seconds
+      else
+        count.seconds //else give it some delay
+
+    LevelZeroThrottle(
+      compactionDelay = delay,
+      mapsToCompact = 10
+    )
+  }
 
   def mmap(): MMAP.On =
     MMAP.On(
@@ -135,7 +153,7 @@ object DefaultConfigs {
       cacheSegmentBlocksOnCreate = false,
       deleteDelay = CommonConfigs.segmentDeleteDelay,
       mmap = MMAP.Off(forceSave = ForceSave.BeforeClose(enableBeforeCopy = false, enableForReadOnlyMode = false, logBenchmark = false)),
-      minSegmentSize = 18.mb,
+      minSegmentSize = 2.mb,
       initialiseIteratorsInOneSeek = false,
       //      segmentFormat = SegmentFormat.Flattened,
       segmentFormat = SegmentFormat.Grouped(count = 10000, enableRootHashIndex = false, segmentRefCacheLife = SegmentRefCacheLife.Temporary),
@@ -172,24 +190,6 @@ object DefaultConfigs {
         )
     )
 
-  def levelZeroThrottle(meter: LevelZeroMeter): LevelZeroThrottle = {
-    val count = meter.mapsCount
-    //when there are more than 4 maps/logs in LevelZero
-    //then give LevelZero highest priority.
-    //This will compact all LevelZero maps at once.
-
-    val delay =
-      if (count >= 4)
-        -count.seconds
-      else
-        count.seconds //else give it some delay
-
-    LevelZeroThrottle(
-      compactionDelay = delay,
-      mapsToCompact = 4
-    )
-  }
-
   /**
    * The general idea for the following [[LevelThrottle]] functions
    * is that we set the urgency of compaction for each level
@@ -209,7 +209,8 @@ object DefaultConfigs {
     else
       LevelThrottle(
         compactionDelay = delay.seconds,
-        compactDataSize = levelSize - maxLevelSize
+        //do not compact more than 20.mb at once even if the level is overflowing
+        compactDataSize = (levelSize - maxLevelSize) min 20.mb
       )
   }
 

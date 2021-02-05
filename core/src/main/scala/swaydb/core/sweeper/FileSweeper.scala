@@ -202,7 +202,6 @@ private[swaydb] case object FileSweeper extends LazyLogging {
           }
     }
 
-
   private def processCommand(command: Command.Close, self: Actor[Command.Close, State]): Unit =
     command match {
       case command @ Command.CloseFileItem(file) =>
@@ -213,14 +212,12 @@ private[swaydb] case object FileSweeper extends LazyLogging {
         )
 
       case Command.CloseFiles(files) =>
-        files foreach {
-          file =>
-            closeFile(
-              command = Command.CloseFileItem(file),
-              file = file,
-              self = self
-            )
-        }
+        for (file <- files)
+          closeFile(
+            command = Command.CloseFileItem(file),
+            file = file,
+            self = self
+          )
 
       case Command.Pause(levels) =>
         levels foreach {
@@ -228,10 +225,8 @@ private[swaydb] case object FileSweeper extends LazyLogging {
             self.state.pausedFolders += zero.path
 
           case level: NextLevel =>
-            level.dirs foreach {
-              dir =>
-                self.state.pausedFolders += dir.path
-            }
+            for (dir <- level.dirs)
+              self.state.pausedFolders += dir.path
         }
 
       case Command.Resume(levels) =>
@@ -240,10 +235,8 @@ private[swaydb] case object FileSweeper extends LazyLogging {
             self.state.pausedFolders -= zero.path
 
           case level: NextLevel =>
-            level.dirs foreach {
-              dir =>
-                self.state.pausedFolders -= dir.path
-            }
+            for (dir <- level.dirs)
+              self.state.pausedFolders -= dir.path
         }
     }
 
