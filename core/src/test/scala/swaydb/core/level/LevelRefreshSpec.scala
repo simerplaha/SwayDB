@@ -78,6 +78,8 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
       runThis(5.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
+            import sweeper._
+
             val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.byte, mmap = mmapSegments))
             val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0))(TestTimer.Empty)
             level.put(keyValues).runRandomIO.right.value
@@ -115,6 +117,8 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
     "update createdInLevel" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)

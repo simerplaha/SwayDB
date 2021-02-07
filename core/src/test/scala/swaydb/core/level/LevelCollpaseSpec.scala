@@ -81,6 +81,8 @@ sealed trait LevelCollapseSpec extends TestBase {
   "collapse small Segments to 50% of the size when the Segment's size was reduced by deleting 50% of it's key-values" in {
     TestCaseSweeper {
       implicit sweeper =>
+        import sweeper._
+
         //disable throttling so that it does not automatically collapse small Segments
         val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments, deleteDelay = Duration.Zero))
         val keyValues = randomPutKeyValues(1000, addPutDeadlines = false, startId = Some(0))(TestTimer.Empty)
@@ -105,9 +107,6 @@ sealed trait LevelCollapseSpec extends TestBase {
         //delete half of the key values which will create small Segments
         level.put(Slice(deleteEverySecond.toArray)).runRandomIO.right.value
 
-        implicit val compactionActor: CompactionIO.Actor =
-          CompactionIO.create().sweep()
-
         level.collapse(level.segments(), removeDeletedRecords = false).awaitInf match {
           case LevelCollapseResult.Empty =>
             fail(s"Expected: ${LevelCollapseResult.Collapsed.getClass.getSimpleName}. Actor: ${LevelCollapseResult.Empty.productPrefix}")
@@ -128,6 +127,7 @@ sealed trait LevelCollapseSpec extends TestBase {
       runThis(10.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
+            import sweeper._
 
             //          implicit val compressionType: Option[KeyValueCompressionType] = randomCompressionTypeOption(keyValuesCount)
             //disable throttling so that it does not automatically collapse small Segments
@@ -146,9 +146,6 @@ sealed trait LevelCollapseSpec extends TestBase {
 
             //reopen the Level with larger min segment size
             val reopenLevel = level.reopen(segmentSize = 20.mb)
-
-            implicit val compactionActor: CompactionIO.Actor =
-              CompactionIO.create().sweep()
 
             reopenLevel.collapse(reopenLevel.segments(), removeDeletedRecords = false).await match {
               case LevelCollapseResult.Empty =>
@@ -176,6 +173,8 @@ sealed trait LevelCollapseSpec extends TestBase {
     //Remove or expiring key-values should have the same result
     TestCaseSweeper {
       implicit sweeper =>
+        import sweeper._
+
         val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
         val expiryAt = 5.seconds.fromNow
         val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addPutDeadlines = false)(TestTimer.Empty)
@@ -205,9 +204,6 @@ sealed trait LevelCollapseSpec extends TestBase {
 
         sleep(20.seconds)
 
-        implicit val compactionActor: CompactionIO.Actor =
-          CompactionIO.create().sweep()
-
         level.collapse(level.segments(), removeDeletedRecords = false).awaitInf match {
           case LevelCollapseResult.Empty =>
             fail("")
@@ -225,6 +221,8 @@ sealed trait LevelCollapseSpec extends TestBase {
   "update createdInLevel" in {
     TestCaseSweeper {
       implicit sweeper =>
+        import sweeper._
+
         val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
         val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
@@ -235,9 +233,6 @@ sealed trait LevelCollapseSpec extends TestBase {
         nextLevel.putSegments(level.segments()).get
 
         if (persistent) nextLevel.segments() foreach (_.createdInLevel shouldBe level.levelNumber)
-
-        implicit val compactionActor: CompactionIO.Actor =
-          CompactionIO.create().sweep()
 
         nextLevel.collapse(nextLevel.segments(), removeDeletedRecords = false).awaitInf match {
           case LevelCollapseResult.Empty =>

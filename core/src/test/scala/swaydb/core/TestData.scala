@@ -186,7 +186,8 @@ object TestData {
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
     def put(keyValues: Iterable[Memory], removeDeletes: Boolean = false)(implicit sweeper: TestCaseSweeper,
-                                                                         compactionParallelism: CompactionParallelism): IO[Error.Level, Unit] = {
+                                                                         compactionParallelism: CompactionParallelism,
+                                                                         compactionActor: CompactionIO.Actor): IO[Error.Level, Unit] = {
 
       implicit val idGenerator = level.segmentIDGenerator
 
@@ -242,40 +243,47 @@ object TestData {
     }
 
     def put(segment: Segment)(implicit sweeper: TestCaseSweeper,
-                              compactionParallelism: CompactionParallelism): IO[Error.Level, Unit] =
+                              compactionParallelism: CompactionParallelism,
+                              compactionActor: CompactionIO.Actor): IO[Error.Level, Unit] =
       putSegments(Seq(segment))
 
     def putSegments(segments: Iterable[Segment], removeDeletes: Boolean = false)(implicit sweeper: TestCaseSweeper,
-                                                                                 parallelism: CompactionParallelism): IO[Error.Level, Unit] = {
+                                                                                 parallelism: CompactionParallelism,
+                                                                                 compactionActor: CompactionIO.Actor): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
       if (segments.isEmpty) {
         IO.failed("Segments are empty")
       } else {
-        implicit val compactionActor: CompactionIO.Actor =
-          CompactionIO.create().sweep()
 
-        val assign = level.assign(segments, level.segments(), removeDeletes)
-        val merge = level.merge(assign, removeDeletes).awaitInf
-        val result = level.commitPersisted(merge)
-        result
+        IO(level.assign(segments, level.segments(), removeDeletes)) flatMap {
+          assign =>
+
+            IO(level.merge(assign, removeDeletes).awaitInf) flatMap {
+              merge =>
+                level.commitPersisted(merge)
+            }
+        }
       }
     }
 
     def putMap(map: LevelZeroMap)(implicit sweeper: TestCaseSweeper,
-                                  compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): IO[Error.Level, Unit] = {
+                                  compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors(),
+                                  compactionActor: CompactionIO.Actor): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
       if (map.cache.isEmpty) {
         IO.failed("Map is empty")
       } else {
-        implicit val compactionActor: CompactionIO.Actor =
-          CompactionIO.create().sweep()
-
         val removeDeletes = false
-        val assign = level.assign(newKeyValues = map, targetSegments = level.segments(), removeDeletedRecords = removeDeletes)
-        val merge = level.merge(assigment = assign, removeDeletedRecords = removeDeletes).awaitInf
-        level.commitPersisted(merge)
+
+        IO(level.assign(newKeyValues = map, targetSegments = level.segments(), removeDeletedRecords = removeDeletes)) flatMap {
+          assign =>
+            IO(level.merge(assigment = assign, removeDeletedRecords = removeDeletes).awaitInf) flatMap {
+              merge =>
+                level.commitPersisted(merge)
+            }
+        }
       }
     }
 
@@ -2149,7 +2157,8 @@ object TestData {
                                        segmentReadIO: SegmentReadIO,
                                        timeOrder: TimeOrder[Slice[Byte]],
                                        testCaseSweeper: TestCaseSweeper,
-                                       compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): DefIO[SegmentOption, Slice[Segment]] = {
+                                       compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors(),
+                                       compactionActor: CompactionIO.Actor): DefIO[SegmentOption, Slice[Segment]] = {
       def toMemory(keyValue: KeyValue) = if (removeDeletes) KeyValueGrouper.toLastLevelOrNull(keyValue) else keyValue.toMemory()
 
       segment match {
@@ -2180,8 +2189,6 @@ object TestData {
           }
 
         case segment: PersistentSegment =>
-          implicit val compactionActor: CompactionIO.Actor =
-            CompactionIO.create().sweep()
 
           val putResult =
             segment.put(

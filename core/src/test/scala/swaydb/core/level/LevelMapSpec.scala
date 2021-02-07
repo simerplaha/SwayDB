@@ -112,6 +112,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       "writing to an empty Level" in {
         TestCaseSweeper {
           implicit sweeper =>
+            import sweeper._
 
             val (map, keyValues) = createTestMap()
 
@@ -133,6 +134,8 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       "writing to a non empty Level" in {
         TestCaseSweeper {
           implicit sweeper =>
+            import sweeper._
+
             val (map, keyValues) = createTestMap()
 
             val level = TestLevel()

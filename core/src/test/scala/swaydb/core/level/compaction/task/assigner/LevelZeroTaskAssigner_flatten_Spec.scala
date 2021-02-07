@@ -57,6 +57,8 @@ class LevelZeroTaskAssigner_flatten_Spec extends TestBase with MockFactory {
     runThis(5.times, log = true) {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           //LevelZero map key-values.
           val keyValues =
             (0 to randomIntMax(20)) map {

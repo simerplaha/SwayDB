@@ -33,6 +33,7 @@ import swaydb.data.utils.ScalaByteOps
 import swaydb.testkit.RunThis._
 import swaydb.utils.ByteSizeOf
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
 class SliceSpec extends AnyWordSpec with Matchers {
@@ -1295,6 +1296,54 @@ class SliceSpec extends AnyWordSpec with Matchers {
       val replaced = Slice.range(1, 10).drop(1).dropRight(1).replaceLastCopy(Int.MaxValue)
       replaced.last shouldBe Int.MaxValue
       replaced shouldBe Slice(2, 3, 4, 5, 6, 7, 8, Int.MaxValue)
+    }
+  }
+
+  "sequence" should {
+    implicit val ec: ExecutionContext =
+      scala.concurrent.ExecutionContext.Implicits.global
+
+    "succeed" when {
+
+      "empty" in {
+        val seq = Seq.empty[Future[Int]]
+        Slice.sequence(seq).await shouldBe empty
+      }
+
+      "size = 1" in {
+        val seq = Seq(Future.successful(1))
+        Slice.sequence(seq).await should contain only 1
+      }
+
+      "size = many" in {
+        val seq = Slice.range(1, 10).map(Future.successful)
+        Slice.sequence(seq).await shouldBe Slice.range(1, 10)
+      }
+    }
+
+    "fail" when {
+      "size = 1" in {
+        val seq = Seq(Future.failed(new Exception("failed")))
+        Slice.sequence(seq).awaitFailureInf.getMessage shouldBe "failed"
+      }
+
+      "size = many" in {
+        val range = Seq.range(0, 10)
+
+        range foreach {
+          failAtIndex => //fail at every index
+            val seq = //run on all range indexes and fail only at failAtIndex
+              range map {
+                index =>
+                  if (index == failAtIndex)
+                    Future.failed(new Exception("failed"))
+                  else
+                    Future.successful(index)
+              }
+
+            Slice.sequence(seq).awaitFailureInf.getMessage shouldBe "failed"
+        }
+      }
     }
   }
 }

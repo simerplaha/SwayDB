@@ -83,6 +83,8 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
     "Level is non-empty but no deadline key-values" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel()
           level.put(Slice(Memory.put(1))) shouldBe IO.unit
 
@@ -93,6 +95,8 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
     "Level has unexpired key-values" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel()
           level.put(Slice(Memory.put(1, Slice.Null, 1.minute.fromNow))) shouldBe IO.unit
 
@@ -103,6 +107,8 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
     "Level has expired key-values" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel()
           level.put(Slice(Memory.put(1, Slice.Null, expiredDeadline()))) shouldBe IO.unit
 
@@ -125,6 +131,8 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
     "Level is non-empty and contains only one Segment" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel()
           level.put(Slice(Memory.put(1))) shouldBe IO.unit
 
@@ -140,6 +148,8 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
       else
         TestCaseSweeper {
           implicit sweeper =>
+            import sweeper._
+
             val level = TestLevel(segmentConfig = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 1.byte))
             level.put(Slice(Memory.put(1), Memory.put(2), Memory.put(3), Memory.put(4), Memory.put(5), Memory.put(6))) shouldBe IO.unit
 

@@ -32,6 +32,7 @@ import swaydb.utils.ByteSizeOf
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 import scala.collection.{Iterable, Iterator, Seq}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 
 /**
@@ -356,6 +357,12 @@ trait SliceCompanionBase {
     @inline def cast: Slice[java.lang.Byte] =
       sliced.asInstanceOf[Slice[java.lang.Byte]]
   }
+
+  final def sequence[A: ClassTag](in: Iterable[Future[A]])(implicit ec: ExecutionContext): Future[Slice[A]] =
+    in.iterator.foldLeft(Future.successful(Slice.of[A](in.size))) {
+      case (result, next) =>
+        result.zipWith(next)(_ add _)
+    }
 
   @inline final def newBuilder[T: ClassTag](maxSize: Int): Slice.SliceBuilder[T] =
     new slice.Slice.SliceBuilder[T](maxSize)

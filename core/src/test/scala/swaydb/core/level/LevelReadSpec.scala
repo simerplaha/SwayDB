@@ -86,6 +86,8 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
     "return true for key-values that exists or else false (bloom filter test on reboot)" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val keyValues = randomPutKeyValues(keyValuesCount, addPutDeadlines = false)
 
           def assert(level: Level) = {
@@ -110,6 +112,8 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
     "filter smaller segments from a Level" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           //disable throttling so small segment compaction does not occur
           val level = TestLevel(nextLevel = None, throttle = (_) => LevelThrottle(Duration.Zero, 0), segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 1.kb))
 
@@ -137,6 +141,8 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
     "return Level stats" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel()
 
           val putKeyValues = randomPutKeyValues(keyValuesCount)
@@ -172,6 +178,8 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
     "forward request to the right level" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level2 = TestLevel()
           val level1 = TestLevel(nextLevel = Some(level2))
 
@@ -216,6 +224,8 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
     "return None is Level does not exist" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level2 = TestLevel()
           val level1 = TestLevel(nextLevel = Some(level2))
 

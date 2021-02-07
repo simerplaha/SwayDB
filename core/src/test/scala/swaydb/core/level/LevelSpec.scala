@@ -151,6 +151,8 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       if (persistent) {
         TestCaseSweeper {
           implicit sweeper =>
+            import sweeper._
+
             //create a non empty level
             val level = TestLevel()
 
@@ -184,6 +186,8 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       } else {
         TestCaseSweeper {
           implicit sweeper =>
+            import sweeper._
+
             val level = TestLevel()
 
             val keyValues = randomPutKeyValues()
@@ -225,6 +229,8 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "value the largest segment in the Level when the Level is not empty" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
           level.put(randomizedKeyValues(2000)).runRandomIO.right.value
 

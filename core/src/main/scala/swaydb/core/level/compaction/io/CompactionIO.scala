@@ -41,6 +41,7 @@ import swaydb.{Actor, DefActor}
 
 import java.util.concurrent.ConcurrentHashMap
 import scala.concurrent.{ExecutionContext, Future}
+import scala.jdk.CollectionConverters._
 
 /**
  * Responsible for performing write and read IO during compaction.
@@ -52,7 +53,13 @@ case object CompactionIO {
 
   type Actor = DefActor[CompactionIO, Unit]
 
-  sealed trait State
+  sealed trait State {
+    def segments: ConcurrentHashMap[Segment, Unit]
+
+    def segmentsAsScala(): Iterator[Segment] =
+      segments.keys().asScala
+  }
+
   object State {
     //Stores the Segments persisted by this Actor.
     case class Success(segments: ConcurrentHashMap[Segment, Unit]) extends State
@@ -60,7 +67,7 @@ case object CompactionIO {
     case class Failed(cause: Throwable, segments: ConcurrentHashMap[Segment, Unit]) extends State
   }
 
-  def create()(implicit ec: ExecutionContext): DefActor[CompactionIO, Unit] =
+  def create()(implicit ec: ExecutionContext): CompactionIO.Actor =
     Actor.define[CompactionIO, Unit](
       name = CompactionIO.productPrefix,
       state = (),
@@ -83,6 +90,21 @@ class CompactionIO(@volatile private var state: CompactionIO.State) {
 
   def iterator[S <: Segment](segment: S, inOneSeek: Boolean): Future[Iterator[KeyValue]] =
     Future.successful(segment.iterator(inOneSeek))
+
+  def segments(): Iterator[Segment] =
+    state.segmentsAsScala()
+
+  def isSuccess(): Boolean =
+    this.state match {
+      case CompactionIO.State.Success(_) =>
+        true
+
+      case CompactionIO.State.Failed(_, _) =>
+        false
+    }
+
+  def isFailed(): Boolean =
+    !isSuccess()
 
   def persist[T <: TransientSegment, S <: Segment](pathsDistributor: PathsDistributor,
                                                    segmentRefCacheLife: SegmentRefCacheLife,

@@ -126,6 +126,8 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     "write key-values that have empty bytes but the Slices are closed" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))
           val zero = TestLevelZero(Some(level))
           val one = Slice.of[Byte](10).addInt(1).close()

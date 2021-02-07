@@ -77,6 +77,7 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
     "remove segments from disk and remove them from appendix" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
 
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = mmapSegments))
           level.put(randomPutKeyValues(keyValuesCount)) shouldBe IO.unit

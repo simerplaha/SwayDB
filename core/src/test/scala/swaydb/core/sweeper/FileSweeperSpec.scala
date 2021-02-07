@@ -115,6 +115,8 @@ class FileSweeperSpec extends TestBase with MockFactory {
     runThis(5.times, log = true) {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           //set stashCapacity to 0 so no messages are cached.
           implicit val fileSweeper = FileSweeper(0, ActorConfig.Timer("FileSweeper Test Timer", 0.second, TestExecutionContext.executionContext)).sweep()
 
@@ -145,6 +147,7 @@ class FileSweeperSpec extends TestBase with MockFactory {
     runThis(5.times, log = true) {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
 
           /**
            * Objective: Concurrently read all Segments in the Level that are being

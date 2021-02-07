@@ -415,11 +415,7 @@ private[core] case object SegmentBlock extends LazyLogging {
 
           val keyValuesCount = mergeStats.keyValuesCount
 
-          val totalAllocatedSize = sortedIndex.compressibleBytes.allocatedSize + values.fold(0)(_.compressibleBytes.allocatedSize)
-          val maxSegmentCountBasedOnSize = totalAllocatedSize / segmentConfig.minSize
-          val maxSegmentCountBasedOnCount = keyValuesCount / segmentConfig.maxCount
-          val maxSegmentsCount = (maxSegmentCountBasedOnSize max maxSegmentCountBasedOnCount) + 2
-          val segments = Slice.of[Future[TransientSegmentRef]](maxSegmentsCount)
+          val segments = ListBuffer.empty[Future[TransientSegmentRef]]
 
           def unwrittenTailSegmentBytes() =
             sortedIndex.compressibleBytes.unwrittenTailSize() + {
@@ -480,7 +476,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                   prepareForCachingSegmentBlocksOnCreate = segmentConfig.cacheBlocksOnCreate
                 )
 
-              segments add closedSegment
+                segments += closedSegment
 
               //segment's closed. Prepare for next Segment.
               bloomFilterIndexableKeys = ListBuffer.empty[Slice[Byte]] //clear bloomFilter keys.
@@ -498,7 +494,7 @@ private[core] case object SegmentBlock extends LazyLogging {
 
           //if the segment was closed and all key-values were written then close Segment.
           if (closed) {
-            Future.sequence(segments)
+            Slice.sequence(segments)
           } else {
             val (segmentRef, nextSortedIndex, nextValuesBlock) =
               writeSegmentRef(
@@ -518,9 +514,9 @@ private[core] case object SegmentBlock extends LazyLogging {
             //temporary check.
             assert(nextSortedIndex.isEmpty && nextValuesBlock.isEmpty, s"${nextSortedIndex.isEmpty} && ${nextValuesBlock.isEmpty} is not empty.")
 
-            segments add segmentRef
+            segments += segmentRef
 
-            Future.sequence(segments)
+            Slice.sequence(segments)
           }
         }
 

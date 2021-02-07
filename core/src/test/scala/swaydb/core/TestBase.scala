@@ -36,6 +36,7 @@ import swaydb.core.data.{Memory, Time}
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
+import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.level.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
@@ -800,6 +801,12 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                               assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                  levelSweeper: TestCaseSweeper,
                                                                  compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Unit = {
+    implicit val ec: ExecutionContext =
+      TestExecutionContext.executionContext
+
+    implicit val compactionIOActor: CompactionIO.Actor =
+      CompactionIO.create().sweep()
+
     println("level3.putKeyValues")
     if (level3KeyValues.nonEmpty) level3.put(level3KeyValues).runRandomIO.right.value
     println("level2.putKeyValues")

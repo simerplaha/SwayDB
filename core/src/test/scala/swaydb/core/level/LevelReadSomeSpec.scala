@@ -131,6 +131,8 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
                       implicit val timeOrder = TimeOrder.long
                       TestCaseSweeper {
                         implicit sweeper =>
+                          import sweeper._
+
                           val level: Level = TestLevel()
                           level.put(level2KeyValues).runRandomIO.right.value
                           level.put(level1KeyValues).runRandomIO.right.value

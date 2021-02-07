@@ -25,35 +25,31 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper.TestLevelPathSweeperImplicits
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data._
-import swaydb.effect.Effect._
+import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.segment.block.segment.SegmentBlock
-import swaydb.core.util.PipeOps._
 import swaydb.core.util.IDGenerator
+import swaydb.core.util.PipeOps._
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.effect.{Dir, Effect, Extension}
-import swaydb.testkit.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
+import swaydb.effect.Effect._
+import swaydb.effect.{Dir, Effect, Extension}
+import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
+import swaydb.{Glass, IO}
 
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.Random
-import swaydb.utils.OperatingSystem._
-import swaydb.utils.FiniteDurations._
-import swaydb.utils.OperatingSystem
-import swaydb.utils.OperatingSystem._
-import swaydb.utils.FiniteDurations._
-import swaydb.utils.StorageUnits._
 
 class LevelSegmentSpec0 extends LevelSegmentSpec
 
@@ -92,6 +88,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
       "level is empty" in {
         TestCaseSweeper {
           implicit sweeper =>
+            import sweeper._
+
             val level = TestLevel()
             val keyValues = randomIntKeyStringValues(keyValuesCount)
             val segment = TestSegment(keyValues)
@@ -105,6 +103,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         runThis(10.times, log = true) {
           TestCaseSweeper {
             implicit sweeper =>
+              import sweeper._
+
               //small Segment size so that small Segments do not collapse when running this test
               // as reads do not value retried on failure in Level, they only value retried in LevelZero.
               val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 100.bytes, mmap = mmapSegments))
@@ -125,6 +125,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
       "writing multiple Segments to an empty Level" in {
         TestCaseSweeper {
           implicit sweeper =>
+            import sweeper._
+
             val level = TestLevel()
             val keyValues = randomIntKeyStringValues(keyValuesCount * 3, valueSize = 1000)
 
@@ -147,6 +149,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
       "writing multiple Segments to a non empty Level" in {
         TestCaseSweeper {
           implicit sweeper =>
+            import sweeper._
+
             val level = TestLevel()
             val allKeyValues = randomPutKeyValues(keyValuesCount * 3, valueSize = 1000, addPutDeadlines = false)(TestTimer.Empty)
             val slicedKeyValues = allKeyValues.groupedSlice(3)
@@ -174,6 +178,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         if (persistent) {
           TestCaseSweeper {
             implicit sweeper =>
+              import sweeper._
+
               val dir = testClassDir.resolve("distributeSegmentsTest").sweep()
 
               def assertDistribution() = {
@@ -245,6 +251,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
       "fail when writing a deleted segment" in {
         TestCaseSweeper {
           implicit sweeper =>
+            import sweeper._
+
             val level = TestLevel()
 
             val keyValues = randomIntKeyStringValues()
@@ -272,11 +280,18 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           runThis(10.times, log = true) {
             TestCaseSweeper {
               implicit sweeper =>
+
                 val keyValues = randomKeyValues(100)(TestTimer.Empty).groupedSlice(10).toArray
                 val segmentToMerge = keyValues map (keyValues => TestSegment(keyValues))
 
                 val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 150.bytes, deleteDelay = Duration.Zero, mmap = mmapSegments))
-                level.putSegments(segmentToMerge) shouldBe IO.unit
+
+                {
+                  implicit val compactionIO: CompactionIO.Actor =
+                    CompactionIO.create()
+
+                  level.putSegments(segmentToMerge) shouldBe IO.unit
+                }
 
                 //segment to copy
                 val id = IDGenerator.segment(level.segmentIDGenerator.next + 9)
@@ -287,7 +302,15 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
                 val appendixBeforePut = level.segments()
                 val levelFilesBeforePut = level.segmentFilesOnDisk
-                level.putSegments(segmentToMerge).left.get.exception shouldBe a[FileAlreadyExistsException]
+
+                {
+                  implicit val compactionIO: CompactionIO.Actor =
+                    CompactionIO.create()
+
+                  level.putSegments(segmentToMerge).left.get.exception shouldBe a[FileAlreadyExistsException]
+
+                  compactionIO.terminate[Glass]() shouldBe unit
+                }
 
                 if (isWindowsAndMMAPSegments())
                   eventual(10.seconds) {
@@ -296,6 +319,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                   }
                 else
                   level.segmentFilesOnDisk shouldBe levelFilesBeforePut
+
 
                 level.segments().map(_.path) shouldBe appendixBeforePut.map(_.path)
             }

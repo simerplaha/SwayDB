@@ -82,6 +82,8 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "write a key-values to the Level" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel()
 
           val keyValues = randomPutKeyValues(startId = Some(1))
@@ -105,6 +107,8 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "return an empty level if all the key values in the Level were REMOVED and if Level is the only Level" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
@@ -138,6 +142,8 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "not return an empty level if all the key values in the Level were REMOVED but it has lower level" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel(nextLevel = Some(TestLevel()))
 
           val keyValues = randomPutKeyValues()
@@ -161,6 +167,8 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "return an empty level if all the key values in the Level were REMOVED by RANGE and if Level is the only Level" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
@@ -180,6 +188,8 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "not return an empty level if all the key values in the Level were REMOVED by RANGE but it has a lower Level" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
@@ -200,6 +210,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "return an empty level if all the key values in the Level were EXPIRED and if Level is the only Level" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
 
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
@@ -250,6 +261,8 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "not return an empty level if all the key values in the Level were EXPIRED and if Level has a lower Level" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
@@ -291,6 +304,8 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "return an empty level if all the key values in the Level were EXPIRED by RANGE and if Level is the only Level" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
@@ -322,6 +337,8 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "not return an empty level if all the key values in the Level were EXPIRED by RANGE and if Level has a last Level" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
