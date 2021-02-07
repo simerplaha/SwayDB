@@ -26,9 +26,8 @@ package swaydb.utils
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
-import scala.collection.compat.BuildFrom
+import scala.collection.compat._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters._
 
 private[swaydb] object Futures {
 
@@ -84,8 +83,8 @@ private[swaydb] object Futures {
     if (parallelism <= 0) {
       Future.failed(new Exception(s"Invalid parallelism $parallelism. Should be >= 1."))
     } else {
-      val items = new ConcurrentLinkedQueue[A](input.asJavaCollection) //queue all the items
-      val resultQueue = new ConcurrentLinkedQueue[Future[B]]() //final result
+      val items: ConcurrentLinkedQueue[(A, Int)] = toZipWithIndexQueue(input) //queue all the items
+      val resultQueue = new ConcurrentLinkedQueue[(Future[B], Int)]() //final result
       val remaining = new AtomicInteger(parallelism) //remaining parallelism left
       @volatile var failed: Throwable = null //indicates if the traverse has failed
 
@@ -96,10 +95,11 @@ private[swaydb] object Futures {
           remaining.incrementAndGet() //if it goes negative then fix this error by reverting the decrement
           previousFuture
         } else {
-          val nextItem = items.poll()
-          if (nextItem != null) {
+          val next = items.poll()
+          if (next != null) {
+            val (nextItem, nextItemIndex) = next
             val executedFuture = f(nextItem)
-            resultQueue add executedFuture
+            resultQueue.add((executedFuture, nextItemIndex))
 
             val nextFuture =
               executedFuture
@@ -126,12 +126,41 @@ private[swaydb] object Futures {
 
       run(Future.unit)
         .and {
-          resultQueue
-            .asScala
+          toSortedValues(resultQueue)
             .foldLeft(Future.successful(bf.newBuilder(input))) {
               case (builder, future) =>
                 builder.zipWith(future)(_ += _)
             }.map(_.result())
         }
     }
+
+  /**
+   * Creates zipWithIndex queue form iterables.
+   */
+  def toZipWithIndexQueue[A](iterable: IterableOnce[A]): ConcurrentLinkedQueue[(A, Int)] = {
+    val queue = new ConcurrentLinkedQueue[(A, Int)]()
+    val iterator = iterable.iterator
+    var index = 0
+    while (iterator.hasNext) {
+      queue.add((iterator.next(), index))
+      index += 1
+    }
+
+    queue
+  }
+
+  /**
+   * Given the above [[toZipWithIndexQueue]] this returns the values of type
+   * [[A]] in the order of the index.
+   */
+  def toSortedValues[A](queue: ConcurrentLinkedQueue[(A, Int)]): Iterable[A] = {
+    val sortedMap = scala.collection.mutable.SortedMap[Int, A]()
+
+    queue forEach {
+      case (item, index) =>
+        sortedMap.put(index, item)
+    }
+
+    sortedMap.values
+  }
 }

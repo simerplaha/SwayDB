@@ -72,7 +72,7 @@ class FuturesSpec extends AnyWordSpec with Matchers {
             }
         }
 
-      result.awaitInf.sorted shouldBe input
+      result.awaitInf shouldBe input
     }
 
     "execute tasks in regular interval" when {
@@ -112,7 +112,7 @@ class FuturesSpec extends AnyWordSpec with Matchers {
             }
         }
 
-      result.awaitInf.sorted shouldBe ranges
+      result.awaitInf shouldBe ranges
     }
   }
 }
