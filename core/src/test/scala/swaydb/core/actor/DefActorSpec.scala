@@ -77,14 +77,14 @@ class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
         implicit sweeper =>
 
           object MyImpl {
-            def hello(name: String, replyTo: DefActor[MyImpl.type, Unit]): String =
+            def hello(name: String, replyTo: DefActor[MyImpl.type]): String =
               s"Hello $name"
           }
 
           Actor.define[MyImpl.type]("", _ => MyImpl).start().sweep()
             .ask
             .map {
-              (impl, state, self) =>
+              (impl, self) =>
                 impl.hello("John", self)
             }
             .await shouldBe "Hello John"
@@ -97,14 +97,14 @@ class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
 
 
           object MyImpl {
-            def hello(name: String, replyTo: DefActor[MyImpl.type, Unit]): Future[String] =
+            def hello(name: String, replyTo: DefActor[MyImpl.type]): Future[String] =
               Future(s"Hello $name")
           }
 
           Actor.define[MyImpl.type]("", _ => MyImpl).start().sweep()
             .ask
             .flatMap {
-              (impl, _, self) =>
+              (impl, self) =>
                 impl.hello("John", self)
             }
             .await shouldBe "Hello John"
@@ -164,10 +164,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
 
           val actor = Actor.define[MyImpl]("", _ => new MyImpl(invoked = false)).start().sweep()
 
-          actor.send(2.second) {
-            (impl, _) =>
-              impl.invoke()
-          }
+          actor.send(2.second)(_.invoke())
 
           def assert(expected: Boolean) =
             actor
@@ -216,7 +213,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
             actor
               .ask
               .flatMap(2.second) {
-                (impl, _, _) =>
+                (impl, _) =>
                   impl.invoke()
               }
 
@@ -252,7 +249,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
         implicit sweeper =>
 
           class MyImpl(var invoked: Boolean = false) {
-            def invoke(replyTo: DefActor[MyImpl, Unit]): Future[Boolean] =
+            def invoke(replyTo: DefActor[MyImpl]): Future[Boolean] =
               replyTo
                 .ask
                 .map {
@@ -277,7 +274,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
             actor
               .ask
               .flatMap(2.second) {
-                (impl, _, self) =>
+                (impl, self) =>
                   impl.invoke(self)
               }
 

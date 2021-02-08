@@ -48,7 +48,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
    * Creates compaction Actor
    */
   private def createCompactor(levels: Iterable[LevelRef],
-                              config: CompactionConfig)(implicit fileSweeper: FileSweeper.On): DefActor[ThrottleCompactor, Unit] = {
+                              config: CompactionConfig)(implicit fileSweeper: FileSweeper.On): DefActor[ThrottleCompactor] = {
     val state =
       ThrottleCompactorContext(
         levels = Slice(levels.toArray),
@@ -70,13 +70,13 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
           parallelism = config
         )
     ).onPreTerminate {
-      case (impl, _, _) =>
+      case (impl, _) =>
         impl.terminateASAP()
     }.start()
   }
 
   private def createCompactor(zero: LevelZero,
-                              config: CompactionConfig)(implicit fileSweeper: FileSweeper.On): IO[Error.Level, DefActor[ThrottleCompactor, Unit]] =
+                              config: CompactionConfig)(implicit fileSweeper: FileSweeper.On): IO[Error.Level, DefActor[ThrottleCompactor]] =
     zero.nextLevel match {
       case Some(nextLevel) =>
         logger.debug(s"Level(${zero.levelNumber}): Creating actor.")
@@ -92,7 +92,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
     }
 
   def createAndListen(zero: LevelZero,
-                      config: CompactionConfig)(implicit fileSweeper: FileSweeper.On): IO[Error.Level, DefActor[Compactor, Unit]] =
+                      config: CompactionConfig)(implicit fileSweeper: FileSweeper.On): IO[Error.Level, DefActor[Compactor]] =
     createCompactor(
       zero = zero,
       config = config

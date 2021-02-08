@@ -66,13 +66,13 @@ private[core] object CoreInitializer extends LazyLogging {
    */
   def initialiseCompaction(zero: LevelZero,
                            compactionConfig: CompactionConfig)(implicit compactorCreator: CompactorCreator,
-                                                               fileSweeper: FileSweeper.On): IO[Error.Level, DefActor[Compactor, Unit]] =
+                                                               fileSweeper: FileSweeper.On): IO[Error.Level, DefActor[Compactor]] =
     compactorCreator.createAndListen(
       zero = zero,
       compactionConfig = compactionConfig
     )
 
-  def sendInitialWakeUp(compactor: DefActor[Compactor, Unit]): Unit =
+  def sendInitialWakeUp(compactor: DefActor[Compactor]): Unit =
     compactor.send(_.wakeUp())
 
   def addShutdownHook[BAG[_]](core: Core[BAG]): ShutdownHookThread =

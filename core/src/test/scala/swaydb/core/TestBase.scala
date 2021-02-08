@@ -635,7 +635,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     val level1 = TestLevel(nextLevel = Some(level2), throttle = levelThrottle)
     val level0 = TestLevelZero(nextLevel = Some(level1), throttle = levelZeroThrottle)
 
-    val compaction: Option[DefActor[Compactor, Unit]] =
+    val compaction: Option[DefActor[Compactor]] =
       if (throttleOn) {
         val compactor =
           CoreInitializer.initialiseCompaction(

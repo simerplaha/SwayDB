@@ -51,7 +51,7 @@ import scala.jdk.CollectionConverters._
  */
 case object CompactionIO {
 
-  type Actor = DefActor[CompactionIO, Unit]
+  type Actor = DefActor[CompactionIO]
 
   sealed trait State {
     def segments: ConcurrentHashMap[Segment, Unit]
@@ -68,12 +68,11 @@ case object CompactionIO {
   }
 
   def create()(implicit ec: ExecutionContext): CompactionIO.Actor =
-    Actor.define[CompactionIO, Unit](
+    Actor.define[CompactionIO](
       name = CompactionIO.productPrefix,
-      state = (),
       init = _ => new CompactionIO(State.Success(new ConcurrentHashMap()))
     ).onPreTerminate {
-      (instance, _, _) =>
+      (instance, _) =>
         instance.state match {
           case State.Failed(_, segments) =>
             segments forEach {

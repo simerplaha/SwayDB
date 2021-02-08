@@ -35,6 +35,6 @@ import swaydb.{DefActor, IO}
 private[core] trait CompactorCreator {
 
   def createAndListen(zero: LevelZero,
-                      compactionConfig: CompactionConfig)(implicit fileSweeper: FileSweeper.On): IO[swaydb.Error.Level, DefActor[Compactor, Unit]]
+                      compactionConfig: CompactionConfig)(implicit fileSweeper: FileSweeper.On): IO[swaydb.Error.Level, DefActor[Compactor]]
 
 }

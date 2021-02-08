@@ -248,8 +248,8 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepCounter counter
   }
 
-  implicit class ActorWiresSweeperImplicits[T, S](actor: DefActor[T, S]) {
-    def sweep()(implicit sweeper: TestCaseSweeper): DefActor[T, S] =
+  implicit class ActorWiresSweeperImplicits[T](actor: DefActor[T]) {
+    def sweep()(implicit sweeper: TestCaseSweeper): DefActor[T] =
       sweeper sweepWireActor actor
   }
 
@@ -289,7 +289,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
                       private val dbFiles: ListBuffer[DBFile],
                       private val paths: ListBuffer[Path],
                       private val actors: ListBuffer[ActorRef[_, _]],
-                      private val defActors: ListBuffer[DefActor[_, _]],
+                      private val defActors: ListBuffer[DefActor[_]],
                       private val counters: ListBuffer[CounterMap],
                       private val functions: ListBuffer[() => Unit]) {
 
@@ -390,7 +390,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
     actor
   }
 
-  def sweepWireActor[T, S](actor: DefActor[T, S]): DefActor[T, S] = {
+  def sweepWireActor[T](actor: DefActor[T]): DefActor[T] = {
     defActors += actor
     actor
   }

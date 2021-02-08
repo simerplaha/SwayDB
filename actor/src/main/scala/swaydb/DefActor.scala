@@ -34,52 +34,46 @@ import scala.util.Try
 
 object DefActor {
 
-  @inline def apply[I, S](name: String,
-                          init: DefActor[I, S] => I,
-                          interval: Option[(FiniteDuration, Long)],
-                          state: S)(implicit ec: ExecutionContext): DefActor.Hooks[I, S] =
-    new Hooks[I, S](
+  @inline def apply[I](name: String,
+                       init: DefActor[I] => I,
+                       interval: Option[(FiniteDuration, Long)])(implicit ec: ExecutionContext): DefActor.Hooks[I] =
+    new Hooks[I](
       name = name,
       init = init,
       interval = interval,
       preTerminate = None,
-      postTerminate = None,
-      state = state
+      postTerminate = None
     )
 
-  final class Hooks[+I, S](name: String,
-                           init: DefActor[I, S] => I,
-                           interval: Option[(FiniteDuration, Long)],
-                           preTerminate: Option[(I, S, DefActor[I, S]) => Unit],
-                           postTerminate: Option[(I, S, DefActor[I, S]) => Unit],
-                           state: S)(implicit val ec: ExecutionContext) {
+  final class Hooks[+I](name: String,
+                        init: DefActor[I] => I,
+                        interval: Option[(FiniteDuration, Long)],
+                        preTerminate: Option[(I, DefActor[I]) => Unit],
+                        postTerminate: Option[(I, DefActor[I]) => Unit])(implicit val ec: ExecutionContext) {
 
-    def onPreTerminate(f: (I, S, DefActor[I, S]) => Unit): Hooks[I, S] =
-      new Hooks[I, S](
+    def onPreTerminate(f: (I, DefActor[I]) => Unit): Hooks[I] =
+      new Hooks[I](
         name = name,
         init = init,
         interval = interval,
         preTerminate = Some(f),
-        postTerminate = postTerminate,
-        state = state
+        postTerminate = postTerminate
       )
 
-    def onPostTerminate(f: (I, S, DefActor[I, S]) => Unit): Hooks[I, S] =
-      new Hooks[I, S](
+    def onPostTerminate(f: (I, DefActor[I]) => Unit): Hooks[I] =
+      new Hooks[I](
         name = name,
         init = init,
         interval = interval,
         preTerminate = preTerminate,
-        postTerminate = Some(f),
-        state = state
+        postTerminate = Some(f)
       )
 
-    def start(): DefActor[I, S] =
-      new DefActor[I, S](
+    def start(): DefActor[I] =
+      new DefActor[I](
         name = name,
         initialiser = init,
         interval = interval,
-        state = state,
         preTerminate = preTerminate,
         postTerminate = postTerminate,
         uniqueId = UUID.randomUUID()
@@ -87,38 +81,36 @@ object DefActor {
   }
 }
 
-final class DefActor[+I, S] private(name: String,
-                                    initialiser: DefActor[I, S] => I,
-                                    interval: Option[(FiniteDuration, Long)],
-                                    state: S,
-                                    preTerminate: Option[(I, S, DefActor[I, S]) => Unit],
-                                    postTerminate: Option[(I, S, DefActor[I, S]) => Unit],
-                                    val uniqueId: UUID)(implicit val ec: ExecutionContext) { defActor =>
+final class DefActor[+I] private(name: String,
+                                 initialiser: DefActor[I] => I,
+                                 interval: Option[(FiniteDuration, Long)],
+                                 preTerminate: Option[(I, DefActor[I]) => Unit],
+                                 postTerminate: Option[(I, DefActor[I]) => Unit],
+                                 val uniqueId: UUID)(implicit val ec: ExecutionContext) { defActor =>
 
   private val impl = initialiser(this)
 
-  private val actor: ActorRef[(I, S) => Unit, S] = {
-    val actorBoot: ActorHooks[(I, S) => Unit, S] =
+  private val actor: ActorRef[I => Unit, Unit] = {
+    val actorBoot: ActorHooks[I => Unit, Unit] =
       interval match {
         case Some((delays, stashCapacity)) =>
           implicit val queueOrder = QueueOrder.FIFO
 
-          Actor.timer[(I, S) => Unit, S](
+          Actor.timer[I => Unit](
             name = name,
-            state = state,
             stashCapacity = stashCapacity,
             interval = delays
           ) {
             (function, self) =>
-              function(impl, self.state)
+              function(impl)
           }
 
         case None =>
           implicit val queueOrder = QueueOrder.FIFO
 
-          Actor[(I, S) => Unit, S](name, state) {
+          Actor[I => Unit](name) {
             (function, self) =>
-              function(impl, self.state)
+              function(impl)
           }
       }
 
@@ -127,7 +119,7 @@ final class DefActor[+I, S] private(name: String,
         case Some(preTerminate) =>
           actorBoot.onPreTerminate {
             _ =>
-              preTerminate(impl, this.state, this)
+              preTerminate(impl, this)
           }
 
         case None =>
@@ -138,7 +130,7 @@ final class DefActor[+I, S] private(name: String,
       case Some(postTerminate) =>
         preTerminateBoot.onPostTerminate {
           _ =>
-            postTerminate(impl, this.state, this)
+            postTerminate(impl, this)
         }.start()
 
       case None =>
@@ -147,68 +139,68 @@ final class DefActor[+I, S] private(name: String,
   }
 
   final class Ask {
-    def map[R, BAG[_]](function: (I, S) => R)(implicit bag: Bag.Async[BAG]): BAG[R] = {
+    def map[R, BAG[_]](function: I => R)(implicit bag: Bag.Async[BAG]): BAG[R] = {
       val promise = Promise[R]()
 
       actor send {
-        (impl: I, state: S) =>
-          promise.tryComplete(Try(function(impl, state)))
+        (impl: I) =>
+          promise.tryComplete(Try(function(impl)))
       }
 
       bag fromPromise promise
     }
 
-    def map[R, BAG[_]](function: (I, S, DefActor[I, S]) => R)(implicit bag: Bag.Async[BAG]): BAG[R] = {
+    def map[R, BAG[_]](function: (I, DefActor[I]) => R)(implicit bag: Bag.Async[BAG]): BAG[R] = {
       val promise = Promise[R]()
 
       actor send {
-        (impl: I, state: S) =>
-          promise.tryComplete(Try(function(impl, state, defActor)))
+        (impl: I) =>
+          promise.tryComplete(Try(function(impl, defActor)))
       }
 
       bag fromPromise promise
     }
 
-    def flatMap[R, BAG[_]](function: (I, S) => BAG[R])(implicit bag: Bag.Async[BAG]): BAG[R] = {
+    def flatMap[R, BAG[_]](function: I => BAG[R])(implicit bag: Bag.Async[BAG]): BAG[R] = {
       val promise = Promise[R]()
 
       actor send {
-        (impl: I, state: S) =>
-          bag.complete(promise, function(impl, state))
+        (impl: I) =>
+          bag.complete(promise, function(impl))
       }
 
       bag fromPromise promise
     }
 
-    def flatMap[R, BAG[_]](function: (I, S, DefActor[I, S]) => BAG[R])(implicit bag: Bag.Async[BAG]): BAG[R] = {
+    def flatMap[R, BAG[_]](function: (I, DefActor[I]) => BAG[R])(implicit bag: Bag.Async[BAG]): BAG[R] = {
       val promise = Promise[R]()
 
       actor send {
-        (impl: I, state: S) =>
-          bag.complete(promise, function(impl, state, defActor))
+        (impl: I) =>
+          bag.complete(promise, function(impl, defActor))
       }
 
       bag fromPromise promise
     }
 
-    def map[R, BAG[_]](delay: FiniteDuration)(function: (I, S, DefActor[I, S]) => R)(implicit bag: Bag.Async[BAG]): Actor.Task[R, BAG] = {
+    def map[R, BAG[_]](delay: FiniteDuration)(function: (I, DefActor[I]) => R)(implicit bag: Bag.Async[BAG]): Actor.Task[R, BAG] = {
       val promise = Promise[R]()
 
       val timerTask =
         actor.send(
-          message = (impl: I, state: S) => promise.tryComplete(Try(function(impl, state, defActor))),
+          message = (impl: I) => promise.tryComplete(Try(function(impl, defActor))),
           delay = delay
         )
 
       new Task(bag fromPromise promise, timerTask)
     }
 
-    def flatMap[R, BAG[_]](delay: FiniteDuration)(function: (I, S, DefActor[I, S]) => BAG[R])(implicit bag: Bag.Async[BAG]): Actor.Task[R, BAG] = {
+    def flatMap[R, BAG[_]](delay: FiniteDuration)(function: (I, DefActor[I]) => BAG[R])(implicit bag: Bag.Async[BAG]): Actor.Task[R, BAG] = {
       val promise = Promise[R]()
 
       val timerTask =
         actor.send(
-          message = (impl: I, state: S) => bag.complete(promise, function(impl, state, defActor)),
+          message = (impl: I) => bag.complete(promise, function(impl, defActor)),
           delay = delay
         )
 
@@ -221,43 +213,29 @@ final class DefActor[+I, S] private(name: String,
   def send[R](function: I => R): Unit =
     actor
       .send {
-        (impl: I, _: S) =>
+        (impl: I) =>
           function(impl)
       }
 
-  def sendWithSelf(function: I => DefActor[I, S] => Unit): Unit =
+  def sendWithSelf(function: I => DefActor[I] => Unit): Unit =
     actor
       .send {
-        (impl: I, _: S) =>
+        (impl: I) =>
           function(impl)(this)
       }
 
-  def send[R](function: (I, S) => R): Unit =
+  def send[R](function: (I, DefActor[I]) => R): Unit =
     actor
       .send {
-        (impl: I, state: S) =>
-          function(impl, state)
+        (impl: I) =>
+          function(impl, this)
       }
 
-  def send[R](function: (I, S, DefActor[I, S]) => R): Unit =
-    actor
-      .send {
-        (impl: I, state: S) =>
-          function(impl, state, this)
-      }
-
-  def send[R](delay: FiniteDuration)(function: (I, S) => R): TimerTask =
+  def send[R](delay: FiniteDuration)(function: I => R): TimerTask =
     actor.send(
-      message = (impl: I, state: S) => function(impl, state),
+      message = (impl: I) => function(impl),
       delay = delay
     )
-
-  def state[BAG[_]](implicit bag: Bag.Async[BAG]): BAG[S] =
-    ask
-      .map {
-        (_, state: S) =>
-          state
-      }
 
   def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     actor.terminateAndClear()
@@ -276,7 +254,7 @@ final class DefActor[+I, S] private(name: String,
 
   override def equals(other: Any): Boolean =
     other match {
-      case other: DefActor[I, S] =>
+      case other: DefActor[I] =>
         this.uniqueId == other.uniqueId
 
       case _ =>

@@ -85,7 +85,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
                                                    lastLevel: Level)(implicit ec: ExecutionContext,
                                                                      fileSweeper: FileSweeper.On,
                                                                      parallelism: CompactionParallelism): Future[Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]]] = {
-    implicit val compactionIO: DefActor[CompactionIO, Unit] = CompactionIO.create()
+    implicit val compactionIO: CompactionIO.Actor = CompactionIO.create()
 
     Futures.traverseBounded(parallelism.multiLevelTaskParallelism, tasks) {
       task =>
@@ -163,7 +163,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
       Future.unit
     else
       ensurePauseSweeper(task.compactingLevels) {
-        implicit val compactionIO: DefActor[CompactionIO, Unit] = CompactionIO.create()
+        implicit val compactionIO: CompactionIO.Actor = CompactionIO.create()
 
         task
           .source

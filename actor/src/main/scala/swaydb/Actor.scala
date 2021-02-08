@@ -361,43 +361,21 @@ object Actor {
       recovery = None
     )
 
-  def define[T](name: String, init: DefActor[T, Unit] => T)(implicit ec: ExecutionContext): DefActor.Hooks[T, Unit] =
+  def define[T](name: String, init: DefActor[T] => T)(implicit ec: ExecutionContext): DefActor.Hooks[T] =
     DefActor(
       name = name,
       init = init,
-      interval = None,
-      state = ()
-    )
-
-  def define[T, S](name: String, state: S, init: DefActor[T, S] => T)(implicit ec: ExecutionContext): DefActor.Hooks[T, S] =
-    DefActor(
-      name = name,
-      init = init,
-      interval = None,
-      state = state
+      interval = None
     )
 
   def defineTimer[T](name: String,
                      interval: FiniteDuration,
                      stashCapacity: Long,
-                     init: DefActor[T, Unit] => T)(implicit ec: ExecutionContext): DefActor.Hooks[T, Unit] =
+                     init: DefActor[T] => T)(implicit ec: ExecutionContext): DefActor.Hooks[T] =
     DefActor(
       name = name,
       init = init,
-      interval = Some((interval, stashCapacity)),
-      state = ()
-    )
-
-  def defineTimer[T, S](name: String,
-                        interval: FiniteDuration,
-                        stashCapacity: Long,
-                        state: S,
-                        init: DefActor[T, S] => T)(implicit ec: ExecutionContext): DefActor.Hooks[T, S] =
-    DefActor(
-      name = name,
-      init = init,
-      interval = Some((interval, stashCapacity)),
-      state = state
+      interval = Some((interval, stashCapacity))
     )
 
   /**

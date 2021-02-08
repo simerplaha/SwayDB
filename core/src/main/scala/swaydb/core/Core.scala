@@ -64,9 +64,9 @@ private[swaydb] object Core {
             threadStateCache: ThreadStateCache,
             compactionConfig: CompactionConfig,
             config: SwayDBPersistentConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore,
-                                                buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
+                                            timeOrder: TimeOrder[Slice[Byte]],
+                                            functionStore: FunctionStore,
+                                            buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,
@@ -84,9 +84,9 @@ private[swaydb] object Core {
             threadStateCache: ThreadStateCache,
             compactionConfig: CompactionConfig,
             config: SwayDBMemoryConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore,
-                                                buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore,
+                                        buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,
@@ -160,7 +160,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
                                    threadStateCache: ThreadStateCache,
                                    private val sequencer: Sequencer[BAG],
                                    val readStates: ThreadLocal[ThreadReadState])(implicit bag: Bag[BAG],
-                                                                                 compactor: DefActor[Compactor, Unit],
+                                                                                 compactor: DefActor[Compactor],
                                                                                  private[swaydb] val bufferSweeper: ByteBufferSweeperActor) extends LazyLogging {
 
   def zeroPath: Path =

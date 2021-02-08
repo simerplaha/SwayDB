@@ -42,7 +42,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object ThrottleCompactor {
 
-  def apply(context: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor, Unit],
+  def apply(context: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor],
                                                behaviorWakeUp: BehaviorWakeUp,
                                                fileSweeper: FileSweeper.On,
                                                ec: ExecutionContext,
@@ -56,7 +56,7 @@ object ThrottleCompactor {
 
 private[core] class ThrottleCompactor private(@volatile private var context: ThrottleCompactorContext,
                                               @volatile private var currentFuture: Future[Unit],
-                                              @volatile private var currentFutureExecuted: Boolean)(implicit self: DefActor[ThrottleCompactor, Unit],
+                                              @volatile private var currentFutureExecuted: Boolean)(implicit self: DefActor[ThrottleCompactor],
                                                                                                     behaviour: BehaviorWakeUp,
                                                                                                     fileSweeper: FileSweeper.On,
                                                                                                     executionContext: ExecutionContext,
