@@ -16,7 +16,7 @@
 
 [build-link]: https://github.com/simerplaha/SwayDB/actions
 
-**Persistent** and **in-memory** key-value storage engine for the JVM.
+Non-blocking **persistent** and **in-memory** key-value storage engine for the JVM.
 
 **Status**: Under testing & performance optimisations. See [project status](#Project-status).
 
@@ -24,7 +24,7 @@
 
 ## Overview
 
-- Data types - `Map`, `Set`, `Queue`, `SetMap` & `MultiMap` with native Java and Scala collections support.
+- Simple data types - `Map`, `Set`, `Queue`, `SetMap` & `MultiMap` with native Java and Scala collections support.
 - Conditional updates using any pure [JVM function](http://swaydb.io/api/pure-functions/?language=java) - **No query
   language**.
 - Atomic updates and inserts with `Transaction` API.
@@ -58,7 +58,7 @@ Highly configurable to suit **different workloads**. Some known use-cases are:
 
 ## Contributing
 
-Contributions are encouraged and welcomed.
+Contributions are encouraged and welcomed. We are here to help and answer any questions.
 
 **Code of conduct** - Be nice, welcoming, friendly & supportive of each other. Follow the Apache
 foundation's [COC](https://www.apache.org/foundation/policies/conduct.html).
@@ -84,13 +84,16 @@ foundation's [COC](https://www.apache.org/foundation/policies/conduct.html).
 
 - **Contributing to core internals**
     - See code marked `TODO`.
+    - Pick any small section to improve. You will find that everything is a function and can be unit-tested
+      independently, so you can easily pick anything to work on.
 
 ## Project status
 
 Your feedback and review is very important to get to production. Please get involved via chat, issues or email which is
 on my [profile](https://github.com/simerplaha).
 
-Undergoing performance optimisations. Future releases might not be backward compatible until we are production ready.
+Undergoing testing & performance optimisations. Future releases might not be backward compatible until we are production
+ready.
 
 See tasks labelled [Production release](https://github.com/simerplaha/SwayDB/labels/Production%20release)
 that are required before becoming production ready.
