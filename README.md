@@ -16,7 +16,10 @@
 
 [build-link]: https://github.com/simerplaha/SwayDB/actions
 
-Non-blocking **persistent** and **in-memory** key-value storage engine for the JVM.
+Non-blocking **persistent** and **in-memory** key-value storage engine for the JVM with no external core
+dependencies ([#307](https://github.com/simerplaha/SwayDB/issues/307)).
+
+Small footprint: around 7.1 MB jar size.
 
 **Status**: Under testing & performance optimisations. See [project status](#Project-status).
 
