@@ -27,7 +27,7 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper.TestLevelPathSweeperImplicits
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data._
@@ -288,7 +288,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
                 {
                   implicit val compactionIO: CompactionIO.Actor =
-                    CompactionIO.create()
+                    CompactionIO.create().sweep()
 
                   level.putSegments(segmentToMerge) shouldBe IO.unit
                 }
@@ -319,7 +319,6 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                   }
                 else
                   level.segmentFilesOnDisk shouldBe levelFilesBeforePut
-
 
                 level.segments().map(_.path) shouldBe appendixBeforePut.map(_.path)
             }

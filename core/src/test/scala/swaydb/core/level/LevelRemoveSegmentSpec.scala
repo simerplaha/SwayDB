@@ -95,7 +95,6 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
             else
               level.segmentFilesOnDisk shouldBe empty
 
-
             level.reopen.isEmpty shouldBe true
           }
       }
