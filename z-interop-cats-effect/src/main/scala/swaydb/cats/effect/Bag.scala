@@ -24,7 +24,8 @@
 
 package swaydb.cats.effect
 
-import cats.effect.{ContextShift, IO}
+import cats.effect.IO
+import cats.effect.unsafe.IORuntime
 import swaydb.Bag.Async
 import swaydb.{IO => SwayIO}
 
@@ -34,14 +35,13 @@ import scala.util.Failure
 object Bag {
 
   /**
-   * Async tag for Cats-effect's IO.
+   * Cats-effect 3 async bag implementation
    */
-  implicit def apply(implicit contextShift: ContextShift[IO],
-                     ec: ExecutionContext): swaydb.Bag.Async[IO] =
+  implicit def apply(implicit runtime: IORuntime): swaydb.Bag.Async[IO] =
     new Async[IO] { self =>
 
       override def executionContext: ExecutionContext =
-        ec
+        runtime.compute
 
       override val unit: IO[Unit] =
         IO.unit
@@ -83,10 +83,9 @@ object Bag {
         IO.fromFuture(IO(a))
 
       override def suspend[B](f: => IO[B]): IO[B] =
-        IO.suspend(f)
+        IO.defer(f)
 
       override def flatten[A](fa: IO[IO[A]]): IO[A] =
         fa.flatMap(io => io)
-
     }
 }

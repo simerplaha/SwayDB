@@ -21,7 +21,7 @@ val scalaParallelCollectionsVersion = "1.0.0"
 val boopickleVersion = "1.3.3"
 val monixVersion = "3.3.0"
 val zioVersion = "1.0.3"
-val catsEffectVersion = "2.2.0"
+val catsEffectVersion = "3.1.0"
 
 //SCALA VERSIONS
 val scala212 = "2.12.13"
