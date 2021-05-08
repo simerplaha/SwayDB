@@ -25,14 +25,14 @@
 package swaydb.utils
 
 private[swaydb] object ByteSizeOf {
-  val byte = java.lang.Byte.BYTES
-  val short = java.lang.Short.BYTES
-  val int = java.lang.Integer.BYTES
-  val varInt = int + 1 //5
-  val long = java.lang.Long.BYTES
-  val varLong = long + 2 //10
-  val boolean = java.lang.Byte.BYTES
-  val char = java.lang.Character.BYTES
-  val double = java.lang.Double.BYTES
-  val float = java.lang.Float.BYTES
+  @inline val byte = java.lang.Byte.BYTES
+  @inline val short = java.lang.Short.BYTES
+  @inline val int = java.lang.Integer.BYTES
+  @inline val varInt = int + 1 //5
+  @inline val long = java.lang.Long.BYTES
+  @inline val varLong = long + 2 //10
+  @inline val boolean = java.lang.Byte.BYTES
+  @inline val char = java.lang.Character.BYTES
+  @inline val double = java.lang.Double.BYTES
+  @inline val float = java.lang.Float.BYTES
 }
