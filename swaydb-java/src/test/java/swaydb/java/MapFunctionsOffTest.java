@@ -24,7 +24,9 @@
 
 package swaydb.java;
 
-import lombok.*;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
 import scala.Int;
 import swaydb.KeyVal;
@@ -37,13 +39,13 @@ import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.*;
 import java.util.Map;
+import java.util.*;
 
 import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static swaydb.data.java.JavaTest.*;
 import static swaydb.data.java.JavaEventually.sleep;
+import static swaydb.data.java.JavaTest.*;
 import static swaydb.java.serializers.Default.intSerializer;
 import static swaydb.java.serializers.Default.stringSerializer;
 
@@ -794,4 +796,66 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     map.delete();
   }
+
+  /**
+   * Tests <a href="https://github.com/simerplaha/SwayDB/issues/308">Issue 308</a>
+   * to create serialisers directly from native byte array without requiring explicit boxing.
+   */
+  @Test
+  void createSerialiserFromPrimitiveByteArray() throws IOException {
+    byte[] key1 = {1, 2, 3, 4};
+    byte[] key2 = {5, 6, 7, 8};
+
+    byte[] value1 = {9, 10, 11, 12};
+    byte[] value2 = {13, 14, 15, 16};
+
+    Serializer<byte[]> keySerializer = new Serializer<byte[]>() {
+      @Override
+      public Slice<Byte> write(byte[] data) {
+        return Slice.ofJava(data);
+      }
+
+      @Override
+      public byte[] read(Slice<Byte> slice) {
+        return slice.toByteArray();
+      }
+    };
+
+    Serializer<byte[]> valueSerializer = new Serializer<byte[]>() {
+      @Override
+      public Slice<Byte> write(byte[] data) {
+        return Slice.ofJava(data);
+      }
+
+      @Override
+      public byte[] read(Slice<Byte> slice) {
+        return slice.toByteArray();
+      }
+    };
+
+    MapT<byte[], byte[], Void> map =
+      createMap(keySerializer, valueSerializer);
+
+    //put
+    map.put(key1, value1);
+    map.put(key2, value2);
+
+    //get
+    shouldContain(map.get(key1), value1);
+    shouldContain(map.get(key2), value2);
+
+    //stream
+    Iterator<KeyVal<byte[], byte[]>> materialized = map.materialize().iterator();
+
+    KeyVal<byte[], byte[]> keyValue1 = materialized.next();
+    shouldBe(keyValue1.key(), key1);
+    shouldBe(keyValue1.value(), value1);
+
+    KeyVal<byte[], byte[]> keyValue2 = materialized.next();
+    shouldBe(keyValue2.key(), key2);
+    shouldBe(keyValue2.value(), value2);
+
+    map.delete();
+  }
+
 }

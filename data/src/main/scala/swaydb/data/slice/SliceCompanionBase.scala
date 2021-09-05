@@ -97,6 +97,10 @@ trait SliceCompanionBase {
   def ofJava(array: Array[java.lang.Byte]): Slice[java.lang.Byte] =
     apply(array)
 
+  @throws[ClassCastException]
+  def ofJava(array: Array[Byte]): Slice[java.lang.Byte] =
+    apply(array).asInstanceOf[Slice[java.lang.Byte]]
+
   def ofScala(array: Array[Byte]): Slice[Byte] =
     apply(array)
 

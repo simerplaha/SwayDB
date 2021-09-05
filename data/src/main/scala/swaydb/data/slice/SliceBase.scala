@@ -385,6 +385,14 @@ abstract class SliceBase[+T](array: Array[T],
   def toByteArrayInputStream: ByteArrayInputStream =
     new ByteArrayInputStream(array.asInstanceOf[Array[Byte]], fromOffset, size)
 
+  /**
+   * WARNING: Do not access this directly. Use [[toArray]] or [[toArrayCopy]] instead.
+   *
+   * This returns the inner array maintained by this Slice instance which
+   * could be a much larger than the offsets sets by the current Slice instance.
+   *
+   * Core module uses the function for performance critical areas only.
+   */
   private[slice] def unsafeInnerArray: Array[_] =
     this.array.asInstanceOf[Array[_]]
 
@@ -419,6 +427,20 @@ abstract class SliceBase[+T](array: Array[T],
         array
     else
       toArrayCopy
+
+  /**
+   * Convenience function to convert Slice<Byte> to byte[] from Java
+   */
+  def toByteArray: Array[Byte] =
+    try
+      toArray.asInstanceOf[Array[Byte]]
+    catch {
+      case root: ClassCastException =>
+        //converts ClassCastException to something that is not cryptic when calling from Java.
+        val exception = new ClassCastException(s"${this.classTag.runtimeClass} cannot be casted to byte")
+        exception.addSuppressed(root)
+        throw exception
+    }
 
   //for java
   def toArrayCopy: Array[T]@uncheckedVariance =

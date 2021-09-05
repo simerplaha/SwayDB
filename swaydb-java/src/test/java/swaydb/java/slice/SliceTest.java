@@ -26,6 +26,7 @@ package swaydb.java.slice;
 
 import org.junit.jupiter.api.Test;
 import scala.Int;
+import scala.reflect.ClassTag;
 import swaydb.data.slice.Slice;
 import swaydb.data.slice.SliceReader;
 import swaydb.data.utils.ByteOps;
@@ -33,6 +34,7 @@ import swaydb.data.utils.ByteOps;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static swaydb.data.java.JavaTest.*;
 
 public class SliceTest {
@@ -94,5 +96,40 @@ public class SliceTest {
     shouldBe(Slice.writeUnsignedLong(Long.MAX_VALUE, ByteOps.Java()).readUnsignedLong(ByteOps.Java()), Long.MAX_VALUE);
 
     shouldBe(Slice.writeStringUTF8("test string", ByteOps.Java()).readStringUTF8(ByteOps.Java()), "test string");
+  }
+
+  /**
+   * Tests <a href="https://github.com/simerplaha/SwayDB/issues/308">Issue 308</a>
+   * to create Slice from native java byte array.
+   */
+  @Test
+  void createSliceFromPrimitiveByteArray() {
+    byte[] array = {1, 2, 3, 4, 5, 127};
+    Slice<Byte> slice = Slice.ofJava(array);
+    shouldBe(slice.head(), array[0]);
+    shouldBe(slice.get(1), array[1]);
+    shouldBe(slice.get(2), array[2]);
+    shouldBe(slice.get(3), array[3]);
+    shouldBe(slice.get(4), array[4]);
+    shouldBe(slice.get(5), array[5]);
+  }
+
+  @Test
+  void toByteArray() {
+    byte[] writeBytes = {1, 2, 3, 4, 5, 127};
+    Slice<Byte> slice = Slice.ofJava(writeBytes);
+
+    byte[] readBytes = slice.toByteArray();
+    shouldBe(writeBytes, readBytes);
+  }
+
+  @Test
+  void toByteArrayThrowsClassCastException() {
+    //There is no need in Java to create Slice of types other than Slice<Byte>
+    //so generic Slice.of<T> does not exist for Java yet hence the explicit instantiation
+    //of a Slice<Integer> type using Scala's ClassTag.
+    Slice<Object> add = Slice.of(3, false, ClassTag.Int()).add(1).add(2).add(3);
+    //cannot convert Slice<Integer> array to Slice<Byte> so expect ClassCastException.
+    assertThrows(ClassCastException.class, add::toByteArray);
   }
 }
