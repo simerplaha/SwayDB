@@ -4,28 +4,28 @@ import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import xerial.sbt.Sonatype._
 
 //CORE dependencies
-val lz4Version = "1.7.1"
-val snappyVersion = "1.1.8.1"
-val scalaJava8CompatVersion = "0.9.1"
-val scalaCollectionsCompat = "2.4.1"
+val lz4Version = "1.8.0"
+val snappyVersion = "1.1.8.4"
+val scalaJava8CompatVersion = "1.0.1"
+val scalaCollectionsCompat = "2.5.0"
 
 //TEST dependencies - Libraries used for tests
-val logbackClassicVersion = "1.2.3"
-val scalaLoggingVersion = "3.9.2"
+val logbackClassicVersion = "1.2.6"
+val scalaLoggingVersion = "3.9.4"
 val scalaMockVersion = "5.1.0"
-val scalaTestVersion = "3.2.2"
-val junitJupiterVersion = "5.7.0"
-val scalaParallelCollectionsVersion = "1.0.0"
+val scalaTestVersion = "3.2.10"
+val junitJupiterVersion = "5.8.1"
+val scalaParallelCollectionsVersion = "1.0.4"
 
 //INTEROP - Supported external libraries for serialisation & effects interop
-val boopickleVersion = "1.3.3"
-val monixVersion = "3.3.0"
-val zioVersion = "1.0.3"
-val catsEffectVersion = "3.1.0"
+val boopickleVersion = "1.4.0"
+val monixVersion = "3.4.0"
+val zioVersion = "1.0.12"
+val catsEffectVersion = "3.2.9"
 
 //SCALA VERSIONS
-val scala212 = "2.12.13"
-val scala213 = "2.13.4"
+val scala212 = "2.12.15"
+val scala213 = "2.13.6"
 
 val inlining =
   Seq(
