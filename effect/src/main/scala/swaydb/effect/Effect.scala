@@ -27,6 +27,7 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.util
 import java.util.function.BiPredicate
 import scala.collection.compat.IterableOnce
+import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 
@@ -160,20 +161,33 @@ private[swaydb] object Effect extends LazyLogging {
       Files.createDirectories(path)
 
   def walkDelete(folder: Path): Unit =
-    if (exists(folder))
+    Effect.walkFoldLeft((), folder) {
+      case (_, path) =>
+        Files.delete(path)
+    }
+
+  def walkFoldLeft[T](initial: T, folder: Path)(f: (T, Path) => T): T =
+    if (exists(folder)) {
+      var state: T = initial
+
       Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
         @throws[IOException]
         override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-          Files.delete(file)
+          state = f(state, file)
           FileVisitResult.CONTINUE
         }
 
         override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
           if (exc != null) throw exc
-          Files.delete(dir)
+          state = f(state, dir)
           FileVisitResult.CONTINUE
         }
       })
+
+      state
+    } else {
+      initial
+    }
 
   def stream[T](path: Path)(f: DirectoryStream[Path] => T): T = {
     val stream: DirectoryStream[Path] = Files.newDirectoryStream(path)
@@ -327,4 +341,28 @@ private[swaydb] object Effect extends LazyLogging {
 
   def printFilesSize(folder: Path, fileExtension: String) =
     println(s"${fileExtension.toUpperCase}: " + getFilesSize(folder, fileExtension))
+
+  /**
+   * Add '//' to the start of each line in all the files in the folder.
+   *
+   * @param path     path of the folder
+   * @param endsWith file extension
+   */
+  def commentFiles(path: Path, endsWith: String): Unit =
+    Effect
+      .walkFoldLeft(ListBuffer.empty[Path], path)(_ += _)
+      .filter(_.getFileName.toString.endsWith(endsWith))
+      .foreach {
+        path =>
+          val lines =
+            Files
+              .readAllLines(path)
+              .asScala
+              .map {
+                line =>
+                  "//" + line
+              }
+
+          Files.write(path, lines.asJava)
+      }
 }
