@@ -16,12 +16,12 @@
 
 [build-link]: https://github.com/simerplaha/SwayDB/actions
 
+**Task in progress**: In-memory allocations are being moved off-heap. See [project status](#Project-status).
+
 Non-blocking **persistent** and **in-memory** key-value storage engine for the JVM with no external core
 dependencies ([#307](https://github.com/simerplaha/SwayDB/issues/307)).
 
 Small footprint: around 7.1 MB jar size.
-
-**Status**: Under testing & performance optimisations. See [project status](#Project-status).
 
 [Documentation](http://swaydb.io)
 
@@ -57,7 +57,8 @@ Highly configurable to suit **different workloads**. Some known use-cases are:
 
 - [Java - Quick start](http://swaydb.io/quick-start/?language=java&data-type=map&functions=off).
 - [Scala - Quick start](http://swaydb.io/quick-start/?language=scala&data-type=map&functions=off).
-- [Kotlin - Quick start](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src/main/kotlin/quickstart/QuickStartMapSimple.kt).
+- [Kotlin - Quick start](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src/main/kotlin/quickstart/QuickStartMapSimple.kt)
+  .
 
 ## Contributing
 
@@ -83,7 +84,8 @@ foundation's [COC](https://www.apache.org/foundation/policies/conduct.html).
 
 - **Contributing to core API**
     - See issues
-      labelled [good first issue](https://github.com/simerplaha/SwayDB/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+      labelled [good first issue](https://github.com/simerplaha/SwayDB/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+      .
 
 - **Contributing to core internals**
     - See code marked `TODO`.
@@ -91,6 +93,8 @@ foundation's [COC](https://www.apache.org/foundation/policies/conduct.html).
       independently, so you can easily pick anything to work on.
 
 ## Project status
+
+Under testing & performance optimisations.
 
 Your feedback and review is very important to get to production. Please get involved via chat, issues or email which is
 on my [profile](https://github.com/simerplaha).
