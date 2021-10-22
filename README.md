@@ -96,8 +96,6 @@ foundation's [COC](https://www.apache.org/foundation/policies/conduct.html).
 
 Under testing & performance optimisations.
 
-**Task in progress**: In-memory allocations are being moved off-heap.
-
 Your feedback and review is very important to get to production. Please get involved via chat, issues or email which is
 on my [profile](https://github.com/simerplaha).
 

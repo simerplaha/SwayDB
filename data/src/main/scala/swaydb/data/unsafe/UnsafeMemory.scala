@@ -8,7 +8,7 @@ import swaydb.utils.ByteSizeOf
 sealed trait UnsafeMemory[T] {
   val size: Int
 
-  def get(address: Long): T
+  def get(address: Long, index: Int): T
 
   def put(address: Long, data: T): Unit
 
@@ -26,8 +26,8 @@ object UnsafeMemory {
     override val size: Int =
       ByteSizeOf.byte
 
-    override def get(address: Long): Byte =
-      Unsafe.get.getByte(address)
+    override def get(address: Long, index: Int): Byte =
+      Unsafe.get.getByte(address + (index * size))
 
     override def put(address: Long, data: Byte): Unit =
       Unsafe.get.putByte(address, data)
@@ -38,8 +38,8 @@ object UnsafeMemory {
     override val size: Int =
       ByteSizeOf.int
 
-    override def get(address: Long): Int =
-      Unsafe.get.getInt(address)
+    override def get(address: Long, index: Int): Int =
+      Unsafe.get.getInt(address + (index * size))
 
     override def put(address: Long, data: Int): Unit =
       Unsafe.get.putInt(address, data)

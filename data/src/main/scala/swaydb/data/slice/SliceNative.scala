@@ -137,7 +137,7 @@ class SliceNative[+T: ClassTag](val address: Long,
       index <= toOffset && index <= writtenPosition
 
     override def next(): T = {
-      val next = memory.get(address + (index * memory.size))
+      val next = memory.get(address, index)
       index += 1
       next
     }
