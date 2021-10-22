@@ -16,6 +16,10 @@
 
 package swaydb.utils
 
+sealed trait ByteSizeOf[A] {
+  def size: Int
+}
+
 private[swaydb] object ByteSizeOf {
   @inline val byte = java.lang.Byte.BYTES
   @inline val short = java.lang.Short.BYTES
@@ -27,4 +31,23 @@ private[swaydb] object ByteSizeOf {
   @inline val char = java.lang.Character.BYTES
   @inline val double = java.lang.Double.BYTES
   @inline val float = java.lang.Float.BYTES
+
+  implicit object ByteSizeOfByte extends ByteSizeOf[Byte] {
+    override def size: Int = ByteSizeOf.byte
+  }
+
+  implicit object ByteSizeOfJavaByte extends ByteSizeOf[java.lang.Byte] {
+    override def size: Int = ByteSizeOf.byte
+  }
+
+  implicit object ByteSizeOfShort extends ByteSizeOf[Short] {
+    override def size: Int = ByteSizeOf.short
+  }
+
+  implicit object ByteSizeOfInt extends ByteSizeOf[Int] {
+    override def size: Int = ByteSizeOf.int
+  }
+
+  def apply[A]()(implicit sizeOf: ByteSizeOf[A]) =
+    sizeOf.size
 }

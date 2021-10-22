@@ -16,16 +16,14 @@
 
 [build-link]: https://github.com/simerplaha/SwayDB/actions
 
-**Task in progress**: In-memory allocations are being moved off-heap.
-
 Non-blocking **persistent** and **in-memory** key-value storage engine for the JVM with no external core
 dependencies ([#307](https://github.com/simerplaha/SwayDB/issues/307)).
 
 Small footprint: around 7.1 MB jar size.
 
-[Documentation](http://swaydb.io)
-
 **Status**: Under testing & performance optimisations. See [project status](#Project-status).
+
+[Documentation](http://swaydb.io)
 
 ## Overview
 
@@ -97,6 +95,8 @@ foundation's [COC](https://www.apache.org/foundation/policies/conduct.html).
 ## Project status
 
 Under testing & performance optimisations.
+
+**Task in progress**: In-memory allocations are being moved off-heap.
 
 Your feedback and review is very important to get to production. Please get involved via chat, issues or email which is
 on my [profile](https://github.com/simerplaha).
