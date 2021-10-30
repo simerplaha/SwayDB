@@ -197,7 +197,7 @@ private[file] class MMAPFile(val path: Path,
 
   override def transfer(position: Int, count: Int, transferTo: DBFileType): Int =
     transferTo match {
-      case _: ChannelFile =>
+      case _: StandardFile =>
         //TODO - Is forceSave really required here? Can a buffer contain bytes that FileChannel is unaware of?
         this.forceSave()
 

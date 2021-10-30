@@ -91,7 +91,7 @@ object DBFile extends LazyLogging {
                   deleteAfterClean = deleteAfterClean
                 )
               else
-                ChannelFile.read(path = filePath)
+                StandardFile.read(path = filePath)
 
             if (autoClose)
               fileSweeper send FileSweeper.Command.CloseFileItem(closer)
@@ -109,10 +109,10 @@ object DBFile extends LazyLogging {
   def channelWrite(path: Path,
                    fileOpenIOStrategy: IOStrategy.ThreadSafe,
                    autoClose: Boolean,
-                   forceSave: ForceSave.ChannelFiles)(implicit fileSweeper: FileSweeper,
-                                                      bufferCleaner: ByteBufferSweeperActor,
-                                                      forceSaveApplier: ForceSaveApplier): DBFile = {
-    val file = ChannelFile.write(path, forceSave)
+                   forceSave: ForceSave.StandardFiles)(implicit fileSweeper: FileSweeper,
+                                                       bufferCleaner: ByteBufferSweeperActor,
+                                                       forceSaveApplier: ForceSaveApplier): DBFile = {
+    val file = StandardFile.write(path, forceSave)
     new DBFile(
       path = path,
       memoryMapped = false,

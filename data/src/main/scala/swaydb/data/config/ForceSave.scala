@@ -38,12 +38,12 @@ object ForceSave {
   /**
    * [[ForceSave]] configurations that can be applied to [[java.nio.channels.FileChannel]] files only.
    */
-  sealed trait ChannelFiles extends ForceSave
+  sealed trait StandardFiles extends ForceSave
 
   /**
    * Disables force save for all cases.
    */
-  sealed trait Off extends MMAPFiles with ChannelFiles
+  sealed trait Off extends MMAPFiles with StandardFiles
   case object Off extends Off {
     override val isDisabled: Boolean = true
     override val enableForReadOnlyMode: Boolean = false
@@ -65,7 +65,7 @@ object ForceSave {
    * @param logBenchmark          if true logs time taken to forceSave.
    */
   case class BeforeCopy(enableForReadOnlyMode: Boolean,
-                        logBenchmark: Boolean) extends MMAPFiles with ChannelFiles {
+                        logBenchmark: Boolean) extends MMAPFiles with StandardFiles {
     override val isDisabled: Boolean = false
     override val enabledBeforeClose: Boolean = false
     override val enabledBeforeClean: Boolean = false
@@ -86,7 +86,7 @@ object ForceSave {
    */
   case class BeforeClose(enableBeforeCopy: Boolean,
                          enableForReadOnlyMode: Boolean,
-                         logBenchmark: Boolean) extends MMAPFiles with ChannelFiles {
+                         logBenchmark: Boolean) extends MMAPFiles with StandardFiles {
     override val isDisabled: Boolean = false
     override val enabledBeforeClose: Boolean = true
     override val enabledBeforeClean: Boolean = false

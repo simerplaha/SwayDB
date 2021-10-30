@@ -69,7 +69,7 @@ object TestForceSave {
   /**
    * @return current set [[ForceSave]] setting for Channel files for Windows.
    */
-  def channel(): ForceSave.ChannelFiles =
+  def channel(): ForceSave.StandardFiles =
     if (OperatingSystem.isWindows && Random.nextDouble() >= double)
       ForceSave.Off
     else if (Random.nextBoolean())

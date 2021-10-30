@@ -26,12 +26,12 @@ import java.nio.channels.{FileChannel, WritableByteChannel}
 import java.nio.file.{Path, StandardOpenOption}
 import java.util.concurrent.atomic.AtomicBoolean
 
-private[file] object ChannelFile {
+private[file] object StandardFile {
 
   def write(path: Path,
-            forceSave: ForceSave.ChannelFiles)(implicit forceSaveApplier: ForceSaveApplier): ChannelFile = {
+            forceSave: ForceSave.StandardFiles)(implicit forceSaveApplier: ForceSaveApplier): StandardFile = {
     val channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
-    new ChannelFile(
+    new StandardFile(
       path = path,
       mode = StandardOpenOption.WRITE,
       channel = channel,
@@ -39,10 +39,10 @@ private[file] object ChannelFile {
     )
   }
 
-  def read(path: Path)(implicit forceSaveApplier: ForceSaveApplier): ChannelFile =
+  def read(path: Path)(implicit forceSaveApplier: ForceSaveApplier): StandardFile =
     if (Effect.exists(path)) {
       val channel = FileChannel.open(path, StandardOpenOption.READ)
-      new ChannelFile(
+      new StandardFile(
         path = path,
         mode = StandardOpenOption.READ,
         channel = channel,
@@ -53,10 +53,10 @@ private[file] object ChannelFile {
       throw swaydb.Exception.NoSuchFile(path)
 }
 
-private[file] class ChannelFile(val path: Path,
-                                mode: StandardOpenOption,
-                                channel: FileChannel,
-                                forceSave: ForceSave.ChannelFiles)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with DBFileType {
+private[file] class StandardFile(val path: Path,
+                                 mode: StandardOpenOption,
+                                 channel: FileChannel,
+                                 forceSave: ForceSave.StandardFiles)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with DBFileType {
 
 
   //Force is applied on files after they are marked immutable so it only needs
@@ -84,7 +84,7 @@ private[file] class ChannelFile(val path: Path,
 
   override def transfer(position: Int, count: Int, transferTo: DBFileType): Int =
     transferTo match {
-      case target: ChannelFile =>
+      case target: StandardFile =>
         Effect.transfer(
           position = position,
           count = count,

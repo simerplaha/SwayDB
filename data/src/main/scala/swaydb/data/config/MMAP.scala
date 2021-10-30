@@ -45,7 +45,7 @@ object MMAP {
     def isMMAP: Boolean
   }
 
-  def off(forceSave: ForceSave.ChannelFiles): MMAP.Off =
+  def off(forceSave: ForceSave.StandardFiles): MMAP.Off =
     Off(forceSave)
 
   def on(deleteAfterClean: Boolean, forceSave: ForceSave.MMAPFiles): MMAP.On =
@@ -89,7 +89,7 @@ object MMAP {
     override val mmapWrites: Boolean = false
   }
 
-  case class Off(forceSave: ForceSave.ChannelFiles) extends MMAP.Segment with MMAP.Log {
+  case class Off(forceSave: ForceSave.StandardFiles) extends MMAP.Segment with MMAP.Log {
     override val mmapReads: Boolean = false
     override val mmapWrites: Boolean = false
     override val isMMAP: Boolean = false
