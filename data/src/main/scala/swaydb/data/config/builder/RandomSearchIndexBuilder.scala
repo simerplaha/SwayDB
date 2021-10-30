@@ -17,14 +17,14 @@
 package swaydb.data.config.builder
 
 import swaydb.Compression
-import swaydb.data.config.RandomSearchIndex.RequiredSpace
+import swaydb.data.config.HashIndex.RequiredSpace
 import swaydb.data.config._
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.Java.JavaFunction
 
 import scala.jdk.CollectionConverters._
 
-class RandomSearchIndexBuilder {
+class HashIndexBuilder {
   private var maxProbe: Int = _
   private var minimumNumberOfKeys: Int = _
   private var minimumNumberOfHits: Int = _
@@ -33,37 +33,37 @@ class RandomSearchIndexBuilder {
   private var blockIOStrategy: JavaFunction[IOAction, IOStrategy] = _
 }
 
-object RandomSearchIndexBuilder {
+object HashIndexBuilder {
 
-  class Step0(builder: RandomSearchIndexBuilder) {
+  class Step0(builder: HashIndexBuilder) {
     def maxProbe(maxProbe: Int) = {
       builder.maxProbe = maxProbe
       new Step1(builder)
     }
   }
 
-  class Step1(builder: RandomSearchIndexBuilder) {
+  class Step1(builder: HashIndexBuilder) {
     def minimumNumberOfKeys(minimumNumberOfKeys: Int) = {
       builder.minimumNumberOfKeys = minimumNumberOfKeys
       new Step2(builder)
     }
   }
 
-  class Step2(builder: RandomSearchIndexBuilder) {
+  class Step2(builder: HashIndexBuilder) {
     def minimumNumberOfHits(minimumNumberOfHits: Int) = {
       builder.minimumNumberOfHits = minimumNumberOfHits
       new Step3(builder)
     }
   }
 
-  class Step3(builder: RandomSearchIndexBuilder) {
+  class Step3(builder: HashIndexBuilder) {
     def indexFormat(indexFormat: IndexFormat) = {
       builder.indexFormat = indexFormat
       new Step4(builder)
     }
   }
 
-  class Step4(builder: RandomSearchIndexBuilder) {
+  class Step4(builder: HashIndexBuilder) {
     def allocateSpace(allocateSpace: JavaFunction[RequiredSpace, Integer]) = {
       builder.allocateSpace =
         new JavaFunction[RequiredSpace, Int] {
@@ -75,16 +75,16 @@ object RandomSearchIndexBuilder {
     }
   }
 
-  class Step5(builder: RandomSearchIndexBuilder) {
+  class Step5(builder: HashIndexBuilder) {
     def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction, IOStrategy]) = {
       builder.blockIOStrategy = blockIOStrategy
       new Step6(builder)
     }
   }
 
-  class Step6(builder: RandomSearchIndexBuilder) {
+  class Step6(builder: HashIndexBuilder) {
     def compression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
-      RandomSearchIndex.On(
+      HashIndex.On(
         maxProbe = builder.maxProbe,
         minimumNumberOfKeys = builder.minimumNumberOfKeys,
         minimumNumberOfHits = builder.minimumNumberOfHits,
@@ -95,5 +95,5 @@ object RandomSearchIndexBuilder {
       )
   }
 
-  def builder() = new Step0(new RandomSearchIndexBuilder())
+  def builder() = new Step0(new HashIndexBuilder())
 }

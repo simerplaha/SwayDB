@@ -56,22 +56,22 @@ case object SegmentFormat {
    *
    * This format can be imagined as - List(1, 2, 3, 4, 5).grouped(2).
    *
-   * @param enableRootHashIndex     If true a root hash index (if configured via [[RandomSearchIndex]]) is created
-   *                                pointing to the min and max key of each group. This is useful if group size is
-   *                                too small eg: 2-3 key-values per group.
+   * @param enableRootHashIndex If true a root hash index (if configured via [[HashIndex]]) is created
+   *                            pointing to the min and max key of each group. This is useful if group size is
+   *                            too small eg: 2-3 key-values per group.
    * @param segmentRefCacheLife Set how caching of Groups object should be handled.
-   *                                It sets the weight of the group reference object. Group is just a plain object which gets
-   *                                stored within the Segment and contains information about the Group and references
-   *                                to it's internal caches (NOTE - internal caches are already managed by [[MemoryCache]]).
+   *                            It sets the weight of the group reference object. Group is just a plain object which gets
+   *                            stored within the Segment and contains information about the Group and references
+   *                            to it's internal caches (NOTE - internal caches are already managed by [[MemoryCache]]).
    *
-   *                                Set this to [[SegmentRefCacheLife.Permanent]] to keep all read Group reference objects
-   *                                in-memory until the Segment is deleted.
+   *                            Set this to [[SegmentRefCacheLife.Permanent]] to keep all read Group reference objects
+   *                            in-memory until the Segment is deleted.
    *
-   *                                The reason this is configurable is so that we can control the number of in-memory
-   *                                objects. With this configuration we can drop the entire Group form memory
-   *                                specially when [[count]] is too small which could lead to too many Group references
-   *                                being created which should be controlled otherwise the number of in-memory Group
-   *                                references will increase as more Segments are created.
+   *                            The reason this is configurable is so that we can control the number of in-memory
+   *                            objects. With this configuration we can drop the entire Group form memory
+   *                            specially when [[count]] is too small which could lead to too many Group references
+   *                            being created which should be controlled otherwise the number of in-memory Group
+   *                            references will increase as more Segments are created.
    */
   final case class Grouped(count: Int,
                            enableRootHashIndex: Boolean,

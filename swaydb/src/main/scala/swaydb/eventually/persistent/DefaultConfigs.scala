@@ -66,8 +66,8 @@ object DefaultConfigs {
       compressions = _ => Seq.empty
     )
 
-  def randomSearchIndex(cacheDataBlockOnAccess: Boolean = true): RandomSearchIndex.On =
-    RandomSearchIndex.On(
+  def hashIndex(cacheDataBlockOnAccess: Boolean = true): HashIndex.On =
+    HashIndex.On(
       maxProbe = 1,
       minimumNumberOfKeys = 2,
       minimumNumberOfHits = 2,

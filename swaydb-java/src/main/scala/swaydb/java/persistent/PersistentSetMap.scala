@@ -53,7 +53,7 @@ object PersistentSetMap {
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = DefaultConfigs.accelerator.asJava,
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                            private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
-                           private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
+                           private var hashIndex: HashIndex = DefaultConfigs.hashIndex(),
                            private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
                            private var mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
                            private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
@@ -134,8 +134,8 @@ object PersistentSetMap {
       this
     }
 
-    def setRandomSearchIndex(randomSearchIndex: RandomSearchIndex) = {
-      this.randomSearchIndex = randomSearchIndex
+    def setHashIndex(hashIndex: HashIndex) = {
+      this.hashIndex = hashIndex
       this
     }
 
@@ -245,7 +245,7 @@ object PersistentSetMap {
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,
-          randomSearchIndex = randomSearchIndex,
+          hashIndex = hashIndex,
           binarySearchIndex = binarySearchIndex,
           mightContainIndex = mightContainIndex,
           valuesConfig = valuesConfig,

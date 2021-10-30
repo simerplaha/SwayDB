@@ -210,7 +210,7 @@ private[core] object CoreInitializer extends LazyLogging {
                 } else {
                   Level(
                     bloomFilterConfig = BloomFilterBlock.Config(config = config.mightContainIndex),
-                    hashIndexConfig = block.hashindex.HashIndexBlock.Config(config = config.randomSearchIndex),
+                    hashIndexConfig = block.hashindex.HashIndexBlock.Config(config = config.hashIndex),
                     binarySearchIndexConfig = block.binarysearch.BinarySearchIndexBlock.Config(config = config.binarySearchIndex),
                     sortedIndexConfig = SortedIndexBlock.Config(config.sortedKeyIndex),
                     valuesConfig = ValuesBlock.Config(config.valuesConfig),

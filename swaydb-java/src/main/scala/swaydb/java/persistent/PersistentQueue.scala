@@ -48,7 +48,7 @@ object PersistentQueue {
                         private var compactionConfig: Option[CompactionConfig] = None,
                         private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                         private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
-                        private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
+                        private var hashIndex: HashIndex = DefaultConfigs.hashIndex(),
                         private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
                         private var mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
                         private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
@@ -127,8 +127,8 @@ object PersistentQueue {
       this
     }
 
-    def setRandomSearchIndex(randomSearchIndex: RandomSearchIndex) = {
-      this.randomSearchIndex = randomSearchIndex
+    def setHashIndex(hashIndex: HashIndex) = {
+      this.hashIndex = hashIndex
       this
     }
 
@@ -219,7 +219,7 @@ object PersistentQueue {
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           sortedKeyIndex = sortedKeyIndex,
-          randomSearchIndex = randomSearchIndex,
+          hashIndex = hashIndex,
           binarySearchIndex = binarySearchIndex,
           mightContainIndex = mightContainIndex,
           valuesConfig = valuesConfig,

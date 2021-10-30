@@ -58,7 +58,7 @@ object EventuallyPersistentSetMap {
                            private var atomic: Atomic = CommonConfigs.atomic(),
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = DefaultConfigs.accelerator.asJava,
                            private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
-                           private var persistentLevelRandomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
+                           private var persistentLevelHashIndex: HashIndex = DefaultConfigs.hashIndex(),
                            private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
                            private var mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
                            private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
@@ -146,8 +146,8 @@ object EventuallyPersistentSetMap {
       this
     }
 
-    def setPersistentLevelRandomSearchIndex(persistentLevelRandomSearchIndex: RandomSearchIndex) = {
-      this.persistentLevelRandomSearchIndex = persistentLevelRandomSearchIndex
+    def setPersistentLevelHashIndex(persistentLevelHashIndex: HashIndex) = {
+      this.persistentLevelHashIndex = persistentLevelHashIndex
       this
     }
 
@@ -224,7 +224,7 @@ object EventuallyPersistentSetMap {
           atomic = atomic,
           acceleration = acceleration.apply,
           persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
-          persistentLevelRandomSearchIndex = persistentLevelRandomSearchIndex,
+          persistentLevelHashIndex = persistentLevelHashIndex,
           binarySearchIndex = binarySearchIndex,
           mightContainIndex = mightContainIndex,
           valuesConfig = valuesConfig,

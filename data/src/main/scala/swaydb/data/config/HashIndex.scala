@@ -17,28 +17,28 @@
 package swaydb.data.config
 
 import swaydb.Compression
-import swaydb.data.config.builder.RandomSearchIndexBuilder
+import swaydb.data.config.builder.HashIndexBuilder
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.Java.JavaFunction
 
 import scala.jdk.CollectionConverters._
 
-sealed trait RandomSearchIndex {
+sealed trait HashIndex {
   def toOption =
     this match {
-      case RandomSearchIndex.Off => None
-      case enable: RandomSearchIndex.On => Some(enable)
+      case HashIndex.Off => None
+      case enable: HashIndex.On => Some(enable)
     }
 }
 
-object RandomSearchIndex {
-  def off: RandomSearchIndex.Off = Off
+object HashIndex {
+  def off: HashIndex.Off = Off
 
-  sealed trait Off extends RandomSearchIndex
+  sealed trait Off extends HashIndex
   case object Off extends Off
 
-  def builder(): RandomSearchIndexBuilder.Step0 =
-    RandomSearchIndexBuilder.builder()
+  def builder(): HashIndexBuilder.Step0 =
+    HashIndexBuilder.builder()
 
   case class On(maxProbe: Int,
                 minimumNumberOfKeys: Int,
@@ -46,7 +46,7 @@ object RandomSearchIndex {
                 indexFormat: IndexFormat,
                 allocateSpace: RequiredSpace => Int,
                 blockIOStrategy: IOAction => IOStrategy,
-                compression: UncompressedBlockInfo => Iterable[Compression]) extends RandomSearchIndex {
+                compression: UncompressedBlockInfo => Iterable[Compression]) extends HashIndex {
 
     def copyWithMaxProbe(maxProbe: Int) =
       this.copy(maxProbe = maxProbe)
