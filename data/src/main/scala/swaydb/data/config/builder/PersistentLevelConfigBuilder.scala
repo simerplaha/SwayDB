@@ -30,7 +30,7 @@ import scala.jdk.CollectionConverters._
 class PersistentLevelConfigBuilder {
   private var dir: Path = _
   private var otherDirs: Seq[Dir] = _
-  private var mmapAppendix: MMAP.Map = _
+  private var mmapAppendixLogs: MMAP.Log = _
   private var appendixFlushCheckpointSize: Long = _
   private var sortedKeyIndex: SortedKeyIndex = _
   private var randomSearchIndex: RandomSearchIndex = _
@@ -66,8 +66,8 @@ object PersistentLevelConfigBuilder {
   }
 
   class Step2(builder: PersistentLevelConfigBuilder) {
-    def mmapAppendix(mmapAppendix: MMAP.Map) = {
-      builder.mmapAppendix = mmapAppendix
+    def mmapAppendixLogs(mmapAppendixLogs: MMAP.Log) = {
+      builder.mmapAppendixLogs = mmapAppendixLogs
       new Step3(builder)
     }
   }
@@ -126,7 +126,7 @@ object PersistentLevelConfigBuilder {
       new PersistentLevelConfig(
         dir = builder.dir,
         otherDirs = builder.otherDirs,
-        mmapAppendix = builder.mmapAppendix,
+        mmapAppendixLogs = builder.mmapAppendixLogs,
         appendixFlushCheckpointSize = builder.appendixFlushCheckpointSize,
         sortedKeyIndex = builder.sortedKeyIndex,
         randomSearchIndex = builder.randomSearchIndex,

@@ -43,12 +43,12 @@ import swaydb.utils.StorageUnits._
 object PersistentMultiMap {
 
   final class Config[M, K, V, F](dir: Path,
-                                 private var mapSize: Int = DefaultConfigs.mapSize,
-                                 private var appliedFunctionsMapSize: Int = 4.mb,
+                                 private var logSize: Int = DefaultConfigs.logSize,
+                                 private var appliedFunctionsLogSize: Int = 4.mb,
                                  private var clearAppliedFunctionsOnBoot: Boolean = false,
-                                 private var mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
+                                 private var mmapLogs: MMAP.Log = DefaultConfigs.mmap(),
                                  private var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                                 private var mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
+                                 private var mmapAppendixLogs: MMAP.Log = DefaultConfigs.mmap(),
                                  private var appendixFlushCheckpointSize: Int = 2.mb,
                                  private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                                  private var cacheKeyValueIds: Boolean = true,
@@ -80,8 +80,8 @@ object PersistentMultiMap {
                                                                                        functions: Functions[F],
                                                                                        evd: F <:< PureFunction[K, V, Apply.Map[V]]) {
 
-    def setMapSize(mapSize: Int) = {
-      this.mapSize = mapSize
+    def setLogSize(logSize: Int) = {
+      this.logSize = logSize
       this
     }
 
@@ -90,8 +90,8 @@ object PersistentMultiMap {
       this
     }
 
-    def setAppliedFunctionsMapSize(size: Int) = {
-      this.appliedFunctionsMapSize = size
+    def setAppliedFunctionsLogSize(size: Int) = {
+      this.appliedFunctionsLogSize = size
       this
     }
 
@@ -110,8 +110,8 @@ object PersistentMultiMap {
       this
     }
 
-    def setMmapMaps(mmapMaps: MMAP.Map) = {
-      this.mmapMaps = mmapMaps
+    def setMmapMaps(mmapLogs: MMAP.Log) = {
+      this.mmapLogs = mmapLogs
       this
     }
 
@@ -120,8 +120,8 @@ object PersistentMultiMap {
       this
     }
 
-    def setMmapAppendix(mmapAppendix: MMAP.Map) = {
-      this.mmapAppendix = mmapAppendix
+    def setMmapAppendix(mmapAppendixLogs: MMAP.Log) = {
+      this.mmapAppendixLogs = mmapAppendixLogs
       this
     }
 
@@ -248,12 +248,12 @@ object PersistentMultiMap {
       val scalaMap =
         swaydb.persistent.MultiMap[M, K, V, PureFunction.Map[K, V], Glass](
           dir = dir,
-          mapSize = mapSize,
-          appliedFunctionsMapSize = appliedFunctionsMapSize,
+          logSize = logSize,
+          appliedFunctionsLogSize = appliedFunctionsLogSize,
           clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
-          mmapMaps = mmapMaps,
+          mmapLogs = mmapLogs,
           recoveryMode = recoveryMode,
-          mmapAppendix = mmapAppendix,
+          mmapAppendixLogs = mmapAppendixLogs,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,

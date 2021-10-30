@@ -41,7 +41,7 @@ object MMAP {
   /**
    * Configurations that can be applied to .log files
    */
-  sealed trait Map extends MMAP {
+  sealed trait Log extends MMAP {
     def isMMAP: Boolean
   }
 
@@ -65,7 +65,7 @@ object MMAP {
    *
    */
   case class On(deleteAfterClean: Boolean,
-                forceSave: ForceSave.MMAPFiles) extends MMAP.Segment with MMAP.Map {
+                forceSave: ForceSave.MMAPFiles) extends MMAP.Segment with MMAP.Log {
     override val mmapReads: Boolean = true
     override val mmapWrites: Boolean = true
     override val isMMAP: Boolean = true
@@ -89,7 +89,7 @@ object MMAP {
     override val mmapWrites: Boolean = false
   }
 
-  case class Off(forceSave: ForceSave.ChannelFiles) extends MMAP.Segment with MMAP.Map {
+  case class Off(forceSave: ForceSave.ChannelFiles) extends MMAP.Segment with MMAP.Log {
     override val mmapReads: Boolean = false
     override val mmapWrites: Boolean = false
     override val isMMAP: Boolean = false

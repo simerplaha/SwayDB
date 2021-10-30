@@ -19,7 +19,7 @@ package swaydb.core
 import java.util.concurrent.atomic.AtomicLong
 
 import swaydb.core.data.Time
-import swaydb.core.map.timer.Timer
+import swaydb.core.log.timer.Timer
 import swaydb.data.slice.Slice
 import swaydb.macros.Sealed
 

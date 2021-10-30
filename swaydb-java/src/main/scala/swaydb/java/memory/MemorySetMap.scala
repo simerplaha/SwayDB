@@ -37,7 +37,7 @@ import swaydb.utils.Java._
 
 object MemorySetMap {
 
-  final class Config[K, V](private var mapSize: Int = DefaultConfigs.mapSize,
+  final class Config[K, V](private var logSize: Int = DefaultConfigs.logSize,
                            private var minSegmentSize: Int = DefaultConfigs.segmentSize,
                            private var maxKeyValuesPerSegment: Int = Int.MaxValue,
                            private var deleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
@@ -54,8 +54,8 @@ object MemorySetMap {
                            keySerializer: Serializer[K],
                            valueSerializer: Serializer[V]) {
 
-    def setMapSize(mapSize: Int) = {
-      this.mapSize = mapSize
+    def setLogSize(logSize: Int) = {
+      this.logSize = logSize
       this
     }
 
@@ -136,7 +136,7 @@ object MemorySetMap {
 
       val scalaMap =
         swaydb.memory.SetMap[K, V, Glass](
-          mapSize = mapSize,
+          logSize = logSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,

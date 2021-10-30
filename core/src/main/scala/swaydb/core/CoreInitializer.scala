@@ -99,8 +99,8 @@ private[core] object CoreInitializer extends LazyLogging {
                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                 functionStore: FunctionStore,
                                                 buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
-    if (config.level0.mapSize > 1.gb) {
-      val exception = new Exception(s"mapSize ${config.level0.mapSize / 1000000}.MB is too large. Maximum limit is 1.GB.")
+    if (config.level0.logSize > 1.gb) {
+      val exception = new Exception(s"logSize ${config.level0.logSize / 1000000}.MB is too large. Maximum limit is 1.GB.")
       logger.error(exception.getMessage, exception)
       IO.failed[swaydb.Error.Boot, Core[Glass]](exception)
     } else {
@@ -219,7 +219,7 @@ private[core] object CoreInitializer extends LazyLogging {
                       LevelStorage.Persistent(
                         dir = config.dir.resolve(id.toString),
                         otherDirs = config.otherDirs.map(dir => dir.copy(path = dir.path.resolve(id.toString))),
-                        appendixMMAP = config.mmapAppendix,
+                        appendixMMAP = config.mmapAppendixLogs,
                         appendixFlushCheckpointSize = config.appendixFlushCheckpointSize
                       ),
                     nextLevel = nextLevel,
@@ -246,8 +246,8 @@ private[core] object CoreInitializer extends LazyLogging {
                     implicit val atomic: Atomic = config.level0.atomic
 
                     LevelZero(
-                      mapSize = config.level0.mapSize,
-                      appliedFunctionsMapSize = config.level0.appliedFunctionsMapSize,
+                      logSize = config.level0.logSize,
+                      appliedFunctionsLogSize = config.level0.appliedFunctionsLogSize,
                       clearAppliedFunctionsOnBoot = config.level0.clearAppliedFunctionsOnBoot,
                       storage = config.level0.storage,
                       enableTimer = enableTimer,

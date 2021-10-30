@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import swaydb.EitherValues._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
-import swaydb.core.level.zero.LevelZero.LevelZeroMap
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -45,8 +45,8 @@ class LevelZeroTaskAssigner_createStacks_Fixed_Spec extends TestBase with MockFa
   def createStacks(keyValues: Slice[Memory]*)(test: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] => Unit): Unit =
     TestCaseSweeper {
       implicit sweeper =>
-        val maps: Iterable[LevelZeroMap] = keyValues.map(TestMap(_))
-        val stacks = LevelZeroTaskAssigner.createStacks(maps)
+        val logs: Iterable[LevelZeroLog] = keyValues.map(TestLog(_))
+        val stacks = LevelZeroTaskAssigner.createStacks(logs)
         test(stacks.asScala)
     }
 

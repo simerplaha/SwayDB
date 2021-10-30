@@ -21,7 +21,7 @@ import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
-import swaydb.core.level.zero.LevelZero.LevelZeroMap
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
@@ -43,7 +43,7 @@ class LevelZeroTaskAssigner_mergeStack_Spec extends TestBase with MockFactory {
   "stack is empty" in {
     TestCaseSweeper {
       implicit sweeper =>
-        val stack: Iterable[Either[LevelZeroMap, Iterable[Memory]]] =
+        val stack: Iterable[Either[LevelZeroLog, Iterable[Memory]]] =
           List.empty
 
         LevelZeroTaskAssigner.mergeStack(stack).awaitInf shouldBe Iterable.empty
@@ -56,10 +56,10 @@ class LevelZeroTaskAssigner_mergeStack_Spec extends TestBase with MockFactory {
         implicit sweeper =>
           val keyValue = Memory.put(1, 1)
 
-          val stack: Iterable[Either[LevelZeroMap, Iterable[Memory]]] =
+          val stack: Iterable[Either[LevelZeroLog, Iterable[Memory]]] =
             List(
               eitherOne(
-                Left(TestMap(Slice(keyValue))),
+                Left(TestLog(Slice(keyValue))),
                 Right(Slice(keyValue))
               )
             )
@@ -75,9 +75,9 @@ class LevelZeroTaskAssigner_mergeStack_Spec extends TestBase with MockFactory {
       TestCaseSweeper {
         implicit sweeper =>
 
-          val stack: Iterable[Either[LevelZeroMap, Iterable[Memory]]] =
+          val stack: Iterable[Either[LevelZeroLog, Iterable[Memory]]] =
             List(
-              Left(TestMap(Slice(Memory.put(1, 2)))),
+              Left(TestLog(Slice(Memory.put(1, 2)))),
               Right(Slice(Memory.put(1, 1)))
             )
 
@@ -92,9 +92,9 @@ class LevelZeroTaskAssigner_mergeStack_Spec extends TestBase with MockFactory {
       TestCaseSweeper {
         implicit sweeper =>
 
-          val stack: Iterable[Either[LevelZeroMap, Iterable[Memory]]] =
+          val stack: Iterable[Either[LevelZeroLog, Iterable[Memory]]] =
             List(
-              Left(TestMap(Slice(Memory.put(1, 2)))),
+              Left(TestLog(Slice(Memory.put(1, 2)))),
               Right(Slice(Memory.put(1, 1))),
               Right(Slice(Memory.put(1, 1), Memory.put(2, 2)))
             )
@@ -135,11 +135,11 @@ class LevelZeroTaskAssigner_mergeStack_Spec extends TestBase with MockFactory {
                 }
             }.value
 
-          val stack: Iterable[Either[LevelZeroMap, Iterable[Memory]]] =
+          val stack: Iterable[Either[LevelZeroLog, Iterable[Memory]]] =
             stackedKeyValues map {
               keyValues =>
                 eitherOne(
-                  left = Left(TestMap(keyValues)),
+                  left = Left(TestLog(keyValues)),
                   right = Right(keyValues)
                 )
             }

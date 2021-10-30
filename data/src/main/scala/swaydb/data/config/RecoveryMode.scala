@@ -52,10 +52,10 @@ object RecoveryMode {
    * subsequent Map files after the corrupted file.
    */
 
-  def dropCorruptedTailEntriesAndMaps(): RecoveryMode =
-    DropCorruptedTailEntriesAndMaps
+  def dropCorruptedTailEntriesAndLogs(): RecoveryMode =
+    DropCorruptedTailEntriesAndLogs
 
-  case object DropCorruptedTailEntriesAndMaps extends RecoveryMode {
+  case object DropCorruptedTailEntriesAndLogs extends RecoveryMode {
     override val drop: Boolean = true
   }
 }

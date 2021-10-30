@@ -35,7 +35,7 @@ class ScalaSetSpec1 extends ScalaSetSpec {
   val keyValueCount: Int = 1000
 
   override def newDB()(implicit sweeper: TestCaseSweeper): Set[Int, Nothing, IO.ApiIO] =
-    swaydb.persistent.Set[Int, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = 10.bytes)).right.value.sweep(_.delete().get)
+    swaydb.persistent.Set[Int, Nothing, IO.ApiIO](randomDir, logSize = 1.byte, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = 10.bytes)).right.value.sweep(_.delete().get)
 }
 
 class ScalaSetSpec2 extends ScalaSetSpec {
@@ -43,7 +43,7 @@ class ScalaSetSpec2 extends ScalaSetSpec {
   val keyValueCount: Int = 10000
 
   override def newDB()(implicit sweeper: TestCaseSweeper): Set[Int, Nothing, IO.ApiIO] =
-    swaydb.memory.Set[Int, Nothing, IO.ApiIO](mapSize = 1.byte).right.value.sweep(_.delete().get)
+    swaydb.memory.Set[Int, Nothing, IO.ApiIO](logSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class ScalaSetSpec3 extends ScalaSetSpec {

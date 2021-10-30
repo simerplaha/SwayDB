@@ -29,10 +29,10 @@ import java.nio.file.Path
  */
 class PersistentLevelZeroConfigBuilder {
   private var dir: Path = _
-  private var mapSize: Long = _
-  private var appliedFunctionsMapSize: Long = _
+  private var logSize: Long = _
+  private var appliedFunctionsLogSize: Long = _
   private var clearAppliedFunctionsOnBoot: Boolean = _
-  private var mmap: MMAP.Map = _
+  private var mmap: MMAP.Log = _
   private var recoveryMode: RecoveryMode = _
   private var acceleration: LevelZeroMeter => Accelerator = _
   private var optimiseWrites: OptimiseWrites = _
@@ -49,15 +49,15 @@ object PersistentLevelZeroConfigBuilder {
   }
 
   class Step1(builder: PersistentLevelZeroConfigBuilder) {
-    def mapSize(mapSize: Long) = {
-      builder.mapSize = mapSize
+    def logSize(logSize: Long) = {
+      builder.logSize = logSize
       new Step2(builder)
     }
   }
 
   class Step2(builder: PersistentLevelZeroConfigBuilder) {
-    def appliedFunctionsMapSize(mapSize: Long) = {
-      builder.appliedFunctionsMapSize = mapSize
+    def appliedFunctionsLogSize(logSize: Long) = {
+      builder.appliedFunctionsLogSize = logSize
       new Step3(builder)
     }
   }
@@ -70,7 +70,7 @@ object PersistentLevelZeroConfigBuilder {
   }
 
   class Step4(builder: PersistentLevelZeroConfigBuilder) {
-    def mmap(mmap: MMAP.Map) = {
+    def mmap(mmap: MMAP.Log) = {
       builder.mmap = mmap
       new Step5(builder)
     }
@@ -108,8 +108,8 @@ object PersistentLevelZeroConfigBuilder {
     def throttle(throttle: JavaFunction[LevelZeroMeter, LevelZeroThrottle]) =
       ConfigWizard.withPersistentLevel0(
         dir = builder.dir,
-        mapSize = builder.mapSize,
-        appliedFunctionsMapSize = builder.appliedFunctionsMapSize,
+        logSize = builder.logSize,
+        appliedFunctionsLogSize = builder.appliedFunctionsLogSize,
         clearAppliedFunctionsOnBoot = builder.clearAppliedFunctionsOnBoot,
         mmap = builder.mmap,
         recoveryMode = builder.recoveryMode,

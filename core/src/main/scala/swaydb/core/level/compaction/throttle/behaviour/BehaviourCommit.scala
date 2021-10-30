@@ -21,7 +21,7 @@ import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.data.DefIO
 import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.zero.LevelZero.LevelZeroMap
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.slice.Slice
@@ -92,31 +92,31 @@ protected case object BehaviourCommit extends LazyLogging {
     commit(persisted)
       .and(fromLevel.remove(segments))
 
-  def persistCommitMaps(fromLevel: LevelZero,
-                        maps: List[LevelZeroMap],
+  def persistCommitLogs(fromLevel: LevelZero,
+                        logs: List[LevelZeroLog],
                         mergeResults: Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]]]): IO[Error.Level, Unit] =
     persistCommit(mergeResults)
       .and {
-        maps
+        logs
           .reverse
           .mapRecoverIO {
-            map =>
+            log =>
               fromLevel
-                .maps
-                .removeLast(map)
+                .logs
+                .removeLast(log)
           }.transform(_ => ())
       }
 
-  def commitPersistedMaps(fromLevel: LevelZero,
-                          maps: List[LevelZeroMap],
+  def commitPersistedLogs(fromLevel: LevelZero,
+                          logs: List[LevelZeroLog],
                           mergeResults: Slice[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]]): IO[Error.Level, Unit] =
     commit(mergeResults)
       .and {
-        maps
+        logs
           .reverse
           .mapRecoverIO {
-            map =>
-              fromLevel.maps.removeLast(map)
+            log =>
+              fromLevel.logs.removeLast(log)
           }.transform(_ => ())
       }
 

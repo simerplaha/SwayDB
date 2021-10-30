@@ -40,7 +40,7 @@ object Set extends LazyLogging {
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
-  def apply[A, F <: PureFunction.Set[A], BAG[_]](mapSize: Int = DefaultConfigs.mapSize,
+  def apply[A, F <: PureFunction.Set[A], BAG[_]](logSize: Int = DefaultConfigs.logSize,
                                                  minSegmentSize: Int = DefaultConfigs.segmentSize,
                                                  maxKeyValuesPerSegment: Int = Int.MaxValue,
                                                  fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
@@ -71,8 +71,8 @@ object Set extends LazyLogging {
           compactionConfig = compactionConfig,
           config =
             DefaultMemoryConfig(
-              mapSize = mapSize,
-              appliedFunctionsMapSize = 0, //memory does not use appliedFunctions Map
+              logSize = logSize,
+              appliedFunctionsLogSize = 0, //memory does not use appliedFunctions Map
               clearAppliedFunctionsOnBoot = false,
               minSegmentSize = minSegmentSize,
               maxKeyValuesPerSegment = maxKeyValuesPerSegment,

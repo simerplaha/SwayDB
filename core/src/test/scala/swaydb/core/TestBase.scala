@@ -30,10 +30,10 @@ import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.level.compaction.throttle.ThrottleCompactorCreator
-import swaydb.core.level.zero.LevelZero.LevelZeroMap
-import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
+import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
-import swaydb.core.map.MapEntry
+import swaydb.core.log.LogEntry
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
@@ -91,9 +91,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
   def mmapSegments: MMAP.Segment = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
 
-  def level0MMAP: MMAP.Map = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
+  def level0MMAP: MMAP.Log = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
 
-  def appendixStorageMMAP: MMAP.Map = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
+  def appendixStorageMMAP: MMAP.Log = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
 
   def isWindowsAndMMAPSegments(): Boolean =
     OperatingSystem.isWindows && mmapSegments.mmapReads && mmapSegments.mmapWrites
@@ -165,7 +165,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     else
       Effect.createDirectoriesIfAbsent(randomIntDirectory).resolve(nextSegmentId)
 
-  def testMapFile: Path =
+  def testLogFile: Path =
     if (memory)
       randomIntDirectory.resolve(nextId.toString + ".map")
     else
@@ -189,28 +189,28 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
   override protected def afterEach(): Unit =
     Effect.deleteIfExists(testClassDirPath)
 
-  object TestMap {
+  object TestLog {
     def apply(keyValues: Slice[Memory],
               fileSize: Int = 4.mb,
-              path: Path = testMapFile,
+              path: Path = testLogFile,
               flushOnOverflow: Boolean = false,
-              mmap: MMAP.Map = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+              mmap: MMAP.Log = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                          timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                         sweeper: TestCaseSweeper): LevelZeroMap = {
-      import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+                                                                                         sweeper: TestCaseSweeper): LevelZeroLog = {
+      import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
       import sweeper._
 
       implicit val optimiseWrites = OptimiseWrites.random
       implicit val atomic = Atomic.random
 
-      val testMap =
+      val testLog =
         if (levelStorage.memory)
-          map.Map.memory[Slice[Byte], Memory, LevelZeroMapCache](
+          log.Log.memory[Slice[Byte], Memory, LevelZeroLogCache](
             fileSize = fileSize,
             flushOnOverflow = flushOnOverflow
           )
         else
-          map.Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
+          log.Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
             folder = path,
             mmap = mmap,
             flushOnOverflow = flushOnOverflow,
@@ -219,10 +219,10 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
       keyValues foreach {
         keyValue =>
-          testMap.writeSync(MapEntry.Put(keyValue.key, keyValue))
+          testLog.writeSync(LogEntry.Put(keyValue.key, keyValue))
       }
 
-      testMap.sweep()
+      testLog.sweep()
     }
   }
 
@@ -422,8 +422,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
   object TestLevelZero {
 
     def apply(nextLevel: Option[Level],
-              mapSize: Long = randomIntMax(10.mb),
-              appliedFunctionsMapSize: Long = randomIntMax(1.mb),
+              logSize: Long = randomIntMax(10.mb),
+              appliedFunctionsLogSize: Long = randomIntMax(1.mb),
               clearAppliedFunctionsOnBoot: Boolean = false,
               enableTimer: Boolean = true,
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
@@ -435,8 +435,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       import sweeper._
 
       LevelZero(
-        mapSize = mapSize,
-        appliedFunctionsMapSize = appliedFunctionsMapSize,
+        logSize = logSize,
+        appliedFunctionsLogSize = appliedFunctionsLogSize,
         clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
         storage = level0Storage,
         coreState = CoreState(),

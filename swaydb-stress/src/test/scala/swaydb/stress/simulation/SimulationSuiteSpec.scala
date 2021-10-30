@@ -46,8 +46,8 @@ class Persistent_NonAtomic_SimulationSpec extends SimulationSpec {
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
       atomic = Atomic.Off,
-      //      mmapMaps = MMAP.randomForMap(),
-      //      mmapAppendix = MMAP.randomForMap(),
+      //      mmapLogs = MMAP.randomForMap(),
+      //      mmapAppendixLogs = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
       //      acceleration = Accelerator.brake(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
@@ -62,8 +62,8 @@ class Persistent_Atomic_SimulationSpec extends SimulationSpec {
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
       atomic = Atomic.On,
-      //      mmapMaps = MMAP.randomForMap(),
-      //      mmapAppendix = MMAP.randomForMap(),
+      //      mmapLogs = MMAP.randomForMap(),
+      //      mmapAppendixLogs = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
       //      acceleration = Accelerator.brake(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
@@ -78,8 +78,8 @@ class Memory_NonAtomic_Persistent_SimulationSpec extends SimulationSpec {
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
       atomic = Atomic.Off,
-      //      mmapMaps = MMAP.randomForMap(),
-      //      mmapAppendix = MMAP.randomForMap(),
+      //      mmapLogs = MMAP.randomForMap(),
+      //      mmapAppendixLogs = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
     ).get.sweep(_.delete().get)
@@ -93,8 +93,8 @@ class Memory_Atomic_Persistent_SimulationSpec extends SimulationSpec {
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
       atomic = Atomic.On,
-      //      mmapMaps = MMAP.randomForMap(),
-      //      mmapAppendix = MMAP.randomForMap(),
+      //      mmapLogs = MMAP.randomForMap(),
+      //      mmapAppendixLogs = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
     ).get.sweep(_.delete().get)

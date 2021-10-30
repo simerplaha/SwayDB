@@ -37,7 +37,7 @@ object SetMap extends LazyLogging {
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
-  def apply[K, V, BAG[_]](mapSize: Int = DefaultConfigs.mapSize,
+  def apply[K, V, BAG[_]](logSize: Int = DefaultConfigs.logSize,
                           minSegmentSize: Int = DefaultConfigs.segmentSize,
                           maxKeyValuesPerSegment: Int = Int.MaxValue,
                           fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
@@ -61,7 +61,7 @@ object SetMap extends LazyLogging {
 
       val set =
         Set[(K, V), Nothing, BAG](
-          mapSize = mapSize,
+          logSize = logSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,

@@ -50,12 +50,12 @@ object MultiMap extends LazyLogging {
    * @tparam BAG Effect type
    */
   def apply[M, K, V, F <: PureFunction.Map[K, V], BAG[_]](dir: Path,
-                                                          mapSize: Int = DefaultConfigs.mapSize,
-                                                          appliedFunctionsMapSize: Int = 4.mb,
+                                                          logSize: Int = DefaultConfigs.logSize,
+                                                          appliedFunctionsLogSize: Int = 4.mb,
                                                           clearAppliedFunctionsOnBoot: Boolean = false,
-                                                          mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
+                                                          mmapLogs: MMAP.Log = DefaultConfigs.mmap(),
                                                           recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                                                          mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
+                                                          mmapAppendixLogs: MMAP.Log = DefaultConfigs.mmap(),
                                                           appendixFlushCheckpointSize: Int = 2.mb,
                                                           otherDirs: Seq[Dir] = Seq.empty,
                                                           cacheKeyValueIds: Boolean = true,
@@ -100,12 +100,12 @@ object MultiMap extends LazyLogging {
       val map =
         swaydb.persistent.Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG](
           dir = dir,
-          mapSize = mapSize,
-          appliedFunctionsMapSize = appliedFunctionsMapSize,
+          logSize = logSize,
+          appliedFunctionsLogSize = appliedFunctionsLogSize,
           clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
-          mmapMaps = mmapMaps,
+          mmapLogs = mmapLogs,
           recoveryMode = recoveryMode,
-          mmapAppendix = mmapAppendix,
+          mmapAppendixLogs = mmapAppendixLogs,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs,
           cacheKeyValueIds = cacheKeyValueIds,
@@ -143,7 +143,7 @@ object MultiMap extends LazyLogging {
         map =>
           swaydb.MultiMap.withPersistentCounter(
             path = dir,
-            mmap = mmapMaps,
+            mmap = mmapLogs,
             map = map
           )
       }

@@ -226,7 +226,7 @@ private[swaydb] case object FunctionConverter {
           f(dataKey)
 
         case entry: MultiKey[_, _] =>
-          throw new Exception(s"MapEntry expected but got ${entry.getClass.getName}")
+          throw new Exception(s"LogEntry expected but got ${entry.getClass.getName}")
       }
 
     /**

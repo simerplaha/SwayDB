@@ -17,7 +17,7 @@
 package swaydb.core.level.compaction.task
 
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.zero.LevelZero.LevelZeroMap
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.level.{Level, LevelRef}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.Assignable
@@ -63,11 +63,11 @@ object CompactionTask {
   }
 
   /**
-   * @param maps Should not be in random order.
+   * @param logs Should not be in random order.
    *             Should be in the same order at it's position in [[LevelZero]].
    */
   case class CompactMaps(source: LevelZero,
-                         maps: List[LevelZeroMap],
+                         logs: List[LevelZeroLog],
                          tasks: Iterable[Task[Assignable.Collection]]) extends CompactionTask {
     override def compactingLevels: Iterable[LevelRef] = {
       val buffer = ListBuffer.empty[LevelRef]

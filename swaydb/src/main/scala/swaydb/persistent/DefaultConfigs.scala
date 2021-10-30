@@ -31,13 +31,13 @@ import scala.concurrent.duration._
 object DefaultConfigs {
 
   //4098 being the default file-system blockSize.
-  def mapSize: Int = 8.mb
+  def logSize: Int = 8.mb
 
   def accelerator: LevelZeroMeter => Accelerator =
     Accelerator.brake(
-      increaseMapSizeOnMapCount = 1,
-      increaseMapSizeBy = 1,
-      maxMapSize = mapSize,
+      increaseLogSizeOnMapCount = 1,
+      increaseLogSizeBy = 1,
+      maxLogSize = logSize,
       brakeOnMapCount = 7,
       brakeFor = 1.milliseconds,
       releaseRate = 0.01.millisecond,
@@ -45,7 +45,7 @@ object DefaultConfigs {
     )
 
   def levelZeroThrottle(meter: LevelZeroMeter): LevelZeroThrottle = {
-    val count = meter.mapsCount
+    val count = meter.logsCount
     //when there are more than 4 maps/logs in LevelZero
     //then give LevelZero highest priority.
     //This will compact all LevelZero maps at once.
@@ -58,7 +58,7 @@ object DefaultConfigs {
 
     LevelZeroThrottle(
       compactionDelay = delay,
-      mapsToCompact = 10
+      logsToCompact = 10
     )
   }
 

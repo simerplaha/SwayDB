@@ -42,10 +42,10 @@ import scala.jdk.CollectionConverters._
 object PersistentSetMap {
 
   final class Config[K, V](dir: Path,
-                           private var mapSize: Int = DefaultConfigs.mapSize,
-                           private var mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
+                           private var logSize: Int = DefaultConfigs.logSize,
+                           private var mmapLogs: MMAP.Log = DefaultConfigs.mmap(),
                            private var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                           private var mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
+                           private var mmapAppendixLogs: MMAP.Log = DefaultConfigs.mmap(),
                            private var appendixFlushCheckpointSize: Int = 2.mb,
                            private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                            private var cacheKeyValueIds: Boolean = true,
@@ -74,8 +74,8 @@ object PersistentSetMap {
                            keySerializer: Serializer[K],
                            valueSerializer: Serializer[V]) {
 
-    def setMapSize(mapSize: Int) = {
-      this.mapSize = mapSize
+    def setLogSize(logSize: Int) = {
+      this.logSize = logSize
       this
     }
 
@@ -94,8 +94,8 @@ object PersistentSetMap {
       this
     }
 
-    def setMmapMaps(mmapMaps: MMAP.Map) = {
-      this.mmapMaps = mmapMaps
+    def setMmapMaps(mmapLogs: MMAP.Log) = {
+      this.mmapLogs = mmapLogs
       this
     }
 
@@ -104,8 +104,8 @@ object PersistentSetMap {
       this
     }
 
-    def setMmapAppendix(mmapAppendix: MMAP.Map) = {
-      this.mmapAppendix = mmapAppendix
+    def setMmapAppendix(mmapAppendixLogs: MMAP.Log) = {
+      this.mmapAppendixLogs = mmapAppendixLogs
       this
     }
 
@@ -232,10 +232,10 @@ object PersistentSetMap {
       val scalaMap =
         swaydb.persistent.SetMap[K, V, Glass](
           dir = dir,
-          mapSize = mapSize,
-          mmapMaps = mmapMaps,
+          logSize = logSize,
+          mmapLogs = mmapLogs,
           recoveryMode = recoveryMode,
-          mmapAppendix = mmapAppendix,
+          mmapAppendixLogs = mmapAppendixLogs,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,

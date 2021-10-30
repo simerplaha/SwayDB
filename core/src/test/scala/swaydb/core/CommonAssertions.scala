@@ -27,10 +27,10 @@ import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{KeyValue, Memory, Value, _}
 import swaydb.core.io.reader.{FileReader, Reader}
-import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
+import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
-import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSerializer}
-import swaydb.core.map.{MapEntry, Maps}
+import swaydb.core.log.serializer.{LogEntryWriter, RangeValueSerializer, ValueSerializer}
+import swaydb.core.log.{LogEntry, Logs}
 import swaydb.core.merge._
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
@@ -300,16 +300,16 @@ object CommonAssertions {
                           oldKeyValues: Iterable[KeyValue],
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): Iterable[Memory] = {
-    import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0MapEntryPutWriter
+    import swaydb.core.log.serializer.LevelZeroLogEntryWriter.Level0LogEntryPutWriter
     implicit val optimiseWrites: OptimiseWrites = OptimiseWrites.random
     implicit val atomic: Atomic = Atomic.random
-    val cache = LevelZeroMapCache.builder.create()
+    val cache = LevelZeroLogCache.builder.create()
     (oldKeyValues ++ newKeyValues).map(_.toMemory()) foreach {
       memory =>
         //        if (randomBoolean())
-        //          cache.writeNonAtomic(MapEntry.Put(memory.key, memory))
+        //          cache.writeNonAtomic(LogEntry.Put(memory.key, memory))
         //        else
-        cache.writeAtomic(MapEntry.Put(memory.key, memory))
+        cache.writeAtomic(LogEntry.Put(memory.key, memory))
     }
 
     val cachedKeyValues = cache.skipList.values()
@@ -491,21 +491,21 @@ object CommonAssertions {
     def shouldBe(expected: Iterator[KeyValue]): Unit =
       actual shouldBe expected.toList
 
-    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]]) =
+    def toLogEntry(implicit serializer: LogEntryWriter[LogEntry.Put[Slice[Byte], Memory]]) =
     //LevelZero does not write Groups therefore this unzip is required.
-      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
-        case (mapEntry, keyValue) =>
-          val newEntry = MapEntry.Put[Slice[Byte], Memory](keyValue.key, keyValue.toMemory())
-          mapEntry.map(_ ++ newEntry) orElse Some(newEntry)
+      actual.foldLeft(Option.empty[LogEntry[Slice[Byte], Memory]]) {
+        case (logEntry, keyValue) =>
+          val newEntry = LogEntry.Put[Slice[Byte], Memory](keyValue.key, keyValue.toMemory())
+          logEntry.map(_ ++ newEntry) orElse Some(newEntry)
       }
   }
 
   implicit class MemoryImplicits(actual: Iterable[Memory]) {
-    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]]) =
-      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
-        case (mapEntry, keyValue) =>
-          val newEntry = MapEntry.Put[Slice[Byte], Memory](keyValue.key, keyValue)
-          mapEntry.map(_ ++ newEntry) orElse Some(newEntry)
+    def toLogEntry(implicit serializer: LogEntryWriter[LogEntry.Put[Slice[Byte], Memory]]) =
+      actual.foldLeft(Option.empty[LogEntry[Slice[Byte], Memory]]) {
+        case (logEntry, keyValue) =>
+          val newEntry = LogEntry.Put[Slice[Byte], Memory](keyValue.key, keyValue)
+          logEntry.map(_ ++ newEntry) orElse Some(newEntry)
       }
 
     def toPersistentMergeBuilder: MergeStats.Persistent.Builder[Memory, ListBuffer] =
@@ -634,22 +634,22 @@ object CommonAssertions {
       }
   }
 
-  implicit class MapEntryImplicits(actual: MapEntry[Slice[Byte], Memory]) {
+  implicit class LogEntryImplicits(actual: LogEntry[Slice[Byte], Memory]) {
 
-    def shouldBe(expected: MapEntry[Slice[Byte], Memory]): Unit = {
+    def shouldBe(expected: LogEntry[Slice[Byte], Memory]): Unit = {
       actual.entryBytesSize shouldBe expected.entryBytesSize
       actual.totalByteSize shouldBe expected.totalByteSize
       actual match {
-        case MapEntry.Put(key, value) =>
-          val exp = expected.asInstanceOf[MapEntry.Put[Slice[Byte], Memory]]
+        case LogEntry.Put(key, value) =>
+          val exp = expected.asInstanceOf[LogEntry.Put[Slice[Byte], Memory]]
           key shouldBe exp.key
           value shouldBe exp.value
 
-        case MapEntry.Remove(key) =>
-          val exp = expected.asInstanceOf[MapEntry.Remove[Slice[Byte]]]
+        case LogEntry.Remove(key) =>
+          val exp = expected.asInstanceOf[LogEntry.Remove[Slice[Byte]]]
           key shouldBe exp.key
 
-        case batch: MapEntry.Batch[Slice[Byte], Memory] => //MapEntry is a batch of other MapEntries, iterate and assert.
+        case batch: LogEntry.Batch[Slice[Byte], Memory] => //LogEntry is a batch of other MapEntries, iterate and assert.
           expected.entries.size shouldBe batch.entries.size
           expected.entries.zip(batch.entries) foreach {
             case (expected, actual) =>
@@ -659,9 +659,9 @@ object CommonAssertions {
     }
   }
 
-  implicit class SegmentsPersistentMapImplicits(actual: MapEntry[Slice[Byte], Segment]) {
+  implicit class SegmentsPersistentMapImplicits(actual: LogEntry[Slice[Byte], Segment]) {
 
-    def shouldBe(expected: MapEntry[Slice[Byte], Segment]): Unit = {
+    def shouldBe(expected: LogEntry[Slice[Byte], Segment]): Unit = {
       actual.entryBytesSize shouldBe expected.entryBytesSize
 
       val actualMap = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
@@ -1889,7 +1889,7 @@ object CommonAssertions {
         }
     }
 
-  implicit class MapsImplicit[OK, OV, K <: OK, V <: OV](maps: Maps[K, V, _]) {
+  implicit class LogsImplicit[OK, OV, K <: OK, V <: OV](logs: Logs[K, V, _]) {
 
     /**
      * Manages closing of Map accouting for Windows where
@@ -1898,9 +1898,9 @@ object CommonAssertions {
     def ensureClose(): Unit = {
       implicit val ec = TestExecutionContext.executionContext
       implicit val bag = Bag.future
-      maps.close().value
-      maps.bufferCleaner.actor.receiveAllForce[Glass, Unit](_ => ())
-      (maps.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)
+      logs.close().value
+      logs.bufferCleaner.actor.receiveAllForce[Glass, Unit](_ => ())
+      (logs.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)
     }
   }
 

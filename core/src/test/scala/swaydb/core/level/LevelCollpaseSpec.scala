@@ -218,7 +218,7 @@ sealed trait LevelCollapseSpec extends TestBase {
         val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
         val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
-        val maps = TestMap(keyValues)
+        val maps = TestLog(keyValues)
         level.putMap(maps).get
 
         val nextLevel = TestLevel()

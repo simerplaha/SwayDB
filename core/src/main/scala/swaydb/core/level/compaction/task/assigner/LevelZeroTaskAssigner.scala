@@ -23,7 +23,7 @@ import swaydb.core.level.Level
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.level.compaction.task.CompactionTask.CompactMaps
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.zero.LevelZero.LevelZeroMap
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
@@ -51,7 +51,7 @@ case object LevelZeroTaskAssigner {
    */
   case class Stack(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
-                   stack: ListBuffer[Either[LevelZeroMap, Iterable[Memory]]])
+                   stack: ListBuffer[Either[LevelZeroLog, Iterable[Memory]]])
 
   def run(source: LevelZero,
           pushStrategy: PushStrategy,
@@ -67,8 +67,8 @@ case object LevelZeroTaskAssigner {
 
     val mapsToCompact =
       List
-        .from(source.maps.compactionIterator())
-        .takeRight(source.mapsToCompact)
+        .from(source.logs.compactionIterator())
+        .takeRight(source.logsToCompact)
 
     flatten(mapsToCompact)
       .map {
@@ -84,13 +84,13 @@ case object LevelZeroTaskAssigner {
         tasks =>
           CompactionTask.CompactMaps(
             source = source,
-            maps = mapsToCompact,
+            logs = mapsToCompact,
             tasks = tasks
           )
       }
   }
 
-  def flatten(input: IterableOnce[LevelZeroMap])(implicit ec: ExecutionContext,
+  def flatten(input: IterableOnce[LevelZeroLog])(implicit ec: ExecutionContext,
                                                  keyOrder: KeyOrder[Slice[Byte]],
                                                  timerOrder: TimeOrder[Slice[Byte]],
                                                  functionStore: FunctionStore,
@@ -119,20 +119,20 @@ case object LevelZeroTaskAssigner {
     }
 
   /**
-   * Distributes [[LevelZeroMap]]s key-values among themselves
+   * Distributes [[LevelZeroLog]]s key-values among themselves
    * to flatten the entire [[LevelZero]] so that it behaves like it was
    * a single [[Level]] without any conflicting key-values.
    *
-   * This function does not perform any iterations on [[LevelZeroMap]]'s
+   * This function does not perform any iterations on [[LevelZeroLog]]'s
    * key-values. It assigns based on the Map's head and last key-values.
    *
    * The resulting [[Stack]] will contains stacks
-   * that can be merged concurrently before compacting [[LevelZeroMap]]s
+   * that can be merged concurrently before compacting [[LevelZeroLog]]s
    * onto lower [[Level]].
    *
-   * @param input The [[LevelZeroMap]]s from [[LevelZero]] to compact.
+   * @param input The [[LevelZeroLog]]s from [[LevelZero]] to compact.
    */
-  def createStacks(input: IterableOnce[LevelZeroMap])(implicit keyOrder: KeyOrder[Slice[Byte]]): util.TreeMap[Slice[Byte], Stack] = {
+  def createStacks(input: IterableOnce[LevelZeroLog])(implicit keyOrder: KeyOrder[Slice[Byte]]): util.TreeMap[Slice[Byte], Stack] = {
     val stacks = new util.TreeMap[Slice[Byte], Stack](keyOrder)
 
     for (inputMap <- input)
@@ -147,7 +147,7 @@ case object LevelZeroTaskAssigner {
   /**
    * @see [[createStacks]]'s function doc.
    */
-  private def distributeMap(inputMap: LevelZeroMap,
+  private def distributeMap(inputMap: LevelZeroLog,
                             stacks: util.NavigableMap[Slice[Byte], Stack])(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
     import keyOrder._
     //builds a list of key-values that need to be merged
@@ -208,7 +208,7 @@ case object LevelZeroTaskAssigner {
         var minKey: Slice[Byte] = null
         var maxKey: MaxKey[Slice[Byte]] = null
         //overlapping existing stacks to join to form a single CompactionLevelZeroStack
-        val joinedStack = ListBuffer.empty[Either[LevelZeroMap, Iterable[Memory]]]
+        val joinedStack = ListBuffer.empty[Either[LevelZeroLog, Iterable[Memory]]]
 
         overlappingExistingMaps.values().iterator() forEachRemaining {
           stack =>
@@ -306,7 +306,7 @@ case object LevelZeroTaskAssigner {
     }
   }
 
-  private def getKeyValues(either: Either[LevelZeroMap, Iterable[Memory]]): Iterator[Memory] =
+  private def getKeyValues(either: Either[LevelZeroLog, Iterable[Memory]]): Iterator[Memory] =
     either match {
       case Left(zeroMap) =>
         zeroMap.cache.valuesIterator()
@@ -318,7 +318,7 @@ case object LevelZeroTaskAssigner {
   /**
    * Merges all input collections to form a single collection.
    */
-  def mergeStack(stack: Iterable[Either[LevelZeroMap, Iterable[Memory]]])(implicit ec: ExecutionContext,
+  def mergeStack(stack: Iterable[Either[LevelZeroLog, Iterable[Memory]]])(implicit ec: ExecutionContext,
                                                                           keyOrder: KeyOrder[Slice[Byte]],
                                                                           timerOrder: TimeOrder[Slice[Byte]],
                                                                           functionStore: FunctionStore,

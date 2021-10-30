@@ -106,7 +106,7 @@
 //
 //  var level =
 //    TestLevelZero(
-//      mapSize = 8.mb,
+//      logSize = 8.mb,
 //      nextLevel = None
 //    )
 //

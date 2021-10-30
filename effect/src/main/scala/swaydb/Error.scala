@@ -31,7 +31,7 @@ protected sealed trait Error {
 object Error {
 
   sealed trait Level extends Error
-  sealed trait Map extends Level
+  sealed trait Log extends Level
   sealed trait Segment extends Level
 
   /**
@@ -40,7 +40,7 @@ object Error {
   sealed trait Boot extends Error
   sealed trait Delete extends Level
   sealed trait Close extends Delete
-  sealed trait IO extends Segment with Map with Close
+  sealed trait IO extends Segment with Log with Close
   sealed trait API extends Error
 
   object Segment {
@@ -93,21 +93,21 @@ object Error {
     }
   }
 
-  object Map {
-    implicit object ExceptionHandler extends RecoverableExceptionHandler[Error.Map] {
-      override def toException(f: Error.Map): Throwable =
+  object Log {
+    implicit object ExceptionHandler extends RecoverableExceptionHandler[Error.Log] {
+      override def toException(f: Error.Log): Throwable =
         f.exception
 
-      override def toError(e: Throwable): Error.Map =
+      override def toError(e: Throwable): Error.Log =
         Error(e) match {
-          case segment: Error.Map =>
+          case segment: Error.Log =>
             segment
 
           case error: Error =>
             Error.Fatal(error.exception)
         }
 
-      override def recoverFrom(f: Error.Map): Option[Reserve[Unit]] =
+      override def recoverFrom(f: Error.Log): Option[Reserve[Unit]] =
         f match {
           case recoverable: Error.Recoverable =>
             Some(recoverable.reserve)
@@ -426,7 +426,7 @@ object Error {
       with Error.IO
       with Error.Segment
       with Error.Level
-      with Error.Map
+      with Error.Log
       with Error.Close
       with Error.Delete
 

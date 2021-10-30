@@ -20,8 +20,8 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 
 class NoBrakesBuilder {
   private var onMapCount: Int = _
-  private var increaseMapSizeBy: Int = _
-  private var maxMapSize: Long = _
+  private var increaseLogSizeBy: Int = _
+  private var maxLogSize: Long = _
 }
 
 object NoBrakesBuilder {
@@ -34,15 +34,15 @@ object NoBrakesBuilder {
   }
 
   class Step1(builder: NoBrakesBuilder) {
-    def increaseMapSizeBy(increaseMapSizeBy: Int) = {
-      builder.increaseMapSizeBy = increaseMapSizeBy
+    def increaseLogSizeBy(increaseLogSizeBy: Int) = {
+      builder.increaseLogSizeBy = increaseLogSizeBy
       new Step2(builder)
     }
   }
 
   class Step2(builder: NoBrakesBuilder) {
-    def maxMapSize(maxMapSize: Long) = {
-      builder.maxMapSize = maxMapSize
+    def maxLogSize(maxLogSize: Long) = {
+      builder.maxLogSize = maxLogSize
       new Step3(builder)
     }
   }
@@ -51,8 +51,8 @@ object NoBrakesBuilder {
     def level0Meter(level0Meter: LevelZeroMeter) =
       Accelerator.noBrakes(
         onMapCount = builder.onMapCount,
-        increaseMapSizeBy = builder.increaseMapSizeBy,
-        maxMapSize = builder.maxMapSize
+        increaseLogSizeBy = builder.increaseLogSizeBy,
+        maxLogSize = builder.maxLogSize
       )(level0Meter)
   }
 

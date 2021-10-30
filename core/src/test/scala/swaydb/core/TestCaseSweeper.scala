@@ -22,8 +22,8 @@ import swaydb.core.TestSweeper._
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.io.CompactionIO
-import swaydb.core.map.Maps
-import swaydb.core.map.counter.CounterMap
+import swaydb.core.log.{Log, Logs}
+import swaydb.core.log.counter.CounterLog
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
@@ -67,7 +67,7 @@ object TestCaseSweeper extends LazyLogging {
       levels = ListBuffer.empty,
       segments = ListBuffer.empty,
       mapFiles = ListBuffer.empty,
-      maps = ListBuffer.empty,
+      logs = ListBuffer.empty,
       dbFiles = ListBuffer.empty,
       paths = ListBuffer.empty,
       actors = ListBuffer.empty,
@@ -94,7 +94,7 @@ object TestCaseSweeper extends LazyLogging {
     //CLOSE - close everything first so that Actors sweepers get populated with Clean messages
     sweeper.dbFiles.foreach(_.close())
     sweeper.mapFiles.foreach(_.close())
-    sweeper.maps.foreach(_.delete().get)
+    sweeper.logs.foreach(_.delete().get)
     sweeper.segments.foreach(_.close)
     sweeper.levels.foreach(_.close[Glass]())
     sweeper.counters.foreach(_.close)
@@ -170,14 +170,14 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepSegment segment
   }
 
-  implicit class TestMapFilesSweeperImplicits[M <: swaydb.core.map.Map[_, _, _]](map: M) {
+  implicit class TestMapFilesSweeperImplicits[M <: Log[_, _, _]](map: M) {
     def sweep()(implicit sweeper: TestCaseSweeper): M =
-      sweeper sweepMap map
+      sweeper sweepLog map
   }
 
-  implicit class TestMapsSweeperImplicits[M <: swaydb.core.map.Maps[_, _, _]](map: M) {
+  implicit class TestMapsSweeperImplicits[M <: Logs[_, _, _]](map: M) {
     def sweep()(implicit sweeper: TestCaseSweeper): M =
-      sweeper sweepMaps map
+      sweeper sweepLogs map
   }
 
   implicit class TestLevelPathSweeperImplicits(path: Path) {
@@ -235,7 +235,7 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepActor actor
   }
 
-  implicit class CountersSweeperImplicits[C <: CounterMap](counter: C) {
+  implicit class CountersSweeperImplicits[C <: CounterLog](counter: C) {
     def sweep()(implicit sweeper: TestCaseSweeper): C =
       sweeper sweepCounter counter
   }
@@ -276,13 +276,13 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
                       private val schedulers: ListBuffer[CacheNoIO[Unit, Scheduler]],
                       private val levels: ListBuffer[LevelRef],
                       private val segments: ListBuffer[Segment],
-                      private val mapFiles: ListBuffer[map.Map[_, _, _]],
-                      private val maps: ListBuffer[Maps[_, _, _]],
+                      private val mapFiles: ListBuffer[Log[_, _, _]],
+                      private val logs: ListBuffer[Logs[_, _, _]],
                       private val dbFiles: ListBuffer[DBFile],
                       private val paths: ListBuffer[Path],
                       private val actors: ListBuffer[ActorRef[_, _]],
                       private val defActors: ListBuffer[DefActor[_]],
-                      private val counters: ListBuffer[CounterMap],
+                      private val counters: ListBuffer[CounterLog],
                       private val functions: ListBuffer[() => Unit]) {
 
 
@@ -312,14 +312,14 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
     segment
   }
 
-  def sweepMap[M <: swaydb.core.map.Map[_, _, _]](map: M): M = {
+  def sweepLog[M <: Log[_, _, _]](map: M): M = {
     mapFiles += map
     map
   }
 
-  def sweepMaps[M <: Maps[_, _, _]](maps: M): M = {
-    this.maps += maps
-    maps
+  def sweepLogs[M <: Logs[_, _, _]](logs: M): M = {
+    this.logs += logs
+    logs
   }
 
   def sweepPath(path: Path): Path = {
@@ -387,7 +387,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
     actor
   }
 
-  def sweepCounter[C <: CounterMap](counter: C): C = {
+  def sweepCounter[C <: CounterLog](counter: C): C = {
     counters += counter
     counter
   }

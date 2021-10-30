@@ -45,8 +45,8 @@ object MultiMap extends LazyLogging {
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
   def apply[M, K, V, F <: PureFunction.Map[K, V], BAG[_]](dir: Path,
-                                                          mapSize: Int = DefaultConfigs.mapSize,
-                                                          appliedFunctionsMapSize: Int = 4.mb,
+                                                          logSize: Int = DefaultConfigs.logSize,
+                                                          appliedFunctionsLogSize: Int = 4.mb,
                                                           clearAppliedFunctionsOnBoot: Boolean = false,
                                                           maxMemoryLevelSize: Int = 100.mb,
                                                           maxSegmentsToPush: Int = 5,
@@ -55,7 +55,7 @@ object MultiMap extends LazyLogging {
                                                           persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                                                           otherDirs: Seq[Dir] = Seq.empty,
                                                           cacheKeyValueIds: Boolean = true,
-                                                          mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
+                                                          mmapPersistentLevelAppendixLogs: MMAP.Log = DefaultConfigs.mmap(),
                                                           memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                                                           compactionConfig: CompactionConfig = CommonConfigs.compactionConfig(),
                                                           optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
@@ -92,8 +92,8 @@ object MultiMap extends LazyLogging {
       val map =
         swaydb.eventually.persistent.Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG](
           dir = dir,
-          mapSize = mapSize,
-          appliedFunctionsMapSize = appliedFunctionsMapSize,
+          logSize = logSize,
+          appliedFunctionsLogSize = appliedFunctionsLogSize,
           clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
           maxMemoryLevelSize = maxMemoryLevelSize,
           maxSegmentsToPush = maxSegmentsToPush,
@@ -102,7 +102,7 @@ object MultiMap extends LazyLogging {
           persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
           otherDirs = otherDirs,
           cacheKeyValueIds = cacheKeyValueIds,
-          mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
+          mmapPersistentLevelAppendixLogs = mmapPersistentLevelAppendixLogs,
           memorySegmentDeleteDelay = memorySegmentDeleteDelay,
           compactionConfig = compactionConfig,
           optimiseWrites = optimiseWrites,
@@ -131,7 +131,7 @@ object MultiMap extends LazyLogging {
         map =>
           swaydb.MultiMap.withPersistentCounter(
             path = dir,
-            mmap = mmapPersistentLevelAppendix,
+            mmap = mmapPersistentLevelAppendixLogs,
             map = map
           )
       }

@@ -23,9 +23,9 @@ import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration.FiniteDuration
 
 class BrakeBuilder {
-  private var increaseMapSizeOnMapCount: Int = _
-  private var increaseMapSizeBy: Int = _
-  private var maxMapSize: Long = _
+  private var increaseLogSizeOnMapCount: Int = _
+  private var increaseLogSizeBy: Int = _
+  private var maxLogSize: Long = _
   private var brakeOnMapCount: Int = _
   private var brakeFor: FiniteDuration = _
   private var releaseRate: FiniteDuration = _
@@ -35,22 +35,22 @@ class BrakeBuilder {
 object BrakeBuilder {
 
   class Step0(builder: BrakeBuilder) {
-    def increaseMapSizeOnMapCount(increaseMapSizeOnMapCount: Int) = {
-      builder.increaseMapSizeOnMapCount = increaseMapSizeOnMapCount
+    def increaseLogSizeOnMapCount(increaseLogSizeOnMapCount: Int) = {
+      builder.increaseLogSizeOnMapCount = increaseLogSizeOnMapCount
       new Step1(builder)
     }
   }
 
   class Step1(builder: BrakeBuilder) {
-    def increaseMapSizeBy(increaseMapSizeBy: Int) = {
-      builder.increaseMapSizeBy = increaseMapSizeBy
+    def increaseLogSizeBy(increaseLogSizeBy: Int) = {
+      builder.increaseLogSizeBy = increaseLogSizeBy
       new Step2(builder)
     }
   }
 
   class Step2(builder: BrakeBuilder) {
-    def maxMapSize(maxMapSize: Long) = {
-      builder.maxMapSize = maxMapSize
+    def maxLogSize(maxLogSize: Long) = {
+      builder.maxLogSize = maxLogSize
       new Step3(builder)
     }
   }
@@ -86,9 +86,9 @@ object BrakeBuilder {
   class Step7(builder: BrakeBuilder) {
     def levelZeroMeter(levelZeroMeter: LevelZeroMeter) =
       Accelerator.brake(
-        increaseMapSizeOnMapCount = builder.increaseMapSizeOnMapCount,
-        increaseMapSizeBy = builder.increaseMapSizeBy,
-        maxMapSize = builder.maxMapSize,
+        increaseLogSizeOnMapCount = builder.increaseLogSizeOnMapCount,
+        increaseLogSizeBy = builder.increaseLogSizeBy,
+        maxLogSize = builder.maxLogSize,
         brakeOnMapCount = builder.brakeOnMapCount,
         brakeFor = builder.brakeFor,
         releaseRate = builder.releaseRate,

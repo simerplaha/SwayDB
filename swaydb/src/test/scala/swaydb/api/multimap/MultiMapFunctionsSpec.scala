@@ -39,7 +39,7 @@ class MultiMapFunctionsSpec0 extends MultiMapFunctionsSpec {
 class MultiMapFunctionsSpec1 extends MultiMapFunctionsSpec {
   override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
                        sweeper: TestCaseSweeper) =
-    swaydb.persistent.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](dir = randomDir, mapSize = 1.byte).sweep(_.delete())
+    swaydb.persistent.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](dir = randomDir, logSize = 1.byte).sweep(_.delete())
 }
 
 class MultiMapFunctionsSpec2 extends MultiMapFunctionsSpec {
@@ -51,7 +51,7 @@ class MultiMapFunctionsSpec2 extends MultiMapFunctionsSpec {
 class MultiMapFunctionsSpec3 extends MultiMapFunctionsSpec {
   override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
                        sweeper: TestCaseSweeper) =
-    swaydb.memory.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](mapSize = 1.byte).sweep(_.delete())
+    swaydb.memory.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](logSize = 1.byte).sweep(_.delete())
 }
 
 sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {

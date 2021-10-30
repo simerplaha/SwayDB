@@ -20,7 +20,7 @@ import swaydb.PureFunctionScala._
 import swaydb.{Glass, _}
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.map.applied.AppliedFunctionsMap
+import swaydb.core.log.applied.AppliedFunctionsLog
 import swaydb.core.util.Benchmark
 import swaydb.data.Functions
 import swaydb.serializers.Default._
@@ -70,7 +70,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
               val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Glass](dir).sweep(_.delete())
 
               Files.exists(dir) shouldBe true
-              Files.exists(dir.resolve(AppliedFunctionsMap.folderName).resolve("0.log")) shouldBe true
+              Files.exists(dir.resolve(AppliedFunctionsLog.folderName).resolve("0.log")) shouldBe true
 
               map.clearAppliedFunctions().size shouldBe 0
           }

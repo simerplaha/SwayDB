@@ -32,7 +32,7 @@ import swaydb.core.io.file.DBFile
 import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.zero.LevelZero.LevelZeroMap
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.level.{Level, NextLevel, PathsDistributor}
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.merge.{KeyValueGrouper, KeyValueMerger}
@@ -259,7 +259,7 @@ object TestData {
       }
     }
 
-    def putMap(map: LevelZeroMap)(implicit sweeper: TestCaseSweeper,
+    def putMap(map: LevelZeroLog)(implicit sweeper: TestCaseSweeper,
                                   compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors(),
                                   compactionActor: CompactionIO.Actor): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
@@ -320,7 +320,7 @@ object TestData {
             LevelStorage.Persistent(
               dir = level.pathDistributor.headPath,
               otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1)),
-              appendixMMAP = MMAP.randomForMap(),
+              appendixMMAP = MMAP.randomForLog(),
               appendixFlushCheckpointSize = 4.mb
             ),
           nextLevel = nextLevel,
@@ -332,13 +332,13 @@ object TestData {
 
   implicit class ReopenLevelZero(level: LevelZero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) {
 
-    import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+    import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
 
     def reopen(implicit sweeper: TestCaseSweeper): LevelZero =
       reopen()
 
-    def reopen(mapSize: Long = level.maps.map.fileSize,
-               appliedFunctionsMapSize: Long = level.appliedFunctionsMap.map(_.fileSize).getOrElse(0),
+    def reopen(logSize: Long = level.logs.log.fileSize,
+               appliedFunctionsLogSize: Long = level.appliedFunctionsMap.map(_.fileSize).getOrElse(0),
                clearAppliedFunctionsOnBoot: Boolean = false)(implicit timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                              sweeper: TestCaseSweeper): LevelZero = {
 
@@ -356,8 +356,8 @@ object TestData {
                 implicit val atomic: Atomic = Atomic.random
 
                 LevelZero(
-                  mapSize = mapSize,
-                  appliedFunctionsMapSize = appliedFunctionsMapSize,
+                  logSize = logSize,
+                  appliedFunctionsLogSize = appliedFunctionsLogSize,
                   clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
                   storage =
                     Level0Storage.Persistent(
@@ -381,7 +381,7 @@ object TestData {
       if (keyValues.isEmpty)
         IO.unit
       else
-        keyValues.toMapEntry match {
+        keyValues.toLogEntry match {
           case Some(value) =>
             IO {
               level
@@ -1950,7 +1950,7 @@ object TestData {
       else
         MMAP.Off(TestForceSave.channel())
 
-    def randomForMap(): MMAP.Map =
+    def randomForLog(): MMAP.Log =
       if (Random.nextBoolean())
         MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
       else

@@ -40,18 +40,18 @@ object ConfigWizard {
     PersistentLevelZeroConfigBuilder.builder()
 
   def withPersistentLevel0(dir: Path,
-                           mapSize: Long,
-                           appliedFunctionsMapSize: Long,
+                           logSize: Long,
+                           appliedFunctionsLogSize: Long,
                            clearAppliedFunctionsOnBoot: Boolean,
-                           mmap: MMAP.Map,
+                           mmap: MMAP.Log,
                            recoveryMode: RecoveryMode,
                            optimiseWrites: OptimiseWrites,
                            atomic: Atomic,
                            acceleration: LevelZeroMeter => Accelerator,
                            throttle: LevelZeroMeter => LevelZeroThrottle): PersistentLevelZeroConfig =
     PersistentLevelZeroConfig(
-      mapSize = mapSize,
-      appliedFunctionsMapSize = appliedFunctionsMapSize,
+      logSize = logSize,
+      appliedFunctionsLogSize = appliedFunctionsLogSize,
       clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
       storage = Level0Storage.Persistent(mmap, dir, recoveryMode),
       optimiseWrites = optimiseWrites,
@@ -63,16 +63,16 @@ object ConfigWizard {
   def withMemoryLevelZero(): PersistentLevelZeroConfigBuilder.Step0 =
     PersistentLevelZeroConfigBuilder.builder()
 
-  def withMemoryLevel0(mapSize: Long,
-                       appliedFunctionsMapSize: Long,
+  def withMemoryLevel0(logSize: Long,
+                       appliedFunctionsLogSize: Long,
                        clearAppliedFunctionsOnBoot: Boolean,
                        optimiseWrites: OptimiseWrites,
                        atomic: Atomic,
                        acceleration: LevelZeroMeter => Accelerator,
                        throttle: LevelZeroMeter => LevelZeroThrottle): MemoryLevelZeroConfig =
     MemoryLevelZeroConfig(
-      mapSize = mapSize,
-      appliedFunctionsMapSize = appliedFunctionsMapSize,
+      logSize = logSize,
+      appliedFunctionsLogSize = appliedFunctionsLogSize,
       clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
       storage = Level0Storage.Memory,
       optimiseWrites = optimiseWrites,
@@ -83,8 +83,8 @@ object ConfigWizard {
 }
 
 sealed trait LevelZeroConfig {
-  val mapSize: Long
-  val appliedFunctionsMapSize: Long
+  val logSize: Long
+  val appliedFunctionsLogSize: Long
   val clearAppliedFunctionsOnBoot: Boolean
   val storage: Level0Storage
   val optimiseWrites: OptimiseWrites
@@ -99,8 +99,8 @@ object PersistentLevelZeroConfig {
     PersistentLevelZeroConfigBuilder.builder()
 }
 
-case class PersistentLevelZeroConfig private(mapSize: Long,
-                                             appliedFunctionsMapSize: Long,
+case class PersistentLevelZeroConfig private(logSize: Long,
+                                             appliedFunctionsLogSize: Long,
                                              clearAppliedFunctionsOnBoot: Boolean,
                                              storage: Level0Storage,
                                              optimiseWrites: OptimiseWrites,
@@ -109,7 +109,7 @@ case class PersistentLevelZeroConfig private(mapSize: Long,
                                              throttle: LevelZeroMeter => LevelZeroThrottle) extends LevelZeroConfig {
   def withPersistentLevel1(dir: Path,
                            otherDirs: Seq[Dir],
-                           mmapAppendix: MMAP.Map,
+                           mmapAppendixLogs: MMAP.Log,
                            appendixFlushCheckpointSize: Long,
                            sortedKeyIndex: SortedKeyIndex,
                            randomSearchIndex: RandomSearchIndex,
@@ -124,7 +124,7 @@ case class PersistentLevelZeroConfig private(mapSize: Long,
         PersistentLevelConfig(
           dir = dir,
           otherDirs = otherDirs,
-          mmapAppendix = mmapAppendix,
+          mmapAppendixLogs = mmapAppendixLogs,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           sortedKeyIndex = sortedKeyIndex,
           randomSearchIndex = randomSearchIndex,
@@ -173,8 +173,8 @@ object MemoryLevelZeroConfig {
     MemoryLevelZeroConfigBuilder.builder()
 }
 
-case class MemoryLevelZeroConfig(mapSize: Long,
-                                 appliedFunctionsMapSize: Long,
+case class MemoryLevelZeroConfig(logSize: Long,
+                                 appliedFunctionsLogSize: Long,
                                  clearAppliedFunctionsOnBoot: Boolean,
                                  storage: Level0Storage,
                                  optimiseWrites: OptimiseWrites,
@@ -184,7 +184,7 @@ case class MemoryLevelZeroConfig(mapSize: Long,
 
   def withPersistentLevel1(dir: Path,
                            otherDirs: Seq[Dir],
-                           mmapAppendix: MMAP.Map,
+                           mmapAppendixLogs: MMAP.Log,
                            appendixFlushCheckpointSize: Long,
                            sortedKeyIndex: SortedKeyIndex,
                            randomSearchIndex: RandomSearchIndex,
@@ -199,7 +199,7 @@ case class MemoryLevelZeroConfig(mapSize: Long,
         PersistentLevelConfig(
           dir = dir,
           otherDirs = otherDirs,
-          mmapAppendix = mmapAppendix,
+          mmapAppendixLogs = mmapAppendixLogs,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           sortedKeyIndex = sortedKeyIndex,
           randomSearchIndex = randomSearchIndex,
@@ -275,7 +275,7 @@ object PersistentLevelConfig {
 
 case class PersistentLevelConfig(dir: Path,
                                  otherDirs: Seq[Dir],
-                                 mmapAppendix: MMAP.Map,
+                                 mmapAppendixLogs: MMAP.Log,
                                  appendixFlushCheckpointSize: Long,
                                  sortedKeyIndex: SortedKeyIndex,
                                  randomSearchIndex: RandomSearchIndex,
@@ -293,8 +293,8 @@ case class PersistentLevelConfig(dir: Path,
   def copyWithOtherDirs(otherDirs: java.util.Collection[Dir]) =
     this.copy(otherDirs = otherDirs.asScala.toList)
 
-  def copyWithMmapAppendix(mmapAppendix: MMAP.Map) =
-    this.copy(mmapAppendix = mmapAppendix)
+  def copyWithMmapAppendix(mmapAppendixLogs: MMAP.Log) =
+    this.copy(mmapAppendixLogs = mmapAppendixLogs)
 
   def copyWithAppendixFlushCheckpointSize(appendixFlushCheckpointSize: Long) =
     this.copy(appendixFlushCheckpointSize = appendixFlushCheckpointSize)
@@ -335,7 +335,7 @@ sealed trait SwayDBConfig {
         false
 
       case config: PersistentLevelConfig =>
-        config.mmapAppendix.isMMAP || config.segmentConfig.mmap.mmapReads || config.segmentConfig.mmap.mmapWrites
+        config.mmapAppendixLogs.isMMAP || config.segmentConfig.mmap.mmapReads || config.segmentConfig.mmap.mmapWrites
     }
 
   def hasMMAP: Boolean =
@@ -355,7 +355,7 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
 
   def withPersistentLevel(dir: Path,
                           otherDirs: Seq[Dir],
-                          mmapAppendix: MMAP.Map,
+                          mmapAppendixLogs: MMAP.Log,
                           appendixFlushCheckpointSize: Long,
                           sortedKeyIndex: SortedKeyIndex,
                           randomSearchIndex: RandomSearchIndex,
@@ -368,7 +368,7 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
       PersistentLevelConfig(
         dir = dir,
         otherDirs = otherDirs,
-        mmapAppendix = mmapAppendix,
+        mmapAppendixLogs = mmapAppendixLogs,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         sortedKeyIndex = sortedKeyIndex,
         randomSearchIndex = randomSearchIndex,
@@ -410,7 +410,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
 
   def withPersistentLevel(dir: Path,
                           otherDirs: Seq[Dir],
-                          mmapAppendix: MMAP.Map,
+                          mmapAppendixLogs: MMAP.Log,
                           appendixFlushCheckpointSize: Long,
                           sortedKeyIndex: SortedKeyIndex,
                           randomSearchIndex: RandomSearchIndex,
@@ -424,7 +424,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
         PersistentLevelConfig(
           dir = dir,
           otherDirs = otherDirs,
-          mmapAppendix = mmapAppendix,
+          mmapAppendixLogs = mmapAppendixLogs,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           sortedKeyIndex = sortedKeyIndex,
           randomSearchIndex = randomSearchIndex,

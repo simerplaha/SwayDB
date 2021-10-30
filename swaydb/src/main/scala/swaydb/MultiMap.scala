@@ -17,7 +17,7 @@
 package swaydb
 
 import swaydb.core.io.file.ForceSaveApplier
-import swaydb.core.map.counter.CounterMap
+import swaydb.core.log.counter.CounterLog
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.util.Times._
 import swaydb.data.accelerate.LevelZeroMeter
@@ -37,27 +37,27 @@ object MultiMap {
   val folderName = "gen-multimap"
 
   //this should start from 1 because 0 will be used for format changes.
-  val rootMapId: Long = CounterMap.startId
+  val rootMapId: Long = CounterLog.startId
 
   private[swaydb] def withPersistentCounter[M, K, V, F, BAG[_]](path: Path,
-                                                                mmap: swaydb.data.config.MMAP.Map,
+                                                                mmap: swaydb.data.config.MMAP.Log,
                                                                 map: swaydb.Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG])(implicit bag: swaydb.Bag[BAG],
                                                                                                                                                                                             keySerializer: Serializer[K],
                                                                                                                                                                                             mapKeySerializer: Serializer[M],
                                                                                                                                                                                             valueSerializer: Serializer[V]): BAG[MultiMap[M, K, V, F, BAG]] = {
-    implicit val writer = swaydb.core.map.serializer.CounterMapEntryWriter.CounterPutMapEntryWriter
-    implicit val reader = swaydb.core.map.serializer.CounterMapEntryReader.CounterPutMapEntryReader
+    implicit val writer = swaydb.core.log.serializer.CounterLogEntryWriter.CounterPutLogEntryWriter
+    implicit val reader = swaydb.core.log.serializer.CounterLogEntryReader.CounterPutLogEntryReader
     implicit val core: ByteBufferSweeperActor = map.protectedSweeper
     implicit val forceSaveApplier = ForceSaveApplier.On
 
-    CounterMap.persistent(
+    CounterLog.persistent(
       dir = path.resolve(MultiMap.folderName),
       mmap = mmap,
       mod = 1000,
       fileSize = 1.mb
     ) match {
       case IO.Right(counter) =>
-        implicit val implicitCounter: CounterMap = counter
+        implicit val implicitCounter: CounterLog = counter
         swaydb.MultiMap[M, K, V, F, BAG](map)
 
       case IO.Left(error) =>
@@ -72,7 +72,7 @@ object MultiMap {
                                                                                                                                                                                 keySerializer: Serializer[K],
                                                                                                                                                                                 mapKeySerializer: Serializer[M],
                                                                                                                                                                                 valueSerializer: Serializer[V],
-                                                                                                                                                                                counter: CounterMap): BAG[MultiMap[M, K, V, F, BAG]] =
+                                                                                                                                                                                counter: CounterLog): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.flatMap(rootMap.isEmpty) {
       isEmpty =>
 
@@ -176,7 +176,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
                                                 defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
                                                                                             mapKeySerializer: Serializer[M],
                                                                                             valueSerializer: Serializer[V],
-                                                                                            counter: CounterMap,
+                                                                                            counter: CounterLog,
                                                                                             override val bag: Bag[BAG]) extends Schema[M, K, V, F, BAG](multiMap = multiMap, mapId = mapId, defaultExpiration = defaultExpiration) with MapT[K, V, F, BAG] { self =>
 
   override def path: Path =

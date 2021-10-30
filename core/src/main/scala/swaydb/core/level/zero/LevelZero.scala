@@ -26,12 +26,12 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.seek._
-import swaydb.core.level.zero.LevelZero.LevelZeroMap
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
-import swaydb.core.map.applied.{AppliedFunctionsMap, AppliedFunctionsMapCache}
-import swaydb.core.map.serializer.AppliedFunctionsMapEntryWriter
-import swaydb.core.map.timer.Timer
-import swaydb.core.map.{MapEntry, Maps}
+import swaydb.core.log.applied.{AppliedFunctionsLog, AppliedFunctionsLogCache}
+import swaydb.core.log.serializer.AppliedFunctionsLogEntryWriter
+import swaydb.core.log.timer.Timer
+import swaydb.core.log.{Log, LogEntry, Logs}
 import swaydb.core.segment.entry.reader.PersistentReader
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.{Segment, SegmentOption}
@@ -39,7 +39,7 @@ import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util.skiplist.SkipList
 import swaydb.core.util.{DropIterator, MinMax}
-import swaydb.core.{CoreState, MemoryPathGenerator, map}
+import swaydb.core.{CoreState, MemoryPathGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, LevelZeroThrottle}
 import swaydb.data.config.MMAP
@@ -58,10 +58,10 @@ import scala.concurrent.duration._
 
 private[core] case object LevelZero extends LazyLogging {
 
-  type LevelZeroMap = map.Map[Slice[Byte], Memory, LevelZeroMapCache]
+  type LevelZeroLog = Log[Slice[Byte], Memory, LevelZeroLogCache]
 
-  def apply(mapSize: Long,
-            appliedFunctionsMapSize: Long,
+  def apply(logSize: Long,
+            appliedFunctionsLogSize: Long,
             clearAppliedFunctionsOnBoot: Boolean,
             storage: Level0Storage,
             enableTimer: Boolean,
@@ -76,15 +76,15 @@ private[core] case object LevelZero extends LazyLogging {
                                                         forceSaveApplier: ForceSaveApplier,
                                                         optimiseWrites: OptimiseWrites,
                                                         atomic: Atomic): IO[swaydb.Error.Level, LevelZero] = {
-    import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
-    import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+    import swaydb.core.log.serializer.LevelZeroLogEntryReader.Level0Reader
+    import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
 
     if (cacheKeyValueIds)
       PersistentReader.populateBaseEntryIds()
     else
       logger.info("cacheKeyValueIds is false. Key-value IDs cache disabled!")
 
-    val mapsAndPathAndLock =
+    val logsAndPathAndLock =
       storage match {
         case Level0Storage.Persistent(mmap, databaseDirectory, recovery) =>
 
@@ -121,11 +121,11 @@ private[core] case object LevelZero extends LazyLogging {
                   implicit val fileSweeper: FileSweeper = FileSweeper.Off
                   logger.info("{}: Recovering logs.", levelZeroDirectory)
 
-                  val maps =
-                    Maps.persistent[Slice[Byte], Memory, LevelZeroMapCache](
+                  val logs =
+                    Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                       path = levelZeroDirectory,
                       mmap = mmap,
-                      fileSize = mapSize,
+                      fileSize = logSize,
                       acceleration = acceleration,
                       recovery = recovery
                     ).onLeftSideEffect {
@@ -133,28 +133,28 @@ private[core] case object LevelZero extends LazyLogging {
                         timer.close
                     }
 
-                  maps flatMap {
-                    maps =>
+                  logs flatMap {
+                    logs =>
                       if (enableTimer) {
                         val appliedFunctionsMap =
-                          AppliedFunctionsMap(
+                          AppliedFunctionsLog(
                             dir = databaseDirectory,
-                            fileSize = appliedFunctionsMapSize,
+                            fileSize = appliedFunctionsLogSize,
                             mmap = mmap
                           )
 
                         appliedFunctionsMap
                           .result
-                          .andThen((maps, Some(appliedFunctionsMap.item), levelZeroDirectory, Some(lock)))
+                          .andThen((logs, Some(appliedFunctionsMap.item), levelZeroDirectory, Some(lock)))
                           .onLeftSideEffect {
                             _ =>
                               timer.close
                               appliedFunctionsMap.item.close()
-                              maps.close().get
+                              logs.close().get
                           }
 
                       } else {
-                        IO.Right((maps, None, levelZeroDirectory, Some(lock)))
+                        IO.Right((logs, None, levelZeroDirectory, Some(lock)))
                       }
                   }
               } onLeftSideEffect {
@@ -173,9 +173,9 @@ private[core] case object LevelZero extends LazyLogging {
                   val mmap = LevelRef.getMmapForLogOrDisable(nextLevel)
 
                   val appliedFunctionsMap =
-                    AppliedFunctionsMap(
+                    AppliedFunctionsLog(
                       dir = databaseDirectory,
-                      fileSize = appliedFunctionsMapSize,
+                      fileSize = appliedFunctionsLogSize,
                       mmap = mmap
                     )
 
@@ -209,8 +209,8 @@ private[core] case object LevelZero extends LazyLogging {
               implicit val implicitTimer: Timer = timer
 
               val map =
-                Maps.memory[Slice[Byte], Memory, LevelZeroMapCache](
-                  fileSize = mapSize,
+                Logs.memory[Slice[Byte], Memory, LevelZeroLogCache](
+                  fileSize = logSize,
                   acceleration = acceleration
                 )
 
@@ -219,14 +219,14 @@ private[core] case object LevelZero extends LazyLogging {
           }
       }
 
-    mapsAndPathAndLock
+    logsAndPathAndLock
       .flatMap {
-        case (maps, appliedFunctions, path, lock: Option[FileLocker]) =>
+        case (logs, appliedFunctions, path, lock: Option[FileLocker]) =>
           val zero =
             new LevelZero(
               path = path,
-              mapSize = mapSize,
-              maps = maps,
+              logSize = logSize,
+              logs = logs,
               nextLevel = nextLevel,
               inMemory = storage.memory,
               throttle = throttle,
@@ -239,11 +239,11 @@ private[core] case object LevelZero extends LazyLogging {
             case Some(appliedFunctions) =>
               if (clearAppliedFunctionsOnBoot)
                 IO(zero.clearAppliedFunctions())
-                  .and(AppliedFunctionsMap.validate(appliedFunctions, functionStore))
+                  .and(AppliedFunctionsLog.validate(appliedFunctions, functionStore))
                   .andThen(zero)
                   .onLeftSideEffect(_ => zero.close[Glass]())
               else
-                AppliedFunctionsMap
+                AppliedFunctionsLog
                   .validate(appliedFunctions, functionStore)
                   .andThen(zero)
                   .onLeftSideEffect(_ => zero.close[Glass]())
@@ -256,12 +256,12 @@ private[core] case object LevelZero extends LazyLogging {
 }
 
 private[swaydb] case class LevelZero(path: Path,
-                                     mapSize: Long,
-                                     maps: Maps[Slice[Byte], Memory, LevelZeroMapCache],
+                                     logSize: Long,
+                                     logs: Logs[Slice[Byte], Memory, LevelZeroLogCache],
                                      nextLevel: Option[NextLevel],
                                      inMemory: Boolean,
                                      throttle: LevelZeroMeter => LevelZeroThrottle,
-                                     appliedFunctionsMap: Option[map.Map[Slice[Byte], Slice.Null.type, AppliedFunctionsMapCache]],
+                                     appliedFunctionsMap: Option[Log[Slice[Byte], Slice.Null.type, AppliedFunctionsLogCache]],
                                      coreState: CoreState,
                                      private val lock: Option[FileLocker])(implicit val keyOrder: KeyOrder[Slice[Byte]],
                                                                            val timeOrder: TimeOrder[Slice[Byte]],
@@ -270,13 +270,13 @@ private[swaydb] case class LevelZero(path: Path,
   logger.info("{}: Level0 started.", path)
 
   import keyOrder._
-  import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+  import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
 
   val levelZeroMeter: LevelZeroMeter =
-    maps.meter
+    logs.meter
 
-  def onNextMapCallback(event: () => Unit): Unit =
-    maps onNextMapCallback event
+  def onNextLogCallback(event: () => Unit): Unit =
+    logs onNextLogCallback event
 
   def releaseLocks: IO[swaydb.Error.Close, Unit] =
     IO[swaydb.Error.Close, Unit](Effect.release(lock))
@@ -297,42 +297,42 @@ private[swaydb] case class LevelZero(path: Path,
 
   def put(key: Slice[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, Slice.Null, None, timer.next)))
+    logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, Slice.Null, None, timer.next)))
     OK.instance
   }
 
   def put(key: Slice[Byte], value: Slice[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, None, timer.next)))
+    logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, None, timer.next)))
     OK.instance
   }
 
   def put(key: Slice[Byte], value: SliceOption[Byte], removeAt: Deadline): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, Some(removeAt), timer.next)))
+    logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, Some(removeAt), timer.next)))
     OK.instance
   }
 
   def put(key: Slice[Byte], value: SliceOption[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, None, timer.next)))
+    logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, None, timer.next)))
     OK.instance
   }
 
-  def put(entry: Timer => MapEntry[Slice[Byte], Memory]): OK = {
-    maps write entry
+  def put(entry: Timer => LogEntry[Slice[Byte], Memory]): OK = {
+    logs write entry
     OK.instance
   }
 
   def remove(key: Slice[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, None, timer.next)))
+    logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, None, timer.next)))
     OK.instance
   }
 
   def remove(key: Slice[Byte], at: Deadline): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), timer.next)))
+    logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), timer.next)))
     OK.instance
   }
 
@@ -342,11 +342,11 @@ private[swaydb] case class LevelZero(path: Path,
     if (fromKey equiv toKey)
       remove(fromKey)
     else
-      maps
+      logs
         .write {
           timer =>
-            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(None, timer.next))): MapEntry[Slice[Byte], Memory]) ++
-              MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, None, timer.next))
+            (LogEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(None, timer.next))): LogEntry[Slice[Byte], Memory]) ++
+              LogEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, None, timer.next))
         }
 
     OK.instance
@@ -358,11 +358,11 @@ private[swaydb] case class LevelZero(path: Path,
     if (fromKey equiv toKey)
       remove(fromKey)
     else
-      maps
+      logs
         .write {
           timer =>
-            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(Some(at), timer.next))): MapEntry[Slice[Byte], Memory]) ++
-              MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, Some(at), timer.next))
+            (LogEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(Some(at), timer.next))): LogEntry[Slice[Byte], Memory]) ++
+              LogEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, Some(at), timer.next))
         }
 
     OK.instance
@@ -370,13 +370,13 @@ private[swaydb] case class LevelZero(path: Path,
 
   def update(key: Slice[Byte], value: Slice[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next)))
+    logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next)))
     OK.instance
   }
 
   def update(key: Slice[Byte], value: SliceOption[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next)))
+    logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next)))
     OK.instance
   }
 
@@ -386,10 +386,10 @@ private[swaydb] case class LevelZero(path: Path,
     if (fromKey equiv toKey)
       update(fromKey, value)
     else
-      maps
+      logs
         .write {
           timer =>
-            (MapEntry.Put[Slice[Byte], Memory.Range](
+            (LogEntry.Put[Slice[Byte], Memory.Range](
               key = fromKey,
               value = Memory.Range(
                 fromKey = fromKey,
@@ -397,7 +397,7 @@ private[swaydb] case class LevelZero(path: Path,
                 fromValue = Value.FromValue.Null,
                 rangeValue = Value.Update(value, None, timer.next)
               )
-            ): MapEntry[Slice[Byte], Memory]) ++ MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))
+            ): LogEntry[Slice[Byte], Memory]) ++ LogEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))
         }
 
     OK.instance
@@ -421,7 +421,7 @@ private[swaydb] case class LevelZero(path: Path,
                 logger.info(s"Checked $progress/$totalAppliedFunctions applied functions. Removed ${cleaned.size}.")
 
               if (!this.mightContainFunction(functionId)) {
-                appliedFunctions.writeSync(MapEntry.Remove(functionId)(AppliedFunctionsMapEntryWriter.FunctionsRemoveMapEntryWriter))
+                appliedFunctions.writeSync(LogEntry.Remove(functionId)(AppliedFunctionsLogEntryWriter.FunctionsRemoveLogEntryWriter))
                 cleaned += functionId.readString()
                 cleaned
               } else {
@@ -500,7 +500,7 @@ private[swaydb] case class LevelZero(path: Path,
         if (appliedFunctions.cache.skipList.notContains(function)) {
           //writeNoSync because this already because this functions is already being
           //called un map.write which is a sync function.
-          appliedFunctions.writeNoSync(MapEntry.Put(function, Slice.Null)(AppliedFunctionsMapEntryWriter.FunctionsPutMapEntryWriter))
+          appliedFunctions.writeNoSync(LogEntry.Put(function, Slice.Null)(AppliedFunctionsLogEntryWriter.FunctionsPutLogEntryWriter))
         }
     }
 
@@ -510,13 +510,13 @@ private[swaydb] case class LevelZero(path: Path,
     } else {
       validateInput(key)
 
-      maps.write {
+      logs.write {
         timer =>
           if (timer.isEmptyTimer) {
             throw new IllegalArgumentException("Functions are disabled.")
           } else {
             saveAppliedFunctionNoSync(function)
-            MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next))
+            LogEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next))
           }
       }
 
@@ -532,15 +532,15 @@ private[swaydb] case class LevelZero(path: Path,
       if (fromKey equiv toKey)
         applyFunction(fromKey, function)
       else
-        maps.write {
+        logs.write {
           timer =>
             if (timer.isEmptyTimer) {
               throw new IllegalArgumentException("Functions are disabled.")
             } else {
               saveAppliedFunctionNoSync(function)
 
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory]) ++
-                MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
+              (LogEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Function(function, timer.next))): LogEntry[Slice[Byte], Memory]) ++
+                LogEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
             }
         }
 
@@ -548,7 +548,7 @@ private[swaydb] case class LevelZero(path: Path,
     }
 
   private def getFromMap(key: Slice[Byte],
-                         theMap: LevelZeroMap): MemoryOption =
+                         theMap: LevelZeroLog): MemoryOption =
     if (theMap.cache.hasRange)
       theMap.cache.floorOptimised(key) match {
         case floor: Memory.Fixed if floor.key equiv key =>
@@ -565,7 +565,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   private def getFromNextLevel(key: Slice[Byte],
                                readState: ThreadReadState,
-                               tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption = {
+                               tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
     val headOrNull = tailMaps.headOrNull
 
     if (headOrNull == null)
@@ -585,13 +585,13 @@ private[swaydb] case class LevelZero(path: Path,
       )
   }
 
-  def currentGetter(theMap: LevelZeroMap) =
+  def currentGetter(theMap: LevelZeroLog) =
     new CurrentGetter {
       override def get(key: Slice[Byte], readState: ThreadReadState): MemoryOption =
         getFromMap(key, theMap)
     }
 
-  def nextGetter(tailMaps: DropIterator.Flat[Null, LevelZeroMap]) =
+  def nextGetter(tailMaps: DropIterator.Flat[Null, LevelZeroLog]) =
     new NextGetter {
       override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
         getFromNextLevel(key, readState, tailMaps)
@@ -599,8 +599,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   private def find(key: Slice[Byte],
                    readState: ThreadReadState,
-                   headMap: LevelZeroMap,
-                   tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption =
+                   headMap: LevelZeroLog,
+                   tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption =
     Get.seek(
       key = key,
       readState = readState,
@@ -610,7 +610,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def get(key: Slice[Byte],
           readState: ThreadReadState): KeyValue.PutOption = {
-    val iterator = maps.readDropIterator()
+    val iterator = logs.readDropIterator()
 
     find(
       key = key,
@@ -625,18 +625,18 @@ private[swaydb] case class LevelZero(path: Path,
     get(key, readState).mapSliceOptional(_.key)
 
   def firstKeyFromMaps: SliceOption[Byte] =
-    maps.reduce[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], SliceOption[Byte]](
+    logs.reduce[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], SliceOption[Byte]](
       nullResult = Slice.Null,
       applier = _.cache.headKeyOptimised,
       reducer = MinMax.minFavourLeftC[SliceOption[Byte], Slice[Byte]](_, _)(keyOrder)
     )
 
   def lastKeyFromMaps: SliceOption[Byte] =
-    maps.reduce[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], SliceOption[Byte]](
+    logs.reduce[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], SliceOption[Byte]](
       nullResult = Slice.Null,
       applier =
-        map =>
-          map
+        log =>
+          log
             .cache
             .lastOptimised
             .flatMapSomeS(Slice.Null: SliceOption[Byte]) {
@@ -657,49 +657,49 @@ private[swaydb] case class LevelZero(path: Path,
 
   def head(readState: ThreadReadState): KeyValue.PutOption = {
     //read from LevelZero first
-    val mapHead = firstKeyFromMaps
+    val logHead = firstKeyFromMaps
 
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.headKey(readState) match {
           case nextLevelFirstKey: Slice[Byte] =>
             MinMax
-              .minFavourLeftC[SliceOption[Byte], Slice[Byte]](mapHead, nextLevelFirstKey)(keyOrder)
+              .minFavourLeftC[SliceOption[Byte], Slice[Byte]](logHead, nextLevelFirstKey)(keyOrder)
               .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(ceiling(_, readState))
 
           case Slice.Null =>
-            mapHead.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(ceiling(_, readState))
+            logHead.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(ceiling(_, readState))
         }
 
       case None =>
-        mapHead.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(ceiling(_, readState))
+        logHead.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(ceiling(_, readState))
     }
   }
 
   def last(readState: ThreadReadState): KeyValue.PutOption = {
     //read from LevelZero first
-    val mapLast = lastKeyFromMaps
+    val logLast = lastKeyFromMaps
 
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.lastKey(readState) match {
           case nextLevelLastKey: Slice[Byte] =>
             MinMax
-              .maxFavourLeftC[SliceOption[Byte], Slice[Byte]](mapLast, nextLevelLastKey)(keyOrder)
+              .maxFavourLeftC[SliceOption[Byte], Slice[Byte]](logLast, nextLevelLastKey)(keyOrder)
               .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(floor(_, readState))
 
           case Slice.Null =>
-            mapLast.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(floor(_, readState))
+            logLast.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(floor(_, readState))
         }
 
       case None =>
-        mapLast.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(floor(_, readState))
+        logLast.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(floor(_, readState))
     }
   }
 
   def ceiling(key: Slice[Byte],
               readState: ThreadReadState): KeyValue.PutOption = {
-    val iterator = maps.readDropIterator()
+    val iterator = logs.readDropIterator()
 
     ceiling(
       key = key,
@@ -711,8 +711,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def ceiling(key: Slice[Byte],
               readState: ThreadReadState,
-              headMap: LevelZeroMap,
-              tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption = {
+              headMap: LevelZeroLog,
+              tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
     val (left, right) = tailMaps.duplicate()
 
     find(
@@ -732,7 +732,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def floor(key: Slice[Byte],
             readState: ThreadReadState): KeyValue.PutOption = {
-    val iterator = maps.readDropIterator()
+    val iterator = logs.readDropIterator()
 
     floor(
       key = key,
@@ -744,8 +744,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def floor(key: Slice[Byte],
             readState: ThreadReadState,
-            headMap: LevelZeroMap,
-            tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption = {
+            headMap: LevelZeroLog,
+            tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
     val (left, right) = tailMaps.duplicate()
 
     find(
@@ -764,7 +764,7 @@ private[swaydb] case class LevelZero(path: Path,
   }
 
   private def higherFromMap(key: Slice[Byte],
-                            theMap: LevelZeroMap): MemoryOption =
+                            theMap: LevelZeroLog): MemoryOption =
     if (theMap.cache.hasRange)
       theMap.cache.floorOptimised(key) match {
         case floorRange: Memory.Range if key >= floorRange.fromKey && key < floorRange.toKey =>
@@ -778,7 +778,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findHigherInNextLevel(key: Slice[Byte],
                             readState: ThreadReadState,
-                            tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption = {
+                            tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
     val nextMapOrNull = tailMaps.headOrNull
 
     if (nextMapOrNull == null)
@@ -798,8 +798,8 @@ private[swaydb] case class LevelZero(path: Path,
       )
   }
 
-  def currentWalker(currentMap: LevelZeroMap,
-                    tailMaps: DropIterator.Flat[Null, LevelZeroMap]) =
+  def currentWalker(currentMap: LevelZeroLog,
+                    tailMaps: DropIterator.Flat[Null, LevelZeroLog]) =
     new CurrentWalker {
       override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
         find(
@@ -825,7 +825,7 @@ private[swaydb] case class LevelZero(path: Path,
         "current"
     }
 
-  def nextWalker(tailMaps: DropIterator.Flat[Null, LevelZeroMap]) =
+  def nextWalker(tailMaps: DropIterator.Flat[Null, LevelZeroLog]) =
     new NextWalker {
       override def higher(key: Slice[Byte],
                           readState: ThreadReadState): KeyValue.PutOption =
@@ -845,8 +845,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findHigher(key: Slice[Byte],
                  readState: ThreadReadState,
-                 currentMap: LevelZeroMap,
-                 tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption =
+                 currentMap: LevelZeroLog,
+                 tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption =
     Higher.seek(
       key = key,
       readState = readState,
@@ -863,11 +863,11 @@ private[swaydb] case class LevelZero(path: Path,
    * Higher cannot use an iterator because a single Map can value read requests multiple times for cases where a Map contains a range
    * to fetch ceiling key.
    *
-   * Higher queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
+   * Higher queries require iteration of all logs anyway so a full initial conversion to a List is acceptable.
    */
   def higher(key: Slice[Byte],
              readState: ThreadReadState): KeyValue.PutOption = {
-    val iterator = maps.readDropIterator()
+    val iterator = logs.readDropIterator()
 
     findHigher(
       key = key,
@@ -878,7 +878,7 @@ private[swaydb] case class LevelZero(path: Path,
   }
 
   private def lowerFromMap(key: Slice[Byte],
-                           theMap: LevelZeroMap): MemoryOption =
+                           theMap: LevelZeroLog): MemoryOption =
     if (theMap.cache.hasRange)
       theMap.cache.floorOptimised(key) match {
         case floorRange: Memory.Range if key > floorRange.fromKey && key <= floorRange.toKey =>
@@ -892,7 +892,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findLowerInNextLevel(key: Slice[Byte],
                            readState: ThreadReadState,
-                           tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption = {
+                           tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
     val nextMapOrNull = tailMaps.headOrNull
 
     if (nextMapOrNull == null)
@@ -914,8 +914,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findLower(key: Slice[Byte],
                 readState: ThreadReadState,
-                currentMap: LevelZeroMap,
-                tailMaps: DropIterator.Flat[Null, LevelZeroMap]): KeyValue.PutOption =
+                currentMap: LevelZeroLog,
+                tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption =
     Lower.seek(
       key = key,
       readState = readState,
@@ -932,11 +932,11 @@ private[swaydb] case class LevelZero(path: Path,
    * Lower cannot use an iterator because a single Map can value read requests multiple times for cases where a Map contains a range
    * to fetch ceiling key.
    *
-   * Lower queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
+   * Lower queries require iteration of all logs anyway so a full initial conversion to a List is acceptable.
    */
   def lower(key: Slice[Byte],
             readState: ThreadReadState): KeyValue.PutOption = {
-    val iterator = maps.readDropIterator()
+    val iterator = logs.readDropIterator()
 
     findLower(
       key = key,
@@ -961,7 +961,7 @@ private[swaydb] case class LevelZero(path: Path,
     }
 
   def keyValueCount: Int = {
-    val keyValueCountInMaps = maps.keyValueCount
+    val keyValueCountInMaps = logs.keyValueCount
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.keyValueCount + keyValueCountInMaps
@@ -1004,7 +1004,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean = {
     val mightContainInMaps =
-      maps.find[MemoryOption](
+      logs.find[MemoryOption](
         nullResult = Memory.Null,
         matcher = _.cache.getOptimised(key)
       )
@@ -1013,11 +1013,11 @@ private[swaydb] case class LevelZero(path: Path,
   }
 
   private def findFunctionInMaps(functionId: Slice[Byte]): Boolean =
-    maps.find[Boolean](
+    logs.find[Boolean](
       nullResult = false,
       matcher =
-        map =>
-          map
+        log =>
+          log
             .cache
             .skipList //functions don't need atomic reads so it can access the skipList directly.
             .values()
@@ -1065,7 +1065,7 @@ private[swaydb] case class LevelZero(path: Path,
     path
 
   override def isEmpty: Boolean =
-    maps.isEmpty
+    logs.isEmpty
 
   override def segmentsCount(): Int =
     nextLevel
@@ -1100,13 +1100,13 @@ private[swaydb] case class LevelZero(path: Path,
   override def isZero: Boolean = true
 
   override def stateId: Long =
-    maps.stateId
+    logs.stateId
 
   override def nextCompactionDelay: FiniteDuration =
     throttle(levelZeroMeter).compactionDelay
 
-  def mapsToCompact: Int =
-    throttle(levelZeroMeter).mapsToCompact
+  def logsToCompact: Int =
+    throttle(levelZeroMeter).logsToCompact
 
   def iterator(state: ThreadReadState): Iterator[PutOption] =
     new Iterator[PutOption] {
@@ -1142,12 +1142,12 @@ private[swaydb] case class LevelZero(path: Path,
         nextKeyValue
     }
 
-  private def closeMaps: IO[Error.Map, Unit] =
-    maps
+  private def closeMaps: IO[Error.Log, Unit] =
+    logs
       .close()
       .onLeftSideEffect {
         exception =>
-          logger.error(s"$path: Failed to close maps", exception)
+          logger.error(s"$path: Failed to close logs", exception)
       }
 
   def closeNoSweep: IO[swaydb.Error.Level, Unit] =
@@ -1188,5 +1188,5 @@ private[swaydb] case class LevelZero(path: Path,
       .and(bag(Effect.walkDelete(path.getParent)))
 
   def mmap: MMAP =
-    maps.mmap
+    logs.mmap
 }

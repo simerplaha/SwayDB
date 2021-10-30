@@ -202,7 +202,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                       Dir(dir.resolve(4.toString), 4),
                       Dir(dir.resolve(5.toString), 5)
                     ),
-                  appendixMMAP = MMAP.randomForMap(),
+                  appendixMMAP = MMAP.randomForLog(),
                   appendixFlushCheckpointSize = 4.mb
                 )
 

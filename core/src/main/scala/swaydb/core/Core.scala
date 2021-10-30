@@ -24,9 +24,9 @@ import swaydb.core.data.{Memory, SwayFunction, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.map.MapEntry
-import swaydb.core.map.serializer.LevelZeroMapEntryWriter
-import swaydb.core.map.timer.Timer
+import swaydb.core.log.LogEntry
+import swaydb.core.log.serializer.LevelZeroLogEntryWriter
+import swaydb.core.log.timer.Timer
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.accelerate.LevelZeroMeter
@@ -90,22 +90,22 @@ private[swaydb] object Core {
     )
 
   /**
-   * Converts all prepare statement to a single transactional commit entry ([[MapEntry]]).
+   * Converts all prepare statement to a single transactional commit entry ([[LogEntry]]).
    */
-  private def prepareToMapEntry(entries: IterableOnce[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory]] =
-    entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
-      case (mapEntry, prepare) =>
+  private def prepareToLogEntry(entries: IterableOnce[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]])(timer: Timer): Option[LogEntry[Slice[Byte], Memory]] =
+    entries.foldLeft(Option.empty[LogEntry[Slice[Byte], Memory]]) {
+      case (logEntry, prepare) =>
         val nextEntry =
           prepare match {
             case Prepare.Put(key, value, expire) =>
               if (key.isEmpty) throw new IllegalArgumentException("Key cannot be empty.")
 
-              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
+              LogEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire, timer.next))(LevelZeroLogEntryWriter.Level0PutWriter)
 
             case Prepare.Add(key, expire) =>
               if (key.isEmpty) throw new IllegalArgumentException("Key cannot be empty.")
 
-              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, Slice.Null, expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
+              LogEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, Slice.Null, expire, timer.next))(LevelZeroLogEntryWriter.Level0PutWriter)
 
             case Prepare.Remove(key, toKey, expire) =>
               if (key.isEmpty) throw new IllegalArgumentException("Key cannot be empty.")
@@ -113,10 +113,10 @@ private[swaydb] object Core {
 
               toKey map {
                 toKey =>
-                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, Value.FromValue.Null, Value.Remove(expire, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory]) ++
-                    MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire, timer.next))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+                  (LogEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, Value.FromValue.Null, Value.Remove(expire, timer.next)))(LevelZeroLogEntryWriter.Level0RangeWriter): LogEntry[Slice[Byte], Memory]) ++
+                    LogEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire, timer.next))(LevelZeroLogEntryWriter.Level0RemoveWriter)
               } getOrElse {
-                MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, expire, timer.next))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+                LogEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, expire, timer.next))(LevelZeroLogEntryWriter.Level0RemoveWriter)
               }
 
             case Prepare.Update(key, toKey, value) =>
@@ -125,10 +125,10 @@ private[swaydb] object Core {
 
               toKey map {
                 toKey =>
-                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, Value.FromValue.Null, Value.Update(value, None, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory]) ++
-                    MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+                  (LogEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, Value.FromValue.Null, Value.Update(value, None, timer.next)))(LevelZeroLogEntryWriter.Level0RangeWriter): LogEntry[Slice[Byte], Memory]) ++
+                    LogEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))(LevelZeroLogEntryWriter.Level0UpdateWriter)
               } getOrElse {
-                MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+                LogEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next))(LevelZeroLogEntryWriter.Level0UpdateWriter)
               }
 
             case Prepare.ApplyFunction(key, toKey, function) =>
@@ -137,13 +137,13 @@ private[swaydb] object Core {
 
               toKey map {
                 toKey =>
-                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, Value.FromValue.Null, Value.Function(function, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory]) ++
-                    MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))(LevelZeroMapEntryWriter.Level0FunctionWriter)
+                  (LogEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, Value.FromValue.Null, Value.Function(function, timer.next)))(LevelZeroLogEntryWriter.Level0RangeWriter): LogEntry[Slice[Byte], Memory]) ++
+                    LogEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))(LevelZeroLogEntryWriter.Level0FunctionWriter)
               } getOrElse {
-                MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next))(LevelZeroMapEntryWriter.Level0FunctionWriter)
+                LogEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next))(LevelZeroLogEntryWriter.Level0FunctionWriter)
               }
           }
-        Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
+        Some(logEntry.map(_ ++ nextEntry) getOrElse nextEntry)
     }
 }
 
@@ -202,7 +202,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
       if (entries.isEmpty)
         bag.failure(new IllegalArgumentException("Cannot write empty batch"))
       else
-        sequencer.execute(zero.put(Core.prepareToMapEntry(entries)(_).get)) //Gah .get!
+        sequencer.execute(zero.put(Core.prepareToLogEntry(entries)(_).get)) //Gah .get!
     }
 
   def remove(key: Slice[Byte]): BAG[OK] =

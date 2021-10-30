@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.block.bloomfilter
 
-import swaydb.core.map.serializer.ValueSerializer.IntMapListBufferSerializer
+import swaydb.core.log.serializer.ValueSerializer.IntMapListBufferSerializer
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder

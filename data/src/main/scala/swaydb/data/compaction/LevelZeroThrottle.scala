@@ -22,7 +22,7 @@ import scala.concurrent.duration.FiniteDuration
  * Defines a compaction job.
  *
  * @param compactionDelay When should compaction run.
- * @param mapsToCompact   How many maps to push forward
+ * @param logsToCompact   How many logs to push forward
  */
 case class LevelZeroThrottle(compactionDelay: FiniteDuration,
-                             mapsToCompact: Int)
+                             logsToCompact: Int)

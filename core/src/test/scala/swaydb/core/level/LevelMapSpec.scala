@@ -24,8 +24,8 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data._
-import swaydb.core.level.zero.LevelZeroMapCache
-import swaydb.core.map.{Map, MapEntry}
+import swaydb.core.level.zero.LevelZeroLogCache
+import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
@@ -70,8 +70,8 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   //    false
 
   "putMap on a single Level" should {
-    import swaydb.core.map.serializer.LevelZeroMapEntryReader._
-    import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+    import swaydb.core.log.serializer.LevelZeroLogEntryReader._
+    import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
 
     def createTestMap()(implicit sweeper: TestCaseSweeper) = {
       import sweeper._
@@ -81,7 +81,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
 
       val map =
         if (persistent)
-          Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
+          Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
             folder = randomIntDirectory,
             mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
             flushOnOverflow = true,
@@ -89,12 +89,12 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             dropCorruptedTailEntries = false
           ).runRandomIO.right.value.item.sweep()
         else
-          Map.memory[Slice[Byte], Memory, LevelZeroMapCache]()
+          Log.memory[Slice[Byte], Memory, LevelZeroLogCache]()
 
       val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
       keyValues foreach {
         keyValue =>
-          map.writeSync(MapEntry.Put(keyValue.key, keyValue))
+          map.writeSync(LogEntry.Put(keyValue.key, keyValue))
       }
 
       (map, keyValues)

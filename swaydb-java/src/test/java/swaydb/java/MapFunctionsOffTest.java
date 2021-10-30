@@ -600,7 +600,7 @@ abstract class MapFunctionsOffTest extends TestBase {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
     map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
-    shouldBe(map.levelZeroMeter().mapsCount(), 1);
+    shouldBe(map.levelZeroMeter().logsCount(), 1);
 
     map.delete();
   }

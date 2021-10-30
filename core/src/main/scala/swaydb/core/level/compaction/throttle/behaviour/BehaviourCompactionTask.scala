@@ -130,7 +130,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
                   lastLevel: Level)(implicit ec: ExecutionContext,
                                     fileSweeper: FileSweeper.On,
                                     parallelism: CompactionParallelism): Future[Unit] =
-    if (task.maps.isEmpty)
+    if (task.logs.isEmpty)
       Future.unit
     else
       ensurePauseSweeper(task.compactingLevels) {
@@ -139,9 +139,9 @@ protected object BehaviourCompactionTask extends LazyLogging {
           lastLevel = lastLevel
         ) flatMap {
           result =>
-            BehaviourCommit.commitPersistedMaps(
+            BehaviourCommit.commitPersistedLogs(
               fromLevel = task.source,
-              maps = task.maps,
+              logs = task.logs,
               mergeResults = Slice.from(result, result.size)
             ).toFuture
         }

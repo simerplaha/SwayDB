@@ -20,9 +20,9 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
 import swaydb.core.io.file.ForceSaveApplier
-import swaydb.core.level.AppendixMapCache
-import swaydb.core.map.serializer.MapEntryWriter
-import swaydb.core.map.{Map, MapEntry}
+import swaydb.core.level.AppendixLogCache
+import swaydb.core.log.serializer.LogEntryWriter
+import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.segment.Segment
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
@@ -43,7 +43,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
             strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               fileSweeper: FileSweeper): IO[swaydb.Error.Level, Unit] = {
 
-    import swaydb.core.map.serializer.AppendixMapEntryWriter._
+    import swaydb.core.log.serializer.AppendixLogEntryWriter._
     implicit val memorySweeper: Option[MemorySweeper.KeyValue] = Option.empty
     //mmap is false. FIXME - use ByteBufferCleaner.Disabled instead
     implicit val bufferCleaner: ByteBufferSweeperActor = null
@@ -162,7 +162,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                                                  fileSweeper: FileSweeper,
                                                  bufferCleaner: ByteBufferSweeperActor,
                                                  forceSaveApplier: ForceSaveApplier,
-                                                 writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]]): IO[swaydb.Error.Level, Unit] =
+                                                 writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Segment]]): IO[swaydb.Error.Level, Unit] =
     IO {
       Effect.walkDelete(appendixDir)
 
@@ -176,7 +176,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
             )
         )
 
-      Map.persistent[Slice[Byte], Segment, AppendixMapCache](
+      Log.persistent[Slice[Byte], Segment, AppendixLogCache](
         folder = appendixDir,
         mmap = mmap,
         flushOnOverflow = true,
@@ -186,7 +186,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
       appendix =>
         segments foreachIO {
           segment =>
-            appendix.writeSafe(MapEntry.Put(segment.minKey, segment))
+            appendix.writeSafe(LogEntry.Put(segment.minKey, segment))
         } match {
           case Some(IO.Left(error)) =>
             IO.Left(error)

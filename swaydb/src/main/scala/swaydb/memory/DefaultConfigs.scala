@@ -28,15 +28,15 @@ import scala.concurrent.duration._
 object DefaultConfigs {
 
   //4098 being the default file-system blockSize.
-  def mapSize: Int = 8.mb
+  def logSize: Int = 8.mb
 
   def segmentSize: Int = 4.mb
 
   def accelerator: LevelZeroMeter => Accelerator =
     Accelerator.brake(
-      increaseMapSizeOnMapCount = 1,
-      increaseMapSizeBy = 1,
-      maxMapSize = mapSize,
+      increaseLogSizeOnMapCount = 1,
+      increaseLogSizeBy = 1,
+      maxLogSize = logSize,
       brakeOnMapCount = 6,
       brakeFor = 1.milliseconds,
       releaseRate = 0.01.millisecond,

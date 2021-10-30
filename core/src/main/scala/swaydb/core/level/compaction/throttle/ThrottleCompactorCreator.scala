@@ -92,7 +92,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
       actor =>
         logger.debug(s"Level(${zero.levelNumber}): Initialising listener.")
         //listen to changes in levelZero
-        zero onNextMapCallback (
+        zero onNextLogCallback (
           event =
             () =>
               actor.send(_.wakeUp())

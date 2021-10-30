@@ -51,7 +51,7 @@ private[swaydb] object MultiKey {
   private val childrenStart: Byte = 11
   private val child: Byte = 12
   private val childrenEnd: Byte = 20
-  //leave enough space to allow for adding other data like mapSize etc.
+  //leave enough space to allow for adding other data like logSize etc.
   private val end: Byte = 50 //keep this to map so that there is enough space in the map to add more data types.
   //actual queues's data is outside the map
 

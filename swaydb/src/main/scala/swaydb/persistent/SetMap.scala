@@ -38,10 +38,10 @@ import scala.reflect.ClassTag
 object SetMap extends LazyLogging {
 
   def apply[K, V, BAG[_]](dir: Path,
-                          mapSize: Int = DefaultConfigs.mapSize,
-                          mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
+                          logSize: Int = DefaultConfigs.logSize,
+                          mmapLogs: MMAP.Log = DefaultConfigs.mmap(),
                           recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                          mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
+                          mmapAppendixLogs: MMAP.Log = DefaultConfigs.mmap(),
                           appendixFlushCheckpointSize: Int = 2.mb,
                           otherDirs: Seq[Dir] = Seq.empty,
                           cacheKeyValueIds: Boolean = true,
@@ -79,10 +79,10 @@ object SetMap extends LazyLogging {
       val set =
         Set[(K, V), Nothing, BAG](
           dir = dir,
-          mapSize = mapSize,
-          mmapMaps = mmapMaps,
+          logSize = logSize,
+          mmapLogs = mmapLogs,
           recoveryMode = recoveryMode,
-          mmapAppendix = mmapAppendix,
+          mmapAppendixLogs = mmapAppendixLogs,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs,
           cacheKeyValueIds = cacheKeyValueIds,

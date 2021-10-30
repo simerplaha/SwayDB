@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 //
-//package swaydb.core.map
+//package swaydb.core.log
 //
 //import org.scalatest.OptionValues._
 //import swaydb.IOValues._
@@ -23,7 +23,7 @@
 //import swaydb.core.sweeper.FileSweeper
 //import swaydb.core.data.Memory
 //import swaydb.core.level.zero.LevelZeroSkipListMerger
-//import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0PutWriter
+//import swaydb.core.log.serializer.LevelZeroLogEntryWriter.Level0PutWriter
 //import swaydb.core.{TestBase, TestSweeper, TestTimer}
 //import swaydb.data.order.{KeyOrder, TimeOrder}
 //import swaydb.data.slice.Slice
@@ -47,7 +47,7 @@
 //      def test(map: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory]) = {
 //        keyValues foreach {
 //          keyValue =>
-//            val entry = MapEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))(Level0PutWriter)
+//            val entry = LogEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))(Level0PutWriter)
 //            map.write(entry).runRandomIO.right.value shouldBe true
 //        }
 //
@@ -63,8 +63,8 @@
 //      val dir1 = createRandomDir
 //      val dir2 = createRandomDir
 //
-//      import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
-//      import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0MapEntryPutWriter
+//      import swaydb.core.log.serializer.LevelZeroLogEntryReader.Level0Reader
+//      import swaydb.core.log.serializer.LevelZeroLogEntryWriter.Level0LogEntryPutWriter
 //
 //      test(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
 //      test(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)

@@ -18,8 +18,8 @@ package swaydb.core.segment.assigner
 
 import swaydb.Aggregator
 import swaydb.core.data.{KeyValue, Memory}
-import swaydb.core.level.zero.LevelZero.LevelZeroMap
-import swaydb.core.map.Map
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
+import swaydb.core.log.Log
 import swaydb.core.merge.stats.MergeStats
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
@@ -31,7 +31,7 @@ import scala.collection.mutable.ListBuffer
  *
  * Current types
  * - [[swaydb.core.segment.Segment]]
- * - [[Map[Slice[Byte], Memory, LevelZeroMapCache]]
+ * - [[Log[Slice[Byte], Memory, LevelZeroMapCache]]
  * - [[swaydb.core.data.KeyValue]]
  */
 sealed trait Assignable {
@@ -60,9 +60,9 @@ object Assignable {
 
   /**
    * A [[Collection]] is a collection of key-values like [[swaydb.core.segment.Segment]]
-   * and [[Map[Slice[Byte], Memory, LevelZeroMapCache]].
+   * and [[Log[Slice[Byte], Memory, LevelZeroMapCache]].
    *
-   * [[Map]] can be created using [[Collection.fromMap]].
+   * [[Log]] can be created using [[Collection.fromMap]].
    *
    * This type is needed for cases where we can assign a group of key-values to a
    * [[swaydb.core.segment.Segment]] without need to assign each key-value saving
@@ -80,7 +80,7 @@ object Assignable {
   }
 
   object Collection {
-    def fromMap(map: LevelZeroMap): Assignable.Collection =
+    def fromMap(map: LevelZeroLog): Assignable.Collection =
       new Collection {
         override def maxKey: MaxKey[Slice[Byte]] =
           map.cache.maxKey().getC

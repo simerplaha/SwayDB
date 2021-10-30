@@ -18,7 +18,7 @@ package swaydb.core.level.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestData._
-import swaydb.core.level.zero.LevelZero.LevelZeroMap
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -42,16 +42,16 @@ class LevelZeroTaskAssigner_createStacks_Spec extends TestBase with MockFactory 
   "input.size = 1" in {
     TestCaseSweeper {
       implicit sweeper =>
-        val maps: List[LevelZeroMap] =
+        val logs: List[LevelZeroLog] =
           List(
-            TestMap(randomizedKeyValues(startId = Some(0)))
+            TestLog(randomizedKeyValues(startId = Some(0)))
           )
 
-        val stacks = LevelZeroTaskAssigner.createStacks(maps).asScala
+        val stacks = LevelZeroTaskAssigner.createStacks(logs).asScala
 
         stacks should have size 1
         stacks.head._1 shouldBe 0.serialise
-        stacks.head._2.stack should contain only Left(maps.head)
+        stacks.head._2.stack should contain only Left(logs.head)
     }
   }
 
@@ -59,8 +59,8 @@ class LevelZeroTaskAssigner_createStacks_Spec extends TestBase with MockFactory 
     runThis(20.times, log = true) {
       TestCaseSweeper {
         implicit sweeper =>
-          val maps: Iterable[LevelZeroMap] =
-            (0 to randomIntMax(10)).foldLeft(ListBuffer.empty[LevelZeroMap]) {
+          val logs: Iterable[LevelZeroLog] =
+            (0 to randomIntMax(10)).foldLeft(ListBuffer.empty[LevelZeroLog]) {
               case (maps, _) =>
                 val startId =
                   maps.lastOption match {
@@ -77,12 +77,12 @@ class LevelZeroTaskAssigner_createStacks_Spec extends TestBase with MockFactory 
                       0
                   }
 
-                maps += TestMap(randomizedKeyValues(startId = Some(startId)))
+                maps += TestLog(randomizedKeyValues(startId = Some(startId)))
             }
 
-          val stacks = LevelZeroTaskAssigner.createStacks(maps).asScala
-          stacks should have size maps.size
-          stacks.values.map(_.stack) shouldBe maps.map(map => ListBuffer(Left(map)))
+          val stacks = LevelZeroTaskAssigner.createStacks(logs).asScala
+          stacks should have size logs.size
+          stacks.values.map(_.stack) shouldBe logs.map(map => ListBuffer(Left(map)))
       }
     }
   }

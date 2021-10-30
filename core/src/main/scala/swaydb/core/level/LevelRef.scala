@@ -63,9 +63,9 @@ object LevelRef {
     }
 
   /**
-   * Returns the first enabled [[MMAP.Map]] setting from first encountered PersistentLevel.
+   * Returns the first enabled [[MMAP.Log]] setting from first encountered PersistentLevel.
    */
-  def getMmapForLogOrDisable(level: Option[LevelRef]): MMAP.Map = {
+  def getMmapForLogOrDisable(level: Option[LevelRef]): MMAP.Log = {
     val mmap =
       firstPersistentLevel(level) collectFirst {
         case level: Level if level.appendix.mmap.isMMAP =>

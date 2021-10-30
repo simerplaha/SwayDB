@@ -33,7 +33,7 @@ import swaydb.utils.Java._
 
 object MemoryQueue {
 
-  final class Config[A](private var mapSize: Int = DefaultConfigs.mapSize,
+  final class Config[A](private var logSize: Int = DefaultConfigs.logSize,
                         private var minSegmentSize: Int = DefaultConfigs.segmentSize,
                         private var maxKeyValuesPerSegment: Int = Int.MaxValue,
                         private var deleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
@@ -47,8 +47,8 @@ object MemoryQueue {
                         private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                         serializer: Serializer[A]) {
 
-    def setMapSize(mapSize: Int) = {
-      this.mapSize = mapSize
+    def setLogSize(logSize: Int) = {
+      this.logSize = logSize
       this
     }
 
@@ -110,7 +110,7 @@ object MemoryQueue {
     def get(): swaydb.java.Queue[A] = {
       val scalaQueue =
         swaydb.memory.Queue[A, Glass](
-          mapSize = mapSize,
+          logSize = logSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,

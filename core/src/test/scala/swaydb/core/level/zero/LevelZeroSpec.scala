@@ -24,8 +24,8 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
-import swaydb.core.map.applied.AppliedFunctionsMap
-import swaydb.core.map.timer.Timer
+import swaydb.core.log.applied.AppliedFunctionsLog
+import swaydb.core.log.timer.Timer
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
@@ -71,7 +71,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
   implicit val timeOrder = TimeOrder.long
   implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
-  import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+  import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
 
   val keyValuesCount = 10
 
@@ -215,7 +215,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
           val keyValues = randomIntKeyStringValues(keyValuesCount)
 
           val zero = TestLevelZero(Some(TestLevel()))
-          zero.put(_ => keyValues.toMapEntry.get).runRandomIO
+          zero.put(_ => keyValues.toLogEntry.get).runRandomIO
 
           assertGet(keyValues, zero)
 
@@ -223,19 +223,19 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       }
     }
 
-    //removed test - empty check are performed at the source where the MapEntry is created.
+    //removed test - empty check are performed at the source where the LogEntry is created.
     //    "batch writing empty keys should fail" in {
     //      if (persistent) {
     //        val keyValues = Slice(Memory.put(Slice.empty, 1))
     //
     //        val zero = TestLevelZero(Some(TestLevel()))
     //        assertThrows[Exception] {
-    //          zero.put(_ => keyValues.toMapEntry.value)
+    //          zero.put(_ => keyValues.toLogEntry.value)
     //        }
     //      } else {
     //        //Currently this test does not apply for in-memory. Empty keys should NEVER be written.
     //        //Persistent batch writes check for empty keys but since in-memory is just a skipList in Level0, there is no
-    //        //check. The design of MapEntry restricts this which should be fixed.
+    //        //check. The design of LogEntry restricts this which should be fixed.
     //      }
     //    }
   }
@@ -244,7 +244,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     "remove key-values" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), mapSize = 1.byte)
+          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), logSize = 1.byte)
           val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(0))
 
           keyValues foreach {
@@ -270,12 +270,12 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
         implicit sweeper =>
           val keyValues = randomIntKeyStringValues(keyValuesCount)
           val zero = TestLevelZero(Some(TestLevel()))
-          zero.put(_ => keyValues.toMapEntry.get).runRandomIO
+          zero.put(_ => keyValues.toLogEntry.get).runRandomIO
 
           assertGet(keyValues, zero)
 
           val removeKeyValues = Slice(keyValues.map(keyValue => Memory.remove(keyValue.key)).toArray)
-          zero.put(_ => removeKeyValues.toMapEntry.get).runRandomIO
+          zero.put(_ => removeKeyValues.toLogEntry.get).runRandomIO
 
           assertGetNone(keyValues, zero)
           zero.head(ThreadReadState.random).toOptionPut shouldBe empty
@@ -287,7 +287,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     "a database with single key-value" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), mapSize = 1.byte)
+          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), logSize = 1.byte)
           val keyValues = randomIntKeyStringValues(1)
 
           keyValues foreach {
@@ -308,7 +308,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       runThis(10.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
-            val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), mapSize = 1.byte)
+            val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), logSize = 1.byte)
             val keyValues = randomIntKeyStringValues(randomIntMax(20) max keyValuesCount)
 
             keyValues foreach {
@@ -330,7 +330,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       //disable throttle
       TestCaseSweeper {
         implicit sweeper =>
-          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), mapSize = 1.byte)
+          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), logSize = 1.byte)
 
           zero.put(1, "one").runRandomIO.value
           zero.put(2, "two").runRandomIO.value
@@ -364,7 +364,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     "return the last key-value" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
+          val zero = TestLevelZero(Some(TestLevel()), logSize = 1.byte)
 
           zero.put(1, "one").runRandomIO
           zero.put(2, "two").runRandomIO
@@ -395,7 +395,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     "not allow from key to be > than to key" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
+          val zero = TestLevelZero(Some(TestLevel()), logSize = 1.byte)
           IO(zero.remove(10, 1)).left.value.getMessage shouldBe "fromKey should be less than toKey."
           IO(zero.remove(2, 1)).left.value.getMessage shouldBe "fromKey should be less than toKey."
       }
@@ -406,7 +406,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     "not allow from key to be > than to key" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
+          val zero = TestLevelZero(Some(TestLevel()), logSize = 1.byte)
           IO(zero.update(10, 1, value = "value")).left.value.getMessage shouldBe "fromKey should be less than toKey."
           IO(zero.update(2, 1, value = "value")).left.value.getMessage shouldBe "fromKey should be less than toKey."
       }
@@ -428,7 +428,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
               Effect.exists(timerPath) shouldBe true
 
               //applied functions are also created
-              val appliedFunctionsPath = zero.path.getParent.resolve(AppliedFunctionsMap.folderName)
+              val appliedFunctionsPath = zero.path.getParent.resolve(AppliedFunctionsLog.folderName)
               Effect.exists(appliedFunctionsPath) shouldBe true
           }
         else
@@ -436,7 +436,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
             implicit sweeper =>
               val zero = TestLevelZero(None, enableTimer = true)
               zero.path.folderId shouldBe 0
-              getTimer(zero.maps).isEmptyTimer shouldBe false
+              getTimer(zero.logs).isEmptyTimer shouldBe false
 
               //applied functions are disabled for in-memory
               zero.appliedFunctionsMap shouldBe empty
@@ -455,7 +455,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
                   LevelStorage.Persistent(
                     dir = nextLevelPath,
                     otherDirs = eitherOne(Seq.empty, Seq(Dir(randomDir, 1), Dir(randomDir, 1))),
-                    appendixMMAP = MMAP.randomForMap(),
+                    appendixMMAP = MMAP.randomForLog(),
                     appendixFlushCheckpointSize = 4.mb
                   )
                 )
@@ -474,7 +474,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
               Effect.exists(timerPath) shouldBe true
 
               //applied functions are also created
-              val appliedFunctionsPath = persistentLevel.rootPath.getParent.resolve(AppliedFunctionsMap.folderName)
+              val appliedFunctionsPath = persistentLevel.rootPath.getParent.resolve(AppliedFunctionsLog.folderName)
               Effect.exists(appliedFunctionsPath) shouldBe true
           }
       }
@@ -498,7 +498,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
               val zero = TestLevelZero(None, enableTimer = false)
               import Effect._
               zero.path.folderId shouldBe 0
-              getTimer(zero.maps).isEmptyTimer shouldBe true
+              getTimer(zero.logs).isEmptyTimer shouldBe true
           }
       }
     }

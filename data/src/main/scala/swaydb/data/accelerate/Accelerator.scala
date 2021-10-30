@@ -28,44 +28,44 @@ import scala.concurrent.duration._
  */
 object Accelerator {
 
-  def apply(nextMapSize: Long, brake: Optional[Brake]): Accelerator =
+  def apply(nextLogSize: Long, brake: Optional[Brake]): Accelerator =
     new Accelerator(
-      nextMapSize = nextMapSize,
+      nextLogSize = nextLogSize,
       brake = brake.asScala
     )
 
   /**
    * http://swaydb.io/configuring-levels/acceleration
    */
-  private def nextMapSize(mapCount: Int,
-                          increaseMapSizeBy: Int,
-                          maxMapSize: Long,
+  private def nextLogSize(mapCount: Int,
+                          increaseLogSizeBy: Int,
+                          maxLogSize: Long,
                           level0Meter: LevelZeroMeter) =
-    if (level0Meter.mapsCount < mapCount)
-      level0Meter.defaultMapSize
+    if (level0Meter.logsCount < mapCount)
+      level0Meter.defaultLogSize
     else
-      (level0Meter.currentMapSize * increaseMapSizeBy) min maxMapSize
+      (level0Meter.currentLogSize * increaseLogSizeBy) min maxLogSize
 
   /**
    * http://swaydb.io/configuring-levels/acceleration/brake
    */
-  def brake(increaseMapSizeOnMapCount: Int = 4,
-            increaseMapSizeBy: Int = 2,
-            maxMapSize: Long = 24.mb,
+  def brake(increaseLogSizeOnMapCount: Int = 4,
+            increaseLogSizeBy: Int = 2,
+            maxLogSize: Long = 24.mb,
             brakeOnMapCount: Int = 6,
             brakeFor: FiniteDuration = 50.milliseconds,
             releaseRate: FiniteDuration = 1.millisecond,
             logAsWarning: Boolean = true)(levelZeroMeter: LevelZeroMeter): Accelerator =
     Accelerator(
-      nextMapSize =
-        nextMapSize(increaseMapSizeOnMapCount, increaseMapSizeBy, maxMapSize, levelZeroMeter),
+      nextLogSize =
+        nextLogSize(increaseLogSizeOnMapCount, increaseLogSizeBy, maxLogSize, levelZeroMeter),
       brake =
-        if (levelZeroMeter.mapsCount < brakeOnMapCount)
+        if (levelZeroMeter.logsCount < brakeOnMapCount)
           None
         else
           Some(
             Brake(
-              brakeFor = brakeFor * (levelZeroMeter.mapsCount - brakeOnMapCount + 1),
+              brakeFor = brakeFor * (levelZeroMeter.logsCount - brakeOnMapCount + 1),
               releaseRate = releaseRate,
               logAsWarning = logAsWarning
             )
@@ -83,23 +83,23 @@ object Accelerator {
    */
 
   def noBrakes(onMapCount: Int = 6,
-               increaseMapSizeBy: Int = 2,
-               maxMapSize: Long = 24.mb)(level0Meter: LevelZeroMeter): Accelerator =
+               increaseLogSizeBy: Int = 2,
+               maxLogSize: Long = 24.mb)(level0Meter: LevelZeroMeter): Accelerator =
     Accelerator(
-      nextMapSize =
-        nextMapSize(
+      nextLogSize =
+        nextLogSize(
           mapCount = onMapCount,
-          increaseMapSizeBy = increaseMapSizeBy,
-          maxMapSize = maxMapSize,
+          increaseLogSizeBy = increaseLogSizeBy,
+          maxLogSize = maxLogSize,
           level0Meter = level0Meter
         ),
       brake =
         None
     )
 
-  def cruise(level0Meter: LevelZeroMeter): Accelerator =
+  def cruise(levelZeroMeter: LevelZeroMeter): Accelerator =
     Accelerator(
-      nextMapSize = level0Meter.defaultMapSize,
+      nextLogSize = levelZeroMeter.defaultLogSize,
       brake = None
     )
 }
@@ -107,5 +107,5 @@ object Accelerator {
 /**
  * http://swaydb.io/configuring-levels/acceleration
  */
-case class Accelerator(nextMapSize: Long,
+case class Accelerator(nextLogSize: Long,
                        brake: Option[Brake])

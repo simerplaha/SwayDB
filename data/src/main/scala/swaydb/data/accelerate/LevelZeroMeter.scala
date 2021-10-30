@@ -17,7 +17,7 @@
 package swaydb.data.accelerate
 
 trait LevelZeroMeter {
-  def defaultMapSize: Long
-  def currentMapSize: Long
-  def mapsCount: Int
+  def defaultLogSize: Long
+  def currentLogSize: Long
+  def logsCount: Int
 }

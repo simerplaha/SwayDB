@@ -33,8 +33,8 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
    */
   def apply(dir: Path,
             otherDirs: Seq[Dir],
-            mapSize: Int,
-            appliedFunctionsMapSize: Int,
+            logSize: Int,
+            appliedFunctionsLogSize: Int,
             clearAppliedFunctionsOnBoot: Boolean,
             maxMemoryLevelSize: Int,
             maxSegmentsToPush: Int,
@@ -42,7 +42,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
             memoryLevelMaxKeyValuesCountPerSegment: Int,
             memorySegmentDeleteDelay: FiniteDuration,
             persistentLevelAppendixFlushCheckpointSize: Int,
-            mmapPersistentLevelAppendix: MMAP.Map,
+            mmapPersistentLevelAppendixLogs: MMAP.Log,
             persistentLevelSortedKeyIndex: SortedKeyIndex,
             persistentLevelRandomSearchIndex: RandomSearchIndex,
             persistentLevelBinarySearchIndex: BinarySearchIndex,
@@ -54,8 +54,8 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
             atomic: Atomic): SwayDBPersistentConfig =
     ConfigWizard
       .withMemoryLevel0(
-        mapSize = mapSize,
-        appliedFunctionsMapSize = appliedFunctionsMapSize,
+        logSize = logSize,
+        appliedFunctionsLogSize = appliedFunctionsLogSize,
         clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
         optimiseWrites = optimiseWrites,
         atomic = atomic,
@@ -77,7 +77,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
       .withPersistentLevel(
         dir = dir,
         otherDirs = otherDirs,
-        mmapAppendix = mmapPersistentLevelAppendix,
+        mmapAppendixLogs = mmapPersistentLevelAppendixLogs,
         appendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
         sortedKeyIndex = persistentLevelSortedKeyIndex,
         randomSearchIndex = persistentLevelRandomSearchIndex,

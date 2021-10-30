@@ -74,7 +74,7 @@ class SwayDBFunctionSpec1 extends SwayDBFunctionSpec {
                     keySerializer: Serializer[K],
                     valueSerializer: Serializer[V],
                     sweeper: TestCaseSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
-    swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](randomDir, mapSize = 1.byte).right.value.sweep(_.delete().get)
+    swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](randomDir, logSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBFunctionSpec2 extends SwayDBFunctionSpec {
@@ -83,7 +83,7 @@ class SwayDBFunctionSpec2 extends SwayDBFunctionSpec {
                     keySerializer: Serializer[K],
                     valueSerializer: Serializer[V],
                     sweeper: TestCaseSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
-    swaydb.memory.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](mapSize = 1.byte).right.value.sweep(_.delete().get)
+    swaydb.memory.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](logSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
@@ -98,7 +98,7 @@ class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
 //class SwayDBFunctionSpec4 extends SwayDBFunctionSpec {
 //
 //  override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
-//    swaydb.memory.zero.Map[Key, Int, Key.Function, IO.ApiIO](mapSize = 1.byte).right.value
+//    swaydb.memory.zero.Map[Key, Int, Key.Function, IO.ApiIO](logSize = 1.byte).right.value
 //}
 //
 //class SwayDBFunctionSpec5 extends SwayDBFunctionSpec {

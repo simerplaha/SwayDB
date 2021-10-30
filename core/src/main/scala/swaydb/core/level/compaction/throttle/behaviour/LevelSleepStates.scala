@@ -25,7 +25,7 @@ protected object LevelSleepStates {
   def success(zero: LevelZero,
               stateId: Long): LevelState.Sleeping =
     LevelState.Sleeping(
-      sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) LevelState.longSleep else zero.nextCompactionDelay.fromNow,
+      sleepDeadline = if (zero.levelZeroMeter.logsCount == 1) LevelState.longSleep else zero.nextCompactionDelay.fromNow,
       stateId = stateId
     )
 

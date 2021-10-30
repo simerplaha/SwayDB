@@ -17,13 +17,12 @@
 package swaydb.core.data
 
 import swaydb.IO
-import swaydb.core.map.serializer.RangeValueSerializer.OptionRangeValueSerializer
-import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
+import swaydb.core.log.serializer.RangeValueSerializer.OptionRangeValueSerializer
+import swaydb.core.log.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.ref.search.KeyMatcher
-import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.cache.{Cache, CacheNoIO}
@@ -63,7 +62,7 @@ private[core] object KeyValue {
   sealed trait Null extends KeyValueOption
 
   /**
-   * Key-values that can be added to [[MemorySweeper]].
+   * Key-values that can be added to [[swaydb.core.sweeper.MemorySweeper]].
    *
    * These key-values can remain in memory depending on the cacheSize and are dropped or uncompressed on overflow.
    */
@@ -72,7 +71,7 @@ private[core] object KeyValue {
   }
 
   /**
-   * An API response type expected from a [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
+   * An API response type expected from a [[swaydb.core.log.Log]] or [[swaydb.core.segment.Segment]].
    */
   sealed trait Fixed extends KeyValue {
     def toFromValue(): Value.FromValue

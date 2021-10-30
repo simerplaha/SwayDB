@@ -36,7 +36,7 @@ import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
 
-  def apply[K, V, F <: PureFunction.Map[K, V], BAG[_]](mapSize: Int = DefaultConfigs.mapSize,
+  def apply[K, V, F <: PureFunction.Map[K, V], BAG[_]](logSize: Int = DefaultConfigs.logSize,
                                                        minSegmentSize: Int = DefaultConfigs.segmentSize,
                                                        maxKeyValuesPerSegment: Int = Int.MaxValue,
                                                        fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
@@ -67,8 +67,8 @@ object Map extends LazyLogging {
           compactionConfig = compactionConfig,
           config =
             DefaultMemoryConfig(
-              mapSize = mapSize,
-              appliedFunctionsMapSize = 0,
+              logSize = logSize,
+              appliedFunctionsLogSize = 0,
               clearAppliedFunctionsOnBoot = false,
               minSegmentSize = minSegmentSize, //memory instance don't use appliedFunctionsMap.
               maxKeyValuesPerSegment = maxKeyValuesPerSegment,

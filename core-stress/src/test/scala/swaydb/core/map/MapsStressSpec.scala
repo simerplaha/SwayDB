@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 //
-//package swaydb.core.map
+//package swaydb.core.log
 //
 //import org.scalatest.OptionValues._
 //import swaydb.IOValues._
@@ -40,8 +40,8 @@
 //  implicit val fileSweeper: FileSweeper = TestSweeper.fileSweeper
 //  implicit val memorySweeper = TestSweeper.memorySweeperMax
 //
-//  import swaydb.core.map.serializer.LevelZeroMapEntryReader._
-//  import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+//  import swaydb.core.log.serializer.LevelZeroLogEntryReader._
+//  import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
 //
 //  implicit val skipListMerger = LevelZeroSkipListMerger
 //
@@ -54,13 +54,13 @@
 //      //disable braking
 //      val acceleration =
 //        (meter: LevelZeroMeter) => {
-//          Accelerator(meter.currentMapSize, None)
+//          Accelerator(meter.currentLogSize, None)
 //        }
 //
 //      def testWrite(maps: Maps[Slice[Byte], Memory]) = {
 //        keyValues foreach {
 //          keyValue =>
-//            maps.write(time => MapEntry.Put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))).runRandomIO.right.value
+//            maps.write(time => LogEntry.Put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))).runRandomIO.right.value
 //        }
 //      }
 //

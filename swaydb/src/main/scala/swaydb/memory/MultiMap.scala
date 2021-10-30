@@ -18,7 +18,7 @@ package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.core.map.counter.CounterMap
+import swaydb.core.log.counter.CounterLog
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config._
@@ -46,7 +46,7 @@ object MultiMap extends LazyLogging {
    * @tparam F   Function type
    * @tparam BAG Effect type
    */
-  def apply[M, K, V, F <: PureFunction.Map[K, V], BAG[_]](mapSize: Int = DefaultConfigs.mapSize,
+  def apply[M, K, V, F <: PureFunction.Map[K, V], BAG[_]](logSize: Int = DefaultConfigs.logSize,
                                                           minSegmentSize: Int = DefaultConfigs.segmentSize,
                                                           maxKeyValuesPerSegment: Int = Int.MaxValue,
                                                           fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
@@ -77,7 +77,7 @@ object MultiMap extends LazyLogging {
       //the inner map with custom keyOrder and custom key-value types to support nested Maps.
       val map =
         swaydb.memory.Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG](
-          mapSize = mapSize,
+          logSize = logSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
@@ -100,7 +100,7 @@ object MultiMap extends LazyLogging {
 
       bag.flatMap(map) {
         map =>
-          implicit val counter = CounterMap.memory()
+          implicit val counter = CounterLog.memory()
 
           swaydb.MultiMap[M, K, V, F, BAG](map)
       }

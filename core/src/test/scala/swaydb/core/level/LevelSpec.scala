@@ -23,7 +23,7 @@ import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data._
-import swaydb.core.map.MapEntry
+import swaydb.core.log.LogEntry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
@@ -84,7 +84,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
               LevelStorage.Persistent(
                 dir = randomDir,
                 otherDirs = otherDirs,
-                appendixMMAP = MMAP.randomForMap(),
+                appendixMMAP = MMAP.randomForLog(),
                 appendixFlushCheckpointSize = 4.mb
               )
 
@@ -241,24 +241,24 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     }
   }
 
-  "buildNewMapEntry" should {
-    import swaydb.core.map.serializer.AppendixMapEntryWriter._
+  "buildNewLogEntry" should {
+    import swaydb.core.log.serializer.AppendixLogEntryWriter._
 
-    "build MapEntry.Put map for the first created Segment" in {
+    "build LogEntry.Put map for the first created Segment" in {
       TestCaseSweeper {
         implicit sweeper =>
           val level = TestLevel()
 
           val segments = TestSegment(Slice(Memory.put(1, "value1"), Memory.put(2, "value2"))).runRandomIO.right.value
-          val actualMapEntry = level.buildNewMapEntry(Slice(segments), originalSegmentMayBe = Segment.Null, initialMapEntry = None).runRandomIO.right.value
-          val expectedMapEntry = MapEntry.Put[Slice[Byte], Segment](segments.minKey, segments)
+          val actualLogEntry = level.buildNewLogEntry(Slice(segments), originalSegmentMayBe = Segment.Null, initialLogEntry = None).runRandomIO.right.value
+          val expectedLogEntry = LogEntry.Put[Slice[Byte], Segment](segments.minKey, segments)
 
-          actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
-            expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
+          actualLogEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
+            expectedLogEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
       }
     }
 
-    "build MapEntry.Put map for the newly merged Segments and not add MapEntry.Remove map " +
+    "build LogEntry.Put map for the newly merged Segments and not add LogEntry.Remove map " +
       "for original Segment as it's minKey is replace by one of the new Segment" in {
       TestCaseSweeper {
         implicit sweeper =>
@@ -269,19 +269,19 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
           val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.right.value
           val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value
 
-          val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialMapEntry = None).runRandomIO.right.value
+          val actualLogEntry = level.buildNewLogEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialLogEntry = None).runRandomIO.right.value
 
-          val expectedMapEntry =
-            MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
-              MapEntry.Put[Slice[Byte], Segment](6, mergedSegment2) ++
-              MapEntry.Put[Slice[Byte], Segment](11, mergedSegment3)
+          val expectedLogEntry =
+            LogEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
+              LogEntry.Put[Slice[Byte], Segment](6, mergedSegment2) ++
+              LogEntry.Put[Slice[Byte], Segment](11, mergedSegment3)
 
-          actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
-            expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
+          actualLogEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
+            expectedLogEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
       }
     }
 
-    "build MapEntry.Put map for the newly merged Segments and also add Remove map entry for original map when all minKeys are unique" in {
+    "build LogEntry.Put map for the newly merged Segments and also add Remove map entry for original map when all minKeys are unique" in {
       TestCaseSweeper {
         implicit sweeper =>
           val level = TestLevel()
@@ -291,16 +291,16 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
           val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.right.value
           val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value
 
-          val expectedMapEntry =
-            MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
-              MapEntry.Put[Slice[Byte], Segment](6, mergedSegment2) ++
-              MapEntry.Put[Slice[Byte], Segment](11, mergedSegment3) ++
-              MapEntry.Remove[Slice[Byte]](0)
+          val expectedLogEntry =
+            LogEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
+              LogEntry.Put[Slice[Byte], Segment](6, mergedSegment2) ++
+              LogEntry.Put[Slice[Byte], Segment](11, mergedSegment3) ++
+              LogEntry.Remove[Slice[Byte]](0)
 
-          val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialMapEntry = None).runRandomIO.right.value
+          val actualLogEntry = level.buildNewLogEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialLogEntry = None).runRandomIO.right.value
 
-          actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
-            expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
+          actualLogEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
+            expectedLogEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
       }
     }
   }

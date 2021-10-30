@@ -40,10 +40,10 @@ object Queue extends LazyLogging {
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
   def apply[A, BAG[_]](dir: Path,
-                       mapSize: Int = DefaultConfigs.mapSize,
-                       mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
+                       logSize: Int = DefaultConfigs.logSize,
+                       mmapLogs: MMAP.Log = DefaultConfigs.mmap(),
                        recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                       mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
+                       mmapAppendixLogs: MMAP.Log = DefaultConfigs.mmap(),
                        appendixFlushCheckpointSize: Int = 2.mb,
                        otherDirs: Seq[Dir] = Seq.empty,
                        cacheKeyValueIds: Boolean = true,
@@ -80,10 +80,10 @@ object Queue extends LazyLogging {
       val set =
         Set[(Long, A), Nothing, BAG](
           dir = dir,
-          mapSize = mapSize,
-          mmapMaps = mmapMaps,
+          logSize = logSize,
+          mmapLogs = mmapLogs,
           recoveryMode = recoveryMode,
-          mmapAppendix = mmapAppendix,
+          mmapAppendixLogs = mmapAppendixLogs,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs,
           cacheKeyValueIds = cacheKeyValueIds,

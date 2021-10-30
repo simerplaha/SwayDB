@@ -44,8 +44,8 @@ import swaydb.utils.StorageUnits._
 object EventuallyPersistentSet {
 
   final class Config[A, F](dir: Path,
-                           private var mapSize: Int = DefaultConfigs.mapSize,
-                           private var appliedFunctionsMapSize: Int = 4.mb,
+                           private var logSize: Int = DefaultConfigs.logSize,
+                           private var appliedFunctionsLogSize: Int = 4.mb,
                            private var clearAppliedFunctionsOnBoot: Boolean = false,
                            private var maxMemoryLevelSize: Int = 100.mb,
                            private var maxSegmentsToPush: Int = 5,
@@ -54,7 +54,7 @@ object EventuallyPersistentSet {
                            private var persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                            private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                            private var cacheKeyValueIds: Boolean = true,
-                           private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
+                           private var mmapPersistentLevelAppendixLogs: MMAP.Log = DefaultConfigs.mmap(),
                            private var memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                            private var compactionConfig: Option[CompactionConfig] = None,
                            private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
@@ -75,8 +75,8 @@ object EventuallyPersistentSet {
                                                                                  functions: Functions[F],
                                                                                  evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) {
 
-    def setMapSize(mapSize: Int) = {
-      this.mapSize = mapSize
+    def setLogSize(logSize: Int) = {
+      this.logSize = logSize
       this
     }
 
@@ -95,8 +95,8 @@ object EventuallyPersistentSet {
       this
     }
 
-    def setAppliedFunctionsMapSize(size: Int) = {
-      this.appliedFunctionsMapSize = size
+    def setAppliedFunctionsLogSize(size: Int) = {
+      this.appliedFunctionsLogSize = size
       this
     }
 
@@ -140,8 +140,8 @@ object EventuallyPersistentSet {
       this
     }
 
-    def setMmapPersistentLevelAppendix(mmapPersistentLevelAppendix: MMAP.Map) = {
-      this.mmapPersistentLevelAppendix = mmapPersistentLevelAppendix
+    def setMmapPersistentLevelAppendix(mmapPersistentLevelAppendixLogs: MMAP.Log) = {
+      this.mmapPersistentLevelAppendixLogs = mmapPersistentLevelAppendixLogs
       this
     }
 
@@ -223,8 +223,8 @@ object EventuallyPersistentSet {
       val scalaMap =
         swaydb.eventually.persistent.Set[A, PureFunction.Set[A], Glass](
           dir = dir,
-          mapSize = mapSize,
-          appliedFunctionsMapSize = appliedFunctionsMapSize,
+          logSize = logSize,
+          appliedFunctionsLogSize = appliedFunctionsLogSize,
           clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
           maxMemoryLevelSize = maxMemoryLevelSize,
           maxSegmentsToPush = maxSegmentsToPush,
@@ -233,7 +233,7 @@ object EventuallyPersistentSet {
           persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
-          mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
+          mmapPersistentLevelAppendixLogs = mmapPersistentLevelAppendixLogs,
           memorySegmentDeleteDelay = memorySegmentDeleteDelay,
           compactionConfig = compactionConfig getOrElse CommonConfigs.compactionConfig(),
           optimiseWrites = optimiseWrites,

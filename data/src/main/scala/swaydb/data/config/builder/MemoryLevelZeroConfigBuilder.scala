@@ -28,8 +28,8 @@ import scala.concurrent.duration.FiniteDuration
  * Java Builder class for [[swaydb.data.config.MemoryLevelZeroConfig]]
  */
 class MemoryLevelZeroConfigBuilder {
-  private var mapSize: Long = _
-  private var appliedFunctionsMapSize: Long = _
+  private var logSize: Long = _
+  private var appliedFunctionsLogSize: Long = _
   private var clearAppliedFunctionsOnBoot: Boolean = _
   private var acceleration: LevelZeroMeter => Accelerator = _
   private var optimiseWrites: OptimiseWrites = _
@@ -39,15 +39,15 @@ class MemoryLevelZeroConfigBuilder {
 object MemoryLevelZeroConfigBuilder {
 
   class Step0(builder: MemoryLevelZeroConfigBuilder) {
-    def mapSize(mapSize: Long) = {
-      builder.mapSize = mapSize
+    def logSize(logSize: Long) = {
+      builder.logSize = logSize
       new Step1(builder)
     }
   }
 
   class Step1(builder: MemoryLevelZeroConfigBuilder) {
-    def appliedFunctionsMapSize(mapSize: Long) = {
-      builder.appliedFunctionsMapSize = mapSize
+    def appliedFunctionsLogSize(logSize: Long) = {
+      builder.appliedFunctionsLogSize = logSize
       new Step2(builder)
     }
   }
@@ -83,8 +83,8 @@ object MemoryLevelZeroConfigBuilder {
   class Step7(builder: MemoryLevelZeroConfigBuilder) {
     def throttle(throttle: JavaFunction[LevelZeroMeter, LevelZeroThrottle]) =
       ConfigWizard.withMemoryLevel0(
-        mapSize = builder.mapSize,
-        appliedFunctionsMapSize = builder.appliedFunctionsMapSize,
+        logSize = builder.logSize,
+        appliedFunctionsLogSize = builder.appliedFunctionsLogSize,
         clearAppliedFunctionsOnBoot = builder.clearAppliedFunctionsOnBoot,
         optimiseWrites = builder.optimiseWrites,
         atomic = builder.atomic,

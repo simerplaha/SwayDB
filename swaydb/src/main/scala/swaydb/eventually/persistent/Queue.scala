@@ -42,7 +42,7 @@ object Queue extends LazyLogging {
    *
    */
   def apply[A, BAG[_]](dir: Path,
-                       mapSize: Int = DefaultConfigs.mapSize,
+                       logSize: Int = DefaultConfigs.logSize,
                        maxMemoryLevelSize: Int = 100.mb,
                        maxSegmentsToPush: Int = 5,
                        memoryLevelSegmentSize: Int = DefaultConfigs.segmentSize,
@@ -50,7 +50,7 @@ object Queue extends LazyLogging {
                        persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                        otherDirs: Seq[Dir] = Seq.empty,
                        cacheKeyValueIds: Boolean = true,
-                       mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
+                       mmapPersistentLevelAppendixLogs: MMAP.Log = DefaultConfigs.mmap(),
                        memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                        compactionConfig: CompactionConfig = CommonConfigs.compactionConfig(),
                        optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
@@ -78,7 +78,7 @@ object Queue extends LazyLogging {
       val set =
         Set[(Long, A), Nothing, BAG](
           dir = dir,
-          mapSize = mapSize,
+          logSize = logSize,
           maxMemoryLevelSize = maxMemoryLevelSize,
           maxSegmentsToPush = maxSegmentsToPush,
           memoryLevelSegmentSize = memoryLevelSegmentSize,
@@ -86,7 +86,7 @@ object Queue extends LazyLogging {
           persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
           otherDirs = otherDirs,
           cacheKeyValueIds = cacheKeyValueIds,
-          mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
+          mmapPersistentLevelAppendixLogs = mmapPersistentLevelAppendixLogs,
           memorySegmentDeleteDelay = memorySegmentDeleteDelay,
           compactionConfig = compactionConfig,
           optimiseWrites = optimiseWrites,

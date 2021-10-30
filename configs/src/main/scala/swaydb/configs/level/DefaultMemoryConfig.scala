@@ -29,8 +29,8 @@ object DefaultMemoryConfig extends LazyLogging {
   /**
    * Default configuration for 2 leveled Memory database.
    */
-  def apply(mapSize: Int,
-            appliedFunctionsMapSize: Int,
+  def apply(logSize: Int,
+            appliedFunctionsLogSize: Int,
             clearAppliedFunctionsOnBoot: Boolean,
             minSegmentSize: Int,
             maxKeyValuesPerSegment: Int,
@@ -42,8 +42,8 @@ object DefaultMemoryConfig extends LazyLogging {
             atomic: Atomic): SwayDBMemoryConfig =
     ConfigWizard
       .withMemoryLevel0(
-        mapSize = mapSize,
-        appliedFunctionsMapSize = appliedFunctionsMapSize,
+        logSize = logSize,
+        appliedFunctionsLogSize = appliedFunctionsLogSize,
         clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
         optimiseWrites = optimiseWrites,
         atomic = atomic,

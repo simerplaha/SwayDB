@@ -38,7 +38,7 @@ import swaydb.utils.Java._
 
 object MemoryMultiMap {
 
-  final class Config[M, K, V, F](private var mapSize: Int = DefaultConfigs.mapSize,
+  final class Config[M, K, V, F](private var logSize: Int = DefaultConfigs.logSize,
                                  private var minSegmentSize: Int = DefaultConfigs.segmentSize,
                                  private var maxKeyValuesPerSegment: Int = Int.MaxValue,
                                  private var deleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
@@ -58,8 +58,8 @@ object MemoryMultiMap {
                                                                                        functions: Functions[F],
                                                                                        evd: F <:< PureFunction[K, V, Apply.Map[V]]) {
 
-    def setMapSize(mapSize: Int) = {
-      this.mapSize = mapSize
+    def setLogSize(logSize: Int) = {
+      this.logSize = logSize
       this
     }
 
@@ -140,7 +140,7 @@ object MemoryMultiMap {
 
       val scalaMap =
         swaydb.memory.MultiMap[M, K, V, PureFunction.Map[K, V], Glass](
-          mapSize = mapSize,
+          logSize = logSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,

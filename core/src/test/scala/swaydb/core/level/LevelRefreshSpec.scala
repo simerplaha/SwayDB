@@ -114,7 +114,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
-          val map = TestMap(keyValues)
+          val map = TestLog(keyValues)
           level.putMap(map).right.right.value
 
           val nextLevel = TestLevel()

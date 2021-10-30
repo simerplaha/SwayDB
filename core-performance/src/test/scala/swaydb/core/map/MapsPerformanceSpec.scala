@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 //
-//package swaydb.core.map
+//package swaydb.core.log
 //
 //import swaydb.IOValues._
 //import swaydb.core.CommonAssertions._
@@ -41,8 +41,8 @@
 //  implicit val memorySweeper = TestSweeper.memorySweeperMax
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 //
-//  import swaydb.core.map.serializer.LevelZeroMapEntryReader._
-//  import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+//  import swaydb.core.log.serializer.LevelZeroLogEntryReader._
+//  import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
 //
 //  implicit val skipListMerger = LevelZeroSkipListMerger
 //
@@ -56,7 +56,7 @@
 //          keyValue =>
 //            maps.write {
 //              time =>
-//                MapEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))(Level0PutWriter)
+//                LogEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))(Level0PutWriter)
 //            }.runRandomIO.right.value
 //        }
 //

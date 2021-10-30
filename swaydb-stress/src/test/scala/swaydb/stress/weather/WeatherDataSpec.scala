@@ -264,7 +264,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
 
         //    Future {
         //      while (true) {
-        //        println("db.level0Meter.mapsCount:     " + db.level0Meter.mapsCount)
+        //        println("db.level0Meter.logsCount:     " + db.level0Meter.logsCount)
         //        println("db.level1Meter.segmentsCount: " + db.level1Meter.segmentsCount)
         //        sleep(5.seconds)
         //      }

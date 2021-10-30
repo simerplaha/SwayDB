@@ -487,18 +487,18 @@ abstract class SetTest extends TestBase {
 //      };
 //
 //    //use a small map size so that Segments file gets generated for this this quickly.
-//    int mapSize = 1000;
+//    int logSize = 1000;
 //
 //    //memory set
 //    SetBuilder.Builder<MyKey, Void> memoryConfig = SetBuilder.functionsDisabled(serializer);
 //    memoryConfig.setComparator(IO.rightNeverException(comparator));
-//    memoryConfig.setMapSize(mapSize);
+//    memoryConfig.setLogSize(logSize);
 //    Set<MyKey, Void> memorySet = memoryConfig.build();
 //
 //    //persistent Set
 //    swaydb.java.persistent.SetBuilder.Builder<MyKey, Void> persistentConfig = swaydb.java.persistent.SetBuilder.functionsDisabled(testDir(), serializer);
 //    persistentConfig.setComparator(IO.rightNeverException(comparator));
-//    persistentConfig.setMapSize(mapSize);
+//    persistentConfig.setLogSize(logSize);
 //    Set<MyKey, Void> persistentSet = persistentConfig.build();
 //
 //    //create a slice to test for both maps

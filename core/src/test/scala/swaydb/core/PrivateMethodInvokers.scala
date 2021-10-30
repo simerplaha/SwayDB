@@ -17,8 +17,8 @@
 package swaydb.core
 
 import org.scalatest.PrivateMethodTester._
-import swaydb.core.map.timer.Timer
-import swaydb.core.map.{Map, MapCache, Maps}
+import swaydb.core.log.timer.Timer
+import swaydb.core.log.{Log, LogCache, Logs}
 import swaydb.core.segment.PersistentSegment
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.util.{HashedMap, IDGenerator}
@@ -30,14 +30,14 @@ import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}
 
 object PrivateMethodInvokers {
 
-  def getMaps[K, V, C <: MapCache[K, V]](maps: Maps[K, V, C]): VolatileQueue[Map[K, V, C]] = {
-    val function = PrivateMethod[VolatileQueue[Map[K, V, C]]](Symbol("queue"))
-    maps.invokePrivate(function())
+  def getLogs[K, V, C <: LogCache[K, V]](logs: Logs[K, V, C]): VolatileQueue[Log[K, V, C]] = {
+    val function = PrivateMethod[VolatileQueue[Log[K, V, C]]](Symbol("queue"))
+    logs.invokePrivate(function())
   }
 
-  def getTimer[K, V, C <: MapCache[K, V]](maps: Maps[K, V, C]): Timer = {
+  def getTimer[K, V, C <: LogCache[K, V]](logs: Logs[K, V, C]): Timer = {
     val function = PrivateMethod[Timer](Symbol("timer"))
-    maps.invokePrivate(function())
+    logs.invokePrivate(function())
   }
 
   def getJavaMap[K, OV, V <: OV](maps: HashedMap.Concurrent[K, OV, V]): ConcurrentHashMap[K, V] = {

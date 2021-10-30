@@ -164,7 +164,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
 
             assertGet(keyValues, level)
 
-            val map = TestMap(keyValues)
+            val map = TestLog(keyValues)
 
             val mapAssignment = level.assign(map, level.segments(), removeDeletedRecords = false)
 
@@ -207,7 +207,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
              */
             val keyValues2 = randomPutKeyValues(startId = Some(0), count = 200)
 
-            val map = TestMap(keyValues2)
+            val map = TestLog(keyValues2)
 
             val mapAssigment = level.assign(map, level.segments(), removeDeletedRecords = false)
 
@@ -250,7 +250,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             /**
              * SECOND with 200 key-values
              */
-            val map = TestMap(Slice(randomRemoveRange(0, Int.MaxValue)))
+            val map = TestLog(Slice(randomRemoveRange(0, Int.MaxValue)))
 
             val mapAssigment = level.assign(map, level.segments(), removeDeletedRecords = false)
 

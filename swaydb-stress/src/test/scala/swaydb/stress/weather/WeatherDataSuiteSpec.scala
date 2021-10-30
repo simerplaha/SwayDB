@@ -44,8 +44,8 @@ class Persistent_NonAtomic_WeatherDataSpec extends WeatherDataSpec {
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
       //      atomic = Atomic.Off,
-      //      mmapMaps = MMAP.randomForMap(),
-      //      mmapAppendix = MMAP.randomForMap(),
+      //      mmapLogs = MMAP.randomForMap(),
+      //      mmapAppendixLogs = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
       //      acceleration = Accelerator.brake(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(true).copy(deleteDelay = Duration.Zero),
@@ -59,8 +59,8 @@ class Persistent_Atomic_WeatherDataSpec extends WeatherDataSpec {
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
       atomic = Atomic.On
-      //      mmapMaps = MMAP.randomForMap(),
-      //      mmapAppendix = MMAP.randomForMap(),
+      //      mmapLogs = MMAP.randomForMap(),
+      //      mmapAppendixLogs = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
       //      acceleration = Accelerator.brake(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(true).copy(deleteDelay = Duration.Zero),
@@ -73,8 +73,8 @@ class Persistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
     swaydb.persistent.MultiMap[Int, Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
-      //      mmapMaps = MMAP.randomForMap(),
-      //      mmapAppendix = MMAP.randomForMap(),
+      //      mmapLogs = MMAP.randomForMap(),
+      //      mmapAppendixLogs = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
       //      acceleration = Accelerator.brake(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment()),
@@ -87,8 +87,8 @@ class Persistent_SetMap_WeatherDataSpec extends WeatherDataSpec {
     swaydb.persistent.SetMap[Int, WeatherData, IO.ApiIO](
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
-      //      mmapMaps = MMAP.randomForMap(),
-      //      mmapAppendix = MMAP.randomForMap(),
+      //      mmapLogs = MMAP.randomForMap(),
+      //      mmapAppendixLogs = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
       //      acceleration = Accelerator.brake(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment()),
@@ -108,7 +108,7 @@ class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
       //      cacheKeyValueIds = randomBoolean(),
-      //      mmapPersistentLevelAppendix = MMAP.randomForMap(),
+      //      mmapPersistentLevelAppendixLogs = MMAP.randomForMap(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
     ).get.sweep(_.delete().get)
 }
@@ -120,7 +120,7 @@ class EventuallyPersistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
       //      cacheKeyValueIds = randomBoolean(),
-      //      mmapPersistentLevelAppendix = MMAP.randomForMap(),
+      //      mmapPersistentLevelAppendixLogs = MMAP.randomForMap(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
     ).get.sweep(_.delete().get)
 }

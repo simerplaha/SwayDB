@@ -17,8 +17,7 @@
 package swaydb.core.level.compaction.reception
 
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.core.level.zero.LevelZero.LevelZeroMap
-import swaydb.core.map.Map
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.{Assignable, Assigner}
 import swaydb.core.util.AtomicRanges
@@ -75,14 +74,14 @@ private[core] case object LevelReception {
   }
 
   /**
-   * Tries to reserve input [[Map]]s for merge.
+   * Tries to reserve input [[swaydb.core.log.Log]]s for merge.
    *
    * @return Either a Promise which is complete when this Map becomes available or returns the key which
    *         can be used to free the Map.
    *
    */
-  implicit object MapReception extends LevelReception[LevelZeroMap] {
-    override def reserve(map: LevelZeroMap,
+  implicit object MapReception extends LevelReception[LevelZeroLog] {
+    override def reserve(map: LevelZeroLog,
                          levelSegments: Iterable[Segment])(implicit reservations: AtomicRanges[Slice[Byte]],
                                                            keyOrder: KeyOrder[Slice[Byte]]): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] =
       IO {

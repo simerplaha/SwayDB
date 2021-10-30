@@ -42,7 +42,7 @@ class SwayDBSourceSpec1 extends SwayDBSourceSpec {
   override val keyValueCount: Int = 100
 
   override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte).right.value.sweep(_.delete().get)
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, logSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBSourceSpec2 extends SwayDBSourceSpec {
@@ -50,7 +50,7 @@ class SwayDBSourceSpec2 extends SwayDBSourceSpec {
   override val keyValueCount: Int = 100
 
   override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value.sweep(_.delete().get)
+    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](logSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBSourceSpec3 extends SwayDBSourceSpec {

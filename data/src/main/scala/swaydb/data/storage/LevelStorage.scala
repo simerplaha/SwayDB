@@ -40,7 +40,7 @@ object LevelStorage {
 
   case class Persistent(dir: Path,
                         otherDirs: Seq[Dir],
-                        appendixMMAP: MMAP.Map,
+                        appendixMMAP: MMAP.Log,
                         appendixFlushCheckpointSize: Long) extends LevelStorage {
 
     override val memory: Boolean = false

@@ -18,7 +18,7 @@ package swaydb.core.level
 
 import swaydb.core.data.{DefIO, Memory}
 import swaydb.core.level.compaction.io.CompactionIO
-import swaydb.core.level.zero.LevelZero.LevelZeroMap
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.{Assignable, Assignment}
 import swaydb.core.segment.block.segment.data.TransientSegment
@@ -84,7 +84,7 @@ trait NextLevel extends LevelRef {
              targetSegments: IterableOnce[Segment],
              removeDeletedRecords: Boolean): DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]]
 
-  def assign(newKeyValues: LevelZeroMap,
+  def assign(newKeyValues: LevelZeroLog,
              targetSegments: IterableOnce[Segment],
              removeDeletedRecords: Boolean): DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]]
 

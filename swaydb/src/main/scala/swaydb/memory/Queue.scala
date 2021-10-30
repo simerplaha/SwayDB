@@ -35,7 +35,7 @@ object Queue extends LazyLogging {
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
-  def apply[A, BAG[_]](mapSize: Int = DefaultConfigs.mapSize,
+  def apply[A, BAG[_]](logSize: Int = DefaultConfigs.logSize,
                        minSegmentSize: Int = DefaultConfigs.segmentSize,
                        maxKeyValuesPerSegment: Int = Int.MaxValue,
                        fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
@@ -58,7 +58,7 @@ object Queue extends LazyLogging {
 
       val set =
         Set[(Long, A), Nothing, BAG](
-          mapSize = mapSize,
+          logSize = logSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,

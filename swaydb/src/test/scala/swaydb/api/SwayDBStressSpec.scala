@@ -36,7 +36,7 @@
 //  val keyValueCount: Int = 100000
 //
 //  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, IO] =
-//    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).runIO
+//    swaydb.persistent.Map[Int, String](randomDir, logSize = 1.byte).runIO
 //}
 //
 //class SwayDBStressSpec2 extends SwayDBStressSpec {
@@ -44,7 +44,7 @@
 //  val keyValueCount: Int = 100000
 //
 //  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, IO] =
-//    swaydb.memory.Map[Int, String](mapSize = 1.byte).runIO
+//    swaydb.memory.Map[Int, String](logSize = 1.byte).runIO
 //}
 //
 //class SwayDBStressSpec3 extends SwayDBStressSpec {
@@ -66,7 +66,7 @@
 //
 //    runThis(100.times) {
 //      //add multiple Levels to Memory databases and the value fails
-//      //swaydb.memory.Map[Int, String](mapSize = 1.byte).runIO
+//      //swaydb.memory.Map[Int, String](logSize = 1.byte).runIO
 //      eitherOne(
 //        left = (1 to keyValueCount) foreach (i => db.remove(i).runIO),
 //        right = db.remove(1, keyValueCount).runIO
@@ -87,7 +87,7 @@
 //        )
 //      )
 //
-//      println("db.level0Meter.mapsCount: " + db.level0Meter.mapsCount)
+//      println("db.level0Meter.logsCount: " + db.level0Meter.logsCount)
 //      println("db.level1Meter.segmentsCount: " + db.level1Meter.segmentsCount)
 //
 //      //      db.foldLeft(0) {
@@ -95,7 +95,7 @@
 //      //          //          println(s"previous: $previous -> next: $nextKey")
 //      //          previous shouldBe (nextKey - 1)
 //      //          db.deadline(nextKey).runIO shouldBe deadline
-//      //          //          println(db.level0Meter.mapsCount)
+//      //          //          println(db.level0Meter.logsCount)
 //      //          nextKey
 //      //      }
 //
