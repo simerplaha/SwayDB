@@ -33,7 +33,7 @@ import swaydb.core.level.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
-import swaydb.core.log.LogEntry
+import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
@@ -205,12 +205,12 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
       val testLog =
         if (levelStorage.memory)
-          log.Log.memory[Slice[Byte], Memory, LevelZeroLogCache](
+          Log.memory[Slice[Byte], Memory, LevelZeroLogCache](
             fileSize = fileSize,
             flushOnOverflow = flushOnOverflow
           )
         else
-          log.Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+          Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
             folder = path,
             mmap = mmap,
             flushOnOverflow = flushOnOverflow,

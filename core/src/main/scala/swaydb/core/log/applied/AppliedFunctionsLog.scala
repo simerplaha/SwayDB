@@ -49,7 +49,7 @@ case object AppliedFunctionsLog extends LazyLogging {
     implicit val fileSweeper: FileSweeper = FileSweeper.Off
     implicit val keyOrder = KeyOrder.default
 
-    log.Log.persistent[Slice[Byte], Slice.Null.type, AppliedFunctionsLogCache](
+    Log.persistent[Slice[Byte], Slice.Null.type, AppliedFunctionsLogCache](
       folder = folder,
       mmap = mmap,
       flushOnOverflow = true,
