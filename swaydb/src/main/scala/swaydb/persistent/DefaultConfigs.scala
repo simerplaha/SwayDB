@@ -74,8 +74,8 @@ object DefaultConfigs {
         )
     )
 
-  def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = false): SortedKeyIndex.On =
-    SortedKeyIndex.On(
+  def sortedIndex(cacheDataBlockOnAccess: Boolean = false): SortedIndex.On =
+    SortedIndex.On(
       prefixCompression = PrefixCompression.Off(normaliseIndexForBinarySearch = false),
       //      prefixCompression =
       //        PrefixCompression.On(
@@ -117,8 +117,8 @@ object DefaultConfigs {
       compression = _ => Seq.empty
     )
 
-  def mightContainIndex(cacheDataBlockOnAccess: Boolean = false): MightContainIndex.On =
-    MightContainIndex.On(
+  def bloomFilter(cacheDataBlockOnAccess: Boolean = false): BloomFilter.On =
+    BloomFilter.On(
       falsePositiveRate = 0.001,
       minimumNumberOfKeys = 10,
       updateMaxProbe = (optimalMaxProbe: Int) => optimalMaxProbe,

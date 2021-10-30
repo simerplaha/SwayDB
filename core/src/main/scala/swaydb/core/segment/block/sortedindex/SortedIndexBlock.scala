@@ -72,13 +72,13 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         compressions = (_: UncompressedBlockInfo) => Seq.empty
       )
 
-    def apply(config: swaydb.data.config.SortedKeyIndex): Config =
+    def apply(config: swaydb.data.config.SortedIndex): Config =
       config match {
-        case config: swaydb.data.config.SortedKeyIndex.On =>
+        case config: swaydb.data.config.SortedIndex.On =>
           apply(config)
       }
 
-    def apply(enable: swaydb.data.config.SortedKeyIndex.On): Config =
+    def apply(enable: swaydb.data.config.SortedIndex.On): Config =
       Config(
         ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
         shouldPrefixCompress = enable.prefixCompression.shouldCompress,

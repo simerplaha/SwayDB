@@ -209,10 +209,10 @@ private[core] object CoreInitializer extends LazyLogging {
                   IO.failed[swaydb.Error.Level, NextLevel](exception)
                 } else {
                   Level(
-                    bloomFilterConfig = BloomFilterBlock.Config(config = config.mightContainIndex),
+                    bloomFilterConfig = BloomFilterBlock.Config(config = config.bloomFilter),
                     hashIndexConfig = block.hashindex.HashIndexBlock.Config(config = config.hashIndex),
                     binarySearchIndexConfig = block.binarysearch.BinarySearchIndexBlock.Config(config = config.binarySearchIndex),
-                    sortedIndexConfig = SortedIndexBlock.Config(config.sortedKeyIndex),
+                    sortedIndexConfig = SortedIndexBlock.Config(config.sortedIndex),
                     valuesConfig = ValuesBlock.Config(config.valuesConfig),
                     segmentConfig = SegmentBlock.Config(config.segmentConfig),
                     levelStorage =

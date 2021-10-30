@@ -41,9 +41,9 @@ private[core] case object BloomFilterBlock extends LazyLogging {
         compressions = _ => Seq.empty
       )
 
-    def apply(config: swaydb.data.config.MightContainIndex): Config =
+    def apply(config: swaydb.data.config.BloomFilter): Config =
       config match {
-        case swaydb.data.config.MightContainIndex.Off =>
+        case swaydb.data.config.BloomFilter.Off =>
           Config(
             falsePositiveRate = 0.0,
             minimumNumberOfKeys = Int.MaxValue,
@@ -52,7 +52,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
             compressions = _ => Seq.empty
           )
 
-        case enable: swaydb.data.config.MightContainIndex.On =>
+        case enable: swaydb.data.config.BloomFilter.On =>
           Config(
             falsePositiveRate = enable.falsePositiveRate,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,

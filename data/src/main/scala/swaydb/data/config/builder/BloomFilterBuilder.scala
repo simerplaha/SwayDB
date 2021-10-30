@@ -17,52 +17,52 @@
 package swaydb.data.config.builder
 
 import swaydb.Compression
-import swaydb.data.config.{MightContainIndex, UncompressedBlockInfo}
+import swaydb.data.config.{BloomFilter, UncompressedBlockInfo}
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.Java.JavaFunction
 
 import scala.jdk.CollectionConverters._
 
-class MightContainIndexBuilder {
+class BloomFilterBuilder {
   private var falsePositiveRate: Double = _
   private var updateMaxProbe: JavaFunction[Int, Int] = _
   private var minimumNumberOfKeys: Int = _
   private var blockIOStrategy: JavaFunction[IOAction, IOStrategy] = _
 }
 
-object MightContainIndexBuilder {
+object BloomFilterBuilder {
 
-  class Step0(builder: MightContainIndexBuilder) {
+  class Step0(builder: BloomFilterBuilder) {
     def falsePositiveRate(falsePositiveRate: Double) = {
       builder.falsePositiveRate = falsePositiveRate
       new Step1(builder)
     }
   }
 
-  class Step1(builder: MightContainIndexBuilder) {
+  class Step1(builder: BloomFilterBuilder) {
     def updateMaxProbe(updateMaxProbe: JavaFunction[java.lang.Integer, java.lang.Integer]) = {
       builder.updateMaxProbe = updateMaxProbe.asInstanceOf[JavaFunction[Int, Int]]
       new Step2(builder)
     }
   }
 
-  class Step2(builder: MightContainIndexBuilder) {
+  class Step2(builder: BloomFilterBuilder) {
     def minimumNumberOfKeys(minimumNumberOfKeys: Int) = {
       builder.minimumNumberOfKeys = minimumNumberOfKeys
       new Step3(builder)
     }
   }
 
-  class Step3(builder: MightContainIndexBuilder) {
+  class Step3(builder: BloomFilterBuilder) {
     def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction, IOStrategy]) = {
       builder.blockIOStrategy = blockIOStrategy
       new Step4(builder)
     }
   }
 
-  class Step4(builder: MightContainIndexBuilder) {
+  class Step4(builder: BloomFilterBuilder) {
     def compression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
-      MightContainIndex.On(
+      BloomFilter.On(
         falsePositiveRate = builder.falsePositiveRate,
         updateMaxProbe = builder.updateMaxProbe.apply,
         minimumNumberOfKeys = builder.minimumNumberOfKeys,
@@ -71,5 +71,5 @@ object MightContainIndexBuilder {
       )
   }
 
-  def builder() = new Step0(new MightContainIndexBuilder())
+  def builder() = new Step0(new BloomFilterBuilder())
 }

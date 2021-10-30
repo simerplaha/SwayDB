@@ -57,10 +57,10 @@ object EventuallyPersistentSetMap {
                            private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                            private var atomic: Atomic = CommonConfigs.atomic(),
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = DefaultConfigs.accelerator.asJava,
-                           private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
+                           private var persistentLevelSortedIndex: SortedIndex = DefaultConfigs.sortedIndex(),
                            private var persistentLevelHashIndex: HashIndex = DefaultConfigs.hashIndex(),
                            private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
-                           private var mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
+                           private var bloomFilter: BloomFilter = DefaultConfigs.bloomFilter(),
                            private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                            private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                            private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
@@ -141,8 +141,8 @@ object EventuallyPersistentSetMap {
       this
     }
 
-    def setPersistentLevelSortedKeyIndex(persistentLevelSortedKeyIndex: SortedKeyIndex) = {
-      this.persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex
+    def setPersistentLevelSortedIndex(persistentLevelSortedIndex: SortedIndex) = {
+      this.persistentLevelSortedIndex = persistentLevelSortedIndex
       this
     }
 
@@ -156,8 +156,8 @@ object EventuallyPersistentSetMap {
       this
     }
 
-    def setMightContainIndex(mightContainIndex: MightContainIndex) = {
-      this.mightContainIndex = mightContainIndex
+    def setBloomFilter(bloomFilter: BloomFilter) = {
+      this.bloomFilter = bloomFilter
       this
     }
 
@@ -223,10 +223,10 @@ object EventuallyPersistentSetMap {
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.apply,
-          persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
+          persistentLevelSortedIndex = persistentLevelSortedIndex,
           persistentLevelHashIndex = persistentLevelHashIndex,
           binarySearchIndex = binarySearchIndex,
-          mightContainIndex = mightContainIndex,
+          bloomFilter = bloomFilter,
           valuesConfig = valuesConfig,
           segmentConfig = segmentConfig,
           fileCache = fileCache,

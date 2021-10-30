@@ -17,35 +17,35 @@
 package swaydb.data.config
 
 import swaydb.Compression
-import swaydb.data.config.builder.MightContainIndexBuilder
+import swaydb.data.config.builder.BloomFilterBuilder
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.Java.JavaFunction
 
 import scala.jdk.CollectionConverters._
 
-sealed trait MightContainIndex {
-  def toOption: Option[MightContainIndex.On] =
+sealed trait BloomFilter {
+  def toOption: Option[BloomFilter.On] =
     this match {
-      case MightContainIndex.Off => None
-      case enable: MightContainIndex.On => Some(enable)
+      case BloomFilter.Off => None
+      case enable: BloomFilter.On => Some(enable)
     }
 }
 
-object MightContainIndex {
+object BloomFilter {
 
-  def off: MightContainIndex.Off = Off
+  def off: BloomFilter.Off = Off
 
-  sealed trait Off extends MightContainIndex
+  sealed trait Off extends BloomFilter
   case object Off extends Off
 
-  def builder(): MightContainIndexBuilder.Step0 =
-    MightContainIndexBuilder.builder()
+  def builder(): BloomFilterBuilder.Step0 =
+    BloomFilterBuilder.builder()
 
   case class On(falsePositiveRate: Double,
                 updateMaxProbe: Int => Int,
                 minimumNumberOfKeys: Int,
                 blockIOStrategy: IOAction => IOStrategy,
-                compression: UncompressedBlockInfo => Iterable[Compression]) extends MightContainIndex {
+                compression: UncompressedBlockInfo => Iterable[Compression]) extends BloomFilter {
 
     def copyWithFalsePositiveRate(falsePositiveRate: Double) =
       this.copy(falsePositiveRate = falsePositiveRate)

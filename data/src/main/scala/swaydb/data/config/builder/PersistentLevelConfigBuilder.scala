@@ -32,10 +32,10 @@ class PersistentLevelConfigBuilder {
   private var otherDirs: Seq[Dir] = _
   private var mmapAppendixLogs: MMAP.Log = _
   private var appendixFlushCheckpointSize: Long = _
-  private var sortedKeyIndex: SortedKeyIndex = _
+  private var sortedIndex: SortedIndex = _
   private var hashIndex: HashIndex = _
   private var binarySearchIndex: BinarySearchIndex = _
-  private var mightContainIndex: MightContainIndex = _
+  private var bloomFilter: BloomFilter = _
   private var valuesConfig: ValuesConfig = _
   private var segmentConfig: SegmentConfig = _
 }
@@ -80,8 +80,8 @@ object PersistentLevelConfigBuilder {
   }
 
   class Step4(builder: PersistentLevelConfigBuilder) {
-    def sortedKeyIndex(sortedKeyIndex: SortedKeyIndex) = {
-      builder.sortedKeyIndex = sortedKeyIndex
+    def sortedIndex(sortedIndex: SortedIndex) = {
+      builder.sortedIndex = sortedIndex
       new Step5(builder)
     }
   }
@@ -101,8 +101,8 @@ object PersistentLevelConfigBuilder {
   }
 
   class Step7(builder: PersistentLevelConfigBuilder) {
-    def mightContainIndex(mightContainIndex: MightContainIndex) = {
-      builder.mightContainIndex = mightContainIndex
+    def bloomFilter(bloomFilter: BloomFilter) = {
+      builder.bloomFilter = bloomFilter
       new Step8(builder)
     }
   }
@@ -128,10 +128,10 @@ object PersistentLevelConfigBuilder {
         otherDirs = builder.otherDirs,
         mmapAppendixLogs = builder.mmapAppendixLogs,
         appendixFlushCheckpointSize = builder.appendixFlushCheckpointSize,
-        sortedKeyIndex = builder.sortedKeyIndex,
+        sortedIndex = builder.sortedIndex,
         hashIndex = builder.hashIndex,
         binarySearchIndex = builder.binarySearchIndex,
-        mightContainIndex = builder.mightContainIndex,
+        bloomFilter = builder.bloomFilter,
         valuesConfig = builder.valuesConfig,
         segmentConfig = builder.segmentConfig,
         throttle = throttle.apply

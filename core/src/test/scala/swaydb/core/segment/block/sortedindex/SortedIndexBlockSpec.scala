@@ -53,7 +53,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         //test via User created object.
         val configFromUserConfig =
           SortedIndexBlock.Config(
-            swaydb.data.config.SortedKeyIndex.On(
+            swaydb.data.config.SortedIndex.On(
               prefixCompression = prefixCompression,
               enablePositionIndex = randomBoolean(),
               optimiseForReverseIteration = randomBoolean(),
@@ -96,7 +96,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         //use created config
         val configFromUserConfig =
           SortedIndexBlock.Config(
-            swaydb.data.config.SortedKeyIndex.On(
+            swaydb.data.config.SortedIndex.On(
               prefixCompression = prefixCompression,
               enablePositionIndex = randomBoolean(),
               optimiseForReverseIteration = randomBoolean(),

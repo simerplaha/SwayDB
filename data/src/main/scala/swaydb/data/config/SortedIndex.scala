@@ -17,23 +17,23 @@
 package swaydb.data.config
 
 import swaydb.Compression
-import swaydb.data.config.builder.SortedKeyIndexBuilder
+import swaydb.data.config.builder.SortedIndexBuilder
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.Java.JavaFunction
 
 import scala.jdk.CollectionConverters._
 
-sealed trait SortedKeyIndex
-object SortedKeyIndex {
+sealed trait SortedIndex
+object SortedIndex {
 
-  def builder(): SortedKeyIndexBuilder.Step0 =
-    SortedKeyIndexBuilder.builder()
+  def builder(): SortedIndexBuilder.Step0 =
+    SortedIndexBuilder.builder()
 
   case class On(prefixCompression: PrefixCompression,
                 enablePositionIndex: Boolean,
                 optimiseForReverseIteration: Boolean,
                 blockIOStrategy: IOAction => IOStrategy,
-                compressions: UncompressedBlockInfo => Iterable[Compression]) extends SortedKeyIndex {
+                compressions: UncompressedBlockInfo => Iterable[Compression]) extends SortedIndex {
     def copyWithPrefixCompression(prefixCompression: PrefixCompression) =
       this.copy(prefixCompression = prefixCompression)
 

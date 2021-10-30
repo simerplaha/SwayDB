@@ -111,10 +111,10 @@ case class PersistentLevelZeroConfig private(logSize: Long,
                            otherDirs: Seq[Dir],
                            mmapAppendixLogs: MMAP.Log,
                            appendixFlushCheckpointSize: Long,
-                           sortedKeyIndex: SortedKeyIndex,
+                           sortedIndex: SortedIndex,
                            hashIndex: HashIndex,
                            binarySearchIndex: BinarySearchIndex,
-                           mightContainIndex: MightContainIndex,
+                           bloomFilter: BloomFilter,
                            valuesConfig: ValuesConfig,
                            segmentConfig: SegmentConfig,
                            throttle: LevelMeter => LevelThrottle): SwayDBPersistentConfig =
@@ -126,10 +126,10 @@ case class PersistentLevelZeroConfig private(logSize: Long,
           otherDirs = otherDirs,
           mmapAppendixLogs = mmapAppendixLogs,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-          sortedKeyIndex = sortedKeyIndex,
+          sortedIndex = sortedIndex,
           hashIndex = hashIndex,
           binarySearchIndex = binarySearchIndex,
-          mightContainIndex = mightContainIndex,
+          bloomFilter = bloomFilter,
           valuesConfig = valuesConfig,
           segmentConfig = segmentConfig,
           throttle = throttle
@@ -186,10 +186,10 @@ case class MemoryLevelZeroConfig(logSize: Long,
                            otherDirs: Seq[Dir],
                            mmapAppendixLogs: MMAP.Log,
                            appendixFlushCheckpointSize: Long,
-                           sortedKeyIndex: SortedKeyIndex,
+                           sortedIndex: SortedIndex,
                            hashIndex: HashIndex,
                            binarySearchIndex: BinarySearchIndex,
-                           mightContainKey: MightContainIndex,
+                           bloomFilter: BloomFilter,
                            valuesConfig: ValuesConfig,
                            segmentConfig: SegmentConfig,
                            throttle: LevelMeter => LevelThrottle): SwayDBPersistentConfig =
@@ -201,10 +201,10 @@ case class MemoryLevelZeroConfig(logSize: Long,
           otherDirs = otherDirs,
           mmapAppendixLogs = mmapAppendixLogs,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-          sortedKeyIndex = sortedKeyIndex,
+          sortedIndex = sortedIndex,
           hashIndex = hashIndex,
           binarySearchIndex = binarySearchIndex,
-          mightContainIndex = mightContainKey,
+          bloomFilter = bloomFilter,
           valuesConfig = valuesConfig,
           segmentConfig = segmentConfig,
           throttle = throttle
@@ -277,10 +277,10 @@ case class PersistentLevelConfig(dir: Path,
                                  otherDirs: Seq[Dir],
                                  mmapAppendixLogs: MMAP.Log,
                                  appendixFlushCheckpointSize: Long,
-                                 sortedKeyIndex: SortedKeyIndex,
+                                 sortedIndex: SortedIndex,
                                  hashIndex: HashIndex,
                                  binarySearchIndex: BinarySearchIndex,
-                                 mightContainIndex: MightContainIndex,
+                                 bloomFilter: BloomFilter,
                                  valuesConfig: ValuesConfig,
                                  segmentConfig: SegmentConfig,
                                  throttle: LevelMeter => LevelThrottle) extends LevelConfig {
@@ -299,8 +299,8 @@ case class PersistentLevelConfig(dir: Path,
   def copyWithAppendixFlushCheckpointSize(appendixFlushCheckpointSize: Long) =
     this.copy(appendixFlushCheckpointSize = appendixFlushCheckpointSize)
 
-  def copyWithSortedKeyIndex(sortedKeyIndex: SortedKeyIndex) =
-    this.copy(sortedKeyIndex = sortedKeyIndex)
+  def copyWithSortedIndex(sortedIndex: SortedIndex) =
+    this.copy(sortedIndex = sortedIndex)
 
   def copyWithHashIndex(hashIndex: HashIndex) =
     this.copy(hashIndex = hashIndex)
@@ -308,8 +308,8 @@ case class PersistentLevelConfig(dir: Path,
   def copyWithBinarySearchIndex(binarySearchIndex: BinarySearchIndex) =
     this.copy(binarySearchIndex = binarySearchIndex)
 
-  def copyWithMightContainIndex(mightContainIndex: MightContainIndex) =
-    this.copy(mightContainIndex = mightContainIndex)
+  def copyWithBloomFilter(bloomFilter: BloomFilter) =
+    this.copy(bloomFilter = bloomFilter)
 
   def copyWithValuesConfig(valuesConfig: ValuesConfig) =
     this.copy(valuesConfig = valuesConfig)
@@ -357,10 +357,10 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
                           otherDirs: Seq[Dir],
                           mmapAppendixLogs: MMAP.Log,
                           appendixFlushCheckpointSize: Long,
-                          sortedKeyIndex: SortedKeyIndex,
+                          sortedIndex: SortedIndex,
                           hashIndex: HashIndex,
                           binarySearchIndex: BinarySearchIndex,
-                          mightContainKey: MightContainIndex,
+                          bloomFilter: BloomFilter,
                           valuesConfig: ValuesConfig,
                           segmentConfig: SegmentConfig,
                           throttle: LevelMeter => LevelThrottle): SwayDBPersistentConfig =
@@ -370,10 +370,10 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
         otherDirs = otherDirs,
         mmapAppendixLogs = mmapAppendixLogs,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        sortedKeyIndex = sortedKeyIndex,
+        sortedIndex = sortedIndex,
         hashIndex = hashIndex,
         binarySearchIndex = binarySearchIndex,
-        mightContainIndex = mightContainKey,
+        bloomFilter = bloomFilter,
         valuesConfig = valuesConfig,
         segmentConfig = segmentConfig,
         throttle = throttle
@@ -412,10 +412,10 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
                           otherDirs: Seq[Dir],
                           mmapAppendixLogs: MMAP.Log,
                           appendixFlushCheckpointSize: Long,
-                          sortedKeyIndex: SortedKeyIndex,
+                          sortedIndex: SortedIndex,
                           hashIndex: HashIndex,
                           binarySearchIndex: BinarySearchIndex,
-                          mightContainIndex: MightContainIndex,
+                          bloomFilter: BloomFilter,
                           valuesConfig: ValuesConfig,
                           segmentConfig: SegmentConfig,
                           throttle: LevelMeter => LevelThrottle): SwayDBPersistentConfig =
@@ -426,10 +426,10 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
           otherDirs = otherDirs,
           mmapAppendixLogs = mmapAppendixLogs,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-          sortedKeyIndex = sortedKeyIndex,
+          sortedIndex = sortedIndex,
           hashIndex = hashIndex,
           binarySearchIndex = binarySearchIndex,
-          mightContainIndex = mightContainIndex,
+          bloomFilter = bloomFilter,
           valuesConfig = valuesConfig,
           segmentConfig = segmentConfig,
           throttle = throttle

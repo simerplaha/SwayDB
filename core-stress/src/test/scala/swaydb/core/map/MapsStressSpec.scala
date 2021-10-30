@@ -57,14 +57,14 @@
 //          Accelerator(meter.currentLogSize, None)
 //        }
 //
-//      def testWrite(maps: Maps[Slice[Byte], Memory]) = {
+//      def testWrite(mmapPersistentLevelAppendixLogs Maps[Slice[Byte], Memory]) = {
 //        keyValues foreach {
 //          keyValue =>
 //            maps.write(time => LogEntry.Put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))).runRandomIO.right.value
 //        }
 //      }
 //
-//      def testRead(maps: Maps[Slice[Byte], Memory]) = {
+//      def testRead(mmapPersistentLevelAppendixLogs Maps[Slice[Byte], Memory]) = {
 //        keyValues foreach {
 //          keyValue =>
 //            val got = maps.get(keyValue.key).value

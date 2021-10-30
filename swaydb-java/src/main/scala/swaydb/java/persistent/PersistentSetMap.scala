@@ -52,10 +52,10 @@ object PersistentSetMap {
                            private var compactionConfig: Option[CompactionConfig] = None,
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = DefaultConfigs.accelerator.asJava,
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                           private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
+                           private var sortedIndex: SortedIndex = DefaultConfigs.sortedIndex(),
                            private var hashIndex: HashIndex = DefaultConfigs.hashIndex(),
                            private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
-                           private var mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
+                           private var bloomFilter: BloomFilter = DefaultConfigs.bloomFilter(),
                            private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                            private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                            private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
@@ -129,8 +129,8 @@ object PersistentSetMap {
       this
     }
 
-    def setSortedKeyIndex(sortedKeyIndex: SortedKeyIndex) = {
-      this.sortedKeyIndex = sortedKeyIndex
+    def setSortedIndex(sortedIndex: SortedIndex) = {
+      this.sortedIndex = sortedIndex
       this
     }
 
@@ -144,8 +144,8 @@ object PersistentSetMap {
       this
     }
 
-    def setMightContainIndex(mightContainIndex: MightContainIndex) = {
-      this.mightContainIndex = mightContainIndex
+    def setBloomFilter(bloomFilter: BloomFilter) = {
+      this.bloomFilter = bloomFilter
       this
     }
 
@@ -244,10 +244,10 @@ object PersistentSetMap {
           atomic = atomic,
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
-          sortedKeyIndex = sortedKeyIndex,
+          sortedIndex = sortedIndex,
           hashIndex = hashIndex,
           binarySearchIndex = binarySearchIndex,
-          mightContainIndex = mightContainIndex,
+          bloomFilter = bloomFilter,
           valuesConfig = valuesConfig,
           segmentConfig = segmentConfig,
           fileCache = fileCache,

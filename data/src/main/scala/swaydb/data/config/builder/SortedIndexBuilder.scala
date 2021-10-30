@@ -23,46 +23,46 @@ import swaydb.utils.Java.JavaFunction
 
 import scala.jdk.CollectionConverters._
 
-class SortedKeyIndexBuilder {
+class SortedIndexBuilder {
   private var prefixCompression: PrefixCompression = _
   private var enablePositionIndex: Boolean = _
   private var optimiseForReverseIteration: Boolean = _
   private var blockIOStrategy: JavaFunction[IOAction, IOStrategy] = _
 }
 
-object SortedKeyIndexBuilder {
+object SortedIndexBuilder {
 
-  class Step0(builder: SortedKeyIndexBuilder) {
+  class Step0(builder: SortedIndexBuilder) {
     def prefixCompression(prefixCompression: PrefixCompression) = {
       builder.prefixCompression = prefixCompression
       new Step1(builder)
     }
   }
 
-  class Step1(builder: SortedKeyIndexBuilder) {
+  class Step1(builder: SortedIndexBuilder) {
     def enablePositionIndex(enablePositionIndex: Boolean) = {
       builder.enablePositionIndex = enablePositionIndex
       new Step2(builder)
     }
   }
 
-  class Step2(builder: SortedKeyIndexBuilder) {
+  class Step2(builder: SortedIndexBuilder) {
     def optimiseForReverseIteration(optimiseForReverseIteration: Boolean) = {
       builder.optimiseForReverseIteration = optimiseForReverseIteration
       new Step3(builder)
     }
   }
 
-  class Step3(builder: SortedKeyIndexBuilder) {
+  class Step3(builder: SortedIndexBuilder) {
     def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction, IOStrategy]) = {
       builder.blockIOStrategy = blockIOStrategy
       new Step4(builder)
     }
   }
 
-  class Step4(builder: SortedKeyIndexBuilder) {
+  class Step4(builder: SortedIndexBuilder) {
     def compressions(compressions: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
-      SortedKeyIndex.On(
+      SortedIndex.On(
         prefixCompression = builder.prefixCompression,
         enablePositionIndex = builder.enablePositionIndex,
         optimiseForReverseIteration = builder.optimiseForReverseIteration,
@@ -71,5 +71,5 @@ object SortedKeyIndexBuilder {
       )
   }
 
-  def builder() = new Step0(new SortedKeyIndexBuilder())
+  def builder() = new Step0(new SortedIndexBuilder())
 }
