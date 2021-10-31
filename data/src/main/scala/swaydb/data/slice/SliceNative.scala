@@ -48,11 +48,11 @@ object SliceNative {
 }
 
 /**
- * [[SliceNative]] is similar to [[Slice]] instance. Difference is that [[SliceNative]] uses [[sun.misc.Unsafe]]
- * API to store data.
+ * [[SliceNative]] is similar to [[Slice]]. Difference is that [[SliceNative]] stores data
+ * off-heap with [[sun.misc.Unsafe]]
  *
- * [[free]] should be called to deallocate data or else [[finalize]] will deallocate data when this [[SliceNative]]
- * instance is cleaned ensuring that memory is always released.
+ * [[free]] should be called to deallocate data or else [[finalize]] will deallocate data
+ * when this [[SliceNative]] instance is cleaned ensuring that memory is always released.
  *
  * @param address memory location of stored data.
  */
@@ -78,7 +78,6 @@ class SliceNative[+T: ClassTag](val address: Long,
 
   def isFull =
     size == allocatedSize
-
   def add(item: T@uncheckedVariance): SliceNative[T] = {
     if (writePosition < fromOffset || writePosition > toOffset) throw new ArrayIndexOutOfBoundsException(writePosition)
     memory.put(address + writePosition, item)
