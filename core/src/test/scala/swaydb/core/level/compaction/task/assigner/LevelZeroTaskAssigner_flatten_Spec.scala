@@ -59,9 +59,9 @@ class LevelZeroTaskAssigner_flatten_Spec extends TestBase with MockFactory {
             }
 
           //build maps
-          val maps = keyValues.map(TestLog(_))
+          val logs = keyValues.map(TestLog(_))
           //execute the flatten function on the map
-          val flattenedMaps = LevelZeroTaskAssigner.flatten(maps.iterator).awaitInf
+          val flattenedMaps = LevelZeroTaskAssigner.flatten(logs.iterator).awaitInf
 
           //Assert: all maps are in order and there are no overlaps
           flattenedMaps.drop(1).foldLeft(flattenedMaps.head) {

@@ -21,7 +21,7 @@ import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.Level
 import swaydb.core.level.compaction.task.CompactionTask
-import swaydb.core.level.compaction.task.CompactionTask.CompactMaps
+import swaydb.core.level.compaction.task.CompactionTask.CompactLogs
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.merge.KeyValueMerger
@@ -56,7 +56,7 @@ case object LevelZeroTaskAssigner {
   def run(source: LevelZero,
           pushStrategy: PushStrategy,
           lowerLevels: NonEmptyList[Level])(implicit ec: ExecutionContext,
-                                            parallelism: CompactionParallelism): Future[CompactMaps] = {
+                                            parallelism: CompactionParallelism): Future[CompactLogs] = {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
     implicit val timeOrder: TimeOrder[Slice[Byte]] = source.timeOrder
     implicit val functionStore: FunctionStore = source.functionStore
@@ -65,12 +65,12 @@ case object LevelZeroTaskAssigner {
     //this maps to be reversible so do the conversion here instead
     //of working with iterators
 
-    val mapsToCompact =
+    val logsToCompact =
       List
         .from(source.logs.compactionIterator())
         .takeRight(source.logsToCompact)
 
-    flatten(mapsToCompact)
+    flatten(logsToCompact)
       .map {
         collections =>
           TaskAssigner.assignQuick(
@@ -82,9 +82,9 @@ case object LevelZeroTaskAssigner {
       }
       .map {
         tasks =>
-          CompactionTask.CompactMaps(
+          CompactionTask.CompactLogs(
             source = source,
-            logs = mapsToCompact,
+            logs = logsToCompact,
             tasks = tasks
           )
       }

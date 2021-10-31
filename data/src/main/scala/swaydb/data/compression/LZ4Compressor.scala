@@ -21,11 +21,18 @@ import scala.util.Random
 sealed trait LZ4Compressor
 object LZ4Compressor {
 
-  def random(minCompressionSavingsPercent: Double = Double.MinValue) =
+  def random(minCompressionSavingsPercent: Double = Double.MinValue): LZ4Compressor =
     if (Random.nextBoolean())
       Fast(minCompressionSavingsPercent)
     else
-      High(minCompressionSavingsPercent, if (Random.nextBoolean()) None else Some(Math.abs(Random.nextInt(17))))
+      High(
+        minCompressionSavingsPercent = minCompressionSavingsPercent,
+        compressionLevel =
+          if (Random.nextBoolean())
+            None
+          else
+            Some(Math.abs(Random.nextInt(17)))
+      )
 
   case class Fast(minCompressionSavingsPercent: Double) extends LZ4Compressor
   case class High(minCompressionSavingsPercent: Double,

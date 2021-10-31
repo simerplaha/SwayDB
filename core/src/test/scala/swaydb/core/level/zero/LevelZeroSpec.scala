@@ -439,7 +439,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
               getTimer(zero.logs).isEmptyTimer shouldBe false
 
               //applied functions are disabled for in-memory
-              zero.appliedFunctionsMap shouldBe empty
+              zero.appliedFunctionsLog shouldBe empty
           }
       }
 

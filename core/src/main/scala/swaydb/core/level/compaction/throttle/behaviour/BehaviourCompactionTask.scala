@@ -126,7 +126,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
         }
       }
 
-  def compactMaps(task: CompactionTask.CompactMaps,
+  def compactLogs(task: CompactionTask.CompactLogs,
                   lastLevel: Level)(implicit ec: ExecutionContext,
                                     fileSweeper: FileSweeper.On,
                                     parallelism: CompactionParallelism): Future[Unit] =

@@ -338,7 +338,7 @@ object TestData {
       reopen()
 
     def reopen(logSize: Long = level.logs.log.fileSize,
-               appliedFunctionsLogSize: Long = level.appliedFunctionsMap.map(_.fileSize).getOrElse(0),
+               appliedFunctionsLogSize: Long = level.appliedFunctionsLog.map(_.fileSize).getOrElse(0),
                clearAppliedFunctionsOnBoot: Boolean = false)(implicit timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                              sweeper: TestCaseSweeper): LevelZero = {
 

@@ -70,12 +70,12 @@ private[core] case object LevelZero extends LazyLogging {
             nextLevel: Option[NextLevel],
             acceleration: LevelZeroMeter => Accelerator,
             throttle: LevelZeroMeter => LevelZeroThrottle)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                        bufferCleaner: ByteBufferSweeperActor,
-                                                        functionStore: FunctionStore,
-                                                        forceSaveApplier: ForceSaveApplier,
-                                                        optimiseWrites: OptimiseWrites,
-                                                        atomic: Atomic): IO[swaydb.Error.Level, LevelZero] = {
+                                                           timeOrder: TimeOrder[Slice[Byte]],
+                                                           bufferCleaner: ByteBufferSweeperActor,
+                                                           functionStore: FunctionStore,
+                                                           forceSaveApplier: ForceSaveApplier,
+                                                           optimiseWrites: OptimiseWrites,
+                                                           atomic: Atomic): IO[swaydb.Error.Level, LevelZero] = {
     import swaydb.core.log.serializer.LevelZeroLogEntryReader.Level0Reader
     import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
 
@@ -117,7 +117,7 @@ private[core] case object LevelZero extends LazyLogging {
 
               levelLock flatMap {
                 lock =>
-                  //LevelZero does not required FileSweeper since they are all Map files.
+                  //LevelZero does not required FileSweeper since they are all Log files.
                   implicit val fileSweeper: FileSweeper = FileSweeper.Off
                   logger.info("{}: Recovering logs.", levelZeroDirectory)
 
@@ -136,20 +136,20 @@ private[core] case object LevelZero extends LazyLogging {
                   logs flatMap {
                     logs =>
                       if (enableTimer) {
-                        val appliedFunctionsMap =
+                        val appliedFunctionsLog =
                           AppliedFunctionsLog(
                             dir = databaseDirectory,
                             fileSize = appliedFunctionsLogSize,
                             mmap = mmap
                           )
 
-                        appliedFunctionsMap
+                        appliedFunctionsLog
                           .result
-                          .andThen((logs, Some(appliedFunctionsMap.item), levelZeroDirectory, Some(lock)))
+                          .andThen((logs, Some(appliedFunctionsLog.item), levelZeroDirectory, Some(lock)))
                           .onLeftSideEffect {
                             _ =>
                               timer.close
-                              appliedFunctionsMap.item.close()
+                              appliedFunctionsLog.item.close()
                               logs.close().get
                           }
 
@@ -172,14 +172,14 @@ private[core] case object LevelZero extends LazyLogging {
 
                   val mmap = LevelRef.getMmapForLogOrDisable(nextLevel)
 
-                  val appliedFunctionsMap =
+                  val appliedFunctionsLog =
                     AppliedFunctionsLog(
                       dir = databaseDirectory,
                       fileSize = appliedFunctionsLogSize,
                       mmap = mmap
                     )
 
-                  appliedFunctionsMap
+                  appliedFunctionsLog
                     .result
                     .and {
                       Timer.persistent(
@@ -189,11 +189,11 @@ private[core] case object LevelZero extends LazyLogging {
                     }
                     .map {
                       timer =>
-                        (timer, Some(appliedFunctionsMap.item))
+                        (timer, Some(appliedFunctionsLog.item))
                     }
                     .onLeftSideEffect {
                       _ =>
-                        appliedFunctionsMap.item.close()
+                        appliedFunctionsLog.item.close()
                     }
 
                 case None =>
@@ -203,19 +203,19 @@ private[core] case object LevelZero extends LazyLogging {
               IO.Right((Timer.empty, None))
 
           timer map {
-            case (timer, appliedFunctionsMap) =>
-              //LevelZero does not required FileSweeper since they are all Map files.
+            case (timer, appliedFunctionsLog) =>
+              //LevelZero does not required FileSweeper since they are all Log files.
               implicit val fileSweeper: FileSweeper = FileSweeper.Off
               implicit val implicitTimer: Timer = timer
 
-              val map =
+              val log =
                 Logs.memory[Slice[Byte], Memory, LevelZeroLogCache](
                   fileSize = logSize,
                   acceleration = acceleration
                 )
 
               val path = nextLevel.map(_.rootPath.getParent).getOrElse(MemoryPathGenerator.next())
-              (map, appliedFunctionsMap, path.resolve(0.toString), None)
+              (log, appliedFunctionsLog, path.resolve(0.toString), None)
           }
       }
 
@@ -230,7 +230,7 @@ private[core] case object LevelZero extends LazyLogging {
               nextLevel = nextLevel,
               inMemory = storage.memory,
               throttle = throttle,
-              appliedFunctionsMap = appliedFunctions,
+              appliedFunctionsLog = appliedFunctions,
               coreState = coreState,
               lock = lock
             )
@@ -261,7 +261,7 @@ private[swaydb] case class LevelZero(path: Path,
                                      nextLevel: Option[NextLevel],
                                      inMemory: Boolean,
                                      throttle: LevelZeroMeter => LevelZeroThrottle,
-                                     appliedFunctionsMap: Option[Log[Slice[Byte], Slice.Null.type, AppliedFunctionsLogCache]],
+                                     appliedFunctionsLog: Option[Log[Slice[Byte], Slice.Null.type, AppliedFunctionsLogCache]],
                                      coreState: CoreState,
                                      private val lock: Option[FileLocker])(implicit val keyOrder: KeyOrder[Slice[Byte]],
                                                                            val timeOrder: TimeOrder[Slice[Byte]],
@@ -404,7 +404,7 @@ private[swaydb] case class LevelZero(path: Path,
   }
 
   def clearAppliedFunctions(): ListBuffer[String] =
-    appliedFunctionsMap match {
+    appliedFunctionsLog match {
       case Some(appliedFunctions) =>
         val totalAppliedFunctions = appliedFunctions.cache.maxKeyValueCount
         logger.info(s"Checking for applied functions to clear from $totalAppliedFunctions registered functions.")
@@ -474,7 +474,7 @@ private[swaydb] case class LevelZero(path: Path,
   }
 
   def isFunctionApplied(functionId: Slice[Byte]): Boolean =
-    appliedFunctionsMap.exists(_.cache.skipList.contains(functionId))
+    appliedFunctionsLog.exists(_.cache.skipList.contains(functionId))
 
   def clear(readState: ThreadReadState): OK =
     headKey(readState) match {
@@ -495,11 +495,11 @@ private[swaydb] case class LevelZero(path: Path,
     functionStore.put(functionId, function)
 
   private def saveAppliedFunctionNoSync(function: Slice[Byte]): Unit =
-    appliedFunctionsMap foreach {
+    appliedFunctionsLog foreach {
       appliedFunctions =>
         if (appliedFunctions.cache.skipList.notContains(function)) {
           //writeNoSync because this already because this functions is already being
-          //called un map.write which is a sync function.
+          //called un log.write which is a sync function.
           appliedFunctions.writeNoSync(LogEntry.Put(function, Slice.Null)(AppliedFunctionsLogEntryWriter.FunctionsPutLogEntryWriter))
         }
     }
@@ -547,10 +547,10 @@ private[swaydb] case class LevelZero(path: Path,
       OK.instance
     }
 
-  private def getFromMap(key: Slice[Byte],
-                         theMap: LevelZeroLog): MemoryOption =
-    if (theMap.cache.hasRange)
-      theMap.cache.floorOptimised(key) match {
+  private def getFromLog(key: Slice[Byte],
+                         theLog: LevelZeroLog): MemoryOption =
+    if (theLog.cache.hasRange)
+      theLog.cache.floorOptimised(key) match {
         case floor: Memory.Fixed if floor.key equiv key =>
           floor
 
@@ -561,12 +561,12 @@ private[swaydb] case class LevelZero(path: Path,
           Memory.Null
       }
     else
-      theMap.cache.getOptimised(key)
+      theLog.cache.getOptimised(key)
 
   private def getFromNextLevel(key: Slice[Byte],
                                readState: ThreadReadState,
-                               tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
-    val headOrNull = tailMaps.headOrNull
+                               tailLogs: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
+    val headOrNull = tailLogs.headOrNull
 
     if (headOrNull == null)
       nextLevel match {
@@ -580,32 +580,32 @@ private[swaydb] case class LevelZero(path: Path,
       find(
         key = key,
         readState = readState,
-        headMap = headOrNull,
-        tailMaps = tailMaps.dropHeadDuplicate()
+        headLog = headOrNull,
+        tailLogs = tailLogs.dropHeadDuplicate()
       )
   }
 
-  def currentGetter(theMap: LevelZeroLog) =
+  def currentGetter(theLog: LevelZeroLog) =
     new CurrentGetter {
       override def get(key: Slice[Byte], readState: ThreadReadState): MemoryOption =
-        getFromMap(key, theMap)
+        getFromLog(key, theLog)
     }
 
-  def nextGetter(tailMaps: DropIterator.Flat[Null, LevelZeroLog]) =
+  def nextGetter(tailLogs: DropIterator.Flat[Null, LevelZeroLog]) =
     new NextGetter {
       override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
-        getFromNextLevel(key, readState, tailMaps)
+        getFromNextLevel(key, readState, tailLogs)
     }
 
   private def find(key: Slice[Byte],
                    readState: ThreadReadState,
-                   headMap: LevelZeroLog,
-                   tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption =
+                   headLog: LevelZeroLog,
+                   tailLogs: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption =
     Get.seek(
       key = key,
       readState = readState,
-      currentGetter = currentGetter(headMap),
-      nextGetter = nextGetter(tailMaps)
+      currentGetter = currentGetter(headLog),
+      nextGetter = nextGetter(tailLogs)
     )
 
   def get(key: Slice[Byte],
@@ -615,8 +615,8 @@ private[swaydb] case class LevelZero(path: Path,
     find(
       key = key,
       readState = readState,
-      headMap = iterator.headOrNull,
-      tailMaps = iterator.dropHeadDuplicate()
+      headLog = iterator.headOrNull,
+      tailLogs = iterator.dropHeadDuplicate()
     )
   }
 
@@ -624,14 +624,14 @@ private[swaydb] case class LevelZero(path: Path,
              readState: ThreadReadState): SliceOption[Byte] =
     get(key, readState).mapSliceOptional(_.key)
 
-  def firstKeyFromMaps: SliceOption[Byte] =
+  def firstKeyFromLogs: SliceOption[Byte] =
     logs.reduce[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], SliceOption[Byte]](
       nullResult = Slice.Null,
       applier = _.cache.headKeyOptimised,
       reducer = MinMax.minFavourLeftC[SliceOption[Byte], Slice[Byte]](_, _)(keyOrder)
     )
 
-  def lastKeyFromMaps: SliceOption[Byte] =
+  def lastKeyFromLogs: SliceOption[Byte] =
     logs.reduce[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], SliceOption[Byte]](
       nullResult = Slice.Null,
       applier =
@@ -657,7 +657,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def head(readState: ThreadReadState): KeyValue.PutOption = {
     //read from LevelZero first
-    val logHead = firstKeyFromMaps
+    val logHead = firstKeyFromLogs
 
     nextLevel match {
       case Some(nextLevel) =>
@@ -678,7 +678,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def last(readState: ThreadReadState): KeyValue.PutOption = {
     //read from LevelZero first
-    val logLast = lastKeyFromMaps
+    val logLast = lastKeyFromLogs
 
     nextLevel match {
       case Some(nextLevel) =>
@@ -704,28 +704,28 @@ private[swaydb] case class LevelZero(path: Path,
     ceiling(
       key = key,
       readState = readState,
-      headMap = iterator.headOrNull,
-      tailMaps = iterator.dropHeadDuplicate()
+      headLog = iterator.headOrNull,
+      tailLogs = iterator.dropHeadDuplicate()
     )
   }
 
   def ceiling(key: Slice[Byte],
               readState: ThreadReadState,
-              headMap: LevelZeroLog,
-              tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
-    val (left, right) = tailMaps.duplicate()
+              headLog: LevelZeroLog,
+              tailLogs: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
+    val (left, right) = tailLogs.duplicate()
 
     find(
       key = key,
       readState = readState,
-      headMap = headMap,
-      tailMaps = left
+      headLog = headLog,
+      tailLogs = left
     ) orElse {
       findHigher(
         key = key,
         readState = readState,
-        currentMap = headMap,
-        tailMaps = right
+        currentLog = headLog,
+        tailLogs = right
       )
     }
   }
@@ -737,51 +737,51 @@ private[swaydb] case class LevelZero(path: Path,
     floor(
       key = key,
       readState = readState,
-      headMap = iterator.headOrNull,
-      tailMaps = iterator.dropHeadDuplicate()
+      headLog = iterator.headOrNull,
+      tailLogs = iterator.dropHeadDuplicate()
     )
   }
 
   def floor(key: Slice[Byte],
             readState: ThreadReadState,
-            headMap: LevelZeroLog,
-            tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
-    val (left, right) = tailMaps.duplicate()
+            headLog: LevelZeroLog,
+            tailLogs: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
+    val (left, right) = tailLogs.duplicate()
 
     find(
       key = key,
       readState = readState,
-      headMap = headMap,
-      tailMaps = left
+      headLog = headLog,
+      tailLogs = left
     ) orElse {
       findLower(
         key = key,
         readState = readState,
-        currentMap = headMap,
-        tailMaps = right
+        currentLog = headLog,
+        tailLogs = right
       )
     }
   }
 
-  private def higherFromMap(key: Slice[Byte],
-                            theMap: LevelZeroLog): MemoryOption =
-    if (theMap.cache.hasRange)
-      theMap.cache.floorOptimised(key) match {
+  private def higherFromLog(key: Slice[Byte],
+                            theLog: LevelZeroLog): MemoryOption =
+    if (theLog.cache.hasRange)
+      theLog.cache.floorOptimised(key) match {
         case floorRange: Memory.Range if key >= floorRange.fromKey && key < floorRange.toKey =>
           floorRange
 
         case _ =>
-          theMap.cache.higherOptimised(key)
+          theLog.cache.higherOptimised(key)
       }
     else
-      theMap.cache.higherOptimised(key)
+      theLog.cache.higherOptimised(key)
 
   def findHigherInNextLevel(key: Slice[Byte],
                             readState: ThreadReadState,
-                            tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
-    val nextMapOrNull = tailMaps.headOrNull
+                            tailLogs: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
+    val nextLogOrNull = tailLogs.headOrNull
 
-    if (nextMapOrNull == null)
+    if (nextLogOrNull == null)
       nextLevel match {
         case Some(nextLevel) =>
           nextLevel.higher(key, readState)
@@ -793,74 +793,74 @@ private[swaydb] case class LevelZero(path: Path,
       findHigher(
         key = key,
         readState = readState,
-        currentMap = nextMapOrNull,
-        tailMaps = tailMaps.dropHeadDuplicate()
+        currentLog = nextLogOrNull,
+        tailLogs = tailLogs.dropHeadDuplicate()
       )
   }
 
-  def currentWalker(currentMap: LevelZeroLog,
-                    tailMaps: DropIterator.Flat[Null, LevelZeroLog]) =
+  def currentWalker(currentLog: LevelZeroLog,
+                    tailLogs: DropIterator.Flat[Null, LevelZeroLog]) =
     new CurrentWalker {
       override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
         find(
           key = key,
           readState = readState,
-          headMap = currentMap,
-          tailMaps = tailMaps
+          headLog = currentLog,
+          tailLogs = tailLogs
         )
 
       override def higher(key: Slice[Byte], readState: ThreadReadState): LevelSeek[Memory] =
         LevelSeek(
           segmentNumber = 0,
-          result = higherFromMap(key, currentMap).toOptionS
+          result = higherFromLog(key, currentLog).toOptionS
         )
 
       override def lower(key: Slice[Byte], readState: ThreadReadState): LevelSeek[Memory] =
         LevelSeek(
           segmentNumber = 0,
-          result = lowerFromMap(key, currentMap).toOptionS
+          result = lowerFromLog(key, currentLog).toOptionS
         )
 
       override def levelNumber: String =
         "current"
     }
 
-  def nextWalker(tailMaps: DropIterator.Flat[Null, LevelZeroLog]) =
+  def nextWalker(tailLogs: DropIterator.Flat[Null, LevelZeroLog]) =
     new NextWalker {
       override def higher(key: Slice[Byte],
                           readState: ThreadReadState): KeyValue.PutOption =
-        findHigherInNextLevel(key, readState, tailMaps)
+        findHigherInNextLevel(key, readState, tailLogs)
 
       override def lower(key: Slice[Byte],
                          readState: ThreadReadState): KeyValue.PutOption =
-        findLowerInNextLevel(key, readState, tailMaps)
+        findLowerInNextLevel(key, readState, tailLogs)
 
       override def get(key: Slice[Byte],
                        readState: ThreadReadState): KeyValue.PutOption =
-        getFromNextLevel(key, readState, tailMaps)
+        getFromNextLevel(key, readState, tailLogs)
 
       override def levelNumber: String =
-        s"Map."
+        s"Log."
     }
 
   def findHigher(key: Slice[Byte],
                  readState: ThreadReadState,
-                 currentMap: LevelZeroLog,
-                 tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption =
+                 currentLog: LevelZeroLog,
+                 tailLogs: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption =
     Higher.seek(
       key = key,
       readState = readState,
       currentSeek = Seek.Current.Read(Int.MinValue),
       nextSeek = Seek.Next.Read,
-      currentWalker = currentWalker(currentMap, tailMaps),
-      nextWalker = nextWalker(tailMaps),
+      currentWalker = currentWalker(currentLog, tailLogs),
+      nextWalker = nextWalker(tailLogs),
       keyOrder = keyOrder,
       timeOrder = timeOrder,
       functionStore = functionStore
     )
 
   /**
-   * Higher cannot use an iterator because a single Map can value read requests multiple times for cases where a Map contains a range
+   * Higher cannot use an iterator because a single Log can value read requests multiple times for cases where a Log contains a range
    * to fetch ceiling key.
    *
    * Higher queries require iteration of all logs anyway so a full initial conversion to a List is acceptable.
@@ -872,30 +872,30 @@ private[swaydb] case class LevelZero(path: Path,
     findHigher(
       key = key,
       readState = readState,
-      currentMap = iterator.headOrNull,
-      tailMaps = iterator.dropHeadDuplicate()
+      currentLog = iterator.headOrNull,
+      tailLogs = iterator.dropHeadDuplicate()
     )
   }
 
-  private def lowerFromMap(key: Slice[Byte],
-                           theMap: LevelZeroLog): MemoryOption =
-    if (theMap.cache.hasRange)
-      theMap.cache.floorOptimised(key) match {
+  private def lowerFromLog(key: Slice[Byte],
+                           theLog: LevelZeroLog): MemoryOption =
+    if (theLog.cache.hasRange)
+      theLog.cache.floorOptimised(key) match {
         case floorRange: Memory.Range if key > floorRange.fromKey && key <= floorRange.toKey =>
           floorRange
 
         case _ =>
-          theMap.cache.lowerOptimised(key)
+          theLog.cache.lowerOptimised(key)
       }
     else
-      theMap.cache.lowerOptimised(key)
+      theLog.cache.lowerOptimised(key)
 
   def findLowerInNextLevel(key: Slice[Byte],
                            readState: ThreadReadState,
-                           tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
-    val nextMapOrNull = tailMaps.headOrNull
+                           tailLogs: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption = {
+    val nextLogOrNull = tailLogs.headOrNull
 
-    if (nextMapOrNull == null)
+    if (nextLogOrNull == null)
       nextLevel match {
         case Some(nextLevel) =>
           nextLevel.lower(key, readState)
@@ -907,29 +907,29 @@ private[swaydb] case class LevelZero(path: Path,
       findLower(
         key = key,
         readState = readState,
-        currentMap = nextMapOrNull,
-        tailMaps = tailMaps.dropHeadDuplicate()
+        currentLog = nextLogOrNull,
+        tailLogs = tailLogs.dropHeadDuplicate()
       )
   }
 
   def findLower(key: Slice[Byte],
                 readState: ThreadReadState,
-                currentMap: LevelZeroLog,
-                tailMaps: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption =
+                currentLog: LevelZeroLog,
+                tailLogs: DropIterator.Flat[Null, LevelZeroLog]): KeyValue.PutOption =
     Lower.seek(
       key = key,
       readState = readState,
       currentSeek = Seek.Current.Read(Int.MinValue),
       nextSeek = Seek.Next.Read,
-      currentWalker = currentWalker(currentMap, tailMaps),
-      nextWalker = nextWalker(tailMaps),
+      currentWalker = currentWalker(currentLog, tailLogs),
+      nextWalker = nextWalker(tailLogs),
       keyOrder = keyOrder,
       timeOrder = timeOrder,
       functionStore = functionStore
     )
 
   /**
-   * Lower cannot use an iterator because a single Map can value read requests multiple times for cases where a Map contains a range
+   * Lower cannot use an iterator because a single Log can value read requests multiple times for cases where a Log contains a range
    * to fetch ceiling key.
    *
    * Lower queries require iteration of all logs anyway so a full initial conversion to a List is acceptable.
@@ -941,8 +941,8 @@ private[swaydb] case class LevelZero(path: Path,
     findLower(
       key = key,
       readState = readState,
-      currentMap = iterator.headOrNull,
-      tailMaps = iterator.dropHeadDuplicate()
+      currentLog = iterator.headOrNull,
+      tailLogs = iterator.dropHeadDuplicate()
     )
   }
 
@@ -961,13 +961,13 @@ private[swaydb] case class LevelZero(path: Path,
     }
 
   def keyValueCount: Int = {
-    val keyValueCountInMaps = logs.keyValueCount
+    val keyValueCountInLogs = logs.keyValueCount
     nextLevel match {
       case Some(nextLevel) =>
-        nextLevel.keyValueCount + keyValueCountInMaps
+        nextLevel.keyValueCount + keyValueCountInLogs
 
       case None =>
-        keyValueCountInMaps
+        keyValueCountInLogs
     }
   }
 
@@ -1003,16 +1003,16 @@ private[swaydb] case class LevelZero(path: Path,
     Effect.exists(path)
 
   def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean = {
-    val mightContainInMaps =
+    val mightContainInLogs =
       logs.find[MemoryOption](
         nullResult = Memory.Null,
         matcher = _.cache.getOptimised(key)
       )
 
-    mightContainInMaps != Memory.Null || nextLevel.exists(_.mightContainKey(key, threadState))
+    mightContainInLogs != Memory.Null || nextLevel.exists(_.mightContainKey(key, threadState))
   }
 
-  private def findFunctionInMaps(functionId: Slice[Byte]): Boolean =
+  private def findFunctionInLogs(functionId: Slice[Byte]): Boolean =
     logs.find[Boolean](
       nullResult = false,
       matcher =
@@ -1046,7 +1046,7 @@ private[swaydb] case class LevelZero(path: Path,
     )
 
   def mightContainFunction(functionId: Slice[Byte]): Boolean =
-    findFunctionInMaps(functionId) ||
+    findFunctionInLogs(functionId) ||
       nextLevel.exists(_.mightContainFunction(functionId))
 
   override def hasNextLevel: Boolean =
@@ -1142,7 +1142,7 @@ private[swaydb] case class LevelZero(path: Path,
         nextKeyValue
     }
 
-  private def closeMaps: IO[Error.Log, Unit] =
+  private def closeLogs: IO[Error.Log, Unit] =
     logs
       .close()
       .onLeftSideEffect {
@@ -1151,7 +1151,7 @@ private[swaydb] case class LevelZero(path: Path,
       }
 
   def closeNoSweep: IO[swaydb.Error.Level, Unit] =
-    closeMaps
+    closeLogs
       .and(
         nextLevel
           .map(_.closeNoSweep)
@@ -1161,8 +1161,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   override def close[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     bag
-      .fromIO(closeMaps)
-      .andThen(appliedFunctionsMap.foreach(_.close()))
+      .fromIO(closeLogs)
+      .andThen(appliedFunctionsLog.foreach(_.close()))
       .and(
         nextLevel
           .map(_.close())
@@ -1177,8 +1177,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   override def delete[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     bag
-      .fromIO(closeMaps)
-      .andThen(appliedFunctionsMap.foreach(_.close()))
+      .fromIO(closeLogs)
+      .andThen(appliedFunctionsLog.foreach(_.close()))
       .and(
         nextLevel
           .map(_.delete())

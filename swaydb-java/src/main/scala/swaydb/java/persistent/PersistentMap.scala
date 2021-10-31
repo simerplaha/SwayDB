@@ -108,7 +108,7 @@ object PersistentMap {
       this
     }
 
-    def setMmapMaps(mmapLogs: MMAP.Log) = {
+    def setMmapLogs(mmapLogs: MMAP.Log) = {
       this.mmapLogs = mmapLogs
       this
     }

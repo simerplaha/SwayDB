@@ -157,7 +157,7 @@ private[log] object PersistentLog extends LazyLogging {
           //when populating skipList do the same checks a PersistentMap does when writing key-values to the skipList.
           //Use the merger to write key-values to skipList if the there a range, update or remove(with deadline).{if (entriesCount == 0 || entriesCount > 1) "entries" else "entry"
           //else simply write the key-values to the skipList. This logic should be abstracted out to a common function.
-          //See MapSpec for tests.
+          //See LogSpec for tests.
           recovery.item foreach cache.writeNonAtomic
 
           logger.debug(s"$path: Indexed!")

@@ -86,36 +86,36 @@ private[swaydb] object DecompressorId {
     override val id: Int = 11
   }
 
-  private[swaydb] def lz4Decompressors(): Map[Int, LZ4DecompressorId] =
+  private[swaydb] def lz4DecompressorIds(): Map[Int, LZ4DecompressorId] =
     Sealed.list[LZ4DecompressorId] map {
       compressionType =>
         compressionType.id -> compressionType
     } toMap
 
-  private[swaydb] def otherDecompressors(): Map[Int, DecompressorId] =
+  private[swaydb] def otherDecompressorIds(): Map[Int, DecompressorId] =
     Sealed.list[DecompressorId] map {
       compressionType =>
         compressionType.id -> compressionType
     } toMap
 
-  private[swaydb] val decompressors: Map[Int, DecompressorId] =
-    lz4Decompressors() ++ otherDecompressors()
+  private[swaydb] val decompressorsIds: Map[Int, DecompressorId] =
+    lz4DecompressorIds() ++ otherDecompressorIds()
 
   private[swaydb] def apply(id: Int): Option[DecompressorId] =
-    decompressors.get(id)
+    decompressorsIds.get(id)
 
   def randomLZ4(): (Int, LZ4DecompressorId) =
-    Random.shuffle(DecompressorId.lz4Decompressors()).head
+    Random.shuffle(DecompressorId.lz4DecompressorIds()).head
 
   def randomLZ4Id(): LZ4DecompressorId =
-    Random.shuffle(DecompressorId.lz4Decompressors()).head._2
+    Random.shuffle(DecompressorId.lz4DecompressorIds()).head._2
 
   def randomLZ4IntId(): Int =
-    Random.shuffle(DecompressorId.lz4Decompressors()).head._1
+    Random.shuffle(DecompressorId.lz4DecompressorIds()).head._1
 
   def random(): (Int, DecompressorId) =
-    Random.shuffle(DecompressorId.decompressors).head
+    Random.shuffle(DecompressorId.decompressorsIds).head
 
   def randomIntId(): Int =
-    Random.shuffle(DecompressorId.decompressors).head._1
+    Random.shuffle(DecompressorId.decompressorsIds).head._1
 }

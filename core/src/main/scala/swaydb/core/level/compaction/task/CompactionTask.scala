@@ -66,7 +66,7 @@ object CompactionTask {
    * @param logs Should not be in random order.
    *             Should be in the same order at it's position in [[LevelZero]].
    */
-  case class CompactMaps(source: LevelZero,
+  case class CompactLogs(source: LevelZero,
                          logs: List[LevelZeroLog],
                          tasks: Iterable[Task[Assignable.Collection]]) extends CompactionTask {
     override def compactingLevels: Iterable[LevelRef] = {

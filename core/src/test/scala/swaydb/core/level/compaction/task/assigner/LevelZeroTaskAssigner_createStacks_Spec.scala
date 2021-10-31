@@ -61,9 +61,9 @@ class LevelZeroTaskAssigner_createStacks_Spec extends TestBase with MockFactory 
         implicit sweeper =>
           val logs: Iterable[LevelZeroLog] =
             (0 to randomIntMax(10)).foldLeft(ListBuffer.empty[LevelZeroLog]) {
-              case (maps, _) =>
+              case (logs, _) =>
                 val startId =
-                  maps.lastOption match {
+                  logs.lastOption match {
                     case Some(last) =>
                       last.cache.lastOptimised.getS.maxKey match {
                         case MaxKey.Fixed(maxKey) =>
@@ -77,7 +77,7 @@ class LevelZeroTaskAssigner_createStacks_Spec extends TestBase with MockFactory 
                       0
                   }
 
-                maps += TestLog(randomizedKeyValues(startId = Some(startId)))
+                logs += TestLog(randomizedKeyValues(startId = Some(startId)))
             }
 
           val stacks = LevelZeroTaskAssigner.createStacks(logs).asScala
