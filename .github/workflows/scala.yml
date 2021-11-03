@@ -12,7 +12,7 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - run: sbt '++ 2.12.11 clean; compile'
+      - run: sbt '++ 2.12.15 clean; compile'
 
   build_213-ubuntu:
     runs-on: ubuntu-latest
@@ -22,7 +22,7 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - run: sbt '++ 2.13.1 clean; compile'
+      - run: sbt '++ 2.13.7 clean; compile'
 
   #Windows
   build_212-windows:
@@ -33,7 +33,7 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - run: sbt '++ 2.12.11 clean; compile'
+      - run: sbt '++ 2.12.15 clean; compile'
 
   build_213-windows:
     runs-on: windows-latest
@@ -43,4 +43,4 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - run: sbt '++ 2.13.1 clean; compile'
+      - run: sbt '++ 2.13.7 clean; compile'
