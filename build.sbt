@@ -154,10 +154,10 @@ lazy val SwayDB =
       compression,
       configs,
       serializers,
-      `z-interop-boopickle`,
-      `z-interop-monix`,
-      `z-interop-zio`,
-      `z-interop-cats-effect`
+      `x-interop-boopickle`,
+      `x-interop-monix`,
+      `x-interop-zio`,
+      `x-interop-cats-effect`
     )
 
 lazy val testkit =
@@ -266,7 +266,7 @@ lazy val swaydb =
       configs,
       stream,
       core % "test->test;compile->compile",
-      `z-interop-boopickle` % "test->test"
+      `x-interop-boopickle` % "test->test"
     )
 
 lazy val configs =
@@ -330,7 +330,7 @@ lazy val `swaydb-java` =
 /**
  * Support modules - Effect
  */
-lazy val `z-interop-monix` =
+lazy val `x-interop-monix` =
   project
     .settings(name := "monix")
     .settings(commonSettings)
@@ -338,7 +338,7 @@ lazy val `z-interop-monix` =
     .settings(libraryDependencies += "io.monix" %% "monix" % monixVersion)
     .dependsOn(data)
 
-lazy val `z-interop-zio` =
+lazy val `x-interop-zio` =
   project
     .settings(name := "zio")
     .settings(commonSettings)
@@ -346,7 +346,7 @@ lazy val `z-interop-zio` =
     .settings(libraryDependencies += "dev.zio" %% "zio" % zioVersion)
     .dependsOn(data)
 
-lazy val `z-interop-cats-effect` =
+lazy val `x-interop-cats-effect` =
   project
     .settings(name := "cats-effect")
     .settings(commonSettings)
@@ -357,7 +357,7 @@ lazy val `z-interop-cats-effect` =
 /**
  * Support modules - Serialisers.
  */
-lazy val `z-interop-boopickle` =
+lazy val `x-interop-boopickle` =
   project
     .settings(name := "boopickle")
     .settings(commonSettings)
