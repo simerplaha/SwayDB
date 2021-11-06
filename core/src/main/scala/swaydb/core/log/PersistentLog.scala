@@ -287,8 +287,6 @@ protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
   override val uniqueFileNumber: Long =
     Log.uniqueFileNumberGenerator.next
 
-  def typeName = productPrefix
-
   def currentFilePath =
     currentFile.path
 
@@ -338,7 +336,7 @@ protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
         if (allowedPostFlushEntriesBeforeWarn <= 0) //if it was in negative then restart the count
           allowedPostFlushEntriesBeforeWarn = minimumNumberOfWritesAfterFlush
         else if (allowedPostFlushEntriesBeforeWarn > 0) //If the count did not get negative then warn that the fileSize is too small.
-          logger.warn(s"$typeName's file size of $fileSize.bytes is too small and would result in too many flushes. Please increase the default fileSize to at least ${newFile.fileSize}.bytes. Folder: $path.")
+          logger.warn(s"${this.productPrefix}'s file size of $fileSize.bytes is too small and would result in too many flushes. Please increase the default fileSize to at least ${newFile.fileSize}.bytes. Folder: $path.")
 
         currentFile = newFile
         actualFileSize = nextFilesSize

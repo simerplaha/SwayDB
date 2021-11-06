@@ -50,8 +50,8 @@ object KeyOrder {
   @inline def defaultCompare(a: Slice[Byte], b: Slice[Byte], maxBytes: Int): Int = {
     var i = 0
     while (i < maxBytes) {
-      val aB = a.getC(i) & 0xFF
-      val bB = b.getC(i) & 0xFF
+      val aB = a(i) & 0xFF
+      val bB = b(i) & 0xFF
       if (aB != bB) return aB - bB
       i += 1
     }
@@ -61,8 +61,8 @@ object KeyOrder {
   @inline def defaultCompareJava(a: Slice[java.lang.Byte], b: Slice[java.lang.Byte], maxBytes: Int): Int = {
     var i = 0
     while (i < maxBytes) {
-      val aB = a.getC(i) & 0xFF
-      val bB = b.getC(i) & 0xFF
+      val aB = a(i) & 0xFF
+      val bB = b(i) & 0xFF
       if (aB != bB) return aB - bB
       i += 1
     }

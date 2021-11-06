@@ -568,7 +568,6 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
       }
     )
 
-
   override def subMapValues(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[V] =
     buildSubMap[V](
       from = from,
@@ -580,6 +579,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
           value
       }
     )
+
   private def buildSubMap[T](from: K,
                              fromInclusive: Boolean,
                              to: K,

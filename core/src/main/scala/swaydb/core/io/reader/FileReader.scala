@@ -37,7 +37,7 @@ private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[B
   }
 
   def moveTo(newPosition: Int): FileReader = {
-    position = newPosition.toInt max 0
+    position = newPosition max 0
     this
   }
 

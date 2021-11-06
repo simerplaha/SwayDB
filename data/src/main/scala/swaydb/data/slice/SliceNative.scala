@@ -78,6 +78,7 @@ class SliceNative[+T: ClassTag](val address: Long,
 
   def isFull =
     size == allocatedSize
+
   def add(item: T@uncheckedVariance): SliceNative[T] = {
     if (writePosition < fromOffset || writePosition > toOffset) throw new ArrayIndexOutOfBoundsException(writePosition)
     memory.put(address + writePosition, item)
