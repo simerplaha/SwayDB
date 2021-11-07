@@ -25,6 +25,8 @@ Small footprint: around 7.1 MB jar size.
 
 [Documentation](http://swaydb.io)
 
+## This branch is currently under off-heap optimisations and may be broken at times. See [master](https://github.com/simerplaha/SwayDB/tree/master) branch for a stable version.
+
 ## Overview
 
 - Simple data types - `Map`, `Set`, `Queue`, `SetMap` & `MultiMap` with native Java and Scala collections support.
