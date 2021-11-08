@@ -120,7 +120,7 @@ that are required before becoming production ready.
 
 Thank you [Jetbrains](https://www.jetbrains.com/?from=SwayDB)
 & [JProfiler](https://www.ej-technologies.com/products/jprofiler/overview.html)
-for providing an open-source licence to their awesome development tools.
+for full featured open-source licences to their awesome development tools.
 
 <table>
     <tr>
