@@ -118,7 +118,17 @@ that are required before becoming production ready.
 
 # Sponsors
 
-Thank you Jetbrains for providing an open-source licence for their awesome development tools.
+Thank you [Jetbrains](https://www.jetbrains.com/?from=SwayDB)
+& [JProfiler](https://www.ej-technologies.com/products/jprofiler/overview.html)
+for providing an open-source licence to their awesome development tools.
 
-<a href="https://www.jetbrains.com/?from=SwayDB" target="_blank"><img src="/docs/jetbrains.png"
-alt="Jetbrains support" height="150" border="10" /></a>
+<table>
+    <tr>
+        <td>
+            <a href="https://www.jetbrains.com/?from=SwayDB" target="_blank"><img src="/docs/jetbrains.png" alt="Jetbrains support" height="150" border="10" /></a>
+        </td>
+        <td>
+            <a href="https://www.ej-technologies.com/products/jprofiler/overview.html" target="_blank"><img src="/docs/jprofiler_logo.png" alt="JProfiler support" height="150" border="10" /></a>
+        </td>
+    </tr>
+</table>
