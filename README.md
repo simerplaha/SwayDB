@@ -128,7 +128,7 @@ for providing an open-source licence to their awesome development tools.
             <a href="https://www.jetbrains.com/?from=SwayDB" target="_blank"><img src="/docs/jetbrains.png" alt="Jetbrains support" height="150" border="10" /></a>
         </td>
         <td>
-            <a href="https://www.ej-technologies.com/products/jprofiler/overview.html" target="_blank"><img src="/docs/jprofiler_logo.png" alt="JProfiler support" height="150" border="10" /></a>
+            <a href="https://www.ej-technologies.com/products/jprofiler/overview.html" target="_blank"><img src="/docs/jprofiler_logo.png" alt="JProfiler support" border="10" /></a>
         </td>
     </tr>
 </table>
