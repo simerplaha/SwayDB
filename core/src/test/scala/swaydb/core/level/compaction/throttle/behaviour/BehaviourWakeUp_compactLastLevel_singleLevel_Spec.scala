@@ -96,7 +96,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends T
             import sweeper._
 
             val keyValues =
-              Slice.range(1, 6) map {
+              Slice.range(1, 6) mapToSlice {
                 key =>
                   randomPutKeyValue(key, randomString, someOrNone(1.hour.fromNow))
               }
@@ -139,7 +139,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends T
             import sweeper._
 
             val keyValues =
-              Slice.range(1, 6) map {
+              Slice.range(1, 6) mapToSlice {
                 key =>
                   randomPutKeyValue(key, randomString, someOrNone(1.hour.fromNow))
               }
@@ -182,7 +182,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends T
             import sweeper._
 
             val keyValues =
-              Slice.range(1, 15) map {
+              Slice.range(1, 15) mapToSlice {
                 key =>
                   randomPutKeyValue(key, randomString, someOrNone(1.hour.fromNow))
               }
@@ -239,7 +239,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends T
             import sweeper._
 
             val keyValues =
-              Slice.range(1, 15) map {
+              Slice.range(1, 15) mapToSlice {
                 key =>
                   randomPutKeyValue(key, randomString, someOrNone(1.hour.fromNow))
               }
@@ -296,14 +296,14 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends T
             import sweeper._
 
             val keyValues =
-              Slice.range(1, 15) map {
+              Slice.range(1, 15) mapToSlice {
                 key =>
                   val deadline = if (key % 5 == 0) Some(expiredDeadline()) else None
                   randomPutKeyValue(key, randomString, deadline)
               }
 
             //create Segments
-            val testSegments = keyValues.map(keyValue => TestSegment(Slice(keyValue))).toList
+            val testSegments = keyValues.mapToSlice(keyValue => TestSegment(Slice(keyValue))).toList
 
             //create level
             val level =

@@ -9,8 +9,6 @@ object SliceNative {
 
   val emptyBytes = of[Byte](0)
 
-  val someEmptyBytes = Some(emptyBytes)
-
   @inline final def empty[A: ClassTag](implicit memory: UnsafeMemory[A]) =
     of[A](0)
 

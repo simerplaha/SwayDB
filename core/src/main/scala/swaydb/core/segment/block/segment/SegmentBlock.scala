@@ -468,7 +468,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                   prepareForCachingSegmentBlocksOnCreate = segmentConfig.cacheBlocksOnCreate
                 )
 
-                segments += closedSegment
+              segments += closedSegment
 
               //segment's closed. Prepare for next Segment.
               bloomFilterIndexableKeys = ListBuffer.empty[Slice[Byte]] //clear bloomFilter keys.

@@ -427,7 +427,7 @@ private[core] case class Level(dirs: Seq[Dir],
             removeDeletes = removeDeletedRecords,
             createdInLevel = levelNumber,
             segmentConfig = segmentConfig
-          ).map(_.map(TransientSegment.Memory))
+          ).map(_.mapToSlice(TransientSegment.Memory))
         }
 
       case segment: PersistentSegment =>
@@ -531,7 +531,7 @@ private[core] case class Level(dirs: Seq[Dir],
                 .map(_ => ())
                 .recoverWith {
                   case exception =>
-                    logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
+                    logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.mapToSlice(_.path.toString).mkString(", "), exception)
                     IO.unit
                 }
             }

@@ -228,7 +228,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               //delete some key-values
               Random.shuffle(keyValues.grouped(10)).take(2) foreach {
                 keyValues =>
-                  val deleteKeyValues = keyValues.map(keyValue => Memory.remove(keyValue.key)).toSlice
+                  val deleteKeyValues = keyValues.mapToSlice(keyValue => Memory.remove(keyValue.key)).toSlice
                   level.put(deleteKeyValues).runRandomIO.right.value
               }
 

@@ -302,7 +302,7 @@ class EffectSpec extends TestBase {
         //0.067924621 seconds
         //4.mb
         //0.057647201 seconds & 0.047565694 seconds
-        val groupedPath = Benchmark("groupBytes")(Effect.write(randomFilePath, groupBytes.map(_.toByteBufferWrap)))
+        val groupedPath = Benchmark("groupBytes")(Effect.write(randomFilePath, groupBytes.mapToSlice(_.toByteBufferWrap)))
         Slice(Effect.readAllBytes(groupedPath)) shouldBe flattenBytes
 
         //20.mb

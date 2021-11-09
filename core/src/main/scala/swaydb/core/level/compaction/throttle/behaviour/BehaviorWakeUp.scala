@@ -195,7 +195,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
       logger.warn(s"${context.name}: Cannot run jobs. Compaction is terminated.")
       Future.successful(context)
     } else {
-      logger.debug(s"${context.name}: Compaction order: ${compactionsOrder.map(_.levelNumber).mkString(", ")}")
+      logger.debug(s"${context.name}: Compaction order: ${compactionsOrder.mapToSlice(_.levelNumber).mkString(", ")}")
 
       val level = compactionsOrder.headOrNull
 

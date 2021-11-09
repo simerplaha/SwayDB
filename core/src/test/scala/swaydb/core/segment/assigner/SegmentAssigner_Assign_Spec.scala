@@ -315,7 +315,7 @@ sealed trait SegmentAssigner_Assign_Spec extends TestBase {
 
             //create key-values with head and tail gap to be of 5
             val expectedAssignments =
-              keyValues map {
+              keyValues mapToSlice {
                 keyValues =>
                   val dropCount = 5
                   val headGap = keyValues.take(dropCount)
@@ -326,13 +326,13 @@ sealed trait SegmentAssigner_Assign_Spec extends TestBase {
 
             //create Segments with only mid key-values
             val segments =
-              expectedAssignments map {
+              expectedAssignments mapToSlice {
                 case (_, midKeyValues, _) =>
                   TestSegment.one(midKeyValues)
               }
 
             val inputSegments =
-              keyValues map (TestSegment.one(_))
+              keyValues mapToSlice (TestSegment.one(_))
 
             //Expect full Segments to get assigned without expanding or assigning gaps.
 
@@ -383,7 +383,7 @@ sealed trait SegmentAssigner_Assign_Spec extends TestBase {
 
             //create key-values with head and tail gap to be of 5
             val expectedAssignments =
-              keyValues map {
+              keyValues mapToSlice {
                 keyValues =>
                   val dropCount = 2
                   val headGap = keyValues.take(dropCount)
@@ -393,7 +393,7 @@ sealed trait SegmentAssigner_Assign_Spec extends TestBase {
               }
 
             val gapedSegment: Slice[(Segment, Segment, Segment)] =
-              expectedAssignments map {
+              expectedAssignments mapToSlice {
                 case (headGap, midKeyValues, tailGap) =>
                   (TestSegment.one(headGap), TestSegment.one(midKeyValues), TestSegment.one(tailGap))
               }
@@ -407,7 +407,7 @@ sealed trait SegmentAssigner_Assign_Spec extends TestBase {
 
             //existing Segments are just the midKeyValues
             val existingSegments =
-              expectedAssignments map {
+              expectedAssignments mapToSlice {
                 case (_, midKeyValues, _) =>
                   TestSegment.one(midKeyValues)
               }

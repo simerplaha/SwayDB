@@ -17,6 +17,7 @@
 package swaydb.data.slice
 
 import swaydb.data.utils.ByteOps
+import swaydb.utils.SomeOrNoneCovariant
 
 import java.io.ByteArrayInputStream
 import java.lang
@@ -24,37 +25,70 @@ import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
-import scala.collection.mutable
+import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer
+import scala.collection.{Iterable, Iterator, mutable}
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
 
+sealed trait SliceOption[+T] extends SomeOrNoneCovariant[SliceOption[T], Slice[T]] {
+  override def noneC: SliceOption[Nothing] = Slice.Null
+
+  def isUnslicedOption: Boolean
+
+  def asSliceOption(): SliceOption[T]
+
+  def unsliceOption(): SliceOption[T] =
+    if (this.isNoneC || this.getC.isEmpty)
+      Slice.Null
+    else
+      this.getC.unslice()
+}
+
+case object Slice extends SliceCompanion {
+
+  final case object Null extends SliceOption[Nothing] {
+    override val isNoneC: Boolean = true
+    override def getC: Slice[Nothing] = throw new Exception(s"${Slice.productPrefix} is of type ${Slice.Null.productPrefix}")
+    override def isUnslicedOption: Boolean = true
+    override def asSliceOption(): SliceOption[Nothing] = this
+  }
+
+}
+
 /**
- * Base implementation for both Scala 2.12 and 2.13.
+ * [[Slice]] allows managing a large [[Array]] without copying it's values unless needed.
+ *
+ * [[Slice]] is used extensively by all modules including core so it's performance is critical.
  */
-abstract class SliceBase[+T](array: Array[T],
-                             val fromOffset: Int,
-                             val toOffset: Int,
-                             private var written: Int)(protected[this] implicit val classTag: ClassTag[T]) extends Iterable[T] { self =>
+class Slice[+T](array: Array[T],
+                val fromOffset: Int,
+                val toOffset: Int,
+                private var written: Int)(protected[this] implicit val classTag: ClassTag[T]) extends Iterable[T] with SliceOption[T] { self =>
 
-  private var writePosition = fromOffset + written
+  private var writePosition =
+    fromOffset + written
 
-  def selfSlice: Slice[T]
-
-  val allocatedSize =
+  val allocatedSize: Int =
     toOffset - fromOffset + 1
+
+  override val isNoneC: Boolean =
+    false
+
+  override def getC: Slice[T] =
+    this
 
   override def size: Int =
     written
 
-  override def isEmpty =
+  override def isEmpty: Boolean =
     size == 0
 
-  override def nonEmpty =
+  override def nonEmpty: Boolean =
     !isEmpty
 
-  def isFull =
+  def isFull: Boolean =
     size == allocatedSize
 
   def isUnslicedOption: Boolean =
@@ -64,7 +98,7 @@ abstract class SliceBase[+T](array: Array[T],
     if (isEmpty)
       Slice.Null
     else
-      selfSlice
+      self
 
   /**
    * Create a new Slice for the offsets.
@@ -141,9 +175,9 @@ abstract class SliceBase[+T](array: Array[T],
       }
 
     if (size == 0)
-      Slice(selfSlice)
+      Slice(self)
     else
-      group(Slice.of[Slice[T]](size), selfSlice, size)
+      group(Slice.of[Slice[T]](size), self, size)
   }
 
   @throws[ArrayIndexOutOfBoundsException]
@@ -165,7 +199,7 @@ abstract class SliceBase[+T](array: Array[T],
 
   override def drop(count: Int): Slice[T] =
     if (count <= 0)
-      selfSlice
+      self
     else if (count >= size)
       Slice.empty[T]
     else
@@ -196,7 +230,7 @@ abstract class SliceBase[+T](array: Array[T],
 
   override def dropRight(count: Int): Slice[T] =
     if (count <= 0)
-      selfSlice
+      self
     else if (count >= size)
       Slice.empty[T]
     else
@@ -206,7 +240,7 @@ abstract class SliceBase[+T](array: Array[T],
     if (count <= 0)
       Slice.empty[T]
     else if (size == count)
-      selfSlice
+      self
     else
       slice(0, (size min count) - 1)
 
@@ -220,7 +254,7 @@ abstract class SliceBase[+T](array: Array[T],
     if (count <= 0)
       Slice.empty[T]
     else if (size == count)
-      selfSlice
+      self
     else
       slice(size - count, size - 1)
 
@@ -290,7 +324,7 @@ abstract class SliceBase[+T](array: Array[T],
    */
   def close(): Slice[T] =
     if (allocatedSize == size)
-      selfSlice
+      self
     else
       slice(0, size - 1)
 
@@ -302,7 +336,7 @@ abstract class SliceBase[+T](array: Array[T],
     array(writePosition) = item
     writePosition += 1
     written = (writePosition - fromOffset) max written
-    selfSlice
+    self
   }
 
   @tailrec
@@ -314,7 +348,7 @@ abstract class SliceBase[+T](array: Array[T],
         } else {
           //TODO - core's code make sure that this does not occur often.
           val newSlice = Slice.of[T]((this.size + array.length) * expandBy)
-          newSlice addAll selfSlice
+          newSlice addAll self
           newSlice addAll array.array.asInstanceOf[Array[T]]
         }
 
@@ -324,7 +358,7 @@ abstract class SliceBase[+T](array: Array[T],
         } else {
           //TODO - core's code make sure that this does not occur often.
           val newSlice = Slice.of[T]((this.size + items.size) * expandBy)
-          newSlice addAll selfSlice
+          newSlice addAll self
           newSlice addAll items
         }
 
@@ -337,7 +371,7 @@ abstract class SliceBase[+T](array: Array[T],
 
         val newSlice = Slice.of[T]((self.size + buffer.size) * expandBy)
 
-        newSlice addAll selfSlice
+        newSlice addAll self
         newSlice addAll buffer.toArray
 
         newSlice
@@ -361,9 +395,9 @@ abstract class SliceBase[+T](array: Array[T],
       Array.copy(items, fromPosition, this.array, currentWritePosition, itemsSize)
       writePosition += itemsSize
       written = (writePosition - fromOffset) max written
-      selfSlice
+      self
     } else {
-      selfSlice
+      self
     }
 
   def toByteBufferWrap: ByteBuffer =
@@ -468,7 +502,7 @@ abstract class SliceBase[+T](array: Array[T],
     if (this.isEmpty)
       None
     else
-      Some(selfSlice)
+      Some(self)
 
   override def iterator = new Iterator[T] {
     private val writtenPosition = fromOffset + self.size - 1
@@ -495,6 +529,54 @@ abstract class SliceBase[+T](array: Array[T],
       position -= 1
       next
     }
+  }
+
+  def mapToSlice[B: ClassTag](f: T => B): Slice[B] = {
+    val slice = Slice.of[B](self.size)
+    val iterator = self.iterator
+
+    while (iterator.hasNext)
+      slice add f(iterator.next())
+
+    slice
+  }
+
+  def flatMapToSliceSlow[B: ClassTag](f: T => IterableOnce[B]): Slice[B] = {
+    val buffer = ListBuffer.empty[B]
+    val iterator = self.iterator
+
+    while (iterator.hasNext)
+      buffer ++= f(iterator.next())
+
+    Slice.from[B](buffer, buffer.size)
+  }
+
+  override def takeWhile(p: T => Boolean): Slice[T] = {
+    val filtered = Slice.of[T](self.size)
+    val iterator = self.iterator
+
+    var continue = true
+    while (continue && iterator.hasNext) {
+      val item = iterator.next()
+      if (p(item))
+        filtered add item
+      else
+        continue = false
+    }
+
+    filtered.close()
+  }
+
+  def collectToSlice[B: ClassTag](pf: PartialFunction[T, B]): Slice[B] = {
+    val filtered = Slice.of[B](self.size)
+    val iterator = self.iterator
+
+    while (iterator.hasNext) {
+      val item = iterator.next()
+      if (pf.isDefinedAt(item)) filtered add pf(item)
+    }
+
+    filtered.close()
   }
 
   override def filterNot(p: T => Boolean): Slice[T] = {
@@ -587,24 +669,35 @@ abstract class SliceBase[+T](array: Array[T],
 
   def ++[B >: T : ClassTag](other: Slice[B]): Slice[B] =
     if (other.isEmpty) {
-      selfSlice
-    } else if (selfSlice.isEmpty) {
+      self
+    } else if (self.isEmpty) {
       other
     } else {
       val slice = Slice.of[B](size + other.size)
-      slice addAll selfSlice
+      slice addAll self
       slice addAll other
     }
 
   def ++[B >: T : ClassTag](other: Array[B]): Slice[B] =
     if (other.isEmpty) {
-      selfSlice
-    } else if (selfSlice.isEmpty) {
+      self
+    } else if (self.isEmpty) {
       Slice(other)
     } else {
       val slice = Slice.of[B](size + other.length)
-      slice addAll selfSlice
+      slice addAll self
       slice addAll other
+    }
+
+  def ++[B >: T : ClassTag](other: Option[B]): Slice[B] =
+    if (other.isEmpty) {
+      self
+    } else if (self.isEmpty) {
+      Slice(other.get)
+    } else {
+      val slice = Slice.of[B](size + 1)
+      slice addAll self
+      slice add other.get
     }
 
   override def collectFirst[B](pf: PartialFunction[T, B]): Option[B] =
@@ -662,125 +755,125 @@ abstract class SliceBase[+T](array: Array[T],
     )
 
   @inline final def addBoolean[B >: T](bool: Boolean)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeBoolean(bool, selfSlice)
-    selfSlice
+    byteOps.writeBoolean(bool, self)
+    self
   }
 
   @inline final def readBoolean(): Boolean =
-    selfSlice.get(0) == 1
+    self.get(0) == 1
 
   @inline final def addInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeInt(integer, selfSlice)
-    selfSlice
+    byteOps.writeInt(integer, self)
+    self
   }
 
   @inline final def readInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
-    byteOps.readInt(selfSlice)
+    byteOps.readInt(self)
 
   @inline final def dropUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Slice[T] = {
     val (_, byteSize) = readUnsignedIntWithByteSize[B]()
-    selfSlice drop byteSize
+    self drop byteSize
   }
 
   @inline final def addSignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeSignedInt(integer, selfSlice)
-    selfSlice
+    byteOps.writeSignedInt(integer, self)
+    self
   }
 
   @inline final def readSignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
-    byteOps.readSignedInt(selfSlice)
+    byteOps.readSignedInt(self)
 
   @inline final def addUnsignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeUnsignedInt(integer, selfSlice)
-    selfSlice
+    byteOps.writeUnsignedInt(integer, self)
+    self
   }
 
   @inline final def addNonZeroUnsignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeUnsignedIntNonZero(integer, selfSlice)
-    selfSlice
+    byteOps.writeUnsignedIntNonZero(integer, self)
+    self
   }
 
   @inline final def readUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
-    byteOps.readUnsignedInt(selfSlice)
+    byteOps.readUnsignedInt(self)
 
   @inline final def readUnsignedIntWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Int, Int) =
-    byteOps.readUnsignedIntWithByteSize(selfSlice)
+    byteOps.readUnsignedIntWithByteSize(self)
 
   @inline final def readNonZeroUnsignedIntWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Int, Int) =
-    byteOps.readUnsignedIntNonZeroWithByteSize(selfSlice)
+    byteOps.readUnsignedIntNonZeroWithByteSize(self)
 
   @inline final def addLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeLong(num, selfSlice)
-    selfSlice
+    byteOps.writeLong(num, self)
+    self
   }
 
   @inline final def readLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
-    byteOps.readLong(selfSlice)
+    byteOps.readLong(self)
 
   @inline final def addUnsignedLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeUnsignedLong(num, selfSlice)
-    selfSlice
+    byteOps.writeUnsignedLong(num, self)
+    self
   }
 
   @inline final def readUnsignedLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
-    byteOps.readUnsignedLong(selfSlice)
+    byteOps.readUnsignedLong(self)
 
   @inline final def readUnsignedLongWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Long, Int) =
-    byteOps.readUnsignedLongWithByteSize(selfSlice)
+    byteOps.readUnsignedLongWithByteSize(self)
 
   @inline final def readUnsignedLongByteSize[B >: T]()(implicit byteOps: ByteOps[B]): Int =
-    byteOps.readUnsignedLongByteSize(selfSlice)
+    byteOps.readUnsignedLongByteSize(self)
 
   @inline final def addSignedLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeSignedLong(num, selfSlice)
-    selfSlice
+    byteOps.writeSignedLong(num, self)
+    self
   }
 
   @inline final def readSignedLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
-    byteOps.readSignedLong(selfSlice)
+    byteOps.readSignedLong(self)
 
   @inline final def addString[B >: T](string: String, charsets: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeString(string, selfSlice, charsets)
-    selfSlice
+    byteOps.writeString(string, self, charsets)
+    self
   }
 
   @inline final def addStringUTF8[B >: T](string: String)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeString(string, selfSlice, StandardCharsets.UTF_8)
-    selfSlice
+    byteOps.writeString(string, self, StandardCharsets.UTF_8)
+    self
   }
 
   @inline final def addStringUTF8WithSize[B >: T](string: String)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeStringWithSize(string, selfSlice, StandardCharsets.UTF_8)
-    selfSlice
+    byteOps.writeStringWithSize(string, self, StandardCharsets.UTF_8)
+    self
   }
 
   @inline final def readString[B >: T](charset: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): String =
-    byteOps.readString(selfSlice, charset)
+    byteOps.readString(self, charset)
 
   @inline final def readStringUTF8[B >: T]()(implicit byteOps: ByteOps[B]): String =
-    byteOps.readString(selfSlice, StandardCharsets.UTF_8)
+    byteOps.readString(self, StandardCharsets.UTF_8)
 
   @inline final def createReader[B >: T]()(implicit byteOps: ByteOps[B]): SliceReader[B] =
-    SliceReader[B](selfSlice)
+    SliceReader[B](self)
 
   @inline final def append[B >: T : ClassTag](tail: Slice[B]): Slice[B] = {
-    val merged = Slice.of[B](selfSlice.size + tail.size)
-    merged addAll selfSlice
+    val merged = Slice.of[B](self.size + tail.size)
+    merged addAll self
     merged addAll tail
     merged
   }
 
   @inline final def append[B >: T : ClassTag](last: B): Slice[B] = {
-    val merged = Slice.of[B](selfSlice.size + 1)
-    merged addAll selfSlice
+    val merged = Slice.of[B](self.size + 1)
+    merged addAll self
     merged add last
     merged
   }
 
   @inline final def prepend[B >: T : ClassTag](head: B): Slice[B] = {
-    val merged = Slice.of[B](selfSlice.size + 1)
+    val merged = Slice.of[B](self.size + 1)
     merged add head
-    merged addAll selfSlice
+    merged addAll self
     merged
   }
 

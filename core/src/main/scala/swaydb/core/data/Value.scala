@@ -210,7 +210,7 @@ private[swaydb] object Value {
     override def time = Time.fromApplies(applies)
 
     def unslice(): Value.PendingApply =
-      PendingApply(applies.map(_.unslice()))
+      PendingApply(applies.mapToSlice(_.unslice()))
 
     override def isUnsliced: Boolean =
       applies.forall(_.isUnsliced)

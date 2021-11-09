@@ -280,11 +280,11 @@ class LevelZeroTaskAssigner_createStacks_Fixed_Spec extends TestBase with MockFa
       //                   10 11 12
       // 1 2 3 4 5 6 7 8 9 10 11 12
       createStacks(
-        Slice.range(1, 3).map(key => Memory.put(key)),
-        Slice.range(4, 6).map(key => Memory.put(key)),
-        Slice.range(7, 9).map(key => Memory.put(key)),
-        Slice.range(10, 12).map(key => Memory.put(key)),
-        Slice.range(1, 12).map(key => Memory.put(key)),
+        Slice.range(1, 3).mapToSlice(key => Memory.put(key)),
+        Slice.range(4, 6).mapToSlice(key => Memory.put(key)),
+        Slice.range(7, 9).mapToSlice(key => Memory.put(key)),
+        Slice.range(10, 12).mapToSlice(key => Memory.put(key)),
+        Slice.range(1, 12).mapToSlice(key => Memory.put(key)),
       ) {
         stacksMap: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] =>
           val stacks = stacksMap.toList
@@ -295,32 +295,32 @@ class LevelZeroTaskAssigner_createStacks_Fixed_Spec extends TestBase with MockFa
           headValue.minKey shouldBe 1.serialise
           headValue.maxKey shouldBe MaxKey.Fixed(3.serialise)
           headValue.stack should have size 2
-          headValue.stack.head.leftValue.cache.valuesIterator().toList should contain theSameElementsInOrderAs Slice.range(1, 3).map(key => Memory.put(key))
-          headValue.stack(1).rightValue.toList should contain theSameElementsInOrderAs Slice.range(1, 3).map(key => Memory.put(key))
+          headValue.stack.head.leftValue.cache.valuesIterator().toList should contain theSameElementsInOrderAs Slice.range(1, 3).mapToSlice(key => Memory.put(key))
+          headValue.stack(1).rightValue.toList should contain theSameElementsInOrderAs Slice.range(1, 3).mapToSlice(key => Memory.put(key))
 
           val (secondKey, secondValue) = stacks.drop(1).head
           secondKey shouldBe 4.serialise
           secondValue.minKey shouldBe 4.serialise
           secondValue.maxKey shouldBe MaxKey.Fixed(6.serialise)
           secondValue.stack should have size 2
-          secondValue.stack.head.leftValue.cache.valuesIterator().toList should contain theSameElementsInOrderAs Slice.range(4, 6).map(key => Memory.put(key))
-          secondValue.stack(1).rightValue.toList should contain theSameElementsInOrderAs Slice.range(4, 6).map(key => Memory.put(key))
+          secondValue.stack.head.leftValue.cache.valuesIterator().toList should contain theSameElementsInOrderAs Slice.range(4, 6).mapToSlice(key => Memory.put(key))
+          secondValue.stack(1).rightValue.toList should contain theSameElementsInOrderAs Slice.range(4, 6).mapToSlice(key => Memory.put(key))
 
           val (thirdKey, thirdValue) = stacks.drop(2).head
           thirdKey shouldBe 7.serialise
           thirdValue.minKey shouldBe 7.serialise
           thirdValue.maxKey shouldBe MaxKey.Fixed(9.serialise)
           thirdValue.stack should have size 2
-          thirdValue.stack.head.leftValue.cache.valuesIterator().toList should contain theSameElementsInOrderAs Slice.range(7, 9).map(key => Memory.put(key))
-          thirdValue.stack(1).rightValue.toList should contain theSameElementsInOrderAs Slice.range(7, 9).map(key => Memory.put(key))
+          thirdValue.stack.head.leftValue.cache.valuesIterator().toList should contain theSameElementsInOrderAs Slice.range(7, 9).mapToSlice(key => Memory.put(key))
+          thirdValue.stack(1).rightValue.toList should contain theSameElementsInOrderAs Slice.range(7, 9).mapToSlice(key => Memory.put(key))
 
           val (lastKey, lastValue) = stacks.last
           lastKey shouldBe 10.serialise
           lastValue.minKey shouldBe 10.serialise
           lastValue.maxKey shouldBe MaxKey.Fixed(12.serialise)
           lastValue.stack should have size 2
-          lastValue.stack.head.leftValue.cache.valuesIterator().toList should contain theSameElementsInOrderAs Slice.range(10, 12).map(key => Memory.put(key))
-          lastValue.stack(1).rightValue.toList should contain theSameElementsInOrderAs Slice.range(10, 12).map(key => Memory.put(key))
+          lastValue.stack.head.leftValue.cache.valuesIterator().toList should contain theSameElementsInOrderAs Slice.range(10, 12).mapToSlice(key => Memory.put(key))
+          lastValue.stack(1).rightValue.toList should contain theSameElementsInOrderAs Slice.range(10, 12).mapToSlice(key => Memory.put(key))
       }
     }
   }
@@ -333,11 +333,11 @@ class LevelZeroTaskAssigner_createStacks_Fixed_Spec extends TestBase with MockFa
       //             7 8 9
       //                   10 11 12
       createStacks(
-        Slice.range(1, 12).map(key => Memory.put(key)),
-        Slice.range(1, 3).map(key => Memory.put(key)),
-        Slice.range(4, 6).map(key => Memory.put(key)),
-        Slice.range(7, 9).map(key => Memory.put(key)),
-        Slice.range(10, 12).map(key => Memory.put(key))
+        Slice.range(1, 12).mapToSlice(key => Memory.put(key)),
+        Slice.range(1, 3).mapToSlice(key => Memory.put(key)),
+        Slice.range(4, 6).mapToSlice(key => Memory.put(key)),
+        Slice.range(7, 9).mapToSlice(key => Memory.put(key)),
+        Slice.range(10, 12).mapToSlice(key => Memory.put(key))
       ) {
         stacksMap: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] =>
           val stacks = stacksMap.toList
@@ -348,11 +348,11 @@ class LevelZeroTaskAssigner_createStacks_Fixed_Spec extends TestBase with MockFa
           headValue.minKey shouldBe 1.serialise
           headValue.maxKey shouldBe MaxKey.Fixed(12.serialise)
           headValue.stack should have size 5
-          headValue.stack.head.leftValue.cache.valuesIterator().toList should contain theSameElementsInOrderAs Slice.range(1, 12).map(key => Memory.put(key))
-          headValue.stack(1).rightValue.toList should contain theSameElementsInOrderAs Slice.range(1, 3).map(key => Memory.put(key))
-          headValue.stack(2).rightValue.toList should contain theSameElementsInOrderAs Slice.range(4, 6).map(key => Memory.put(key))
-          headValue.stack(3).rightValue.toList should contain theSameElementsInOrderAs Slice.range(7, 9).map(key => Memory.put(key))
-          headValue.stack(4).rightValue.toList should contain theSameElementsInOrderAs Slice.range(10, 12).map(key => Memory.put(key))
+          headValue.stack.head.leftValue.cache.valuesIterator().toList should contain theSameElementsInOrderAs Slice.range(1, 12).mapToSlice(key => Memory.put(key))
+          headValue.stack(1).rightValue.toList should contain theSameElementsInOrderAs Slice.range(1, 3).mapToSlice(key => Memory.put(key))
+          headValue.stack(2).rightValue.toList should contain theSameElementsInOrderAs Slice.range(4, 6).mapToSlice(key => Memory.put(key))
+          headValue.stack(3).rightValue.toList should contain theSameElementsInOrderAs Slice.range(7, 9).mapToSlice(key => Memory.put(key))
+          headValue.stack(4).rightValue.toList should contain theSameElementsInOrderAs Slice.range(10, 12).mapToSlice(key => Memory.put(key))
 
       }
     }

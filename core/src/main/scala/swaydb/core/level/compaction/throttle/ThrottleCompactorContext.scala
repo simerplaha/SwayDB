@@ -31,7 +31,7 @@ protected case class ThrottleCompactorContext(levels: Slice[LevelRef],
                                               @volatile private var _terminateASAP: Boolean = false) extends LazyLogging {
 
   final def name = {
-    val info = levels.map(_.levelNumber).mkString(", ")
+    val info = levels.mapToSlice(_.levelNumber).mkString(", ")
 
     if (levels.size == 1)
       s"Level($info)"

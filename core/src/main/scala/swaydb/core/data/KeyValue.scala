@@ -608,7 +608,7 @@ private[swaydb] object Memory {
       else
         PendingApply(
           key = key.unslice(),
-          applies = applies.map(_.unslice())
+          applies = applies.mapToSlice(_.unslice())
         )
 
     override val deadline =
@@ -1404,7 +1404,7 @@ private[core] object Persistent {
 
                 ValueSerializer
                   .read[Slice[Value.Apply]](bytes)
-                  .map(_.unslice())
+                  .mapToSlice(_.unslice())
               }
           },
         nextIndexOffset = nextIndexOffset,

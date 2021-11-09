@@ -166,7 +166,7 @@ private[log] object PersistentLog extends LazyLogging {
 
     val file =
       nextFile[K, V, C](
-        oldFiles = recoveredFiles.map(_.item),
+        oldFiles = recoveredFiles.mapToSlice(_.item),
         mmap = mmap,
         fileSize = fileSize,
         cache = cache

@@ -39,6 +39,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.testkit.RunThis._
+import scala.collection.compat._
 
 import scala.collection.mutable.ListBuffer
 
@@ -272,7 +273,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           keyValues should have size 10
 
           val headSegments: Slice[Segment] =
-            keyValues.take(5) map {
+            keyValues.take(5) mapToSlice {
               keyValues =>
                 TestSegment.one(keyValues = keyValues)
             }
@@ -281,7 +282,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
 
           val midSegment = TestSegment.one(keyValues = keyValues.drop(headSegments.size).flatten)
 
-          val minSize = headSegments.map(_.segmentSize).min min midSegment.segmentSize
+          val minSize = headSegments.mapToSlice(_.segmentSize).min min midSegment.segmentSize
           implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = minSize)
 
           val removeDeletes = randomBoolean()
@@ -334,7 +335,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           keyValues should have size 10
 
           val headSegments: Slice[Segment] =
-            keyValues.take(5) map {
+            keyValues.take(5) mapToSlice {
               keyValues =>
                 TestSegment.one(keyValues = keyValues)
             }
@@ -344,12 +345,12 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           val midSegment = TestSegment.one(keyValues = keyValues.drop(headSegments.size).take(2).flatten)
 
           val tailSegments: Slice[Segment] =
-            keyValues.drop(7) map {
+            keyValues.drop(7) mapToSlice {
               keyValues =>
                 TestSegment.one(keyValues = keyValues)
             }
 
-          val minSize = (headSegments ++ tailSegments).map(_.segmentSize).min min midSegment.segmentSize
+          val minSize = (headSegments ++ tailSegments).mapToSlice(_.segmentSize).min min midSegment.segmentSize
           implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = minSize)
 
           val removeDeletes = randomBoolean()
@@ -400,7 +401,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           keyValues should have size 10
 
           val headSegments: Slice[Segment] =
-            keyValues.take(5) map {
+            keyValues.take(5) mapToSlice {
               keyValues =>
                 TestSegment.one(keyValues = keyValues)
             }
@@ -410,7 +411,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           val midSegment = TestSegment.one(keyValues = keyValues.drop(headSegments.size).take(2).flatten)
 
           val tailSegments: Slice[Segment] =
-            keyValues.drop(7) map {
+            keyValues.drop(7) mapToSlice {
               keyValues =>
                 TestSegment.one(keyValues = keyValues)
             }
@@ -472,7 +473,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           keyValues should have size 10
 
           val headSegments: Slice[Segment] =
-            keyValues.take(5) map {
+            keyValues.take(5) mapToSlice {
               keyValues =>
                 TestSegment.one(keyValues = keyValues)
             }
@@ -482,7 +483,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           val midSegment = TestSegment.one(keyValues = keyValues.drop(headSegments.size).take(2).flatten)
 
           val tailSegments: Slice[Segment] =
-            keyValues.drop(7) map {
+            keyValues.drop(7) mapToSlice {
               keyValues =>
                 TestSegment.one(keyValues = keyValues)
             }

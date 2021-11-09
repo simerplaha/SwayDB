@@ -67,7 +67,7 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
           )
 
         val expectedLastLevel: Slice[Memory.Fixed] =
-          expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMapOptionS(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
+          expectedKeyValue.flatMapToSliceSlow(keyValue => keyValue.fromValue.flatMapOptionS(_.toExpectedLastLevelKeyValue(keyValue.key)))
 
         //        println
         //        println("newKeyValue: " + newKeyValue)
@@ -108,7 +108,7 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
           )
 
         val expectedLastLevel: Slice[Memory.Fixed] =
-          expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMapOptionS(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
+          expectedKeyValue.flatMapToSliceSlow(keyValue => keyValue.fromValue.flatMapOptionS(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
 
         //println
         //println("newKeyValue: " + newKeyValue)
@@ -155,7 +155,7 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
           )
 
         val expectedLastLevel: Slice[Memory.Fixed] =
-          expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMapOptionS(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
+          expectedKeyValue.flatMapToSliceSlow(keyValue => keyValue.fromValue.flatMapOptionS(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
 
         //println
         //println("newKeyValue: " + newKeyValue)
@@ -209,7 +209,7 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
             )
           )
         val expectedLastLevel: Slice[Memory.Fixed] =
-          expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMapOptionS(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
+          expectedKeyValue.flatMapToSliceSlow(keyValue => keyValue.fromValue.flatMapOptionS(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
 
         //println
         //println("newKeyValue: " + newKeyValue)
@@ -255,7 +255,7 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
             )
           )
         val expectedLastLevel: Slice[Memory.Fixed] =
-          expectedKeyValue.flatMap(keyValue => keyValue.fromValue.toOptionS.flatMap(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
+          expectedKeyValue.flatMapToSliceSlow(keyValue => keyValue.fromValue.toOptionS.flatMap(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
 
         //println
         //println("newKeyValue: " + newKeyValue)
@@ -307,7 +307,7 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
             )
           )
         val expectedLastLevel: Slice[Memory.Fixed] =
-          expectedKeyValue.flatMap(keyValue => keyValue.fromValue.toOptionS.flatMap(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
+          expectedKeyValue.flatMapToSliceSlow(keyValue => keyValue.fromValue.toOptionS.flatMap(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
 
         //        println
         //        println("newKeyValue: " + newKeyValue)
@@ -353,7 +353,7 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
             )
           )
         val expectedLastLevel: Slice[Memory.Fixed] =
-          expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMapOptionS(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
+          expectedKeyValue.flatMapToSliceSlow(keyValue => keyValue.fromValue.flatMapOptionS(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
 
         //println
         //println("newKeyValue: " + newKeyValue)
@@ -393,7 +393,7 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
             )
           )
         val expectedLastLevel: Slice[Memory.Fixed] =
-          expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMapOptionS(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
+          expectedKeyValue.flatMapToSliceSlow(keyValue => keyValue.fromValue.flatMapOptionS(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
 
         //println
         //println("newKeyValue: " + newKeyValue)
@@ -440,7 +440,7 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
           )
 
         val expectedLastLevel: Slice[Memory.Fixed] =
-          expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMapOptionS(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
+          expectedKeyValue.flatMapToSliceSlow(keyValue => keyValue.fromValue.flatMapOptionS(_.toExpectedLastLevelKeyValue(keyValue.key)).toList)
 
         //println
         //println("newKeyValue: " + newKeyValue)

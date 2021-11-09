@@ -410,7 +410,7 @@ object TestData {
 
   implicit class SliceApplyImplicits(applies: Slice[Value.Apply]) {
     def toMemory(key: Slice[Byte]): Slice[Memory.Fixed] =
-      applies map {
+      applies mapToSlice {
         case Value.Remove(deadline, time) =>
           Memory.Remove(key, deadline, time)
         case Value.Update(value, deadline, time) =>
@@ -1603,7 +1603,7 @@ object TestData {
           case _: Memory.Function =>
             usedDeadlines
           case apply: Memory.PendingApply =>
-            collectUsedDeadlines(apply.applies.map(_.toMemory(Slice.emptyBytes)), usedDeadlines)
+            collectUsedDeadlines(apply.applies.mapToSlice(_.toMemory(Slice.emptyBytes)), usedDeadlines)
           case range: Memory.Range =>
             val fromTransient = range.fromValue.toOptionS.map(_.toMemory(Slice.emptyBytes))
             val rangeTransient = range.rangeValue.toMemory(Slice.emptyBytes)
@@ -1612,7 +1612,7 @@ object TestData {
     }
 
   def collectUsedPutDeadlines(keyValues: Slice[Memory], usedDeadlines: List[Deadline]): Slice[Deadline] =
-    keyValues collect {
+    keyValues collectToSlice {
       case put: Memory.Put if put.deadline.isDefined =>
         put.deadline.get
 

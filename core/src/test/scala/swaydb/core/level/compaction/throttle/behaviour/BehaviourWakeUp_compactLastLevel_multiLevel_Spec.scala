@@ -98,7 +98,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends TestBase {
             import sweeper._
 
             val keyValues =
-              Slice.range(1, 6) map {
+              Slice.range(1, 6) mapToSlice {
                 key =>
                   randomPutKeyValue(key, randomString, someOrNone(1.hour.fromNow))
               }
@@ -152,7 +152,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends TestBase {
             import sweeper._
 
             val keyValues =
-              Slice.range(1, 15) map {
+              Slice.range(1, 15) mapToSlice {
                 key =>
                   randomPutKeyValue(key, randomString, someOrNone(1.hour.fromNow))
               }
@@ -219,7 +219,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends TestBase {
             import sweeper._
 
             val keyValues =
-              Slice.range(1, 15) map {
+              Slice.range(1, 15) mapToSlice {
                 key =>
                   randomPutKeyValue(key, randomString, someOrNone(1.hour.fromNow))
               }

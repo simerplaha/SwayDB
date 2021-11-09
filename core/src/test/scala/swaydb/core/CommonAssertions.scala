@@ -934,7 +934,7 @@ object CommonAssertions {
       segments map {
         segment =>
           val stringInfos: Slice[String] =
-            Slice.from(segment.iterator(randomBoolean()), segment.keyValueCount) map {
+            Slice.from(segment.iterator(randomBoolean()), segment.keyValueCount) mapToSlice {
               keyValue =>
                 keyValue.toMemory() match {
                   case response: Memory =>
@@ -1537,7 +1537,7 @@ object CommonAssertions {
       sortedIndexConfig = sortedIndexConfig,
       valuesConfig = valuesConfig,
       segmentConfig = segmentConfig
-    ).awaitInf map {
+    ).awaitInf mapToSlice {
       closed =>
         val segmentIO =
           SegmentReadIO(

@@ -861,7 +861,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
   "toOptionUnsliced" in {
     Slice.empty.toOptionUnsliced() shouldBe None
-    Slice.emptyEmptyBytes.toOptionUnsliced() shouldBe None
+    Slice.empty[Slice[Byte]].toOptionUnsliced() shouldBe None
     Slice(1, 2, 3).take(0).toOptionUnsliced() shouldBe None
     Slice(1, 2, 3).drop(3).toOptionUnsliced() shouldBe None
     Slice(1, 2, 3).drop(1).toOptionUnsliced() shouldBe defined
@@ -1121,7 +1121,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
     "size = 1" in {
       Slice(1)
-        .flatMap {
+        .flatMapToSliceSlow {
           int =>
             Slice(int, 2, 3, 4)
         } shouldBe Slice(1, 2, 3, 4)
@@ -1130,12 +1130,12 @@ class SliceSpec extends AnyWordSpec with Matchers {
         .flatMap {
           int =>
             List(int, 2, 3, 4)
-        } shouldBe Slice(1, 2, 3, 4)
+        } shouldBe Iterable(1, 2, 3, 4)
     }
 
     "size = 2" in {
       Slice(1, 2)
-        .flatMap {
+        .flatMapToSliceSlow {
           int =>
             Slice(int, (int + "" + int).toInt)
         } shouldBe Slice(1, 11, 2, 22)
@@ -1144,7 +1144,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
         .flatMap {
           int =>
             List(int, (int + "" + int).toInt)
-        } shouldBe Slice(1, 11, 2, 22)
+        } shouldBe Iterable(1, 11, 2, 22)
     }
 
     "iterable" in {

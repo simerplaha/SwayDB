@@ -414,7 +414,7 @@ class LogEntrySpec extends TestBase {
           val keyValues = randomKeyValues(100, startId = Some(0))
 
           val segments: Slice[Segment] =
-            keyValues.groupedSlice(keyValues.size) map {
+            keyValues.groupedSlice(keyValues.size) mapToSlice {
               keyValues =>
                 TestSegment(keyValues)
             }

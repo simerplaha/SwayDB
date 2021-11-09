@@ -227,7 +227,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           def doAssert(keyValues: Slice[Memory]) = {
 
             //read key-values so they are all part of the same byte array.
-            val readKeyValues = writeAndRead(keyValues).get.map(_.toMemory())
+            val readKeyValues = writeAndRead(keyValues).get.mapToSlice(_.toMemory())
 
             //assert that readKeyValues keys are not sliced.
             readKeyValues foreach assertNotSliced
@@ -267,7 +267,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               )
 
             doAssert(
-              Random.shuffle(uninitialisedKeyValues ++ uninitialisedKeyValues).toSlice.map(_ ())
+              Random.shuffle(uninitialisedKeyValues ++ uninitialisedKeyValues).toSlice.mapToSlice(_ ())
             )
           }
       }
@@ -1339,7 +1339,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   memorySize / 10,
                 maxKeyValueCountPerSegment = randomIntMax(keyValues.size),
                 initialiseIteratorsInOneSeek = randomBoolean()
-              ).map(_.sweep())
+              ).mapToSlice(_.sweep())
 
             segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not value written to disk without splitting.
 
@@ -1372,7 +1372,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 minSegmentSize = memorySize / 1000,
                 maxKeyValueCountPerSegment = randomIntMax(keyValues.size),
                 initialiseIteratorsInOneSeek = randomBoolean()
-              ).map(_.sweep())
+              ).mapToSlice(_.sweep())
 
             segments.foreach(_.existsOnDisk shouldBe false)
 
@@ -1483,7 +1483,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             pathDistributor = createPathDistributor,
             segmentRefCacheLife = randomSegmentRefCacheLife(),
             mmapSegment = mmapSegments
-          ).output.map(_.sweep())
+          ).output.mapToSlice(_.sweep())
 
           if (persistent) segment.isOpen shouldBe true
       }
@@ -1532,7 +1532,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               pathDistributor = createPathDistributor,
               segmentRefCacheLife = randomSegmentRefCacheLife(),
               mmapSegment = mmapSegments
-            ).output.map(_.sweep())
+            ).output.mapToSlice(_.sweep())
 
           newSegments should have size 1
 
@@ -1631,7 +1631,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   pathDistributor = createPathDistributor,
                   segmentRefCacheLife = randomSegmentRefCacheLife(),
                   mmapSegment = mmapSegments
-                ).output.map(_.sweep())
+                ).output.mapToSlice(_.sweep())
 
               newSegments.size should be > 1
 
@@ -1693,7 +1693,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   pathDistributor = PathsDistributor(Seq(Dir(segment.path.getParent, 1)), () => Seq.empty),
                   segmentRefCacheLife = randomSegmentRefCacheLife(),
                   mmapSegment = mmapSegments
-                ).output.map(_.sweep())
+                ).output.mapToSlice(_.sweep())
               }
 
               //the folder should contain only the original segment and the segmentToFailPut
@@ -1755,7 +1755,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               pathDistributor = createPathDistributor,
               segmentRefCacheLife = randomSegmentRefCacheLife(),
               mmapSegment = mmapSegments
-            ).output.map(_.sweep())
+            ).output.mapToSlice(_.sweep())
 
           deletedSegment should have size 1
           val newDeletedSegment = deletedSegment.head
@@ -1802,7 +1802,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               pathDistributor = createPathDistributor,
               segmentRefCacheLife = randomSegmentRefCacheLife(),
               mmapSegment = mmapSegments
-            ).output.map(_.sweep())
+            ).output.mapToSlice(_.sweep())
 
           updatedSegments.flatMap(_.iterator(randomBoolean())).toList shouldBe updatedKeyValues
 
@@ -1856,7 +1856,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 pathDistributor = createPathDistributor,
                 segmentRefCacheLife = randomSegmentRefCacheLife(),
                 mmapSegment = mmapSegments
-              ).output.map(_.sweep())
+              ).output.mapToSlice(_.sweep())
 
             //            mergedSegments.size shouldBe 1
 
@@ -1943,7 +1943,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 pathDistributor = createPathDistributor,
                 segmentRefCacheLife = randomSegmentRefCacheLife(),
                 mmapSegment = mmapSegments
-              ).output.map(_.sweep()).flatMap(_.iterator(randomBoolean())).toList
+              ).output.mapToSlice(_.sweep()).flatMap(_.iterator(randomBoolean())).toList
 
             val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Value.remove(None), Value.update(10))) :+ Memory.remove(10)
 
@@ -1981,7 +1981,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               pathDistributor = createPathDistributor,
               segmentRefCacheLife = randomSegmentRefCacheLife(),
               mmapSegment = mmapSegments
-            ).output.map(_.sweep())
+            ).output.mapToSlice(_.sweep())
 
           newSegments.size shouldBe 1
           newSegments.head.keyValueCount shouldBe 1
@@ -2029,7 +2029,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 pathDistributor = pathsDistributor,
                 segmentRefCacheLife = randomSegmentRefCacheLife(),
                 mmapSegment = mmapSegments
-              ).output.map(_.sweep())
+              ).output.mapToSlice(_.sweep())
             else
               segment.put(
                 headGap = KeyValue.emptyIterable,
@@ -2046,7 +2046,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 pathDistributor = pathsDistributor,
                 segmentRefCacheLife = randomSegmentRefCacheLife(),
                 mmapSegment = mmapSegments
-              ).output.map(_.sweep())
+              ).output.mapToSlice(_.sweep())
 
           //all returned segments contain all the KeyValues ???
           //      segments should have size 5
@@ -2159,7 +2159,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   bloomFilterConfig = BloomFilterBlock.Config.random,
                   segmentConfig = SegmentBlock.Config.random,
                   pathDistributor = createPathDistributor
-                ).map(_.sweep())
+                ).mapToSlice(_.sweep())
               }
 
             refresh.flatMap(_.iterator(randomBoolean())).toList shouldBe keyValues
@@ -2227,7 +2227,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   bloomFilterConfig = bloomFilterConfig,
                   segmentConfig = segmentConfig.copy(minSize = Int.MaxValue),
                   pathDistributor = createPathDistributor
-                ).map(_.sweep())
+                ).mapToSlice(_.sweep())
               }
 
             refresh should have size 1
@@ -2302,7 +2302,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                     bloomFilterConfig = bloomFilterConfig,
                     segmentConfig = segmentConfig.copy(minSize = Int.MaxValue),
                     pathDistributor = createPathDistributor
-                  ).map(_.sweep())
+                  ).mapToSlice(_.sweep())
                 }
 
               refresh should have size 1

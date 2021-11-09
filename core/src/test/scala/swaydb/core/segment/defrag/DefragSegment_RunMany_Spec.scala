@@ -21,6 +21,7 @@ import org.scalatest.EitherValues
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.level.PathsDistributor
+import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
@@ -37,17 +38,18 @@ import swaydb.data.slice.Slice
 import swaydb.testkit.RunThis._
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext
 import scala.util.Random
 
 class DefragSegment_RunMany_Spec extends TestBase with MockFactory with EitherValues {
 
-  implicit val ec = TestExecutionContext.executionContext
-  implicit val timer = TestTimer.Empty
+  implicit val ec: ExecutionContext = TestExecutionContext.executionContext
+  implicit val timer: TestTimer = TestTimer.Empty
 
-  implicit val keyOrder = KeyOrder.default
-  implicit val timerOrder = TimeOrder.long
-  implicit def segmentReadIO = SegmentReadIO.random
-  implicit val compactionParallelism = CompactionParallelism.availableProcessors()
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val timerOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit def segmentReadIO: SegmentReadIO = SegmentReadIO.random
+  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "NO GAP - empty should result in empty" in {
     runThis(20.times, log = true) {
@@ -160,7 +162,7 @@ class DefragSegment_RunMany_Spec extends TestBase with MockFactory with EitherVa
             ).awaitInf
 
           mergeResult.input shouldBe many
-          mergeResult.output.flatMap(_.iterator(randomBoolean()))(keyOrder.on(_.key)) shouldBe keyValues
+          mergeResult.output.toSlice.flatMapToSliceSlow(_.iterator(randomBoolean())).sorted(keyOrder.on[Assignable](_.key)) shouldBe keyValues
       }
     }
   }

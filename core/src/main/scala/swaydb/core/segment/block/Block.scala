@@ -154,7 +154,7 @@ private[core] object Block extends LazyLogging {
       blocks.segmentHeader add uncompressedBlockId
 
       val segmentBytes: Slice[Slice[Byte]] =
-        blocks.segmentBytes.collect {
+        blocks.segmentBytes.collectToSlice {
           case bytes if bytes.nonEmpty => bytes.close()
         }
 

@@ -123,7 +123,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
               //write data to Level as a single Segment or multiple Segments
               eitherOne(
                 targetLevel.putSegments(segments) shouldBe IO.unit,
-                targetLevel.put(keyValues.map(_.toMemory())) shouldBe IO.unit
+                targetLevel.put(keyValues.mapToSlice(_.toMemory())) shouldBe IO.unit
               )
 
               sourceLevel.isEmpty shouldBe false
@@ -231,7 +231,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
                 //write data to Level as a single Segment or multiple Segments
                 eitherOne(
                   targetLevel.putSegments(targetLevelSegment) shouldBe IO.unit,
-                  targetLevel.put(targetLevelKeyValues.map(_.toMemory())) shouldBe IO.unit
+                  targetLevel.put(targetLevelKeyValues.mapToSlice(_.toMemory())) shouldBe IO.unit
                 )
 
                 unexpiredPuts(sourceLevelKeyValues) should have size 0

@@ -17,8 +17,8 @@
 package swaydb.data.slice
 
 import swaydb.Aggregator
+import swaydb.data.MaxKey
 import swaydb.data.utils.ByteOps
-import swaydb.data.{MaxKey, slice}
 import swaydb.utils.ByteSizeOf
 
 import java.nio.ByteBuffer
@@ -28,17 +28,16 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 
 /**
- * Base companion implementation for both Scala 2.12 and 2.13's [[Sliced]] companion objects.
+ * Companion implementation for [[Slice]].
+ *
+ * This is a trait because the [[Slice]] class itself is getting too
+ * long even though inheritance such as like this is discouraged.
  */
-trait SliceCompanionBase {
+trait SliceCompanion extends SliceBuildFrom {
 
   val emptyBytes = of[Byte](0)
 
   val emptyJavaBytes = of[java.lang.Byte](0)
-
-  val someEmptyBytes = Some(emptyBytes)
-
-  private[swaydb] val emptyEmptyBytes: Slice[Slice[Byte]] = empty[Slice[Byte]]
 
   @inline final def empty[T: ClassTag] =
     of[T](0)
@@ -206,6 +205,7 @@ trait SliceCompanionBase {
                 maxKey: Slice[T],
                 maxKeyInclusive: Boolean)(implicit keyOrder: Ordering[Slice[T]]): Boolean = {
     import keyOrder._
+
     key >= minKey && {
       if (maxKeyInclusive)
         key <= maxKey
@@ -360,8 +360,8 @@ trait SliceCompanionBase {
         result.zipWith(next)(_ add _)
     }
 
-  @inline final def newBuilder[T: ClassTag](maxSize: Int): Slice.SliceBuilder[T] =
-    new slice.Slice.SliceBuilder[T](maxSize)
+  @inline final def newBuilder[T: ClassTag](maxSize: Int): SliceBuilder[T] =
+    new SliceBuilder[T](maxSize)
 
   @inline private[swaydb] final def newAggregator[T: ClassTag](maxSize: Int): Aggregator[T, Slice[T]] =
     Aggregator.fromBuilder[T, Slice[T]](newBuilder[T](maxSize))

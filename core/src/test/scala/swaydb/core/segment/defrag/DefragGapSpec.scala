@@ -24,13 +24,9 @@ import swaydb.core.data.Memory
 import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment._
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
-import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
-import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -38,6 +34,7 @@ import swaydb.serializers._
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 
+import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 
 /**
