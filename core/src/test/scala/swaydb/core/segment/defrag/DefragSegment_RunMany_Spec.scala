@@ -22,7 +22,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
@@ -65,7 +65,7 @@ class DefragSegment_RunMany_Spec extends TestBase with MockFactory with EitherVa
 
           implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
-          implicit val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
+          implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
           implicit val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
           implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(maxCount = 10, minSize = Int.MaxValue)
@@ -115,7 +115,7 @@ class DefragSegment_RunMany_Spec extends TestBase with MockFactory with EitherVa
 
           implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
-          implicit val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
+          implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
           implicit val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
           implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(maxCount = 10, minSize = Int.MaxValue)

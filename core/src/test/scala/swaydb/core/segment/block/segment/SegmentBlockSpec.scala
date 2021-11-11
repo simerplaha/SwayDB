@@ -22,7 +22,7 @@ import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.merge.stats.MergeStats
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
@@ -30,11 +30,11 @@ import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.testkit.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 
 import scala.collection.mutable.ListBuffer
 
@@ -65,7 +65,7 @@ class SegmentBlockSpec extends TestBase {
           createdInLevel = randomIntMax(Int.MaxValue),
           valuesConfig = ValuesBlock.Config.random,
           sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexConfig.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentConfig = SegmentBlock.Config.random

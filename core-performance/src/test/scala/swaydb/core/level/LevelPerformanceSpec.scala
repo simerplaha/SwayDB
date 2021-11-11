@@ -137,7 +137,7 @@
 //          compressions = _ => Seq.empty
 //        ),
 //      binarySearchIndexConfig =
-//        BinarySearchIndexBlock.Config(
+//        BinarySearchIndexConfig(
 //          enabled = true,
 //          format = BinarySearchEntryFormat.CopyKey,
 //          minimumNumberOfKeys = 1,
@@ -147,7 +147,7 @@
 //          compressions = _ => Seq.empty
 //        ),
 //      //      binarySearchIndexConfig =
-//      //        BinarySearchIndexBlock.Config.disabled,
+//      //        BinarySearchIndexConfig.disabled,
 //      valuesConfig =
 //        ValuesBlock.Config(
 //          compressDuplicateValues = true,

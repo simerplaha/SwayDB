@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.block.segment.data
 
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexState}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.reader.UnblockedReader
@@ -30,7 +30,7 @@ import scala.concurrent.duration.Deadline
 private[block] class ClosedBlocks(val sortedIndex: SortedIndexBlock.State,
                                   val values: Option[ValuesBlock.State],
                                   val hashIndex: Option[HashIndexBlock.State],
-                                  val binarySearchIndex: Option[BinarySearchIndexBlock.State],
+                                  val binarySearchIndex: Option[BinarySearchIndexState],
                                   val bloomFilter: Option[BloomFilterBlock.State],
                                   val minMaxFunction: Option[MinMax[Slice[Byte]]],
                                   prepareForCachingSegmentBlocksOnCreate: Boolean) {

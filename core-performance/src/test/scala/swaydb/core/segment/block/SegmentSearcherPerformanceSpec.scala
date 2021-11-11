@@ -61,7 +61,7 @@
 //            compressions = _ => compressions(1)
 //          ),
 //        binarySearchIndexConfig =
-//          BinarySearchIndexBlock.Config(
+//          BinarySearchIndexConfig(
 //            enabled = true,
 //            minimumNumberOfKeys = 1,
 //            fullIndex = true,

@@ -92,7 +92,7 @@
 //              val valuesCount = values.size
 //              val largestValue = values.last
 //              val state =
-//                BinarySearchIndexBlock.State(
+//                BinarySearchIndexState(
 //                  largestValue = largestValue,
 //                  uniqueValuesCount = valuesCount,
 //                  isFullIndex = true,
@@ -140,7 +140,7 @@
 //          val compression = eitherOne(Seq.empty, Seq(randomCompression()))
 //
 //          val state =
-//            BinarySearchIndexBlock.State(
+//            BinarySearchIndexState(
 //              largestValue = largestValue,
 //              uniqueValuesCount = valuesCount,
 //              isFullIndex = true,

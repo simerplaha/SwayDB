@@ -21,7 +21,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
@@ -41,7 +41,6 @@ import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
-
 
 class LevelReadSpec0 extends LevelReadSpec
 
@@ -148,7 +147,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
                 createdInLevel = 0,
                 valuesConfig = ValuesBlock.Config.random,
                 sortedIndexConfig = SortedIndexBlock.Config.random,
-                binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+                binarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig = HashIndexBlock.Config.random,
                 bloomFilterConfig = BloomFilterBlock.Config.random,
                 segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 100.mb),
@@ -185,7 +184,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
                 createdInLevel = 0,
                 valuesConfig = ValuesBlock.Config.random,
                 sortedIndexConfig = SortedIndexBlock.Config.random,
-                binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+                binarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig = HashIndexBlock.Config.random,
                 bloomFilterConfig = BloomFilterBlock.Config.random,
                 segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 100.mb),

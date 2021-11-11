@@ -22,7 +22,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
@@ -63,7 +63,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
           sortedIndexConfig: SortedIndexBlock.Config,
-          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+          binarySearchIndexConfig: BinarySearchIndexConfig,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
@@ -78,7 +78,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
               createdInLevel: Int,
               valuesConfig: ValuesBlock.Config,
               sortedIndexConfig: SortedIndexBlock.Config,
-              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+              binarySearchIndexConfig: BinarySearchIndexConfig,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,

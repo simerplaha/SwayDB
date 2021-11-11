@@ -35,7 +35,7 @@ import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
 import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.merge.stats.MergeStats
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexConfig}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
@@ -232,7 +232,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               path: Path = testSegmentFile,
               valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
               sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
-              binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+              binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
               hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -272,7 +272,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
             path: Path = testSegmentFile,
             valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
             sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
-            binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+            binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
             hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
             bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
             segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -307,7 +307,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
              keyValues: Slice[Memory] = randomizedKeyValues()(TestTimer.Incremental()),
              valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
              sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
-             binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+             binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
              hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
              bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -383,7 +383,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               throttle: LevelMeter => LevelThrottle = testDefaultThrottle,
               valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
               sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
-              binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+              binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
               hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments),
@@ -857,7 +857,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                        closeAfterCreate: Boolean = false,
                        valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                        sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
-                       binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                       binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                        hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                        bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                     sweeper: TestCaseSweeper,

@@ -17,7 +17,6 @@
 package swaydb.core.segment.block.binarysearch
 
 import swaydb.IO
-import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
@@ -27,9 +26,7 @@ import swaydb.core.util.MinMax
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.Maybe.{Maybe, _}
-import swaydb.utils.{FunctionSafe, Maybe}
 
 import scala.annotation.tailrec
 
@@ -37,151 +34,10 @@ private[core] case object BinarySearchIndexBlock {
 
   val blockName = this.productPrefix
 
-  object Config {
-
-    val disabled =
-      Config(
-        enabled = false,
-        format = BinarySearchEntryFormat.Reference,
-        minimumNumberOfKeys = 0,
-        fullIndex = false,
-        searchSortedIndexDirectlyIfPossible = true,
-        ioStrategy = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
-        compressions = _ => Seq.empty
-      )
-
-    def apply(config: swaydb.data.config.BinarySearchIndex): Config =
-      config match {
-        case swaydb.data.config.BinarySearchIndex.Off(searchSortedIndexDirectly) =>
-          Config(
-            enabled = false,
-            format = BinarySearchEntryFormat.Reference,
-            minimumNumberOfKeys = Int.MaxValue,
-            fullIndex = false,
-            searchSortedIndexDirectlyIfPossible = searchSortedIndexDirectly,
-            ioStrategy = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
-            compressions = _ => Seq.empty
-          )
-
-        case enable: swaydb.data.config.BinarySearchIndex.FullIndex =>
-          Config(
-            enabled = true,
-            format = BinarySearchEntryFormat(enable.indexFormat),
-            minimumNumberOfKeys = enable.minimumNumberOfKeys,
-            searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectly,
-            fullIndex = true,
-            ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
-            compressions =
-              FunctionSafe.safe(
-                default = _ => Seq.empty[CompressionInternal],
-                function = enable.compression(_) map CompressionInternal.apply
-              )
-          )
-
-        case enable: swaydb.data.config.BinarySearchIndex.SecondaryIndex =>
-          Config(
-            enabled = true,
-            format = BinarySearchEntryFormat(enable.indexFormat),
-            minimumNumberOfKeys = enable.minimumNumberOfKeys,
-            searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectlyIfPreNormalised,
-            fullIndex = false,
-            ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
-            compressions =
-              FunctionSafe.safe(
-                default = _ => Seq.empty[CompressionInternal],
-                function = enable.compression(_) map CompressionInternal.apply
-              )
-          )
-      }
-  }
-
-  case class Config(enabled: Boolean,
-                    format: BinarySearchEntryFormat,
-                    minimumNumberOfKeys: Int,
-                    searchSortedIndexDirectlyIfPossible: Boolean,
-                    fullIndex: Boolean,
-                    ioStrategy: IOAction => IOStrategy,
-                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal])
-
   case class Offset(start: Int, size: Int) extends BlockOffset
 
-  object State {
-    def apply(format: BinarySearchEntryFormat,
-              largestIndexOffset: Int,
-              largestMergedKeySize: Int,
-              uniqueValuesCount: Int,
-              isFullIndex: Boolean,
-              minimumNumberOfKeys: Int,
-              compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Option[State] =
-      if (uniqueValuesCount < minimumNumberOfKeys) {
-        None
-      } else {
-        val bytesPerValue =
-          format.bytesToAllocatePerEntry(
-            largestIndexOffset = largestIndexOffset,
-            largestMergedKeySize = largestMergedKeySize
-          )
-
-        val bytesRequired: Int =
-          optimalBytesRequired(
-            largestIndexOffset = largestIndexOffset,
-            largestMergedKeySize = largestMergedKeySize,
-            valuesCount = uniqueValuesCount,
-            minimNumberOfKeysForBinarySearchIndex = minimumNumberOfKeys,
-            bytesToAllocatedPerEntryMaybe = Maybe.some(bytesPerValue),
-            format = format
-          )
-
-        val bytes = Slice.of[Byte](bytesRequired)
-
-        val state =
-          new State(
-            format = format,
-            bytesPerValue = bytesPerValue,
-            uniqueValuesCount = uniqueValuesCount,
-            _previousWritten = Int.MinValue,
-            writtenValues = 0,
-            minimumNumberOfKeys = minimumNumberOfKeys,
-            isFullIndex = isFullIndex,
-            compressibleBytes = bytes,
-            cacheableBytes = bytes,
-            header = null,
-            compressions = compressions
-          )
-
-        Some(state)
-      }
-  }
-
-  class State(val format: BinarySearchEntryFormat,
-              val bytesPerValue: Int,
-              val uniqueValuesCount: Int,
-              var _previousWritten: Int,
-              var writtenValues: Int,
-              val minimumNumberOfKeys: Int,
-              var isFullIndex: Boolean,
-              var compressibleBytes: Slice[Byte],
-              val cacheableBytes: Slice[Byte],
-              var header: Slice[Byte],
-              val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
-
-    def blockSize: Int =
-      header.size + compressibleBytes.size
-
-    def incrementWrittenValuesCount() =
-      writtenValues += 1
-
-    def previouslyWritten_=(previouslyWritten: Int) =
-      this._previousWritten = previouslyWritten
-
-    def previouslyWritten = _previousWritten
-
-    def hasMinimumKeys =
-      writtenValues >= minimumNumberOfKeys
-  }
-
   def init(sortedIndexState: SortedIndexBlock.State,
-           binarySearchConfig: BinarySearchIndexBlock.Config): Option[State] = {
+           binarySearchConfig: BinarySearchIndexConfig): Option[BinarySearchIndexState] = {
 
     if (!binarySearchConfig.enabled ||
       sortedIndexState.uncompressedPrefixCount < binarySearchConfig.minimumNumberOfKeys ||
@@ -189,7 +45,7 @@ private[core] case object BinarySearchIndexBlock {
       (!sortedIndexState.hasPrefixCompression && binarySearchConfig.searchSortedIndexDirectlyIfPossible && sortedIndexState.isPreNormalised))
       None
     else
-      BinarySearchIndexBlock.State(
+      BinarySearchIndexState(
         format = binarySearchConfig.format,
         largestIndexOffset = sortedIndexState.secondaryIndexEntries.last.indexOffset,
         largestMergedKeySize = sortedIndexState.largestUncompressedMergedKeySize,
@@ -220,7 +76,7 @@ private[core] case object BinarySearchIndexBlock {
       bytesToAllocatedPerEntry * valuesCount
     }
 
-  def close(state: State, uncompressedKeyValuesCount: Int): Option[State] =
+  def close(state: BinarySearchIndexState, uncompressedKeyValuesCount: Int): Option[BinarySearchIndexState] =
     if (state.compressibleBytes.isEmpty)
       None
     else if (state.hasMinimumKeys) {
@@ -250,7 +106,7 @@ private[core] case object BinarySearchIndexBlock {
     else
       None
 
-  def unblockedReader(closedState: BinarySearchIndexBlock.State): UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock] = {
+  def unblockedReader(closedState: BinarySearchIndexState): UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock] = {
     val block =
       BinarySearchIndexBlock(
         format = closedState.format,
@@ -287,7 +143,7 @@ private[core] case object BinarySearchIndexBlock {
   }
 
   def write(entry: SortedIndexBlock.SecondaryIndexEntry,
-            state: State): Unit =
+            state: BinarySearchIndexState): Unit =
     write(
       indexOffset = entry.indexOffset,
       mergedKey = entry.mergedKey,
@@ -298,7 +154,7 @@ private[core] case object BinarySearchIndexBlock {
   def write(indexOffset: Int,
             mergedKey: Slice[Byte],
             keyType: Byte,
-            state: State): Unit =
+            state: BinarySearchIndexState): Unit =
     if (indexOffset == state.previouslyWritten) { //do not write duplicate entries.
       ()
     } else {

@@ -71,7 +71,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
             //            enableAccessPositionIndex = true
           ),
         binarySearchIndexConfig =
-          BinarySearchIndexBlock.Config.random.copy(
+          BinarySearchIndexConfig.random.copy(
             enabled = true,
             minimumNumberOfKeys = 0,
             //            fullIndex = keyValuesCount < 10

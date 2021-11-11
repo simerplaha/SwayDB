@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.io
 
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
@@ -40,7 +40,7 @@ private[core] object SegmentReadIO {
 
   def apply(bloomFilterConfig: BloomFilterBlock.Config,
             hashIndexConfig: HashIndexBlock.Config,
-            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+            binarySearchIndexConfig: BinarySearchIndexConfig,
             sortedIndexConfig: SortedIndexBlock.Config,
             valuesConfig: ValuesBlock.Config,
             segmentConfig: SegmentBlock.Config): SegmentReadIO =

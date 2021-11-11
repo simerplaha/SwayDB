@@ -59,7 +59,7 @@
 //                createdInLevel = randomIntMax(),
 //                valuesConfig = ValuesBlock.Config.random,
 //                sortedIndexConfig = SortedIndexBlock.Config.random,
-//                binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+//                binarySearchIndexConfig = BinarySearchIndexConfig.random,
 //                hashIndexConfig = HashIndexBlock.Config.random,
 //                bloomFilterConfig = BloomFilterBlock.Config.random
 //              )

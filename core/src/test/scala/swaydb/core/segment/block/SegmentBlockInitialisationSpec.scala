@@ -20,29 +20,25 @@ import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.segment.{MemorySegment, PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
-import swaydb.testkit.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.effect.IOStrategy
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
+import swaydb.utils.StorageUnits._
 
 import scala.util.Random
-import swaydb.utils.OperatingSystem
-import swaydb.utils.OperatingSystem._
-import swaydb.utils.FiniteDurations._
-import swaydb.utils.StorageUnits._
-import swaydb.utils.ByteSizeOf._
 
 class SegmentBlockInitialisationSpec extends TestBase {
 
@@ -70,7 +66,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 getSegmentBlockCacheSingle(
                   keyValues = keyValues,
                   binarySearchIndexConfig =
-                    BinarySearchIndexBlock.Config(
+                    BinarySearchIndexConfig(
                       enabled = false,
                       format = randomBinarySearchFormat(),
                       minimumNumberOfKeys = 0,
@@ -106,7 +102,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 getBlocksSingle(
                   keyValues = keyValues,
                   binarySearchIndexConfig =
-                    BinarySearchIndexBlock.Config(
+                    BinarySearchIndexConfig(
                       enabled = true,
                       format = randomBinarySearchFormat(),
                       searchSortedIndexDirectlyIfPossible = randomBoolean(),
@@ -155,7 +151,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       normaliseIndex = false
                     ),
                   binarySearchIndexConfig =
-                    BinarySearchIndexBlock.Config(
+                    BinarySearchIndexConfig(
                       enabled = true,
                       format = randomBinarySearchFormat(),
                       searchSortedIndexDirectlyIfPossible = randomBoolean(),
@@ -212,7 +208,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 getBlocksSingle(
                   keyValues,
                   binarySearchIndexConfig =
-                    BinarySearchIndexBlock.Config(
+                    BinarySearchIndexConfig(
                       enabled = true,
                       format = randomBinarySearchFormat(),
                       searchSortedIndexDirectlyIfPossible = false,
@@ -268,7 +264,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
       //            getBlocksSingle(
       //              keyValues = keyValues,
       //              binarySearchIndexConfig =
-      //                BinarySearchIndexBlock.Config(
+      //                BinarySearchIndexConfig(
       //                  enabled = true,
       //                  format = randomBinarySearchFormat(),
       //                  searchSortedIndexDirectlyIfPossible = randomBoolean(),
@@ -511,7 +507,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       compressions = _ => compressions(1)
                     ),
                   binarySearchIndexConfig =
-                    BinarySearchIndexBlock.Config(
+                    BinarySearchIndexConfig(
                       enabled = true,
                       format = randomBinarySearchFormat(),
                       searchSortedIndexDirectlyIfPossible = randomBoolean(),
