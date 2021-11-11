@@ -26,7 +26,7 @@ import swaydb.core.merge.KeyValueGrouper
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.{Assignable, Assigner}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
@@ -211,7 +211,7 @@ private[core] case object Segment extends LazyLogging {
 
   def persistent(pathsDistributor: PathsDistributor,
                  createdInLevel: Int,
-                 bloomFilterConfig: BloomFilterBlock.Config,
+                 bloomFilterConfig: BloomFilterConfig,
                  hashIndexConfig: HashIndexBlock.Config,
                  binarySearchIndexConfig: BinarySearchIndexConfig,
                  sortedIndexConfig: SortedIndexBlock.Config,
@@ -256,7 +256,7 @@ private[core] case object Segment extends LazyLogging {
                     sortedIndexConfig: SortedIndexBlock.Config,
                     binarySearchIndexConfig: BinarySearchIndexConfig,
                     hashIndexConfig: HashIndexBlock.Config,
-                    bloomFilterConfig: BloomFilterBlock.Config,
+                    bloomFilterConfig: BloomFilterConfig,
                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         functionStore: FunctionStore,
@@ -354,7 +354,7 @@ private[core] case object Segment extends LazyLogging {
                     sortedIndexConfig: SortedIndexBlock.Config,
                     binarySearchIndexConfig: BinarySearchIndexConfig,
                     hashIndexConfig: HashIndexBlock.Config,
-                    bloomFilterConfig: BloomFilterBlock.Config,
+                    bloomFilterConfig: BloomFilterConfig,
                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         functionStore: FunctionStore,
@@ -453,7 +453,7 @@ private[core] case object Segment extends LazyLogging {
                           sortedIndexConfig: SortedIndexBlock.Config,
                           binarySearchIndexConfig: BinarySearchIndexConfig,
                           hashIndexConfig: HashIndexBlock.Config,
-                          bloomFilterConfig: BloomFilterBlock.Config,
+                          bloomFilterConfig: BloomFilterConfig,
                           segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                               ec: ExecutionContext,
                                                               compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] = {
@@ -509,7 +509,7 @@ private[core] case object Segment extends LazyLogging {
                          sortedIndexConfig: SortedIndexBlock.Config,
                          binarySearchIndexConfig: BinarySearchIndexConfig,
                          hashIndexConfig: HashIndexBlock.Config,
-                         bloomFilterConfig: BloomFilterBlock.Config,
+                         bloomFilterConfig: BloomFilterConfig,
                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                              ec: ExecutionContext,
                                                              compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =

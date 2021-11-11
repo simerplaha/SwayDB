@@ -167,8 +167,8 @@
 //        ),
 //      //      hashIndexConfig = HashIndexBlock.Config.disabled,
 //      bloomFilterConfig =
-//        BloomFilterBlock.Config.disabled,
-//      //        BloomFilterBlock.Config(
+//        BloomFilterConfig.disabled,
+//      //        BloomFilterConfig(
 //      //          falsePositiveRate = 0.001,
 //      //          minimumNumberOfKeys = 2,
 //      //          optimalMaxProbe = _ => 1,

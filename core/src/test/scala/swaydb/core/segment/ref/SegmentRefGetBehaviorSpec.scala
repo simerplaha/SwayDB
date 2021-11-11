@@ -21,7 +21,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, PersistentOption, Time}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
@@ -119,9 +119,9 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
           val path = Paths.get("1")
 
           val keyValues = randomKeyValues(1)
-          val segmentBlockCache = getSegmentBlockCache(keyValues, bloomFilterConfig = BloomFilterBlock.Config.disabled)
+          val segmentBlockCache = getSegmentBlockCache(keyValues, bloomFilterConfig = BloomFilterConfig.disabled())
 
-          implicit val segmentSearcher = mock[SegmentSearcher]
+          implicit val segmentSearcher: SegmentSearcher = mock[SegmentSearcher]
 
           implicit val segmentRef: SegmentRef =
             new SegmentRef(

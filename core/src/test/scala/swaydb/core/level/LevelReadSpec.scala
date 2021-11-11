@@ -22,7 +22,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
@@ -90,7 +90,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
             level.mightContainKey("THIS KEY DOES NOT EXISTS", ThreadReadState.random).runRandomIO.right.value shouldBe false
           }
 
-          val level = TestLevel(bloomFilterConfig = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.01))
+          val level = TestLevel(bloomFilterConfig = BloomFilterConfig.random.copy(falsePositiveRate = 0.01))
           level.put(keyValues).runRandomIO.right.value
 
           assert(level)
@@ -149,7 +149,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
                 sortedIndexConfig = SortedIndexBlock.Config.random,
                 binarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig = HashIndexBlock.Config.random,
-                bloomFilterConfig = BloomFilterBlock.Config.random,
+                bloomFilterConfig = BloomFilterConfig.random,
                 segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 100.mb),
                 pathDistributor = createPathDistributor
               ).runRandomIO.right.value
@@ -186,7 +186,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
                 sortedIndexConfig = SortedIndexBlock.Config.random,
                 binarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig = HashIndexBlock.Config.random,
-                bloomFilterConfig = BloomFilterBlock.Config.random,
+                bloomFilterConfig = BloomFilterConfig.random,
                 segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 100.mb),
                 pathDistributor = createPathDistributor
               ).runRandomIO.right.value

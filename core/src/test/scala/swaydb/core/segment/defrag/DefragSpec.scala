@@ -24,7 +24,7 @@ import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment._
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexConfig}
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
@@ -90,7 +90,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
   implicit def sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
   implicit def binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
   implicit def hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
-  implicit def bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+  implicit def bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
   implicit def segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
 
   def testSegment(keyValues: Slice[Memory] = randomizedKeyValues())(implicit sweeper: TestCaseSweeper): SEG
@@ -224,7 +224,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
               implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
               implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
               implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
-              implicit val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+              implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
               implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = midSegment.segmentSize + 1, maxCount = midSegment.keyValueCount + 1)
 
               val allSegments = Seq(headGap, midSegment, tailGap)

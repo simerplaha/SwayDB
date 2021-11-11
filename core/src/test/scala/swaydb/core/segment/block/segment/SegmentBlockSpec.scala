@@ -23,7 +23,7 @@ import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -67,7 +67,7 @@ class SegmentBlockSpec extends TestBase {
           sortedIndexConfig = sortedIndexConfig,
           binarySearchIndexConfig = BinarySearchIndexConfig.random,
           hashIndexConfig = HashIndexBlock.Config.random,
-          bloomFilterConfig = BloomFilterBlock.Config.random,
+          bloomFilterConfig = BloomFilterConfig.random,
           segmentConfig = SegmentBlock.Config.random
         ).awaitInf
 
@@ -263,7 +263,7 @@ class SegmentBlockSpec extends TestBase {
               getBlocksSingle(
                 keyValues = keyValues,
                 bloomFilterConfig =
-                  BloomFilterBlock.Config(
+                  BloomFilterConfig(
                     falsePositiveRate = 0.001,
                     minimumNumberOfKeys = 1,
                     optimalMaxProbe = probe => probe,
@@ -309,7 +309,7 @@ class SegmentBlockSpec extends TestBase {
               getBlocksSingle(
                 keyValues = keyValues,
                 bloomFilterConfig =
-                  BloomFilterBlock.Config.random.copy(
+                  BloomFilterConfig.random.copy(
                     falsePositiveRate = 0.0001,
                     minimumNumberOfKeys = 0
                   )
@@ -342,7 +342,7 @@ class SegmentBlockSpec extends TestBase {
               getBlocksSingle(
                 keyValues = keyValues,
                 bloomFilterConfig =
-                  BloomFilterBlock.Config.random.copy(
+                  BloomFilterConfig.random.copy(
                     falsePositiveRate = 0.0001,
                     minimumNumberOfKeys = 0
                   )

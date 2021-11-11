@@ -36,7 +36,7 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexConfig}
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig, BloomFilterState}
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.SegmentBlock.SegmentBlockOps
@@ -758,7 +758,7 @@ object CommonAssertions {
   }
 
   def assertBloom(keyValues: Slice[Memory],
-                  bloom: BloomFilterBlock.State) = {
+                  bloom: BloomFilterState) = {
     val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.compressibleBytes)
 
     keyValues.par.count {
@@ -811,7 +811,7 @@ object CommonAssertions {
           segment.mightContainKey(randomBytesSlice(100), ThreadReadState.random).runRandomIO.right.value
       } should be < 1000
 
-  def assertBloomNotContains(bloom: BloomFilterBlock.State)(implicit ec: ExecutionContext = TestExecutionContext.executionContext) =
+  def assertBloomNotContains(bloom: BloomFilterState)(implicit ec: ExecutionContext = TestExecutionContext.executionContext) =
     runThisParallel(1000.times) {
       val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.compressibleBytes)
       BloomFilterBlock.mightContain(
@@ -1395,7 +1395,7 @@ object CommonAssertions {
               optimiseForReverseIteration = sortedIndexBlock.optimiseForReverseIteration
             ),
         createdInLevel = 0,
-        bloomFilterConfig = BloomFilterBlock.Config.random,
+        bloomFilterConfig = BloomFilterConfig.random,
         hashIndexConfig = HashIndexBlock.Config.random,
         binarySearchIndexConfig = BinarySearchIndexConfig.random,
         sortedIndexConfig = sortedIndexBlock,
@@ -1437,7 +1437,7 @@ object CommonAssertions {
                 sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                 binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
-                bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+                bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
                 segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                  keyOrder: KeyOrder[Slice[Byte]],
                                                                                  ec: ExecutionContext = TestExecutionContext.executionContext,
@@ -1487,7 +1487,7 @@ object CommonAssertions {
                       sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                       binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                       hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
-                      bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+                      bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                        keyOrder: KeyOrder[Slice[Byte]],
                                                                                        ec: ExecutionContext = TestExecutionContext.executionContext): IO[Error.Segment, SegmentBlocks] =
@@ -1517,7 +1517,7 @@ object CommonAssertions {
                            sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                            binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                            hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
-                           bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+                           bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
                            segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                             keyOrder: KeyOrder[Slice[Byte]],
                                                                                             ec: ExecutionContext,
@@ -1557,7 +1557,7 @@ object CommonAssertions {
                                  sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                                  binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                                  hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
-                                 bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+                                 bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
                                  segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                                   keyOrder: KeyOrder[Slice[Byte]],
                                                                                                   ec: ExecutionContext = TestExecutionContext.executionContext): SegmentBlockCache = {

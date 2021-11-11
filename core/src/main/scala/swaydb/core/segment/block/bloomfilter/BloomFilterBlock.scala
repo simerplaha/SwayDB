@@ -23,76 +23,13 @@ import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.util.MurmurHash3Generic
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.slice.Slice
-import swaydb.effect.{IOAction, IOStrategy}
-import swaydb.utils.{ByteSizeOf, FunctionSafe}
+import swaydb.utils.ByteSizeOf
 
 private[core] case object BloomFilterBlock extends LazyLogging {
 
   val blockName = this.productPrefix
 
-  object Config {
-    val disabled =
-      Config(
-        falsePositiveRate = 0.0,
-        minimumNumberOfKeys = Int.MaxValue,
-        optimalMaxProbe = probe => probe,
-        ioStrategy = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
-        compressions = _ => Seq.empty
-      )
-
-    def apply(config: swaydb.data.config.BloomFilter): Config =
-      config match {
-        case swaydb.data.config.BloomFilter.Off =>
-          Config(
-            falsePositiveRate = 0.0,
-            minimumNumberOfKeys = Int.MaxValue,
-            optimalMaxProbe = _ => 0,
-            ioStrategy = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
-            compressions = _ => Seq.empty
-          )
-
-        case enable: swaydb.data.config.BloomFilter.On =>
-          Config(
-            falsePositiveRate = enable.falsePositiveRate,
-            minimumNumberOfKeys = enable.minimumNumberOfKeys,
-            optimalMaxProbe = FunctionSafe.safe(probe => probe, enable.updateMaxProbe),
-            ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
-            compressions =
-              FunctionSafe.safe(
-                default = _ => Seq.empty[CompressionInternal],
-                function = enable.compression(_) map CompressionInternal.apply
-              )
-          )
-      }
-  }
-
-  case class Config(falsePositiveRate: Double,
-                    minimumNumberOfKeys: Int,
-                    optimalMaxProbe: Int => Int,
-                    ioStrategy: IOAction => IOStrategy,
-                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal])
-
   case class Offset(start: Int, size: Int) extends BlockOffset
-
-  class State(val numberOfBits: Int,
-              val maxProbe: Int,
-              var compressibleBytes: Slice[Byte],
-              val cacheableBytes: Slice[Byte],
-              var header: Slice[Byte],
-              val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
-
-    def blockSize: Int =
-      header.size + compressibleBytes.size
-
-    def blockBytes: Slice[Byte] =
-      header ++ compressibleBytes
-
-    def written =
-      compressibleBytes.size
-
-    override def hashCode(): Int =
-      compressibleBytes.hashCode()
-  }
 
   def optimalSize(numberOfKeys: Int,
                   falsePositiveRate: Double,
@@ -123,7 +60,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
   private def apply(numberOfKeys: Int,
                     falsePositiveRate: Double,
                     updateMaxProbe: Int => Int,
-                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): BloomFilterBlock.State = {
+                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): BloomFilterState = {
     val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
     val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits, updateMaxProbe) max 1
 
@@ -131,7 +68,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
 
     val bytes = Slice.of[Byte](numberOfBits)
 
-    new BloomFilterBlock.State(
+    new BloomFilterState(
       numberOfBits = numberOfBits,
       maxProbe = maxProbe,
       compressibleBytes = bytes,
@@ -162,7 +99,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
     update(optimal)
   }
 
-  def close(state: State): Option[BloomFilterBlock.State] =
+  def close(state: BloomFilterState): Option[BloomFilterState] =
     if (state.compressibleBytes.isEmpty) {
       None
     } else {
@@ -194,7 +131,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
       Some(state)
     }
 
-  def unblockedReader(closedState: BloomFilterBlock.State): UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock] = {
+  def unblockedReader(closedState: BloomFilterState): UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock] = {
     val block =
       BloomFilterBlock(
         offset = BloomFilterBlock.Offset(0, closedState.cacheableBytes.size),
@@ -210,17 +147,14 @@ private[core] case object BloomFilterBlock extends LazyLogging {
     )
   }
 
-  def read(header: BlockHeader[BloomFilterBlock.Offset]): BloomFilterBlock = {
-    val numberOfBits = header.headerReader.readUnsignedInt()
-    val maxProbe = header.headerReader.readUnsignedInt()
+  def read(header: BlockHeader[BloomFilterBlock.Offset]): BloomFilterBlock =
     BloomFilterBlock(
       offset = header.offset,
       headerSize = header.headerSize,
-      maxProbe = maxProbe,
-      numberOfBits = numberOfBits,
+      maxProbe = header.headerReader.readUnsignedInt(),
+      numberOfBits = header.headerReader.readUnsignedInt(),
       compressionInfo = header.compressionInfo
     )
-  }
 
   /**
    * Initialise bloomFilter if key-values do no contain remove range.
@@ -228,7 +162,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
   def init(numberOfKeys: Int,
            falsePositiveRate: Double,
            updateMaxProbe: Int => Int,
-           compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Option[BloomFilterBlock.State] =
+           compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Option[BloomFilterState] =
     if (numberOfKeys <= 0 || falsePositiveRate <= 0.0 || falsePositiveRate >= 1)
       None
     else
@@ -242,7 +176,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
       )
 
   def add(comparableKey: Slice[Byte],
-          state: BloomFilterBlock.State): Unit = {
+          state: BloomFilterState): Unit = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(comparableKey, 0, comparableKey.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32

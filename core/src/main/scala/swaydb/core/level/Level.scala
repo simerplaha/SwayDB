@@ -32,7 +32,7 @@ import swaydb.core.merge.stats.MergeStats.{Memory, Persistent}
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, GapAggregator}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
@@ -91,7 +91,7 @@ private[core] case object Level extends LazyLogging {
         IO.none
     }
 
-  def apply(bloomFilterConfig: BloomFilterBlock.Config,
+  def apply(bloomFilterConfig: BloomFilterConfig,
             hashIndexConfig: HashIndexBlock.Config,
             binarySearchIndexConfig: BinarySearchIndexConfig,
             sortedIndexConfig: SortedIndexBlock.Config,
@@ -277,7 +277,7 @@ private[core] case object Level extends LazyLogging {
  * new segments.
  */
 private[core] case class Level(dirs: Seq[Dir],
-                               bloomFilterConfig: BloomFilterBlock.Config,
+                               bloomFilterConfig: BloomFilterConfig,
                                hashIndexConfig: HashIndexBlock.Config,
                                binarySearchIndexConfig: BinarySearchIndexConfig,
                                sortedIndexConfig: SortedIndexBlock.Config,
@@ -686,7 +686,7 @@ private[core] case class Level(dirs: Seq[Dir],
       implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
       implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
       implicit val hashIndexConfigImplicit: HashIndexBlock.Config = hashIndexConfig
-      implicit val bloomFilterConfigImplicit: BloomFilterBlock.Config = bloomFilterConfig
+      implicit val bloomFilterConfigImplicit: BloomFilterConfig = bloomFilterConfig
       implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 
       DefragPersistentSegment.runOnGaps[Segment, SegmentOption](

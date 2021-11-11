@@ -169,12 +169,12 @@ class BloomFilterBlockSpec extends TestBase {
     //
     //        BloomFilterBlock.init(
     //          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Remove(None, time.next)))),
-    //          config = BloomFilterBlock.Config.random
+    //          config = BloomFilterConfig.random
     //        ) shouldBe empty
     //
     //        BloomFilterBlock.init(
     //          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Remove(Some(randomDeadline()), time.next)))),
-    //          config = BloomFilterBlock.Config.random
+    //          config = BloomFilterConfig.random
     //        ) shouldBe empty
     //      }
     //    }
@@ -186,7 +186,7 @@ class BloomFilterBlockSpec extends TestBase {
     //        //range functions can also contain Remove so BloomFilter should not be created
     //        BloomFilterBlock.init(
     //          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Function(Slice.emptyBytes, time.next)))),
-    //          config = BloomFilterBlock.Config.random
+    //          config = BloomFilterConfig.random
     //        ) shouldBe empty
     //      }
     //    }
@@ -198,12 +198,12 @@ class BloomFilterBlockSpec extends TestBase {
     //        //range functions can also contain Remove so BloomFilter should not be created
     //        BloomFilterBlock.init(
     //          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.PendingApply(Slice(Value.Remove(randomDeadlineOption(), time.next)))))),
-    //          config = BloomFilterBlock.Config.random
+    //          config = BloomFilterConfig.random
     //        ) shouldBe empty
     //
     //        BloomFilterBlock.init(
     //          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.PendingApply(Slice(Value.Function(randomFunctionId(), time.next)))))),
-    //          config = BloomFilterBlock.Config.random
+    //          config = BloomFilterConfig.random
     //        ) shouldBe empty
     //      }
     //    }
@@ -225,7 +225,7 @@ class BloomFilterBlockSpec extends TestBase {
     //                )
     //              )
     //            ),
-    //          config = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
+    //          config = BloomFilterConfig.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
     //        ) shouldBe defined
     //      }
     //    }
@@ -246,7 +246,7 @@ class BloomFilterBlockSpec extends TestBase {
     //                )
     //              )
     //            ),
-    //          config = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
+    //          config = BloomFilterConfig.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
     //        ) shouldBe defined
     //      }
     //    }

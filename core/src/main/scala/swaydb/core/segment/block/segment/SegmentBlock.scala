@@ -23,7 +23,7 @@ import swaydb.core.data.Memory
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexConfig, BinarySearchIndexState}
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.data.{ClosedBlocks, TransientSegment, TransientSegmentRef}
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
@@ -177,7 +177,7 @@ private[core] case object SegmentBlock extends LazyLogging {
 
   def writeOneOrMany(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
                      createdInLevel: Int,
-                     bloomFilterConfig: BloomFilterBlock.Config,
+                     bloomFilterConfig: BloomFilterConfig,
                      hashIndexConfig: HashIndexBlock.Config,
                      binarySearchIndexConfig: BinarySearchIndexConfig,
                      sortedIndexConfig: SortedIndexBlock.Config,
@@ -300,7 +300,7 @@ private[core] case object SegmentBlock extends LazyLogging {
           writeOnes(
             mergeStats = closedListKeyValues,
             createdInLevel = createdInLevel,
-            bloomFilterConfig = BloomFilterBlock.Config.disabled,
+            bloomFilterConfig = BloomFilterConfig.disabled(),
             hashIndexConfig = if (segmentConfig.enableHashIndexForListSegment) hashIndexConfig else HashIndexBlock.Config.disabled,
             binarySearchIndexConfig = binarySearchIndexConfig,
             sortedIndexConfig = modifiedSortedIndex,
@@ -338,7 +338,7 @@ private[core] case object SegmentBlock extends LazyLogging {
 
   def writeOnes(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
                 createdInLevel: Int,
-                bloomFilterConfig: BloomFilterBlock.Config,
+                bloomFilterConfig: BloomFilterConfig,
                 hashIndexConfig: HashIndexBlock.Config,
                 binarySearchIndexConfig: BinarySearchIndexConfig,
                 sortedIndexConfig: SortedIndexBlock.Config,
@@ -374,7 +374,7 @@ private[core] case object SegmentBlock extends LazyLogging {
 
   def writeSegmentRefs(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
                        createdInLevel: Int,
-                       bloomFilterConfig: BloomFilterBlock.Config,
+                       bloomFilterConfig: BloomFilterConfig,
                        hashIndexConfig: HashIndexBlock.Config,
                        binarySearchIndexConfig: BinarySearchIndexConfig,
                        sortedIndexConfig: SortedIndexBlock.Config,
@@ -517,7 +517,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                               bloomFilterIndexableKeys: Iterable[Slice[Byte]],
                               sortedIndex: SortedIndexBlock.State,
                               values: Option[ValuesBlock.State],
-                              bloomFilterConfig: BloomFilterBlock.Config,
+                              bloomFilterConfig: BloomFilterConfig,
                               hashIndexConfig: HashIndexBlock.Config,
                               binarySearchIndexConfig: BinarySearchIndexConfig,
                               sortedIndexConfig: SortedIndexBlock.Config,
@@ -637,7 +637,7 @@ private[core] case object SegmentBlock extends LazyLogging {
   private def closeBlocks(sortedIndex: SortedIndexBlock.State,
                           values: Option[ValuesBlock.State],
                           bloomFilterIndexableKeys: Iterable[Slice[Byte]],
-                          bloomFilterConfig: BloomFilterBlock.Config,
+                          bloomFilterConfig: BloomFilterConfig,
                           hashIndexConfig: HashIndexBlock.Config,
                           binarySearchIndexConfig: BinarySearchIndexConfig,
                           prepareForCachingSegmentBlocksOnCreate: Boolean)(implicit ec: ExecutionContext): Future[ClosedBlocks] =

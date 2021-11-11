@@ -24,7 +24,7 @@ import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexConfig}
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
@@ -71,7 +71,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
             implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
             implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
             implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
-            implicit val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+            implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
             implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
 
             val segment = TestSegment()
@@ -113,7 +113,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
-          implicit val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+          implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
           implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
 
           val segment = TestSegment()
@@ -158,7 +158,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
-          implicit val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+          implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
           implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
 
           lazy val headSegment = TestSegment(keyValues = Slice(randomUpdateKeyValue(1), randomRemoveAny(2, 3)))
@@ -214,7 +214,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
-          implicit val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+          implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
 
           val keyValues = randomPutKeyValues(100, startId = Some(0)).groupedSlice(2)
           keyValues should have size 2
@@ -267,7 +267,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
-          implicit val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+          implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
 
           val keyValues = randomPutKeyValues(100, startId = Some(0)).groupedSlice(10)
           keyValues should have size 10
@@ -329,7 +329,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
-          implicit val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+          implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
 
           val keyValues = randomPutKeyValues(100, startId = Some(0)).groupedSlice(10)
           keyValues should have size 10
@@ -395,7 +395,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
-          implicit val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+          implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
 
           val keyValues = randomPutKeyValues(100, startId = Some(0)).groupedSlice(10)
           keyValues should have size 10
@@ -467,7 +467,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
-          implicit val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+          implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
 
           val keyValues = randomPutKeyValues(100, startId = Some(0)).groupedSlice(10)
           keyValues should have size 10

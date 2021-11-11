@@ -26,7 +26,8 @@ import swaydb.core.level.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelCloser, NextLevel}
 import swaydb.core.segment.block
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -167,9 +168,9 @@ private[core] object CoreInitializer extends LazyLogging {
                   IO.failed[swaydb.Error.Level, NextLevel](exception)
                 } else {
                   Level(
-                    bloomFilterConfig = BloomFilterBlock.Config.disabled,
+                    bloomFilterConfig = BloomFilterConfig.disabled(),
                     hashIndexConfig = block.hashindex.HashIndexBlock.Config.disabled,
-                    binarySearchIndexConfig = block.binarysearch.BinarySearchIndexConfig.disabled(),
+                    binarySearchIndexConfig = BinarySearchIndexConfig.disabled(),
                     sortedIndexConfig = SortedIndexBlock.Config.disabled,
                     valuesConfig = ValuesBlock.Config.disabled,
                     segmentConfig =
@@ -209,9 +210,9 @@ private[core] object CoreInitializer extends LazyLogging {
                   IO.failed[swaydb.Error.Level, NextLevel](exception)
                 } else {
                   Level(
-                    bloomFilterConfig = BloomFilterBlock.Config(config = config.bloomFilter),
+                    bloomFilterConfig = BloomFilterConfig(config = config.bloomFilter),
                     hashIndexConfig = block.hashindex.HashIndexBlock.Config(config = config.hashIndex),
-                    binarySearchIndexConfig = block.binarysearch.BinarySearchIndexConfig(config = config.binarySearchIndex),
+                    binarySearchIndexConfig = BinarySearchIndexConfig(config = config.binarySearchIndex),
                     sortedIndexConfig = SortedIndexBlock.Config(config.sortedIndex),
                     valuesConfig = ValuesBlock.Config(config.valuesConfig),
                     segmentConfig = SegmentBlock.Config(config.segmentConfig),

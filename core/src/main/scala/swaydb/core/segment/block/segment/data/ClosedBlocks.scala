@@ -17,7 +17,7 @@
 package swaydb.core.segment.block.segment.data
 
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexState}
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterState}
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
@@ -31,7 +31,7 @@ private[block] class ClosedBlocks(val sortedIndex: SortedIndexBlock.State,
                                   val values: Option[ValuesBlock.State],
                                   val hashIndex: Option[HashIndexBlock.State],
                                   val binarySearchIndex: Option[BinarySearchIndexState],
-                                  val bloomFilter: Option[BloomFilterBlock.State],
+                                  val bloomFilter: Option[BloomFilterState],
                                   val minMaxFunction: Option[MinMax[Slice[Byte]]],
                                   prepareForCachingSegmentBlocksOnCreate: Boolean) {
   def nearestDeadline: Option[Deadline] = sortedIndex.nearestDeadline

@@ -40,7 +40,7 @@ import swaydb.core.segment._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock, BinarySearchIndexConfig}
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
 import swaydb.core.segment.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.block.segment.SegmentBlock
@@ -493,12 +493,12 @@ object TestData {
       )
   }
 
-  implicit class BloomFilterConfigImplicits(values: BloomFilterBlock.Config.type) {
-    def random: BloomFilterBlock.Config =
+  implicit class BloomFilterConfigImplicits(values: BloomFilterConfig.type) {
+    def random: BloomFilterConfig =
       random(randomBoolean())
 
-    def random(hasCompression: Boolean, cacheOnAccess: Boolean = randomBoolean()): BloomFilterBlock.Config =
-      BloomFilterBlock.Config(
+    def random(hasCompression: Boolean, cacheOnAccess: Boolean = randomBoolean()): BloomFilterConfig =
+      BloomFilterConfig(
         falsePositiveRate = Random.nextDouble() min 0.5,
         minimumNumberOfKeys = randomIntMax(5),
         optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
@@ -1857,7 +1857,7 @@ object TestData {
 
     def writeClosedOne(keyValues: Iterable[Memory],
                        createdInLevel: Int = randomIntMax(),
-                       bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+                       bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
                        hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                        binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                        sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
@@ -2139,7 +2139,7 @@ object TestData {
             sortedIndexConfig: SortedIndexBlock.Config,
             binarySearchIndexConfig: BinarySearchIndexConfig,
             hashIndexConfig: HashIndexBlock.Config,
-            bloomFilterConfig: BloomFilterBlock.Config,
+            bloomFilterConfig: BloomFilterConfig,
             segmentConfig: SegmentBlock.Config,
             pathDistributor: PathsDistributor,
             segmentRefCacheLife: SegmentRefCacheLife,
@@ -2223,7 +2223,7 @@ object TestData {
                 sortedIndexConfig: SortedIndexBlock.Config,
                 binarySearchIndexConfig: BinarySearchIndexConfig,
                 hashIndexConfig: HashIndexBlock.Config,
-                bloomFilterConfig: BloomFilterBlock.Config,
+                bloomFilterConfig: BloomFilterConfig,
                 segmentConfig: SegmentBlock.Config,
                 pathDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                    executionContext: ExecutionContext,

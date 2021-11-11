@@ -21,7 +21,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
@@ -322,7 +322,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 getBlocksSingle(
                   keyValues = keyValues,
                   bloomFilterConfig =
-                    BloomFilterBlock.Config(
+                    BloomFilterConfig(
                       falsePositiveRate = 1,
                       minimumNumberOfKeys = 0,
                       optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
@@ -353,7 +353,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 getBlocksSingle(
                   keyValues,
                   bloomFilterConfig =
-                    BloomFilterBlock.Config(
+                    BloomFilterConfig(
                       falsePositiveRate = 0.001,
                       optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
                       minimumNumberOfKeys = keyValues.size + 1,
@@ -411,7 +411,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 getBlocksSingle(
                   allKeyValues,
                   bloomFilterConfig =
-                    BloomFilterBlock.Config(
+                    BloomFilterConfig(
                       falsePositiveRate = 0.001,
                       minimumNumberOfKeys = 0,
                       optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
@@ -527,7 +527,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       compressions = _ => compressions(3)
                     ),
                   bloomFilterConfig =
-                    BloomFilterBlock.Config(
+                    BloomFilterConfig(
                       falsePositiveRate = 0.001,
                       minimumNumberOfKeys = 2,
                       optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,

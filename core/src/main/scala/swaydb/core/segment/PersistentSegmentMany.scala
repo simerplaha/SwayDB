@@ -29,7 +29,7 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.reader.BlockRefReader
 import swaydb.core.segment.block.segment.SegmentBlock
@@ -835,7 +835,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           sortedIndexConfig: SortedIndexBlock.Config,
           binarySearchIndexConfig: BinarySearchIndexConfig,
           hashIndexConfig: HashIndexBlock.Config,
-          bloomFilterConfig: BloomFilterBlock.Config,
+          bloomFilterConfig: BloomFilterConfig,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor,
           segmentRefCacheLife: SegmentRefCacheLife,
@@ -847,7 +847,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
     implicit val hashIndexConfigImplicit: HashIndexBlock.Config = hashIndexConfig
-    implicit val bloomFilterConfigImplicit: BloomFilterBlock.Config = bloomFilterConfig
+    implicit val bloomFilterConfigImplicit: BloomFilterConfig = bloomFilterConfig
     implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 
     DefragPersistentSegment.runMany(
@@ -869,7 +869,7 @@ protected case class PersistentSegmentMany(file: DBFile,
               sortedIndexConfig: SortedIndexBlock.Config,
               binarySearchIndexConfig: BinarySearchIndexConfig,
               hashIndexConfig: HashIndexBlock.Config,
-              bloomFilterConfig: BloomFilterBlock.Config,
+              bloomFilterConfig: BloomFilterConfig,
               segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
                                                   ec: ExecutionContext,
                                                   compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]]] =

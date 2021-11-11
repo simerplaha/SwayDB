@@ -26,7 +26,7 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.assigner._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
@@ -77,7 +77,7 @@ object DefragPersistentSegment {
                                                              sortedIndexConfig: SortedIndexBlock.Config,
                                                              binarySearchIndexConfig: BinarySearchIndexConfig,
                                                              hashIndexConfig: HashIndexBlock.Config,
-                                                             bloomFilterConfig: BloomFilterBlock.Config,
+                                                             bloomFilterConfig: BloomFilterConfig,
                                                              segmentConfig: SegmentBlock.Config,
                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                              functionStore: FunctionStore,
@@ -133,7 +133,7 @@ object DefragPersistentSegment {
                                                           sortedIndexConfig: SortedIndexBlock.Config,
                                                           binarySearchIndexConfig: BinarySearchIndexConfig,
                                                           hashIndexConfig: HashIndexBlock.Config,
-                                                          bloomFilterConfig: BloomFilterBlock.Config,
+                                                          bloomFilterConfig: BloomFilterConfig,
                                                           segmentConfig: SegmentBlock.Config,
                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                           functionStore: FunctionStore,
@@ -192,7 +192,7 @@ object DefragPersistentSegment {
                                   sortedIndexConfig: SortedIndexBlock.Config,
                                   binarySearchIndexConfig: BinarySearchIndexConfig,
                                   hashIndexConfig: HashIndexBlock.Config,
-                                  bloomFilterConfig: BloomFilterBlock.Config,
+                                  bloomFilterConfig: BloomFilterConfig,
                                   segmentConfig: SegmentBlock.Config,
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
@@ -437,7 +437,7 @@ object DefragPersistentSegment {
                                           sortedIndexConfig: SortedIndexBlock.Config,
                                           binarySearchIndexConfig: BinarySearchIndexConfig,
                                           hashIndexConfig: HashIndexBlock.Config,
-                                          bloomFilterConfig: BloomFilterBlock.Config,
+                                          bloomFilterConfig: BloomFilterConfig,
                                           segmentConfig: SegmentBlock.Config,
                                           timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore,
@@ -548,7 +548,7 @@ object DefragPersistentSegment {
                                               sortedIndexConfig: SortedIndexBlock.Config,
                                               binarySearchIndexConfig: BinarySearchIndexConfig,
                                               hashIndexConfig: HashIndexBlock.Config,
-                                              bloomFilterConfig: BloomFilterBlock.Config,
+                                              bloomFilterConfig: BloomFilterConfig,
                                               segmentConfig: SegmentBlock.Config,
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               functionStore: FunctionStore,

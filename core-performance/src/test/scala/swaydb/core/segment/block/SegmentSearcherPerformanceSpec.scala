@@ -78,7 +78,7 @@
 //            compressions = _ => compressions(3)
 //          ),
 //        bloomFilterConfig =
-//          BloomFilterBlock.Config(
+//          BloomFilterConfig(
 //            falsePositiveRate = 0.001,
 //            minimumNumberOfKeys = 2,
 //            blockIO = _ => access,

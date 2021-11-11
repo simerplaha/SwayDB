@@ -23,7 +23,7 @@ import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
@@ -65,7 +65,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
           sortedIndexConfig: SortedIndexBlock.Config,
           binarySearchIndexConfig: BinarySearchIndexConfig,
           hashIndexConfig: HashIndexBlock.Config,
-          bloomFilterConfig: BloomFilterBlock.Config,
+          bloomFilterConfig: BloomFilterConfig,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor,
           segmentRefCacheLife: SegmentRefCacheLife,
@@ -80,7 +80,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
               sortedIndexConfig: SortedIndexBlock.Config,
               binarySearchIndexConfig: BinarySearchIndexConfig,
               hashIndexConfig: HashIndexBlock.Config,
-              bloomFilterConfig: BloomFilterBlock.Config,
+              bloomFilterConfig: BloomFilterConfig,
               segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
                                                   ec: ExecutionContext,
                                                   compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]]
