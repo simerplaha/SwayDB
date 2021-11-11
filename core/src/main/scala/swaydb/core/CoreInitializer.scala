@@ -169,7 +169,7 @@ private[core] object CoreInitializer extends LazyLogging {
                 } else {
                   Level(
                     bloomFilterConfig = BloomFilterConfig.disabled(),
-                    hashIndexConfig = block.hashindex.HashIndexBlock.Config.disabled,
+                    hashIndexConfig = block.hashindex.HashIndexConfig.disabled(),
                     binarySearchIndexConfig = BinarySearchIndexConfig.disabled(),
                     sortedIndexConfig = SortedIndexBlock.Config.disabled,
                     valuesConfig = ValuesBlock.Config.disabled,
@@ -211,7 +211,7 @@ private[core] object CoreInitializer extends LazyLogging {
                 } else {
                   Level(
                     bloomFilterConfig = BloomFilterConfig(config = config.bloomFilter),
-                    hashIndexConfig = block.hashindex.HashIndexBlock.Config(config = config.hashIndex),
+                    hashIndexConfig = block.hashindex.HashIndexConfig(config = config.hashIndex),
                     binarySearchIndexConfig = BinarySearchIndexConfig(config = config.binarySearchIndex),
                     sortedIndexConfig = SortedIndexBlock.Config(config.sortedIndex),
                     valuesConfig = ValuesBlock.Config(config.valuesConfig),

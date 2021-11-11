@@ -39,7 +39,7 @@ private[core] sealed trait HashIndexEntryFormat {
                               largestMergedKeySize: Int): Int
 
   def readOrNull(entry: Slice[Byte],
-                 hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                 hashIndexReader: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
                  sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                  valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial
 }
@@ -72,7 +72,7 @@ private[core] object HashIndexEntryFormat {
       bytes addNonZeroUnsignedInt (indexOffset + 1)
 
     override def readOrNull(entry: Slice[Byte],
-                            hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                            hashIndexReader: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
                             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                             valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
       val (possibleOffset, bytesRead) = Bytes.readUnsignedIntNonZeroWithByteSize(entry)
@@ -122,7 +122,7 @@ private[core] object HashIndexEntryFormat {
     }
 
     override def readOrNull(entry: Slice[Byte],
-                            hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                            hashIndexReader: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
                             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                             valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial =
       try {

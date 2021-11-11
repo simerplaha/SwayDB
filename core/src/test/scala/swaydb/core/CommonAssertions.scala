@@ -37,7 +37,7 @@ import swaydb.core.segment._
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexConfig}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset, BloomFilterConfig, BloomFilterState}
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.SegmentBlock.SegmentBlockOps
 import swaydb.core.segment.block.segment.data.TransientSegment
@@ -1396,7 +1396,7 @@ object CommonAssertions {
             ),
         createdInLevel = 0,
         bloomFilterConfig = BloomFilterConfig.random,
-        hashIndexConfig = HashIndexBlock.Config.random,
+        hashIndexConfig = HashIndexConfig.random,
         binarySearchIndexConfig = BinarySearchIndexConfig.random,
         sortedIndexConfig = sortedIndexBlock,
         valuesConfig = ValuesBlock.Config.random,
@@ -1436,7 +1436,7 @@ object CommonAssertions {
                 valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                 sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                 binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
-                hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
                 bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
                 segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                  keyOrder: KeyOrder[Slice[Byte]],
@@ -1486,7 +1486,7 @@ object CommonAssertions {
                       valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                       sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                       binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
-                      hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                      hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
                       bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                        keyOrder: KeyOrder[Slice[Byte]],
@@ -1516,7 +1516,7 @@ object CommonAssertions {
                            valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                            sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                            binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
-                           hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                           hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
                            bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
                            segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                             keyOrder: KeyOrder[Slice[Byte]],
@@ -1556,7 +1556,7 @@ object CommonAssertions {
                                  valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                                  sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                                  binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
-                                 hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                                 hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
                                  bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
                                  segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                                   keyOrder: KeyOrder[Slice[Byte]],

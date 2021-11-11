@@ -24,7 +24,7 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexConfig, BinarySearchIndexState}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig, HashIndexState}
 import swaydb.core.segment.block.segment.data.{ClosedBlocks, TransientSegment, TransientSegmentRef}
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
@@ -178,7 +178,7 @@ private[core] case object SegmentBlock extends LazyLogging {
   def writeOneOrMany(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
                      createdInLevel: Int,
                      bloomFilterConfig: BloomFilterConfig,
-                     hashIndexConfig: HashIndexBlock.Config,
+                     hashIndexConfig: HashIndexConfig,
                      binarySearchIndexConfig: BinarySearchIndexConfig,
                      sortedIndexConfig: SortedIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
@@ -213,7 +213,7 @@ private[core] case object SegmentBlock extends LazyLogging {
   def writeOneOrMany(createdInLevel: Int,
                      ones: Slice[TransientSegment.OneOrRemoteRef],
                      sortedIndexConfig: SortedIndexBlock.Config,
-                     hashIndexConfig: HashIndexBlock.Config,
+                     hashIndexConfig: HashIndexConfig,
                      binarySearchIndexConfig: BinarySearchIndexConfig,
                      valuesConfig: ValuesBlock.Config,
                      segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -263,7 +263,7 @@ private[core] case object SegmentBlock extends LazyLogging {
   private def writeGroupedOneOrMany(createdInLevel: Int,
                                     segments: Slice[TransientSegment.OneOrRemoteRef],
                                     sortedIndexConfig: SortedIndexBlock.Config,
-                                    hashIndexConfig: HashIndexBlock.Config,
+                                    hashIndexConfig: HashIndexConfig,
                                     binarySearchIndexConfig: BinarySearchIndexConfig,
                                     valuesConfig: ValuesBlock.Config,
                                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -301,7 +301,7 @@ private[core] case object SegmentBlock extends LazyLogging {
             mergeStats = closedListKeyValues,
             createdInLevel = createdInLevel,
             bloomFilterConfig = BloomFilterConfig.disabled(),
-            hashIndexConfig = if (segmentConfig.enableHashIndexForListSegment) hashIndexConfig else HashIndexBlock.Config.disabled,
+            hashIndexConfig = if (segmentConfig.enableHashIndexForListSegment) hashIndexConfig else HashIndexConfig.disabled(),
             binarySearchIndexConfig = binarySearchIndexConfig,
             sortedIndexConfig = modifiedSortedIndex,
             valuesConfig = valuesConfig,
@@ -339,7 +339,7 @@ private[core] case object SegmentBlock extends LazyLogging {
   def writeOnes(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
                 createdInLevel: Int,
                 bloomFilterConfig: BloomFilterConfig,
-                hashIndexConfig: HashIndexBlock.Config,
+                hashIndexConfig: HashIndexConfig,
                 binarySearchIndexConfig: BinarySearchIndexConfig,
                 sortedIndexConfig: SortedIndexBlock.Config,
                 valuesConfig: ValuesBlock.Config,
@@ -375,7 +375,7 @@ private[core] case object SegmentBlock extends LazyLogging {
   def writeSegmentRefs(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
                        createdInLevel: Int,
                        bloomFilterConfig: BloomFilterConfig,
-                       hashIndexConfig: HashIndexBlock.Config,
+                       hashIndexConfig: HashIndexConfig,
                        binarySearchIndexConfig: BinarySearchIndexConfig,
                        sortedIndexConfig: SortedIndexBlock.Config,
                        valuesConfig: ValuesBlock.Config,
@@ -518,7 +518,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                               sortedIndex: SortedIndexBlock.State,
                               values: Option[ValuesBlock.State],
                               bloomFilterConfig: BloomFilterConfig,
-                              hashIndexConfig: HashIndexBlock.Config,
+                              hashIndexConfig: HashIndexConfig,
                               binarySearchIndexConfig: BinarySearchIndexConfig,
                               sortedIndexConfig: SortedIndexBlock.Config,
                               valuesConfig: ValuesBlock.Config,
@@ -638,7 +638,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                           values: Option[ValuesBlock.State],
                           bloomFilterIndexableKeys: Iterable[Slice[Byte]],
                           bloomFilterConfig: BloomFilterConfig,
-                          hashIndexConfig: HashIndexBlock.Config,
+                          hashIndexConfig: HashIndexConfig,
                           binarySearchIndexConfig: BinarySearchIndexConfig,
                           prepareForCachingSegmentBlocksOnCreate: Boolean)(implicit ec: ExecutionContext): Future[ClosedBlocks] =
     Future
@@ -712,8 +712,8 @@ private[core] case object SegmentBlock extends LazyLogging {
    * Concurrently builds hashIndex and binarySearch index.
    */
   private def closeIndexBlocks(closedSortedIndex: SortedIndexBlock.State, //SortedIndexBlock must be closed
-                               hashIndexConfig: HashIndexBlock.Config,
-                               binarySearchIndexConfig: BinarySearchIndexConfig)(implicit ec: ExecutionContext): Future[(Option[HashIndexBlock.State], Option[BinarySearchIndexState])] =
+                               hashIndexConfig: HashIndexConfig,
+                               binarySearchIndexConfig: BinarySearchIndexConfig)(implicit ec: ExecutionContext): Future[(Option[HashIndexState], Option[BinarySearchIndexState])] =
     Future
       .unit
       .flatMapUnit {
@@ -737,7 +737,7 @@ private[core] case object SegmentBlock extends LazyLogging {
             //fullIndex is required for binary search for binarySearch has no dependency
             //on hashIndex therefore we can build both indexes concurrently
 
-            val hashIndexFuture: Future[Option[HashIndexBlock.State]] =
+            val hashIndexFuture: Future[Option[HashIndexState]] =
               if (hashIndexOption.isDefined)
                 Future {
                   val hashIndexState = hashIndexOption.get

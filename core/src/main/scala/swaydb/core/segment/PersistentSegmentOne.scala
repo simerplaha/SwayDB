@@ -29,7 +29,7 @@ import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset, BinarySearchIndexConfig}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset, HashIndexConfig}
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
@@ -112,7 +112,7 @@ protected case object PersistentSegmentOne {
             createdInLevel: Int,
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
-            hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+            hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
             binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
             bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
             footerCacheable: Option[SegmentFooterBlock],
@@ -314,7 +314,7 @@ protected case class PersistentSegmentOne(file: DBFile,
           valuesConfig: ValuesBlock.Config,
           sortedIndexConfig: SortedIndexBlock.Config,
           binarySearchIndexConfig: BinarySearchIndexConfig,
-          hashIndexConfig: HashIndexBlock.Config,
+          hashIndexConfig: HashIndexConfig,
           bloomFilterConfig: BloomFilterConfig,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor,
@@ -326,7 +326,7 @@ protected case class PersistentSegmentOne(file: DBFile,
     implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
     implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
-    implicit val hashIndexConfigImplicit: HashIndexBlock.Config = hashIndexConfig
+    implicit val hashIndexConfigImplicit: HashIndexConfig = hashIndexConfig
     implicit val bloomFilterConfigImplicit: BloomFilterConfig = bloomFilterConfig
     implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 
@@ -349,7 +349,7 @@ protected case class PersistentSegmentOne(file: DBFile,
               valuesConfig: ValuesBlock.Config,
               sortedIndexConfig: SortedIndexBlock.Config,
               binarySearchIndexConfig: BinarySearchIndexConfig,
-              hashIndexConfig: HashIndexBlock.Config,
+              hashIndexConfig: HashIndexConfig,
               bloomFilterConfig: BloomFilterConfig,
               segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
                                                   ec: ExecutionContext,

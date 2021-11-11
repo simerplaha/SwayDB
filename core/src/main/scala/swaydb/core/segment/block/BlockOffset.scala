@@ -17,16 +17,12 @@
 package swaydb.core.segment.block
 
 private[core] trait BlockOffset {
+
   def start: Int
+
   def size: Int
+
   def end: Int =
     start + size - 1
-}
 
-private[core] object BlockOffset {
-  def apply(_start: Int, _size: Int): BlockOffset =
-    new BlockOffset() {
-      override def start: Int = _start
-      override def size: Int = _size
-    }
 }

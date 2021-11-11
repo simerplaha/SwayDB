@@ -21,7 +21,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset}
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.ClosedBlocks
@@ -232,7 +232,7 @@ private[core] case object SegmentFooterBlock {
           None
         else
           Some(
-            HashIndexBlock.Offset(
+            HashIndexBlockOffset(
               start = footerReader.readUnsignedInt(),
               size = hashIndexSize
             )
@@ -304,7 +304,7 @@ case class SegmentFooterBlock(offset: SegmentFooterBlock.Offset,
                               compressionInfo: Option[BlockCompressionInfo],
                               valuesOffset: Option[ValuesBlock.Offset],
                               sortedIndexOffset: SortedIndexBlock.Offset,
-                              hashIndexOffset: Option[HashIndexBlock.Offset],
+                              hashIndexOffset: Option[HashIndexBlockOffset],
                               binarySearchIndexOffset: Option[BinarySearchIndexBlockOffset],
                               bloomFilterOffset: Option[BloomFilterBlockOffset],
                               keyValueCount: Int,

@@ -60,7 +60,7 @@
 //                valuesConfig = ValuesBlock.Config.random,
 //                sortedIndexConfig = SortedIndexBlock.Config.random,
 //                binarySearchIndexConfig = BinarySearchIndexConfig.random,
-//                hashIndexConfig = HashIndexBlock.Config.random,
+//                hashIndexConfig = HashIndexConfig.random,
 //                bloomFilterConfig = BloomFilterConfig.random
 //              )
 //            }

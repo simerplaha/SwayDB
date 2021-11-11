@@ -24,7 +24,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
@@ -66,7 +66,7 @@ class SegmentBlockSpec extends TestBase {
           valuesConfig = ValuesBlock.Config.random,
           sortedIndexConfig = sortedIndexConfig,
           binarySearchIndexConfig = BinarySearchIndexConfig.random,
-          hashIndexConfig = HashIndexBlock.Config.random,
+          hashIndexConfig = HashIndexConfig.random,
           bloomFilterConfig = BloomFilterConfig.random,
           segmentConfig = SegmentBlock.Config.random
         ).awaitInf

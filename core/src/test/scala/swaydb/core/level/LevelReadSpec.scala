@@ -23,7 +23,7 @@ import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -148,7 +148,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
                 valuesConfig = ValuesBlock.Config.random,
                 sortedIndexConfig = SortedIndexBlock.Config.random,
                 binarySearchIndexConfig = BinarySearchIndexConfig.random,
-                hashIndexConfig = HashIndexBlock.Config.random,
+                hashIndexConfig = HashIndexConfig.random,
                 bloomFilterConfig = BloomFilterConfig.random,
                 segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 100.mb),
                 pathDistributor = createPathDistributor
@@ -185,7 +185,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
                 valuesConfig = ValuesBlock.Config.random,
                 sortedIndexConfig = SortedIndexBlock.Config.random,
                 binarySearchIndexConfig = BinarySearchIndexConfig.random,
-                hashIndexConfig = HashIndexBlock.Config.random,
+                hashIndexConfig = HashIndexConfig.random,
                 bloomFilterConfig = BloomFilterConfig.random,
                 segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 100.mb),
                 pathDistributor = createPathDistributor

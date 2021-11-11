@@ -156,7 +156,7 @@
 //          compressions = _ => Seq.empty
 //        ),
 //      hashIndexConfig =
-//        HashIndexBlock.Config(
+//        HashIndexConfig(
 //          maxProbe = 1,
 //          format = HashIndexEntryFormat.Reference,
 //          minimumNumberOfKeys = 5,
@@ -165,7 +165,7 @@
 //          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
 //          compressions = _ => Seq.empty
 //        ),
-//      //      hashIndexConfig = HashIndexBlock.Config.disabled,
+//      //      hashIndexConfig = HashIndexConfig.disabled,
 //      bloomFilterConfig =
 //        BloomFilterConfig.disabled,
 //      //        BloomFilterConfig(

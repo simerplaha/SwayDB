@@ -24,7 +24,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock, BinarySearchIndexConfig}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -124,7 +124,7 @@ class SegmentReadPerformanceSpec extends TestBase {
       )
 
     //    val hashIndexConfig =
-    //      HashIndexBlock.Config(
+    //      HashIndexConfig(
     //        maxProbe = 2,
     //        format = HashIndexEntryFormat.Reference,
     //        minimumNumberOfKeys = 5,
@@ -140,7 +140,7 @@ class SegmentReadPerformanceSpec extends TestBase {
     //        compressions = _ => Seq.empty
     //      )
 
-    val hashIndexConfig = HashIndexBlock.Config.disabled
+    val hashIndexConfig = HashIndexConfig.disabled()
 
     val bloomFilterConfig =
       BloomFilterConfig.disabled()

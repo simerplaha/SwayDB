@@ -25,7 +25,7 @@ import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCal
 import swaydb.core.segment._
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexConfig}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
@@ -89,7 +89,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
   implicit def valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
   implicit def sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
   implicit def binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
-  implicit def hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+  implicit def hashIndexConfig: HashIndexConfig = HashIndexConfig.random
   implicit def bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
   implicit def segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
 
@@ -223,7 +223,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
               implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
               implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
               implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
-              implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+              implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
               implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
               implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = midSegment.segmentSize + 1, maxCount = midSegment.keyValueCount + 1)
 

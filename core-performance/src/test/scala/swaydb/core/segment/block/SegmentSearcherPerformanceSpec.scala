@@ -69,7 +69,7 @@
 //            compressions = _ => compressions(2)
 //          ),
 //        hashIndexConfig =
-//          HashIndexBlock.Config(
+//          HashIndexConfig(
 //            maxProbe = 5,
 //            minimumNumberOfKeys = 2,
 //            minimumNumberOfHits = 2,

@@ -18,7 +18,7 @@ package swaydb.core.segment.ref.search
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -36,7 +36,7 @@ private[core] trait SegmentSearcher {
   def searchRandom(key: Slice[Byte],
                    start: PersistentOption,
                    end: => PersistentOption,
-                   hashIndexReaderOrNull: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                   hashIndexReaderOrNull: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
                    binarySearchIndexReaderOrNull: => UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
@@ -103,7 +103,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
   def searchRandom(key: Slice[Byte],
                    start: PersistentOption,
                    end: => PersistentOption,
-                   hashIndexReaderOrNull: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                   hashIndexReaderOrNull: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
                    binarySearchIndexReaderOrNull: => UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],

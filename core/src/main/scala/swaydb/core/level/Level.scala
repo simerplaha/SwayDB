@@ -33,7 +33,7 @@ import swaydb.core.segment._
 import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, GapAggregator}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
@@ -92,7 +92,7 @@ private[core] case object Level extends LazyLogging {
     }
 
   def apply(bloomFilterConfig: BloomFilterConfig,
-            hashIndexConfig: HashIndexBlock.Config,
+            hashIndexConfig: HashIndexConfig,
             binarySearchIndexConfig: BinarySearchIndexConfig,
             sortedIndexConfig: SortedIndexBlock.Config,
             valuesConfig: ValuesBlock.Config,
@@ -278,7 +278,7 @@ private[core] case object Level extends LazyLogging {
  */
 private[core] case class Level(dirs: Seq[Dir],
                                bloomFilterConfig: BloomFilterConfig,
-                               hashIndexConfig: HashIndexBlock.Config,
+                               hashIndexConfig: HashIndexConfig,
                                binarySearchIndexConfig: BinarySearchIndexConfig,
                                sortedIndexConfig: SortedIndexBlock.Config,
                                valuesConfig: ValuesBlock.Config,
@@ -685,7 +685,7 @@ private[core] case class Level(dirs: Seq[Dir],
       implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
       implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
       implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
-      implicit val hashIndexConfigImplicit: HashIndexBlock.Config = hashIndexConfig
+      implicit val hashIndexConfigImplicit: HashIndexConfig = hashIndexConfig
       implicit val bloomFilterConfigImplicit: BloomFilterConfig = bloomFilterConfig
       implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 

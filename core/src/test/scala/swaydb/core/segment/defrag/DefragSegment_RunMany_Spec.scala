@@ -24,7 +24,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -66,7 +66,7 @@ class DefragSegment_RunMany_Spec extends TestBase with MockFactory with EitherVa
           implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
-          implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+          implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
           implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
           implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(maxCount = 10, minSize = Int.MaxValue)
           implicit val pathsDistributor: PathsDistributor = createPathDistributor
@@ -116,7 +116,7 @@ class DefragSegment_RunMany_Spec extends TestBase with MockFactory with EitherVa
           implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
-          implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+          implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
           implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
           implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(maxCount = 10, minSize = Int.MaxValue)
           implicit val pathsDistributor: PathsDistributor = createPathDistributor

@@ -22,7 +22,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, PersistentOption, Time}
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -246,7 +246,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
                 _: Slice[Byte],
                 _: PersistentOption,
                 _: PersistentOption,
-                _: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                _: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
                 _: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                 _: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                 _: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
@@ -282,7 +282,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
                 _: Slice[Byte],
                 _: PersistentOption,
                 _: PersistentOption,
-                _: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                _: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
                 _: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                 _: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                 _: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
@@ -333,7 +333,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
                 _: Slice[Byte],
                 _: PersistentOption,
                 _: PersistentOption,
-                _: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                _: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
                 _: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                 _: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                 _: UnblockedReader[ValuesBlock.Offset, ValuesBlock],

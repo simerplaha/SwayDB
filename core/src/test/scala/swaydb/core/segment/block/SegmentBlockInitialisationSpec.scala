@@ -22,7 +22,7 @@ import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -161,7 +161,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       compressions = _ => compressions
                     ),
                   hashIndexConfig =
-                    HashIndexBlock.Config(
+                    HashIndexConfig(
                       maxProbe = 1,
                       allocateSpace = _.requiredSpace,
                       format = randomHashIndexSearchFormat(),
@@ -218,7 +218,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       compressions = _ => compressions
                     ),
                   hashIndexConfig =
-                    HashIndexBlock.Config(
+                    HashIndexConfig(
                       maxProbe = 100,
                       minimumNumberOfKeys = 0,
                       minimumNumberOfHits = 0,
@@ -274,7 +274,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
       //                  compressions = _ => compressions
       //                ),
       //              hashIndexConfig =
-      //                HashIndexBlock.Config(
+      //                HashIndexConfig(
       //                  maxProbe = 5,
       //                  minimumNumberOfKeys = Int.MaxValue,
       //                  minimumNumberOfHits = 0,
@@ -445,7 +445,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               getBlocksSingle(
                 keyValues = keyValues,
                 hashIndexConfig =
-                  HashIndexBlock.Config(
+                  HashIndexConfig(
                     maxProbe = 5,
                     minimumNumberOfKeys = 0, //set miminimum to be 10 for hash to be created.
                     minimumNumberOfHits = 10,
@@ -517,7 +517,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       compressions = _ => compressions(2)
                     ),
                   hashIndexConfig =
-                    HashIndexBlock.Config(
+                    HashIndexConfig(
                       maxProbe = 5,
                       minimumNumberOfKeys = 2,
                       minimumNumberOfHits = 2,

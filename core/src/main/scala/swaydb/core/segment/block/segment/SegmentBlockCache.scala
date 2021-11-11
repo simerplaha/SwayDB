@@ -22,7 +22,7 @@ import swaydb.core.data.Persistent
 import swaydb.core.io.file.DBFile
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset}
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
 import swaydb.core.segment.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
@@ -53,7 +53,7 @@ private[core] object SegmentBlockCache {
             blockRef: BlockRefReader[SegmentBlock.Offset],
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
-            hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+            hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
             binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
             bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
             footerCacheable: Option[SegmentFooterBlock])(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]): SegmentBlockCache =
@@ -85,7 +85,7 @@ private[core] class SegmentBlockCache private(path: Path,
                                               segmentBlockRef: BlockRefReader[SegmentBlock.Offset],
                                               private var valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                                               private var sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
-                                              private var hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+                                              private var hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
                                               private var binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
                                               private var bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
                                               private var footerCacheable: Option[SegmentFooterBlock])(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]) {
@@ -366,7 +366,7 @@ private[core] class SegmentBlockCache private(path: Path,
     buildBlockInfoCache[SortedIndexBlock.Offset, SortedIndexBlock](sortedIndexBlockIO, "sortedIndexBlockCache")
 
   private[block] val hashIndexBlockCache =
-    buildBlockInfoCacheOptional[HashIndexBlock.Offset, HashIndexBlock](hashIndexBlockIO, "hashIndexBlockCache")
+    buildBlockInfoCacheOptional[HashIndexBlockOffset, HashIndexBlock](hashIndexBlockIO, "hashIndexBlockCache")
 
   private[block] val bloomFilterBlockCache =
     buildBlockInfoCacheOptional[BloomFilterBlockOffset, BloomFilterBlock](bloomFilterBlockIO, "bloomFilterBlockCache")
@@ -393,7 +393,7 @@ private[core] class SegmentBlockCache private(path: Path,
     )
 
   private[block] val hashIndexReaderCacheOrNull =
-    buildBlockReaderCacheOrNull[HashIndexBlock.Offset, HashIndexBlock](
+    buildBlockReaderCacheOrNull[HashIndexBlockOffset, HashIndexBlock](
       initial = hashIndexReaderCacheable,
       blockIO = hashIndexBlockIO,
       resourceName = SegmentBlockCache.hashIndexReaderCacheName
@@ -458,7 +458,7 @@ private[core] class SegmentBlockCache private(path: Path,
   def getValues(): Option[ValuesBlock] =
     getBlockOptional(valuesBlockCache, _.valuesOffset)
 
-  def createHashIndexReaderOrNull(): UnblockedReader[HashIndexBlock.Offset, HashIndexBlock] =
+  def createHashIndexReaderOrNull(): UnblockedReader[HashIndexBlockOffset, HashIndexBlock] =
     createReaderOptional(hashIndexReaderCacheOrNull, getHashIndex())
 
   def createBloomFilterReaderOrNull(): UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock] =
@@ -493,7 +493,7 @@ private[core] class SegmentBlockCache private(path: Path,
   def cachedSortedIndexSliceReader(): Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] =
     validateCachedReaderForCopiedSegment(sortedIndexReaderCache.get())
 
-  def cachedHashIndexSliceReader(): Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]] =
+  def cachedHashIndexSliceReader(): Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]] =
     validateCachedReaderForCopiedSegment(hashIndexReaderCacheOrNull.get())
 
   def cachedBinarySearchIndexSliceReader(): Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]] =

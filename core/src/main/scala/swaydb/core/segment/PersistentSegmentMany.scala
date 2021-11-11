@@ -30,7 +30,7 @@ import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
-import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.reader.BlockRefReader
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.{TransientSegment, TransientSegmentSerialiser}
@@ -834,7 +834,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           valuesConfig: ValuesBlock.Config,
           sortedIndexConfig: SortedIndexBlock.Config,
           binarySearchIndexConfig: BinarySearchIndexConfig,
-          hashIndexConfig: HashIndexBlock.Config,
+          hashIndexConfig: HashIndexConfig,
           bloomFilterConfig: BloomFilterConfig,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor,
@@ -846,7 +846,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
     implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
-    implicit val hashIndexConfigImplicit: HashIndexBlock.Config = hashIndexConfig
+    implicit val hashIndexConfigImplicit: HashIndexConfig = hashIndexConfig
     implicit val bloomFilterConfigImplicit: BloomFilterConfig = bloomFilterConfig
     implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 
@@ -868,7 +868,7 @@ protected case class PersistentSegmentMany(file: DBFile,
               valuesConfig: ValuesBlock.Config,
               sortedIndexConfig: SortedIndexBlock.Config,
               binarySearchIndexConfig: BinarySearchIndexConfig,
-              hashIndexConfig: HashIndexBlock.Config,
+              hashIndexConfig: HashIndexConfig,
               bloomFilterConfig: BloomFilterConfig,
               segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
                                                   ec: ExecutionContext,
