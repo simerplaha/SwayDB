@@ -21,9 +21,9 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions.orNone
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
-import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment.block.values.ValuesBlock.ValuesBlockOps
+import swaydb.core.segment.block.segment.SegmentBlockOffset
+import swaydb.core.segment.block.values.ValuesBlockOffset
+import swaydb.core.segment.block.values.ValuesBlockOffset.ValuesBlockOps
 import swaydb.core.segment.block.{Block, BlockCache}
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.slice.{Reader, Slice}
@@ -63,7 +63,7 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
           val bodyBytes = randomBytesSlice(20)
           val bytes = header ++ bodyBytes
 
-          val ref = BlockRefReader[ValuesBlock.Offset](bytes)
+          val ref = BlockRefReader[ValuesBlockOffset](bytes)
           ref.copy().readRemaining() shouldBe bytes
           ref.copy().moveTo(10).readRemaining() shouldBe bytes.drop(10)
 
@@ -76,7 +76,7 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
           val moveTo = BlockRefReader.moveTo(5, 5, unblocked, blockCache)(ValuesBlockOps)
           moveTo.copy().readRemaining() shouldBe bodyBytes.drop(5).take(5)
 
-          val moveWithin = BlockRefReader.moveTo(ValuesBlock.Offset(5, 5), unblocked, blockCache)(ValuesBlockOps)
+          val moveWithin = BlockRefReader.moveTo(ValuesBlockOffset(5, 5), unblocked, blockCache)(ValuesBlockOps)
           moveWithin.copy().readRemaining() shouldBe bodyBytes.drop(5).take(5)
       }
     }
@@ -93,7 +93,7 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
 
             val compressedBytes = compressed.headerBytes ++ compressed.compressedBytes.getOrElse(body)
 
-            val ref = BlockRefReader[ValuesBlock.Offset](compressedBytes)
+            val ref = BlockRefReader[ValuesBlockOffset](compressedBytes)
             ref.copy().readRemaining() shouldBe compressedBytes
             ref.copy().moveTo(10).readRemaining() shouldBe compressedBytes.drop(10)
 
@@ -106,7 +106,7 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
             val moveTo = BlockRefReader.moveTo(5, 5, unblocked, blockCache)(ValuesBlockOps)
             moveTo.copy().readRemaining() shouldBe body.drop(5).take(5)
 
-            val moveWithin = BlockRefReader.moveTo(ValuesBlock.Offset(5, 5), unblocked, blockCache)(ValuesBlockOps)
+            val moveWithin = BlockRefReader.moveTo(ValuesBlockOffset(5, 5), unblocked, blockCache)(ValuesBlockOps)
             moveWithin.copy().readRemaining() shouldBe body.drop(5).take(5)
           }
 

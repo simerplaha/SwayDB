@@ -27,7 +27,7 @@ import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.sweeper.MemorySweeper
@@ -163,7 +163,7 @@ object TransientSegmentSerialiser {
   def toSegmentRef(file: DBFile,
                    firstSegmentStartOffset: Int,
                    persistent: Persistent,
-                   valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                   valuesReaderCacheable: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]],
                    sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]],
                    hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
                    binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
@@ -206,7 +206,7 @@ object TransientSegmentSerialiser {
   def toSegmentRef(file: DBFile,
                    firstSegmentStartOffset: Int,
                    range: Persistent.Range,
-                   valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                   valuesReaderCacheable: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]],
                    sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]],
                    hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
                    binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
@@ -312,7 +312,7 @@ object TransientSegmentSerialiser {
   def toSegmentRef(file: DBFile,
                    firstSegmentStartOffset: Int,
                    put: Persistent.Put,
-                   valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                   valuesReaderCacheable: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]],
                    sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]],
                    hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
                    binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],

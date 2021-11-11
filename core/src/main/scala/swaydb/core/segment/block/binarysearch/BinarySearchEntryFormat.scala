@@ -21,7 +21,7 @@ import swaydb.core.data.{Memory, Persistent}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.util.Bytes
 import swaydb.data.config.IndexFormat
 import swaydb.data.slice.Slice
@@ -47,7 +47,7 @@ private[core] sealed trait BinarySearchEntryFormat {
            seekSize: Int,
            binarySearchIndex: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
            sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
-           valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial
+           valuesOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock]): Persistent.Partial
 }
 
 private[core] object BinarySearchEntryFormat {
@@ -81,7 +81,7 @@ private[core] object BinarySearchEntryFormat {
                       seekSize: Int,
                       binarySearchIndex: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
-                      valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
+                      valuesOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock]): Persistent.Partial = {
       val sortedIndexOffsetValue =
         binarySearchIndex
           .moveTo(offset)
@@ -121,7 +121,7 @@ private[core] object BinarySearchEntryFormat {
                       seekSize: Int,
                       binarySearchIndex: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
-                      valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
+                      valuesOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock]): Persistent.Partial = {
       val entryReader = Reader(binarySearchIndex.moveTo(offset).read(seekSize))
       val keySize = entryReader.readUnsignedInt()
       val entryKey = entryReader.read(keySize)

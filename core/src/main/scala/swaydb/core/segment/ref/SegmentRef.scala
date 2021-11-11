@@ -17,7 +17,7 @@
 package swaydb.core.segment.ref
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{Persistent, _}
+import swaydb.core.data._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
@@ -25,9 +25,9 @@ import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlock
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache, SegmentBlockOffset}
+import swaydb.core.segment.block.segment.{SegmentBlockCache, SegmentBlockOffset}
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.{SegmentSearcher, ThreadReadState}
 import swaydb.core.sweeper.MemorySweeper
@@ -66,7 +66,7 @@ private[core] case object SegmentRef extends LazyLogging {
             putDeadlineCount: Int,
             keyValueCount: Int,
             createdInLevel: Int,
-            valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+            valuesReaderCacheable: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]],
             sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]],
             hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
             binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],

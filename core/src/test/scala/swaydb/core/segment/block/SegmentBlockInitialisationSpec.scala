@@ -24,8 +24,8 @@ import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
@@ -489,7 +489,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 getSegmentBlockCacheSingle(
                   keyValues = keyValues,
                   valuesConfig =
-                    ValuesBlock.Config(
+                    ValuesBlockConfig(
                       compressDuplicateValues = randomBoolean(),
                       compressDuplicateRangeValues = randomBoolean(),
                       ioStrategy = _ => randomIOAccess(cacheOnAccess = true),

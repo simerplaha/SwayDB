@@ -51,8 +51,8 @@ private[swaydb] object Cache {
         IO.failed[F, T](new Exception("ValueIO cannot be cleared"))
     }
 
-  //  def emptyValuesBlock[E: IO.ExceptionHandler]: Cache[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
-  //    Cache.concurrentIO[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](synchronised = false, initial = None, stored = true) {
+  //  def emptyValuesBlock[E: IO.ExceptionHandler]: Cache[E, ValuesBlockOffset, UnblockedReader[ValuesBlockOffset, ValuesBlock]] =
+  //    Cache.concurrentIO[E, ValuesBlockOffset, UnblockedReader[ValuesBlockOffset, ValuesBlock]](synchronised = false, initial = None, stored = true) {
   //      case (_, _) =>
   //        IO(ValuesBlock.emptyUnblocked)
   //    }

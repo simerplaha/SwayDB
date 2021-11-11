@@ -42,8 +42,8 @@ import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.SegmentBlockOffset.SegmentBlockOps
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache, SegmentBlockConfig, SegmentBlockOffset}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment.ref.search.{KeyMatcher, SegmentSearcher, ThreadReadState}
@@ -1399,7 +1399,7 @@ object CommonAssertions {
         hashIndexConfig = HashIndexConfig.random,
         binarySearchIndexConfig = BinarySearchIndexConfig.random,
         sortedIndexConfig = sortedIndexBlock,
-        valuesConfig = ValuesBlock.Config.random,
+        valuesConfig = ValuesBlockConfig.random,
         segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
       ).awaitInf
 
@@ -1433,7 +1433,7 @@ object CommonAssertions {
 
   def getBlocks(keyValues: Iterable[Memory],
                 useCacheableReaders: Boolean = randomBoolean(),
-                valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
                 sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
                 binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
@@ -1483,7 +1483,7 @@ object CommonAssertions {
   }
 
   def getBlocksSingle(keyValues: Iterable[Memory],
-                      valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                      valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
                       sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
                       binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                       hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
@@ -1513,7 +1513,7 @@ object CommonAssertions {
     readBlocksFromReader(Reader(bytes), segmentIO)
 
   def getSegmentBlockCache(keyValues: Slice[Memory],
-                           valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                           valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
                            sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
                            binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                            hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
@@ -1553,7 +1553,7 @@ object CommonAssertions {
     }
 
   def getSegmentBlockCacheSingle(keyValues: Slice[Memory],
-                                 valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                                 valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
                                  sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
                                  binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                                  hashIndexConfig: HashIndexConfig = HashIndexConfig.random,

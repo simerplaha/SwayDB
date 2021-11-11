@@ -21,7 +21,7 @@ import swaydb.core.data.Persistent._
 import swaydb.core.data.Value.FromValueOption
 import swaydb.core.data.{Persistent, Time, Value}
 import swaydb.core.segment.ref.search.KeyMatcher.Result._
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.ref.search.KeyMatcher
 import swaydb.data.cache.Cache
 import swaydb.data.order.KeyOrder
@@ -72,7 +72,7 @@ class KeyMatcherSpec extends TestBase {
      */
 
     val noneRangeValueCache =
-      Cache.noIO[ValuesBlock.Offset, (FromValueOption, Value.RangeValue)](false, false, None) {
+      Cache.noIO[ValuesBlockOffset, (FromValueOption, Value.RangeValue)](false, false, None) {
         (_, _) =>
           fail("")
       }

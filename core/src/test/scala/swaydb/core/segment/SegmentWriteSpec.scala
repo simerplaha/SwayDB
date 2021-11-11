@@ -34,8 +34,8 @@ import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -642,7 +642,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           val keyValues = randomizedKeyValues(keyValuesCount)
 
-          val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -844,7 +844,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
-          val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -899,7 +899,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             val keyValues = randomizedKeyValues(keyValuesCount)
             val segment = TestSegment(keyValues, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
 
-            val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+            val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
             val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
             val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
             val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -946,7 +946,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           val keyValues = randomizedKeyValues(keyValuesCount)
           val segment = TestSegment(keyValues)
 
-          val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -1006,7 +1006,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           val keyValues = randomizedKeyValues(keyValuesCount)
 
-          val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -1082,7 +1082,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               val keyValues = randomizedKeyValues(keyValuesCount)
 
               //disable caching so that blockCache gets used.
-              val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random(hasCompression = false, cacheOnAccess = false)
+              val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random(hasCompression = false, cacheOnAccess = false)
               val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random(hasCompression = false, cacheOnAccess = false)
               val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random(hasCompression = false, cacheOnAccess = false)
               val hashIndexConfig: HashIndexConfig = HashIndexConfig.random(hasCompression = false, cacheOnAccess = false)
@@ -1212,7 +1212,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     //              val keyValues = randomPutKeyValues(100, startId = Some(0))
     //
     //              //disable caching so that blockCache gets used.
-    //              val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random(hasCompression = false, cacheOnAccess = false)
+    //              val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random(hasCompression = false, cacheOnAccess = false)
     //              val sortedIndexConfig: SegmentIndexBlockConfig = SegmentIndexBlockConfig.random(hasCompression = false, cacheOnAccess = false)
     //              val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random(hasCompression = false, cacheOnAccess = false)
     //              val hashIndexConfig: HashIndexConfig = HashIndexConfig.random(hasCompression = false, cacheOnAccess = false)
@@ -1474,7 +1474,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             newKeyValues = keyValues2.iterator,
             removeDeletes = false,
             createdInLevel = 0,
-            valuesConfig = ValuesBlock.Config.random,
+            valuesConfig = ValuesBlockConfig.random,
             sortedIndexConfig = SortedIndexBlockConfig.random,
             binarySearchIndexConfig = BinarySearchIndexConfig.random,
             hashIndexConfig = HashIndexConfig.random,
@@ -1496,7 +1496,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           val keyValues = Slice(Memory.put(1, 1))
 
-          val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -1608,7 +1608,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   (Iterable.empty[KeyValue], newKeyValues, Iterable.empty[KeyValue], TestSegment(oldKeyValues), builder.result)
                 }
 
-              val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+              val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
               val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
               val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
               val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -1657,7 +1657,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             implicit sweeper =>
               import sweeper._
 
-              val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+              val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
               val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
               val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
               val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -1732,7 +1732,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           val deleteKeyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.remove(3), Memory.remove(4), Memory.Range(5, 10, FromValue.Null, Value.remove(None)))
 
-          val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -1779,7 +1779,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           val updatedKeyValues = Slice.of[Memory](keyValues.size)
           keyValues.foreach(keyValue => updatedKeyValues add Memory.put(keyValue.key, Slice.Null))
 
-          val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -1833,7 +1833,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
             val segment2 = TestSegment(keyValues2Closed, segmentConfig = segmentConfig2)
 
-            val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+            val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
             val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
             val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
             val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -1899,7 +1899,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               newKeyValues = deleteKeyValues.iterator,
               removeDeletes = true,
               createdInLevel = 0,
-              valuesConfig = ValuesBlock.Config.random,
+              valuesConfig = ValuesBlockConfig.random,
               sortedIndexConfig = SortedIndexBlockConfig.random,
               binarySearchIndexConfig = BinarySearchIndexConfig.random,
               hashIndexConfig = HashIndexConfig.random,
@@ -1934,7 +1934,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 newKeyValues = deleteKeyValues.iterator,
                 removeDeletes = false,
                 createdInLevel = 0,
-                valuesConfig = ValuesBlock.Config.random,
+                valuesConfig = ValuesBlockConfig.random,
                 sortedIndexConfig = SortedIndexBlockConfig.random,
                 binarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig = HashIndexConfig.random,
@@ -1972,7 +1972,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               newKeyValues = deleteKeyValues.iterator,
               removeDeletes = true,
               createdInLevel = 0,
-              valuesConfig = ValuesBlock.Config.random,
+              valuesConfig = ValuesBlockConfig.random,
               sortedIndexConfig = SortedIndexBlockConfig.random,
               binarySearchIndexConfig = BinarySearchIndexConfig.random,
               hashIndexConfig = HashIndexConfig.random,
@@ -2020,7 +2020,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 newKeyValues = keyValues2.iterator,
                 removeDeletes = false,
                 createdInLevel = 0,
-                valuesConfig = ValuesBlock.Config.random,
+                valuesConfig = ValuesBlockConfig.random,
                 sortedIndexConfig = SortedIndexBlockConfig.random,
                 binarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig = HashIndexConfig.random,
@@ -2037,7 +2037,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 newKeyValues = keyValues2.iterator,
                 removeDeletes = false,
                 createdInLevel = 0,
-                valuesConfig = ValuesBlock.Config.random,
+                valuesConfig = ValuesBlockConfig.random,
                 sortedIndexConfig = SortedIndexBlockConfig.random,
                 binarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig = HashIndexConfig.random,
@@ -2093,7 +2093,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             reopened.refresh(
               removeDeletes = true,
               createdInLevel = 0,
-              valuesConfig = ValuesBlock.Config.random,
+              valuesConfig = ValuesBlockConfig.random,
               sortedIndexConfig = SortedIndexBlockConfig.random,
               binarySearchIndexConfig = BinarySearchIndexConfig.random,
               hashIndexConfig = HashIndexConfig.random,
@@ -2117,7 +2117,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           segment.refresh(
             removeDeletes = true,
             createdInLevel = 0,
-            valuesConfig = ValuesBlock.Config.random,
+            valuesConfig = ValuesBlockConfig.random,
             sortedIndexConfig = SortedIndexBlockConfig.random,
             binarySearchIndexConfig = BinarySearchIndexConfig.random,
             hashIndexConfig = HashIndexConfig.random,
@@ -2152,7 +2152,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 segment.refresh(
                   removeDeletes = false,
                   createdInLevel = 5,
-                  valuesConfig = ValuesBlock.Config.random,
+                  valuesConfig = ValuesBlockConfig.random,
                   sortedIndexConfig = SortedIndexBlockConfig.random,
                   binarySearchIndexConfig = BinarySearchIndexConfig.random,
                   hashIndexConfig = HashIndexConfig.random,
@@ -2180,7 +2180,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
             val shouldPrefixCompress = randomBoolean()
 
-            val valuesConfig = ValuesBlock.Config.random(hasCompression = enableCompression)
+            val valuesConfig = ValuesBlockConfig.random(hasCompression = enableCompression)
             val sortedIndexConfig = SortedIndexBlockConfig.random(hasCompression = enableCompression, shouldPrefixCompress = shouldPrefixCompress)
             val binarySearchIndexConfig = BinarySearchIndexConfig.random(hasCompression = enableCompression)
             val hashIndexConfig = HashIndexConfig.random(hasCompression = enableCompression)
@@ -2260,7 +2260,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
             val shouldPrefixCompress = true
 
-            val valuesConfig = ValuesBlock.Config.random(hasCompression = enableCompression)
+            val valuesConfig = ValuesBlockConfig.random(hasCompression = enableCompression)
             val sortedIndexConfig = SortedIndexBlockConfig.random(hasCompression = enableCompression, shouldPrefixCompress = shouldPrefixCompress)
             val binarySearchIndexConfig = BinarySearchIndexConfig.disabled()
             val hashIndexConfig = HashIndexConfig.disabled()

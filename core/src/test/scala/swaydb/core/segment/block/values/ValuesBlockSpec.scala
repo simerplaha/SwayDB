@@ -50,7 +50,7 @@ class ValuesBlockSpec extends TestBase {
 
         ValuesBlock.init(
           stats = keyValues,
-          valuesConfig = ValuesBlock.Config.random,
+          valuesConfig = ValuesBlockConfig.random,
           builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
         ) shouldBe empty
       }
@@ -65,7 +65,7 @@ class ValuesBlockSpec extends TestBase {
 
         ValuesBlock.init(
           stats = keyValues,
-          valuesConfig = ValuesBlock.Config.random,
+          valuesConfig = ValuesBlockConfig.random,
           builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
         ) shouldBe defined
       }
@@ -83,7 +83,7 @@ class ValuesBlockSpec extends TestBase {
         val state =
           ValuesBlock.init(
             stats = stats,
-            valuesConfig = ValuesBlock.Config.random,
+            valuesConfig = ValuesBlockConfig.random,
             builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
           ).get
 
@@ -99,10 +99,10 @@ class ValuesBlockSpec extends TestBase {
 
         ValuesBlock.close(state)
 
-        val ref = BlockRefReader[ValuesBlock.Offset](state.blockBytes)
+        val ref = BlockRefReader[ValuesBlockOffset](state.blockBytes)
         val blocked = BlockedReader(ref.copy())
 
-        val manuallyReadBlock = ValuesBlock.read(Block.readHeader[ValuesBlock.Offset](ref.copy()))
+        val manuallyReadBlock = ValuesBlock.read(Block.readHeader[ValuesBlockOffset](ref.copy()))
         manuallyReadBlock.decompressionAction shouldBe blocked.block.decompressionAction
         manuallyReadBlock.offset shouldBe blocked.block.offset
         manuallyReadBlock.headerSize shouldBe blocked.block.headerSize

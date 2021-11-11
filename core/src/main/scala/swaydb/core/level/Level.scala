@@ -33,11 +33,11 @@ import swaydb.core.segment._
 import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, GapAggregator}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
+import swaydb.core.segment.block.hashindex.HashIndexConfig
+import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
+import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.defrag.{DefragMemorySegment, DefragPersistentSegment}
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteMemoryIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -95,7 +95,7 @@ private[core] case object Level extends LazyLogging {
             hashIndexConfig: HashIndexConfig,
             binarySearchIndexConfig: BinarySearchIndexConfig,
             sortedIndexConfig: SortedIndexBlockConfig,
-            valuesConfig: ValuesBlock.Config,
+            valuesConfig: ValuesBlockConfig,
             segmentConfig: SegmentBlockConfig,
             levelStorage: LevelStorage,
             nextLevel: Option[NextLevel],
@@ -281,7 +281,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                hashIndexConfig: HashIndexConfig,
                                binarySearchIndexConfig: BinarySearchIndexConfig,
                                sortedIndexConfig: SortedIndexBlockConfig,
-                               valuesConfig: ValuesBlock.Config,
+                               valuesConfig: ValuesBlockConfig,
                                segmentConfig: SegmentBlockConfig,
                                inMemory: Boolean,
                                throttle: LevelMeter => LevelThrottle,
@@ -682,7 +682,7 @@ private[core] case class Level(dirs: Seq[Dir],
       val gap = GapAggregator.create[MergeStats.Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
       newKeyValues foreach gap.add
 
-      implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
+      implicit val valuesConfigImplicit: ValuesBlockConfig = valuesConfig
       implicit val sortedIndexConfigImplicit: SortedIndexBlockConfig = sortedIndexConfig
       implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
       implicit val hashIndexConfigImplicit: HashIndexConfig = hashIndexConfig

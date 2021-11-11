@@ -45,8 +45,8 @@ import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig, Has
 import swaydb.core.segment.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig, SegmentBlockOffset}
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockOffset}
 import swaydb.core.segment.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
@@ -429,12 +429,12 @@ object TestData {
     }
   }
 
-  implicit class ValuesConfigImplicits(values: ValuesBlock.Config.type) {
-    def random: ValuesBlock.Config =
+  implicit class ValuesBlockConfigImplicits(values: ValuesBlockConfig.type) {
+    def random: ValuesBlockConfig =
       random(randomBoolean())
 
-    def random(hasCompression: Boolean, cacheOnAccess: Boolean = randomBoolean()): ValuesBlock.Config =
-      ValuesBlock.Config(
+    def random(hasCompression: Boolean, cacheOnAccess: Boolean = randomBoolean()): ValuesBlockConfig =
+      ValuesBlockConfig(
         compressDuplicateValues = randomBoolean(),
         compressDuplicateRangeValues = randomBoolean(),
         ioStrategy = _ => randomIOStrategy(cacheOnAccess),
@@ -442,7 +442,7 @@ object TestData {
       )
   }
 
-  implicit class SortedIndexConfigImplicits(values: SortedIndexBlockConfig.type) {
+  implicit class SortedIndexBlockConfigImplicits(values: SortedIndexBlockConfig.type) {
     def random: SortedIndexBlockConfig =
       random(randomBoolean())
 
@@ -461,7 +461,7 @@ object TestData {
       )
   }
 
-  implicit class BinarySearchIndexConfigImplicits(values: BinarySearchIndexConfig.type) {
+  implicit class BinarySearchIndexBlockConfigImplicits(values: BinarySearchIndexConfig.type) {
     def random: BinarySearchIndexConfig =
       random(randomBoolean())
 
@@ -477,7 +477,7 @@ object TestData {
       )
   }
 
-  implicit class HashIndexConfigImplicits(values: HashIndexConfig.type) {
+  implicit class HashIndexBlockConfigImplicits(values: HashIndexConfig.type) {
     def random: HashIndexConfig =
       random(randomBoolean())
 
@@ -493,7 +493,7 @@ object TestData {
       )
   }
 
-  implicit class BloomFilterConfigImplicits(values: BloomFilterConfig.type) {
+  implicit class BloomFilterBlockConfigImplicits(values: BloomFilterConfig.type) {
     def random: BloomFilterConfig =
       random(randomBoolean())
 
@@ -507,7 +507,7 @@ object TestData {
       )
   }
 
-  implicit class SegmentConfigImplicits(values: SegmentBlockConfig.type) {
+  implicit class SegmentBlockConfigImplicits(values: SegmentBlockConfig.type) {
     def random: SegmentBlockConfig =
       random(hasCompression = randomBoolean())
 
@@ -1861,7 +1861,7 @@ object TestData {
                        hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
                        binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                        sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
-                       valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                       valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
                        segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                         ec: ExecutionContext,
                                                                                         compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): TransientSegment.One = {
@@ -1888,10 +1888,10 @@ object TestData {
     }
   }
 
-  def buildSingleValueCache(bytes: Slice[Byte]): Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
-    Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](randomBoolean(), randomBoolean(), None) {
+  def buildSingleValueCache(bytes: Slice[Byte]): Cache[swaydb.Error.Segment, ValuesBlockOffset, UnblockedReader[ValuesBlockOffset, ValuesBlock]] =
+    Cache.concurrentIO[swaydb.Error.Segment, ValuesBlockOffset, UnblockedReader[ValuesBlockOffset, ValuesBlock]](randomBoolean(), randomBoolean(), None) {
       (offset, _) =>
-        IO[Nothing, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](
+        IO[Nothing, UnblockedReader[ValuesBlockOffset, ValuesBlock]](
           UnblockedReader(
             block = ValuesBlock(offset, 0, None),
             bytes = bytes
@@ -1899,9 +1899,9 @@ object TestData {
         )(Nothing)
     }
 
-  def buildSingleValueReader(bytes: Slice[Byte]): UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
+  def buildSingleValueReader(bytes: Slice[Byte]): UnblockedReader[ValuesBlockOffset, ValuesBlock] =
     UnblockedReader(
-      block = ValuesBlock(ValuesBlock.Offset(0, bytes.size), 0, None),
+      block = ValuesBlock(ValuesBlockOffset(0, bytes.size), 0, None),
       bytes = bytes
     )
 
@@ -2135,7 +2135,7 @@ object TestData {
             newKeyValues: Iterator[Assignable],
             removeDeletes: Boolean,
             createdInLevel: Int,
-            valuesConfig: ValuesBlock.Config,
+            valuesConfig: ValuesBlockConfig,
             sortedIndexConfig: SortedIndexBlockConfig,
             binarySearchIndexConfig: BinarySearchIndexConfig,
             hashIndexConfig: HashIndexConfig,
@@ -2219,7 +2219,7 @@ object TestData {
 
     def refresh(removeDeletes: Boolean,
                 createdInLevel: Int,
-                valuesConfig: ValuesBlock.Config,
+                valuesConfig: ValuesBlockConfig,
                 sortedIndexConfig: SortedIndexBlockConfig,
                 binarySearchIndexConfig: BinarySearchIndexConfig,
                 hashIndexConfig: HashIndexConfig,

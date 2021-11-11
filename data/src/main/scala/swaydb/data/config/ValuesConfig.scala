@@ -24,14 +24,17 @@ import swaydb.utils.Java.JavaFunction
 import scala.jdk.CollectionConverters._
 
 object ValuesConfig {
+
   def builder(): ValuesConfigBuilder.Step0 =
     ValuesConfigBuilder.builder()
+
 }
 
 case class ValuesConfig(compressDuplicateValues: Boolean,
                         compressDuplicateRangeValues: Boolean,
                         blockIOStrategy: IOAction => IOStrategy,
                         compression: UncompressedBlockInfo => Iterable[Compression]) {
+
   def copyWithCompressDuplicateValues(compressDuplicateValues: Boolean) =
     this.copy(compressDuplicateValues = compressDuplicateValues)
 

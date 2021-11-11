@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions.orNone
 import swaydb.core.TestData._
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.block.{Block, BlockCache}
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.slice.Slice
@@ -33,7 +33,7 @@ class BlockedReaderSpec extends TestBase with MockFactory {
       val body = randomBytesSlice(100)
       val bytes = header ++ body
 
-      val ref = BlockRefReader[ValuesBlock.Offset](bytes)
+      val ref = BlockRefReader[ValuesBlockOffset](bytes)
       BlockedReader(ref).readRemaining() shouldBe body
     }
 

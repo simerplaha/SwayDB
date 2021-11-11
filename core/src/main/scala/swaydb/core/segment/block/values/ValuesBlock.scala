@@ -16,81 +16,21 @@
 
 package swaydb.core.segment.block.values
 
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.compression.CompressionInternal
 import swaydb.core.data.Memory
 import swaydb.core.merge.stats.MergeStats
+import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.{Block, BlockCompressionInfo, BlockHeader, BlockOffset, BlockOps}
 import swaydb.core.segment.entry.writer.EntryWriter
-import swaydb.effect.IOStrategy
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.slice.Slice
-import swaydb.effect.{IOAction, IOStrategy}
-import swaydb.utils.FunctionSafe
 
 private[core] case object ValuesBlock {
 
   val blockName = this.productPrefix
 
-  val empty =
-    ValuesBlock(ValuesBlock.Offset.zero, 0, None)
-
-  val emptyUnblocked: UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
-    UnblockedReader.empty[ValuesBlock.Offset, ValuesBlock](ValuesBlock.empty)(ValuesBlockOps)
-
-  val emptyUnblockedIO: IO[swaydb.Error.Segment, UnblockedReader[Offset, ValuesBlock]] =
-    IO.Right(emptyUnblocked)
-
-  object Config {
-
-    val disabled =
-      ValuesBlock.Config(
-        compressDuplicateValues = false,
-        compressDuplicateRangeValues = false,
-        ioStrategy = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
-        compressions = _ => Seq.empty
-      )
-
-    def apply(enable: swaydb.data.config.ValuesConfig): Config =
-      Config(
-        compressDuplicateValues = enable.compressDuplicateValues,
-        compressDuplicateRangeValues = enable.compressDuplicateRangeValues,
-        ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
-        compressions =
-          FunctionSafe.safe(
-            default = _ => Seq.empty[CompressionInternal],
-            function = enable.compression(_) map CompressionInternal.apply
-          )
-      )
-  }
-
-  case class Config(compressDuplicateValues: Boolean,
-                    compressDuplicateRangeValues: Boolean,
-                    ioStrategy: IOAction => IOStrategy,
-                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal])
-
   def valuesBlockNotInitialised: IO.Left[swaydb.Error.Segment, Nothing] =
     IO.Left(swaydb.Error.Fatal("Value block not initialised."))
-
-  class State(var compressibleBytes: Slice[Byte],
-              val cacheableBytes: Slice[Byte],
-              var header: Slice[Byte],
-              val compressions: UncompressedBlockInfo => Iterable[CompressionInternal],
-              val builder: EntryWriter.Builder) {
-    def blockSize: Int =
-      header.size + compressibleBytes.size
-
-    def blockBytes =
-      header ++ compressibleBytes
-  }
-
-  object Offset {
-    val zero = Offset(0, 0)
-  }
-
-  case class Offset(start: Int, size: Int) extends BlockOffset
 
   //  val headerSize = {
   //    val size = Block.headerSize(true)
@@ -99,14 +39,14 @@ private[core] case object ValuesBlock {
   //  }
 
   def init(stats: MergeStats.Persistent.ClosedStatsOnly,
-           valuesConfig: ValuesBlock.Config,
+           valuesConfig: ValuesBlockConfig,
            //the builder created by SortedIndex.
-           builder: EntryWriter.Builder): Option[ValuesBlock.State] = {
+           builder: EntryWriter.Builder): Option[ValuesBlockState] = {
     val totalValuesSize = stats.totalValuesSize
     if (totalValuesSize > 0) {
       val bytes = Slice.of[Byte](totalValuesSize)
       val state =
-        new ValuesBlock.State(
+        new ValuesBlockState(
           compressibleBytes = bytes,
           cacheableBytes = bytes,
           header = null,
@@ -120,10 +60,10 @@ private[core] case object ValuesBlock {
   }
 
   def init(bytes: Slice[Byte],
-           valuesConfig: ValuesBlock.Config,
+           valuesConfig: ValuesBlockConfig,
            //the builder created by SortedIndex.
-           builder: EntryWriter.Builder): ValuesBlock.State =
-    new ValuesBlock.State(
+           builder: EntryWriter.Builder): ValuesBlockState =
+    new ValuesBlockState(
       compressibleBytes = bytes,
       cacheableBytes = bytes,
       header = null,
@@ -131,13 +71,13 @@ private[core] case object ValuesBlock {
       builder = builder
     )
 
-  def write(keyValue: Memory, state: ValuesBlock.State) =
+  def write(keyValue: Memory, state: ValuesBlockState) =
     if (state.builder.isValueFullyCompressed)
       state.builder.isValueFullyCompressed = false
     else
       keyValue.value foreachC state.compressibleBytes.addAll
 
-  def close(state: State): State = {
+  def close(state: ValuesBlockState): ValuesBlockState = {
     val compressionResult =
       Block.compress(
         bytes = state.compressibleBytes,
@@ -157,10 +97,10 @@ private[core] case object ValuesBlock {
     state
   }
 
-  def unblockedReader(closedState: ValuesBlock.State): UnblockedReader[ValuesBlock.Offset, ValuesBlock] = {
+  def unblockedReader(closedState: ValuesBlockState): UnblockedReader[ValuesBlockOffset, ValuesBlock] = {
     val block =
       ValuesBlock(
-        offset = ValuesBlock.Offset(0, closedState.cacheableBytes.size),
+        offset = ValuesBlockOffset(0, closedState.cacheableBytes.size),
         headerSize = 0,
         compressionInfo = None
       )
@@ -171,14 +111,14 @@ private[core] case object ValuesBlock {
     )
   }
 
-  def read(header: BlockHeader[ValuesBlock.Offset]): ValuesBlock =
+  def read(header: BlockHeader[ValuesBlockOffset]): ValuesBlock =
     ValuesBlock(
       offset = header.offset,
       headerSize = header.headerSize,
       compressionInfo = header.compressionInfo
     )
 
-  def read(fromOffset: Int, length: Int, reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Option[Slice[Byte]] =
+  def read(fromOffset: Int, length: Int, reader: UnblockedReader[ValuesBlockOffset, ValuesBlock]): Option[Slice[Byte]] =
   //    reader
   //      .moveTo(fromOffset)
   //      .read(length)
@@ -199,20 +139,9 @@ private[core] case object ValuesBlock {
       else
         Some(slice)
     }
-
-  implicit object ValuesBlockOps extends BlockOps[ValuesBlock.Offset, ValuesBlock] {
-    override def updateBlockOffset(block: ValuesBlock, start: Int, size: Int): ValuesBlock =
-      block.copy(offset = createOffset(start = start, size = size))
-
-    override def createOffset(start: Int, size: Int): Offset =
-      ValuesBlock.Offset(start = start, size = size)
-
-    override def readBlock(header: BlockHeader[Offset]): ValuesBlock =
-      ValuesBlock.read(header)
-  }
 }
 
-private[core] case class ValuesBlock(offset: ValuesBlock.Offset,
+private[core] case class ValuesBlock(offset: ValuesBlockOffset,
                                      headerSize: Int,
-                                     compressionInfo: Option[BlockCompressionInfo]) extends Block[ValuesBlock.Offset]
+                                     compressionInfo: Option[BlockCompressionInfo]) extends Block[ValuesBlockOffset]
 

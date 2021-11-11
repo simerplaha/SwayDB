@@ -23,7 +23,7 @@ import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.{MemorySegment, PersistentSegment, Segment}
 import swaydb.core.util.MinMax
@@ -96,7 +96,7 @@ object TransientSegment {
     def hasEmptyByteSliceIgnoreHeader: Boolean
     def segmentSizeIgnoreHeader: Int
 
-    def valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]
+    def valuesUnblockedReader: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]]
     def sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]]
     def hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]]
     def binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]]
@@ -154,7 +154,7 @@ object TransientSegment {
     override def segmentSizeIgnoreHeader: Int =
       ref.segmentSize
 
-    override def valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+    override def valuesUnblockedReader: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]] =
       ref.segmentBlockCache.cachedValuesSliceReader()
 
     override def sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]] =
@@ -251,7 +251,7 @@ object TransientSegment {
                  putDeadlineCount: Int,
                  keyValueCount: Int,
                  createdInLevel: Int,
-                 valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                 valuesUnblockedReader: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]],
                  sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]],
                  hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
                  binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],

@@ -27,8 +27,8 @@ import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySea
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
@@ -67,7 +67,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
 
             //SEG  - [1 - 10]
 
-            implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+            implicit val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
             implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
             implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
             implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -109,7 +109,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
 
           //SEG  - [1 - 10]
 
-          implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          implicit val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -154,7 +154,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
 
           //SEG  - [4,5,6]
 
-          implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          implicit val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -210,7 +210,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
 
           //SEG  - [50 - 99]
 
-          implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          implicit val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -263,7 +263,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
 
           //SEG  - [51 - 99]
 
-          implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          implicit val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -325,7 +325,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
 
           //SEG  - [51 - 60, 61 - 70]
 
-          implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          implicit val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -391,7 +391,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
 
           //SEG  - [51 - 60, 61 - 70]
 
-          implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          implicit val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -463,7 +463,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
 
           //SEG  - [51 - 60, 61 - 70]
 
-          implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          implicit val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random

@@ -34,8 +34,8 @@ import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.reader.BlockRefReader
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig, SegmentBlockOffset}
 import swaydb.core.segment.block.segment.data.{TransientSegment, TransientSegmentSerialiser}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.segment.defrag.DefragPersistentSegment
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -831,7 +831,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           newKeyValues: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
-          valuesConfig: ValuesBlock.Config,
+          valuesConfig: ValuesBlockConfig,
           sortedIndexConfig: SortedIndexBlockConfig,
           binarySearchIndexConfig: BinarySearchIndexConfig,
           hashIndexConfig: HashIndexConfig,
@@ -843,7 +843,7 @@ protected case class PersistentSegmentMany(file: DBFile,
                               executionContext: ExecutionContext,
                               compactionIO: CompactionIO.Actor,
                               compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]] = {
-    implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
+    implicit val valuesConfigImplicit: ValuesBlockConfig = valuesConfig
     implicit val sortedIndexConfigImplicit: SortedIndexBlockConfig = sortedIndexConfig
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
     implicit val hashIndexConfigImplicit: HashIndexConfig = hashIndexConfig
@@ -865,7 +865,7 @@ protected case class PersistentSegmentMany(file: DBFile,
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
-              valuesConfig: ValuesBlock.Config,
+              valuesConfig: ValuesBlockConfig,
               sortedIndexConfig: SortedIndexBlockConfig,
               binarySearchIndexConfig: BinarySearchIndexConfig,
               hashIndexConfig: HashIndexConfig,

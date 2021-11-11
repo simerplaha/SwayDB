@@ -21,7 +21,7 @@ import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.entry.id.{KeyValueId, PersistentToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
@@ -38,7 +38,7 @@ object PersistentParser {
             normalisedByteSize: Int,
             hasAccessPositionIndex: Boolean,
             optimisedForReverseIteration: Boolean,
-            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent = {
+            valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock]): Persistent = {
     val reader = Reader(tailBytes)
 
     val headerKeyBytes = reader.read(headerInteger)
@@ -91,7 +91,7 @@ object PersistentParser {
                    headerInteger: Int,
                    tailBytes: Slice[Byte],
                    sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
-                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
+                   valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock]): Persistent.Partial = {
     val tailReader = Reader(tailBytes)
 
     val headerKeyBytes = tailReader.read(headerInteger)
@@ -200,7 +200,7 @@ object PersistentParser {
                    headerInteger: Int,
                    tailBytes: Slice[Byte],
                    sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
-                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
+                   valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock]): Persistent.Partial = {
     val tailReader = Reader(tailBytes)
 
     val headerKeyBytes = tailReader.read(headerInteger)

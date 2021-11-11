@@ -25,7 +25,7 @@ import swaydb.core.data.Persistent
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.Block
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockOffset}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.util.Benchmark
 import swaydb.testkit.RunThis._
@@ -136,7 +136,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
     "initialise index" in {
       runThis(100.times, log = true) {
         val sortedIndexConfig = SortedIndexBlockConfig.random
-        val valuesConfig = ValuesBlock.Config.random
+        val valuesConfig = ValuesBlockConfig.random
         val keyValues = Benchmark("Generating key-values")(
           MergeStats
             .persistentBuilder(randomizedKeyValues(randomIntMax(1000) max 1))
@@ -162,7 +162,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
   "write, close, readAll & get" in {
     runThis(100.times, log = true) {
       val sortedIndexConfig = SortedIndexBlockConfig.random
-      val valuesConfig = ValuesBlock.Config.random
+      val valuesConfig = ValuesBlockConfig.random
       val stats =
         Benchmark("Generating key-values") {
           MergeStats
@@ -197,11 +197,11 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       val header = Block.readHeader(ref.copy())
       val sortedIndexBlock = SortedIndexBlock.read(header)
 
-      val valuesBlockReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
+      val valuesBlockReader: UnblockedReader[ValuesBlockOffset, ValuesBlock] =
         values map {
           valuesBlock =>
             val closedState = ValuesBlock.close(valuesBlock)
-            Block.unblock[ValuesBlock.Offset, ValuesBlock](closedState.blockBytes)
+            Block.unblock[ValuesBlockOffset, ValuesBlock](closedState.blockBytes)
         } orNull
 
       val expectsCompressions = sortedIndexConfig.compressions(UncompressedBlockInfo(sortedIndex.compressibleBytes.size)).nonEmpty

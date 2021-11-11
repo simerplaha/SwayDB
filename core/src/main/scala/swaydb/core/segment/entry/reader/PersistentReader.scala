@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.entry.id.PersistentToKeyValueIdBinder
 import swaydb.core.segment.entry.reader.base.BaseEntryReader
 import swaydb.core.util.Bytes
@@ -86,7 +86,7 @@ object PersistentReader extends LazyLogging {
                             normalisedByteSize: Int,
                             hasAccessPositionIndex: Boolean,
                             optimisedForReverseIteration: Boolean,
-                            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+                            valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock],
                             reader: Persistent.Reader[T])(implicit binder: PersistentToKeyValueIdBinder[T]): T = {
     val tailReader = Reader(tailIndexEntry)
     val headerKeyBytes = tailReader.read(headerInteger)
@@ -124,7 +124,7 @@ object PersistentReader extends LazyLogging {
                             normalisedByteSize: Int,
                             hasAccessPositionIndex: Boolean,
                             optimisedForReverseIteration: Boolean,
-                            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+                            valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock],
                             reader: Persistent.Reader[T])(implicit binder: PersistentToKeyValueIdBinder[T]): T = {
     val baseId = binder.keyValueId adjustKeyValueIdToBaseId keyValueId
 

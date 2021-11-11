@@ -25,8 +25,8 @@ import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfi
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig, HashIndexState}
 import swaydb.core.segment.block.segment.data.{ClosedBlocks, TransientSegment, TransientSegmentRef}
 import swaydb.core.segment.block.segment.footer.{SegmentFooterBlock, SegmentFooterState}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock, SortedIndexBlockState}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig, SortedIndexBlockState}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockState}
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.{Bytes, Collections, MinMax}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
@@ -61,7 +61,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                      hashIndexConfig: HashIndexConfig,
                      binarySearchIndexConfig: BinarySearchIndexConfig,
                      sortedIndexConfig: SortedIndexBlockConfig,
-                     valuesConfig: ValuesBlock.Config,
+                     valuesConfig: ValuesBlockConfig,
                      segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         ec: ExecutionContext,
                                                         compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
@@ -95,7 +95,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                      sortedIndexConfig: SortedIndexBlockConfig,
                      hashIndexConfig: HashIndexConfig,
                      binarySearchIndexConfig: BinarySearchIndexConfig,
-                     valuesConfig: ValuesBlock.Config,
+                     valuesConfig: ValuesBlockConfig,
                      segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         ec: ExecutionContext,
                                                         compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
@@ -145,7 +145,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                                     sortedIndexConfig: SortedIndexBlockConfig,
                                     hashIndexConfig: HashIndexConfig,
                                     binarySearchIndexConfig: BinarySearchIndexConfig,
-                                    valuesConfig: ValuesBlock.Config,
+                                    valuesConfig: ValuesBlockConfig,
                                     segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                        ec: ExecutionContext,
                                                                        compactionParallelism: CompactionParallelism): Future[TransientSegment.OneOrRemoteRefOrMany] =
@@ -222,7 +222,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                 hashIndexConfig: HashIndexConfig,
                 binarySearchIndexConfig: BinarySearchIndexConfig,
                 sortedIndexConfig: SortedIndexBlockConfig,
-                valuesConfig: ValuesBlock.Config,
+                valuesConfig: ValuesBlockConfig,
                 segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    ec: ExecutionContext,
                                                    compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.One]] =
@@ -258,7 +258,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                        hashIndexConfig: HashIndexConfig,
                        binarySearchIndexConfig: BinarySearchIndexConfig,
                        sortedIndexConfig: SortedIndexBlockConfig,
-                       valuesConfig: ValuesBlock.Config,
+                       valuesConfig: ValuesBlockConfig,
                        segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                           ec: ExecutionContext): Future[Slice[TransientSegmentRef]] =
     if (mergeStats.isEmpty)
@@ -396,13 +396,13 @@ private[core] case object SegmentBlock extends LazyLogging {
                               hasMoreKeyValues: Boolean,
                               bloomFilterIndexableKeys: Iterable[Slice[Byte]],
                               sortedIndex: SortedIndexBlockState,
-                              values: Option[ValuesBlock.State],
+                              values: Option[ValuesBlockState],
                               bloomFilterConfig: BloomFilterConfig,
                               hashIndexConfig: HashIndexConfig,
                               binarySearchIndexConfig: BinarySearchIndexConfig,
                               sortedIndexConfig: SortedIndexBlockConfig,
-                              valuesConfig: ValuesBlock.Config,
-                              prepareForCachingSegmentBlocksOnCreate: Boolean)(implicit ec: ExecutionContext): (Future[TransientSegmentRef], Option[SortedIndexBlockState], Option[ValuesBlock.State]) = {
+                              valuesConfig: ValuesBlockConfig,
+                              prepareForCachingSegmentBlocksOnCreate: Boolean)(implicit ec: ExecutionContext): (Future[TransientSegmentRef], Option[SortedIndexBlockState], Option[ValuesBlockState]) = {
     //tail bytes before closing and compression is applied.
     val unwrittenTailSortedIndexBytes = sortedIndex.compressibleBytes.unwrittenTail()
     val unwrittenTailValueBytes = values.map(_.compressibleBytes.unwrittenTail())
@@ -515,7 +515,7 @@ private[core] case object SegmentBlock extends LazyLogging {
    * Build closed Blocks and runs each block index concurrently.
    */
   private def closeBlocks(sortedIndex: SortedIndexBlockState,
-                          values: Option[ValuesBlock.State],
+                          values: Option[ValuesBlockState],
                           bloomFilterIndexableKeys: Iterable[Slice[Byte]],
                           bloomFilterConfig: BloomFilterConfig,
                           hashIndexConfig: HashIndexConfig,

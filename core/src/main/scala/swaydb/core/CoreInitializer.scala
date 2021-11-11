@@ -29,8 +29,8 @@ import swaydb.core.segment.block
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, MemorySweeper}
@@ -172,7 +172,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     hashIndexConfig = block.hashindex.HashIndexConfig.disabled(),
                     binarySearchIndexConfig = BinarySearchIndexConfig.disabled(),
                     sortedIndexConfig = SortedIndexBlockConfig.disabled(),
-                    valuesConfig = ValuesBlock.Config.disabled,
+                    valuesConfig = ValuesBlockConfig.disabled(),
                     segmentConfig =
                       SegmentBlockConfig(
                         fileOpenIOStrategy = IOStrategy.AsyncIO(false),
@@ -214,7 +214,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     hashIndexConfig = block.hashindex.HashIndexConfig(config = config.hashIndex),
                     binarySearchIndexConfig = BinarySearchIndexConfig(config = config.binarySearchIndex),
                     sortedIndexConfig = SortedIndexBlockConfig(config.sortedIndex),
-                    valuesConfig = ValuesBlock.Config(config.valuesConfig),
+                    valuesConfig = ValuesBlockConfig(config.valuesConfig),
                     segmentConfig = SegmentBlockConfig(config.segmentConfig),
                     levelStorage =
                       LevelStorage.Persistent(

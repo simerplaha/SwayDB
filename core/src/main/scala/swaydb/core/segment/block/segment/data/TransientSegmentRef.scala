@@ -22,7 +22,7 @@ import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset, SortedIndexBlockState}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
@@ -43,7 +43,7 @@ class TransientSegmentRef(val minKey: Slice[Byte],
                           //values
                           val valuesBlockHeader: Option[Slice[Byte]],
                           val valuesBlock: Option[Slice[Byte]],
-                          val valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                          val valuesUnblockedReader: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]],
                           //sortedIndex
                           val sortedIndexClosedState: SortedIndexBlockState,
                           val sortedIndexBlockHeader: Slice[Byte],

@@ -20,8 +20,8 @@ import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.effect.{IOAction, IOStrategy}
 
 private[core] object SegmentReadIO {
@@ -42,7 +42,7 @@ private[core] object SegmentReadIO {
             hashIndexConfig: HashIndexConfig,
             binarySearchIndexConfig: BinarySearchIndexConfig,
             sortedIndexConfig: SortedIndexBlockConfig,
-            valuesConfig: ValuesBlock.Config,
+            valuesConfig: ValuesBlockConfig,
             segmentConfig: SegmentBlockConfig): SegmentReadIO =
     new SegmentReadIO(
       fileOpenIO = IOStrategy.SynchronisedIO(cacheOnAccess = true),

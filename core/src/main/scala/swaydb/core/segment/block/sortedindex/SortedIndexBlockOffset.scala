@@ -17,4 +17,5 @@ object SortedIndexBlockOffset {
 
 }
 
-case class SortedIndexBlockOffset(start: Int, size: Int) extends BlockOffset
+case class SortedIndexBlockOffset(start: Int,
+                                  size: Int) extends BlockOffset

@@ -27,8 +27,8 @@ import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.util.IDGenerator
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.{MMAP, SegmentRefCacheLife}
@@ -61,7 +61,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
           newKeyValues: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
-          valuesConfig: ValuesBlock.Config,
+          valuesConfig: ValuesBlockConfig,
           sortedIndexConfig: SortedIndexBlockConfig,
           binarySearchIndexConfig: BinarySearchIndexConfig,
           hashIndexConfig: HashIndexConfig,
@@ -76,7 +76,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
-              valuesConfig: ValuesBlock.Config,
+              valuesConfig: ValuesBlockConfig,
               sortedIndexConfig: SortedIndexBlockConfig,
               binarySearchIndexConfig: BinarySearchIndexConfig,
               hashIndexConfig: HashIndexConfig,

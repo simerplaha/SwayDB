@@ -21,7 +21,7 @@ import swaydb.core.log.serializer.RangeValueSerializer.OptionRangeValueSerialize
 import swaydb.core.log.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.ref.search.KeyMatcher
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
@@ -922,7 +922,7 @@ private[core] object Persistent {
   sealed trait Reader[T <: Persistent] {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+              valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -936,7 +936,7 @@ private[core] object Persistent {
   object Remove extends Reader[Persistent.Remove] {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+              valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -1013,7 +1013,7 @@ private[core] object Persistent {
   object Put extends Reader[Persistent.Put] {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+              valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -1026,7 +1026,7 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          Cache.noIO[ValuesBlock.Offset, SliceOption[Byte]](synchronised = true, stored = true, initial = None) {
+          Cache.noIO[ValuesBlockOffset, SliceOption[Byte]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (offset.size == 0)
                 Slice.Null
@@ -1051,7 +1051,7 @@ private[core] object Persistent {
 
   case class Put(private var _key: Slice[Byte],
                  deadline: Option[Deadline],
-                 private val valueCache: CacheNoIO[ValuesBlock.Offset, SliceOption[Byte]],
+                 private val valueCache: CacheNoIO[ValuesBlockOffset, SliceOption[Byte]],
                  private var _time: Time,
                  nextIndexOffset: Int,
                  nextKeySize: Int,
@@ -1083,7 +1083,7 @@ private[core] object Persistent {
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
     override def getOrFetchValue: SliceOption[Byte] =
-      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
+      valueCache.value(ValuesBlockOffset(valueOffset, valueLength))
 
     override def isValueCached: Boolean =
       valueCache.isCached
@@ -1120,7 +1120,7 @@ private[core] object Persistent {
   object Update extends Reader[Persistent.Update] {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+              valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -1133,7 +1133,7 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          Cache.noIO[ValuesBlock.Offset, SliceOption[Byte]](synchronised = true, stored = true, initial = None) {
+          Cache.noIO[ValuesBlockOffset, SliceOption[Byte]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (offset.size == 0)
                 Slice.Null
@@ -1158,7 +1158,7 @@ private[core] object Persistent {
 
   case class Update(private var _key: Slice[Byte],
                     deadline: Option[Deadline],
-                    private val valueCache: CacheNoIO[ValuesBlock.Offset, SliceOption[Byte]],
+                    private val valueCache: CacheNoIO[ValuesBlockOffset, SliceOption[Byte]],
                     private var _time: Time,
                     nextIndexOffset: Int,
                     nextKeySize: Int,
@@ -1190,7 +1190,7 @@ private[core] object Persistent {
       valueCache.isCached
 
     def getOrFetchValue: SliceOption[Byte] =
-      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
+      valueCache.value(ValuesBlockOffset(valueOffset, valueLength))
 
     override def toFromValue(): Value.Update =
       Value.Update(
@@ -1258,7 +1258,7 @@ private[core] object Persistent {
 
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+              valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -1281,7 +1281,7 @@ private[core] object Persistent {
       )
 
     def apply(key: Slice[Byte],
-              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+              valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -1293,7 +1293,7 @@ private[core] object Persistent {
       new Function(
         _key = key,
         valueCache =
-          Cache.noIO[ValuesBlock.Offset, Slice[Byte]](synchronised = true, stored = true, initial = None) {
+          Cache.noIO[ValuesBlockOffset, Slice[Byte]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (valuesReaderOrNull == null)
                 throw IO.throwable("ValuesBlock is undefined.")
@@ -1315,7 +1315,7 @@ private[core] object Persistent {
   }
 
   case class Function(private var _key: Slice[Byte],
-                      private val valueCache: CacheNoIO[ValuesBlock.Offset, Slice[Byte]],
+                      private val valueCache: CacheNoIO[ValuesBlockOffset, Slice[Byte]],
                       private var _time: Time,
                       nextIndexOffset: Int,
                       nextKeySize: Int,
@@ -1341,7 +1341,7 @@ private[core] object Persistent {
       valueCache.isCached
 
     def getOrFetchFunction: Slice[Byte] =
-      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
+      valueCache.value(ValuesBlockOffset(valueOffset, valueLength))
 
     override def toFromValue(): Value.Function =
       Value.Function(
@@ -1370,7 +1370,7 @@ private[core] object Persistent {
 
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+              valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -1384,7 +1384,7 @@ private[core] object Persistent {
         _time = time,
         deadline = deadline,
         valueCache =
-          Cache.noIO[ValuesBlock.Offset, Slice[Value.Apply]](synchronised = true, stored = true, initial = None) {
+          Cache.noIO[ValuesBlockOffset, Slice[Value.Apply]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (valuesReaderOrNull == null) {
                 throw IO.throwable("ValuesBlock is undefined.")
@@ -1412,7 +1412,7 @@ private[core] object Persistent {
   case class PendingApply(private var _key: Slice[Byte],
                           private var _time: Time,
                           deadline: Option[Deadline],
-                          valueCache: CacheNoIO[ValuesBlock.Offset, Slice[Value.Apply]],
+                          valueCache: CacheNoIO[ValuesBlockOffset, Slice[Value.Apply]],
                           nextIndexOffset: Int,
                           nextKeySize: Int,
                           indexOffset: Int,
@@ -1437,10 +1437,10 @@ private[core] object Persistent {
       valueCache.isCached
 
     override def getOrFetchApplies: Slice[Value.Apply] =
-      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
+      valueCache.value(ValuesBlockOffset(valueOffset, valueLength))
 
     override def toFromValue(): Value.PendingApply = {
-      val applies = valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
+      val applies = valueCache.value(ValuesBlockOffset(valueOffset, valueLength))
       Value.PendingApply(applies)
     }
 
@@ -1460,7 +1460,7 @@ private[core] object Persistent {
   object Range extends Reader[Persistent.Range] {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+              valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -1482,7 +1482,7 @@ private[core] object Persistent {
       )
 
     def apply(key: Slice[Byte],
-              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+              valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock],
               nextIndexOffset: Int,
               nextKeySize: Int,
               indexOffset: Int,
@@ -1507,7 +1507,7 @@ private[core] object Persistent {
 
     def parsedKey(fromKey: Slice[Byte],
                   toKey: Slice[Byte],
-                  valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+                  valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock],
                   nextIndexOffset: Int,
                   nextKeySize: Int,
                   indexOffset: Int,
@@ -1519,7 +1519,7 @@ private[core] object Persistent {
         _fromKey = fromKey,
         _toKey = toKey,
         valueCache =
-          Cache.noIO[ValuesBlock.Offset, (Value.FromValueOption, Value.RangeValue)](synchronised = true, stored = true, initial = None) {
+          Cache.noIO[ValuesBlockOffset, (Value.FromValueOption, Value.RangeValue)](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (valuesReaderOrNull == null) {
                 throw IO.throwable("ValuesBlock is undefined.")
@@ -1548,7 +1548,7 @@ private[core] object Persistent {
 
   case class Range private(private var _fromKey: Slice[Byte],
                            private var _toKey: Slice[Byte],
-                           valueCache: CacheNoIO[ValuesBlock.Offset, (Value.FromValueOption, Value.RangeValue)],
+                           valueCache: CacheNoIO[ValuesBlockOffset, (Value.FromValueOption, Value.RangeValue)],
                            nextIndexOffset: Int,
                            nextKeySize: Int,
                            indexOffset: Int,
@@ -1578,7 +1578,7 @@ private[core] object Persistent {
       fetchFromAndRangeValueUnsafe._1
 
     def fetchFromAndRangeValueUnsafe: (Value.FromValueOption, Value.RangeValue) =
-      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
+      valueCache.value(ValuesBlockOffset(valueOffset, valueLength))
 
     override def toMemory(): Memory.Range = {
       val (fromValue, rangeValue) = fetchFromAndRangeValueUnsafe

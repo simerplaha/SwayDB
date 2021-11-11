@@ -26,7 +26,7 @@ import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset
 import swaydb.core.segment.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.block.{Block, BlockCache, BlockOffset, BlockOps}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.sweeper.MemorySweeper
@@ -51,7 +51,7 @@ private[core] object SegmentBlockCache {
   def apply(path: Path,
             segmentIO: SegmentReadIO,
             blockRef: BlockRefReader[SegmentBlockOffset],
-            valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+            valuesReaderCacheable: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]],
             sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]],
             hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
             binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
@@ -83,7 +83,7 @@ private[core] object SegmentBlockCache {
 private[core] class SegmentBlockCache private(path: Path,
                                               val segmentIO: SegmentReadIO,
                                               segmentBlockRef: BlockRefReader[SegmentBlockOffset],
-                                              private var valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                                              private var valuesReaderCacheable: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]],
                                               private var sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]],
                                               private var hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
                                               private var binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
@@ -375,7 +375,7 @@ private[core] class SegmentBlockCache private(path: Path,
     buildBlockInfoCacheOptional[BinarySearchIndexBlockOffset, BinarySearchIndexBlock](binarySearchIndexBlockIO, "binarySearchIndexBlockCache")
 
   private[block] val valuesBlockCache =
-    buildBlockInfoCacheOptional[ValuesBlock.Offset, ValuesBlock](valuesBlockIO, "valuesBlockCache")
+    buildBlockInfoCacheOptional[ValuesBlockOffset, ValuesBlock](valuesBlockIO, "valuesBlockCache")
 
   //reader caches
   private[block] val segmentReaderCache =
@@ -413,8 +413,8 @@ private[core] class SegmentBlockCache private(path: Path,
       resourceName = SegmentBlockCache.binarySearchIndexReaderCacheName
     )
 
-  private[block] val valuesReaderCacheOrNull: Cache[Error.Segment, Option[BlockedReader[ValuesBlock.Offset, ValuesBlock]], UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
-    buildBlockReaderCacheOrNull[ValuesBlock.Offset, ValuesBlock](
+  private[block] val valuesReaderCacheOrNull: Cache[Error.Segment, Option[BlockedReader[ValuesBlockOffset, ValuesBlock]], UnblockedReader[ValuesBlockOffset, ValuesBlock]] =
+    buildBlockReaderCacheOrNull[ValuesBlockOffset, ValuesBlock](
       initial = valuesReaderCacheable,
       blockIO = valuesBlockIO,
       resourceName = SegmentBlockCache.valuesReaderCacheName
@@ -467,7 +467,7 @@ private[core] class SegmentBlockCache private(path: Path,
   def createBinarySearchIndexReaderOrNull(): UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock] =
     createReaderOptional(binarySearchIndexReaderCacheOrNull, getBinarySearchIndex())
 
-  def createValuesReaderOrNull(): UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
+  def createValuesReaderOrNull(): UnblockedReader[ValuesBlockOffset, ValuesBlock] =
     createReaderOptional(valuesReaderCacheOrNull, getValues())
 
   def createSortedIndexReader(): UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock] =
@@ -487,7 +487,7 @@ private[core] class SegmentBlockCache private(path: Path,
         None
     }
 
-  def cachedValuesSliceReader(): Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+  def cachedValuesSliceReader(): Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]] =
     validateCachedReaderForCopiedSegment(valuesReaderCacheOrNull.get())
 
   def cachedSortedIndexSliceReader(): Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]] =

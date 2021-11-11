@@ -20,17 +20,18 @@ import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, PersistentOption}
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.reader.UnblockedReader
+import swaydb.core.segment.block.segment.SegmentBlockConfig
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.SegmentSearcher
 import swaydb.core.util.Benchmark
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}
-import swaydb.testkit.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 
 import scala.util.Try
 
@@ -128,7 +129,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           hashIndexReaderOrNull = blocks.hashIndexReader.orNull,
           binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
           sortedIndexReader = blocks.sortedIndexReader,
-          valuesReaderOrNull = ValuesBlock.emptyUnblocked, //give it empty blocks since values are not read.
+          valuesReaderOrNull = UnblockedReader.empty[ValuesBlockOffset, ValuesBlock](ValuesBlock(ValuesBlockOffset.zero(), 0, None)), //give it empty blocks since values are not read.
           hasRange = blocks.footer.hasRange,
           keyValueCount = keyValues.size
         ).toOptionS shouldBe empty

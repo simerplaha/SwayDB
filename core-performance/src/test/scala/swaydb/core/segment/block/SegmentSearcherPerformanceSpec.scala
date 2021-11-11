@@ -46,7 +46,7 @@
 //        addGroups = false
 //      )(
 //        valuesConfig =
-//          ValuesBlock.Config(
+//          ValuesBlockConfig(
 //            compressDuplicateValues = randomBoolean(),
 //            compressDuplicateRangeValues = randomBoolean(),
 //            blockIO = _ => access,

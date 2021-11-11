@@ -149,7 +149,7 @@
 //      //      binarySearchIndexConfig =
 //      //        BinarySearchIndexConfig.disabled,
 //      valuesConfig =
-//        ValuesBlock.Config(
+//        ValuesBlockConfig(
 //          compressDuplicateValues = true,
 //          compressDuplicateRangeValues = true,
 //          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),

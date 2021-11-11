@@ -26,7 +26,7 @@ import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.segment.data.ClosedBlocks
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.slice.Slice
 import swaydb.utils.ByteSizeOf
@@ -245,7 +245,7 @@ private[core] case object SegmentFooterBlock {
         if (sortedIndexOffset.start == 0)
           None
         else
-          Some(ValuesBlock.Offset(0, sortedIndexOffset.start))
+          Some(ValuesBlockOffset(0, sortedIndexOffset.start))
 
       SegmentFooterBlock(
         SegmentFooterBlockOffset(footerStartOffset, footerSize),
@@ -271,7 +271,7 @@ private[core] case object SegmentFooterBlock {
 case class SegmentFooterBlock(offset: SegmentFooterBlockOffset,
                               headerSize: Int,
                               compressionInfo: Option[BlockCompressionInfo],
-                              valuesOffset: Option[ValuesBlock.Offset],
+                              valuesOffset: Option[ValuesBlockOffset],
                               sortedIndexOffset: SortedIndexBlockOffset,
                               hashIndexOffset: Option[HashIndexBlockOffset],
                               binarySearchIndexOffset: Option[BinarySearchIndexBlockOffset],

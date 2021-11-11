@@ -27,11 +27,11 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.{Assignable, Assigner}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
+import swaydb.core.segment.block.hashindex.HashIndexConfig
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -215,7 +215,7 @@ private[core] case object Segment extends LazyLogging {
                  hashIndexConfig: HashIndexConfig,
                  binarySearchIndexConfig: BinarySearchIndexConfig,
                  sortedIndexConfig: SortedIndexBlockConfig,
-                 valuesConfig: ValuesBlock.Config,
+                 valuesConfig: ValuesBlockConfig,
                  segmentConfig: SegmentBlockConfig,
                  mergeStats: MergeStats.Persistent.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                      timeOrder: TimeOrder[Slice[Byte]],
@@ -252,23 +252,23 @@ private[core] case object Segment extends LazyLogging {
                     createdInLevel: Int,
                     pathsDistributor: PathsDistributor,
                     removeDeletes: Boolean,
-                    valuesConfig: ValuesBlock.Config,
+                    valuesConfig: ValuesBlockConfig,
                     sortedIndexConfig: SortedIndexBlockConfig,
                     binarySearchIndexConfig: BinarySearchIndexConfig,
                     hashIndexConfig: HashIndexConfig,
                     bloomFilterConfig: BloomFilterConfig,
                     segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                        functionStore: FunctionStore,
-                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                        fileSweeper: FileSweeper,
-                                                        bufferCleaner: ByteBufferSweeperActor,
-                                                        blockCacheSweeper: Option[MemorySweeper.Block],
-                                                        segmentIO: SegmentReadIO,
-                                                        idGenerator: IDGenerator,
-                                                        forceSaveApplier: ForceSaveApplier,
-                                                        ec: ExecutionContext,
-                                                        compactionParallelism: CompactionParallelism): Future[Iterable[PersistentSegment]] =
+                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                       functionStore: FunctionStore,
+                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                       fileSweeper: FileSweeper,
+                                                       bufferCleaner: ByteBufferSweeperActor,
+                                                       blockCacheSweeper: Option[MemorySweeper.Block],
+                                                       segmentIO: SegmentReadIO,
+                                                       idGenerator: IDGenerator,
+                                                       forceSaveApplier: ForceSaveApplier,
+                                                       ec: ExecutionContext,
+                                                       compactionParallelism: CompactionParallelism): Future[Iterable[PersistentSegment]] =
     segment match {
       case segment: PersistentSegment =>
         Future {
@@ -350,23 +350,23 @@ private[core] case object Segment extends LazyLogging {
                     createdInLevel: Int,
                     pathsDistributor: PathsDistributor,
                     removeDeletes: Boolean,
-                    valuesConfig: ValuesBlock.Config,
+                    valuesConfig: ValuesBlockConfig,
                     sortedIndexConfig: SortedIndexBlockConfig,
                     binarySearchIndexConfig: BinarySearchIndexConfig,
                     hashIndexConfig: HashIndexConfig,
                     bloomFilterConfig: BloomFilterConfig,
                     segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                        functionStore: FunctionStore,
-                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                        fileSweeper: FileSweeper,
-                                                        bufferCleaner: ByteBufferSweeperActor,
-                                                        blockCacheSweeper: Option[MemorySweeper.Block],
-                                                        segmentIO: SegmentReadIO,
-                                                        idGenerator: IDGenerator,
-                                                        forceSaveApplier: ForceSaveApplier,
-                                                        ec: ExecutionContext,
-                                                        compactionParallelism: CompactionParallelism): Future[Iterable[PersistentSegment]] = {
+                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                       functionStore: FunctionStore,
+                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                       fileSweeper: FileSweeper,
+                                                       bufferCleaner: ByteBufferSweeperActor,
+                                                       blockCacheSweeper: Option[MemorySweeper.Block],
+                                                       segmentIO: SegmentReadIO,
+                                                       idGenerator: IDGenerator,
+                                                       forceSaveApplier: ForceSaveApplier,
+                                                       ec: ExecutionContext,
+                                                       compactionParallelism: CompactionParallelism): Future[Iterable[PersistentSegment]] = {
     val builder =
       if (removeDeletes)
         MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.toLastLevelOrNull)
@@ -449,14 +449,14 @@ private[core] case object Segment extends LazyLogging {
                           keyValuesCount: Int,
                           removeDeletes: Boolean,
                           createdInLevel: Int,
-                          valuesConfig: ValuesBlock.Config,
+                          valuesConfig: ValuesBlockConfig,
                           sortedIndexConfig: SortedIndexBlockConfig,
                           binarySearchIndexConfig: BinarySearchIndexConfig,
                           hashIndexConfig: HashIndexConfig,
                           bloomFilterConfig: BloomFilterConfig,
                           segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                              ec: ExecutionContext,
-                                                              compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] = {
+                                                             ec: ExecutionContext,
+                                                             compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] = {
 
     val sortedIndexSize =
       sortedIndexBlock.compressionInfo match {
@@ -505,14 +505,14 @@ private[core] case object Segment extends LazyLogging {
   def refreshForNewLevel(keyValues: Iterator[Persistent],
                          removeDeletes: Boolean,
                          createdInLevel: Int,
-                         valuesConfig: ValuesBlock.Config,
+                         valuesConfig: ValuesBlockConfig,
                          sortedIndexConfig: SortedIndexBlockConfig,
                          binarySearchIndexConfig: BinarySearchIndexConfig,
                          hashIndexConfig: HashIndexConfig,
                          bloomFilterConfig: BloomFilterConfig,
                          segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             ec: ExecutionContext,
-                                                             compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
+                                                            ec: ExecutionContext,
+                                                            compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
     Future
       .unit
       .mapUnit {

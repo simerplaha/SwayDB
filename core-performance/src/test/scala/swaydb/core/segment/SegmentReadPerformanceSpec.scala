@@ -26,8 +26,8 @@ import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySe
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.segment.entry.reader.PersistentReader
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -110,7 +110,7 @@ class SegmentReadPerformanceSpec extends TestBase {
     //      BinarySearchIndexConfig.disabled
 
     val valuesConfig =
-      ValuesBlock.Config(
+      ValuesBlockConfig(
         compressDuplicateValues = true,
         compressDuplicateRangeValues = true,
         ioStrategy = {

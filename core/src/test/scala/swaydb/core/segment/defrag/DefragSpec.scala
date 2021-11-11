@@ -28,8 +28,8 @@ import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfi
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -86,7 +86,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
   implicit val keyOrder = KeyOrder.default
   implicit val timerOrder = TimeOrder.long
 
-  implicit def valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+  implicit def valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
   implicit def sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
   implicit def binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
   implicit def hashIndexConfig: HashIndexConfig = HashIndexConfig.random
@@ -220,7 +220,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
               val midSegment = testSegment(keyValues = keyValues.dropHead().take(50).flatten)
               val tailGap = testSegment(keyValues.drop(51).flatten) //make tail large so that it does not get expanded
 
-              implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+              implicit val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
               implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
               implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
               implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random

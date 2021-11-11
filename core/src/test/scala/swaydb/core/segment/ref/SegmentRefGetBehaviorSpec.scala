@@ -25,7 +25,7 @@ import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfi
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.{SegmentSearcher, ThreadReadState}
 import swaydb.core.sweeper.MemorySweeper
@@ -177,7 +177,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
                 _: Slice[Byte],
                 _: PersistentOption,
                 _: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
-                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial])
+                _: UnblockedReader[ValuesBlockOffset, ValuesBlock])(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial])
               )
               .expects(*, *, *, *, *, *)
               .onCall {
@@ -204,7 +204,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
                 _: Slice[Byte],
                 _: PersistentOption,
                 _: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
-                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial])
+                _: UnblockedReader[ValuesBlockOffset, ValuesBlock])(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial])
               )
               .expects(*, *, *, *, *, *)
               .onCall {
@@ -231,7 +231,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
                 _: Slice[Byte],
                 _: PersistentOption,
                 _: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
-                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial])
+                _: UnblockedReader[ValuesBlockOffset, ValuesBlock])(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial])
               )
               .expects(*, *, *, *, *, *)
               .onCall {
@@ -249,7 +249,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
                 _: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
                 _: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                 _: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
-                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+                _: UnblockedReader[ValuesBlockOffset, ValuesBlock],
                 _: Boolean,
                 _: Int)(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial]))
               .expects(*, *, *, *, *, *, *, *, *, *, *)
@@ -285,7 +285,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
                 _: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
                 _: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                 _: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
-                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+                _: UnblockedReader[ValuesBlockOffset, ValuesBlock],
                 _: Boolean,
                 _: Int)(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial]))
               .expects(*, *, *, *, *, *, *, *, *, *, *)
@@ -317,7 +317,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
                 _: Slice[Byte],
                 _: PersistentOption,
                 _: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
-                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial])
+                _: UnblockedReader[ValuesBlockOffset, ValuesBlock])(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial])
               )
               .expects(*, *, *, *, *, *)
               .onCall {
@@ -336,7 +336,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
                 _: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
                 _: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                 _: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
-                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+                _: UnblockedReader[ValuesBlockOffset, ValuesBlock],
                 _: Boolean,
                 _: Int)(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial]))
               .expects(*, *, *, *, *, *, *, *, *, *, *)

@@ -15,7 +15,6 @@ object BinarySearchIndexBlockOffset {
       BinarySearchIndexBlock.read(header)
   }
 
-
 }
 
 case class BinarySearchIndexBlockOffset(start: Int,

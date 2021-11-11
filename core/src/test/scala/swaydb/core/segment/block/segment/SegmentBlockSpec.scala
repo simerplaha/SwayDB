@@ -25,8 +25,8 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
-import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
@@ -63,7 +63,7 @@ class SegmentBlockSpec extends TestBase {
                 optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
               ),
           createdInLevel = randomIntMax(Int.MaxValue),
-          valuesConfig = ValuesBlock.Config.random,
+          valuesConfig = ValuesBlockConfig.random,
           sortedIndexConfig = sortedIndexConfig,
           binarySearchIndexConfig = BinarySearchIndexConfig.random,
           hashIndexConfig = HashIndexConfig.random,
@@ -419,7 +419,7 @@ class SegmentBlockSpec extends TestBase {
               getBlocksSingle(
                 keyValues,
                 valuesConfig =
-                  ValuesBlock.Config(
+                  ValuesBlockConfig(
                     compressDuplicateValues = true,
                     compressDuplicateRangeValues = randomBoolean(),
                     ioStrategy = _ => randomIOAccess(),
