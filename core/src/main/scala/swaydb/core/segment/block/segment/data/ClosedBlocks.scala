@@ -20,14 +20,14 @@ import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySea
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset, BloomFilterState}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset, HashIndexState}
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset, SortedIndexBlockState}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.util.MinMax
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.Deadline
 
-private[block] class ClosedBlocks(val sortedIndex: SortedIndexBlock.State,
+private[block] class ClosedBlocks(val sortedIndex: SortedIndexBlockState,
                                   val values: Option[ValuesBlock.State],
                                   val hashIndex: Option[HashIndexState],
                                   val binarySearchIndex: Option[BinarySearchIndexState],
@@ -36,7 +36,7 @@ private[block] class ClosedBlocks(val sortedIndex: SortedIndexBlock.State,
                                   prepareForCachingSegmentBlocksOnCreate: Boolean) {
   def nearestDeadline: Option[Deadline] = sortedIndex.nearestDeadline
 
-  val sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] =
+  val sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]] =
     if (prepareForCachingSegmentBlocksOnCreate)
       Some(SortedIndexBlock.unblockedReader(sortedIndex))
     else

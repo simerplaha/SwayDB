@@ -26,7 +26,7 @@ import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlock
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentRef
@@ -164,7 +164,7 @@ object TransientSegmentSerialiser {
                    firstSegmentStartOffset: Int,
                    persistent: Persistent,
                    valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                   sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+                   sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]],
                    hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
                    binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
                    bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
@@ -207,7 +207,7 @@ object TransientSegmentSerialiser {
                    firstSegmentStartOffset: Int,
                    range: Persistent.Range,
                    valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                   sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+                   sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]],
                    hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
                    binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
                    bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
@@ -313,7 +313,7 @@ object TransientSegmentSerialiser {
                    firstSegmentStartOffset: Int,
                    put: Persistent.Put,
                    valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                   sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+                   sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]],
                    hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
                    binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
                    bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],

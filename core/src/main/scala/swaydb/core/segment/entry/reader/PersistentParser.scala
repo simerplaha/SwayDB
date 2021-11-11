@@ -20,7 +20,7 @@ import swaydb.core.data.Persistent.Partial
 import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.entry.id.{KeyValueId, PersistentToKeyValueIdBinder}
 import swaydb.core.util.Bytes
@@ -90,7 +90,7 @@ object PersistentParser {
   def parsePartial(offset: Int,
                    headerInteger: Int,
                    tailBytes: Slice[Byte],
-                   sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                   sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
     val tailReader = Reader(tailBytes)
 
@@ -199,7 +199,7 @@ object PersistentParser {
   def matchPartial(offset: Int,
                    headerInteger: Int,
                    tailBytes: Slice[Byte],
-                   sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                   sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
     val tailReader = Reader(tailBytes)
 

@@ -34,7 +34,7 @@ import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.reader.BlockRefReader
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig, SegmentBlockOffset}
 import swaydb.core.segment.block.segment.data.{TransientSegment, TransientSegmentSerialiser}
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.defrag.DefragPersistentSegment
 import swaydb.core.segment.io.SegmentReadIO
@@ -832,7 +832,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
-          sortedIndexConfig: SortedIndexBlock.Config,
+          sortedIndexConfig: SortedIndexBlockConfig,
           binarySearchIndexConfig: BinarySearchIndexConfig,
           hashIndexConfig: HashIndexConfig,
           bloomFilterConfig: BloomFilterConfig,
@@ -844,7 +844,7 @@ protected case class PersistentSegmentMany(file: DBFile,
                               compactionIO: CompactionIO.Actor,
                               compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]] = {
     implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
-    implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
+    implicit val sortedIndexConfigImplicit: SortedIndexBlockConfig = sortedIndexConfig
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
     implicit val hashIndexConfigImplicit: HashIndexConfig = hashIndexConfig
     implicit val bloomFilterConfigImplicit: BloomFilterConfig = bloomFilterConfig
@@ -866,7 +866,7 @@ protected case class PersistentSegmentMany(file: DBFile,
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
               valuesConfig: ValuesBlock.Config,
-              sortedIndexConfig: SortedIndexBlock.Config,
+              sortedIndexConfig: SortedIndexBlockConfig,
               binarySearchIndexConfig: BinarySearchIndexConfig,
               hashIndexConfig: HashIndexConfig,
               bloomFilterConfig: BloomFilterConfig,

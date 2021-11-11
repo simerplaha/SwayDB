@@ -29,7 +29,7 @@ import swaydb.core.segment.block
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
@@ -171,7 +171,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     bloomFilterConfig = BloomFilterConfig.disabled(),
                     hashIndexConfig = block.hashindex.HashIndexConfig.disabled(),
                     binarySearchIndexConfig = BinarySearchIndexConfig.disabled(),
-                    sortedIndexConfig = SortedIndexBlock.Config.disabled,
+                    sortedIndexConfig = SortedIndexBlockConfig.disabled(),
                     valuesConfig = ValuesBlock.Config.disabled,
                     segmentConfig =
                       SegmentBlockConfig(
@@ -213,7 +213,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     bloomFilterConfig = BloomFilterConfig(config = config.bloomFilter),
                     hashIndexConfig = block.hashindex.HashIndexConfig(config = config.hashIndex),
                     binarySearchIndexConfig = BinarySearchIndexConfig(config = config.binarySearchIndex),
-                    sortedIndexConfig = SortedIndexBlock.Config(config.sortedIndex),
+                    sortedIndexConfig = SortedIndexBlockConfig(config.sortedIndex),
                     valuesConfig = ValuesBlock.Config(config.valuesConfig),
                     segmentConfig = SegmentBlockConfig(config.segmentConfig),
                     levelStorage =

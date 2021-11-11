@@ -17,26 +17,23 @@
 package swaydb.core.segment.block.sortedindex
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.compression.CompressionInternal
 import swaydb.core.data._
 import swaydb.core.merge.stats.MergeStats
-import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.entry.writer._
 import swaydb.core.segment.ref.search.KeyMatcher
+import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.effect.{IOAction, IOStrategy}
-import swaydb.utils.{ByteSizeOf, FiniteDurations, FunctionSafe}
+import swaydb.utils.{ByteSizeOf, FiniteDurations}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.Deadline
 
 private[core] case object SortedIndexBlock extends LazyLogging {
 
@@ -47,170 +44,6 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   implicit val valueWriter: ValueWriter = ValueWriter
   implicit val deadlineWriter: DeadlineWriter = DeadlineWriter
   implicit val keyWriter: KeyWriter = KeyWriter
-
-  implicit object SortedIndexBlockOps extends BlockOps[SortedIndexBlock.Offset, SortedIndexBlock] {
-    override def updateBlockOffset(block: SortedIndexBlock, start: Int, size: Int): SortedIndexBlock =
-      block.copy(offset = createOffset(start = start, size = size))
-
-    override def createOffset(start: Int, size: Int): Offset =
-      SortedIndexBlock.Offset(start = start, size = size)
-
-    override def readBlock(header: BlockHeader[Offset]): SortedIndexBlock =
-      SortedIndexBlock.read(header)
-  }
-
-  object Config {
-    val disabled =
-      Config(
-        ioStrategy = (dataType: IOAction) => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
-        enablePrefixCompression = false,
-        shouldPrefixCompress = _ => false,
-        prefixCompressKeysOnly = false,
-        enableAccessPositionIndex = false,
-        optimiseForReverseIteration = false,
-        normaliseIndex = false,
-        compressions = (_: UncompressedBlockInfo) => Seq.empty
-      )
-
-    def apply(config: swaydb.data.config.SortedIndex): Config =
-      config match {
-        case config: swaydb.data.config.SortedIndex.On =>
-          apply(config)
-      }
-
-    def apply(enable: swaydb.data.config.SortedIndex.On): Config =
-      Config(
-        ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
-        shouldPrefixCompress = enable.prefixCompression.shouldCompress,
-        prefixCompressKeysOnly = enable.prefixCompression.enabled && enable.prefixCompression.keysOnly,
-        enableAccessPositionIndex = enable.enablePositionIndex,
-        optimiseForReverseIteration = enable.optimiseForReverseIteration,
-        normaliseIndex = enable.prefixCompression.normaliseIndexForBinarySearch,
-        enablePrefixCompression = enable.prefixCompression.enabled && !enable.prefixCompression.normaliseIndexForBinarySearch,
-        compressions =
-          FunctionSafe.safe(
-            default = (_: UncompressedBlockInfo) => Iterable.empty[CompressionInternal],
-            function = enable.compressions(_: UncompressedBlockInfo) map CompressionInternal.apply
-          )
-      )
-
-    def apply(ioStrategy: IOAction => IOStrategy,
-              enablePrefixCompression: Boolean,
-              shouldPrefixCompress: Int => Boolean,
-              prefixCompressKeysOnly: Boolean,
-              enableAccessPositionIndex: Boolean,
-              optimiseForReverseIteration: Boolean,
-              normaliseIndex: Boolean,
-              compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Config =
-      new Config(
-        ioStrategy = ioStrategy,
-        shouldPrefixCompress = if (normaliseIndex || !enablePrefixCompression) _ => false else shouldPrefixCompress,
-        prefixCompressKeysOnly = if (normaliseIndex || !enablePrefixCompression) false else prefixCompressKeysOnly,
-        enableAccessPositionIndex = enableAccessPositionIndex,
-        optimiseForReverseIteration = !normaliseIndex && optimiseForReverseIteration,
-        enablePrefixCompression = !normaliseIndex && enablePrefixCompression,
-        normaliseIndex = normaliseIndex,
-        compressions = compressions
-      )
-  }
-
-  /**
-   * Do not create [[Config]] directly. Use one of the apply functions.
-   */
-  class Config private(val ioStrategy: IOAction => IOStrategy,
-                       val shouldPrefixCompress: Int => Boolean,
-                       val prefixCompressKeysOnly: Boolean,
-                       val enableAccessPositionIndex: Boolean,
-                       val enablePrefixCompression: Boolean,
-                       val optimiseForReverseIteration: Boolean,
-                       val normaliseIndex: Boolean,
-                       val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
-
-    def copy(ioStrategy: IOAction => IOStrategy = ioStrategy,
-             shouldPrefixCompress: Int => Boolean = shouldPrefixCompress,
-             enableAccessPositionIndex: Boolean = enableAccessPositionIndex,
-             normaliseIndex: Boolean = normaliseIndex,
-             enablePrefixCompression: Boolean = enablePrefixCompression,
-             optimiseForReverseIteration: Boolean = optimiseForReverseIteration,
-             compressions: UncompressedBlockInfo => Iterable[CompressionInternal] = compressions) =
-    //do not use new here. Submit this to the apply function to that rules for creating the config gets applied.
-      Config(
-        ioStrategy = ioStrategy,
-        shouldPrefixCompress = shouldPrefixCompress,
-        enableAccessPositionIndex = enableAccessPositionIndex,
-        prefixCompressKeysOnly = prefixCompressKeysOnly,
-        enablePrefixCompression = enablePrefixCompression,
-        optimiseForReverseIteration = optimiseForReverseIteration,
-        normaliseIndex = normaliseIndex,
-        compressions = compressions
-      )
-  }
-
-  //IndexEntries that are used to create secondary indexes - binarySearchIndex & hashIndex
-  class SecondaryIndexEntry(var indexOffset: Int, //mutable because if the bytes are normalised then this is adjust during close.
-                            val mergedKey: Slice[Byte],
-                            val comparableKey: Slice[Byte],
-                            val keyType: Byte)
-
-  case class Offset(start: Int, size: Int) extends BlockOffset
-
-  /**
-   * [[State]] is mostly mutable because these vars calculate runtime stats of
-   * a Segment which is used to build other blocks. Immutable version of this
-   * resulted in very slow compaction because immutable compaction was creation
-   * millions of temporary objects every second causing GC halts.
-   */
-  class State(var compressibleBytes: Slice[Byte],
-              var cacheableBytes: Slice[Byte],
-              var header: Slice[Byte],
-              var minKey: Slice[Byte],
-              var maxKey: MaxKey[Slice[Byte]],
-              var lastKeyValue: Memory,
-              var smallestIndexEntrySize: Int,
-              var largestIndexEntrySize: Int,
-              var largestMergedKeySize: Int,
-              var largestUncompressedMergedKeySize: Int,
-              val enablePrefixCompression: Boolean,
-              var entriesCount: Int,
-              var prefixCompressedCount: Int,
-              val shouldPrefixCompress: Int => Boolean,
-              var nearestDeadline: Option[Deadline],
-              var rangeCount: Int,
-              var updateCount: Int,
-              var putCount: Int,
-              var putDeadlineCount: Int,
-              var mightContainRemoveRange: Boolean,
-              var minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-              val enableAccessPositionIndex: Boolean,
-              var optimiseForReverseIteration: Boolean,
-              val compressDuplicateRangeValues: Boolean,
-              val normaliseIndex: Boolean,
-              val compressions: UncompressedBlockInfo => Iterable[CompressionInternal],
-              val secondaryIndexEntries: ListBuffer[SecondaryIndexEntry],
-              val indexEntries: ListBuffer[Slice[Byte]],
-              val builder: EntryWriter.Builder) {
-
-    def blockBytes: Slice[Byte] =
-      header ++ compressibleBytes
-
-    def uncompressedPrefixCount: Int =
-      entriesCount - prefixCompressedCount
-
-    def hasPrefixCompression: Boolean =
-      builder.segmentHasPrefixCompression
-
-    def prefixCompressKeysOnly =
-      builder.prefixCompressKeysOnly
-
-    def isPreNormalised: Boolean =
-      hasSameIndexSizes()
-
-    def hasSameIndexSizes(): Boolean =
-      smallestIndexEntrySize == largestIndexEntrySize
-
-    def blockSize: Int =
-      header.size + compressibleBytes.size
-  }
 
   //sortedIndex's byteSize is not know at the time of creation headerSize includes hasCompression
   //  val headerSize = {
@@ -229,7 +62,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   def init(stats: MergeStats.Persistent.ClosedStatsOnly,
            valuesConfig: ValuesBlock.Config,
-           sortedIndexConfig: SortedIndexBlock.Config): SortedIndexBlock.State =
+           sortedIndexConfig: SortedIndexBlockConfig): SortedIndexBlockState =
     init(
       maxSize = stats.maxSortedIndexSize,
       compressDuplicateValues = valuesConfig.compressDuplicateValues,
@@ -240,7 +73,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   def init(maxSize: Int,
            compressDuplicateValues: Boolean,
            compressDuplicateRangeValues: Boolean,
-           sortedIndexConfig: SortedIndexBlock.Config): SortedIndexBlock.State =
+           sortedIndexConfig: SortedIndexBlockConfig): SortedIndexBlockState =
     init(
       bytes = Slice.of[Byte](maxSize),
       compressDuplicateValues = compressDuplicateValues,
@@ -251,7 +84,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   def init(bytes: Slice[Byte],
            compressDuplicateValues: Boolean,
            compressDuplicateRangeValues: Boolean,
-           sortedIndexConfig: SortedIndexBlock.Config): SortedIndexBlock.State = {
+           sortedIndexConfig: SortedIndexBlockConfig): SortedIndexBlockState = {
     val builder =
       EntryWriter.Builder(
         prefixCompressKeysOnly = sortedIndexConfig.prefixCompressKeysOnly,
@@ -261,7 +94,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         bytes = bytes
       )
 
-    new State(
+    new SortedIndexBlockState(
       compressibleBytes = bytes,
       cacheableBytes = bytes,
       header = null,
@@ -295,7 +128,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   }
 
   def write(keyValue: Memory,
-            state: SortedIndexBlock.State)(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
+            state: SortedIndexBlockState)(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
     //currentWritePositionInThisSlice is used here because state.bytes can be a sub-slice.
     val positionBeforeWrite = state.compressibleBytes.currentWritePositionInThisSlice
 
@@ -392,7 +225,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
       state.builder.previousIndexOffset = positionBeforeWrite
 
       val entry =
-        new SecondaryIndexEntry(
+        new SortedIndexBlockSecondaryIndexEntry(
           indexOffset = positionBeforeWrite,
           mergedKey = keyValue.mergedKey,
           comparableKey = keyOrder.comparableKey(keyValue.key),
@@ -420,7 +253,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
     state.builder.previous = keyValue
   }
 
-  private def normaliseIfRequired(state: State): Slice[Byte] =
+  private def normaliseIfRequired(state: SortedIndexBlockState): Slice[Byte] =
     if (state.normaliseIndex) {
       val difference = state.largestIndexEntrySize - state.smallestIndexEntrySize
       if (difference == 0) {
@@ -455,7 +288,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
       state.compressibleBytes
     }
 
-  def close(state: State): State = {
+  def close(state: SortedIndexBlockState): SortedIndexBlockState = {
     val normalisedBytes: Slice[Byte] = normaliseIfRequired(state)
 
     val compressionResult =
@@ -491,10 +324,10 @@ private[core] case object SortedIndexBlock extends LazyLogging {
     state
   }
 
-  def unblockedReader(closedState: SortedIndexBlock.State): UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock] = {
+  def unblockedReader(closedState: SortedIndexBlockState): UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock] = {
     val block =
       SortedIndexBlock(
-        offset = SortedIndexBlock.Offset(0, closedState.cacheableBytes.size),
+        offset = SortedIndexBlockOffset(0, closedState.cacheableBytes.size),
         enableAccessPositionIndex = closedState.enableAccessPositionIndex,
         optimiseForReverseIteration = closedState.optimiseForReverseIteration,
         hasPrefixCompression = closedState.hasPrefixCompression,
@@ -506,13 +339,13 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         compressionInfo = None
       )
 
-    UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock](
+    UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock](
       block = block,
       bytes = closedState.cacheableBytes.close()
     )
   }
 
-  def read(header: BlockHeader[SortedIndexBlock.Offset]): SortedIndexBlock = {
+  def read(header: BlockHeader[SortedIndexBlockOffset]): SortedIndexBlock = {
     val enableAccessPositionIndex = header.headerReader.readBoolean()
     val optimiseForReverseIteration = header.headerReader.readBoolean()
     val hasPrefixCompression = header.headerReader.readBoolean()
@@ -536,7 +369,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   }
 
   def readPartialKeyValue(fromOffset: Int,
-                          sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                          sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                           valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial =
     readIndexEntry(
       keySizeOrZero = 0,
@@ -547,7 +380,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
     )
 
   private def readKeyValue(previous: Persistent,
-                           indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                           indexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =
 
     readIndexEntry(
@@ -559,7 +392,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
     )
 
   private def readKeyValue(fromPosition: Int,
-                           indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                           indexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =
     readKeyValue(
       fromPosition = fromPosition,
@@ -570,7 +403,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   private def readKeyValue(fromPosition: Int,
                            keySizeOrZero: Int,
-                           indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                           indexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =
     readIndexEntry(
       keySizeOrZero = keySizeOrZero,
@@ -585,7 +418,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
    */
   private def readIndexEntry[T](keySizeOrZero: Int,
                                 previous: PersistentOption,
-                                sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                                 valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                                 parser: SortedIndexEntryParser[T]): T = {
     val positionBeforeReader = sortedIndexReader.getPosition
@@ -689,7 +522,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   }
 
   def toSlice(keyValueCount: Int,
-              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+              sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
               valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Slice[Persistent] = {
     val aggregator = Slice.newAggregator[Persistent](keyValueCount)
 
@@ -701,7 +534,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
     aggregator.result
   }
 
-  def iterator(sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+  def iterator(sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Iterator[Persistent] =
     new Iterator[Persistent] {
       sortedIndexReader moveTo 0
@@ -741,7 +574,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   def seekAndMatch(key: Slice[Byte],
                    startFrom: PersistentOption,
-                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                   sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
   //    if (startFrom.exists(from => order.gteq(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
@@ -758,7 +591,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   def matchOrSeek(key: Slice[Byte],
                   startFrom: Persistent,
-                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                  sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]): Persistent.PartialOption =
   //    if (ordering.gteq(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
@@ -782,7 +615,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   def searchSeekOne(key: Slice[Byte],
                     start: Persistent,
-                    indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                    indexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                     valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
   //    if (order.gteq(start.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
@@ -800,7 +633,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   def searchSeekOne(key: Slice[Byte],
                     fromPosition: Int,
                     keySizeOrZero: Int,
-                    indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                    indexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                     valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
   //    if (order.gteq(start.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
@@ -818,7 +651,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   def searchHigher(key: Slice[Byte],
                    startFrom: PersistentOption,
-                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                   sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
   //    if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
@@ -832,7 +665,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   def matchOrSeekHigher(key: Slice[Byte],
                         startFrom: PersistentOption,
-                        sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                        sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                         valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
   //    if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
@@ -864,7 +697,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   def searchHigherSeekOne(key: Slice[Byte],
                           startFrom: Persistent,
-                          sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                          sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                           valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
   //    if (order.gt(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
@@ -879,7 +712,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   def searchHigherSeekOne(key: Slice[Byte],
                           fromPosition: Int,
                           keySizeOrZero: Int,
-                          sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                          sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                           valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
   //    if (order.gt(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
@@ -894,7 +727,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   def seekLowerAndMatch(key: Slice[Byte],
                         startFrom: PersistentOption,
-                        sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                        sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                         valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
   //    if (startFrom.exists(from => order.gteq(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
@@ -909,7 +742,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   def matchOrSeekLower(key: Slice[Byte],
                        startFrom: PersistentOption,
                        next: PersistentOption,
-                       sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                       sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
   //    if (startFrom.exists(from => order.gteq(from.key, key)) ||
   //      next.exists(next => next match {
@@ -965,7 +798,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   private def seekAndMatchToPersistent(matcher: KeyMatcher,
                                        startFrom: PersistentOption,
-                                       indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                       indexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): PersistentOption =
     startFrom match {
       case startFrom: Persistent =>
@@ -995,7 +828,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   def seekAndMatchOrSeek(matcher: KeyMatcher,
                          fromOffset: Int,
-                         indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                         indexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                          valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Result.Complete = {
     val persistent =
       readKeyValue(
@@ -1016,7 +849,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   def seekAndMatchOrSeekToPersistent(matcher: KeyMatcher,
                                      fromOffset: Int,
-                                     indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                     indexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                                      valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): PersistentOption =
     seekAndMatchOrSeekToPersistent(
       matcher = matcher,
@@ -1029,7 +862,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   def seekAndMatchOrSeekToPersistent(matcher: KeyMatcher,
                                      fromOffset: Int,
                                      keySizeOrZero: Int,
-                                     indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                     indexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                                      valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): PersistentOption = {
     val persistent =
       readKeyValue(
@@ -1051,7 +884,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   def readAndMatch(matcher: KeyMatcher,
                    fromOffset: Int,
-                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                   sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): KeyMatcher.Result = {
     val persistent =
       readKeyValue(
@@ -1068,7 +901,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   }
 
   def read(fromOffset: Int,
-           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+           sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =
     readKeyValue(
       fromPosition = fromOffset,
@@ -1078,7 +911,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   def read(fromOffset: Int,
            keySize: Int,
-           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+           sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =
     readKeyValue(
       fromPosition = fromOffset,
@@ -1090,7 +923,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   def readPreviousAndMatch(matcher: KeyMatcher,
                            next: Persistent,
                            fromOffset: Int,
-                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                           sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): KeyMatcher.Result = {
     val persistent =
       readKeyValue(
@@ -1109,7 +942,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   def readSeekAndMatch(matcher: KeyMatcher,
                        previous: Persistent,
                        fromOffset: Int,
-                       sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                       sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): KeyMatcher.Result = {
     val persistent =
       readKeyValue(
@@ -1126,7 +959,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   }
 
   def readNextKeyValue(previous: Persistent,
-                       sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                       sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =
     readKeyValue(
       previous = previous,
@@ -1136,7 +969,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   def findAndMatchOrSeekMatch(matcher: KeyMatcher,
                               fromOffset: Int,
-                              sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                              sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                               valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): KeyMatcher.Result = {
     val persistent =
       readKeyValue(
@@ -1158,7 +991,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   def matchOrSeek(previous: Persistent,
                   next: PersistentOption,
                   matcher: KeyMatcher,
-                  indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                  indexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): KeyMatcher.Result.Complete =
     matcher(
       previous = previous,
@@ -1204,7 +1037,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   def seekAndMatchOrSeek(previous: Persistent,
                          next: PersistentOption,
                          matcher: KeyMatcher,
-                         indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                         indexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                          valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): KeyMatcher.Result.Complete = {
     val nextNextKeyValue =
       readKeyValue(
@@ -1225,7 +1058,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   def matchOrSeekToPersistent(previous: Persistent,
                               next: PersistentOption,
                               matcher: KeyMatcher,
-                              indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                              indexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                               valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): PersistentOption =
     matchOrSeek(
       previous = previous,
@@ -1242,7 +1075,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
     }
 }
 
-private[core] case class SortedIndexBlock(offset: SortedIndexBlock.Offset,
+private[core] case class SortedIndexBlock(offset: SortedIndexBlockOffset,
                                           enableAccessPositionIndex: Boolean,
                                           optimiseForReverseIteration: Boolean,
                                           hasPrefixCompression: Boolean,
@@ -1251,7 +1084,7 @@ private[core] case class SortedIndexBlock(offset: SortedIndexBlock.Offset,
                                           isPreNormalised: Boolean,
                                           headerSize: Int,
                                           segmentMaxIndexEntrySize: Int,
-                                          compressionInfo: Option[BlockCompressionInfo]) extends Block[SortedIndexBlock.Offset] {
+                                          compressionInfo: Option[BlockCompressionInfo]) extends Block[SortedIndexBlockOffset] {
   val isBinarySearchable =
     !hasPrefixCompression && (normalised || isPreNormalised)
 

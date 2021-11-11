@@ -67,7 +67,7 @@
 //            .toTransient(
 //              previous = None,
 //              sortedIndexConfig =
-//                SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0)
+//                SegmentIndexBlockConfig.random.copy(prefixCompressionResetCount = 0)
 //            )
 //        ) shouldBe false
 //      }
@@ -83,7 +83,7 @@
 //            randomFixedKeyValue(4)
 //          ).toTransient(
 //            sortedIndexConfig =
-//              SortedIndexBlock.Config.random.copy(
+//              SegmentIndexBlockConfig.random.copy(
 //                prefixCompressionResetCount = 2,
 //                normaliseIndex = false
 //              )

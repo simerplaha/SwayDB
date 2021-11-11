@@ -26,7 +26,7 @@ import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany}
@@ -64,7 +64,7 @@ class DefragSegment_RunMany_Spec extends TestBase with MockFactory with EitherVa
           //SEG  - [0 - 99]
 
           implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
-          implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+          implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
           implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
@@ -114,7 +114,7 @@ class DefragSegment_RunMany_Spec extends TestBase with MockFactory with EitherVa
           //SEG  - [0 - 99]
 
           implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
-          implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+          implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
           implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random

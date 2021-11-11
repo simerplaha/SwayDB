@@ -45,7 +45,7 @@ import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig, Has
 import swaydb.core.segment.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig, SegmentBlockOffset}
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.entry.writer.EntryWriter
@@ -442,14 +442,14 @@ object TestData {
       )
   }
 
-  implicit class SortedIndexConfigImplicits(values: SortedIndexBlock.Config.type) {
-    def random: SortedIndexBlock.Config =
+  implicit class SortedIndexConfigImplicits(values: SortedIndexBlockConfig.type) {
+    def random: SortedIndexBlockConfig =
       random(randomBoolean())
 
     def random(hasCompression: Boolean,
                cacheOnAccess: Boolean = randomBoolean(),
-               shouldPrefixCompress: Boolean = randomBoolean()): SortedIndexBlock.Config =
-      SortedIndexBlock.Config(
+               shouldPrefixCompress: Boolean = randomBoolean()): SortedIndexBlockConfig =
+      SortedIndexBlockConfig(
         ioStrategy = _ => randomIOStrategy(cacheOnAccess),
         enablePrefixCompression = randomBoolean(),
         optimiseForReverseIteration = randomBoolean(),
@@ -1860,7 +1860,7 @@ object TestData {
                        bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
                        hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
                        binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
-                       sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                       sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
                        valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                        segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                         ec: ExecutionContext,
@@ -2136,7 +2136,7 @@ object TestData {
             removeDeletes: Boolean,
             createdInLevel: Int,
             valuesConfig: ValuesBlock.Config,
-            sortedIndexConfig: SortedIndexBlock.Config,
+            sortedIndexConfig: SortedIndexBlockConfig,
             binarySearchIndexConfig: BinarySearchIndexConfig,
             hashIndexConfig: HashIndexConfig,
             bloomFilterConfig: BloomFilterConfig,
@@ -2220,7 +2220,7 @@ object TestData {
     def refresh(removeDeletes: Boolean,
                 createdInLevel: Int,
                 valuesConfig: ValuesBlock.Config,
-                sortedIndexConfig: SortedIndexBlock.Config,
+                sortedIndexConfig: SortedIndexBlockConfig,
                 binarySearchIndexConfig: BinarySearchIndexConfig,
                 hashIndexConfig: HashIndexConfig,
                 bloomFilterConfig: BloomFilterConfig,

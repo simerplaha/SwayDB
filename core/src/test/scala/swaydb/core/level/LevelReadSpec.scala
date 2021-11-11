@@ -25,7 +25,7 @@ import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -146,7 +146,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
                 removeDeletes = false,
                 createdInLevel = 0,
                 valuesConfig = ValuesBlock.Config.random,
-                sortedIndexConfig = SortedIndexBlock.Config.random,
+                sortedIndexConfig = SortedIndexBlockConfig.random,
                 binarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig = HashIndexConfig.random,
                 bloomFilterConfig = BloomFilterConfig.random,
@@ -183,7 +183,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
                 removeDeletes = false,
                 createdInLevel = 0,
                 valuesConfig = ValuesBlock.Config.random,
-                sortedIndexConfig = SortedIndexBlock.Config.random,
+                sortedIndexConfig = SortedIndexBlockConfig.random,
                 binarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig = HashIndexConfig.random,
                 bloomFilterConfig = BloomFilterConfig.random,

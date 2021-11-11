@@ -6,7 +6,7 @@ import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.slice.Slice
 import swaydb.utils.Maybe
 
-private object BinarySearchIndexState {
+private[segment] object BinarySearchIndexState {
 
   def apply(format: BinarySearchEntryFormat,
             largestIndexOffset: Int,
@@ -55,17 +55,17 @@ private object BinarySearchIndexState {
     }
 }
 
-private class BinarySearchIndexState(val format: BinarySearchEntryFormat,
-                                     val bytesPerValue: Int,
-                                     val uniqueValuesCount: Int,
-                                     var _previousWritten: Int,
-                                     var writtenValues: Int,
-                                     val minimumNumberOfKeys: Int,
-                                     var isFullIndex: Boolean,
-                                     var compressibleBytes: Slice[Byte],
-                                     val cacheableBytes: Slice[Byte],
-                                     var header: Slice[Byte],
-                                     val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
+private[segment] class BinarySearchIndexState(val format: BinarySearchEntryFormat,
+                                              val bytesPerValue: Int,
+                                              val uniqueValuesCount: Int,
+                                              var _previousWritten: Int,
+                                              var writtenValues: Int,
+                                              val minimumNumberOfKeys: Int,
+                                              var isFullIndex: Boolean,
+                                              var compressibleBytes: Slice[Byte],
+                                              val cacheableBytes: Slice[Byte],
+                                              var header: Slice[Byte],
+                                              val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
 
   def blockSize: Int =
     header.size + compressibleBytes.size

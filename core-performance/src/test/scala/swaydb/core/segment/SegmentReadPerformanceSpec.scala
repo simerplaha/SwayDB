@@ -26,7 +26,7 @@ import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySe
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.entry.reader.PersistentReader
 import swaydb.core.segment.io.SegmentReadIO
@@ -72,7 +72,7 @@ class SegmentReadPerformanceSpec extends TestBase {
     implicit val pathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq.empty)
 
     val sortedIndexConfig =
-      SortedIndexBlock.Config(
+      SortedIndexBlockConfig(
         ioStrategy = {
           case _: IOAction.ReadDataOverview =>
             IOStrategy.ConcurrentIO(cacheOnAccess = true)

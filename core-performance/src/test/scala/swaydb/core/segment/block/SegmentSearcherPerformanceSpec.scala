@@ -53,7 +53,7 @@
 //            compressions = _ => compressions.head
 //          ),
 //        sortedIndexConfig =
-//          SortedIndexBlock.Config.create(
+//          SegmentIndexBlockConfig.create(
 //            blockIO = _ => access,
 //            prefixCompressionResetCount = 0,
 //            enableAccessPositionIndex = true,

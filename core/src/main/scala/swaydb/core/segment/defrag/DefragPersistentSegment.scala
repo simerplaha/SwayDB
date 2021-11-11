@@ -30,7 +30,7 @@ import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfi
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.defrag.DefragSource._
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
@@ -74,7 +74,7 @@ object DefragPersistentSegment {
                                                              defragSource: DefragSource[SEG],
                                                              keyOrder: KeyOrder[Slice[Byte]],
                                                              valuesConfig: ValuesBlock.Config,
-                                                             sortedIndexConfig: SortedIndexBlock.Config,
+                                                             sortedIndexConfig: SortedIndexBlockConfig,
                                                              binarySearchIndexConfig: BinarySearchIndexConfig,
                                                              hashIndexConfig: HashIndexConfig,
                                                              bloomFilterConfig: BloomFilterConfig,
@@ -130,7 +130,7 @@ object DefragPersistentSegment {
                                       mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
                                                           keyOrder: KeyOrder[Slice[Byte]],
                                                           valuesConfig: ValuesBlock.Config,
-                                                          sortedIndexConfig: SortedIndexBlock.Config,
+                                                          sortedIndexConfig: SortedIndexBlockConfig,
                                                           binarySearchIndexConfig: BinarySearchIndexConfig,
                                                           hashIndexConfig: HashIndexConfig,
                                                           bloomFilterConfig: BloomFilterConfig,
@@ -189,7 +189,7 @@ object DefragPersistentSegment {
               mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
                                   keyOrder: KeyOrder[Slice[Byte]],
                                   valuesConfig: ValuesBlock.Config,
-                                  sortedIndexConfig: SortedIndexBlock.Config,
+                                  sortedIndexConfig: SortedIndexBlockConfig,
                                   binarySearchIndexConfig: BinarySearchIndexConfig,
                                   hashIndexConfig: HashIndexConfig,
                                   bloomFilterConfig: BloomFilterConfig,
@@ -282,7 +282,7 @@ object DefragPersistentSegment {
                                                                                              keyOrder: KeyOrder[Slice[Byte]],
                                                                                              assignmentTarget: AssignmentTarget[SEG],
                                                                                              defragSource: DefragSource[SEG],
-                                                                                             sortedIndexConfig: SortedIndexBlock.Config,
+                                                                                             sortedIndexConfig: SortedIndexBlockConfig,
                                                                                              segmentConfig: SegmentBlockConfig): Future[FragmentAndAssignment[SEG]] = {
     val headFragmentsFuture =
       if (headGap.isEmpty)
@@ -326,7 +326,7 @@ object DefragPersistentSegment {
                                                                                                                                                                          timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                                                                          functionStore: FunctionStore,
                                                                                                                                                                          executionContext: ExecutionContext,
-                                                                                                                                                                         sortedIndexConfig: SortedIndexBlock.Config,
+                                                                                                                                                                         sortedIndexConfig: SortedIndexBlockConfig,
                                                                                                                                                                          segmentConfig: SegmentBlockConfig,
                                                                                                                                                                          compactionParallelism: CompactionParallelism): Future[ListBuffer[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
     Futures.traverseBounded(compactionParallelism.groupedSegmentDefragParallelism, headFragmentsAndAssignments.assignments) {
@@ -434,7 +434,7 @@ object DefragPersistentSegment {
                       mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
                                           keyOrder: KeyOrder[Slice[Byte]],
                                           valuesConfig: ValuesBlock.Config,
-                                          sortedIndexConfig: SortedIndexBlock.Config,
+                                          sortedIndexConfig: SortedIndexBlockConfig,
                                           binarySearchIndexConfig: BinarySearchIndexConfig,
                                           hashIndexConfig: HashIndexConfig,
                                           bloomFilterConfig: BloomFilterConfig,
@@ -545,7 +545,7 @@ object DefragPersistentSegment {
                           mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
                                               keyOrder: KeyOrder[Slice[Byte]],
                                               valuesConfig: ValuesBlock.Config,
-                                              sortedIndexConfig: SortedIndexBlock.Config,
+                                              sortedIndexConfig: SortedIndexBlockConfig,
                                               binarySearchIndexConfig: BinarySearchIndexConfig,
                                               hashIndexConfig: HashIndexConfig,
                                               bloomFilterConfig: BloomFilterConfig,

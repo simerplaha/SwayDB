@@ -128,7 +128,7 @@
 //    TestLevel(
 //      segmentSize = 2.mb,
 //      sortedIndexConfig =
-//        SortedIndexBlock.Config(
+//        SegmentIndexBlockConfig(
 //          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
 //          prefixCompressionResetCount = 0,
 //          prefixCompressKeysOnly = false,

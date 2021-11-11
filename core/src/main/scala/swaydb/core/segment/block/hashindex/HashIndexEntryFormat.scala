@@ -20,7 +20,7 @@ import swaydb.core.data.Persistent.Partial
 import swaydb.core.data.{Memory, Persistent}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.IndexFormat
@@ -40,7 +40,7 @@ private[core] sealed trait HashIndexEntryFormat {
 
   def readOrNull(entry: Slice[Byte],
                  hashIndexReader: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
-                 sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                 sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                  valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial
 }
 
@@ -73,7 +73,7 @@ private[core] object HashIndexEntryFormat {
 
     override def readOrNull(entry: Slice[Byte],
                             hashIndexReader: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
-                            sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                            sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                             valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
       val (possibleOffset, bytesRead) = Bytes.readUnsignedIntNonZeroWithByteSize(entry)
       //      //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1} = reading now!")
@@ -123,7 +123,7 @@ private[core] object HashIndexEntryFormat {
 
     override def readOrNull(entry: Slice[Byte],
                             hashIndexReader: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
-                            sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                            sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                             valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial =
       try {
         val reader = Reader(entry)

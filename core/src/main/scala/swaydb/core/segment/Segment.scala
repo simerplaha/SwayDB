@@ -30,7 +30,7 @@ import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
@@ -214,7 +214,7 @@ private[core] case object Segment extends LazyLogging {
                  bloomFilterConfig: BloomFilterConfig,
                  hashIndexConfig: HashIndexConfig,
                  binarySearchIndexConfig: BinarySearchIndexConfig,
-                 sortedIndexConfig: SortedIndexBlock.Config,
+                 sortedIndexConfig: SortedIndexBlockConfig,
                  valuesConfig: ValuesBlock.Config,
                  segmentConfig: SegmentBlockConfig,
                  mergeStats: MergeStats.Persistent.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -253,7 +253,7 @@ private[core] case object Segment extends LazyLogging {
                     pathsDistributor: PathsDistributor,
                     removeDeletes: Boolean,
                     valuesConfig: ValuesBlock.Config,
-                    sortedIndexConfig: SortedIndexBlock.Config,
+                    sortedIndexConfig: SortedIndexBlockConfig,
                     binarySearchIndexConfig: BinarySearchIndexConfig,
                     hashIndexConfig: HashIndexConfig,
                     bloomFilterConfig: BloomFilterConfig,
@@ -351,7 +351,7 @@ private[core] case object Segment extends LazyLogging {
                     pathsDistributor: PathsDistributor,
                     removeDeletes: Boolean,
                     valuesConfig: ValuesBlock.Config,
-                    sortedIndexConfig: SortedIndexBlock.Config,
+                    sortedIndexConfig: SortedIndexBlockConfig,
                     binarySearchIndexConfig: BinarySearchIndexConfig,
                     hashIndexConfig: HashIndexConfig,
                     bloomFilterConfig: BloomFilterConfig,
@@ -450,7 +450,7 @@ private[core] case object Segment extends LazyLogging {
                           removeDeletes: Boolean,
                           createdInLevel: Int,
                           valuesConfig: ValuesBlock.Config,
-                          sortedIndexConfig: SortedIndexBlock.Config,
+                          sortedIndexConfig: SortedIndexBlockConfig,
                           binarySearchIndexConfig: BinarySearchIndexConfig,
                           hashIndexConfig: HashIndexConfig,
                           bloomFilterConfig: BloomFilterConfig,
@@ -506,7 +506,7 @@ private[core] case object Segment extends LazyLogging {
                          removeDeletes: Boolean,
                          createdInLevel: Int,
                          valuesConfig: ValuesBlock.Config,
-                         sortedIndexConfig: SortedIndexBlock.Config,
+                         sortedIndexConfig: SortedIndexBlockConfig,
                          binarySearchIndexConfig: BinarySearchIndexConfig,
                          hashIndexConfig: HashIndexConfig,
                          bloomFilterConfig: BloomFilterConfig,

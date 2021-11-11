@@ -25,7 +25,7 @@ import swaydb.core.segment.block.hashindex.HashIndexBlockOffset
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.segment.data.ClosedBlocks
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.slice.Slice
@@ -200,7 +200,7 @@ private[core] case object SegmentFooterBlock {
       val keyValueCount = footerReader.readUnsignedInt()
 
       val sortedIndexOffset =
-        SortedIndexBlock.Offset(
+        SortedIndexBlockOffset(
           size = footerReader.readUnsignedInt(),
           start = footerReader.readUnsignedInt()
         )
@@ -272,7 +272,7 @@ case class SegmentFooterBlock(offset: SegmentFooterBlockOffset,
                               headerSize: Int,
                               compressionInfo: Option[BlockCompressionInfo],
                               valuesOffset: Option[ValuesBlock.Offset],
-                              sortedIndexOffset: SortedIndexBlock.Offset,
+                              sortedIndexOffset: SortedIndexBlockOffset,
                               hashIndexOffset: Option[HashIndexBlockOffset],
                               binarySearchIndexOffset: Option[BinarySearchIndexBlockOffset],
                               bloomFilterOffset: Option[BloomFilterBlockOffset],

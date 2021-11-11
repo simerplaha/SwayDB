@@ -24,7 +24,7 @@ import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.Benchmark
@@ -145,7 +145,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 getBlocksSingle(
                   keyValues = keyValues,
                   sortedIndexConfig =
-                    SortedIndexBlock.Config.random.copy(
+                    SortedIndexBlockConfig.random.copy(
                       shouldPrefixCompress = _ => randomBoolean(),
                       enablePrefixCompression = false,
                       normaliseIndex = false
@@ -228,7 +228,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       compressions = _ => compressions
                     ),
                   sortedIndexConfig =
-                    SortedIndexBlock.Config.random.copy(
+                    SortedIndexBlockConfig.random.copy(
                       shouldPrefixCompress = _ => randomBoolean(),
                       enablePrefixCompression = false,
                       normaliseIndex = false
@@ -496,7 +496,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       compressions = _ => compressions.head
                     ),
                   sortedIndexConfig =
-                    SortedIndexBlock.Config(
+                    SortedIndexBlockConfig(
                       ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
                       shouldPrefixCompress = _ => randomBoolean(),
                       enablePrefixCompression = randomBoolean(),

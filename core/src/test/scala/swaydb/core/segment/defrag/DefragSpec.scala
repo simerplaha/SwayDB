@@ -28,7 +28,7 @@ import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfi
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -53,7 +53,7 @@ class PersistentSegment_DefragSpec extends DefragSpec[PersistentSegment, Persist
   override implicit def mergeStatsCreator: MergeStatsCreator[MergeStats.Persistent.Builder[Memory, ListBuffer]] =
     MergeStatsCreator.PersistentCreator
 
-  override implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlock.Config): MergeStatsSizeCalculator[MergeStats.Persistent.Builder[Memory, ListBuffer]] =
+  override implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig): MergeStatsSizeCalculator[MergeStats.Persistent.Builder[Memory, ListBuffer]] =
     MergeStatsSizeCalculator.persistentSizeCalculator(sortedIndexConfig)
 }
 
@@ -73,7 +73,7 @@ class MemorySegment_DefragSpec extends DefragSpec[MemorySegment, MemorySegmentOp
   override implicit def mergeStatsCreator: MergeStatsCreator[MergeStats.Memory.Builder[Memory, ListBuffer]] =
     MergeStatsCreator.MemoryCreator
 
-  override implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlock.Config): MergeStatsSizeCalculator[MergeStats.Memory.Builder[Memory, ListBuffer]] =
+  override implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig): MergeStatsSizeCalculator[MergeStats.Memory.Builder[Memory, ListBuffer]] =
     MergeStatsSizeCalculator.MemoryCreator
 }
 
@@ -87,7 +87,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
   implicit val timerOrder = TimeOrder.long
 
   implicit def valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
-  implicit def sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+  implicit def sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
   implicit def binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
   implicit def hashIndexConfig: HashIndexConfig = HashIndexConfig.random
   implicit def bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
@@ -96,7 +96,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
   def testSegment(keyValues: Slice[Memory] = randomizedKeyValues())(implicit sweeper: TestCaseSweeper): SEG
   def nullSegment: NULL_SEG
   implicit def mergeStatsCreator: MergeStatsCreator[S]
-  implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlock.Config): MergeStatsSizeCalculator[S]
+  implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig): MergeStatsSizeCalculator[S]
 
   "defrag" when {
     "there are no gaps" when {
@@ -221,7 +221,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
               val tailGap = testSegment(keyValues.drop(51).flatten) //make tail large so that it does not get expanded
 
               implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
-              implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+              implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
               implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
               implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
               implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random

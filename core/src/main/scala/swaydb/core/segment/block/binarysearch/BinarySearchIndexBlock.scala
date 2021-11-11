@@ -20,7 +20,7 @@ import swaydb.IO
 import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset, SortedIndexBlockSecondaryIndexEntry, SortedIndexBlockState}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.util.MinMax
 import swaydb.data.config.UncompressedBlockInfo
@@ -34,7 +34,7 @@ private[core] case object BinarySearchIndexBlock {
 
   val blockName = this.productPrefix
 
-  def init(sortedIndexState: SortedIndexBlock.State,
+  def init(sortedIndexState: SortedIndexBlockState,
            binarySearchConfig: BinarySearchIndexConfig): Option[BinarySearchIndexState] = {
 
     if (!binarySearchConfig.enabled ||
@@ -140,7 +140,7 @@ private[core] case object BinarySearchIndexBlock {
     )
   }
 
-  def write(entry: SortedIndexBlock.SecondaryIndexEntry,
+  def write(entry: SortedIndexBlockSecondaryIndexEntry,
             state: BinarySearchIndexState): Unit =
     write(
       indexOffset = entry.indexOffset,
@@ -219,7 +219,7 @@ private[core] case object BinarySearchIndexBlock {
                                               highest: PersistentOption,
                                               keyValuesCount: => Int,
                                               binarySearchIndex: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
-                                              sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                              sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                                               valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Persistent.Partial],
                                                                                                               keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOption = {
     val isFullIndex = binarySearchIndex == null || binarySearchIndex.block.isFullIndex
@@ -291,7 +291,7 @@ private[core] case object BinarySearchIndexBlock {
                                 highest: PersistentOption,
                                 keyValuesCount: => Int,
                                 binarySearchIndex: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
-                                sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                                 valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                 partialOrder: KeyOrder[Persistent.Partial]): BinarySearchLowerResult.Some = {
 
@@ -420,7 +420,7 @@ private[core] case object BinarySearchIndexBlock {
              highest: PersistentOption,
              keyValuesCount: => Int,
              binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
-             sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+             sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                    partialKeyOrder: KeyOrder[Persistent.Partial]): Persistent.PartialOption =
     if (sortedIndexReader.block.isBinarySearchable) {
@@ -493,7 +493,7 @@ private[core] case object BinarySearchIndexBlock {
                    end: PersistentOption,
                    keyValuesCount: => Int,
                    binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
-                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                   sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                          partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOption = {
     val startFrom =
@@ -519,7 +519,7 @@ private[core] case object BinarySearchIndexBlock {
                                            lower: PersistentOption,
                                            got: PersistentOption,
                                            end: PersistentOption,
-                                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                           sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                                            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]): PersistentOption = {
     val next =
       if (end.existsS(end => lower.existsS(_.nextIndexOffset == end.indexOffset)))
@@ -543,7 +543,7 @@ private[core] case object BinarySearchIndexBlock {
                   end: PersistentOption,
                   keyValuesCount: Int,
                   binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
-                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                  sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                         partialOrdering: KeyOrder[Persistent.Partial]): PersistentOption =
     if (sortedIndexReader.block.isBinarySearchable) {

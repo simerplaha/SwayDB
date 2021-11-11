@@ -12,7 +12,7 @@ import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfi
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.sweeper.MemorySweeper
@@ -156,7 +156,7 @@ class SegmentBlockCacheSpec extends TestBase {
               getSegmentBlockCacheSingle(
                 keyValues = keyValues,
                 valuesConfig = ValuesBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
-                sortedIndexConfig = SortedIndexBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
+                sortedIndexConfig = SortedIndexBlockConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
                 binarySearchIndexConfig = BinarySearchIndexConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
                 hashIndexConfig = HashIndexConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
                 bloomFilterConfig = BloomFilterConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
@@ -233,7 +233,7 @@ class SegmentBlockCacheSpec extends TestBase {
               getSegmentBlockCacheSingle(
                 keyValues,
                 valuesConfig = ValuesBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
-                sortedIndexConfig = SortedIndexBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
+                sortedIndexConfig = SortedIndexBlockConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
                 binarySearchIndexConfig = BinarySearchIndexConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
                 hashIndexConfig = HashIndexConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
                 bloomFilterConfig = BloomFilterConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
@@ -333,7 +333,7 @@ class SegmentBlockCacheSpec extends TestBase {
               TestSegment(
                 keyValues = keyValues,
                 valuesConfig = ValuesBlock.Config.random(hasCompression = false, cacheOnAccess = false),
-                sortedIndexConfig = SortedIndexBlock.Config.random(hasCompression = false, cacheOnAccess = false),
+                sortedIndexConfig = SortedIndexBlockConfig.random(hasCompression = false, cacheOnAccess = false),
                 binarySearchIndexConfig = BinarySearchIndexConfig.random(hasCompression = false, cacheOnAccess = false),
                 hashIndexConfig = HashIndexConfig.random(hasCompression = false, cacheOnAccess = false),
                 bloomFilterConfig = BloomFilterConfig.random(hasCompression = false, cacheOnAccess = false),

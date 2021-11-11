@@ -39,7 +39,7 @@ import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
 import swaydb.core.segment.block.hashindex.HashIndexConfig
 import swaydb.core.segment.block.segment.SegmentBlockConfig
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{PersistentSegment, Segment}
@@ -231,7 +231,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               createdInLevel: Int = 1,
               path: Path = testSegmentFile,
               valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
-              sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+              sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
               binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
               hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
               bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
@@ -271,7 +271,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
             createdInLevel: Int = 1,
             path: Path = testSegmentFile,
             valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
-            sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+            sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
             binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
             hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
             bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
@@ -306,7 +306,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     def many(createdInLevel: Int = 1,
              keyValues: Slice[Memory] = randomizedKeyValues()(TestTimer.Incremental()),
              valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
-             sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+             sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
              binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
              hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
              bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
@@ -382,7 +382,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               nextLevel: Option[NextLevel] = None,
               throttle: LevelMeter => LevelThrottle = testDefaultThrottle,
               valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
-              sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+              sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
               binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
               hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
               bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
@@ -856,7 +856,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                        testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false,
                        valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
-                       sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                       sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
                        binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                        hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
                        bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,

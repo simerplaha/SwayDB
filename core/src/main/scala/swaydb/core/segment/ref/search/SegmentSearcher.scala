@@ -20,7 +20,7 @@ import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -29,7 +29,7 @@ private[core] trait SegmentSearcher {
 
   def searchSequential(key: Slice[Byte],
                        start: PersistentOption,
-                       sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                       sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                              partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOption
 
@@ -38,7 +38,7 @@ private[core] trait SegmentSearcher {
                    end: => PersistentOption,
                    hashIndexReaderOrNull: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
                    binarySearchIndexReaderOrNull: => UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
-                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                   sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                    hasRange: Boolean,
                    keyValueCount: => Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -49,13 +49,13 @@ private[core] trait SegmentSearcher {
                            end: PersistentOption,
                            keyValueCount: => Int,
                            binarySearchIndexReaderOrNull: => UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
-                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                           sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                  partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOption
 
   def searchHigherSequentially(key: Slice[Byte],
                                start: PersistentOption,
-                               sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                               sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                      partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOption
 
@@ -64,7 +64,7 @@ private[core] trait SegmentSearcher {
                   end: PersistentOption,
                   keyValueCount: Int,
                   binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
-                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                  sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                         partialOrdering: KeyOrder[Persistent.Partial]): PersistentOption
 }
@@ -81,7 +81,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
 
   def searchSequential(key: Slice[Byte],
                        start: PersistentOption,
-                       sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                       sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                              partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOption =
     if (start.isSomeS)
@@ -105,7 +105,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
                    end: => PersistentOption,
                    hashIndexReaderOrNull: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
                    binarySearchIndexReaderOrNull: => UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
-                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                   sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                    hasRange: Boolean,
                    keyValueCount: => Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -153,7 +153,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
 
   def searchHigherSequentially(key: Slice[Byte],
                                start: PersistentOption,
-                               sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                               sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                      partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOption =
     if (start.isSomeS)
@@ -184,7 +184,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
                            end: PersistentOption,
                            keyValueCount: => Int,
                            binarySearchIndexReaderOrNull: => UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
-                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                           sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                  partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOption =
     BinarySearchIndexBlock.searchHigher(
@@ -202,7 +202,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
                   end: PersistentOption,
                   keyValueCount: Int,
                   binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
-                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                  sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                         partialOrdering: KeyOrder[Persistent.Partial]): PersistentOption =
     if (sortedIndexReader.block.optimiseForReverseIteration && !sortedIndexReader.block.hasPrefixCompression && end.isSomeS && keyOrder.equiv(key, end.getS.key))

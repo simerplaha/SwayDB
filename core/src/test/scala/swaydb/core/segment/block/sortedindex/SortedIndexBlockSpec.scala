@@ -52,7 +52,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
         //test via User created object.
         val configFromUserConfig =
-          SortedIndexBlock.Config(
+          SortedIndexBlockConfig(
             swaydb.data.config.SortedIndex.On(
               prefixCompression = prefixCompression,
               enablePositionIndex = randomBoolean(),
@@ -72,7 +72,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
         //internal creation
         val internalConfig =
-          SortedIndexBlock.Config(
+          SortedIndexBlockConfig(
             ioStrategy = _ => randomIOStrategy(),
             //prefix compression is enabled, so normaliseIndex even though true will set to false in the Config.
             shouldPrefixCompress = prefixCompression.interval.shouldCompress,
@@ -95,7 +95,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
         //use created config
         val configFromUserConfig =
-          SortedIndexBlock.Config(
+          SortedIndexBlockConfig(
             swaydb.data.config.SortedIndex.On(
               prefixCompression = prefixCompression,
               enablePositionIndex = randomBoolean(),
@@ -114,7 +114,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
         //internal creation
         val internalConfig =
-          SortedIndexBlock.Config(
+          SortedIndexBlockConfig(
             ioStrategy = _ => randomIOStrategy(),
             //prefix compression is disabled, normaliseIndex will always return true.
             shouldPrefixCompress = _ => false,
@@ -135,7 +135,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
   "init" should {
     "initialise index" in {
       runThis(100.times, log = true) {
-        val sortedIndexConfig = SortedIndexBlock.Config.random
+        val sortedIndexConfig = SortedIndexBlockConfig.random
         val valuesConfig = ValuesBlock.Config.random
         val keyValues = Benchmark("Generating key-values")(
           MergeStats
@@ -161,7 +161,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
   "write, close, readAll & get" in {
     runThis(100.times, log = true) {
-      val sortedIndexConfig = SortedIndexBlock.Config.random
+      val sortedIndexConfig = SortedIndexBlockConfig.random
       val valuesConfig = ValuesBlock.Config.random
       val stats =
         Benchmark("Generating key-values") {
@@ -193,7 +193,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       //      println
 
       val closedSortedIndexBlock = SortedIndexBlock.close(sortedIndex)
-      val ref = BlockRefReader[SortedIndexBlock.Offset](closedSortedIndexBlock.blockBytes)
+      val ref = BlockRefReader[SortedIndexBlockOffset](closedSortedIndexBlock.blockBytes)
       val header = Block.readHeader(ref.copy())
       val sortedIndexBlock = SortedIndexBlock.read(header)
 

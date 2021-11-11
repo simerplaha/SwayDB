@@ -18,7 +18,7 @@ package swaydb.core.merge.stats
 
 import swaydb.core.data.Memory
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 
 import scala.collection.mutable.ListBuffer
 
@@ -32,7 +32,7 @@ sealed trait MergeStatsSizeCalculator[S >: Null] {
 
 object MergeStatsSizeCalculator {
 
-  implicit def persistentSizeCalculator(implicit sortedIndexConfig: SortedIndexBlock.Config): PersistentSizeCalculator =
+  implicit def persistentSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig): PersistentSizeCalculator =
     new PersistentSizeCalculator()
 
   /**
@@ -43,7 +43,7 @@ object MergeStatsSizeCalculator {
    * Logic is - MergeStats is considered small if it's sortedIndex size is less than half
    * the size of [[swaydb.data.config.SegmentConfig.minSegmentSize]].
    */
-  class PersistentSizeCalculator(implicit sortedIndexConfig: SortedIndexBlock.Config) extends MergeStatsSizeCalculator[MergeStats.Persistent.Builder[Memory, ListBuffer]] {
+  class PersistentSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig) extends MergeStatsSizeCalculator[MergeStats.Persistent.Builder[Memory, ListBuffer]] {
 
     override def isStatsOrNullSmall(statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer])(implicit segmentConfig: SegmentBlockConfig): Boolean =
       if (statsOrNull == null || statsOrNull.isEmpty) {

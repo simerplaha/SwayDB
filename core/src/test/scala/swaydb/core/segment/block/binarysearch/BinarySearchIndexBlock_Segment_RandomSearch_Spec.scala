@@ -22,7 +22,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, PersistentOption}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}
 import swaydb.testkit.RunThis._
 import swaydb.data.order.KeyOrder
@@ -64,7 +64,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
         keyValues = keyValues,
         useCacheableReaders = randomBoolean(),
         sortedIndexConfig =
-          SortedIndexBlock.Config.random.copy(
+          SortedIndexBlockConfig.random.copy(
             //            normaliseIndex = true,
             shouldPrefixCompress = eitherOne(_ => false, _ => true, _ => randomBoolean())
             //            enablePartialRead = true,

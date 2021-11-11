@@ -21,7 +21,7 @@ import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset, SortedIndexBlockSecondaryIndexEntry, SortedIndexBlockState}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.{HashIndex, UncompressedBlockInfo}
@@ -38,7 +38,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
 
   val blockName = this.productPrefix
 
-  def init(sortedIndexState: SortedIndexBlock.State,
+  def init(sortedIndexState: SortedIndexBlockState,
            hashIndexConfig: HashIndexConfig): Option[HashIndexState] =
     if (sortedIndexState.uncompressedPrefixCount < hashIndexConfig.minimumNumberOfKeys) {
       None
@@ -199,7 +199,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
                          hashMaxOffset: Int) =
     Math.abs(hash) % hashMaxOffset
 
-  def write(entry: SortedIndexBlock.SecondaryIndexEntry,
+  def write(entry: SortedIndexBlockSecondaryIndexEntry,
             state: HashIndexState): Boolean =
     state.format match {
       case HashIndexEntryFormat.Reference =>
@@ -284,7 +284,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
   private[block] def searchReference(key: Slice[Byte],
                                      comparableKey: Slice[Byte],
                                      hashIndexReader: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
-                                     sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                     sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                                      valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOption = {
 
     val hash = comparableKey.hashCode()
@@ -407,7 +407,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
   private[block] def searchCopy(key: Slice[Byte],
                                 comparableKey: Slice[Byte],
                                 hasIndexReader: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
-                                sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                                 valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOption = {
 
     val hash = comparableKey.hashCode()
@@ -459,7 +459,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
 
   def search(key: Slice[Byte],
              hashIndexReader: UnblockedReader[HashIndexBlockOffset, HashIndexBlock],
-             sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+             sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOption =
     if (hashIndexReader.block.format.isCopy)
       searchCopy(

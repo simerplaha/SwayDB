@@ -28,18 +28,19 @@ sealed trait SortedIndexEntryParser[T] {
             headerInteger: Int,
             tailBytes: Slice[Byte],
             previous: PersistentOption,
-            sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+            sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): T
 
 }
 
 object SortedIndexEntryParser {
+
   final object PartialEntry extends SortedIndexEntryParser[Persistent.Partial] {
     override def parse(readPosition: Int,
                        headerInteger: Int,
                        tailBytes: Slice[Byte],
                        previous: PersistentOption,
-                       sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                       sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial =
       PersistentParser.parsePartial(
         offset = readPosition,
@@ -55,7 +56,7 @@ object SortedIndexEntryParser {
                        headerInteger: Int,
                        tailBytes: Slice[Byte],
                        previous: PersistentOption,
-                       sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                       sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =
       PersistentParser.parse(
         headerInteger = headerInteger,

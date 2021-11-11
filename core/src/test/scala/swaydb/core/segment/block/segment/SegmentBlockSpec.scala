@@ -25,7 +25,7 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
@@ -51,7 +51,7 @@ class SegmentBlockSpec extends TestBase {
 
   "SegmentBlock" should {
     "convert empty KeyValues and not throw exception but return empty bytes" in {
-      val sortedIndexConfig = SortedIndexBlock.Config.random
+      val sortedIndexConfig = SortedIndexBlockConfig.random
 
       val closedSegment =
         SegmentBlock.writeOneOrMany(

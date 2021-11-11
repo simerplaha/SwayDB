@@ -20,7 +20,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.Persistent
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}
 import swaydb.testkit.RunThis._
 import swaydb.data.order.KeyOrder
@@ -55,7 +55,7 @@ class HashIndexBlockSpec extends TestBase {
               keyValues = keyValues,
               useCacheableReaders = randomBoolean(),
               sortedIndexConfig =
-                SortedIndexBlock.Config(
+                SortedIndexBlockConfig(
                   ioStrategy = _ => randomIOStrategy(),
                   enablePrefixCompression = false,
                   shouldPrefixCompress = _ => randomBoolean(),

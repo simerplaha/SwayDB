@@ -34,7 +34,7 @@ import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.defrag.DefragPersistentSegment
 import swaydb.core.segment.io.SegmentReadIO
@@ -111,7 +111,7 @@ protected case object PersistentSegmentOne {
             keyValueCount: Int,
             createdInLevel: Int,
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-            sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+            sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]],
             hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
             binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
             bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
@@ -312,7 +312,7 @@ protected case class PersistentSegmentOne(file: DBFile,
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
-          sortedIndexConfig: SortedIndexBlock.Config,
+          sortedIndexConfig: SortedIndexBlockConfig,
           binarySearchIndexConfig: BinarySearchIndexConfig,
           hashIndexConfig: HashIndexConfig,
           bloomFilterConfig: BloomFilterConfig,
@@ -324,7 +324,7 @@ protected case class PersistentSegmentOne(file: DBFile,
                               compactionIO: CompactionIO.Actor,
                               compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]] = {
     implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
-    implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
+    implicit val sortedIndexConfigImplicit: SortedIndexBlockConfig = sortedIndexConfig
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
     implicit val hashIndexConfigImplicit: HashIndexConfig = hashIndexConfig
     implicit val bloomFilterConfigImplicit: BloomFilterConfig = bloomFilterConfig
@@ -347,7 +347,7 @@ protected case class PersistentSegmentOne(file: DBFile,
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
               valuesConfig: ValuesBlock.Config,
-              sortedIndexConfig: SortedIndexBlock.Config,
+              sortedIndexConfig: SortedIndexBlockConfig,
               binarySearchIndexConfig: BinarySearchIndexConfig,
               hashIndexConfig: HashIndexConfig,
               bloomFilterConfig: BloomFilterConfig,

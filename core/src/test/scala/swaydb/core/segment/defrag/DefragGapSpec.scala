@@ -26,7 +26,7 @@ import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCal
 import swaydb.core.segment._
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -51,7 +51,7 @@ class PersistentSegment_DefragGapSpec extends DefragGapSpec[PersistentSegment, P
   override implicit def mergeStatsCreator: MergeStatsCreator[MergeStats.Persistent.Builder[Memory, ListBuffer]] =
     MergeStatsCreator.PersistentCreator
 
-  override implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlock.Config): MergeStatsSizeCalculator[MergeStats.Persistent.Builder[Memory, ListBuffer]] =
+  override implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig): MergeStatsSizeCalculator[MergeStats.Persistent.Builder[Memory, ListBuffer]] =
     MergeStatsSizeCalculator.persistentSizeCalculator(sortedIndexConfig)
 }
 
@@ -71,7 +71,7 @@ class MemorySegment_DefragGapSpec extends DefragGapSpec[MemorySegment, MemorySeg
   override implicit def mergeStatsCreator: MergeStatsCreator[MergeStats.Memory.Builder[Memory, ListBuffer]] =
     MergeStatsCreator.MemoryCreator
 
-  override implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlock.Config): MergeStatsSizeCalculator[MergeStats.Memory.Builder[Memory, ListBuffer]] =
+  override implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig): MergeStatsSizeCalculator[MergeStats.Memory.Builder[Memory, ListBuffer]] =
     MergeStatsSizeCalculator.MemoryCreator
 }
 
@@ -85,7 +85,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
   def testSegment(keyValues: Slice[Memory] = randomizedKeyValues())(implicit sweeper: TestCaseSweeper): SEG
   def nullSegment: NULL_SEG
   implicit def mergeStatsCreator: MergeStatsCreator[S]
-  implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlock.Config): MergeStatsSizeCalculator[S]
+  implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig): MergeStatsSizeCalculator[S]
 
   "add Segments" when {
     "there is no head MergeStats and no next and removeDeletes is false" in {
@@ -94,7 +94,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
 
           val segments: ListBuffer[SEG] = ListBuffer.range(1, 5).map(_ => testSegment())
 
-          implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+          implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = segments.map(_.segmentSize).min)
 
           val resultBuffer =
@@ -125,7 +125,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
       TestCaseSweeper {
         implicit sweeper =>
 
-          implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+          implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           //small minSize so that the size of head key-values is always considered large.
           implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = 1.byte)
 
@@ -180,7 +180,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
             val segments = ListBuffer.range(0, 5).map(_ => TestSegment.one(randomPutKeyValues(20)))
             segments should have size 5
 
-            implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+            implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
             //set size to be small enough so that head segment gets merged.
             implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = segments.map(_.segmentSize).min, maxCount = Int.MaxValue)
 
@@ -270,7 +270,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
                 manySegment.head.isInstanceOf[PersistentSegmentMany] shouldBe true
                 manySegment.head.asInstanceOf[PersistentSegmentMany].segmentRefs(randomBoolean()) should have size 20
 
-                implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+                implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
                 //set size to be small enough so that head segment gets merged.
                 implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = manySegment.head.segmentSize, maxCount = 5)
 
@@ -353,7 +353,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
 
                 val segmentRefs = manySegment.head.asInstanceOf[PersistentSegmentMany].segmentRefs(randomBoolean()).toList
 
-                implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+                implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
                 //set size to be small enough so that head segment gets merged.
                 implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = 5)
 
@@ -432,7 +432,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
               val segments = ListBuffer.range(0, 5).map(_ => TestSegment(keyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.update(3))))
               segments.foreach(_.hasUpdateOrRange shouldBe true)
 
-              implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+              implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
               implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
               val resultFragments =
