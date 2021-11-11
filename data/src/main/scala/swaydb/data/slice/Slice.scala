@@ -355,7 +355,7 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
   }
 
   @tailrec
-  final def addAllOrNew(items: scala.collection.compat.IterableOnce[T]@uncheckedVariance, expandBy: Int): Slice[T] =
+  def addAllOrNew(items: scala.collection.compat.IterableOnce[T]@uncheckedVariance, expandBy: Int): Slice[T] =
     items match {
       case array: mutable.WrappedArray[T] =>
         if (hasSpace(array.length)) {
@@ -769,123 +769,123 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
       written = written
     )
 
-  @inline final def addBoolean[B >: T](bool: Boolean)(implicit byteOps: ByteOps[B]): Slice[T] = {
+  @inline def addBoolean[B >: T](bool: Boolean)(implicit byteOps: ByteOps[B]): Slice[T] = {
     byteOps.writeBoolean(bool, self)
     self
   }
 
-  @inline final def readBoolean[B >: T]()(implicit byteOps: ByteOps[B]): Boolean =
+  @inline def readBoolean[B >: T]()(implicit byteOps: ByteOps[B]): Boolean =
     byteOps.readBoolean(self)
 
-  @inline final def addInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
+  @inline def addInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
     byteOps.writeInt(integer, self)
     self
   }
 
-  @inline final def readInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
+  @inline def readInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
     byteOps.readInt(self)
 
-  @inline final def dropUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Slice[T] = {
+  @inline def dropUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Slice[T] = {
     val (_, byteSize) = readUnsignedIntWithByteSize[B]()
     self drop byteSize
   }
 
-  @inline final def addSignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
+  @inline def addSignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
     byteOps.writeSignedInt(integer, self)
     self
   }
 
-  @inline final def readSignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
+  @inline def readSignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
     byteOps.readSignedInt(self)
 
-  @inline final def addUnsignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
+  @inline def addUnsignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
     byteOps.writeUnsignedInt(integer, self)
     self
   }
 
-  @inline final def addNonZeroUnsignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
+  @inline def addNonZeroUnsignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
     byteOps.writeUnsignedIntNonZero(integer, self)
     self
   }
 
-  @inline final def readUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
+  @inline def readUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
     byteOps.readUnsignedInt(self)
 
-  @inline final def readUnsignedIntWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Int, Int) =
+  @inline def readUnsignedIntWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Int, Int) =
     byteOps.readUnsignedIntWithByteSize(self)
 
-  @inline final def readNonZeroUnsignedIntWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Int, Int) =
+  @inline def readNonZeroUnsignedIntWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Int, Int) =
     byteOps.readUnsignedIntNonZeroWithByteSize(self)
 
-  @inline final def addLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
+  @inline def addLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
     byteOps.writeLong(num, self)
     self
   }
 
-  @inline final def readLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
+  @inline def readLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
     byteOps.readLong(self)
 
-  @inline final def addUnsignedLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
+  @inline def addUnsignedLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
     byteOps.writeUnsignedLong(num, self)
     self
   }
 
-  @inline final def readUnsignedLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
+  @inline def readUnsignedLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
     byteOps.readUnsignedLong(self)
 
-  @inline final def readUnsignedLongWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Long, Int) =
+  @inline def readUnsignedLongWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Long, Int) =
     byteOps.readUnsignedLongWithByteSize(self)
 
-  @inline final def readUnsignedLongByteSize[B >: T]()(implicit byteOps: ByteOps[B]): Int =
+  @inline def readUnsignedLongByteSize[B >: T]()(implicit byteOps: ByteOps[B]): Int =
     byteOps.readUnsignedLongByteSize(self)
 
-  @inline final def addSignedLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
+  @inline def addSignedLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
     byteOps.writeSignedLong(num, self)
     self
   }
 
-  @inline final def readSignedLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
+  @inline def readSignedLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
     byteOps.readSignedLong(self)
 
-  @inline final def addString[B >: T](string: String, charsets: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): Slice[T] = {
+  @inline def addString[B >: T](string: String, charsets: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): Slice[T] = {
     byteOps.writeString(string, self, charsets)
     self
   }
 
-  @inline final def addStringUTF8[B >: T](string: String)(implicit byteOps: ByteOps[B]): Slice[T] = {
+  @inline def addStringUTF8[B >: T](string: String)(implicit byteOps: ByteOps[B]): Slice[T] = {
     byteOps.writeString(string, self, StandardCharsets.UTF_8)
     self
   }
 
-  @inline final def addStringUTF8WithSize[B >: T](string: String)(implicit byteOps: ByteOps[B]): Slice[T] = {
+  @inline def addStringUTF8WithSize[B >: T](string: String)(implicit byteOps: ByteOps[B]): Slice[T] = {
     byteOps.writeStringWithSize(string, self, StandardCharsets.UTF_8)
     self
   }
 
-  @inline final def readString[B >: T](charset: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): String =
+  @inline def readString[B >: T](charset: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): String =
     byteOps.readString(self, charset)
 
-  @inline final def readStringUTF8[B >: T]()(implicit byteOps: ByteOps[B]): String =
+  @inline def readStringUTF8[B >: T]()(implicit byteOps: ByteOps[B]): String =
     byteOps.readString(self, StandardCharsets.UTF_8)
 
-  @inline final def createReader[B >: T]()(implicit byteOps: ByteOps[B]): SliceReader[B] =
+  @inline def createReader[B >: T]()(implicit byteOps: ByteOps[B]): SliceReader[B] =
     SliceReader[B](self)
 
-  @inline final def append[B >: T : ClassTag](tail: Slice[B]): Slice[B] = {
+  @inline def append[B >: T : ClassTag](tail: Slice[B]): Slice[B] = {
     val merged = Slice.of[B](self.size + tail.size)
     merged addAll self
     merged addAll tail
     merged
   }
 
-  @inline final def append[B >: T : ClassTag](last: B): Slice[B] = {
+  @inline def append[B >: T : ClassTag](last: B): Slice[B] = {
     val merged = Slice.of[B](self.size + 1)
     merged addAll self
     merged add last
     merged
   }
 
-  @inline final def prepend[B >: T : ClassTag](head: B): Slice[B] = {
+  @inline def prepend[B >: T : ClassTag](head: B): Slice[B] = {
     val merged = Slice.of[B](self.size + 1)
     merged add head
     merged addAll self
