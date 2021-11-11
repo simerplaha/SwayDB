@@ -25,7 +25,7 @@ import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.log.counter.CounterLog
 import swaydb.core.log.{Log, Logs}
 import swaydb.core.segment.Segment
-import swaydb.core.segment.block.BlockCache
+import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.data.cache.{Cache, CacheNoIO}
@@ -58,7 +58,7 @@ object TestCaseSweeper extends LazyLogging {
       fileSweepers = ListBuffer(Cache.noIO[Unit, FileSweeper.On](true, true, None)((_, _) => createFileSweeper())),
       cleaners = ListBuffer(Cache.noIO[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner())),
       compactionIOActors = ListBuffer(Cache.noIO[Unit, CompactionIO.Actor](true, true, None)((_, _) => CompactionIO.create()(TestExecutionContext.executionContext))),
-      blockCaches = ListBuffer(Cache.noIO[Unit, Option[BlockCache.State]](true, true, None)((_, _) => createBlockCacheRandom())),
+      blockCaches = ListBuffer(Cache.noIO[Unit, Option[BlockCacheState]](true, true, None)((_, _) => createBlockCacheRandom())),
       allMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.All]](true, true, None)((_, _) => createMemorySweeperMax())),
       keyValueMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.KeyValue]](true, true, None)((_, _) => createMemorySweeperRandom())),
       blockMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.Block]](true, true, None)((_, _) => createMemoryBlockSweeper())),
@@ -200,8 +200,8 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepMemorySweeper keyValue
   }
 
-  implicit class BlockCacheStateSweeperImplicits(state: BlockCache.State) {
-    def sweep()(implicit sweeper: TestCaseSweeper): BlockCache.State =
+  implicit class BlockCacheStateSweeperImplicits(state: BlockCacheState) {
+    def sweep()(implicit sweeper: TestCaseSweeper): BlockCacheState =
       sweeper sweepBlockCacheState state
   }
 
@@ -268,7 +268,7 @@ object TestCaseSweeper extends LazyLogging {
 class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeper.On]],
                       private val cleaners: ListBuffer[CacheNoIO[Unit, ByteBufferSweeperActor]],
                       private val compactionIOActors: ListBuffer[CacheNoIO[Unit, CompactionIO.Actor]],
-                      private val blockCaches: ListBuffer[CacheNoIO[Unit, Option[BlockCache.State]]],
+                      private val blockCaches: ListBuffer[CacheNoIO[Unit, Option[BlockCacheState]]],
                       private val allMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.All]]],
                       private val keyValueMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.KeyValue]]],
                       private val blockMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.Block]]],
@@ -289,7 +289,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
   implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.On
   implicit lazy val fileSweeper: FileSweeper.On = fileSweepers.head.value(())
   implicit lazy val cleaner: ByteBufferSweeperActor = cleaners.head.value(())
-  implicit lazy val blockCache: Option[BlockCache.State] = blockCaches.head.value(())
+  implicit lazy val blockCache: Option[BlockCacheState] = blockCaches.head.value(())
   implicit lazy val compactionIOActor: CompactionIO.Actor = compactionIOActors.head.value(())
 
   //MemorySweeper.All can also be set which means other sweepers will search for dedicated sweepers first and
@@ -362,7 +362,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
   def sweepMemorySweeper(sweeper: MemorySweeper.All): MemorySweeper.All =
     removeReplaceOptionalCache(allMemorySweepers, sweeper)
 
-  def sweepBlockCacheState(state: BlockCache.State): BlockCache.State =
+  def sweepBlockCacheState(state: BlockCacheState): BlockCacheState =
     removeReplaceOptionalCache(blockCaches, state)
 
   def sweepBufferCleaner(bufferCleaner: ByteBufferSweeperActor): ByteBufferSweeperActor =

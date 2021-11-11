@@ -35,7 +35,7 @@ class BlockCacheSpec extends TestBase with MockFactory {
     val bytes = randomBytesSlice(1000)
     val blockSize = 10
 
-    def createTestData(): (BlockCacheSource, BlockCache.State) = {
+    def createTestData(): (BlockCacheSource, BlockCacheState) = {
       val file =
         new BlockCacheSource {
           override def blockCacheMaxBytes: Long =

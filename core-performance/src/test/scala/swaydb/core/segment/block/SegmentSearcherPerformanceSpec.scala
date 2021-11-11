@@ -31,7 +31,7 @@
 //
 //class SegmentSearcherPerformanceSpec extends TestBase with MockFactory {
 //  implicit val order = KeyOrder.default
-//  implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
+//  implicit def blockCache: Option[BlockCacheState] = TestSweeper.randomBlockCache
 //
 //  "search performance" in {
 //    val compressions = Slice.fill(5)(randomCompressionsOrEmpty())

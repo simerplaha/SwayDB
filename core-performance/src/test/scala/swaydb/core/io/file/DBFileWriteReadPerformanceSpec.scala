@@ -17,7 +17,7 @@
 package swaydb.core.io.file
 
 import swaydb.core.TestData._
-import swaydb.core.segment.block.BlockCache
+import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.block.reader.BlockRefReader
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
@@ -35,14 +35,14 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   implicit val memorySweeper = TestSweeper.createMemorySweeperMax()
   implicit val forceSave = ForceSaveApplier.On
 
-  //  implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
+  //  implicit def blockCache: Option[BlockCacheState] = TestSweeper.randomBlockCache
 
   "random access" in {
     TestCaseSweeper {
       implicit sweeper =>
         val bytes = randomBytesSlice(20.mb)
 
-        implicit val blockCache: Option[BlockCache.State] =
+        implicit val blockCache: Option[BlockCacheState] =
           BlockCache.forSearch(bytes.size, MemorySweeper.BlockSweeper(blockSize = 4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, false, actorConfig = None))
         //          None
 

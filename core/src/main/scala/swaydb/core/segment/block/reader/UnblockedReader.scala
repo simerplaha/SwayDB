@@ -17,7 +17,7 @@
 package swaydb.core.segment.block.reader
 
 import swaydb.core.io.reader.{FileReader, Reader}
-import swaydb.core.segment.block.{Block, BlockCache, BlockOffset, BlockOps}
+import swaydb.core.segment.block.{Block, BlockCache, BlockCacheState, BlockOffset, BlockOps}
 import swaydb.data.slice.{Reader, Slice, SliceReader}
 import swaydb.data.utils.ByteOps
 
@@ -83,7 +83,7 @@ private[core] object UnblockedReader {
 
 private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val block: B,
                                                                              val rootBlockRefOffset: BlockOffset,
-                                                                             val blockCache: Option[BlockCache.State],
+                                                                             val blockCache: Option[BlockCacheState],
                                                                              private[reader] val reader: Reader[Byte])(implicit val byteOps: ByteOps[Byte]) extends BlockReaderBase with UnblockedReaderOption[O, B] {
 
   val hasBlockCache: Boolean =

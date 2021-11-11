@@ -746,7 +746,7 @@ class Slice[@specialized(Byte) +T](array: Array[T],
       )
   }
 
-  def copy() =
+  def copy(): Slice[T] =
     new Slice[T](
       array = array,
       fromOffset = fromOffset,

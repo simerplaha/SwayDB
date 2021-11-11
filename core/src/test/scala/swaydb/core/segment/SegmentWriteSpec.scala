@@ -29,7 +29,7 @@ import swaydb.core.data._
 import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.MergeStats
-import swaydb.core.segment.block.BlockCache
+import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
@@ -599,7 +599,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
           //        implicit val fileSweeper = FileSweeper.Disabled
-          implicit val blockCache: Option[BlockCache.State] = None
+          implicit val blockCache: Option[BlockCacheState] = None
           implicit val fileSweeper = FileSweeper(50, ActorConfig.TimeLoop("", 10.seconds, TestExecutionContext.executionContext)).sweep()
 
           val keyValues = randomizedKeyValues(keyValuesCount)

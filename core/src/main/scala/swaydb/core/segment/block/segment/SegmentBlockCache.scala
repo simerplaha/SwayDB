@@ -26,7 +26,7 @@ import swaydb.core.segment.block.reader.{BlockRefReader, BlockedReader, Unblocke
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
-import swaydb.core.segment.block.{Block, BlockCache, BlockOffset, BlockOps}
+import swaydb.core.segment.block.{Block, BlockCache, BlockCacheState, BlockOffset, BlockOps}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.data.cache.{Cache, Lazy}
@@ -554,16 +554,16 @@ private[core] class SegmentBlockCache private(path: Path,
   def isCached: Boolean =
     allCaches.exists(_.isCached)
 
-  def isFooterDefined =
+  def isFooterDefined: Boolean =
     footerBlockCache.isCached
 
-  def isBloomFilterDefined =
+  def isBloomFilterDefined: Boolean =
     bloomFilterBlockCache.isCached
 
   def segmentSize: Int =
     segmentBlockRef.offset.size
 
-  def blockCache(): Option[BlockCache.State] =
+  def blockCache(): Option[BlockCacheState] =
     segmentBlockRef.blockCache
 
   invalidateCachedReaders()

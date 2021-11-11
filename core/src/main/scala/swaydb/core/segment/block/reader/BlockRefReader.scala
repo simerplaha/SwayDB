@@ -26,7 +26,7 @@ import swaydb.data.utils.ByteOps
 private[core] object BlockRefReader {
 
   def apply(file: DBFile,
-            blockCache: Option[BlockCache.State]): BlockRefReader[SegmentBlockOffset] = {
+            blockCache: Option[BlockCacheState]): BlockRefReader[SegmentBlockOffset] = {
     val offset = SegmentBlockOffset(0, file.fileSize.toInt)
 
     new BlockRefReader(
@@ -39,7 +39,7 @@ private[core] object BlockRefReader {
 
   def apply(file: DBFile,
             fileSize: Int,
-            blockCache: Option[BlockCache.State]): BlockRefReader[SegmentBlockOffset] = {
+            blockCache: Option[BlockCacheState]): BlockRefReader[SegmentBlockOffset] = {
     val offset = SegmentBlockOffset(0, fileSize)
 
     new BlockRefReader(
@@ -53,7 +53,7 @@ private[core] object BlockRefReader {
   def apply(file: DBFile,
             start: Int,
             fileSize: Int,
-            blockCache: Option[BlockCache.State]): BlockRefReader[SegmentBlockOffset] = {
+            blockCache: Option[BlockCacheState]): BlockRefReader[SegmentBlockOffset] = {
     val offset = SegmentBlockOffset(start, fileSize)
 
     new BlockRefReader(
@@ -81,7 +81,7 @@ private[core] object BlockRefReader {
   def moveTo[O <: BlockOffset, OO <: BlockOffset](start: Int,
                                                   size: Int,
                                                   reader: UnblockedReader[OO, _],
-                                                  blockCache: Option[BlockCache.State])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
+                                                  blockCache: Option[BlockCacheState])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader(
       offset = blockOps.createOffset(reader.offset.start + start, size),
       rootBlockRefOffset = reader.rootBlockRefOffset,
@@ -91,7 +91,7 @@ private[core] object BlockRefReader {
 
   def moveTo[O <: BlockOffset, OO <: BlockOffset](offset: O,
                                                   reader: UnblockedReader[OO, _],
-                                                  blockCache: Option[BlockCache.State])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
+                                                  blockCache: Option[BlockCacheState])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader(
       offset = blockOps.createOffset(reader.offset.start + offset.start, offset.size),
       rootBlockRefOffset = reader.rootBlockRefOffset,
@@ -109,7 +109,7 @@ private[core] object BlockRefReader {
    */
   def apply[O <: BlockOffset](ref: BlockRefReader[_ <: BlockOffset],
                               start: Int,
-                              blockCache: Option[BlockCache.State])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
+                              blockCache: Option[BlockCacheState])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader[O](
       offset = blockOps.createOffset(ref.offset.start + start, ref.size.toInt),
       rootBlockRefOffset = ref.rootBlockRefOffset,
@@ -120,7 +120,7 @@ private[core] object BlockRefReader {
   def apply[O <: BlockOffset](ref: BlockRefReader[_ <: BlockOffset],
                               start: Int,
                               size: Int,
-                              blockCache: Option[BlockCache.State])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
+                              blockCache: Option[BlockCacheState])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader[O](
       offset = blockOps.createOffset(ref.offset.start + start, size),
       rootBlockRefOffset = ref.rootBlockRefOffset,
@@ -129,7 +129,7 @@ private[core] object BlockRefReader {
     )
 
   def apply[O <: BlockOffset](reader: Reader[Byte],
-                              blockCache: Option[BlockCache.State])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] = {
+                              blockCache: Option[BlockCacheState])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] = {
     val offset = blockOps.createOffset(0, reader.size.toInt)
 
     new BlockRefReader(
@@ -143,7 +143,7 @@ private[core] object BlockRefReader {
 
 private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
                                                              val rootBlockRefOffset: BlockOffset,
-                                                             val blockCache: Option[BlockCache.State],
+                                                             val blockCache: Option[BlockCacheState],
                                                              private[reader] val reader: Reader[Byte])(implicit val byteOps: ByteOps[Byte]) extends BlockReaderBase {
 
   override def moveTo(newPosition: Long): BlockRefReader[O] = {

@@ -26,7 +26,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.BlockCache
+import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockConfig, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig, BloomFilterBlockOffset}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig, HashIndexBlockOffset}
@@ -116,7 +116,7 @@ protected case object PersistentSegmentOne {
             binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
             bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
             footerCacheable: Option[SegmentFooterBlock],
-            previousBlockCache: Option[BlockCache.State])(implicit keyOrder: KeyOrder[Slice[Byte]],
+            previousBlockCache: Option[BlockCacheState])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                           functionStore: FunctionStore,
                                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue],

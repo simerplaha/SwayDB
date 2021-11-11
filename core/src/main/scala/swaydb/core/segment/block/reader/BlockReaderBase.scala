@@ -17,7 +17,7 @@
 package swaydb.core.segment.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.segment.block.{BlockCache, BlockCacheSource, BlockOffset}
+import swaydb.core.segment.block.{BlockCache, BlockCacheSource, BlockCacheState, BlockOffset}
 import swaydb.data.slice.{Reader, ReaderBase, Slice, SliceOption}
 
 /**
@@ -31,7 +31,7 @@ private[block] trait BlockReaderBase extends ReaderBase[Byte] with BlockCacheSou
 
   def path = reader.path
 
-  def blockCache: Option[BlockCache.State]
+  def blockCache: Option[BlockCacheState]
 
   //start offset BlockRefReader. BlockCache uses this to maintain
   //consistent cache even if it gets transferred to another file.

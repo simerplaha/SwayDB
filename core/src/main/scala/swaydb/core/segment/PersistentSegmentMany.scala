@@ -27,7 +27,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.BlockCache
+import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
@@ -92,7 +92,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
         case (actualOffset, singleton) =>
           val thisSegmentSize = singleton.segmentSize
 
-          def cacheSegmentRef(blockCache: Option[BlockCache.State]) = {
+          def cacheSegmentRef(blockCache: Option[BlockCacheState]) = {
             val blockRef =
               BlockRefReader(
                 file = file,
@@ -627,7 +627,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
                               putDeadlineCount: Int,
                               keyValueCount: Int,
                               createdInLevel: Int,
-                              listSegmentBlockCache: Option[BlockCache.State])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                              listSegmentBlockCache: Option[BlockCacheState])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                timeOrder: TimeOrder[Slice[Byte]],
                                                                                functionStore: FunctionStore,
                                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],

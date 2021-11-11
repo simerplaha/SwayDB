@@ -19,7 +19,7 @@ package swaydb.core
 import swaydb.ActorConfig
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.CommonAssertions._
-import swaydb.core.segment.block.BlockCache
+import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.data.config.MemoryCache
@@ -52,19 +52,19 @@ private[swaydb] object TestSweeper {
       None
     )
 
-  def createBlockCache(memorySweeper: Option[MemorySweeper.All]): Option[BlockCache.State] =
+  def createBlockCache(memorySweeper: Option[MemorySweeper.All]): Option[BlockCacheState] =
     BlockCache.forSearch(maxCacheSizeOrZero = 0, blockSweeper = memorySweeper)
 
-  def createBlockCacheBlockSweeper(blockSweeper: Option[MemorySweeper.BlockSweeper] = createMemoryBlockSweeper()): Option[BlockCache.State] =
+  def createBlockCacheBlockSweeper(blockSweeper: Option[MemorySweeper.BlockSweeper] = createMemoryBlockSweeper()): Option[BlockCacheState] =
     BlockCache.forSearch(maxCacheSizeOrZero = 0, blockSweeper = blockSweeper)
 
-  def createBlockCacheRandom(): Option[BlockCache.State] =
+  def createBlockCacheRandom(): Option[BlockCacheState] =
     eitherOne(
       createBlockCache(orNone(createMemorySweeperRandom())),
       createBlockCacheBlockSweeper(orNone(createMemoryBlockSweeper()))
     )
 
-  def randomBlockCache: Option[BlockCache.State] =
+  def randomBlockCache: Option[BlockCacheState] =
     orNone(createBlockCache(createMemorySweeperRandom()))
 
   def createFileSweeper(): FileSweeper.On =
