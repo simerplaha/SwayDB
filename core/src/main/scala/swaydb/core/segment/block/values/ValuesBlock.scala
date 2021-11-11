@@ -92,7 +92,7 @@ private[core] case object ValuesBlock {
     state.header = compressionResult.headerBytes
 
     //    if (state.bytes.currentWritePosition > state.bytes.fromOffset + headerSize)
-    //      throw IO.throwable(s"Calculated header size was incorrect. Expected: $headerSize. Used: ${state.bytes.currentWritePosition - 1}")
+    //      throw new Exception(s"Calculated header size was incorrect. Expected: $headerSize. Used: ${state.bytes.currentWritePosition - 1}")
 
     state
   }
@@ -127,7 +127,7 @@ private[core] case object ValuesBlock {
     if (length == 0)
       None
     else if (fromOffset < 0) {
-      throw IO.throwable(s"Cannot read from negative offset '$fromOffset'.")
+      throw new Exception(s"Cannot read from negative offset '$fromOffset'.")
     } else {
       val slice =
         reader
@@ -135,7 +135,7 @@ private[core] case object ValuesBlock {
           .read(length)
 
       if (slice.size != length)
-        throw IO.throwable(s"Read value bytes != expected. ${slice.size} != $length.")
+        throw new Exception(s"Read value bytes != expected. ${slice.size} != $length.")
       else
         Some(slice)
     }

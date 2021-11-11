@@ -433,7 +433,7 @@ private[swaydb] object Memory {
 
     //to do - make type-safe.
     override def toRangeValue(): Value.RangeValue =
-      throw IO.throwable("Put cannot be converted to RangeValue")
+      throw new Exception("Put cannot be converted to RangeValue")
 
     override def toMemory(): Memory.Put =
       this
@@ -1031,7 +1031,7 @@ private[core] object Persistent {
               if (offset.size == 0)
                 Slice.Null
               else if (valuesReaderOrNull == null)
-                throw IO.throwable("ValuesBlock is undefined.")
+                throw new Exception("ValuesBlock is undefined.")
               else
                 UnblockedReader.moveTo(offset, valuesReaderOrNull)
                   .copy()
@@ -1096,7 +1096,7 @@ private[core] object Persistent {
       )
 
     override def toRangeValue(): Value.RangeValue =
-      throw IO.throwable("Put cannot be converted to RangeValue")
+      throw new Exception("Put cannot be converted to RangeValue")
 
     override def toMemory(): Memory.Put =
       Memory.Put(
@@ -1138,7 +1138,7 @@ private[core] object Persistent {
               if (offset.size == 0)
                 Slice.Null
               else if (valuesReaderOrNull == null)
-                throw IO.throwable("ValuesBlock is undefined.")
+                throw new Exception("ValuesBlock is undefined.")
               else
                 UnblockedReader.moveTo(offset, valuesReaderOrNull)
                   .copy()
@@ -1296,7 +1296,7 @@ private[core] object Persistent {
           Cache.noIO[ValuesBlockOffset, Slice[Byte]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (valuesReaderOrNull == null)
-                throw IO.throwable("ValuesBlock is undefined.")
+                throw new Exception("ValuesBlock is undefined.")
               else
                 UnblockedReader.moveTo(offset, valuesReaderOrNull)
                   .copy()
@@ -1387,7 +1387,7 @@ private[core] object Persistent {
           Cache.noIO[ValuesBlockOffset, Slice[Value.Apply]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (valuesReaderOrNull == null) {
-                throw IO.throwable("ValuesBlock is undefined.")
+                throw new Exception("ValuesBlock is undefined.")
               } else {
                 val bytes =
                   UnblockedReader.moveTo(offset, valuesReaderOrNull)
@@ -1522,7 +1522,7 @@ private[core] object Persistent {
           Cache.noIO[ValuesBlockOffset, (Value.FromValueOption, Value.RangeValue)](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (valuesReaderOrNull == null) {
-                throw IO.throwable("ValuesBlock is undefined.")
+                throw new Exception("ValuesBlock is undefined.")
               } else {
                 val bytes =
                   UnblockedReader.moveTo(offset, valuesReaderOrNull)

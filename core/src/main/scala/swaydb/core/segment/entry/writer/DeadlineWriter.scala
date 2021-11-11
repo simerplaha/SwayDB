@@ -87,7 +87,7 @@ private[segment] object DeadlineWriter extends DeadlineWriter {
     else if (commonBytes == 8)
       deadlineId.deadlineFullyCompressed
     else
-      throw IO.throwable(s"Fatal exception: commonBytes = $commonBytes, deadlineId: ${deadlineId.getClass.getName}")
+      throw new Exception(s"Fatal exception: commonBytes = $commonBytes, deadlineId: ${deadlineId.getClass.getName}")
 
   private[segment] def uncompressed[T <: Memory](current: T,
                                                  currentDeadline: Deadline,

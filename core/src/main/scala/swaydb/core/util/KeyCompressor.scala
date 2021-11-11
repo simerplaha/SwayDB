@@ -64,10 +64,10 @@ private[core] object KeyCompressor {
           val (minKey, maxKey) = Bytes.decompressJoin(key.dropRight(1))
           (minKey, MaxKey.Range(minKey, maxKey))
         } else {
-          throw IO.throwable(s"Invalid byte: $byte")
+          throw new Exception(s"Invalid byte: $byte")
         }
 
       case None =>
-        throw IO.throwable("Key is empty")
+        throw new Exception("Key is empty")
     }
 }

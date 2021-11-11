@@ -1058,7 +1058,7 @@ private[swaydb] case class LevelZero(path: Path,
         nextLevel.appendixPath
 
       case None =>
-        throw IO.throwable("LevelZero does not have appendix.")
+        throw new Exception("LevelZero does not have appendix.")
     }
 
   override def rootPath: Path =

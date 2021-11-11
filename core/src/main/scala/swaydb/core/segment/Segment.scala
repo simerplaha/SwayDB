@@ -83,7 +83,7 @@ private[core] case object Segment extends LazyLogging {
                                                                        fileSweeper: FileSweeper,
                                                                        idGenerator: IDGenerator): Slice[MemorySegment] =
     if (stats.isEmpty) {
-      throw IO.throwable("Empty key-values submitted to memory Segment.")
+      throw new Exception("Empty key-values submitted to memory Segment.")
     } else {
       val segments = ListBuffer.empty[MemorySegment]
 

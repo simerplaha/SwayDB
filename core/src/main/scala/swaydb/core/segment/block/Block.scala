@@ -266,7 +266,7 @@ private[core] object Block extends LazyLogging {
               )
           )
         else
-          throw IO.throwable(s"Decompressed bytes size (${decompressedBytes.size}) != decompressedLength (${compressionInfo.decompressedLength}).")
+          throw new Exception(s"Decompressed bytes size (${decompressedBytes.size}) != decompressedLength (${compressionInfo.decompressedLength}).")
 
       case None =>
         //no compression just skip the header bytes.

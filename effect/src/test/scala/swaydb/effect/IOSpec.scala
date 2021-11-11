@@ -282,7 +282,7 @@
 //
 //  "tryOrNone" when {
 //    "exception" in {
-//      IO.tryOrNone(throw IO.throwable("Failed")) shouldBe empty
+//      IO.tryOrNone(throw new Exception("Failed")) shouldBe empty
 //    }
 //
 //    "no exception" in {

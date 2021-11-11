@@ -248,7 +248,7 @@ private[segment] object ValueWriter extends ValueWriter {
           else if (valueOffsetCommonBytes == 3)
             entryId.valueUncompressed.valueOffsetThreeCompressed
           else
-            throw IO.throwable(s"Fatal exception: valueOffsetCommonBytes = $valueOffsetCommonBytes")
+            throw new Exception(s"Fatal exception: valueOffsetCommonBytes = $valueOffsetCommonBytes")
 
         Bytes.compress(Slice.writeInt[Byte](previousValue.size), Slice.writeInt[Byte](currentValue.size), 1) match {
           case Some((valueLengthCommonBytes, valueLengthRemainingBytes)) =>
@@ -262,7 +262,7 @@ private[segment] object ValueWriter extends ValueWriter {
               else if (valueLengthCommonBytes == 4)
                 valueOffsetId.valueLengthFullyCompressed
               else
-                throw IO.throwable(s"Fatal exception: valueLengthCommonBytes = $valueLengthCommonBytes")
+                throw new Exception(s"Fatal exception: valueLengthCommonBytes = $valueLengthCommonBytes")
 
             builder.setSegmentHasPrefixCompression()
             builder.startValueOffset = currentValueOffset
@@ -321,7 +321,7 @@ private[segment] object ValueWriter extends ValueWriter {
           else if (valueLengthCommonBytes == 4)
             entryId.valueUncompressed.valueOffsetUncompressed.valueLengthFullyCompressed
           else
-            throw IO.throwable(s"Fatal exception: valueLengthCommonBytes = $valueLengthCommonBytes")
+            throw new Exception(s"Fatal exception: valueLengthCommonBytes = $valueLengthCommonBytes")
 
         val currentValueOffset = builder.nextStartValueOffset
 

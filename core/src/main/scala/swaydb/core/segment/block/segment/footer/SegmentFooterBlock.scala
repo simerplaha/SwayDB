@@ -177,7 +177,7 @@ private[core] case object SegmentFooterBlock {
     val footerBytes = fullFooterBytes.moveTo(fullFooterBytes.size - footerSize).readRemaining()
     val actualCRC = CRC32.forBytes(footerBytes dropRight ByteSizeOf.long) //drop crc bytes.
     if (expectedCRC != actualCRC)
-      throw IO.throwable(s"Corrupted Segment: CRC Check failed. $expectedCRC != $actualCRC")
+      throw new Exception(s"Corrupted Segment: CRC Check failed. $expectedCRC != $actualCRC")
     else
       readCRCPassed(
         footerStartOffset = footerStartOffset,
@@ -190,7 +190,7 @@ private[core] case object SegmentFooterBlock {
     val footerReader = Reader(footerBytes)
     val formatId = footerReader.readUnsignedInt()
     if (formatId != SegmentBlock.formatId) {
-      throw IO.throwable(message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}")
+      throw new Exception(s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}")
     } else {
       val createdInLevel = footerReader.readUnsignedInt()
       val rangeCount = footerReader.readUnsignedInt()

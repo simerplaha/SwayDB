@@ -46,5 +46,5 @@ object KeyReader {
     else if (keyValueId.isKeyValueId_UncompressedKey(keyValueIdInt))
       keyBytes
     else
-      throw IO.throwable(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")
+      throw new Exception(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")
 }

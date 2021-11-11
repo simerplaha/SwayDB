@@ -138,7 +138,7 @@ private[core] class PersistentCounterLog(val mod: Long,
         if (!map.writeNoSync(LogEntry.Put(CounterLog.defaultKey, Slice.writeLong[Byte](count + mod)))) {
           val message = s"Failed to write counter entry: $count"
           logger.error(message)
-          throw IO.throwable(message) //:O see note above
+          throw new Exception(message) //:O see note above
         }
 
       count

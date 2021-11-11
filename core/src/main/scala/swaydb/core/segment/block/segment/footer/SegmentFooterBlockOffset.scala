@@ -1,6 +1,5 @@
 package swaydb.core.segment.block.segment.footer
 
-import swaydb.IO
 import swaydb.core.segment.block.{BlockHeader, BlockOffset, BlockOps}
 
 object SegmentFooterBlockOffset {
@@ -13,7 +12,7 @@ object SegmentFooterBlockOffset {
       SegmentFooterBlockOffset(start, size)
 
     override def readBlock(header: BlockHeader[SegmentFooterBlockOffset]): SegmentFooterBlock =
-      throw IO.throwable("Footers do not have block header readers.")
+      throw new Exception("Footers do not have block header readers.")
   }
 
 }

@@ -104,7 +104,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
             if (segment.hasEmptyByteSlice) {
               //This is fatal!! Empty Segments should never be created. If this does have for whatever reason it should
               //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
-              throw IO.throwable("Empty key-values submitted to persistent Segment.")
+              throw new Exception("Empty key-values submitted to persistent Segment.")
             } else {
               val path = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
 

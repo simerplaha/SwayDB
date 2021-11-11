@@ -17,7 +17,6 @@
 package swaydb.core.segment.block.hashindex
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
@@ -173,7 +172,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
 
   def read(header: BlockHeader[HashIndexBlockOffset]): HashIndexBlock = {
     val formatId = header.headerReader.get()
-    val format = HashIndexEntryFormat.formats.find(_.id == formatId) getOrElse IO.throws(s"Invalid HashIndex formatId: $formatId")
+    val format = HashIndexEntryFormat.formats.find(_.id == formatId) getOrElse (throw new Exception(s"Invalid HashIndex formatId: $formatId"))
     val allocatedBytes = header.headerReader.readInt()
     val maxProbe = header.headerReader.readUnsignedInt()
     val hit = header.headerReader.readUnsignedInt()

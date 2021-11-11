@@ -143,7 +143,7 @@ private[swaydb] object MultiKey {
         else if (dataType == MultiKey.end)
           MultiKey.End(mapId)
         else
-          throw IO.throwable(s"Invalid dataType: $dataType")
+          throw new Exception(s"Invalid dataType: $dataType")
       }
     }
 

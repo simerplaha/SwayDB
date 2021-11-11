@@ -84,7 +84,7 @@ private[block] trait BlockReaderBase extends ReaderBase[Byte] with BlockCacheSou
       position += 1
       byte
     } else {
-      throw IO.throwable(s"Has no more bytes. Position: $position")
+      throw new Exception(s"Has no more bytes. Position: $position")
     }
 
   override def read(size: Int): Slice[Byte] = {

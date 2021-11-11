@@ -96,7 +96,7 @@ case class TestActor[T]()(implicit override val executionContext: ExecutionConte
         scheduler.future(after) {
           Option(queue.poll()) match {
             case Some(item) =>
-              throw IO.throwable(s"Has message: ${item.getClass.getSimpleName}")
+              throw new Exception(s"Has message: ${item.getClass.getSimpleName}")
 
             case None =>
               ()
