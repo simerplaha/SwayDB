@@ -6,7 +6,7 @@ import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.slice.Slice
 import swaydb.utils.Maybe
 
-private[segment] object BinarySearchIndexState {
+private[block] object BinarySearchIndexState {
 
   def apply(format: BinarySearchEntryFormat,
             largestIndexOffset: Int,
@@ -55,29 +55,30 @@ private[segment] object BinarySearchIndexState {
     }
 }
 
-private[segment] class BinarySearchIndexState(val format: BinarySearchEntryFormat,
-                                              val bytesPerValue: Int,
-                                              val uniqueValuesCount: Int,
-                                              var _previousWritten: Int,
-                                              var writtenValues: Int,
-                                              val minimumNumberOfKeys: Int,
-                                              var isFullIndex: Boolean,
-                                              var compressibleBytes: Slice[Byte],
-                                              val cacheableBytes: Slice[Byte],
-                                              var header: Slice[Byte],
-                                              val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
+private[block] class BinarySearchIndexState(val format: BinarySearchEntryFormat,
+                                            val bytesPerValue: Int,
+                                            val uniqueValuesCount: Int,
+                                            var _previousWritten: Int,
+                                            var writtenValues: Int,
+                                            val minimumNumberOfKeys: Int,
+                                            var isFullIndex: Boolean,
+                                            var compressibleBytes: Slice[Byte],
+                                            val cacheableBytes: Slice[Byte],
+                                            var header: Slice[Byte],
+                                            val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
 
   def blockSize: Int =
     header.size + compressibleBytes.size
 
-  def incrementWrittenValuesCount() =
+  def incrementWrittenValuesCount(): Unit =
     writtenValues += 1
 
-  def previouslyWritten_=(previouslyWritten: Int) =
+  def previouslyWritten_=(previouslyWritten: Int): Unit =
     this._previousWritten = previouslyWritten
 
-  def previouslyWritten = _previousWritten
+  def previouslyWritten: Int =
+    _previousWritten
 
-  def hasMinimumKeys =
+  def hasMinimumKeys: Boolean =
     writtenValues >= minimumNumberOfKeys
 }

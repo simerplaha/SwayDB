@@ -21,6 +21,7 @@ import swaydb.data.slice.Slice
 import scala.beans.BeanProperty
 
 object BlockReaderCache {
+
   class State(@BeanProperty var fromOffset: Int,
               @BeanProperty var bytes: Slice[Byte]) {
     def toOffset = fromOffset + bytes.size - 1
