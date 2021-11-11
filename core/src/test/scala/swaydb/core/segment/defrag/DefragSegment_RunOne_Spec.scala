@@ -26,7 +26,7 @@ import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexConfig}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
@@ -72,7 +72,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
             implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
             implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
             implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
-            implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+            implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
             val segment = TestSegment()
 
@@ -114,7 +114,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
           implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
-          implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+          implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
           val segment = TestSegment()
 
@@ -159,7 +159,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
           implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
-          implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+          implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
           lazy val headSegment = TestSegment(keyValues = Slice(randomUpdateKeyValue(1), randomRemoveAny(2, 3)))
           val midSegment = TestSegment(keyValues = Slice(randomUpdateKeyValue(4), randomRemoveAny(5, 6)))
@@ -222,7 +222,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           val headSegment = TestSegment.one(keyValues = keyValues.head).shouldBeInstanceOf[PersistentSegment]
           val midSegment = TestSegment.one(keyValues = keyValues.last)
 
-          implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = headSegment.segmentSize min midSegment.segmentSize)
+          implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = headSegment.segmentSize min midSegment.segmentSize)
 
           val removeDeletes = randomBoolean()
           val createdInLevel = randomIntMax(100)
@@ -283,7 +283,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           val midSegment = TestSegment.one(keyValues = keyValues.drop(headSegments.size).flatten)
 
           val minSize = headSegments.mapToSlice(_.segmentSize).min min midSegment.segmentSize
-          implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = minSize)
+          implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = minSize)
 
           val removeDeletes = randomBoolean()
           val createdInLevel = randomIntMax(100)
@@ -351,7 +351,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
             }
 
           val minSize = (headSegments ++ tailSegments).mapToSlice(_.segmentSize).min min midSegment.segmentSize
-          implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = minSize)
+          implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = minSize)
 
           val removeDeletes = randomBoolean()
           val createdInLevel = randomIntMax(100)
@@ -418,7 +418,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
 
           //segmentSize is always <= midSegment.segmentSize so that it does not get expanded. This test is to ensure
           //that gap Segments do not join when midSegments are not expanded.
-          implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = randomIntMax(midSegment.segmentSize))
+          implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = randomIntMax(midSegment.segmentSize))
 
           val removeDeletes = randomBoolean()
           val createdInLevel = randomIntMax(100)
@@ -491,7 +491,7 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
           val allSegments = headSegments ++ Seq(midSegment) ++ tailSegments
 
           //segmentSize to be something random which gives it a chance
-          implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = randomIntMax(allSegments.map(_.segmentSize).max * 2))
+          implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = randomIntMax(allSegments.map(_.segmentSize).max * 2))
 
           val removeDeletes = randomBoolean()
           val createdInLevel = randomIntMax(100)

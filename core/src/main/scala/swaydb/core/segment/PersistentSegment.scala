@@ -25,7 +25,7 @@ import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -66,7 +66,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
           binarySearchIndexConfig: BinarySearchIndexConfig,
           hashIndexConfig: HashIndexConfig,
           bloomFilterConfig: BloomFilterConfig,
-          segmentConfig: SegmentBlock.Config,
+          segmentConfig: SegmentBlockConfig,
           pathsDistributor: PathsDistributor,
           segmentRefCacheLife: SegmentRefCacheLife,
           mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
@@ -81,7 +81,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
               binarySearchIndexConfig: BinarySearchIndexConfig,
               hashIndexConfig: HashIndexConfig,
               bloomFilterConfig: BloomFilterConfig,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
+              segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
                                                   ec: ExecutionContext,
                                                   compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]]
 

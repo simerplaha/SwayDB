@@ -17,8 +17,6 @@
 package swaydb.core.segment.block.segment
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Compression
-import swaydb.compression.CompressionInternal
 import swaydb.core.data.Memory
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block._
@@ -35,15 +33,12 @@ import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.Futures._
 import swaydb.utils.{ByteSizeOf, Futures}
 
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 private[core] case object SegmentBlock extends LazyLogging {
 
@@ -53,122 +48,7 @@ private[core] case object SegmentBlock extends LazyLogging {
 
   val crcBytes: Int = 13
 
-  object Config {
-
-    def apply(config: SegmentConfig): SegmentBlock.Config =
-      apply(
-        fileOpenIOStrategy = config.fileOpenIOStrategy,
-        blockIOStrategy = config.blockIOStrategy,
-        cacheBlocksOnCreate = config.cacheSegmentBlocksOnCreate,
-        minSize = config.minSegmentSize,
-        maxCount = config.segmentFormat.count,
-        segmentRefCacheLife = config.segmentFormat.segmentRefCacheLife,
-        enableHashIndexForListSegment = config.segmentFormat.enableRootHashIndex,
-        initialiseIteratorsInOneSeek = config.initialiseIteratorsInOneSeek,
-        mmap = config.mmap,
-        deleteDelay = config.deleteDelay,
-        compressions = config.compression
-      )
-
-    def apply(fileOpenIOStrategy: IOStrategy.ThreadSafe,
-              blockIOStrategy: IOAction => IOStrategy,
-              cacheBlocksOnCreate: Boolean,
-              minSize: Int,
-              maxCount: Int,
-              segmentRefCacheLife: SegmentRefCacheLife,
-              enableHashIndexForListSegment: Boolean,
-              initialiseIteratorsInOneSeek: Boolean,
-              mmap: MMAP.Segment,
-              deleteDelay: FiniteDuration,
-              compressions: UncompressedBlockInfo => Iterable[Compression]): Config =
-      applyInternal(
-        fileOpenIOStrategy = fileOpenIOStrategy,
-        blockIOStrategy = blockIOStrategy,
-        cacheBlocksOnCreate = cacheBlocksOnCreate,
-        minSize = minSize,
-        maxCount = maxCount,
-        segmentRefCacheLife = segmentRefCacheLife,
-        enableHashIndexForListSegment = enableHashIndexForListSegment,
-        initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek,
-        mmap = mmap,
-        deleteDelay = deleteDelay,
-        compressions =
-          uncompressedBlockInfo =>
-            Try(compressions(uncompressedBlockInfo))
-              .getOrElse(Seq.empty)
-              .map(CompressionInternal.apply)
-              .toSeq
-      )
-
-    private[core] def applyInternal(fileOpenIOStrategy: IOStrategy.ThreadSafe,
-                                    blockIOStrategy: IOAction => IOStrategy,
-                                    cacheBlocksOnCreate: Boolean,
-                                    minSize: Int,
-                                    maxCount: Int,
-                                    segmentRefCacheLife: SegmentRefCacheLife,
-                                    enableHashIndexForListSegment: Boolean,
-                                    initialiseIteratorsInOneSeek: Boolean,
-                                    mmap: MMAP.Segment,
-                                    deleteDelay: FiniteDuration,
-                                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Config =
-      new Config(
-        fileOpenIOStrategy = fileOpenIOStrategy,
-        blockIOStrategy = blockIOStrategy,
-        cacheBlocksOnCreate = cacheBlocksOnCreate,
-        minSize = minSize max 1,
-        maxCount = maxCount max 1,
-        segmentRefCacheLife = segmentRefCacheLife,
-        enableHashIndexForListSegment = enableHashIndexForListSegment,
-        initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek,
-        mmap = mmap,
-        deleteDelay = deleteDelay,
-        compressions = compressions
-      )
-  }
-
-  class Config private(val fileOpenIOStrategy: IOStrategy.ThreadSafe,
-                       val blockIOStrategy: IOAction => IOStrategy,
-                       val cacheBlocksOnCreate: Boolean,
-                       val minSize: Int,
-                       val maxCount: Int,
-                       val segmentRefCacheLife: SegmentRefCacheLife,
-                       val enableHashIndexForListSegment: Boolean,
-                       val initialiseIteratorsInOneSeek: Boolean,
-                       val mmap: MMAP.Segment,
-                       val deleteDelay: FiniteDuration,
-                       val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
-
-    val isDeleteEventually: Boolean =
-      deleteDelay.fromNow.hasTimeLeft()
-
-    //disables splitting of segments and creates a single segment.
-    def singleton: Config =
-      this.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
-
-    def copy(minSize: Int = minSize, maxCount: Int = maxCount, mmap: MMAP.Segment = mmap): SegmentBlock.Config =
-      SegmentBlock.Config.applyInternal(
-        fileOpenIOStrategy = fileOpenIOStrategy,
-        blockIOStrategy = blockIOStrategy,
-        cacheBlocksOnCreate = cacheBlocksOnCreate,
-        minSize = minSize,
-        maxCount = maxCount,
-        segmentRefCacheLife = segmentRefCacheLife,
-        enableHashIndexForListSegment = enableHashIndexForListSegment,
-        initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek,
-        mmap = mmap,
-        deleteDelay = deleteDelay,
-        compressions = compressions
-      )
-  }
-
-  object Offset {
-    def empty =
-      SegmentBlock.Offset(0, 0)
-  }
-
-  case class Offset(start: Int, size: Int) extends BlockOffset
-
-  def read(header: BlockHeader[Offset]): SegmentBlock =
+  def read(header: BlockHeader[SegmentBlockOffset]): SegmentBlock =
     SegmentBlock(
       offset = header.offset,
       headerSize = header.headerSize,
@@ -182,9 +62,9 @@ private[core] case object SegmentBlock extends LazyLogging {
                      binarySearchIndexConfig: BinarySearchIndexConfig,
                      sortedIndexConfig: SortedIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
-                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                         ec: ExecutionContext,
-                                                         compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
+                     segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                        ec: ExecutionContext,
+                                                        compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
     if (mergeStats.isEmpty)
       Future.successful(Slice.empty)
     else
@@ -216,9 +96,9 @@ private[core] case object SegmentBlock extends LazyLogging {
                      hashIndexConfig: HashIndexConfig,
                      binarySearchIndexConfig: BinarySearchIndexConfig,
                      valuesConfig: ValuesBlock.Config,
-                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                         ec: ExecutionContext,
-                                                         compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
+                     segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                        ec: ExecutionContext,
+                                                        compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
     if (ones.isEmpty)
       Future.successful(Slice.empty)
     else
@@ -266,9 +146,9 @@ private[core] case object SegmentBlock extends LazyLogging {
                                     hashIndexConfig: HashIndexConfig,
                                     binarySearchIndexConfig: BinarySearchIndexConfig,
                                     valuesConfig: ValuesBlock.Config,
-                                    segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                        ec: ExecutionContext,
-                                                                        compactionParallelism: CompactionParallelism): Future[TransientSegment.OneOrRemoteRefOrMany] =
+                                    segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                       ec: ExecutionContext,
+                                                                       compactionParallelism: CompactionParallelism): Future[TransientSegment.OneOrRemoteRefOrMany] =
     if (segments.size == 1)
       Future.successful(segments.head.copyWithFileHeader(headerBytes = PersistentSegmentOne.formatIdSlice))
     else
@@ -343,9 +223,9 @@ private[core] case object SegmentBlock extends LazyLogging {
                 binarySearchIndexConfig: BinarySearchIndexConfig,
                 sortedIndexConfig: SortedIndexBlock.Config,
                 valuesConfig: ValuesBlock.Config,
-                segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                    ec: ExecutionContext,
-                                                    compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.One]] =
+                segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                   ec: ExecutionContext,
+                                                   compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.One]] =
     if (mergeStats.isEmpty)
       Future.successful(Slice.empty)
     else
@@ -379,8 +259,8 @@ private[core] case object SegmentBlock extends LazyLogging {
                        binarySearchIndexConfig: BinarySearchIndexConfig,
                        sortedIndexConfig: SortedIndexBlock.Config,
                        valuesConfig: ValuesBlock.Config,
-                       segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                           ec: ExecutionContext): Future[Slice[TransientSegmentRef]] =
+                       segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                          ec: ExecutionContext): Future[Slice[TransientSegmentRef]] =
     if (mergeStats.isEmpty)
       Future.successful(Slice.empty)
     else
@@ -814,19 +694,8 @@ private[core] case object SegmentBlock extends LazyLogging {
           Future.successful((None, None))
       }
 
-  implicit object SegmentBlockOps extends BlockOps[SegmentBlock.Offset, SegmentBlock] {
-    override def updateBlockOffset(block: SegmentBlock, start: Int, size: Int): SegmentBlock =
-      block.copy(offset = SegmentBlock.Offset(start = start, size = size))
-
-    override def createOffset(start: Int, size: Int): Offset =
-      SegmentBlock.Offset(start, size)
-
-    override def readBlock(header: BlockHeader[SegmentBlock.Offset]): SegmentBlock =
-      SegmentBlock.read(header)
-  }
-
 }
 
-private[core] case class SegmentBlock(offset: SegmentBlock.Offset,
+private[core] case class SegmentBlock(offset: SegmentBlockOffset,
                                       headerSize: Int,
-                                      compressionInfo: Option[BlockCompressionInfo]) extends Block[SegmentBlock.Offset]
+                                      compressionInfo: Option[BlockCompressionInfo]) extends Block[SegmentBlockOffset]

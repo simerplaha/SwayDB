@@ -20,7 +20,7 @@ import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, PersistentOption}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.SegmentSearcher
@@ -259,7 +259,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
             Benchmark(s"Creating Segment for ${keyValues.size}") {
               getBlocks(
                 keyValues = keyValues,
-                segmentConfig = SegmentBlock.Config.random.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue, mmap = mmapSegments)
+                segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue, mmap = mmapSegments)
               ).get
             }
 

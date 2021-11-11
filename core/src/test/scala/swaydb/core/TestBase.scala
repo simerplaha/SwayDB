@@ -35,10 +35,10 @@ import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
 import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.merge.stats.MergeStats
-import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexConfig}
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
+import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
+import swaydb.core.segment.block.hashindex.HashIndexConfig
+import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
@@ -235,7 +235,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
               hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
               bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
-              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+              segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                          timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                          sweeper: TestCaseSweeper,
                                                                                                          ec: ExecutionContext = TestExecutionContext.executionContext): Segment = {
@@ -275,7 +275,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
             binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
             hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
             bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
-            segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+            segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                        sweeper: TestCaseSweeper,
                                                                                                        ec: ExecutionContext = TestExecutionContext.executionContext): Segment = {
@@ -310,7 +310,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
              binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
              hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
              bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
-             segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+             segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                         pathsDistributor: PathsDistributor,
                                                                                                         idGenerator: IDGenerator,
@@ -386,7 +386,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
               hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
               bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
-              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments),
+              segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random2(deleteDelay = Duration.Zero, mmap = mmapSegments),
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                       sweeper: TestCaseSweeper,
@@ -851,7 +851,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
   def assertSegment[T](keyValues: Slice[Memory],
                        assert: (Slice[Memory], Segment) => T,
-                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments),
+                       segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments),
                        ensureOneSegmentOnly: Boolean = false,
                        testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false,

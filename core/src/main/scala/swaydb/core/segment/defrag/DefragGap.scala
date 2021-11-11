@@ -19,7 +19,7 @@ package swaydb.core.segment.defrag
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.{MemorySegment, PersistentSegment, PersistentSegmentMany, Segment}
@@ -41,7 +41,7 @@ private[segment] object DefragGap {
                                                                fragments: ListBuffer[TransientSegment.Fragment[S]],
                                                                removeDeletes: Boolean,
                                                                createdInLevel: Int,
-                                                               hasNext: Boolean)(implicit segmentConfig: SegmentBlock.Config,
+                                                               hasNext: Boolean)(implicit segmentConfig: SegmentBlockConfig,
                                                                                  mergeStatsCreator: MergeStatsCreator[S],
                                                                                  mergeStatsSizeCalculator: MergeStatsSizeCalculator[S]): ListBuffer[TransientSegment.Fragment[S]] = {
     val gapIterator = gap.iterator
@@ -121,7 +121,7 @@ private[segment] object DefragGap {
                                                                                   segment: Segment,
                                                                                   removeDeletes: Boolean,
                                                                                   createdInLevel: Int,
-                                                                                  hasNext: Boolean)(implicit segmentConfig: SegmentBlock.Config,
+                                                                                  hasNext: Boolean)(implicit segmentConfig: SegmentBlockConfig,
                                                                                                     mergeStatsCreator: MergeStatsCreator[S],
                                                                                                     mergeStatsSizeCalculator: MergeStatsSizeCalculator[S]): S =
     if ((hasNext && DefragCommon.isSegmentSmall(segment)) || mergeStatsSizeCalculator.isStatsOrNullSmall(statsOrNull))
@@ -161,7 +161,7 @@ private[segment] object DefragGap {
                                                                                      fragments: ListBuffer[TransientSegment.Fragment[S]],
                                                                                      ref: SegmentRef,
                                                                                      removeDeletes: Boolean,
-                                                                                     hasNext: Boolean)(implicit segmentConfig: SegmentBlock.Config,
+                                                                                     hasNext: Boolean)(implicit segmentConfig: SegmentBlockConfig,
                                                                                                        mergeStatsCreator: MergeStatsCreator[S],
                                                                                                        mergeStatsSizeCalculator: MergeStatsSizeCalculator[S]): S =
     if ((hasNext && DefragCommon.isSegmentRefSmall(ref)) || mergeStatsSizeCalculator.isStatsOrNullSmall(statsOrNull))
@@ -184,7 +184,7 @@ private[segment] object DefragGap {
                                                                                     fragments: ListBuffer[TransientSegment.Fragment[S]],
                                                                                     removeDeletes: Boolean,
                                                                                     createdInLevel: Int)(implicit mergeStatsCreator: MergeStatsCreator[S],
-                                                                                                         segmentConfig: SegmentBlock.Config): S =
+                                                                                                         segmentConfig: SegmentBlockConfig): S =
     if (removeDeletes && segment.hasUpdateOrRangeOrExpired())
       segment match {
         case segment: PersistentSegmentMany =>
@@ -225,7 +225,7 @@ private[segment] object DefragGap {
                                                                                        fragments: ListBuffer[TransientSegment.Fragment[S]],
                                                                                        lastMergeStatsOrNull: S,
                                                                                        removeDeletes: Boolean)(implicit mergeStatsCreator: MergeStatsCreator[S],
-                                                                                                               segmentConfig: SegmentBlock.Config): S =
+                                                                                                               segmentConfig: SegmentBlockConfig): S =
     if (removeDeletes && ref.hasUpdateOrRangeOrExpired()) {
       addToStats(
         keyValues = ref.iterator(segmentConfig.initialiseIteratorsInOneSeek),

@@ -24,7 +24,7 @@ import swaydb.core._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
@@ -106,7 +106,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
           import sweeper._
 
           //disable throttling so small segment compaction does not occur
-          val level = TestLevel(nextLevel = None, throttle = (_) => LevelThrottle(Duration.Zero, 0), segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 1.kb))
+          val level = TestLevel(nextLevel = None, throttle = (_) => LevelThrottle(Duration.Zero, 0), segmentConfig = SegmentBlockConfig.random2(minSegmentSize = 1.kb))
 
           val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)
           level.put(keyValues).runRandomIO.right.value
@@ -139,7 +139,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
           val putKeyValues = randomPutKeyValues(keyValuesCount)
           //refresh so that if there is a compression running, this Segment will compressed.
           val segments =
-            TestSegment(putKeyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments))
+            TestSegment(putKeyValues, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments))
               .runRandomIO
               .right.value
               .refresh(
@@ -150,7 +150,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
                 binarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig = HashIndexConfig.random,
                 bloomFilterConfig = BloomFilterConfig.random,
-                segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 100.mb),
+                segmentConfig = SegmentBlockConfig.random2(minSegmentSize = 100.mb),
                 pathDistributor = createPathDistributor
               ).runRandomIO.right.value
 
@@ -177,7 +177,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
           val putKeyValues = randomPutKeyValues(keyValuesCount)
           //refresh so that if there is a compression running, this Segment will compressed.
           val segments =
-            TestSegment(putKeyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments))
+            TestSegment(putKeyValues, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments))
               .runRandomIO.right.value
               .refresh(
                 removeDeletes = false,
@@ -187,7 +187,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
                 binarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig = HashIndexConfig.random,
                 bloomFilterConfig = BloomFilterConfig.random,
-                segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 100.mb),
+                segmentConfig = SegmentBlockConfig.random2(minSegmentSize = 100.mb),
                 pathDistributor = createPathDistributor
               ).runRandomIO.right.value
 

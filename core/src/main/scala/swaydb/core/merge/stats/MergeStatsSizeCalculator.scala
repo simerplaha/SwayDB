@@ -17,7 +17,7 @@
 package swaydb.core.merge.stats
 
 import swaydb.core.data.Memory
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 
 import scala.collection.mutable.ListBuffer
@@ -27,7 +27,7 @@ import scala.collection.mutable.ListBuffer
  * with other Segments.
  */
 sealed trait MergeStatsSizeCalculator[S >: Null] {
-  def isStatsOrNullSmall(statsOrNull: S)(implicit segmentConfig: SegmentBlock.Config): Boolean
+  def isStatsOrNullSmall(statsOrNull: S)(implicit segmentConfig: SegmentBlockConfig): Boolean
 }
 
 object MergeStatsSizeCalculator {
@@ -45,7 +45,7 @@ object MergeStatsSizeCalculator {
    */
   class PersistentSizeCalculator(implicit sortedIndexConfig: SortedIndexBlock.Config) extends MergeStatsSizeCalculator[MergeStats.Persistent.Builder[Memory, ListBuffer]] {
 
-    override def isStatsOrNullSmall(statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer])(implicit segmentConfig: SegmentBlock.Config): Boolean =
+    override def isStatsOrNullSmall(statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer])(implicit segmentConfig: SegmentBlockConfig): Boolean =
       if (statsOrNull == null || statsOrNull.isEmpty) {
         false
       } else {
@@ -64,7 +64,7 @@ object MergeStatsSizeCalculator {
    */
   implicit object MemoryCreator extends MergeStatsSizeCalculator[MergeStats.Memory.Builder[Memory, ListBuffer]] {
 
-    override def isStatsOrNullSmall(statsOrNull: MergeStats.Memory.Builder[Memory, ListBuffer])(implicit segmentConfig: SegmentBlock.Config): Boolean =
+    override def isStatsOrNullSmall(statsOrNull: MergeStats.Memory.Builder[Memory, ListBuffer])(implicit segmentConfig: SegmentBlockConfig): Boolean =
       if (statsOrNull == null || statsOrNull.isEmpty)
         false
       else

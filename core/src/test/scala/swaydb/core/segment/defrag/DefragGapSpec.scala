@@ -24,7 +24,7 @@ import swaydb.core.data.Memory
 import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment._
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
@@ -95,7 +95,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
           val segments: ListBuffer[SEG] = ListBuffer.range(1, 5).map(_ => testSegment())
 
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
-          implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = segments.map(_.segmentSize).min)
+          implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = segments.map(_.segmentSize).min)
 
           val resultBuffer =
             DefragGap.run[S](
@@ -127,7 +127,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
 
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
           //small minSize so that the size of head key-values is always considered large.
-          implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = 1.byte)
+          implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = 1.byte)
 
           val keyValues = randomKeyValues(10, startId = Some(0))
 
@@ -182,7 +182,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
 
             implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
             //set size to be small enough so that head segment gets merged.
-            implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = segments.map(_.segmentSize).min, maxCount = Int.MaxValue)
+            implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = segments.map(_.segmentSize).min, maxCount = Int.MaxValue)
 
             //head key-values are too small.
             val initialKeyValues = Slice(Memory.put(1))
@@ -265,14 +265,14 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
                 implicit val pathsDistributor: PathsDistributor = createPathDistributor
 
                 //a single
-                val manySegment = TestSegment.many(keyValues = randomPutKeyValues(100), segmentConfig = SegmentBlock.Config.random.copy(minSize = Int.MaxValue, maxCount = 5))
+                val manySegment = TestSegment.many(keyValues = randomPutKeyValues(100), segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = 5))
                 manySegment should have size 1
                 manySegment.head.isInstanceOf[PersistentSegmentMany] shouldBe true
                 manySegment.head.asInstanceOf[PersistentSegmentMany].segmentRefs(randomBoolean()) should have size 20
 
                 implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
                 //set size to be small enough so that head segment gets merged.
-                implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = manySegment.head.segmentSize, maxCount = 5)
+                implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = manySegment.head.segmentSize, maxCount = 5)
 
                 //head key-values are too small.
                 val initialKeyValues = Slice(Memory.put(1))
@@ -347,7 +347,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
 
                 implicit val pathsDistributor = createPathDistributor
 
-                val manySegment = TestSegment.many(keyValues = randomPutKeyValues(100), segmentConfig = SegmentBlock.Config.random.copy(minSize = Int.MaxValue, maxCount = 5))
+                val manySegment = TestSegment.many(keyValues = randomPutKeyValues(100), segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = 5))
                 manySegment should have size 1
                 manySegment.head.isInstanceOf[PersistentSegmentMany] shouldBe true
 
@@ -355,7 +355,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
 
                 implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
                 //set size to be small enough so that head segment gets merged.
-                implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = Int.MaxValue, maxCount = 5)
+                implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = 5)
 
                 //head key-values are too small.
                 val initialKeyValues = Slice(Memory.put(1))
@@ -433,7 +433,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
               segments.foreach(_.hasUpdateOrRange shouldBe true)
 
               implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
-              implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+              implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
               val resultFragments =
                 DefragGap.run[S](

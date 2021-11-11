@@ -20,7 +20,7 @@ import swaydb.core.data.{DefIO, Memory}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.defrag.DefragSource._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -36,7 +36,7 @@ object Defrag {
                                                                           tailGap: Iterable[Assignable.Gap[S]],
                                                                           removeDeletes: Boolean,
                                                                           createdInLevel: Int,
-                                                                          fence: TransientSegment.Fragment[S])(implicit segmentConfig: SegmentBlock.Config,
+                                                                          fence: TransientSegment.Fragment[S])(implicit segmentConfig: SegmentBlockConfig,
                                                                                                                mergeStatsCreator: MergeStatsCreator[S],
                                                                                                                mergeStatsSizeCalculator: MergeStatsSizeCalculator[S],
                                                                                                                executionContext: ExecutionContext): Future[ListBuffer[TransientSegment.Fragment[S]]] = {
@@ -75,7 +75,7 @@ object Defrag {
                                                                                                                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                                                 functionStore: FunctionStore,
                                                                                                                                                 defragSource: DefragSource[SEG],
-                                                                                                                                                segmentConfig: SegmentBlock.Config,
+                                                                                                                                                segmentConfig: SegmentBlockConfig,
                                                                                                                                                 mergeStatsCreator: MergeStatsCreator[S],
                                                                                                                                                 mergeStatsSizeCalculator: MergeStatsSizeCalculator[S]): DefIO[NULL_SEG, ListBuffer[TransientSegment.Fragment[S]]] = {
     //forceExpand if there are cleanable (updates, removes etc) key-values or if segment size is too small.

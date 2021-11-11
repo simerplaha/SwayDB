@@ -19,15 +19,15 @@ package swaydb.core.segment.block.reader
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.{FileReader, Reader}
 import swaydb.core.segment.block._
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.data.slice.{Reader, Slice, SliceReader}
 import swaydb.data.utils.ByteOps
 
 private[core] object BlockRefReader {
 
   def apply(file: DBFile,
-            blockCache: Option[BlockCache.State]): BlockRefReader[SegmentBlock.Offset] = {
-    val offset = SegmentBlock.Offset(0, file.fileSize.toInt)
+            blockCache: Option[BlockCache.State]): BlockRefReader[SegmentBlockOffset] = {
+    val offset = SegmentBlockOffset(0, file.fileSize.toInt)
 
     new BlockRefReader(
       offset = offset,
@@ -39,8 +39,8 @@ private[core] object BlockRefReader {
 
   def apply(file: DBFile,
             fileSize: Int,
-            blockCache: Option[BlockCache.State]): BlockRefReader[SegmentBlock.Offset] = {
-    val offset = SegmentBlock.Offset(0, fileSize)
+            blockCache: Option[BlockCache.State]): BlockRefReader[SegmentBlockOffset] = {
+    val offset = SegmentBlockOffset(0, fileSize)
 
     new BlockRefReader(
       offset = offset,
@@ -53,11 +53,11 @@ private[core] object BlockRefReader {
   def apply(file: DBFile,
             start: Int,
             fileSize: Int,
-            blockCache: Option[BlockCache.State]): BlockRefReader[SegmentBlock.Offset] = {
-    val offset = SegmentBlock.Offset(start, fileSize)
+            blockCache: Option[BlockCache.State]): BlockRefReader[SegmentBlockOffset] = {
+    val offset = SegmentBlockOffset(start, fileSize)
 
     new BlockRefReader(
-      offset = SegmentBlock.Offset(start, fileSize),
+      offset = SegmentBlockOffset(start, fileSize),
       rootBlockRefOffset = offset,
       blockCache = blockCache,
       reader = Reader(file)

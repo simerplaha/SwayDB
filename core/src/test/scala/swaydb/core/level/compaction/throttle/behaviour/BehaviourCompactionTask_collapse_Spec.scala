@@ -23,7 +23,7 @@ import swaydb.core._
 import swaydb.core.data.Memory
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
@@ -71,7 +71,7 @@ sealed trait BehaviourCompactionTask_collapse_Spec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 1.byte, deleteDelay = Duration.Zero, mmap = mmapSegments))
+          val level = TestLevel(segmentConfig = SegmentBlockConfig.random2(minSegmentSize = 1.byte, deleteDelay = Duration.Zero, mmap = mmapSegments))
 
           val segments =
             (1 to 10) map {
@@ -106,7 +106,7 @@ sealed trait BehaviourCompactionTask_collapse_Spec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 1.byte, deleteDelay = Duration.Zero, mmap = mmapSegments))
+          val level = TestLevel(segmentConfig = SegmentBlockConfig.random2(minSegmentSize = 1.byte, deleteDelay = Duration.Zero, mmap = mmapSegments))
 
           val segments =
             (1 to 10) map {

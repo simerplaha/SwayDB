@@ -193,11 +193,11 @@
 //              val allKeyValues = randomPutKeyValues(keyValueCount, startId = Some(1))
 //              val keyValues = allKeyValues.groupedSlice(5)
 //
-//              val level5 = TestLevel(keyValues = keyValues(4), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
-//              val level4 = TestLevel(nextLevel = Some(level5), keyValues = keyValues(3), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.bytes, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
-//              val level3 = TestLevel(nextLevel = Some(level4), keyValues = keyValues(2), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.bytes, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
-//              val level2 = TestLevel(nextLevel = Some(level3), keyValues = keyValues(1), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.bytes, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
-//              val level1 = TestLevel(nextLevel = Some(level2), keyValues = keyValues(0), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.bytes, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
+//              val level5 = TestLevel(keyValues = keyValues(4), segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
+//              val level4 = TestLevel(nextLevel = Some(level5), keyValues = keyValues(3), segmentConfig = SegmentBlockConfig.random(minSegmentSize = 10.bytes, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
+//              val level3 = TestLevel(nextLevel = Some(level4), keyValues = keyValues(2), segmentConfig = SegmentBlockConfig.random(minSegmentSize = 10.bytes, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
+//              val level2 = TestLevel(nextLevel = Some(level3), keyValues = keyValues(1), segmentConfig = SegmentBlockConfig.random(minSegmentSize = 10.bytes, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
+//              val level1 = TestLevel(nextLevel = Some(level2), keyValues = keyValues(0), segmentConfig = SegmentBlockConfig.random(minSegmentSize = 10.bytes, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
 //
 //              //        level1.foreachLevel(_.segmentsCount() should be > 1)
 //
@@ -233,11 +233,11 @@
 //
 //            val keyValues = allKeyValues.groupedSlice(5)
 //
-//            val level5 = TestLevel(keyValues = Slice(keyValues(3).last) ++ keyValues(4), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
-//            val level4 = TestLevel(nextLevel = Some(level5), keyValues = Slice(keyValues(2).last) ++ keyValues(3), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
-//            val level3 = TestLevel(nextLevel = Some(level4), keyValues = keyValues(2), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
-//            val level2 = TestLevel(nextLevel = Some(level3), keyValues = keyValues(1), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
-//            val level1 = TestLevel(nextLevel = Some(level2), keyValues = keyValues(0), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
+//            val level5 = TestLevel(keyValues = Slice(keyValues(3).last) ++ keyValues(4), segmentConfig = SegmentBlockConfig.random(minSegmentSize = 2.kb, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
+//            val level4 = TestLevel(nextLevel = Some(level5), keyValues = Slice(keyValues(2).last) ++ keyValues(3), segmentConfig = SegmentBlockConfig.random(minSegmentSize = 2.kb, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
+//            val level3 = TestLevel(nextLevel = Some(level4), keyValues = keyValues(2), segmentConfig = SegmentBlockConfig.random(minSegmentSize = 2.kb, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
+//            val level2 = TestLevel(nextLevel = Some(level3), keyValues = keyValues(1), segmentConfig = SegmentBlockConfig.random(minSegmentSize = 2.kb, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
+//            val level1 = TestLevel(nextLevel = Some(level2), keyValues = keyValues(0), segmentConfig = SegmentBlockConfig.random(minSegmentSize = 2.kb, pushForward = PushForwardStrategy.On, mmap = mmapSegments))
 //
 //            ThrottleCompaction.copyForwardForEach(
 //              levels = level1.reverseLevels.toSlice,

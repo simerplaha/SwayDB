@@ -25,7 +25,7 @@ import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlock
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache}
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache, SegmentBlockOffset}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
@@ -58,7 +58,7 @@ private[core] case object SegmentRef extends LazyLogging {
             maxKey: MaxKey[Slice[Byte]],
             nearestPutDeadline: Option[Deadline],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-            blockRef: BlockRefReader[SegmentBlock.Offset],
+            blockRef: BlockRefReader[SegmentBlockOffset],
             segmentIO: SegmentReadIO,
             updateCount: Int,
             rangeCount: Int,
@@ -251,7 +251,7 @@ private[core] class SegmentRef(val path: Path,
   def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
     SegmentRefReader.higher(key, threadState)
 
-  def offset(): SegmentBlock.Offset =
+  def offset(): SegmentBlockOffset =
     segmentBlockCache.offset()
 
   def blockCache(): Option[BlockCache.State] =

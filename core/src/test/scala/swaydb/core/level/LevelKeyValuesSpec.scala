@@ -24,7 +24,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data._
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
@@ -101,7 +101,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
         implicit sweeper =>
           import sweeper._
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
+          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.put(keyValues) shouldBe IO.unit
@@ -161,7 +161,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
         implicit sweeper =>
           import sweeper._
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
+          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.put(keyValues).runRandomIO.right.value
@@ -182,7 +182,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
         implicit sweeper =>
           import sweeper._
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
+          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.put(keyValues).runRandomIO.right.value
@@ -204,7 +204,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
         implicit sweeper =>
           import sweeper._
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
+          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.put(keyValues).runRandomIO.right.value
@@ -255,7 +255,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
         implicit sweeper =>
           import sweeper._
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
+          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.put(keyValues).runRandomIO.right.value
@@ -298,7 +298,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
         implicit sweeper =>
           import sweeper._
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
+          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.put(keyValues).runRandomIO.right.value
@@ -331,7 +331,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
         implicit sweeper =>
           import sweeper._
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
+          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.put(keyValues).runRandomIO.right.value

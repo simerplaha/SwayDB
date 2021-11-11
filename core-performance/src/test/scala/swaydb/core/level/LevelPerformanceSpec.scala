@@ -175,7 +175,7 @@
 //      //          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
 //      //          compressions = _ => Seq.empty
 //      //        ),
-//      segmentConfig = SegmentBlock.Config.default,
+//      segmentConfig = SegmentBlockConfig.default,
 //      pushForward = PushForwardStrategy.On,
 //      deleteDelay = Duration.Zero
 //    )

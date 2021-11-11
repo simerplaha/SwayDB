@@ -21,7 +21,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, PersistentOption}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}
 import swaydb.testkit.RunThis._
@@ -78,7 +78,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
             fullIndex = true
           ),
         segmentConfig =
-          SegmentBlock.Config.random2(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue)
+          SegmentBlockConfig.random2(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue)
       ).value
 
     blocks should have size 1

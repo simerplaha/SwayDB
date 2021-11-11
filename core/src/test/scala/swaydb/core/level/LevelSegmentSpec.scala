@@ -24,7 +24,7 @@ import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data._
 import swaydb.core.level.compaction.io.CompactionIO
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.util.IDGenerator
 import swaydb.core.util.PipeOps._
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
@@ -99,7 +99,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
               //small Segment size so that small Segments do not collapse when running this test
               // as reads do not value retried on failure in Level, they only value retried in LevelZero.
-              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 100.bytes, mmap = mmapSegments))
+              val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 100.bytes, mmap = mmapSegments))
               val keyValues = randomIntKeyStringValues(keyValuesCount)
               val segment = TestSegment(keyValues)
               level.put(segment) shouldBe IO.unit
@@ -156,8 +156,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
             val segments =
               Seq(
-                TestSegment(keyValues1, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, mmap = mmapSegments)),
-                TestSegment(keyValues3, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, mmap = mmapSegments))
+                TestSegment(keyValues1, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, mmap = mmapSegments)),
+                TestSegment(keyValues3, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, mmap = mmapSegments))
               )
 
             level.putSegments(segments) shouldBe IO.unit
@@ -208,7 +208,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
               val keyValues = randomPutKeyValues(100)
 
-              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.byte, deleteDelay = Duration.Zero, mmap = mmapSegments), levelStorage = storage)
+              val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.byte, deleteDelay = Duration.Zero, mmap = mmapSegments), levelStorage = storage)
 
               level.put(keyValues).runRandomIO.right.value
               level.segmentsCount() shouldBe keyValues.size
@@ -276,7 +276,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 val keyValues = randomKeyValues(100)(TestTimer.Empty).groupedSlice(10).toArray
                 val segmentToMerge = keyValues map (keyValues => TestSegment(keyValues))
 
-                val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 150.bytes, deleteDelay = Duration.Zero, mmap = mmapSegments))
+                val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 150.bytes, deleteDelay = Duration.Zero, mmap = mmapSegments))
 
                 {
                   implicit val compactionIO: CompactionIO.Actor =

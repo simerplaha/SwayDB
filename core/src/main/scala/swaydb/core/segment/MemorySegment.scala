@@ -22,7 +22,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.defrag.DefragMemorySegment
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -81,13 +81,13 @@ private[core] final case class MemorySegment(path: Path,
           newKeyValues: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
-          segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
+          segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
                                               executionContext: ExecutionContext,
                                               compactionParallelism: CompactionParallelism): Future[DefIO[MemorySegmentOption, Iterable[MemorySegment]]] =
     if (deleted)
       Future.failed(swaydb.Exception.NoSuchFile(path))
     else {
-      implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
+      implicit val segmentConfigImplicit: SegmentBlockConfig = segmentConfig
 
       DefragMemorySegment.runOnSegment(
         segment = this,
@@ -103,7 +103,7 @@ private[core] final case class MemorySegment(path: Path,
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): DefIO[MemorySegment, Slice[MemorySegment]] =
+              segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator): DefIO[MemorySegment, Slice[MemorySegment]] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {

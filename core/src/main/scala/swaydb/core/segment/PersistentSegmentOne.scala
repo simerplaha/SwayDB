@@ -33,7 +33,7 @@ import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache}
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.defrag.DefragPersistentSegment
@@ -316,7 +316,7 @@ protected case class PersistentSegmentOne(file: DBFile,
           binarySearchIndexConfig: BinarySearchIndexConfig,
           hashIndexConfig: HashIndexConfig,
           bloomFilterConfig: BloomFilterConfig,
-          segmentConfig: SegmentBlock.Config,
+          segmentConfig: SegmentBlockConfig,
           pathsDistributor: PathsDistributor,
           segmentRefCacheLife: SegmentRefCacheLife,
           mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
@@ -328,7 +328,7 @@ protected case class PersistentSegmentOne(file: DBFile,
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
     implicit val hashIndexConfigImplicit: HashIndexConfig = hashIndexConfig
     implicit val bloomFilterConfigImplicit: BloomFilterConfig = bloomFilterConfig
-    implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
+    implicit val segmentConfigImplicit: SegmentBlockConfig = segmentConfig
 
     DefragPersistentSegment.runOnSegment(
       segment = this,
@@ -351,7 +351,7 @@ protected case class PersistentSegmentOne(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndexConfig,
               hashIndexConfig: HashIndexConfig,
               bloomFilterConfig: BloomFilterConfig,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
+              segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
                                                   ec: ExecutionContext,
                                                   compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]] = {
     //    val footer = ref.getFooter()

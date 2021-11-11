@@ -19,7 +19,7 @@ package swaydb.core.segment.io
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.effect.{IOAction, IOStrategy}
@@ -43,7 +43,7 @@ private[core] object SegmentReadIO {
             binarySearchIndexConfig: BinarySearchIndexConfig,
             sortedIndexConfig: SortedIndexBlock.Config,
             valuesConfig: ValuesBlock.Config,
-            segmentConfig: SegmentBlock.Config): SegmentReadIO =
+            segmentConfig: SegmentBlockConfig): SegmentReadIO =
     new SegmentReadIO(
       fileOpenIO = IOStrategy.SynchronisedIO(cacheOnAccess = true),
       segmentBlockIO = segmentConfig.blockIOStrategy,

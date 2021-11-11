@@ -23,7 +23,7 @@ import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockOffset
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockOffset
 import swaydb.core.segment.block.hashindex.HashIndexBlockOffset
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.segment.data.ClosedBlocks
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -166,7 +166,7 @@ private[core] case object SegmentFooterBlock {
   }
 
   //all these functions are wrapper with a try catch block with value only to make it easier to read.
-  def read(reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): SegmentFooterBlock = {
+  def read(reader: UnblockedReader[SegmentBlockOffset, SegmentBlock]): SegmentFooterBlock = {
     val segmentBlockSize = reader.size.toInt
     val approximateFooterOffset = (segmentBlockSize - SegmentFooterBlock.optimalBytesRequired) max 0
     val fullFooterBytes = Reader(reader.moveTo(approximateFooterOffset).readRemaining())

@@ -22,7 +22,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.DefIO
 import swaydb.core.level.compaction.throttle.LevelState
 import swaydb.core.segment.Segment
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
@@ -104,7 +104,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends T
             val level =
               TestLevel(
                 keyValues = keyValues,
-                segmentConfig = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 100.mb)
+                segmentConfig = SegmentBlockConfig.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 100.mb)
               )
             //get expected deadline early and expect the state's deadline to be greater than this
             //to account for the time taken running this test
@@ -147,7 +147,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends T
             val level =
               TestLevel(
                 keyValues = keyValues,
-                segmentConfig = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 1.byte)
+                segmentConfig = SegmentBlockConfig.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 1.byte)
               )
             //get expected deadline early and expect the state's deadline to be greater than this
             //to account for the time taken running this test
@@ -191,7 +191,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends T
 
             val level =
               TestLevel(
-                segmentConfig = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 100.mb)
+                segmentConfig = SegmentBlockConfig.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 100.mb)
               )
 
             testSegments.foreach(_.segmentSize should be < level.minSegmentSize)
@@ -250,7 +250,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends T
             //create level
             val level =
               TestLevel(
-                segmentConfig = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 100.mb)
+                segmentConfig = SegmentBlockConfig.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 100.mb)
               )
 
             //all Segments are small
@@ -308,7 +308,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends T
             //create level
             val level =
               TestLevel(
-                segmentConfig = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 100.mb)
+                segmentConfig = SegmentBlockConfig.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 100.mb)
               )
 
             //all Segments are small

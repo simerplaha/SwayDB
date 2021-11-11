@@ -19,7 +19,7 @@ package swaydb.core.segment.block.hashindex
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.Persistent
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}
 import swaydb.testkit.RunThis._
@@ -76,7 +76,7 @@ class HashIndexBlockSpec extends TestBase {
                   compressions = _ => compressions
                 ),
               segmentConfig =
-                SegmentBlock.Config.random2(minSegmentSize = randomIntMax(1000) max 1)
+                SegmentBlockConfig.random2(minSegmentSize = randomIntMax(1000) max 1)
             ).get
 
           var keyValueIndex = 0

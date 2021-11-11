@@ -25,7 +25,7 @@ import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
-import swaydb.core.data.{KeyValue, Memory, Value, _}
+import swaydb.core.data._
 import swaydb.core.io.reader.{FileReader, Reader}
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
@@ -35,13 +35,13 @@ import swaydb.core.merge._
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.block._
-import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexConfig}
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset, BloomFilterConfig, BloomFilterState}
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
+import swaydb.core.segment.block.hashindex.HashIndexConfig
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.block.segment.SegmentBlock.SegmentBlockOps
+import swaydb.core.segment.block.segment.SegmentBlockOffset.SegmentBlockOps
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache}
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache, SegmentBlockConfig, SegmentBlockOffset}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
@@ -1400,7 +1400,7 @@ object CommonAssertions {
         binarySearchIndexConfig = BinarySearchIndexConfig.random,
         sortedIndexConfig = sortedIndexBlock,
         valuesConfig = ValuesBlock.Config.random,
-        segmentConfig = SegmentBlock.Config.random.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
+        segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
       ).awaitInf
 
     segment should have size 1
@@ -1438,7 +1438,7 @@ object CommonAssertions {
                 binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
                 bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
-                segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
+                segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                  keyOrder: KeyOrder[Slice[Byte]],
                                                                                  ec: ExecutionContext = TestExecutionContext.executionContext,
                                                                                  compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): IO[Error.Segment, Slice[SegmentBlocks]] = {
@@ -1488,7 +1488,7 @@ object CommonAssertions {
                       binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                       hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
                       bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
-                      segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
+                      segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                        keyOrder: KeyOrder[Slice[Byte]],
                                                                                        ec: ExecutionContext = TestExecutionContext.executionContext): IO[Error.Segment, SegmentBlocks] =
     getBlocks(
@@ -1518,7 +1518,7 @@ object CommonAssertions {
                            binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                            hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
                            bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
-                           segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
+                           segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                             keyOrder: KeyOrder[Slice[Byte]],
                                                                                             ec: ExecutionContext,
                                                                                             compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Slice[SegmentBlockCache] =
@@ -1558,7 +1558,7 @@ object CommonAssertions {
                                  binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                                  hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
                                  bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
-                                 segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
+                                 segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                                   keyOrder: KeyOrder[Slice[Byte]],
                                                                                                   ec: ExecutionContext = TestExecutionContext.executionContext): SegmentBlockCache = {
     val blockCaches =
@@ -1634,7 +1634,7 @@ object CommonAssertions {
             BlockRefReader(reader.file, BlockCache.forSearch(reader.size.toInt, blockCacheMemorySweeper))
 
           case SliceReader(slice, position) =>
-            BlockRefReader[SegmentBlock.Offset](slice.drop(position))(SegmentBlockOps)
+            BlockRefReader[SegmentBlockOffset](slice.drop(position))
         },
       valuesReaderCacheable = None,
       sortedIndexReaderCacheable = None,

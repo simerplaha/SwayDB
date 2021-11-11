@@ -23,7 +23,7 @@ import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data._
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -72,7 +72,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
           implicit sweeper =>
             import sweeper._
 
-            val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.byte, mmap = mmapSegments))
+            val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.byte, mmap = mmapSegments))
             val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0))(TestTimer.Empty)
             level.put(keyValues).runRandomIO.right.value
             //dispatch another put request so that existing Segment gets split
@@ -111,7 +111,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
         implicit sweeper =>
           import sweeper._
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
+          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
           val map = TestLog(keyValues)

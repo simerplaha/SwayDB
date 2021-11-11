@@ -21,7 +21,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions.orNone
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.block.values.ValuesBlock.ValuesBlockOps
 import swaydb.core.segment.block.{Block, BlockCache}
@@ -43,12 +43,12 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
           //DBFile
           BlockRefReader(file = file, blockCache = blockCache).readRemaining() shouldBe bytes
           //Slice[Byte]
-          BlockRefReader[SegmentBlock.Offset](bytes).readRemaining() shouldBe bytes
+          BlockRefReader[SegmentBlockOffset](bytes).readRemaining() shouldBe bytes
 
           //Reader: FileReader
-          BlockRefReader[SegmentBlock.Offset](fileReader: Reader[Byte], blockCache = blockCache).readRemaining() shouldBe bytes
+          BlockRefReader[SegmentBlockOffset](fileReader: Reader[Byte], blockCache = blockCache).readRemaining() shouldBe bytes
           //Reader: SliceReader
-          BlockRefReader[SegmentBlock.Offset](Reader(bytes): Reader[Byte], blockCache = blockCache).readRemaining() shouldBe bytes
+          BlockRefReader[SegmentBlockOffset](Reader(bytes): Reader[Byte], blockCache = blockCache).readRemaining() shouldBe bytes
       }
     }
   }

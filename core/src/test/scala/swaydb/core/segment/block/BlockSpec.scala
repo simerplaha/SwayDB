@@ -6,7 +6,7 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.segment.block.BlockCompressionInfo
 import swaydb.core.segment.block.reader.BlockRefReader
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.segment.data.TransientSegmentRef
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.testkit.RunThis._
@@ -25,12 +25,12 @@ class BlockSpec extends TestBase {
     ValuesBlock(ValuesBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(BlockCompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
 
     //uncompressed
-    SegmentBlock(SegmentBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = None).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
-    SegmentBlock(SegmentBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = None).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
+    SegmentBlock(SegmentBlockOffset(start = 0, size = 20), headerSize = 10, compressionInfo = None).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
+    SegmentBlock(SegmentBlockOffset(start = 10, size = 20), headerSize = 10, compressionInfo = None).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
 
     //compressed
-    SegmentBlock(SegmentBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = Some(BlockCompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
-    SegmentBlock(SegmentBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(BlockCompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
+    SegmentBlock(SegmentBlockOffset(start = 0, size = 20), headerSize = 10, compressionInfo = Some(BlockCompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
+    SegmentBlock(SegmentBlockOffset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(BlockCompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
   }
 
   "block & unblock" when {
@@ -53,14 +53,14 @@ class BlockSpec extends TestBase {
           val segmentBytes = compressionResult.headerBytes ++ dataBytes
 
           //read header
-          val header = Block.readHeader[SegmentBlock.Offset](BlockRefReader(segmentBytes))
+          val header = Block.readHeader[SegmentBlockOffset](BlockRefReader(segmentBytes))
 
           header.headerSize shouldBe Block.minimumHeaderSize(false)
           header.compressionInfo shouldBe empty
           header.headerReader.hasMore shouldBe false
 
           //create block reader
-          def blockReader = Block.unblock[SegmentBlock.Offset, SegmentBlock](BlockRefReader[SegmentBlock.Offset](segmentBytes))
+          def blockReader = Block.unblock[SegmentBlockOffset, SegmentBlock](BlockRefReader[SegmentBlockOffset](segmentBytes))
 
           blockReader.readRemaining() shouldBe dataBytes
           blockReader.read(Int.MaxValue) shouldBe dataBytes
@@ -116,7 +116,7 @@ class BlockSpec extends TestBase {
 
           //first slice gets written
           blockedSegment.flattenSegmentBytes.exists(_ != 0) shouldBe true
-          val ref = BlockRefReader[SegmentBlock.Offset](blockedSegment.flattenSegmentBytes)
+          val ref = BlockRefReader[SegmentBlockOffset](blockedSegment.flattenSegmentBytes)
 
           //read header
           val header = Block.readHeader(ref.copy())
@@ -150,7 +150,7 @@ class BlockSpec extends TestBase {
 
           compressedBytes.compressedBytes shouldBe defined
 
-          val ref = BlockRefReader[SegmentBlock.Offset](compressedBytes.headerBytes ++ compressedBytes.compressedBytes.getOrElse(dataBytes))
+          val ref = BlockRefReader[SegmentBlockOffset](compressedBytes.headerBytes ++ compressedBytes.compressedBytes.getOrElse(dataBytes))
 
           //read header
           val header = Block.readHeader(ref)
@@ -220,7 +220,7 @@ class BlockSpec extends TestBase {
           compressedSegment.fileHeader shouldBe empty
           compressedSegment.bodyBytes should not be empty
 
-          val ref = BlockRefReader[SegmentBlock.Offset](compressedSegment.flattenSegmentBytes)
+          val ref = BlockRefReader[SegmentBlockOffset](compressedSegment.flattenSegmentBytes)
 
           //read header
           val header = Block.readHeader(ref)
@@ -259,7 +259,7 @@ class BlockSpec extends TestBase {
       else
         segmentBytes.size should be < dataBytes.size
 
-      val ref = BlockRefReader[SegmentBlock.Offset](segmentBytes)
+      val ref = BlockRefReader[SegmentBlockOffset](segmentBytes)
 
       val decompressedBlock = Block.unblock(ref)
       decompressedBlock.readFullBlock() shouldBe dataBytes

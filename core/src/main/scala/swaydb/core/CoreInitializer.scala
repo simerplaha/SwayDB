@@ -28,7 +28,7 @@ import swaydb.core.level.{Level, LevelCloser, NextLevel}
 import swaydb.core.segment.block
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -174,7 +174,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     sortedIndexConfig = SortedIndexBlock.Config.disabled,
                     valuesConfig = ValuesBlock.Config.disabled,
                     segmentConfig =
-                      SegmentBlock.Config(
+                      SegmentBlockConfig(
                         fileOpenIOStrategy = IOStrategy.AsyncIO(false),
                         blockIOStrategy = _ => IOStrategy.ConcurrentIO(false),
                         cacheBlocksOnCreate = false,
@@ -215,7 +215,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     binarySearchIndexConfig = BinarySearchIndexConfig(config = config.binarySearchIndex),
                     sortedIndexConfig = SortedIndexBlock.Config(config.sortedIndex),
                     valuesConfig = ValuesBlock.Config(config.valuesConfig),
-                    segmentConfig = SegmentBlock.Config(config.segmentConfig),
+                    segmentConfig = SegmentBlockConfig(config.segmentConfig),
                     levelStorage =
                       LevelStorage.Persistent(
                         dir = config.dir.resolve(id.toString),

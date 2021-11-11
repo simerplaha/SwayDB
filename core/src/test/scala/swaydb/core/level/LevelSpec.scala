@@ -25,7 +25,7 @@ import swaydb.core._
 import swaydb.core.data._
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.Segment
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -199,9 +199,9 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
                 //deleteUncommittedSegments will also be invoked on Levels with cleared and closed Segments there will never be
                 //memory-mapped. So disable mmap in this test specially for windows which does not allow deleting memory-mapped files without
                 //clearing the MappedByteBuffer.
-                TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId), segmentConfig = SegmentBlock.Config.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.channel())))
-                TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId), segmentConfig = SegmentBlock.Config.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.channel())))
-                TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId), segmentConfig = SegmentBlock.Config.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.channel())))
+                TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.channel())))
+                TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.channel())))
+                TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.channel())))
                 currentSegmentId + 3
             }
             //every level folder has 3 uncommitted Segments plus 1 valid Segment
@@ -223,7 +223,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         implicit sweeper =>
           import sweeper._
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
+          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
           level.put(randomizedKeyValues(2000)).runRandomIO.right.value
 
           val largeSegmentId = Level.largestSegmentId(level.segments())
@@ -234,7 +234,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "return 0 when the Level is empty" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
+          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           Level.largestSegmentId(level.segments()) shouldBe 0
       }

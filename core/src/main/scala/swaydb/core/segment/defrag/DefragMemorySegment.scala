@@ -22,7 +22,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util.IDGenerator
@@ -51,7 +51,7 @@ object DefragMemorySegment {
                                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                                              functionStore: FunctionStore,
                                                                              defragSource: DefragSource[SEG],
-                                                                             segmentConfig: SegmentBlock.Config,
+                                                                             segmentConfig: SegmentBlockConfig,
                                                                              fileSweeper: FileSweeper,
                                                                              idGenerator: IDGenerator,
                                                                              compactionParallelism: CompactionParallelism): Future[DefIO[NULL_SEG, Iterable[MemorySegment]]] =
@@ -93,7 +93,7 @@ object DefragMemorySegment {
                                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                                           functionStore: FunctionStore,
                                                                           defragSource: DefragSource[SEG],
-                                                                          segmentConfig: SegmentBlock.Config,
+                                                                          segmentConfig: SegmentBlockConfig,
                                                                           fileSweeper: FileSweeper,
                                                                           idGenerator: IDGenerator,
                                                                           compactionParallelism: CompactionParallelism): Future[DefIO[NULL_SEG, Iterable[MemorySegment]]] =
@@ -136,7 +136,7 @@ object DefragMemorySegment {
                                                                                        keyOrder: KeyOrder[Slice[Byte]],
                                                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                                                        functionStore: FunctionStore,
-                                                                                       segmentConfig: SegmentBlock.Config,
+                                                                                       segmentConfig: SegmentBlockConfig,
                                                                                        fileSweeper: FileSweeper,
                                                                                        idGenerator: IDGenerator,
                                                                                        compactionParallelism: CompactionParallelism): Future[ListBuffer[Slice[MemorySegment]]] =

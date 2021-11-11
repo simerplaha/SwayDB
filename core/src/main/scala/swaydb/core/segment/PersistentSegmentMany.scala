@@ -32,7 +32,7 @@ import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.reader.BlockRefReader
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig, SegmentBlockOffset}
 import swaydb.core.segment.block.segment.data.{TransientSegment, TransientSegmentSerialiser}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -529,7 +529,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
     val blockedReader = Reader(file).moveTo(1)
     val listSegmentSize = blockedReader.readUnsignedInt()
     val listSegment = blockedReader.read(listSegmentSize)
-    val listSegmentRef = BlockRefReader[SegmentBlock.Offset](listSegment)
+    val listSegmentRef = BlockRefReader[SegmentBlockOffset](listSegment)
 
     val temporarySegmentRef =
       SegmentRef(
@@ -836,7 +836,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           binarySearchIndexConfig: BinarySearchIndexConfig,
           hashIndexConfig: HashIndexConfig,
           bloomFilterConfig: BloomFilterConfig,
-          segmentConfig: SegmentBlock.Config,
+          segmentConfig: SegmentBlockConfig,
           pathsDistributor: PathsDistributor,
           segmentRefCacheLife: SegmentRefCacheLife,
           mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
@@ -848,7 +848,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
     implicit val hashIndexConfigImplicit: HashIndexConfig = hashIndexConfig
     implicit val bloomFilterConfigImplicit: BloomFilterConfig = bloomFilterConfig
-    implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
+    implicit val segmentConfigImplicit: SegmentBlockConfig = segmentConfig
 
     DefragPersistentSegment.runMany(
       headGap = headGap,
@@ -870,7 +870,7 @@ protected case class PersistentSegmentMany(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndexConfig,
               hashIndexConfig: HashIndexConfig,
               bloomFilterConfig: BloomFilterConfig,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
+              segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
                                                   ec: ExecutionContext,
                                                   compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]]] =
     Segment.refreshForNewLevel(

@@ -90,7 +90,7 @@
 //      SegmentBlock.writeClosed(
 //        keyValues = keyValues,
 //        segmentConfig =
-//          new SegmentBlock.Config(
+//          new SegmentBlockConfig(
 //            blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
 //            compressions = _ => Seq.empty
 //          ),

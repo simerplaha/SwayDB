@@ -50,7 +50,7 @@ private[core] object SegmentBlockCache {
 
   def apply(path: Path,
             segmentIO: SegmentReadIO,
-            blockRef: BlockRefReader[SegmentBlock.Offset],
+            blockRef: BlockRefReader[SegmentBlockOffset],
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
             hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
@@ -72,7 +72,7 @@ private[core] object SegmentBlockCache {
        * Cannot be used anymore because of partial caching on copied can be applied
        * if only some of the Segment's block were slice readers. See [[SegmentBlockCache.validateCachedReaderForCopiedSegment]]
        */
-      //Value configured in [[SegmentBlock.Config.cacheBlocksOnCreate]]
+      //Value configured in [[SegmentBlockConfig.cacheBlocksOnCreate]]
       //areBlocksCacheableOnCreate = sortedIndexReaderCacheable.isDefined
     )
 }
@@ -82,7 +82,7 @@ private[core] object SegmentBlockCache {
  */
 private[core] class SegmentBlockCache private(path: Path,
                                               val segmentIO: SegmentReadIO,
-                                              segmentBlockRef: BlockRefReader[SegmentBlock.Offset],
+                                              segmentBlockRef: BlockRefReader[SegmentBlockOffset],
                                               private var valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                                               private var sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
                                               private var hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
@@ -260,7 +260,7 @@ private[core] class SegmentBlockCache private(path: Path,
         SegmentBlockCache.nullIO
     }
 
-  private[block] def createSegmentBlockReader(): UnblockedReader[SegmentBlock.Offset, SegmentBlock] =
+  private[block] def createSegmentBlockReader(): UnblockedReader[SegmentBlockOffset, SegmentBlock] =
     segmentReaderCache
       .getOrElse(segmentReaderCache value BlockedReader(segmentBlockRef.copy()))
       .get
@@ -342,7 +342,7 @@ private[core] class SegmentBlockCache private(path: Path,
     .copy()
 
   private[block] val footerBlockCache =
-    Cache.io[swaydb.Error.Segment, swaydb.Error.ReservedResource, UnblockedReader[SegmentBlock.Offset, SegmentBlock], SegmentFooterBlock](
+    Cache.io[swaydb.Error.Segment, swaydb.Error.ReservedResource, UnblockedReader[SegmentBlockOffset, SegmentBlock], SegmentFooterBlock](
       strategy = segmentFooterBlockIO(IOAction.ReadDataOverview),
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: footerBlockCache")),
       initial = footerCacheable
@@ -379,7 +379,7 @@ private[core] class SegmentBlockCache private(path: Path,
 
   //reader caches
   private[block] val segmentReaderCache =
-    buildBlockReaderCache[SegmentBlock.Offset, SegmentBlock](
+    buildBlockReaderCache[SegmentBlockOffset, SegmentBlock](
       initial = None,
       blockIO = segmentBlockIO,
       resourceName = SegmentBlockCache.segmentReaderCacheName
@@ -536,7 +536,7 @@ private[core] class SegmentBlockCache private(path: Path,
   def readAllBytes(): Slice[Byte] =
     segmentBlockRef.copy().readFullBlock()
 
-  def offset(): SegmentBlock.Offset =
+  def offset(): SegmentBlockOffset =
     segmentBlockRef.offset
 
   def transfer(position: Int, count: Int, transferTo: DBFile): Unit =

@@ -34,7 +34,7 @@ import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, GapAggreg
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -96,7 +96,7 @@ private[core] case object Level extends LazyLogging {
             binarySearchIndexConfig: BinarySearchIndexConfig,
             sortedIndexConfig: SortedIndexBlock.Config,
             valuesConfig: ValuesBlock.Config,
-            segmentConfig: SegmentBlock.Config,
+            segmentConfig: SegmentBlockConfig,
             levelStorage: LevelStorage,
             nextLevel: Option[NextLevel],
             throttle: LevelMeter => LevelThrottle)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -282,7 +282,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                binarySearchIndexConfig: BinarySearchIndexConfig,
                                sortedIndexConfig: SortedIndexBlock.Config,
                                valuesConfig: ValuesBlock.Config,
-                               segmentConfig: SegmentBlock.Config,
+                               segmentConfig: SegmentBlockConfig,
                                inMemory: Boolean,
                                throttle: LevelMeter => LevelThrottle,
                                nextLevel: Option[NextLevel],
@@ -640,7 +640,7 @@ private[core] case class Level(dirs: Seq[Dir],
       val gap = GapAggregator.create[MergeStats.Memory.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
       newKeyValues foreach gap.add
 
-      implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
+      implicit val segmentConfigImplicit: SegmentBlockConfig = segmentConfig
 
       DefragMemorySegment.runOnGaps[Segment, SegmentOption](
         nullSegment = Segment.Null,
@@ -687,7 +687,7 @@ private[core] case class Level(dirs: Seq[Dir],
       implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
       implicit val hashIndexConfigImplicit: HashIndexConfig = hashIndexConfig
       implicit val bloomFilterConfigImplicit: BloomFilterConfig = bloomFilterConfig
-      implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
+      implicit val segmentConfigImplicit: SegmentBlockConfig = segmentConfig
 
       DefragPersistentSegment.runOnGaps[Segment, SegmentOption](
         nullSegment = Segment.Null,

@@ -23,7 +23,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core._
 import swaydb.core.level.compaction.io.CompactionIO
@@ -76,7 +76,7 @@ sealed trait LevelCollapseSpec extends TestBase {
         import sweeper._
 
         //disable throttling so that it does not automatically collapse small Segments
-        val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments, deleteDelay = Duration.Zero))
+        val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments, deleteDelay = Duration.Zero))
         val keyValues = randomPutKeyValues(1000, addPutDeadlines = false, startId = Some(0))(TestTimer.Empty)
         level.put(keyValues).runRandomIO.right.value
 
@@ -123,7 +123,7 @@ sealed trait LevelCollapseSpec extends TestBase {
 
             //          implicit val compressionType: Option[KeyValueCompressionType] = randomCompressionTypeOption(keyValuesCount)
             //disable throttling so that it does not automatically collapse small Segments
-            val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = mmapSegments))
+            val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = mmapSegments))
 
             assertAllSegmentsCreatedInLevel(level)
 
@@ -167,7 +167,7 @@ sealed trait LevelCollapseSpec extends TestBase {
       implicit sweeper =>
         import sweeper._
 
-        val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
+        val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
         val expiryAt = 5.seconds.fromNow
         val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addPutDeadlines = false)(TestTimer.Empty)
         level.put(keyValues).runRandomIO.right.value
@@ -215,7 +215,7 @@ sealed trait LevelCollapseSpec extends TestBase {
       implicit sweeper =>
         import sweeper._
 
-        val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
+        val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
         val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
         val maps = TestLog(keyValues)

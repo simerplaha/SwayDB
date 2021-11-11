@@ -28,7 +28,7 @@ import swaydb.core.segment.assigner.{Assignable, Assigner}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -216,7 +216,7 @@ private[core] case object Segment extends LazyLogging {
                  binarySearchIndexConfig: BinarySearchIndexConfig,
                  sortedIndexConfig: SortedIndexBlock.Config,
                  valuesConfig: ValuesBlock.Config,
-                 segmentConfig: SegmentBlock.Config,
+                 segmentConfig: SegmentBlockConfig,
                  mergeStats: MergeStats.Persistent.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                                      functionStore: FunctionStore,
@@ -257,7 +257,7 @@ private[core] case object Segment extends LazyLogging {
                     binarySearchIndexConfig: BinarySearchIndexConfig,
                     hashIndexConfig: HashIndexConfig,
                     bloomFilterConfig: BloomFilterConfig,
-                    segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                    segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         functionStore: FunctionStore,
                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -355,7 +355,7 @@ private[core] case object Segment extends LazyLogging {
                     binarySearchIndexConfig: BinarySearchIndexConfig,
                     hashIndexConfig: HashIndexConfig,
                     bloomFilterConfig: BloomFilterConfig,
-                    segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                    segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         functionStore: FunctionStore,
                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -454,7 +454,7 @@ private[core] case object Segment extends LazyLogging {
                           binarySearchIndexConfig: BinarySearchIndexConfig,
                           hashIndexConfig: HashIndexConfig,
                           bloomFilterConfig: BloomFilterConfig,
-                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                          segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                               ec: ExecutionContext,
                                                               compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] = {
 
@@ -510,7 +510,7 @@ private[core] case object Segment extends LazyLogging {
                          binarySearchIndexConfig: BinarySearchIndexConfig,
                          hashIndexConfig: HashIndexConfig,
                          bloomFilterConfig: BloomFilterConfig,
-                         segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                         segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                              ec: ExecutionContext,
                                                              compactionParallelism: CompactionParallelism): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
     Future

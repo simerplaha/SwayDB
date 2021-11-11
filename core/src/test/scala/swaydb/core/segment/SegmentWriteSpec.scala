@@ -33,7 +33,7 @@ import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
@@ -475,7 +475,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 keyValues =
                   randomizedKeyValues(keyValuesCount),
 
-                segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = false, mmap = mmapSegments),
+                segmentConfig = SegmentBlockConfig.random(cacheBlocksOnCreate = false, mmap = mmapSegments),
 
                 closeAfterCreate =
                   true,
@@ -647,7 +647,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
           val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
-          val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random(mmap = mmapSegments)
+          val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random(mmap = mmapSegments)
 
           val segment =
             TestSegment(
@@ -745,7 +745,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
             val keyValues = randomizedKeyValues(keyValuesCount)
 
-            val segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = true, mmap = MMAP.Off(TestForceSave.channel()), cacheOnAccess = true)
+            val segmentConfig = SegmentBlockConfig.random(cacheBlocksOnCreate = true, mmap = MMAP.Off(TestForceSave.channel()), cacheOnAccess = true)
 
             val segment1 =
               TestSegment(
@@ -849,7 +849,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
           val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
-          val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+          val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
           val keyValues = randomizedKeyValues(keyValuesCount)
 
@@ -897,14 +897,14 @@ sealed trait SegmentWriteSpec extends TestBase {
             import sweeper._
 
             val keyValues = randomizedKeyValues(keyValuesCount)
-            val segment = TestSegment(keyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
+            val segment = TestSegment(keyValues, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
 
             val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
             val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
             val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
             val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
             val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
-            val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = Segment.segmentSizeForMerge(segment, randomBoolean()) / 10)
+            val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = Segment.segmentSizeForMerge(segment, randomBoolean()) / 10)
 
             val pathDistributor = createPathDistributor
 
@@ -951,7 +951,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
           val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
-          val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = Segment.segmentSizeForMerge(segment, randomBoolean()) / 10)
+          val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = Segment.segmentSizeForMerge(segment, randomBoolean()) / 10)
 
           val pathDistributor = createPathDistributor
 
@@ -1011,7 +1011,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
           val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
-          val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+          val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
           //used to calculate the size of Segment
           val temporarySegment =
@@ -1087,7 +1087,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random(hasCompression = false, cacheOnAccess = false)
               val hashIndexConfig: HashIndexConfig = HashIndexConfig.random(hasCompression = false, cacheOnAccess = false)
               val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random(hasCompression = false, cacheOnAccess = false)
-              val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random(cacheOnAccess = false, cacheBlocksOnCreate = false, hasCompression = false)
+              val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random(cacheOnAccess = false, cacheBlocksOnCreate = false, hasCompression = false)
 
               //used to calculate the size of Segment
               val segment =
@@ -1217,7 +1217,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     //              val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random(hasCompression = false, cacheOnAccess = false)
     //              val hashIndexConfig: HashIndexConfig = HashIndexConfig.random(hasCompression = false, cacheOnAccess = false)
     //              val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random(hasCompression = false, cacheOnAccess = false)
-    //              val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random(cacheOnAccess = false, cacheBlocksOnCreate = true, hasCompression = false).copy(minSize = Int.MaxValue, maxCount = keyValues.size / 10)
+    //              val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random(cacheOnAccess = false, cacheBlocksOnCreate = true, hasCompression = false).copy(minSize = Int.MaxValue, maxCount = keyValues.size / 10)
     //
     //              val path = testSegmentFile
     //              implicit val pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq.empty)
@@ -1320,7 +1320,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           implicit sweeper =>
             import sweeper._
             val keyValues = randomizedKeyValues(keyValuesCount)
-            val segment = TestSegment(keyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
+            val segment = TestSegment(keyValues, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
 
             val memorySize = keyValues.foldLeft(0)(_ + MergeStats.Memory.calculateSize(_))
 
@@ -1416,7 +1416,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 key
             }
 
-            val segment = TestSegment(keyValuesWithEmptyValues.toSlice, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
+            val segment = TestSegment(keyValuesWithEmptyValues.toSlice, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
 
             def valuesValueShouldBeNone(value: Value): Unit =
               value match {
@@ -1479,7 +1479,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexConfig.random,
             hashIndexConfig = HashIndexConfig.random,
             bloomFilterConfig = BloomFilterConfig.random,
-            segmentConfig = SegmentBlock.Config.random.copy(minSize = 1.mb),
+            segmentConfig = SegmentBlockConfig.random.copy(minSize = 1.mb),
             pathDistributor = createPathDistributor,
             segmentRefCacheLife = randomSegmentRefCacheLife(),
             mmapSegment = mmapSegments
@@ -1501,7 +1501,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
           val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
-          val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+          val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
           val segment =
             TestSegment(
@@ -1613,7 +1613,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
               val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
               val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
-              val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+              val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
               val newSegments =
                 oldSegment.put(
@@ -1662,7 +1662,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
               val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
               val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
-              val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+              val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
               val keyValues = randomizedKeyValues(keyValuesCount)
               val segment = TestSegment(keyValues)
@@ -1737,7 +1737,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
           val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
-          val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+          val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
           val deletedSegment =
             segment.put(
@@ -1784,7 +1784,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
           val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
           val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
-          val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+          val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
           val updatedSegments =
             segment.put(
@@ -1829,7 +1829,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
             val keyValues2Closed = keyValues2Unclosed.close()
 
-            val segmentConfig2 = SegmentBlock.Config.random.copy(Int.MaxValue, if (memory) keyValues2Closed.size else randomIntMax(keyValues2Closed.size))
+            val segmentConfig2 = SegmentBlockConfig.random.copy(Int.MaxValue, if (memory) keyValues2Closed.size else randomIntMax(keyValues2Closed.size))
 
             val segment2 = TestSegment(keyValues2Closed, segmentConfig = segmentConfig2)
 
@@ -1838,7 +1838,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
             val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
             val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
-            val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+            val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
             val mergedSegments =
               segment1.put(
@@ -1904,7 +1904,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               binarySearchIndexConfig = BinarySearchIndexConfig.random,
               hashIndexConfig = HashIndexConfig.random,
               bloomFilterConfig = BloomFilterConfig.random,
-              segmentConfig = SegmentBlock.Config.random.copy(minSize = 4.mb),
+              segmentConfig = SegmentBlockConfig.random.copy(minSize = 4.mb),
               pathDistributor = createPathDistributor,
               segmentRefCacheLife = randomSegmentRefCacheLife(),
               mmapSegment = mmapSegments
@@ -1939,7 +1939,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 binarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig = HashIndexConfig.random,
                 bloomFilterConfig = BloomFilterConfig.random,
-                segmentConfig = SegmentBlock.Config.random,
+                segmentConfig = SegmentBlockConfig.random,
                 pathDistributor = createPathDistributor,
                 segmentRefCacheLife = randomSegmentRefCacheLife(),
                 mmapSegment = mmapSegments
@@ -1977,7 +1977,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               binarySearchIndexConfig = BinarySearchIndexConfig.random,
               hashIndexConfig = HashIndexConfig.random,
               bloomFilterConfig = BloomFilterConfig.random,
-              segmentConfig = SegmentBlock.Config.random.copy(minSize = 4.mb),
+              segmentConfig = SegmentBlockConfig.random.copy(minSize = 4.mb),
               pathDistributor = createPathDistributor,
               segmentRefCacheLife = randomSegmentRefCacheLife(),
               mmapSegment = mmapSegments
@@ -2025,7 +2025,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 binarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig = HashIndexConfig.random,
                 bloomFilterConfig = BloomFilterConfig.random,
-                segmentConfig = SegmentBlock.Config.random.copy(minSize = segmentSizeForMerge / 4),
+                segmentConfig = SegmentBlockConfig.random.copy(minSize = segmentSizeForMerge / 4),
                 pathDistributor = pathsDistributor,
                 segmentRefCacheLife = randomSegmentRefCacheLife(),
                 mmapSegment = mmapSegments
@@ -2042,7 +2042,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 binarySearchIndexConfig = BinarySearchIndexConfig.random,
                 hashIndexConfig = HashIndexConfig.random,
                 bloomFilterConfig = BloomFilterConfig.random,
-                segmentConfig = SegmentBlock.Config.random.copy(minSize = 21.bytes),
+                segmentConfig = SegmentBlockConfig.random.copy(minSize = 21.bytes),
                 pathDistributor = pathsDistributor,
                 segmentRefCacheLife = randomSegmentRefCacheLife(),
                 mmapSegment = mmapSegments
@@ -2098,7 +2098,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               binarySearchIndexConfig = BinarySearchIndexConfig.random,
               hashIndexConfig = HashIndexConfig.random,
               bloomFilterConfig = BloomFilterConfig.random,
-              segmentConfig = SegmentBlock.Config.random
+              segmentConfig = SegmentBlockConfig.random
             ).await.output shouldBe empty
         }
       }
@@ -2122,7 +2122,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexConfig.random,
             hashIndexConfig = HashIndexConfig.random,
             bloomFilterConfig = BloomFilterConfig.random,
-            segmentConfig = SegmentBlock.Config.random,
+            segmentConfig = SegmentBlockConfig.random,
             pathDistributor = createPathDistributor
           ).isEmpty shouldBe true
       }
@@ -2157,7 +2157,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   binarySearchIndexConfig = BinarySearchIndexConfig.random,
                   hashIndexConfig = HashIndexConfig.random,
                   bloomFilterConfig = BloomFilterConfig.random,
-                  segmentConfig = SegmentBlock.Config.random,
+                  segmentConfig = SegmentBlockConfig.random,
                   pathDistributor = createPathDistributor
                 ).mapToSlice(_.sweep())
               }
@@ -2186,8 +2186,8 @@ sealed trait SegmentWriteSpec extends TestBase {
             val hashIndexConfig = HashIndexConfig.random(hasCompression = enableCompression)
             val bloomFilterConfig = BloomFilterConfig.random(hasCompression = enableCompression)
 
-            val segmentConfig: SegmentBlock.Config =
-              SegmentBlock.Config.random(
+            val segmentConfig: SegmentBlockConfig =
+              SegmentBlockConfig.random(
                 hasCompression = enableCompression,
                 minSegmentSize = Int.MaxValue,
                 //this test-case fails when maxKeyValuesPerSegment less than the original keyValues.size.
@@ -2238,9 +2238,9 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     /**
-     * The above test-case fails in the following refresh scenario when [[SegmentBlock.Config.maxCount]] specified
+     * The above test-case fails in the following refresh scenario when [[SegmentBlockConfig.maxCount]] specified
      * on refresh is less than the number of key-values in the original Segment. This will never occur in reality
-     * as we do not allow dynamically changing the Level's [[SegmentBlock.Config.maxCount]] value. This will
+     * as we do not allow dynamically changing the Level's [[SegmentBlockConfig.maxCount]] value. This will
      * also not occur during copying from another level because then refresh re-calculates the byte size of the Segment
      * based on the current level.
      *
@@ -2266,8 +2266,8 @@ sealed trait SegmentWriteSpec extends TestBase {
             val hashIndexConfig = HashIndexConfig.disabled()
             val bloomFilterConfig = BloomFilterConfig.disabled()
 
-            val segmentConfig: SegmentBlock.Config =
-              SegmentBlock.Config.random(
+            val segmentConfig: SegmentBlockConfig =
+              SegmentBlockConfig.random(
                 hasCompression = enableCompression,
                 minSegmentSize = Int.MaxValue,
                 maxKeyValuesPerSegment = 1

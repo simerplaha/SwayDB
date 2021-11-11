@@ -25,7 +25,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.Segment
 import swaydb.core._
 import swaydb.core.segment.io.SegmentReadIO
@@ -997,9 +997,9 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         implicit sweeper =>
           def segmentConfig(keyValuesCount: Int) =
             if (persistent)
-              SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValuesCount * 2), mmap = mmapSegments)
+              SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValuesCount * 2), mmap = mmapSegments)
             else
-              SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments)
+              SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments)
 
           runThis(100.times) {
             val keyValues1 = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
@@ -1066,9 +1066,9 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
             val segmentConfig =
               if (persistent)
-                SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValues1.size * 2), mmap = mmapSegments)
+                SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValues1.size * 2), mmap = mmapSegments)
               else
-                SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments)
+                SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments)
 
             val segment1 = TestSegment(keyValues1, segmentConfig = segmentConfig)
             val segment2 = TestSegment(keyValues2, segmentConfig = segmentConfig)

@@ -43,7 +43,7 @@ import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySe
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig, HashIndexEntryFormat}
 import swaydb.core.segment.block.reader.{BlockedReader, UnblockedReader}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig, SegmentBlockOffset}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -507,8 +507,8 @@ object TestData {
       )
   }
 
-  implicit class SegmentConfigImplicits(values: SegmentBlock.Config.type) {
-    def random: SegmentBlock.Config =
+  implicit class SegmentConfigImplicits(values: SegmentBlockConfig.type) {
+    def random: SegmentBlockConfig =
       random(hasCompression = randomBoolean())
 
     def random(hasCompression: Boolean = randomBoolean(),
@@ -520,8 +520,8 @@ object TestData {
                enableHashIndexForListSegment: Boolean = randomBoolean(),
                cacheOnAccess: Boolean = randomBoolean(),
                segmentRefCacheLife: SegmentRefCacheLife = randomSegmentRefCacheLife(),
-               initialiseIteratorsInOneSeek: Boolean = randomBoolean()): SegmentBlock.Config =
-      SegmentBlock.Config.applyInternal(
+               initialiseIteratorsInOneSeek: Boolean = randomBoolean()): SegmentBlockConfig =
+      SegmentBlockConfig.applyInternal(
         fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess),
         blockIOStrategy = _ => randomIOStrategy(cacheOnAccess),
         cacheBlocksOnCreate = cacheBlocksOnCreate,
@@ -545,8 +545,8 @@ object TestData {
                 enableHashIndexForListSegment: Boolean = randomBoolean(),
                 minSegmentSize: Int = randomIntMax(30.mb),
                 segmentRefCacheLife: SegmentRefCacheLife = randomSegmentRefCacheLife(),
-                initialiseIteratorsInOneSeek: Boolean = randomBoolean()): SegmentBlock.Config =
-      SegmentBlock.Config.applyInternal(
+                initialiseIteratorsInOneSeek: Boolean = randomBoolean()): SegmentBlockConfig =
+      SegmentBlockConfig.applyInternal(
         fileOpenIOStrategy = fileOpenIOStrategy,
         blockIOStrategy = blockIOStrategy,
         cacheBlocksOnCreate = cacheBlocksOnCreate,
@@ -1818,20 +1818,20 @@ object TestData {
 
   implicit class SegmentBlockImplicits(segmentBlock: SegmentBlock.type) {
 
-    def emptyDecompressedBlock: UnblockedReader[SegmentBlock.Offset, SegmentBlock] =
+    def emptyDecompressedBlock: UnblockedReader[SegmentBlockOffset, SegmentBlock] =
       UnblockedReader.empty(
         SegmentBlock(
-          offset = SegmentBlock.Offset.empty,
+          offset = SegmentBlockOffset.empty,
           headerSize = 0,
           compressionInfo = None
         )
       )
 
-    def unblocked(bytes: Slice[Byte])(implicit updater: BlockOps[SegmentBlock.Offset, SegmentBlock]): UnblockedReader[SegmentBlock.Offset, SegmentBlock] =
+    def unblocked(bytes: Slice[Byte])(implicit updater: BlockOps[SegmentBlockOffset, SegmentBlock]): UnblockedReader[SegmentBlockOffset, SegmentBlock] =
       UnblockedReader(
         block =
           SegmentBlock(
-            offset = SegmentBlock.Offset(
+            offset = SegmentBlockOffset(
               start = 0,
               size = bytes.size
             ),
@@ -1841,12 +1841,12 @@ object TestData {
         bytes = bytes
       )
 
-    def blocked(bytes: Slice[Byte], headerSize: Int, compressionInfo: BlockCompressionInfo)(implicit updater: BlockOps[SegmentBlock.Offset, SegmentBlock]): BlockedReader[SegmentBlock.Offset, SegmentBlock] =
+    def blocked(bytes: Slice[Byte], headerSize: Int, compressionInfo: BlockCompressionInfo)(implicit updater: BlockOps[SegmentBlockOffset, SegmentBlock]): BlockedReader[SegmentBlockOffset, SegmentBlock] =
       BlockedReader(
         bytes = bytes,
         block =
           SegmentBlock(
-            offset = SegmentBlock.Offset(
+            offset = SegmentBlockOffset(
               start = 0,
               size = bytes.size
             ),
@@ -1862,7 +1862,7 @@ object TestData {
                        binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
                        sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                        valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
-                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                       segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                         ec: ExecutionContext,
                                                                                         compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): TransientSegment.One = {
       val segments =
@@ -2140,7 +2140,7 @@ object TestData {
             binarySearchIndexConfig: BinarySearchIndexConfig,
             hashIndexConfig: HashIndexConfig,
             bloomFilterConfig: BloomFilterConfig,
-            segmentConfig: SegmentBlock.Config,
+            segmentConfig: SegmentBlockConfig,
             pathDistributor: PathsDistributor,
             segmentRefCacheLife: SegmentRefCacheLife,
             mmapSegment: MMAP.Segment)(implicit idGenerator: IDGenerator,
@@ -2224,7 +2224,7 @@ object TestData {
                 binarySearchIndexConfig: BinarySearchIndexConfig,
                 hashIndexConfig: HashIndexConfig,
                 bloomFilterConfig: BloomFilterConfig,
-                segmentConfig: SegmentBlock.Config,
+                segmentConfig: SegmentBlockConfig,
                 pathDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                    executionContext: ExecutionContext,
                                                    keyOrder: KeyOrder[Slice[Byte]],

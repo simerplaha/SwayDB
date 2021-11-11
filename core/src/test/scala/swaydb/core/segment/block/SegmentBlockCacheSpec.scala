@@ -11,7 +11,7 @@ import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache}
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
@@ -50,7 +50,7 @@ class SegmentBlockCacheSpec extends TestBase {
             import sweeper._
 
             val keyValues = Slice(Memory.put(1, 1))
-            val segmentConfig = SegmentBlock.Config.random
+            val segmentConfig = SegmentBlockConfig.random
             val blockCache = getSegmentBlockCacheSingle(keyValues, segmentConfig = segmentConfig)
             blockCache.isCached shouldBe segmentConfig.cacheBlocksOnCreate
 
@@ -93,7 +93,7 @@ class SegmentBlockCacheSpec extends TestBase {
           import sweeper._
 
           val keyValues = Slice(Memory.put(1, 1))
-          val segmentConfig = SegmentBlock.Config.random
+          val segmentConfig = SegmentBlockConfig.random
           val blockCache = getSegmentBlockCacheSingle(keyValues, segmentConfig = segmentConfig)
           blockCache.isCached shouldBe segmentConfig.cacheBlocksOnCreate
 
@@ -146,7 +146,7 @@ class SegmentBlockCacheSpec extends TestBase {
             //initialise block cache
             val keyValues = randomizedKeyValues(100, startId = Some(1))
             val segmentConfig =
-              SegmentBlock.Config.random2(
+              SegmentBlockConfig.random2(
                 blockIOStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false),
                 cacheBlocksOnCreate = false,
                 compressions = _ => randomCompressions()
@@ -237,7 +237,7 @@ class SegmentBlockCacheSpec extends TestBase {
                 binarySearchIndexConfig = BinarySearchIndexConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
                 hashIndexConfig = HashIndexConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
                 bloomFilterConfig = BloomFilterConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
-                segmentConfig = SegmentBlock.Config.random2(blockIOStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true), cacheBlocksOnCreate = false, compressions = _ => randomCompressions())
+                segmentConfig = SegmentBlockConfig.random2(blockIOStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true), cacheBlocksOnCreate = false, compressions = _ => randomCompressions())
               )
 
             blockCache.isCached shouldBe false
@@ -337,7 +337,7 @@ class SegmentBlockCacheSpec extends TestBase {
                 binarySearchIndexConfig = BinarySearchIndexConfig.random(hasCompression = false, cacheOnAccess = false),
                 hashIndexConfig = HashIndexConfig.random(hasCompression = false, cacheOnAccess = false),
                 bloomFilterConfig = BloomFilterConfig.random(hasCompression = false, cacheOnAccess = false),
-                segmentConfig = SegmentBlock.Config.random(hasCompression = false, cacheOnAccess = false, cacheBlocksOnCreate = false, mmap = mmapSegments)
+                segmentConfig = SegmentBlockConfig.random(hasCompression = false, cacheOnAccess = false, cacheBlocksOnCreate = false, mmap = mmapSegments)
               )
 
             val refs =

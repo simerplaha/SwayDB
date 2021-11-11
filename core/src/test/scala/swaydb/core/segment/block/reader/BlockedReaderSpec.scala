@@ -19,7 +19,7 @@ package swaydb.core.segment.block.reader
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions.orNone
 import swaydb.core.TestData._
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.block.{Block, BlockCache}
 import swaydb.core.{TestBase, TestCaseSweeper}
@@ -43,7 +43,7 @@ class BlockedReaderSpec extends TestBase with MockFactory {
 
           val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 
-          implicit val ops = SegmentBlock.SegmentBlockOps
+          implicit val ops = SegmentBlockOffset.SegmentBlockOps
 
           val childHeader = Slice(1.toByte, 0.toByte)
           val childBody = Slice.fill(20)(9.toByte)
@@ -53,7 +53,7 @@ class BlockedReaderSpec extends TestBase with MockFactory {
           val segmentBody = childBytes
           val segmentBytes = segmentHeader ++ segmentBody
 
-          val segmentRef = BlockRefReader[SegmentBlock.Offset](segmentBytes)
+          val segmentRef = BlockRefReader[SegmentBlockOffset](segmentBytes)
           val segmentUnblocked = Block.unblock(segmentRef)
           segmentUnblocked.copy().readRemaining() shouldBe childBytes
 

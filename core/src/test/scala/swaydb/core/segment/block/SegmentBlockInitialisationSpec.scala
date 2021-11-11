@@ -23,7 +23,7 @@ import swaydb.core.data._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
@@ -535,7 +535,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       compressions = _ => compressions(4)
                     ),
                   segmentConfig =
-                    SegmentBlock.Config.applyInternal(
+                    SegmentBlockConfig.applyInternal(
                       fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                       blockIOStrategy = _ => randomIOAccess(cacheOnAccess = true),
                       cacheBlocksOnCreate = false,
@@ -599,7 +599,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
             val segmentBlockCache =
               getSegmentBlockCacheSingle(
                 keyValues = keyValues,
-                segmentConfig = SegmentBlock.Config.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = false)
+                segmentConfig = SegmentBlockConfig.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = false)
               )
 
             segmentBlockCache.isCached shouldBe false
@@ -618,7 +618,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               val segment =
                 TestSegment(
                   keyValues = keyValues,
-                  segmentConfig = SegmentBlock.Config.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = true, minSegmentSize = Int.MaxValue)
+                  segmentConfig = SegmentBlockConfig.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = true, minSegmentSize = Int.MaxValue)
                 )
 
               val refs =

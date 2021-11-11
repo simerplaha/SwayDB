@@ -25,7 +25,7 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock, BinarySearchIndexConfig}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.entry.reader.PersistentReader
@@ -154,7 +154,7 @@ class SegmentReadPerformanceSpec extends TestBase {
     //      )
 
     val segmentConfig =
-      SegmentBlock.Config.applyInternal(
+      SegmentBlockConfig.applyInternal(
         fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
         blockIOStrategy = {
           case _: IOAction.ReadDataOverview =>

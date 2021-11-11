@@ -28,7 +28,7 @@ import swaydb.core.segment.assigner._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -78,7 +78,7 @@ object DefragPersistentSegment {
                                                              binarySearchIndexConfig: BinarySearchIndexConfig,
                                                              hashIndexConfig: HashIndexConfig,
                                                              bloomFilterConfig: BloomFilterConfig,
-                                                             segmentConfig: SegmentBlock.Config,
+                                                             segmentConfig: SegmentBlockConfig,
                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                              functionStore: FunctionStore,
                                                              fileSweeper: FileSweeper,
@@ -134,7 +134,7 @@ object DefragPersistentSegment {
                                                           binarySearchIndexConfig: BinarySearchIndexConfig,
                                                           hashIndexConfig: HashIndexConfig,
                                                           bloomFilterConfig: BloomFilterConfig,
-                                                          segmentConfig: SegmentBlock.Config,
+                                                          segmentConfig: SegmentBlockConfig,
                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                           functionStore: FunctionStore,
                                                           fileSweeper: FileSweeper,
@@ -193,7 +193,7 @@ object DefragPersistentSegment {
                                   binarySearchIndexConfig: BinarySearchIndexConfig,
                                   hashIndexConfig: HashIndexConfig,
                                   bloomFilterConfig: BloomFilterConfig,
-                                  segmentConfig: SegmentBlock.Config,
+                                  segmentConfig: SegmentBlockConfig,
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
                                   fileSweeper: FileSweeper,
@@ -283,7 +283,7 @@ object DefragPersistentSegment {
                                                                                              assignmentTarget: AssignmentTarget[SEG],
                                                                                              defragSource: DefragSource[SEG],
                                                                                              sortedIndexConfig: SortedIndexBlock.Config,
-                                                                                             segmentConfig: SegmentBlock.Config): Future[FragmentAndAssignment[SEG]] = {
+                                                                                             segmentConfig: SegmentBlockConfig): Future[FragmentAndAssignment[SEG]] = {
     val headFragmentsFuture =
       if (headGap.isEmpty)
         Future.successful(ListBuffer.empty[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]])
@@ -327,7 +327,7 @@ object DefragPersistentSegment {
                                                                                                                                                                          functionStore: FunctionStore,
                                                                                                                                                                          executionContext: ExecutionContext,
                                                                                                                                                                          sortedIndexConfig: SortedIndexBlock.Config,
-                                                                                                                                                                         segmentConfig: SegmentBlock.Config,
+                                                                                                                                                                         segmentConfig: SegmentBlockConfig,
                                                                                                                                                                          compactionParallelism: CompactionParallelism): Future[ListBuffer[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
     Futures.traverseBounded(compactionParallelism.groupedSegmentDefragParallelism, headFragmentsAndAssignments.assignments) {
       assignment =>
@@ -438,7 +438,7 @@ object DefragPersistentSegment {
                                           binarySearchIndexConfig: BinarySearchIndexConfig,
                                           hashIndexConfig: HashIndexConfig,
                                           bloomFilterConfig: BloomFilterConfig,
-                                          segmentConfig: SegmentBlock.Config,
+                                          segmentConfig: SegmentBlockConfig,
                                           timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore,
                                           fileSweeper: FileSweeper,
@@ -549,7 +549,7 @@ object DefragPersistentSegment {
                                               binarySearchIndexConfig: BinarySearchIndexConfig,
                                               hashIndexConfig: HashIndexConfig,
                                               bloomFilterConfig: BloomFilterConfig,
-                                              segmentConfig: SegmentBlock.Config,
+                                              segmentConfig: SegmentBlockConfig,
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               functionStore: FunctionStore,
                                               fileSweeper: FileSweeper,

@@ -68,7 +68,7 @@ class SegmentBlockSpec extends TestBase {
           binarySearchIndexConfig = BinarySearchIndexConfig.random,
           hashIndexConfig = HashIndexConfig.random,
           bloomFilterConfig = BloomFilterConfig.random,
-          segmentConfig = SegmentBlock.Config.random
+          segmentConfig = SegmentBlockConfig.random
         ).awaitInf
 
       closedSegment shouldBe empty
@@ -188,19 +188,19 @@ class SegmentBlockSpec extends TestBase {
     //      //          SegmentBlock.write(
     //      //            keyValues = keyValues,
     //      //            segmentConfig =
-    //      //      SegmentBlock.Config(
+    //      //      SegmentBlockConfig(
     //      //        blockIO = dataType => BlockIO.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
     //      //        compressions = Seq.empty
     //      //      ),
     //      //            createdInLevel = 0
     //      //          ).runIO.flattenSegment
     //      //
-    //      //        //        val result = SegmentBlock.read(SegmentBlock.Offset(0, bytes.size), Reader(bytes.drop(2)))
+    //      //        //        val result = SegmentBlock.read(SegmentBlockOffset(0, bytes.size), Reader(bytes.drop(2)))
     //      //        //        if(result.isSuccess)
     //      //        //          println("debug")
     //      //        //        result.failed.runIO.exception shouldBe a[SegmentCorruptionException]
     //      //
-    //      //        SegmentBlock.read(SegmentBlock.Offset(0, bytes.size), Reader(bytes)) map {
+    //      //        SegmentBlock.read(SegmentBlockOffset(0, bytes.size), Reader(bytes)) map {
     //      //          segmentBlock =>
     //      //            SegmentBlock.readFooter(segmentBlock.createBlockReader(Reader(bytes.drop(1)))).failed.runIO.exception shouldBe a[SegmentCorruptionException]
     //      //            SegmentBlock.readFooter(segmentBlock.createBlockReader(Reader(bytes.dropRight(1)))).failed.runIO.exception shouldBe a[SegmentCorruptionException]

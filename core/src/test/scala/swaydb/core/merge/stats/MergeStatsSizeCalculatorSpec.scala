@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.EitherValues
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.{TestBase, TestExecutionContext, TestTimer}
 import swaydb.serializers.Default._
@@ -37,7 +37,7 @@ class MergeStatsSizeCalculatorSpec extends TestBase with MockFactory with Either
 
       "stats is null" in {
         implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
-        implicit val segmentConfig = SegmentBlock.Config.random
+        implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
         MergeStatsSizeCalculator.persistentSizeCalculator.isStatsOrNullSmall(statsOrNull = null) shouldBe false
       }
@@ -59,7 +59,7 @@ class MergeStatsSizeCalculatorSpec extends TestBase with MockFactory with Either
               optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
             )
 
-          implicit val segmentConfig = SegmentBlock.Config.random.copy(minSize = closedStats.totalValuesSize + closedStats.maxSortedIndexSize, maxCount = stats.keyValues.size)
+          implicit val segmentConfig = SegmentBlockConfig.random.copy(minSize = closedStats.totalValuesSize + closedStats.maxSortedIndexSize, maxCount = stats.keyValues.size)
 
           MergeStatsSizeCalculator.persistentSizeCalculator.isStatsOrNullSmall(statsOrNull = stats) shouldBe false
         }
@@ -75,7 +75,7 @@ class MergeStatsSizeCalculatorSpec extends TestBase with MockFactory with Either
           stats.add(Memory.put(4, 4))
 
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
-          implicit val segmentConfig = SegmentBlock.Config.random.copy(minSize = Int.MaxValue, maxCount = randomIntMax(stats.keyValues.size))
+          implicit val segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = randomIntMax(stats.keyValues.size))
 
           MergeStatsSizeCalculator.persistentSizeCalculator.isStatsOrNullSmall(statsOrNull = stats) shouldBe false
         }
@@ -100,7 +100,7 @@ class MergeStatsSizeCalculatorSpec extends TestBase with MockFactory with Either
               optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
             )
 
-          implicit val segmentConfig = SegmentBlock.Config.random.copy(minSize = ((closedStats.totalValuesSize + closedStats.maxSortedIndexSize) * 3) + 1, maxCount = stats.keyValues.size + 1)
+          implicit val segmentConfig = SegmentBlockConfig.random.copy(minSize = ((closedStats.totalValuesSize + closedStats.maxSortedIndexSize) * 3) + 1, maxCount = stats.keyValues.size + 1)
 
           MergeStatsSizeCalculator.persistentSizeCalculator.isStatsOrNullSmall(statsOrNull = stats) shouldBe true
         }
@@ -116,7 +116,7 @@ class MergeStatsSizeCalculatorSpec extends TestBase with MockFactory with Either
           stats.add(Memory.remove(4))
 
           implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
-          implicit val segmentConfig = SegmentBlock.Config.random.copy(minSize = Int.MaxValue, maxCount = 4)
+          implicit val segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = 4)
 
           MergeStatsSizeCalculator.persistentSizeCalculator.isStatsOrNullSmall(statsOrNull = stats) shouldBe true
         }

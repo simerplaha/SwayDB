@@ -4,12 +4,12 @@ import swaydb.compression.CompressionInternal
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.slice.Slice
 
-class BloomFilterState(val numberOfBits: Int,
-                       val maxProbe: Int,
-                       var compressibleBytes: Slice[Byte],
-                       val cacheableBytes: Slice[Byte],
-                       var header: Slice[Byte],
-                       val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
+private class BloomFilterState(val numberOfBits: Int,
+                               val maxProbe: Int,
+                               var compressibleBytes: Slice[Byte],
+                               val cacheableBytes: Slice[Byte],
+                               var header: Slice[Byte],
+                               val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
 
   def blockSize: Int =
     header.size + compressibleBytes.size

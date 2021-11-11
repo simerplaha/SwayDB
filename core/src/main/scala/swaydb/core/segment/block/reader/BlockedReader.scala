@@ -17,7 +17,7 @@
 package swaydb.core.segment.block.reader
 
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.{Block, BlockCache, BlockOffset, BlockOps}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.utils.ByteOps
@@ -44,7 +44,7 @@ private[core] object BlockedReader {
     )
   }
 
-  def apply[O <: BlockOffset, B <: Block[O]](block: B, reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): BlockedReader[O, B] =
+  def apply[O <: BlockOffset, B <: Block[O]](block: B, reader: UnblockedReader[SegmentBlockOffset, SegmentBlock]): BlockedReader[O, B] =
     new BlockedReader[O, B](
       reader = reader.reader,
       rootBlockRefOffset = reader.rootBlockRefOffset,

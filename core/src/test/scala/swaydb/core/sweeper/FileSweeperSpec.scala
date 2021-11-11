@@ -22,7 +22,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data.Memory
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.FileSweeper._
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
@@ -112,7 +112,7 @@ class FileSweeperSpec extends TestBase with MockFactory {
           //set stashCapacity to 0 so no messages are cached.
           implicit val fileSweeper = FileSweeper(0, ActorConfig.Timer("FileSweeper Test Timer", 0.second, TestExecutionContext.executionContext)).sweep()
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 1.byte, cacheBlocksOnCreate = false))
+          val level = TestLevel(segmentConfig = SegmentBlockConfig.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 1.byte, cacheBlocksOnCreate = false))
           fileSweeper.send(FileSweeper.Command.Pause(Seq(level)))
 
           level.put(Seq(Memory.put(1), Memory.put(2), Memory.put(3), Memory.put(4))) shouldBe IO.unit
@@ -155,7 +155,7 @@ class FileSweeperSpec extends TestBase with MockFactory {
           val keyValues = randomPutKeyValues(keyValuesCount)
 
           //Level with 1.byte segmentSize so each key-values have it's own Segment
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 1.byte, cacheBlocksOnCreate = false))
+          val level = TestLevel(segmentConfig = SegmentBlockConfig.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 1.byte, cacheBlocksOnCreate = false))
 
           fileSweeper.send(FileSweeper.Command.Pause(Seq(level))) //pause closing
           level.put(keyValues) shouldBe IO.unit //write the Segment

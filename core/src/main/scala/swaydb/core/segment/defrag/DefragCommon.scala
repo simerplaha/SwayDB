@@ -17,7 +17,7 @@
 package swaydb.core.segment.defrag
 
 import swaydb.core.segment.Segment
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.ref.SegmentRef
 
@@ -25,10 +25,10 @@ import scala.collection.mutable.ListBuffer
 
 private[core] object DefragCommon {
 
-  @inline def isSegmentSmall(segment: Segment)(implicit segmentConfig: SegmentBlock.Config): Boolean =
+  @inline def isSegmentSmall(segment: Segment)(implicit segmentConfig: SegmentBlockConfig): Boolean =
     segment.segmentSize < segmentConfig.minSize
 
-  @inline def isSegmentRefSmall(ref: SegmentRef)(implicit segmentConfig: SegmentBlock.Config): Boolean =
+  @inline def isSegmentRefSmall(ref: SegmentRef)(implicit segmentConfig: SegmentBlockConfig): Boolean =
     ref.keyValueCount < segmentConfig.maxCount
 
   @inline def lastStatsOrNull[S >: Null](fragments: ListBuffer[TransientSegment.Fragment[S]]): S =

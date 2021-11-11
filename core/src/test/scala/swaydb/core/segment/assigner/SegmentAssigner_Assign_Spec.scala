@@ -18,7 +18,7 @@ package swaydb.core.segment.assigner
 
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne, Segment}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.util.PipeOps._
@@ -475,13 +475,13 @@ sealed trait SegmentAssigner_Assign_Spec extends TestBase {
                 //[SEG-1, SEG-2, SEG-3, SEG-4, SEG-5]
                 val inputSegment =
                   TestSegment
-                    .many(keyValues = keyValuesGrouped.take(5).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValuesGrouped.take(5).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 //[........., SEG-6, SEG-7, SEG-8, SEG-9, SEG-10]
                 val existingSegment =
                   TestSegment
-                    .many(keyValues = keyValuesGrouped.drop(5).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValuesGrouped.drop(5).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 inputSegment should have size 1
@@ -511,13 +511,13 @@ sealed trait SegmentAssigner_Assign_Spec extends TestBase {
                 //[........., SEG-6, SEG-7, SEG-8, SEG-9, SEG-10]
                 val inputSegment =
                   TestSegment
-                    .many(keyValues = keyValuesGrouped.drop(5).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValuesGrouped.drop(5).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 //[SEG-1, SEG-2, SEG-3, SEG-4, SEG-5]
                 val existingSegment =
                   TestSegment
-                    .many(keyValues = keyValuesGrouped.take(5).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValuesGrouped.take(5).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 inputSegment should have size 1
@@ -547,13 +547,13 @@ sealed trait SegmentAssigner_Assign_Spec extends TestBase {
                 //[SEG-1, SEG-2, SEG-3 ... SEG-10]
                 val inputSegment =
                   TestSegment
-                    .many(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValues, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 //[_____, SEG-2, SEG-3 ... SEG-10]
                 val existingSegment =
                   TestSegment
-                    .many(keyValues = keyValuesGrouped.dropHead().flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValuesGrouped.dropHead().flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 inputSegment should have size 1
@@ -583,13 +583,13 @@ sealed trait SegmentAssigner_Assign_Spec extends TestBase {
                 //[SEG-1, SEG-2, SEG-3 ... SEG-10]
                 val inputSegment =
                   TestSegment
-                    .many(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValues, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 //[SEG-1, SEG-2, SEG-3 ... ______]
                 val existingSegment =
                   TestSegment
-                    .many(keyValues = keyValuesGrouped.dropRight(1).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValuesGrouped.dropRight(1).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 inputSegment should have size 1
@@ -619,14 +619,14 @@ sealed trait SegmentAssigner_Assign_Spec extends TestBase {
                 //[SEG-1, SEG-2, GAP-3, GAP-4 ... SEG-10]
                 val inputSegment =
                   TestSegment
-                    .many(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValues, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 //[SEG-1, SEG-2, _____, _____ ... SEG-10]
                 val existingKeyValues = (keyValuesGrouped.take(2) ++ keyValuesGrouped.drop(4)).flatten
                 val existingSegment =
                   TestSegment
-                    .many(keyValues = existingKeyValues, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = existingKeyValues, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 inputSegment should have size 1
@@ -656,19 +656,19 @@ sealed trait SegmentAssigner_Assign_Spec extends TestBase {
                 //[SEG-1, SEG-2, GAP-3, GAP-4 ... SEG-10]
                 val inputSegment =
                   TestSegment
-                    .many(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValues, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 //[SEG-1, SEG-2]
                 val existingSegment1 =
                   TestSegment
-                    .many(keyValues = keyValuesGrouped.take(2).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValuesGrouped.take(2).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 //[..................., SEG-5, SEG-6 .... SEG-10]
                 val existingSegment2 =
                   TestSegment
-                    .many(keyValues = keyValuesGrouped.drop(4).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValuesGrouped.drop(4).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 inputSegment should have size 1
@@ -706,25 +706,25 @@ sealed trait SegmentAssigner_Assign_Spec extends TestBase {
                 //[............, SEG-3, SEG-4, SEG-5, SEG-6, SEG-7] - gets
                 val inputSegment1 =
                   TestSegment
-                    .many(keyValues = keyValuesGrouped.drop(2).take(5).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValuesGrouped.drop(2).take(5).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 //[................................................, SEG-8, SEG-9, SEG-10]
                 val inputSegment2 =
                   TestSegment
-                    .many(keyValues = keyValuesGrouped.drop(7).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValuesGrouped.drop(7).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 //[SEG-1, SEG-2, _____, _____]
                 val existingSegment1 =
                   TestSegment
-                    .many(keyValues = keyValuesGrouped.take(2).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValuesGrouped.take(2).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 //[.........................., SEG-5, SEG-6, .....]
                 val existingSegment2 =
                   TestSegment
-                    .many(keyValues = keyValuesGrouped.drop(4).take(2).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .many(keyValues = keyValuesGrouped.drop(4).take(2).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
                     .asInstanceOf[Slice[PersistentSegmentMany]]
 
                 inputSegment1 should have size 1
