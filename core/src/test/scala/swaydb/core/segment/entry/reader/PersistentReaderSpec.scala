@@ -20,10 +20,10 @@ class PersistentReaderSpec extends AnyWordSpec with Matchers {
     "insert ids incrementally" in {
       //all ids are added incrementally.
       ids.value.zipWithIndex.foldLeft(0) {
-        case (expected, (actual, index)) =>
-          actual should not be null
-          expected shouldBe index
-          expected + 1
+        case (expectedId, (readers, actualId)) =>
+          readers should not be null
+          expectedId shouldBe actualId
+          expectedId + 1
       }
     }
 
