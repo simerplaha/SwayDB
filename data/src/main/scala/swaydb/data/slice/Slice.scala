@@ -759,8 +759,8 @@ class Slice[+T](array: Array[T],
     self
   }
 
-  @inline final def readBoolean(): Boolean =
-    self.get(0) == 1
+  @inline final def readBoolean[B >: T]()(implicit byteOps: ByteOps[B]): Boolean =
+    byteOps.readBoolean(self)
 
   @inline final def addInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
     byteOps.writeInt(integer, self)

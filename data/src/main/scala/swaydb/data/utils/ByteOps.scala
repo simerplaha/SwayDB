@@ -38,6 +38,8 @@ abstract class ByteOps[B](implicit val classTag: ClassTag[B]) {
 
   def readBoolean(reader: ReaderBase[B]): Boolean
 
+  def readBoolean(slice: Slice[B]): Boolean
+
   def readString(reader: ReaderBase[B], charset: Charset): String
 
   def readString(size: Int,

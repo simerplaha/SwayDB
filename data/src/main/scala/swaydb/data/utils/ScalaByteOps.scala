@@ -67,6 +67,9 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
   def readBoolean(reader: ReaderBase[Byte]): Boolean =
     reader.get() == 1
 
+  def readBoolean(slice: Slice[Byte]): Boolean =
+    slice.head == 1
+
   def readString(reader: ReaderBase[Byte], charset: Charset): String = {
     val size = reader.size
     val bytes = reader.read((size - reader.getPosition).toInt)

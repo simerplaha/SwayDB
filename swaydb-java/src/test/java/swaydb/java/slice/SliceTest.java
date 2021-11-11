@@ -75,8 +75,8 @@ public class SliceTest {
   @Test
   void writeAndRead() {
     //boolean
-    shouldBeTrue(Slice.writeBoolean(true, ByteOps.Java()).readBoolean());
-    shouldBeFalse(Slice.writeBoolean(false, ByteOps.Java()).readBoolean());
+    shouldBeTrue(Slice.writeBoolean(true, ByteOps.Java()).readBoolean(ByteOps.Java()));
+    shouldBeFalse(Slice.writeBoolean(false, ByteOps.Java()).readBoolean(ByteOps.Java()));
     //Integer
     shouldBe(Slice.writeInt(Int.MaxValue(), ByteOps.Java()).readInt(ByteOps.Java()), Int.MaxValue());
     shouldBe(Slice.writeInt(10000, ByteOps.Java()).readInt(ByteOps.Java()), 10000);
