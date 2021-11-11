@@ -292,14 +292,14 @@ private[core] case object BinarySearchIndexBlock {
                                 binarySearchIndex: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                                 sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                                 valuesOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                               partialOrder: KeyOrder[Persistent.Partial]): BinarySearchLowerResult.Some = {
+                                                                                               partialOrder: KeyOrder[Persistent.Partial]): BinarySearchLowerResult = {
 
     val isFullIndex = binarySearchIndex == null || binarySearchIndex.block.isFullIndex
     val valuesCount = if (binarySearchIndex == null) keyValuesCount else binarySearchIndex.block.valuesCount
     val bytesPerValue = if (binarySearchIndex == null) sortedIndex.block.segmentMaxIndexEntrySize else binarySearchIndex.block.bytesPerValue
 
     @tailrec
-    def hop(start: Int, end: Int, knownLowest: Persistent.PartialOption, knownMatch: Persistent.PartialOption): BinarySearchLowerResult.Some = {
+    def hop(start: Int, end: Int, knownLowest: Persistent.PartialOption, knownMatch: Persistent.PartialOption): BinarySearchLowerResult = {
       val mid = start + (end - start) / 2
 
       //      println(s"start: $start, mid: $mid, end: $end, fetchLeft: $fetchLeft")
@@ -335,7 +335,7 @@ private[core] case object BinarySearchIndexBlock {
               right = lowest getOrElseS Persistent.Partial.Null
             )
 
-          new BinarySearchLowerResult.Some(
+          new BinarySearchLowerResult(
             lower = lower,
             matched = knownMatch
           )
@@ -366,7 +366,7 @@ private[core] case object BinarySearchIndexBlock {
 
             case range: Persistent.Partial.Range =>
               if (keyOrder.gt(key, range.fromKey))
-                new BinarySearchLowerResult.Some(
+                new BinarySearchLowerResult(
                   lower = Persistent.Partial.Null,
                   matched = range
                 )
@@ -378,7 +378,7 @@ private[core] case object BinarySearchIndexBlock {
         else if (partial.isBinarySearchAhead)
           partial match {
             case range: Persistent.Partial.Range if keyOrder.gt(key, range.fromKey) =>
-              new BinarySearchLowerResult.Some(
+              new BinarySearchLowerResult(
                 lower = Persistent.Partial.Null,
                 matched = range
               )

@@ -18,13 +18,5 @@ package swaydb.core.segment.block.binarysearch
 
 import swaydb.core.data.Persistent
 
-protected sealed trait BinarySearchLowerResult {
-  def lower: Persistent.PartialOption
-}
-
-protected object BinarySearchLowerResult {
-
-  class Some(val lower: Persistent.PartialOption,
-             val matched: Persistent.PartialOption) extends BinarySearchLowerResult
-
-}
+class BinarySearchLowerResult(val lower: Persistent.PartialOption,
+                              val matched: Persistent.PartialOption)
