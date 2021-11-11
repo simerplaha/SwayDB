@@ -34,11 +34,14 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
   def readInt(reader: ReaderBase[Byte]): Int =
     readInt(reader.read(ByteSizeOf.int))
 
-  def readInt(bytes: Slice[Byte]): Int =
-    bytes.get(0).toInt << 24 |
-      (bytes.get(1) & 0xff) << 16 |
-      (bytes.get(2) & 0xff) << 8 |
-      bytes.get(3) & 0xff
+  def readInt(bytes: Slice[Byte]): Int = {
+    require(bytes.size >= 4)
+
+    bytes.getUnchecked_Unsafe(0).toInt << 24 |
+      (bytes.getUnchecked_Unsafe(1) & 0xff) << 16 |
+      (bytes.getUnchecked_Unsafe(2) & 0xff) << 8 |
+      bytes.getUnchecked_Unsafe(3) & 0xff
+  }
 
   def writeLong(long: Long, slice: Slice[Byte]): Unit = {
     slice add (long >>> 56).toByte
@@ -51,15 +54,18 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     slice add long.toByte
   }
 
-  def readLong(bytes: Slice[Byte]): Long =
-    (bytes.get(0).toLong << 56) |
-      ((bytes.get(1) & 0xffL) << 48) |
-      ((bytes.get(2) & 0xffL) << 40) |
-      ((bytes.get(3) & 0xffL) << 32) |
-      ((bytes.get(4) & 0xffL) << 24) |
-      ((bytes.get(5) & 0xffL) << 16) |
-      ((bytes.get(6) & 0xffL) << 8) |
-      bytes.get(7) & 0xffL
+  def readLong(bytes: Slice[Byte]): Long = {
+    require(bytes.size >= 8)
+
+    (bytes.getUnchecked_Unsafe(0).toLong << 56) |
+      ((bytes.getUnchecked_Unsafe(1) & 0xffL) << 48) |
+      ((bytes.getUnchecked_Unsafe(2) & 0xffL) << 40) |
+      ((bytes.getUnchecked_Unsafe(3) & 0xffL) << 32) |
+      ((bytes.getUnchecked_Unsafe(4) & 0xffL) << 24) |
+      ((bytes.getUnchecked_Unsafe(5) & 0xffL) << 16) |
+      ((bytes.getUnchecked_Unsafe(6) & 0xffL) << 8) |
+      bytes.getUnchecked_Unsafe(7) & 0xffL
+  }
 
   def readLong(reader: ReaderBase[Byte]): Long =
     readLong(reader.read(ByteSizeOf.long))

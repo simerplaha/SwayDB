@@ -298,6 +298,9 @@ class Slice[@specialized(Byte) +T](array: Array[T],
 
   def lastSlice: Slice[T] = slice(size - 1, size - 1)
 
+  /**
+   * @return the element at given index after running bound checks.
+   */
   @throws[ArrayIndexOutOfBoundsException]
   def get(index: Int): T = {
     val adjustedIndex = fromOffset + index
@@ -305,17 +308,29 @@ class Slice[@specialized(Byte) +T](array: Array[T],
     array(adjustedIndex)
   }
 
+  /**
+   * Always prefer [[get]] unless there are strong guarantees that your code is
+   * not reading outside this slice's offset bounds - [[toOffset]] & [[fromOffset]].
+   *
+   * Internally this used at performance critical areas.
+   *
+   * @return the element at given index without doing slice offset bound checks.
+   */
+  @throws[ArrayIndexOutOfBoundsException]
+  @inline private[swaydb] def getUnchecked_Unsafe(index: Int): T =
+    array(fromOffset + index)
+
   def indexOf[B >: T](elem: B): Option[Int] = {
     var index = 0
     var found = Option.empty[Int]
+
     while (found.isEmpty && index < size) {
-      val next = get(index)
-      if (elem == next)
+      if (elem == get(index))
         found = Some(index)
-      else
-        None
+
       index += 1
     }
+
     found
   }
 
