@@ -29,8 +29,6 @@ private[core] case object BloomFilterBlock extends LazyLogging {
 
   val blockName = this.productPrefix
 
-  case class Offset(start: Int, size: Int) extends BlockOffset
-
   def optimalSize(numberOfKeys: Int,
                   falsePositiveRate: Double,
                   hasCompression: Boolean,
@@ -131,10 +129,10 @@ private[core] case object BloomFilterBlock extends LazyLogging {
       Some(state)
     }
 
-  def unblockedReader(closedState: BloomFilterState): UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock] = {
+  def unblockedReader(closedState: BloomFilterState): UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock] = {
     val block =
       BloomFilterBlock(
-        offset = BloomFilterBlock.Offset(0, closedState.cacheableBytes.size),
+        offset = BloomFilterBlockOffset(0, closedState.cacheableBytes.size),
         maxProbe = closedState.maxProbe,
         numberOfBits = closedState.numberOfBits,
         headerSize = 0,
@@ -147,7 +145,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
     )
   }
 
-  def read(header: BlockHeader[BloomFilterBlock.Offset]): BloomFilterBlock =
+  def read(header: BlockHeader[BloomFilterBlockOffset]): BloomFilterBlock =
     BloomFilterBlock(
       offset = header.offset,
       headerSize = header.headerSize,
@@ -196,7 +194,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
   }
 
   def mightContain(comparableKey: Slice[Byte],
-                   reader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]): Boolean = {
+                   reader: UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]): Boolean = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(comparableKey, 0, comparableKey.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
@@ -224,21 +222,11 @@ private[core] case object BloomFilterBlock extends LazyLogging {
     true
   }
 
-  implicit object BloomFilterBlockOps extends BlockOps[BloomFilterBlock.Offset, BloomFilterBlock] {
-    override def updateBlockOffset(block: BloomFilterBlock, start: Int, size: Int): BloomFilterBlock =
-      block.copy(offset = createOffset(start = start, size = size))
-
-    override def createOffset(start: Int, size: Int): Offset =
-      BloomFilterBlock.Offset(start = start, size = size)
-
-    override def readBlock(header: BlockHeader[Offset]): BloomFilterBlock =
-      BloomFilterBlock.read(header)
-  }
 }
 
-private[core] case class BloomFilterBlock(offset: BloomFilterBlock.Offset,
+private[core] case class BloomFilterBlock(offset: BloomFilterBlockOffset,
                                           maxProbe: Int,
                                           numberOfBits: Int,
                                           headerSize: Int,
-                                          compressionInfo: Option[BlockCompressionInfo]) extends Block[BloomFilterBlock.Offset]
+                                          compressionInfo: Option[BlockCompressionInfo]) extends Block[BloomFilterBlockOffset]
 

@@ -16,7 +16,7 @@
 package swaydb.core
 
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset}
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
@@ -27,5 +27,5 @@ case class SegmentBlocks(valuesReader: Option[UnblockedReader[ValuesBlock.Offset
                          sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                          hashIndexReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
                          binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
-                         bloomFilterReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
+                         bloomFilterReader: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
                          footer: SegmentFooterBlock)

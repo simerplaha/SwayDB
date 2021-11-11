@@ -57,11 +57,11 @@ class BloomFilterBlockSpec extends TestBase {
             val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 
             Seq(
-              BlockRefReader[BloomFilterBlock.Offset](filter.blockBytes),
-              BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(filter.blockBytes), blockCache)
+              BlockRefReader[BloomFilterBlockOffset](filter.blockBytes),
+              BlockRefReader[BloomFilterBlockOffset](createRandomFileReader(filter.blockBytes), blockCache)
             ) foreach {
               reader =>
-                val bloom = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](reader)
+                val bloom = Block.unblock[BloomFilterBlockOffset, BloomFilterBlock](reader)
                 (1 to 10) foreach (key => BloomFilterBlock.mightContain(key, bloom) shouldBe true)
                 (11 to 20) foreach (key => BloomFilterBlock.mightContain(key, bloom) shouldBe false)
 
@@ -93,11 +93,11 @@ class BloomFilterBlockSpec extends TestBase {
             val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 
             Seq(
-              BlockRefReader[BloomFilterBlock.Offset](state.blockBytes),
-              BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.blockBytes), blockCache)
+              BlockRefReader[BloomFilterBlockOffset](state.blockBytes),
+              BlockRefReader[BloomFilterBlockOffset](createRandomFileReader(state.blockBytes), blockCache)
             ) foreach {
               reader =>
-                val bloom = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](reader)
+                val bloom = Block.unblock[BloomFilterBlockOffset, BloomFilterBlock](reader)
                 BloomFilterBlock.mightContain(1, bloom) shouldBe true
                 (2 to 20) foreach (key => BloomFilterBlock.mightContain(key, bloom) shouldBe false)
 
@@ -254,7 +254,7 @@ class BloomFilterBlockSpec extends TestBase {
 
   "bloomFilter error check" in {
     def runAssert(data: Seq[String],
-                  reader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]) = {
+                  reader: UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]) = {
 
       val positives =
         data collect {
@@ -309,11 +309,11 @@ class BloomFilterBlockSpec extends TestBase {
           val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 
           Seq(
-            BlockRefReader[BloomFilterBlock.Offset](state.blockBytes),
-            BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.blockBytes), blockCache)
+            BlockRefReader[BloomFilterBlockOffset](state.blockBytes),
+            BlockRefReader[BloomFilterBlockOffset](createRandomFileReader(state.blockBytes), blockCache)
           ) foreach {
             blockRefReader =>
-              val reader = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](blockRefReader)
+              val reader = Block.unblock[BloomFilterBlockOffset, BloomFilterBlock](blockRefReader)
               runAssert(
                 data = data,
                 reader = reader

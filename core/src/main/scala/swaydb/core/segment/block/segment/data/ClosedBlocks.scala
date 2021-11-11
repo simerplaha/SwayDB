@@ -17,7 +17,7 @@
 package swaydb.core.segment.block.segment.data
 
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset, BinarySearchIndexState}
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterState}
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset, BloomFilterState}
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
@@ -60,7 +60,7 @@ private[block] class ClosedBlocks(val sortedIndex: SortedIndexBlock.State,
     else
       None
 
-  val bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]] =
+  val bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]] =
     if (prepareForCachingSegmentBlocksOnCreate)
       bloomFilter.map(BloomFilterBlock.unblockedReader)
     else

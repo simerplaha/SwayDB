@@ -603,18 +603,6 @@ private[core] case object BinarySearchIndexBlock {
         valuesReaderOrNull = valuesReaderOrNull
       )
     }
-
-  implicit object BinarySearchIndexBlockOps extends BlockOps[BinarySearchIndexBlockOffset, BinarySearchIndexBlock] {
-    override def updateBlockOffset(block: BinarySearchIndexBlock, start: Int, size: Int): BinarySearchIndexBlock =
-      block.copy(offset = BinarySearchIndexBlockOffset(start = start, size = size))
-
-    override def createOffset(start: Int, size: Int): BinarySearchIndexBlockOffset =
-      BinarySearchIndexBlockOffset(start, size)
-
-    override def readBlock(header: BlockHeader[BinarySearchIndexBlockOffset]): BinarySearchIndexBlock =
-      BinarySearchIndexBlock.read(header)
-  }
-
 }
 
 private[core] case class BinarySearchIndexBlock(format: BinarySearchEntryFormat,

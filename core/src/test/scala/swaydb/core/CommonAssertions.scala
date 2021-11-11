@@ -36,7 +36,7 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexConfig}
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig, BloomFilterState}
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset, BloomFilterConfig, BloomFilterState}
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.SegmentBlock.SegmentBlockOps
@@ -759,7 +759,7 @@ object CommonAssertions {
 
   def assertBloom(keyValues: Slice[Memory],
                   bloom: BloomFilterState) = {
-    val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.compressibleBytes)
+    val bloomFilter = Block.unblock[BloomFilterBlockOffset, BloomFilterBlock](bloom.compressibleBytes)
 
     keyValues.par.count {
       keyValue =>
@@ -784,7 +784,7 @@ object CommonAssertions {
   }
 
   def assertBloom(keyValues: Slice[Memory],
-                  bloomFilterReader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]) = {
+                  bloomFilterReader: UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]) = {
     val unzipedKeyValues = keyValues
 
     unzipedKeyValues.par.count {
@@ -798,7 +798,7 @@ object CommonAssertions {
     assertBloomNotContains(bloomFilterReader)
   }
 
-  def assertBloomNotContains(bloomFilterReader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]) =
+  def assertBloomNotContains(bloomFilterReader: UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]) =
     (1 to 1000).par.count {
       _ =>
         BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader.copy()).runRandomIO.right.value
@@ -813,7 +813,7 @@ object CommonAssertions {
 
   def assertBloomNotContains(bloom: BloomFilterState)(implicit ec: ExecutionContext = TestExecutionContext.executionContext) =
     runThisParallel(1000.times) {
-      val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.compressibleBytes)
+      val bloomFilter = Block.unblock[BloomFilterBlockOffset, BloomFilterBlock](bloom.compressibleBytes)
       BloomFilterBlock.mightContain(
         comparableKey = randomBytesSlice(randomIntMax(1000) min 100),
         reader = bloomFilter.copy()
