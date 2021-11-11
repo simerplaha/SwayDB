@@ -5,10 +5,10 @@ import swaydb.data.config.{HashIndex, UncompressedBlockInfo}
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.FunctionSafe
 
-object HashIndexConfig {
+object HashIndexBlockConfig {
 
-  def disabled(): HashIndexConfig =
-    HashIndexConfig(
+  def disabled(): HashIndexBlockConfig =
+    HashIndexBlockConfig(
       maxProbe = -1,
       minimumNumberOfKeys = Int.MaxValue,
       allocateSpace = _ => Int.MinValue,
@@ -18,13 +18,13 @@ object HashIndexConfig {
       compressions = _ => Seq.empty
     )
 
-  def apply(config: swaydb.data.config.HashIndex): HashIndexConfig =
+  def apply(config: swaydb.data.config.HashIndex): HashIndexBlockConfig =
     config match {
       case swaydb.data.config.HashIndex.Off =>
-        HashIndexConfig.disabled()
+        HashIndexBlockConfig.disabled()
 
       case enable: swaydb.data.config.HashIndex.On =>
-        HashIndexConfig(
+        HashIndexBlockConfig(
           maxProbe = enable.maxProbe,
           minimumNumberOfKeys = enable.minimumNumberOfKeys,
           minimumNumberOfHits = enable.minimumNumberOfHits,
@@ -40,10 +40,10 @@ object HashIndexConfig {
     }
 }
 
-case class HashIndexConfig(maxProbe: Int,
-                           minimumNumberOfKeys: Int,
-                           minimumNumberOfHits: Int,
-                           format: HashIndexEntryFormat,
-                           allocateSpace: HashIndex.RequiredSpace => Int,
-                           ioStrategy: IOAction => IOStrategy,
-                           compressions: UncompressedBlockInfo => Iterable[CompressionInternal])
+case class HashIndexBlockConfig(maxProbe: Int,
+                                minimumNumberOfKeys: Int,
+                                minimumNumberOfHits: Int,
+                                format: HashIndexEntryFormat,
+                                allocateSpace: HashIndex.RequiredSpace => Int,
+                                ioStrategy: IOAction => IOStrategy,
+                                compressions: UncompressedBlockInfo => Iterable[CompressionInternal])

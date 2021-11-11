@@ -26,8 +26,8 @@ import swaydb.core.level.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelCloser, NextLevel}
 import swaydb.core.segment.block
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
@@ -168,9 +168,9 @@ private[core] object CoreInitializer extends LazyLogging {
                   IO.failed[swaydb.Error.Level, NextLevel](exception)
                 } else {
                   Level(
-                    bloomFilterConfig = BloomFilterConfig.disabled(),
-                    hashIndexConfig = block.hashindex.HashIndexConfig.disabled(),
-                    binarySearchIndexConfig = BinarySearchIndexConfig.disabled(),
+                    bloomFilterConfig = BloomFilterBlockConfig.disabled(),
+                    hashIndexConfig = block.hashindex.HashIndexBlockConfig.disabled(),
+                    binarySearchIndexConfig = BinarySearchIndexBlockConfig.disabled(),
                     sortedIndexConfig = SortedIndexBlockConfig.disabled(),
                     valuesConfig = ValuesBlockConfig.disabled(),
                     segmentConfig =
@@ -210,9 +210,9 @@ private[core] object CoreInitializer extends LazyLogging {
                   IO.failed[swaydb.Error.Level, NextLevel](exception)
                 } else {
                   Level(
-                    bloomFilterConfig = BloomFilterConfig(config = config.bloomFilter),
-                    hashIndexConfig = block.hashindex.HashIndexConfig(config = config.hashIndex),
-                    binarySearchIndexConfig = BinarySearchIndexConfig(config = config.binarySearchIndex),
+                    bloomFilterConfig = BloomFilterBlockConfig(config = config.bloomFilter),
+                    hashIndexConfig = block.hashindex.HashIndexBlockConfig(config = config.hashIndex),
+                    binarySearchIndexConfig = BinarySearchIndexBlockConfig(config = config.binarySearchIndex),
                     sortedIndexConfig = SortedIndexBlockConfig(config.sortedIndex),
                     valuesConfig = ValuesBlockConfig(config.valuesConfig),
                     segmentConfig = SegmentBlockConfig(config.segmentConfig),

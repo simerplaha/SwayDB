@@ -31,9 +31,9 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.merge.stats.MergeStats.{Memory, Persistent}
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, GapAggregator}
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
-import swaydb.core.segment.block.hashindex.HashIndexConfig
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
+import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
+import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
@@ -91,9 +91,9 @@ private[core] case object Level extends LazyLogging {
         IO.none
     }
 
-  def apply(bloomFilterConfig: BloomFilterConfig,
-            hashIndexConfig: HashIndexConfig,
-            binarySearchIndexConfig: BinarySearchIndexConfig,
+  def apply(bloomFilterConfig: BloomFilterBlockConfig,
+            hashIndexConfig: HashIndexBlockConfig,
+            binarySearchIndexConfig: BinarySearchIndexBlockConfig,
             sortedIndexConfig: SortedIndexBlockConfig,
             valuesConfig: ValuesBlockConfig,
             segmentConfig: SegmentBlockConfig,
@@ -277,9 +277,9 @@ private[core] case object Level extends LazyLogging {
  * new segments.
  */
 private[core] case class Level(dirs: Seq[Dir],
-                               bloomFilterConfig: BloomFilterConfig,
-                               hashIndexConfig: HashIndexConfig,
-                               binarySearchIndexConfig: BinarySearchIndexConfig,
+                               bloomFilterConfig: BloomFilterBlockConfig,
+                               hashIndexConfig: HashIndexBlockConfig,
+                               binarySearchIndexConfig: BinarySearchIndexBlockConfig,
                                sortedIndexConfig: SortedIndexBlockConfig,
                                valuesConfig: ValuesBlockConfig,
                                segmentConfig: SegmentBlockConfig,
@@ -684,9 +684,9 @@ private[core] case class Level(dirs: Seq[Dir],
 
       implicit val valuesConfigImplicit: ValuesBlockConfig = valuesConfig
       implicit val sortedIndexConfigImplicit: SortedIndexBlockConfig = sortedIndexConfig
-      implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
-      implicit val hashIndexConfigImplicit: HashIndexConfig = hashIndexConfig
-      implicit val bloomFilterConfigImplicit: BloomFilterConfig = bloomFilterConfig
+      implicit val binarySearchIndexConfigImplicit: BinarySearchIndexBlockConfig = binarySearchIndexConfig
+      implicit val hashIndexConfigImplicit: HashIndexBlockConfig = hashIndexConfig
+      implicit val bloomFilterConfigImplicit: BloomFilterBlockConfig = bloomFilterConfig
       implicit val segmentConfigImplicit: SegmentBlockConfig = segmentConfig
 
       DefragPersistentSegment.runOnGaps[Segment, SegmentOption](

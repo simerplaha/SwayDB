@@ -28,9 +28,9 @@ import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
+import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig}
 import swaydb.core.segment.block.reader.BlockRefReader
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig, SegmentBlockOffset}
 import swaydb.core.segment.block.segment.data.{TransientSegment, TransientSegmentSerialiser}
@@ -833,9 +833,9 @@ protected case class PersistentSegmentMany(file: DBFile,
           createdInLevel: Int,
           valuesConfig: ValuesBlockConfig,
           sortedIndexConfig: SortedIndexBlockConfig,
-          binarySearchIndexConfig: BinarySearchIndexConfig,
-          hashIndexConfig: HashIndexConfig,
-          bloomFilterConfig: BloomFilterConfig,
+          binarySearchIndexConfig: BinarySearchIndexBlockConfig,
+          hashIndexConfig: HashIndexBlockConfig,
+          bloomFilterConfig: BloomFilterBlockConfig,
           segmentConfig: SegmentBlockConfig,
           pathsDistributor: PathsDistributor,
           segmentRefCacheLife: SegmentRefCacheLife,
@@ -845,9 +845,9 @@ protected case class PersistentSegmentMany(file: DBFile,
                               compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]] = {
     implicit val valuesConfigImplicit: ValuesBlockConfig = valuesConfig
     implicit val sortedIndexConfigImplicit: SortedIndexBlockConfig = sortedIndexConfig
-    implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
-    implicit val hashIndexConfigImplicit: HashIndexConfig = hashIndexConfig
-    implicit val bloomFilterConfigImplicit: BloomFilterConfig = bloomFilterConfig
+    implicit val binarySearchIndexConfigImplicit: BinarySearchIndexBlockConfig = binarySearchIndexConfig
+    implicit val hashIndexConfigImplicit: HashIndexBlockConfig = hashIndexConfig
+    implicit val bloomFilterConfigImplicit: BloomFilterBlockConfig = bloomFilterConfig
     implicit val segmentConfigImplicit: SegmentBlockConfig = segmentConfig
 
     DefragPersistentSegment.runMany(
@@ -867,9 +867,9 @@ protected case class PersistentSegmentMany(file: DBFile,
               createdInLevel: Int,
               valuesConfig: ValuesBlockConfig,
               sortedIndexConfig: SortedIndexBlockConfig,
-              binarySearchIndexConfig: BinarySearchIndexConfig,
-              hashIndexConfig: HashIndexConfig,
-              bloomFilterConfig: BloomFilterConfig,
+              binarySearchIndexConfig: BinarySearchIndexBlockConfig,
+              hashIndexConfig: HashIndexBlockConfig,
+              bloomFilterConfig: BloomFilterBlockConfig,
               segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
                                                   ec: ExecutionContext,
                                                   compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]]] =

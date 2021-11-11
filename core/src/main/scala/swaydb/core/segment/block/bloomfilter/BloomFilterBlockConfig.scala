@@ -5,10 +5,10 @@ import swaydb.data.config.UncompressedBlockInfo
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.FunctionSafe
 
-object BloomFilterConfig {
+object BloomFilterBlockConfig {
 
-  def disabled(): BloomFilterConfig =
-    BloomFilterConfig(
+  def disabled(): BloomFilterBlockConfig =
+    BloomFilterBlockConfig(
       falsePositiveRate = 0.0,
       minimumNumberOfKeys = Int.MaxValue,
       optimalMaxProbe = probe => probe,
@@ -16,10 +16,10 @@ object BloomFilterConfig {
       compressions = _ => Seq.empty
     )
 
-  def apply(config: swaydb.data.config.BloomFilter): BloomFilterConfig =
+  def apply(config: swaydb.data.config.BloomFilter): BloomFilterBlockConfig =
     config match {
       case swaydb.data.config.BloomFilter.Off =>
-        BloomFilterConfig(
+        BloomFilterBlockConfig(
           falsePositiveRate = 0.0,
           minimumNumberOfKeys = Int.MaxValue,
           optimalMaxProbe = _ => 0,
@@ -28,7 +28,7 @@ object BloomFilterConfig {
         )
 
       case enable: swaydb.data.config.BloomFilter.On =>
-        BloomFilterConfig(
+        BloomFilterBlockConfig(
           falsePositiveRate = enable.falsePositiveRate,
           minimumNumberOfKeys = enable.minimumNumberOfKeys,
           optimalMaxProbe = FunctionSafe.safe(probe => probe, enable.updateMaxProbe),
@@ -42,8 +42,8 @@ object BloomFilterConfig {
     }
 }
 
-case class BloomFilterConfig(falsePositiveRate: Double,
-                             minimumNumberOfKeys: Int,
-                             optimalMaxProbe: Int => Int,
-                             ioStrategy: IOAction => IOStrategy,
-                             compressions: UncompressedBlockInfo => Iterable[CompressionInternal])
+case class BloomFilterBlockConfig(falsePositiveRate: Double,
+                                  minimumNumberOfKeys: Int,
+                                  optimalMaxProbe: Int => Int,
+                                  ioStrategy: IOAction => IOStrategy,
+                                  compressions: UncompressedBlockInfo => Iterable[CompressionInternal])

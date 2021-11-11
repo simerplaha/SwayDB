@@ -16,9 +16,9 @@
 
 package swaydb.core.segment.io
 
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
+import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
@@ -38,9 +38,9 @@ private[core] object SegmentReadIO {
       segmentFooterBlockIO = IOStrategy.defaultSynchronised
     )
 
-  def apply(bloomFilterConfig: BloomFilterConfig,
-            hashIndexConfig: HashIndexConfig,
-            binarySearchIndexConfig: BinarySearchIndexConfig,
+  def apply(bloomFilterConfig: BloomFilterBlockConfig,
+            hashIndexConfig: HashIndexBlockConfig,
+            binarySearchIndexConfig: BinarySearchIndexBlockConfig,
             sortedIndexConfig: SortedIndexBlockConfig,
             valuesConfig: ValuesBlockConfig,
             segmentConfig: SegmentBlockConfig): SegmentReadIO =

@@ -23,9 +23,9 @@ import swaydb.core.TestData._
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment._
-import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexConfig}
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
+import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockConfig}
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig}
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
@@ -88,9 +88,9 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
 
   implicit def valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
   implicit def sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
-  implicit def binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
-  implicit def hashIndexConfig: HashIndexConfig = HashIndexConfig.random
-  implicit def bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
+  implicit def binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random
+  implicit def hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random
+  implicit def bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random
   implicit def segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
   def testSegment(keyValues: Slice[Memory] = randomizedKeyValues())(implicit sweeper: TestCaseSweeper): SEG
@@ -222,9 +222,9 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
 
               implicit val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
               implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
-              implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
-              implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
-              implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
+              implicit val binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random
+              implicit val hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random
+              implicit val bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random
               implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = midSegment.segmentSize + 1, maxCount = midSegment.keyValueCount + 1)
 
               val allSegments = Seq(headGap, midSegment, tailGap)

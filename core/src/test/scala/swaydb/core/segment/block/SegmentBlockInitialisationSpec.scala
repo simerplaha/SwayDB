@@ -20,9 +20,9 @@ import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig}
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
@@ -66,7 +66,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 getSegmentBlockCacheSingle(
                   keyValues = keyValues,
                   binarySearchIndexConfig =
-                    BinarySearchIndexConfig(
+                    BinarySearchIndexBlockConfig(
                       enabled = false,
                       format = randomBinarySearchFormat(),
                       minimumNumberOfKeys = 0,
@@ -102,7 +102,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 getBlocksSingle(
                   keyValues = keyValues,
                   binarySearchIndexConfig =
-                    BinarySearchIndexConfig(
+                    BinarySearchIndexBlockConfig(
                       enabled = true,
                       format = randomBinarySearchFormat(),
                       searchSortedIndexDirectlyIfPossible = randomBoolean(),
@@ -151,7 +151,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       normaliseIndex = false
                     ),
                   binarySearchIndexConfig =
-                    BinarySearchIndexConfig(
+                    BinarySearchIndexBlockConfig(
                       enabled = true,
                       format = randomBinarySearchFormat(),
                       searchSortedIndexDirectlyIfPossible = randomBoolean(),
@@ -161,7 +161,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       compressions = _ => compressions
                     ),
                   hashIndexConfig =
-                    HashIndexConfig(
+                    HashIndexBlockConfig(
                       maxProbe = 1,
                       allocateSpace = _.requiredSpace,
                       format = randomHashIndexSearchFormat(),
@@ -208,7 +208,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 getBlocksSingle(
                   keyValues,
                   binarySearchIndexConfig =
-                    BinarySearchIndexConfig(
+                    BinarySearchIndexBlockConfig(
                       enabled = true,
                       format = randomBinarySearchFormat(),
                       searchSortedIndexDirectlyIfPossible = false,
@@ -218,7 +218,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       compressions = _ => compressions
                     ),
                   hashIndexConfig =
-                    HashIndexConfig(
+                    HashIndexBlockConfig(
                       maxProbe = 100,
                       minimumNumberOfKeys = 0,
                       minimumNumberOfHits = 0,
@@ -322,7 +322,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 getBlocksSingle(
                   keyValues = keyValues,
                   bloomFilterConfig =
-                    BloomFilterConfig(
+                    BloomFilterBlockConfig(
                       falsePositiveRate = 1,
                       minimumNumberOfKeys = 0,
                       optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
@@ -353,7 +353,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 getBlocksSingle(
                   keyValues,
                   bloomFilterConfig =
-                    BloomFilterConfig(
+                    BloomFilterBlockConfig(
                       falsePositiveRate = 0.001,
                       optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
                       minimumNumberOfKeys = keyValues.size + 1,
@@ -411,7 +411,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 getBlocksSingle(
                   allKeyValues,
                   bloomFilterConfig =
-                    BloomFilterConfig(
+                    BloomFilterBlockConfig(
                       falsePositiveRate = 0.001,
                       minimumNumberOfKeys = 0,
                       optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
@@ -445,7 +445,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               getBlocksSingle(
                 keyValues = keyValues,
                 hashIndexConfig =
-                  HashIndexConfig(
+                  HashIndexBlockConfig(
                     maxProbe = 5,
                     minimumNumberOfKeys = 0, //set miminimum to be 10 for hash to be created.
                     minimumNumberOfHits = 10,
@@ -507,7 +507,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       compressions = _ => compressions(1)
                     ),
                   binarySearchIndexConfig =
-                    BinarySearchIndexConfig(
+                    BinarySearchIndexBlockConfig(
                       enabled = true,
                       format = randomBinarySearchFormat(),
                       searchSortedIndexDirectlyIfPossible = randomBoolean(),
@@ -517,7 +517,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       compressions = _ => compressions(2)
                     ),
                   hashIndexConfig =
-                    HashIndexConfig(
+                    HashIndexBlockConfig(
                       maxProbe = 5,
                       minimumNumberOfKeys = 2,
                       minimumNumberOfHits = 2,
@@ -527,7 +527,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       compressions = _ => compressions(3)
                     ),
                   bloomFilterConfig =
-                    BloomFilterConfig(
+                    BloomFilterBlockConfig(
                       falsePositiveRate = 0.001,
                       minimumNumberOfKeys = 2,
                       optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,

@@ -6,7 +6,7 @@ import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.slice.Slice
 import swaydb.utils.Maybe
 
-private[block] object BinarySearchIndexState {
+private[block] object BinarySearchIndexBlockState {
 
   def apply(format: BinarySearchEntryFormat,
             largestIndexOffset: Int,
@@ -14,7 +14,7 @@ private[block] object BinarySearchIndexState {
             uniqueValuesCount: Int,
             isFullIndex: Boolean,
             minimumNumberOfKeys: Int,
-            compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Option[BinarySearchIndexState] =
+            compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Option[BinarySearchIndexBlockState] =
     if (uniqueValuesCount < minimumNumberOfKeys) {
       None
     } else {
@@ -37,7 +37,7 @@ private[block] object BinarySearchIndexState {
       val bytes = Slice.of[Byte](bytesRequired)
 
       val state =
-        new BinarySearchIndexState(
+        new BinarySearchIndexBlockState(
           format = format,
           bytesPerValue = bytesPerValue,
           uniqueValuesCount = uniqueValuesCount,
@@ -55,17 +55,17 @@ private[block] object BinarySearchIndexState {
     }
 }
 
-private[block] class BinarySearchIndexState(val format: BinarySearchEntryFormat,
-                                            val bytesPerValue: Int,
-                                            val uniqueValuesCount: Int,
-                                            var _previousWritten: Int,
-                                            var writtenValues: Int,
-                                            val minimumNumberOfKeys: Int,
-                                            var isFullIndex: Boolean,
-                                            var compressibleBytes: Slice[Byte],
-                                            val cacheableBytes: Slice[Byte],
-                                            var header: Slice[Byte],
-                                            val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
+private[block] class BinarySearchIndexBlockState(val format: BinarySearchEntryFormat,
+                                                 val bytesPerValue: Int,
+                                                 val uniqueValuesCount: Int,
+                                                 var _previousWritten: Int,
+                                                 var writtenValues: Int,
+                                                 val minimumNumberOfKeys: Int,
+                                                 var isFullIndex: Boolean,
+                                                 var compressibleBytes: Slice[Byte],
+                                                 val cacheableBytes: Slice[Byte],
+                                                 var header: Slice[Byte],
+                                                 val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
 
   def blockSize: Int =
     header.size + compressibleBytes.size

@@ -58,7 +58,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
   private def apply(numberOfKeys: Int,
                     falsePositiveRate: Double,
                     updateMaxProbe: Int => Int,
-                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): BloomFilterState = {
+                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): BloomFilterBlockState = {
     val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
     val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits, updateMaxProbe) max 1
 
@@ -66,7 +66,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
 
     val bytes = Slice.of[Byte](numberOfBits)
 
-    new BloomFilterState(
+    new BloomFilterBlockState(
       numberOfBits = numberOfBits,
       maxProbe = maxProbe,
       compressibleBytes = bytes,
@@ -97,7 +97,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
     update(optimal)
   }
 
-  def close(state: BloomFilterState): Option[BloomFilterState] =
+  def close(state: BloomFilterBlockState): Option[BloomFilterBlockState] =
     if (state.compressibleBytes.isEmpty) {
       None
     } else {
@@ -129,7 +129,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
       Some(state)
     }
 
-  def unblockedReader(closedState: BloomFilterState): UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock] = {
+  def unblockedReader(closedState: BloomFilterBlockState): UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock] = {
     val block =
       BloomFilterBlock(
         offset = BloomFilterBlockOffset(0, closedState.cacheableBytes.size),
@@ -160,7 +160,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
   def init(numberOfKeys: Int,
            falsePositiveRate: Double,
            updateMaxProbe: Int => Int,
-           compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Option[BloomFilterState] =
+           compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Option[BloomFilterBlockState] =
     if (numberOfKeys <= 0 || falsePositiveRate <= 0.0 || falsePositiveRate >= 1)
       None
     else
@@ -174,7 +174,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
       )
 
   def add(comparableKey: Slice[Byte],
-          state: BloomFilterState): Unit = {
+          state: BloomFilterBlockState): Unit = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(comparableKey, 0, comparableKey.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32

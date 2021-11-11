@@ -21,9 +21,9 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig}
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
@@ -90,7 +90,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
             level.mightContainKey("THIS KEY DOES NOT EXISTS", ThreadReadState.random).runRandomIO.right.value shouldBe false
           }
 
-          val level = TestLevel(bloomFilterConfig = BloomFilterConfig.random.copy(falsePositiveRate = 0.01))
+          val level = TestLevel(bloomFilterConfig = BloomFilterBlockConfig.random.copy(falsePositiveRate = 0.01))
           level.put(keyValues).runRandomIO.right.value
 
           assert(level)
@@ -147,9 +147,9 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
                 createdInLevel = 0,
                 valuesConfig = ValuesBlockConfig.random,
                 sortedIndexConfig = SortedIndexBlockConfig.random,
-                binarySearchIndexConfig = BinarySearchIndexConfig.random,
-                hashIndexConfig = HashIndexConfig.random,
-                bloomFilterConfig = BloomFilterConfig.random,
+                binarySearchIndexConfig = BinarySearchIndexBlockConfig.random,
+                hashIndexConfig = HashIndexBlockConfig.random,
+                bloomFilterConfig = BloomFilterBlockConfig.random,
                 segmentConfig = SegmentBlockConfig.random2(minSegmentSize = 100.mb),
                 pathDistributor = createPathDistributor
               ).runRandomIO.right.value
@@ -184,9 +184,9 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
                 createdInLevel = 0,
                 valuesConfig = ValuesBlockConfig.random,
                 sortedIndexConfig = SortedIndexBlockConfig.random,
-                binarySearchIndexConfig = BinarySearchIndexConfig.random,
-                hashIndexConfig = HashIndexConfig.random,
-                bloomFilterConfig = BloomFilterConfig.random,
+                binarySearchIndexConfig = BinarySearchIndexBlockConfig.random,
+                hashIndexConfig = HashIndexBlockConfig.random,
+                bloomFilterConfig = BloomFilterBlockConfig.random,
                 segmentConfig = SegmentBlockConfig.random2(minSegmentSize = 100.mb),
                 pathDistributor = createPathDistributor
               ).runRandomIO.right.value

@@ -27,9 +27,9 @@ import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
-import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset, BinarySearchIndexConfig}
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset, HashIndexConfig}
+import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset, BinarySearchIndexBlockConfig}
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset, BloomFilterBlockConfig}
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset, HashIndexBlockConfig}
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
@@ -313,9 +313,9 @@ protected case class PersistentSegmentOne(file: DBFile,
           createdInLevel: Int,
           valuesConfig: ValuesBlockConfig,
           sortedIndexConfig: SortedIndexBlockConfig,
-          binarySearchIndexConfig: BinarySearchIndexConfig,
-          hashIndexConfig: HashIndexConfig,
-          bloomFilterConfig: BloomFilterConfig,
+          binarySearchIndexConfig: BinarySearchIndexBlockConfig,
+          hashIndexConfig: HashIndexBlockConfig,
+          bloomFilterConfig: BloomFilterBlockConfig,
           segmentConfig: SegmentBlockConfig,
           pathsDistributor: PathsDistributor,
           segmentRefCacheLife: SegmentRefCacheLife,
@@ -325,9 +325,9 @@ protected case class PersistentSegmentOne(file: DBFile,
                               compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]] = {
     implicit val valuesConfigImplicit: ValuesBlockConfig = valuesConfig
     implicit val sortedIndexConfigImplicit: SortedIndexBlockConfig = sortedIndexConfig
-    implicit val binarySearchIndexConfigImplicit: BinarySearchIndexConfig = binarySearchIndexConfig
-    implicit val hashIndexConfigImplicit: HashIndexConfig = hashIndexConfig
-    implicit val bloomFilterConfigImplicit: BloomFilterConfig = bloomFilterConfig
+    implicit val binarySearchIndexConfigImplicit: BinarySearchIndexBlockConfig = binarySearchIndexConfig
+    implicit val hashIndexConfigImplicit: HashIndexBlockConfig = hashIndexConfig
+    implicit val bloomFilterConfigImplicit: BloomFilterBlockConfig = bloomFilterConfig
     implicit val segmentConfigImplicit: SegmentBlockConfig = segmentConfig
 
     DefragPersistentSegment.runOnSegment(
@@ -348,9 +348,9 @@ protected case class PersistentSegmentOne(file: DBFile,
               createdInLevel: Int,
               valuesConfig: ValuesBlockConfig,
               sortedIndexConfig: SortedIndexBlockConfig,
-              binarySearchIndexConfig: BinarySearchIndexConfig,
-              hashIndexConfig: HashIndexConfig,
-              bloomFilterConfig: BloomFilterConfig,
+              binarySearchIndexConfig: BinarySearchIndexBlockConfig,
+              hashIndexConfig: HashIndexBlockConfig,
+              bloomFilterConfig: BloomFilterBlockConfig,
               segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
                                                   ec: ExecutionContext,
                                                   compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]] = {

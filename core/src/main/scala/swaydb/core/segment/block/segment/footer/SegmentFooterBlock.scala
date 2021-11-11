@@ -61,8 +61,8 @@ private[core] case object SegmentFooterBlock {
            updateCount: Int,
            putCount: Int,
            putDeadlineCount: Int,
-           createdInLevel: Int): SegmentFooterState =
-    SegmentFooterState(
+           createdInLevel: Int): SegmentFooterBlockState =
+    SegmentFooterBlockState(
       footerSize = Block.minimumHeaderSize(false),
       createdInLevel = createdInLevel,
       bytes = Slice.of[Byte](optimalBytesRequired),
@@ -73,7 +73,7 @@ private[core] case object SegmentFooterBlock {
       putDeadlineCount = putDeadlineCount
     )
 
-  def writeAndClose(state: SegmentFooterState, closedBlocks: ClosedBlocks): SegmentFooterState = {
+  def writeAndClose(state: SegmentFooterBlockState, closedBlocks: ClosedBlocks): SegmentFooterBlockState = {
     val values = closedBlocks.values
     val sortedIndex = closedBlocks.sortedIndex
     val hashIndex = closedBlocks.hashIndex
@@ -248,7 +248,7 @@ private[core] case object SegmentFooterBlock {
           Some(ValuesBlockOffset(0, sortedIndexOffset.start))
 
       SegmentFooterBlock(
-        SegmentFooterBlockOffset(footerStartOffset, footerSize),
+        offset = SegmentFooterBlockOffset(footerStartOffset, footerSize),
         headerSize = 0,
         compressionInfo = None,
         valuesOffset = valuesOffset,

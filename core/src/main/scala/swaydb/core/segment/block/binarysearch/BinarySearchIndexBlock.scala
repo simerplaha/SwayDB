@@ -35,7 +35,7 @@ private[core] case object BinarySearchIndexBlock {
   val blockName = this.productPrefix
 
   def init(sortedIndexState: SortedIndexBlockState,
-           binarySearchConfig: BinarySearchIndexConfig): Option[BinarySearchIndexState] = {
+           binarySearchConfig: BinarySearchIndexBlockConfig): Option[BinarySearchIndexBlockState] = {
 
     if (!binarySearchConfig.enabled ||
       sortedIndexState.uncompressedPrefixCount < binarySearchConfig.minimumNumberOfKeys ||
@@ -43,7 +43,7 @@ private[core] case object BinarySearchIndexBlock {
       (!sortedIndexState.hasPrefixCompression && binarySearchConfig.searchSortedIndexDirectlyIfPossible && sortedIndexState.isPreNormalised))
       None
     else
-      BinarySearchIndexState(
+      BinarySearchIndexBlockState(
         format = binarySearchConfig.format,
         largestIndexOffset = sortedIndexState.secondaryIndexEntries.last.indexOffset,
         largestMergedKeySize = sortedIndexState.largestUncompressedMergedKeySize,
@@ -74,7 +74,7 @@ private[core] case object BinarySearchIndexBlock {
       bytesToAllocatedPerEntry * valuesCount
     }
 
-  def close(state: BinarySearchIndexState, uncompressedKeyValuesCount: Int): Option[BinarySearchIndexState] =
+  def close(state: BinarySearchIndexBlockState, uncompressedKeyValuesCount: Int): Option[BinarySearchIndexBlockState] =
     if (state.compressibleBytes.isEmpty)
       None
     else if (state.hasMinimumKeys) {
@@ -104,7 +104,7 @@ private[core] case object BinarySearchIndexBlock {
     else
       None
 
-  def unblockedReader(closedState: BinarySearchIndexState): UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock] = {
+  def unblockedReader(closedState: BinarySearchIndexBlockState): UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock] = {
     val block =
       BinarySearchIndexBlock(
         format = closedState.format,
@@ -141,7 +141,7 @@ private[core] case object BinarySearchIndexBlock {
   }
 
   def write(entry: SortedIndexBlockSecondaryIndexEntry,
-            state: BinarySearchIndexState): Unit =
+            state: BinarySearchIndexBlockState): Unit =
     write(
       indexOffset = entry.indexOffset,
       mergedKey = entry.mergedKey,
@@ -152,7 +152,7 @@ private[core] case object BinarySearchIndexBlock {
   def write(indexOffset: Int,
             mergedKey: Slice[Byte],
             keyType: Byte,
-            state: BinarySearchIndexState): Unit =
+            state: BinarySearchIndexBlockState): Unit =
     if (indexOffset == state.previouslyWritten) { //do not write duplicate entries.
       ()
     } else {

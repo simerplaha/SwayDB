@@ -39,7 +39,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
   val blockName = this.productPrefix
 
   def init(sortedIndexState: SortedIndexBlockState,
-           hashIndexConfig: HashIndexConfig): Option[HashIndexState] =
+           hashIndexConfig: HashIndexBlockConfig): Option[HashIndexBlockState] =
     if (sortedIndexState.uncompressedPrefixCount < hashIndexConfig.minimumNumberOfKeys) {
       None
     } else {
@@ -63,7 +63,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
       } else {
         val bytes = Slice.of[Byte](optimalBytes)
         val state =
-          new HashIndexState(
+          new HashIndexBlockState(
             hit = 0,
             miss = sortedIndexState.prefixCompressedCount,
             format = hashIndexConfig.format,
@@ -112,14 +112,14 @@ private[core] case object HashIndexBlock extends LazyLogging {
       }
     }
 
-  def minimumCRCToWrite(state: HashIndexState): Long =
+  def minimumCRCToWrite(state: HashIndexBlockState): Long =
   //CRC can be -1 when HashIndex is not fully copied.
     if (state.minimumCRC == CRC32.disabledCRC)
       0
     else
       state.minimumCRC
 
-  def close(state: HashIndexState): Option[HashIndexState] =
+  def close(state: HashIndexBlockState): Option[HashIndexBlockState] =
     if (state.compressibleBytes.isEmpty || !state.hasMinimumHits)
       None
     else {
@@ -150,7 +150,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
       Some(state)
     }
 
-  def unblockedReader(closedState: HashIndexState): UnblockedReader[HashIndexBlockOffset, HashIndexBlock] = {
+  def unblockedReader(closedState: HashIndexBlockState): UnblockedReader[HashIndexBlockOffset, HashIndexBlock] = {
     val block =
       HashIndexBlock(
         offset = HashIndexBlockOffset(0, closedState.cacheableBytes.size),
@@ -200,7 +200,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
     Math.abs(hash) % hashMaxOffset
 
   def write(entry: SortedIndexBlockSecondaryIndexEntry,
-            state: HashIndexState): Boolean =
+            state: HashIndexBlockState): Boolean =
     state.format match {
       case HashIndexEntryFormat.Reference =>
         HashIndexBlock.writeReference(
@@ -228,7 +228,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
                      comparableKey: Slice[Byte],
                      mergedKey: Slice[Byte],
                      keyType: Byte,
-                     state: HashIndexState): Boolean = {
+                     state: HashIndexBlockState): Boolean = {
 
     val requiredSpace =
       HashIndexEntryFormat.Reference.bytesToAllocatePerEntry(
@@ -345,7 +345,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
                 comparableKey: Slice[Byte],
                 mergedKey: Slice[Byte],
                 keyType: Byte,
-                state: HashIndexState): Boolean = {
+                state: HashIndexBlockState): Boolean = {
 
     val hash = comparableKey.hashCode()
     val hash1 = hash >>> 32

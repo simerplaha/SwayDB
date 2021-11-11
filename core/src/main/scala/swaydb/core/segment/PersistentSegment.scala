@@ -22,9 +22,9 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
+import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
@@ -63,9 +63,9 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
           createdInLevel: Int,
           valuesConfig: ValuesBlockConfig,
           sortedIndexConfig: SortedIndexBlockConfig,
-          binarySearchIndexConfig: BinarySearchIndexConfig,
-          hashIndexConfig: HashIndexConfig,
-          bloomFilterConfig: BloomFilterConfig,
+          binarySearchIndexConfig: BinarySearchIndexBlockConfig,
+          hashIndexConfig: HashIndexBlockConfig,
+          bloomFilterConfig: BloomFilterBlockConfig,
           segmentConfig: SegmentBlockConfig,
           pathsDistributor: PathsDistributor,
           segmentRefCacheLife: SegmentRefCacheLife,
@@ -78,9 +78,9 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
               createdInLevel: Int,
               valuesConfig: ValuesBlockConfig,
               sortedIndexConfig: SortedIndexBlockConfig,
-              binarySearchIndexConfig: BinarySearchIndexConfig,
-              hashIndexConfig: HashIndexConfig,
-              bloomFilterConfig: BloomFilterConfig,
+              binarySearchIndexConfig: BinarySearchIndexBlockConfig,
+              hashIndexConfig: HashIndexBlockConfig,
+              bloomFilterConfig: BloomFilterBlockConfig,
               segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
                                                   ec: ExecutionContext,
                                                   compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]]

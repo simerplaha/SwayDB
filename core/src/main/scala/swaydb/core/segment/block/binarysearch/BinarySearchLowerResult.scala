@@ -23,6 +23,8 @@ protected sealed trait BinarySearchLowerResult {
 }
 
 protected object BinarySearchLowerResult {
+
   class Some(val lower: Persistent.PartialOption,
              val matched: Persistent.PartialOption) extends BinarySearchLowerResult
+
 }

@@ -2,13 +2,13 @@ package swaydb.core.segment.block.segment.footer
 
 import swaydb.effect.{IOAction, IOStrategy}
 
-object SegmentFooterConfig {
+object SegmentFooterBlockConfig {
 
   def default() =
-    SegmentFooterConfig(
+    SegmentFooterBlockConfig(
       blockIO = IOStrategy.defaultSynchronised
     )
 
 }
 
-case class SegmentFooterConfig(blockIO: IOAction => IOStrategy)
+case class SegmentFooterBlockConfig(blockIO: IOAction => IOStrategy)

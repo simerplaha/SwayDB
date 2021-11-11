@@ -22,9 +22,9 @@ import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.merge.stats.MergeStats
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig}
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig}
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.segment.io.SegmentReadIO
@@ -65,9 +65,9 @@ class SegmentBlockSpec extends TestBase {
           createdInLevel = randomIntMax(Int.MaxValue),
           valuesConfig = ValuesBlockConfig.random,
           sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = BinarySearchIndexConfig.random,
-          hashIndexConfig = HashIndexConfig.random,
-          bloomFilterConfig = BloomFilterConfig.random,
+          binarySearchIndexConfig = BinarySearchIndexBlockConfig.random,
+          hashIndexConfig = HashIndexBlockConfig.random,
+          bloomFilterConfig = BloomFilterBlockConfig.random,
           segmentConfig = SegmentBlockConfig.random
         ).awaitInf
 
@@ -263,7 +263,7 @@ class SegmentBlockSpec extends TestBase {
               getBlocksSingle(
                 keyValues = keyValues,
                 bloomFilterConfig =
-                  BloomFilterConfig(
+                  BloomFilterBlockConfig(
                     falsePositiveRate = 0.001,
                     minimumNumberOfKeys = 1,
                     optimalMaxProbe = probe => probe,
@@ -309,7 +309,7 @@ class SegmentBlockSpec extends TestBase {
               getBlocksSingle(
                 keyValues = keyValues,
                 bloomFilterConfig =
-                  BloomFilterConfig.random.copy(
+                  BloomFilterBlockConfig.random.copy(
                     falsePositiveRate = 0.0001,
                     minimumNumberOfKeys = 0
                   )
@@ -342,7 +342,7 @@ class SegmentBlockSpec extends TestBase {
               getBlocksSingle(
                 keyValues = keyValues,
                 bloomFilterConfig =
-                  BloomFilterConfig.random.copy(
+                  BloomFilterBlockConfig.random.copy(
                     falsePositiveRate = 0.0001,
                     minimumNumberOfKeys = 0
                   )

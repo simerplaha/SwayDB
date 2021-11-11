@@ -22,9 +22,9 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig}
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig}
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
@@ -65,9 +65,9 @@ class DefragSegment_RunMany_Spec extends TestBase with MockFactory with EitherVa
 
           implicit val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
-          implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
-          implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
-          implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
+          implicit val binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random
+          implicit val hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random
+          implicit val bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random
           implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(maxCount = 10, minSize = Int.MaxValue)
           implicit val pathsDistributor: PathsDistributor = createPathDistributor
 
@@ -115,9 +115,9 @@ class DefragSegment_RunMany_Spec extends TestBase with MockFactory with EitherVa
 
           implicit val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
           implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
-          implicit val binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random
-          implicit val hashIndexConfig: HashIndexConfig = HashIndexConfig.random
-          implicit val bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random
+          implicit val binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random
+          implicit val hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random
+          implicit val bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random
           implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(maxCount = 10, minSize = Int.MaxValue)
           implicit val pathsDistributor: PathsDistributor = createPathDistributor
 

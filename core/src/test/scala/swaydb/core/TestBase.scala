@@ -35,9 +35,9 @@ import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
 import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.merge.stats.MergeStats
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.BloomFilterConfig
-import swaydb.core.segment.block.hashindex.HashIndexConfig
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
+import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
+import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
@@ -232,9 +232,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               path: Path = testSegmentFile,
               valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
               sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
-              binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
-              hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
-              bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
+              binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random,
+              hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
+              bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
               segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                          timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                          sweeper: TestCaseSweeper,
@@ -272,9 +272,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
             path: Path = testSegmentFile,
             valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
             sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
-            binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
-            hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
-            bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
+            binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random,
+            hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
+            bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
             segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                        sweeper: TestCaseSweeper,
@@ -307,9 +307,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
              keyValues: Slice[Memory] = randomizedKeyValues()(TestTimer.Incremental()),
              valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
              sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
-             binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
-             hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
-             bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
+             binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random,
+             hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
+             bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
              segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                         pathsDistributor: PathsDistributor,
@@ -383,9 +383,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               throttle: LevelMeter => LevelThrottle = testDefaultThrottle,
               valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
               sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
-              binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
-              hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
-              bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
+              binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random,
+              hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
+              bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
               segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random2(deleteDelay = Duration.Zero, mmap = mmapSegments),
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
@@ -857,12 +857,12 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                        closeAfterCreate: Boolean = false,
                        valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
                        sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
-                       binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
-                       hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
-                       bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                    sweeper: TestCaseSweeper,
-                                                                                                    segmentIO: SegmentReadIO = SegmentReadIO.random,
-                                                                                                    ec: ExecutionContext = TestExecutionContext.executionContext) = {
+                       binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random,
+                       hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
+                       bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                  sweeper: TestCaseSweeper,
+                                                                                                  segmentIO: SegmentReadIO = SegmentReadIO.random,
+                                                                                                  ec: ExecutionContext = TestExecutionContext.executionContext) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")
 
     val segment =

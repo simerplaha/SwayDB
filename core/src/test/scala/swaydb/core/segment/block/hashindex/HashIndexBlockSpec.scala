@@ -66,7 +66,7 @@ class HashIndexBlockSpec extends TestBase {
                   compressions = _ => compressions
                 ),
               hashIndexConfig =
-                HashIndexConfig(
+                HashIndexBlockConfig(
                   maxProbe = 1000,
                   minimumNumberOfKeys = 0,
                   minimumNumberOfHits = 0,

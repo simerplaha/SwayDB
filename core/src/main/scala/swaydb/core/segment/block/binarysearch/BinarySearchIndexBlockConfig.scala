@@ -5,10 +5,10 @@ import swaydb.data.config.UncompressedBlockInfo
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.FunctionSafe
 
-object BinarySearchIndexConfig {
+object BinarySearchIndexBlockConfig {
 
-  def disabled(): BinarySearchIndexConfig =
-    BinarySearchIndexConfig(
+  def disabled(): BinarySearchIndexBlockConfig =
+    BinarySearchIndexBlockConfig(
       enabled = false,
       format = BinarySearchEntryFormat.Reference,
       minimumNumberOfKeys = 0,
@@ -18,10 +18,10 @@ object BinarySearchIndexConfig {
       compressions = _ => Seq.empty
     )
 
-  def apply(config: swaydb.data.config.BinarySearchIndex): BinarySearchIndexConfig =
+  def apply(config: swaydb.data.config.BinarySearchIndex): BinarySearchIndexBlockConfig =
     config match {
       case swaydb.data.config.BinarySearchIndex.Off(searchSortedIndexDirectly) =>
-        BinarySearchIndexConfig(
+        BinarySearchIndexBlockConfig(
           enabled = false,
           format = BinarySearchEntryFormat.Reference,
           minimumNumberOfKeys = Int.MaxValue,
@@ -32,7 +32,7 @@ object BinarySearchIndexConfig {
         )
 
       case enable: swaydb.data.config.BinarySearchIndex.FullIndex =>
-        BinarySearchIndexConfig(
+        BinarySearchIndexBlockConfig(
           enabled = true,
           format = BinarySearchEntryFormat(enable.indexFormat),
           minimumNumberOfKeys = enable.minimumNumberOfKeys,
@@ -47,7 +47,7 @@ object BinarySearchIndexConfig {
         )
 
       case enable: swaydb.data.config.BinarySearchIndex.SecondaryIndex =>
-        BinarySearchIndexConfig(
+        BinarySearchIndexBlockConfig(
           enabled = true,
           format = BinarySearchEntryFormat(enable.indexFormat),
           minimumNumberOfKeys = enable.minimumNumberOfKeys,
@@ -63,10 +63,10 @@ object BinarySearchIndexConfig {
     }
 }
 
-case class BinarySearchIndexConfig(enabled: Boolean,
-                                   format: BinarySearchEntryFormat,
-                                   minimumNumberOfKeys: Int,
-                                   searchSortedIndexDirectlyIfPossible: Boolean,
-                                   fullIndex: Boolean,
-                                   ioStrategy: IOAction => IOStrategy,
-                                   compressions: UncompressedBlockInfo => Iterable[CompressionInternal])
+case class BinarySearchIndexBlockConfig(enabled: Boolean,
+                                        format: BinarySearchEntryFormat,
+                                        minimumNumberOfKeys: Int,
+                                        searchSortedIndexDirectlyIfPossible: Boolean,
+                                        fullIndex: Boolean,
+                                        ioStrategy: IOAction => IOStrategy,
+                                        compressions: UncompressedBlockInfo => Iterable[CompressionInternal])

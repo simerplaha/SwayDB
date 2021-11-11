@@ -35,15 +35,15 @@ import swaydb.core.merge._
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.block._
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexConfig
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset, BloomFilterConfig, BloomFilterState}
-import swaydb.core.segment.block.hashindex.HashIndexConfig
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig, BloomFilterBlockOffset, BloomFilterBlockState}
+import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.SegmentBlockOffset.SegmentBlockOps
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache, SegmentBlockConfig, SegmentBlockOffset}
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
-import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
+import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment.ref.search.{KeyMatcher, SegmentSearcher, ThreadReadState}
@@ -758,7 +758,7 @@ object CommonAssertions {
   }
 
   def assertBloom(keyValues: Slice[Memory],
-                  bloom: BloomFilterState) = {
+                  bloom: BloomFilterBlockState) = {
     val bloomFilter = Block.unblock[BloomFilterBlockOffset, BloomFilterBlock](bloom.compressibleBytes)
 
     keyValues.par.count {
@@ -811,7 +811,7 @@ object CommonAssertions {
           segment.mightContainKey(randomBytesSlice(100), ThreadReadState.random).runRandomIO.right.value
       } should be < 1000
 
-  def assertBloomNotContains(bloom: BloomFilterState)(implicit ec: ExecutionContext = TestExecutionContext.executionContext) =
+  def assertBloomNotContains(bloom: BloomFilterBlockState)(implicit ec: ExecutionContext = TestExecutionContext.executionContext) =
     runThisParallel(1000.times) {
       val bloomFilter = Block.unblock[BloomFilterBlockOffset, BloomFilterBlock](bloom.compressibleBytes)
       BloomFilterBlock.mightContain(
@@ -1395,9 +1395,9 @@ object CommonAssertions {
               optimiseForReverseIteration = sortedIndexBlock.optimiseForReverseIteration
             ),
         createdInLevel = 0,
-        bloomFilterConfig = BloomFilterConfig.random,
-        hashIndexConfig = HashIndexConfig.random,
-        binarySearchIndexConfig = BinarySearchIndexConfig.random,
+        bloomFilterConfig = BloomFilterBlockConfig.random,
+        hashIndexConfig = HashIndexBlockConfig.random,
+        binarySearchIndexConfig = BinarySearchIndexBlockConfig.random,
         sortedIndexConfig = sortedIndexBlock,
         valuesConfig = ValuesBlockConfig.random,
         segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
@@ -1435,13 +1435,13 @@ object CommonAssertions {
                 useCacheableReaders: Boolean = randomBoolean(),
                 valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
                 sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
-                binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
-                hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
-                bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
+                binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random,
+                hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
+                bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
                 segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                                 keyOrder: KeyOrder[Slice[Byte]],
-                                                                                 ec: ExecutionContext = TestExecutionContext.executionContext,
-                                                                                 compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): IO[Error.Segment, Slice[SegmentBlocks]] = {
+                                                                               keyOrder: KeyOrder[Slice[Byte]],
+                                                                               ec: ExecutionContext = TestExecutionContext.executionContext,
+                                                                               compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): IO[Error.Segment, Slice[SegmentBlocks]] = {
     val closedSegments =
       SegmentBlock.writeOnes(
         mergeStats =
@@ -1485,12 +1485,12 @@ object CommonAssertions {
   def getBlocksSingle(keyValues: Iterable[Memory],
                       valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
                       sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
-                      binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
-                      hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
-                      bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
+                      binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random,
+                      hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
+                      bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
                       segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                                       keyOrder: KeyOrder[Slice[Byte]],
-                                                                                       ec: ExecutionContext = TestExecutionContext.executionContext): IO[Error.Segment, SegmentBlocks] =
+                                                                                     keyOrder: KeyOrder[Slice[Byte]],
+                                                                                     ec: ExecutionContext = TestExecutionContext.executionContext): IO[Error.Segment, SegmentBlocks] =
     getBlocks(
       keyValues = keyValues,
       bloomFilterConfig = bloomFilterConfig,
@@ -1515,13 +1515,13 @@ object CommonAssertions {
   def getSegmentBlockCache(keyValues: Slice[Memory],
                            valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
                            sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
-                           binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
-                           hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
-                           bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
+                           binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random,
+                           hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
+                           bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
                            segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                                            keyOrder: KeyOrder[Slice[Byte]],
-                                                                                            ec: ExecutionContext,
-                                                                                            compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Slice[SegmentBlockCache] =
+                                                                                          keyOrder: KeyOrder[Slice[Byte]],
+                                                                                          ec: ExecutionContext,
+                                                                                          compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Slice[SegmentBlockCache] =
     SegmentBlock.writeOnes(
       mergeStats =
         MergeStats
@@ -1555,12 +1555,12 @@ object CommonAssertions {
   def getSegmentBlockCacheSingle(keyValues: Slice[Memory],
                                  valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
                                  sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
-                                 binarySearchIndexConfig: BinarySearchIndexConfig = BinarySearchIndexConfig.random,
-                                 hashIndexConfig: HashIndexConfig = HashIndexConfig.random,
-                                 bloomFilterConfig: BloomFilterConfig = BloomFilterConfig.random,
+                                 binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random,
+                                 hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
+                                 bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
                                  segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                                                  keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                  ec: ExecutionContext = TestExecutionContext.executionContext): SegmentBlockCache = {
+                                                                                                keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                ec: ExecutionContext = TestExecutionContext.executionContext): SegmentBlockCache = {
     val blockCaches =
       getSegmentBlockCache(
         keyValues = keyValues,
