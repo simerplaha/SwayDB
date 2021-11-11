@@ -26,7 +26,7 @@ import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySea
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexConfig, HashIndexState}
 import swaydb.core.segment.block.segment.data.{ClosedBlocks, TransientSegment, TransientSegmentRef}
-import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
+import swaydb.core.segment.block.segment.footer.{SegmentFooterBlock, SegmentFooterState}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
@@ -551,7 +551,7 @@ private[core] case object SegmentBlock extends LazyLogging {
               createdInLevel = createdInLevel
             )
 
-          val closedFooter: SegmentFooterBlock.State =
+          val closedFooter: SegmentFooterState =
             SegmentFooterBlock.writeAndClose(
               state = footer,
               closedBlocks = closedBlocks

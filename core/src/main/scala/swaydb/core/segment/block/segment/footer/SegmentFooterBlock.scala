@@ -19,9 +19,9 @@ package swaydb.core.segment.block.segment.footer
 import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.block._
-import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset}
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockOffset
+import swaydb.core.segment.block.bloomfilter.BloomFilterBlockOffset
+import swaydb.core.segment.block.hashindex.HashIndexBlockOffset
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.ClosedBlocks
@@ -29,23 +29,11 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.slice.Slice
-import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.ByteSizeOf
 
 private[core] case object SegmentFooterBlock {
 
   val blockName = this.productPrefix
-
-  object Config {
-    def default =
-      Config(
-        blockIO = IOStrategy.defaultSynchronised
-      )
-  }
-
-  case class Config(blockIO: IOAction => IOStrategy)
-
-  case class Offset(start: Int, size: Int) extends BlockOffset
 
   val optimalBytesRequired =
     Block.minimumHeaderSize(false) +
@@ -68,22 +56,13 @@ private[core] case object SegmentFooterBlock {
       ByteSizeOf.varInt + //bloomFilter
       ByteSizeOf.varInt //footer offset.
 
-  case class State(footerSize: Int,
-                   createdInLevel: Int,
-                   var bytes: Slice[Byte],
-                   keyValuesCount: Int,
-                   rangeCount: Int,
-                   updateCount: Int,
-                   putCount: Int,
-                   putDeadlineCount: Int)
-
   def init(keyValuesCount: Int,
            rangesCount: Int,
            updateCount: Int,
            putCount: Int,
            putDeadlineCount: Int,
-           createdInLevel: Int): SegmentFooterBlock.State =
-    SegmentFooterBlock.State(
+           createdInLevel: Int): SegmentFooterState =
+    SegmentFooterState(
       footerSize = Block.minimumHeaderSize(false),
       createdInLevel = createdInLevel,
       bytes = Slice.of[Byte](optimalBytesRequired),
@@ -94,7 +73,7 @@ private[core] case object SegmentFooterBlock {
       putDeadlineCount = putDeadlineCount
     )
 
-  def writeAndClose(state: State, closedBlocks: ClosedBlocks): State = {
+  def writeAndClose(state: SegmentFooterState, closedBlocks: ClosedBlocks): SegmentFooterState = {
     val values = closedBlocks.values
     val sortedIndex = closedBlocks.sortedIndex
     val hashIndex = closedBlocks.hashIndex
@@ -269,7 +248,7 @@ private[core] case object SegmentFooterBlock {
           Some(ValuesBlock.Offset(0, sortedIndexOffset.start))
 
       SegmentFooterBlock(
-        SegmentFooterBlock.Offset(footerStartOffset, footerSize),
+        SegmentFooterBlockOffset(footerStartOffset, footerSize),
         headerSize = 0,
         compressionInfo = None,
         valuesOffset = valuesOffset,
@@ -287,19 +266,9 @@ private[core] case object SegmentFooterBlock {
     }
   }
 
-  implicit object SegmentFooterBlockOps extends BlockOps[SegmentFooterBlock.Offset, SegmentFooterBlock] {
-    override def updateBlockOffset(block: SegmentFooterBlock, start: Int, size: Int): SegmentFooterBlock =
-      block.copy(offset = createOffset(start, size))
-
-    override def createOffset(start: Int, size: Int): Offset =
-      SegmentFooterBlock.Offset(start, size)
-
-    override def readBlock(header: BlockHeader[Offset]): SegmentFooterBlock =
-      throw IO.throwable("Footers do not have block header readers.")
-  }
 }
 
-case class SegmentFooterBlock(offset: SegmentFooterBlock.Offset,
+case class SegmentFooterBlock(offset: SegmentFooterBlockOffset,
                               headerSize: Int,
                               compressionInfo: Option[BlockCompressionInfo],
                               valuesOffset: Option[ValuesBlock.Offset],
@@ -312,7 +281,7 @@ case class SegmentFooterBlock(offset: SegmentFooterBlock.Offset,
                               rangeCount: Int,
                               updateCount: Int,
                               putCount: Int,
-                              putDeadlineCount: Int) extends Block[SegmentFooterBlock.Offset] {
+                              putDeadlineCount: Int) extends Block[SegmentFooterBlockOffset] {
   def hasRange =
     rangeCount > 0
 }
