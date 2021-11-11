@@ -22,8 +22,8 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.stream.{From, SourceFree}
 import swaydb.serializers.{Serializer, _}
+import swaydb.stream.{From, SourceFree}
 
 import java.nio.file.Path
 import scala.collection.compat.IterableOnce

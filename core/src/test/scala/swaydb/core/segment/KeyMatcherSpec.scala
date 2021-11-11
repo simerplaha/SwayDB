@@ -20,9 +20,9 @@ import swaydb.core.TestBase
 import swaydb.core.data.Persistent._
 import swaydb.core.data.Value.FromValueOption
 import swaydb.core.data.{Persistent, Time, Value}
-import swaydb.core.segment.ref.search.KeyMatcher.Result._
-import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
+import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.segment.ref.search.KeyMatcher
+import swaydb.core.segment.ref.search.KeyMatcher.Result._
 import swaydb.data.cache.Cache
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice

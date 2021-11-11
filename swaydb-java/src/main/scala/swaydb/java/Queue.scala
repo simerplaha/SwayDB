@@ -16,13 +16,13 @@
 
 package swaydb.java
 
-import java.nio.file.Path
-import java.util.Optional
-import java.util.function.Supplier
 import swaydb.Glass
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 
+import java.nio.file.Path
+import java.util.Optional
+import java.util.function.Supplier
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
 

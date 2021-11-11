@@ -22,8 +22,8 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.stream.{From, SourceFree}
 import swaydb.serializers._
+import swaydb.stream.{From, SourceFree}
 import swaydb.utils.TupleOrNone
 
 import java.nio.file.Path

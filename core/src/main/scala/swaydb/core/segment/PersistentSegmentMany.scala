@@ -30,12 +30,12 @@ import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig}
+import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.reader.BlockRefReader
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig, SegmentBlockOffset}
 import swaydb.core.segment.block.segment.data.{TransientSegment, TransientSegmentSerialiser}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
-import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
+import swaydb.core.segment.block.segment.{SegmentBlockConfig, SegmentBlockOffset}
+import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
+import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.defrag.DefragPersistentSegment
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -871,8 +871,8 @@ protected case class PersistentSegmentMany(file: DBFile,
               hashIndexConfig: HashIndexBlockConfig,
               bloomFilterConfig: BloomFilterBlockConfig,
               segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
-                                                  ec: ExecutionContext,
-                                                  compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]]] =
+                                                 ec: ExecutionContext,
+                                                 compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]]] =
     Segment.refreshForNewLevel(
       keyValues = iterator(segmentConfig.initialiseIteratorsInOneSeek),
       removeDeletes = removeDeletes,

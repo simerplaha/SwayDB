@@ -26,14 +26,13 @@ import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerialize
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
 import swaydb.utils.Java.JavaFunction
+import swaydb.utils.StorageUnits._
 import swaydb.{Bag, CommonConfigs, Glass}
 
 import java.nio.file.Path
 import java.util.Collections
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
-import swaydb.utils.StorageUnits._
 
 object PersistentQueue {
 

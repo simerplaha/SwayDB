@@ -20,8 +20,8 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.log
-import swaydb.core.log.{Log, RecoveryResult}
 import swaydb.core.log.serializer.{AppliedFunctionsLogEntryReader, AppliedFunctionsLogEntryWriter}
+import swaydb.core.log.{Log, RecoveryResult}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.FileSweeper
 import swaydb.data.config.MMAP

@@ -16,7 +16,6 @@
 
 package swaydb.core.segment.entry.id
 
-import swaydb.IO
 import swaydb.core.segment.entry.reader.base.BaseEntryReader
 import swaydb.macros.Sealed
 

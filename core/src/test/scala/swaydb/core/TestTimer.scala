@@ -16,13 +16,12 @@
 
 package swaydb.core
 
-import java.util.concurrent.atomic.AtomicLong
-
 import swaydb.core.data.Time
 import swaydb.core.log.timer.Timer
 import swaydb.data.slice.Slice
 import swaydb.macros.Sealed
 
+import java.util.concurrent.atomic.AtomicLong
 import scala.util.Random
 
 sealed trait TestTimer extends Timer

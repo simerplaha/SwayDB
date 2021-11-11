@@ -17,13 +17,12 @@
 package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{DefIO, Memory, _}
+import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.defrag.DefragMemorySegment
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.FileSweeper
@@ -82,8 +81,8 @@ private[core] final case class MemorySegment(path: Path,
           removeDeletes: Boolean,
           createdInLevel: Int,
           segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext,
-                                              compactionParallelism: CompactionParallelism): Future[DefIO[MemorySegmentOption, Iterable[MemorySegment]]] =
+                                             executionContext: ExecutionContext,
+                                             compactionParallelism: CompactionParallelism): Future[DefIO[MemorySegmentOption, Iterable[MemorySegment]]] =
     if (deleted)
       Future.failed(swaydb.Exception.NoSuchFile(path))
     else {

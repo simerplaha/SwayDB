@@ -16,27 +16,25 @@
 
 package swaydb.core.level
 
-import swaydb.core.TestCaseSweeper._
 import org.scalatest.OptionValues._
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data._
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core._
-import swaydb.core.level.compaction.io.CompactionIO
+import swaydb.core.data._
+import swaydb.core.segment.block.segment.SegmentBlockConfig
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.testkit.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
+import swaydb.utils.StorageUnits._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import swaydb.utils.StorageUnits._
 
 class LevelCollapseSpec0 extends LevelCollapseSpec
 

@@ -16,7 +16,6 @@
 
 package swaydb.core.segment.entry.reader
 
-import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.entry.id.KeyValueId
 import swaydb.core.util.Bytes

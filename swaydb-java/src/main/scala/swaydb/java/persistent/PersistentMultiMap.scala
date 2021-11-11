@@ -30,15 +30,14 @@ import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
 import swaydb.utils.Java.JavaFunction
+import swaydb.utils.StorageUnits._
 import swaydb.{Apply, Bag, CommonConfigs, Glass, PureFunction}
 
 import java.nio.file.Path
 import java.util.Collections
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
-import swaydb.utils.StorageUnits._
 
 object PersistentMultiMap {
 

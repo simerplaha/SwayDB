@@ -16,7 +16,6 @@
 
 package swaydb.core.segment
 
-import java.nio.file.NoSuchFileException
 import org.scalatest.OptionValues._
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.Error.Segment.ExceptionHandler
@@ -24,28 +23,23 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data._
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.Segment
 import swaydb.core._
+import swaydb.core.data._
+import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.data.MaxKey
-import swaydb.testkit.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.effect.Effect
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
 
+import java.nio.file.NoSuchFileException
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.utils.OperatingSystem
-import swaydb.utils.OperatingSystem._
-import swaydb.utils.FiniteDurations._
-import swaydb.utils.StorageUnits._
-import swaydb.utils.ByteSizeOf._
 
 class SegmentReadSpec0 extends SegmentReadSpec {
   val keyValuesCount = 100

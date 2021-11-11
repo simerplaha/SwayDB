@@ -17,7 +17,6 @@
 package swaydb.core.gc
 
 import com.sun.management.GarbageCollectionNotificationInfo
-import swaydb.utils.StorageUnits._
 
 import javax.management.{Notification, NotificationEmitter, NotificationListener}
 import scala.concurrent.{Future, Promise}

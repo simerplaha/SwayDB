@@ -24,7 +24,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data._
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
+import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP

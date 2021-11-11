@@ -468,7 +468,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
       //read the minimum number of bytes required for parse this indexEntry.
       val bytes = sortedIndexReader.read(ByteSizeOf.varInt)
       val (headerInteger, headerIntegerByteSize) = bytes.readUnsignedIntWithByteSize()
-      //open the slice if it's a subslice,
+      //open the slice if it's a sub-slice,
       val openBytes = bytes.openEnd()
 
       //check if the read bytes are enough to parse the entry.
@@ -1085,18 +1085,18 @@ private[core] case class SortedIndexBlock(offset: SortedIndexBlockOffset,
                                           headerSize: Int,
                                           segmentMaxIndexEntrySize: Int,
                                           compressionInfo: Option[BlockCompressionInfo]) extends Block[SortedIndexBlockOffset] {
-  val isBinarySearchable =
+  val isBinarySearchable: Boolean =
     !hasPrefixCompression && (normalised || isPreNormalised)
 
-  val isNotPreNormalised =
+  val isNotPreNormalised: Boolean =
     !hasPrefixCompression && normalised && !isPreNormalised
 
   val normalisedByteSize: Int =
     if (normalised) segmentMaxIndexEntrySize else 0
 
-  val sortedIndexEndOffsetForReads =
+  val sortedIndexEndOffsetForReads: Int =
     offset.size - 1
 
-  val hasNormalisedBytes =
+  val hasNormalisedBytes: Boolean =
     !isPreNormalised && normalised
 }

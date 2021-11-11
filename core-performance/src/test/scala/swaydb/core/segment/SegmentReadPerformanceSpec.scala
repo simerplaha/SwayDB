@@ -22,12 +22,12 @@ import swaydb.core.data.Memory
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.stats.MergeStats
-import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock, BinarySearchIndexBlockConfig}
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig}
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig}
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
-import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
+import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlockConfig}
+import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
+import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
+import swaydb.core.segment.block.segment.SegmentBlockConfig
+import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
+import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.entry.reader.PersistentReader
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -166,7 +166,7 @@ class SegmentReadPerformanceSpec extends TestBase {
         cacheBlocksOnCreate = false,
         minSize = Int.MaxValue,
         maxCount =
-          //                    keyValuesCount / 100,
+        //                    keyValuesCount / 100,
           keyValuesCount,
         segmentRefCacheLife = SegmentRefCacheLife.Temporary,
         enableHashIndexForListSegment = true,

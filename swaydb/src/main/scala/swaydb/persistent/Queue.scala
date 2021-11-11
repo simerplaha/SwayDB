@@ -32,7 +32,6 @@ import swaydb.utils.StorageUnits._
 import swaydb.{Bag, CommonConfigs}
 
 import java.nio.file.Path
-import scala.concurrent.duration.FiniteDuration
 
 object Queue extends LazyLogging {
 

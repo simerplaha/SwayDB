@@ -21,8 +21,8 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.stream.{From, SourceFree}
 import swaydb.serializers.Serializer
+import swaydb.stream.{From, SourceFree}
 
 import java.nio.file.Path
 import scala.collection.compat.IterableOnce

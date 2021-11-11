@@ -34,7 +34,6 @@ import swaydb.{Apply, Bag, CommonConfigs, Glass, PureFunction}
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
-import swaydb.utils.Java._
 
 object MemoryMultiMap {
 

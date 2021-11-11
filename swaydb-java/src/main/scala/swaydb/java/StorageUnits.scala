@@ -15,6 +15,7 @@
  */
 
 package swaydb.java
+
 import swaydb.utils.StorageUnits._
 
 object StorageUnits {

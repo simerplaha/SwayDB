@@ -16,16 +16,16 @@
 
 package swaydb.core.sweeper
 
-import java.lang.invoke.{MethodHandle, MethodHandles, MethodType}
-import java.nio.file.Path
-import java.nio.{ByteBuffer, MappedByteBuffer}
-import java.util.concurrent.atomic.AtomicBoolean
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.IO.ExceptionHandler
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.data.config.ForceSave
+
+import java.lang.invoke.{MethodHandle, MethodHandles, MethodType}
+import java.nio.file.Path
+import java.nio.{ByteBuffer, MappedByteBuffer}
+import java.util.concurrent.atomic.AtomicBoolean
 
 private[core] case object ByteBufferCleaner extends LazyLogging {
 

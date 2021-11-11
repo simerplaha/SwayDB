@@ -155,7 +155,6 @@ class CollectionsSpec extends AnyWordSpec with Matchers {
     object Item extends Item
 
 
-
     "1 item" in {
       val items = Slice(Item)
 

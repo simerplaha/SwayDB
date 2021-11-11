@@ -20,10 +20,12 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IO
 import swaydb.core.CommonAssertions._
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data.Value.FromValue
 import swaydb.core.level.compaction.io.CompactionIO
+import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -31,8 +33,6 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
-import TestCaseSweeper._
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 
 class LevelMergeSpec0 extends LevelMergeSpec
 

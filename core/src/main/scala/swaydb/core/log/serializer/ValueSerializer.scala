@@ -16,7 +16,6 @@
 
 package swaydb.core.log.serializer
 
-import swaydb.IO
 import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Times._

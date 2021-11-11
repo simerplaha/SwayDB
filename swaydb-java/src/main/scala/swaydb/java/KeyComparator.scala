@@ -16,10 +16,11 @@
 
 package swaydb.java
 
-import java.util.Comparator
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.utils.Java.JavaFunction
+
+import java.util.Comparator
 
 object KeyComparator {
   final val lexicographic: KeyComparator[Slice[java.lang.Byte]] =

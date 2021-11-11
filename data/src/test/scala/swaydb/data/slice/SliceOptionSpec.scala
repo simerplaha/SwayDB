@@ -19,7 +19,6 @@ package swaydb.data.slice
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
 
 import scala.util.Random
 

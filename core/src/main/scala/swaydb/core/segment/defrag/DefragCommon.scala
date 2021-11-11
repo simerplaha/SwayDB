@@ -17,7 +17,7 @@
 package swaydb.core.segment.defrag
 
 import swaydb.core.segment.Segment
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
+import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.ref.SegmentRef
 

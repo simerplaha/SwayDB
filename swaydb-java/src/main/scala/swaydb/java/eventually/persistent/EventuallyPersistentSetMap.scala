@@ -29,6 +29,8 @@ import swaydb.eventually.persistent.DefaultConfigs
 import swaydb.java._
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.serializers.Serializer
+import swaydb.utils.Java._
+import swaydb.utils.StorageUnits._
 import swaydb.{Bag, CommonConfigs, Glass}
 
 import java.nio.file.Path
@@ -37,8 +39,6 @@ import scala.compat.java8.DurationConverters.DurationOps
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
-import swaydb.utils.Java._
-import swaydb.utils.StorageUnits._
 
 object EventuallyPersistentSetMap {
 

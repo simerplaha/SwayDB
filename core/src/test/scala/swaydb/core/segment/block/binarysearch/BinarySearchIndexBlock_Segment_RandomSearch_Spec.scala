@@ -21,14 +21,14 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, PersistentOption}
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
+import swaydb.core.segment.block.segment.SegmentBlockConfig
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}
-import swaydb.testkit.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 
 import scala.util.Try
 
@@ -380,7 +380,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                   eitherOne(
                     left = Persistent.Null,
                     right = //There is a random test. It could get index out of bounds.
-                      //                  Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption flatMap {
+                    //                  Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption flatMap {
                       Try(keyValues(index))
                         .toOption
                         .flatMapOption(Persistent.Null: PersistentOption) {

@@ -16,16 +16,14 @@
 
 package swaydb.stress.simulation
 
-import java.util.concurrent.atomic.AtomicInteger
-
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.wordspec.AnyWordSpec
+import swaydb.ActorConfig.QueueOrder
 import swaydb.PureFunctionScala._
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestData._
 import swaydb.data.Functions
-import swaydb.ActorConfig.QueueOrder
 import swaydb.data.slice.Slice
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Default._
@@ -34,6 +32,7 @@ import swaydb.stress.simulation.ProductCommand._
 import swaydb.stress.simulation.RemoveAsserted._
 import swaydb.{Actor, ActorRef, Apply, Glass, IO, PureFunction, Scheduler}
 
+import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}

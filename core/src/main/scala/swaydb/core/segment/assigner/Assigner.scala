@@ -62,7 +62,7 @@ private[core] object Assigner {
   def assignUnsafeGaps[GAP](keyValues: IterableOnce[Assignable],
                             segments: IterableOnce[Segment],
                             initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[Assignment[GAP, ListBuffer[Assignable], Segment]] =
+                                                                   gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[Assignment[GAP, ListBuffer[Assignable], Segment]] =
     assignUnsafe[GAP, ListBuffer[Assignable], Segment](
       keyValues = keyValues.iterator,
       segmentsIterator = segments.iterator,
@@ -73,7 +73,7 @@ private[core] object Assigner {
   def assignUnsafeGapsSegmentRef[GAP](keyValues: IterableOnce[Assignable],
                                       segments: IterableOnce[SegmentRef],
                                       initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                          gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[Assignment[GAP, ListBuffer[Assignable], SegmentRef]] =
+                                                                             gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[Assignment[GAP, ListBuffer[Assignable], SegmentRef]] =
     assignUnsafe[GAP, ListBuffer[Assignable], SegmentRef](
       keyValues = keyValues.iterator,
       segmentsIterator = segments.iterator,
@@ -84,9 +84,9 @@ private[core] object Assigner {
   def assignUnsafeGaps[GAP, MID <: Iterable[_], SEG >: Null](keyValues: IterableOnce[Assignable],
                                                              segments: IterableOnce[SEG],
                                                              initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                          midCreator: Aggregator.Creator[Assignable, MID],
-                                                                                          gapCreator: Aggregator.Creator[Assignable, GAP],
-                                                                                          assignmentTarget: AssignmentTarget[SEG]): ListBuffer[Assignment[GAP, MID, SEG]] =
+                                                                                                    midCreator: Aggregator.Creator[Assignable, MID],
+                                                                                                    gapCreator: Aggregator.Creator[Assignable, GAP],
+                                                                                                    assignmentTarget: AssignmentTarget[SEG]): ListBuffer[Assignment[GAP, MID, SEG]] =
     assignUnsafe[GAP, MID, SEG](
       keyValues = keyValues.iterator,
       segmentsIterator = segments.iterator,

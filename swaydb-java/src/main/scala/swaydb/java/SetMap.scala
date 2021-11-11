@@ -20,6 +20,7 @@ import swaydb.KeyVal._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.java.data.util.Java._
+import swaydb.utils.Java._
 import swaydb.{Expiration, Glass, KeyVal}
 
 import java.nio.file.Path
@@ -28,7 +29,6 @@ import java.util
 import java.util.Optional
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
-import swaydb.utils.Java._
 
 /**
  * Documentation - http://swaydb.io/

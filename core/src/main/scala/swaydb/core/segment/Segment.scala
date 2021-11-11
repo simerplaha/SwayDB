@@ -17,6 +17,7 @@
 package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Aggregator
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -49,7 +50,6 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.effect.Effect
 import swaydb.utils.Futures.FutureUnitImplicits
 import swaydb.utils.{FiniteDurations, SomeOrNone}
-import swaydb.{Aggregator, IO}
 
 import java.nio.file.Path
 import scala.annotation.tailrec

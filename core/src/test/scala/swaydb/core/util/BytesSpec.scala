@@ -22,7 +22,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.OK
 import swaydb.core.TestData._
-import swaydb.core.TestExecutionContext
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

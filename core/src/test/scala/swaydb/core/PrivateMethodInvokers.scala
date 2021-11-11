@@ -21,8 +21,8 @@ import swaydb.core.log.timer.Timer
 import swaydb.core.log.{Log, LogCache, Logs}
 import swaydb.core.segment.PersistentSegment
 import swaydb.core.segment.ref.SegmentRef
-import swaydb.core.util.{HashedMap, IDGenerator}
 import swaydb.core.util.queue.VolatileQueue
+import swaydb.core.util.{HashedMap, IDGenerator}
 import swaydb.data.slice.Slice
 
 import java.util.concurrent.atomic.AtomicLong

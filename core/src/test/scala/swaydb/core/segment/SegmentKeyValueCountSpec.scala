@@ -21,14 +21,10 @@ import org.scalatest.concurrent.ScalaFutures
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
-import swaydb.testkit.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
+import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
-import swaydb.utils.OperatingSystem._
-import swaydb.utils.FiniteDurations._
-import swaydb.utils.StorageUnits._
-import swaydb.utils.ByteSizeOf._
 
 class SegmentKeyValueCount0 extends SegmentKeyValueCount {
   val keyValuesCount = 1000

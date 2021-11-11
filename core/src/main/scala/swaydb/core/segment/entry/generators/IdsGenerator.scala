@@ -16,11 +16,11 @@
 
 package swaydb.core.segment.entry.generators
 
-import java.nio.file.Paths
 import swaydb.core.segment.entry.id._
-import swaydb.effect.Effect
 import swaydb.data.slice.Slice
+import swaydb.effect.Effect
 
+import java.nio.file.Paths
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 

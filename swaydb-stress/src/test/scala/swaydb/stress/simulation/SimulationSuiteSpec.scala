@@ -18,7 +18,6 @@ package swaydb.stress.simulation
 
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.data.accelerate.Accelerator
 import swaydb.data.{Atomic, Functions}
 import swaydb.serializers.Default._
 import swaydb.stress.simulation.Domain._

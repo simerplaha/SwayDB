@@ -17,7 +17,6 @@
 package swaydb.macros
 
 import java.nio.file.{Files, Paths}
-
 import scala.jdk.CollectionConverters._
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox

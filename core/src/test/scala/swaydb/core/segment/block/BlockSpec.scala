@@ -4,14 +4,13 @@ import org.scalatest.OptionValues._
 import swaydb.compression.CompressionInternal
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.segment.block.BlockCompressionInfo
 import swaydb.core.segment.block.reader.BlockRefReader
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.segment.data.TransientSegmentRef
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
-import swaydb.testkit.RunThis._
 import swaydb.data.slice.Slice
 import swaydb.effect.IOAction
+import swaydb.testkit.RunThis._
 
 class BlockSpec extends TestBase {
 

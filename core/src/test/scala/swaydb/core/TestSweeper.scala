@@ -23,9 +23,9 @@ import swaydb.core.segment.block.BlockCache
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.data.config.MemoryCache
+import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
-import swaydb.utils.StorageUnits._
 
 private[swaydb] object TestSweeper {
 

@@ -34,7 +34,6 @@ import swaydb.utils.StorageUnits._
 import swaydb.{Apply, CommonConfigs, KeyOrderConverter, PureFunction}
 
 import java.nio.file.Path
-import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
 object Map extends LazyLogging {

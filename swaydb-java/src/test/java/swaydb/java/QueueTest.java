@@ -23,9 +23,10 @@ import swaydb.java.serializers.Serializer;
 import java.io.IOException;
 import java.time.Duration;
 
-import static swaydb.data.java.JavaTest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static swaydb.data.java.JavaTest.foreachRange;
+import static swaydb.data.java.JavaTest.shouldContain;
 import static swaydb.java.serializers.Default.intSerializer;
 
 abstract class QueueTest extends TestBase {

@@ -16,13 +16,12 @@
 
 package swaydb.java.multimap
 
-import java.util
-import java.util.stream.Stream
-
 import swaydb.java.MultiMap
 import swaydb.multimap.MultiPrepare
 import swaydb.{Aggregator, Prepare}
 
+import java.util
+import java.util.stream.Stream
 import scala.jdk.CollectionConverters._
 
 object MultiPrepareBuilder {

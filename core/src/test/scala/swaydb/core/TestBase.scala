@@ -39,8 +39,8 @@ import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.segment.SegmentBlockConfig
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
-import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
+import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
+import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.IDGenerator
@@ -236,9 +236,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
               bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
               segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                                         sweeper: TestCaseSweeper,
-                                                                                                         ec: ExecutionContext = TestExecutionContext.executionContext): Segment = {
+                                                                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                                       sweeper: TestCaseSweeper,
+                                                                                                       ec: ExecutionContext = TestExecutionContext.executionContext): Segment = {
 
       val segmentNumber = Effect.numberFileId(path)._1 - 1
 
@@ -276,9 +276,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
             hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
             bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
             segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                                       sweeper: TestCaseSweeper,
-                                                                                                       ec: ExecutionContext = TestExecutionContext.executionContext): Segment = {
+                                                                                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                                     sweeper: TestCaseSweeper,
+                                                                                                     ec: ExecutionContext = TestExecutionContext.executionContext): Segment = {
 
       val segmentNumber = Effect.numberFileId(path)._1 - 1
 
@@ -311,12 +311,12 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
              hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
              bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
              segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                                        pathsDistributor: PathsDistributor,
-                                                                                                        idGenerator: IDGenerator,
-                                                                                                        sweeper: TestCaseSweeper,
-                                                                                                        ec: ExecutionContext = TestExecutionContext.executionContext,
-                                                                                                        compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Slice[Segment] = {
+                                                                                                      timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                                      pathsDistributor: PathsDistributor,
+                                                                                                      idGenerator: IDGenerator,
+                                                                                                      sweeper: TestCaseSweeper,
+                                                                                                      ec: ExecutionContext = TestExecutionContext.executionContext,
+                                                                                                      compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Slice[Segment] = {
       import sweeper._
 
       implicit val segmentIO: SegmentReadIO =

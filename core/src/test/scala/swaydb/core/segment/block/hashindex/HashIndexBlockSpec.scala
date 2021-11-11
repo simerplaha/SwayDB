@@ -19,14 +19,14 @@ package swaydb.core.segment.block.hashindex
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.Persistent
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
+import swaydb.core.segment.block.segment.SegmentBlockConfig
+import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}
-import swaydb.testkit.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 
 class HashIndexBlockSpec extends TestBase {
 

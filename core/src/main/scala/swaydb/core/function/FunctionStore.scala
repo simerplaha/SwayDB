@@ -16,13 +16,12 @@
 
 package swaydb.core.function
 
-import java.util.concurrent.ConcurrentHashMap
-
 import swaydb.OK
 import swaydb.core.data.{SwayFunction, Value}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
+import java.util.concurrent.ConcurrentHashMap
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._

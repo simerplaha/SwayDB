@@ -19,8 +19,8 @@ package swaydb.core.segment.block.reader
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions.orNone
 import swaydb.core.TestData._
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
-import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
+import swaydb.core.segment.block.segment.SegmentBlockOffset
+import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.segment.block.{Block, BlockCache}
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.slice.Slice

@@ -16,13 +16,13 @@
 
 package swaydb.java
 
-import java.nio.file.Path
-import java.time.Duration
-import java.util.Optional
-
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.{Expiration, KeyVal}
+
+import java.nio.file.Path
+import java.time.Duration
+import java.util.Optional
 
 /**
  * Base trait for a basic SwayDB SetMap type.

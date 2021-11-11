@@ -16,11 +16,11 @@
 
 package swaydb.java.serializers
 
-import java.nio.charset.StandardCharsets
-import java.util.Optional
-
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
+
+import java.nio.charset.StandardCharsets
+import java.util.Optional
 
 object Default {
 

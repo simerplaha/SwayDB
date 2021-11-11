@@ -16,17 +16,16 @@
 
 package swaydb.core.segment.block.segment.footer
 
-import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockOffset
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockOffset
 import swaydb.core.segment.block.hashindex.HashIndexBlockOffset
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.segment.data.ClosedBlocks
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
-import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
+import swaydb.core.segment.block.sortedindex.SortedIndexBlockOffset
+import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.slice.Slice
 import swaydb.utils.ByteSizeOf

@@ -21,9 +21,9 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
-import swaydb.testkit.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.testkit.RunThis._
 
 class FunctionMerger_Function_Spec extends AnyWordSpec with Matchers {
 

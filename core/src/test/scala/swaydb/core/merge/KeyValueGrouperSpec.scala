@@ -21,9 +21,9 @@ import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.testkit.RunThis._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 
 class KeyValueGrouperSpec extends TestBase {
 

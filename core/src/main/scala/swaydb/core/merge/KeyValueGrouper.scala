@@ -17,7 +17,7 @@
 package swaydb.core.merge
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{Memory, Persistent, Value, _}
+import swaydb.core.data._
 import swaydb.core.merge.stats.MergeStats
 
 /**

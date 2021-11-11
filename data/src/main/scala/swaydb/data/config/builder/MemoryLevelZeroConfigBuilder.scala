@@ -22,8 +22,6 @@ import swaydb.data.config.ConfigWizard
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.utils.Java.JavaFunction
 
-import scala.concurrent.duration.FiniteDuration
-
 /**
  * Java Builder class for [[swaydb.data.config.MemoryLevelZeroConfig]]
  */

@@ -16,8 +16,6 @@
 
 package swaydb.core.segment.entry.writer
 
-import java.util.concurrent.TimeUnit
-
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
@@ -25,10 +23,11 @@ import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Times._
-import swaydb.testkit.RunThis._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{FiniteDuration, _}
 
 class DeadlineReaderWriterSpec extends AnyWordSpec with Matchers {

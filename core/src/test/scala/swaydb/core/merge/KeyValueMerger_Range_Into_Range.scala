@@ -23,12 +23,11 @@ import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.Value.FromValueOption
 import swaydb.core.data.{Memory, Value}
-import swaydb.core.merge.{FixedMerger, ValueMerger}
-import swaydb.testkit.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 
 class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
 
@@ -239,7 +238,7 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
               fromKey = 10,
               toKey = 20,
               fromValue =
-                //different approach used pattern matching instead of using similar approach like in SegmentMerge.scala
+              //different approach used pattern matching instead of using similar approach like in SegmentMerge.scala
                 oldKeyValue.fromValue match {
                   case oldFromValue: Value.FromValue =>
                     FixedMerger(newKeyValue.fromValue.getOrElseS(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).toFromValue()
@@ -285,7 +284,7 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
               fromKey = 10,
               toKey = 20,
               fromValue =
-                //different approach used pattern matching instead of using similar approach just like in SegmentMerge.scala
+              //different approach used pattern matching instead of using similar approach just like in SegmentMerge.scala
                 oldKeyValue.fromValue match {
                   case oldFromValue: Value.FromValue =>
                     FixedMerger(newKeyValue.fromValue.getOrElseS(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).toFromValue()

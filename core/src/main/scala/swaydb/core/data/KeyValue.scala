@@ -16,7 +16,6 @@
 
 package swaydb.core.data
 
-import swaydb.IO
 import swaydb.core.log.serializer.RangeValueSerializer.OptionRangeValueSerializer
 import swaydb.core.log.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.segment.assigner.Assignable

@@ -16,7 +16,6 @@
 
 package swaydb.core.segment.entry.writer
 
-import swaydb.IO
 import swaydb.core.data.Memory
 import swaydb.core.segment.entry.id.BaseEntryId.DeadlineId
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}

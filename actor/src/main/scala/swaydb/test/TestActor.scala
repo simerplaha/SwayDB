@@ -17,7 +17,7 @@
 package swaydb.test
 
 import swaydb.ActorConfig.QueueOrder
-import swaydb.{Actor, ActorQueue, IO, Scheduler}
+import swaydb.{Actor, ActorQueue, Scheduler}
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import scala.concurrent.duration.{FiniteDuration, _}

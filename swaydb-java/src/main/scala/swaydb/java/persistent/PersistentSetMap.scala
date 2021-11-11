@@ -36,7 +36,6 @@ import swaydb.{Bag, CommonConfigs, Glass}
 import java.nio.file.Path
 import java.util.Collections
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 
 object PersistentSetMap {

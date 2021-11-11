@@ -22,10 +22,10 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Time}
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
-import swaydb.testkit.RunThis._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.testkit.RunThis._
 
 class ValueReaderWriterSpec extends AnyWordSpec with Matchers {
 
@@ -55,8 +55,8 @@ class ValueReaderWriterSpec extends AnyWordSpec with Matchers {
   implicit val deadlineWriter: DeadlineWriter =
     new DeadlineWriter {
       override private[segment] def write[T <: Memory](current: T,
-                                                 builder: EntryWriter.Builder,
-                                                 deadlineId: BaseEntryId.DeadlineId)(implicit binder: MemoryToKeyValueIdBinder[T], keyWriter: KeyWriter): Unit =
+                                                       builder: EntryWriter.Builder,
+                                                       deadlineId: BaseEntryId.DeadlineId)(implicit binder: MemoryToKeyValueIdBinder[T], keyWriter: KeyWriter): Unit =
         ()
     }
 

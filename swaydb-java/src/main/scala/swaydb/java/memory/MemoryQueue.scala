@@ -29,7 +29,6 @@ import swaydb.{Bag, CommonConfigs, Glass}
 
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration._
-import swaydb.utils.Java._
 
 object MemoryQueue {
 

@@ -21,8 +21,8 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.java.data.util.Java._
 import swaydb.multimap.MultiPrepare
-import swaydb.{Expiration, Glass, KeyVal, Pair, Prepare, PureFunction}
 import swaydb.utils.Java._
+import swaydb.{Expiration, Glass, KeyVal, Pair, Prepare, PureFunction}
 
 import java.nio.file.Path
 import java.time.Duration

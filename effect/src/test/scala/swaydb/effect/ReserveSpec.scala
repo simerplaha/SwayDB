@@ -18,12 +18,12 @@ package swaydb.effect
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import swaydb.testkit.RunThis._
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
 import scala.util.Random
-import swaydb.testkit.RunThis._
 
 class ReserveSpec extends AnyFlatSpec with Matchers {
 

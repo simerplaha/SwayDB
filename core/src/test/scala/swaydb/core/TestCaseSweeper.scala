@@ -22,8 +22,8 @@ import swaydb.core.TestSweeper._
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.io.CompactionIO
-import swaydb.core.log.{Log, Logs}
 import swaydb.core.log.counter.CounterLog
+import swaydb.core.log.{Log, Logs}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor

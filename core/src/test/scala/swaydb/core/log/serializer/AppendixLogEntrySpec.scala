@@ -171,7 +171,6 @@ class AppendixLogEntrySpec extends TestBase {
             scalaSkipList.get(segment5.minKey).value shouldBe segment5
           }
           //write skip list to bytes should result in the same skip list as before
-          import appendixReader.AppendixReader
           val bytes = LogEntrySerialiser.write[Slice[Byte], Segment](skipList.iterator)
           val crcEntries = LogEntrySerialiser.read[Slice[Byte], Segment](bytes, false).value.item.value
           skipList.clear()

@@ -24,9 +24,9 @@ import swaydb.core.data.Memory
 import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment._
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
+import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
+import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -421,32 +421,32 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
     }
   }
 
-    "expand Segment" when {
-      "it contains removable key-values" in {
-        runThis(10.times, log = true) {
-          TestCaseSweeper {
-            implicit sweeper =>
+  "expand Segment" when {
+    "it contains removable key-values" in {
+      runThis(10.times, log = true) {
+        TestCaseSweeper {
+          implicit sweeper =>
 
-              implicit val pathsDistributor = createPathDistributor
+            implicit val pathsDistributor = createPathDistributor
 
-              val segments = ListBuffer.range(0, 5).map(_ => TestSegment(keyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.update(3))))
-              segments.foreach(_.hasUpdateOrRange shouldBe true)
+            val segments = ListBuffer.range(0, 5).map(_ => TestSegment(keyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.update(3))))
+            segments.foreach(_.hasUpdateOrRange shouldBe true)
 
-              implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
-              implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
+            implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
+            implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
-              val resultFragments =
-                DefragGap.run[S](
-                  gap = segments,
-                  fragments = ListBuffer.empty,
-                  removeDeletes = true,
-                  createdInLevel = 1,
-                  hasNext = false
-                )
+            val resultFragments =
+              DefragGap.run[S](
+                gap = segments,
+                fragments = ListBuffer.empty,
+                removeDeletes = true,
+                createdInLevel = 1,
+                hasNext = false
+              )
 
-              resultFragments shouldBe empty
-          }
+            resultFragments shouldBe empty
         }
       }
     }
+  }
 }

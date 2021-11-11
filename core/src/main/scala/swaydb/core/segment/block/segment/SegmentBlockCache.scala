@@ -16,7 +16,6 @@
 
 package swaydb.core.segment.block.segment
 
-import java.nio.file.Path
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data.Persistent
 import swaydb.core.io.file.DBFile
@@ -30,11 +29,12 @@ import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.block.{Block, BlockCache, BlockOffset, BlockOps}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.sweeper.MemorySweeper
-import swaydb.effect.IOStrategy
 import swaydb.data.cache.{Cache, Lazy}
 import swaydb.data.slice.Slice
 import swaydb.effect.{IOAction, IOStrategy, Reserve}
 import swaydb.{Error, IO}
+
+import java.nio.file.Path
 
 private[core] object SegmentBlockCache {
 

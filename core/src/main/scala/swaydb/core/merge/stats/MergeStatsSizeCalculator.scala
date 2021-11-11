@@ -17,8 +17,8 @@
 package swaydb.core.merge.stats
 
 import swaydb.core.data.Memory
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
+import swaydb.core.segment.block.segment.SegmentBlockConfig
+import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 
 import scala.collection.mutable.ListBuffer
 

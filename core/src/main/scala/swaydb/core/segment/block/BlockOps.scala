@@ -17,9 +17,11 @@
 package swaydb.core.segment.block
 
 private[core] trait BlockOps[O <: BlockOffset, B <: Block[O]] {
+
   def updateBlockOffset(block: B, start: Int, size: Int): B
 
   def createOffset(start: Int, size: Int): O
 
   def readBlock(header: BlockHeader[O]): B
+
 }

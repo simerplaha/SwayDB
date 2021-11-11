@@ -16,10 +16,6 @@
 
 package swaydb.core.level
 
-import java.nio.file.Path
-import java.util
-import java.util.concurrent.ConcurrentLinkedDeque
-import java.util.concurrent.atomic.AtomicBoolean
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
@@ -27,6 +23,9 @@ import swaydb.core.segment.Segment
 import swaydb.effect.{Dir, Reserve}
 import swaydb.utils.Options
 
+import java.nio.file.Path
+import java.util
+import java.util.concurrent.ConcurrentLinkedDeque
 import scala.annotation.tailrec
 import scala.collection.compat._
 import scala.jdk.CollectionConverters._

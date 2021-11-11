@@ -22,7 +22,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.DefIO
 import swaydb.core.level.compaction.throttle.LevelState
 import swaydb.core.segment.Segment
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
+import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.LevelThrottle

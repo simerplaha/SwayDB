@@ -20,8 +20,8 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.EitherValues
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlockConfig, SortedIndexBlock}
+import swaydb.core.segment.block.segment.SegmentBlockConfig
+import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.{TestBase, TestExecutionContext, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._

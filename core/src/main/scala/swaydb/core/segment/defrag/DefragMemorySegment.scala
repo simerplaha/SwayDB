@@ -22,7 +22,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
+import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util.IDGenerator

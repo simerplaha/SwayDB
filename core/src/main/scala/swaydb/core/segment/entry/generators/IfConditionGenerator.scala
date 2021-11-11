@@ -16,12 +16,12 @@
 
 package swaydb.core.segment.entry.generators
 
-import java.io.PrintWriter
-import java.nio.file.Paths
 import swaydb.core.segment.entry.id._
 import swaydb.core.segment.entry.reader.base.BaseEntryReader
 import swaydb.effect.Effect
 
+import java.io.PrintWriter
+import java.nio.file.Paths
 import scala.jdk.CollectionConverters._
 
 /**

@@ -65,8 +65,8 @@ class PathsDistributorPerformanceSpec extends TestBase {
                 effect.Dir(path5, 5)
               ),
             segments =
-              //for each Segment's request randomly distribute Segments so that there is always un-even distribution
-              //of Segments between all 5 folders.
+            //for each Segment's request randomly distribute Segments so that there is always un-even distribution
+            //of Segments between all 5 folders.
               randomlyDistributeSegments
           )
 

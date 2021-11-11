@@ -23,21 +23,21 @@ import swaydb.utils.Options.when
 
 private[segment] trait TimeWriter {
   private[segment] def write[T <: Memory](current: T,
-                                    entryId: BaseEntryId.Key,
-                                    builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
-                                                                  valueWriter: ValueWriter,
-                                                                  keyWriter: KeyWriter,
-                                                                  deadlineWriter: DeadlineWriter): Unit
+                                          entryId: BaseEntryId.Key,
+                                          builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                        valueWriter: ValueWriter,
+                                                                        keyWriter: KeyWriter,
+                                                                        deadlineWriter: DeadlineWriter): Unit
 }
 
 private[segment] object TimeWriter extends TimeWriter {
 
   private[segment] def write[T <: Memory](current: T,
-                                    entryId: BaseEntryId.Key,
-                                    builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
-                                                                  valueWriter: ValueWriter,
-                                                                  keyWriter: KeyWriter,
-                                                                  deadlineWriter: DeadlineWriter): Unit =
+                                          entryId: BaseEntryId.Key,
+                                          builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                        valueWriter: ValueWriter,
+                                                                        keyWriter: KeyWriter,
+                                                                        deadlineWriter: DeadlineWriter): Unit =
     if (current.persistentTime.nonEmpty)
       when(builder.enablePrefixCompressionForCurrentWrite && !builder.prefixCompressKeysOnly)(builder.previous.mapS(getTime)) flatMap {
         previousTime =>

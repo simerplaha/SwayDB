@@ -17,7 +17,6 @@
 package swaydb.api
 
 import swaydb.PureFunctionScala._
-import swaydb.{Glass, _}
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.log.applied.AppliedFunctionsLog
@@ -25,6 +24,7 @@ import swaydb.core.util.Benchmark
 import swaydb.data.Functions
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis.{eventual, runThis}
+import swaydb.{Glass, _}
 
 import java.nio.file.Files
 import scala.concurrent.duration.DurationInt

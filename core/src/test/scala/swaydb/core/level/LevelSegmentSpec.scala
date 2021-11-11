@@ -24,7 +24,7 @@ import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data._
 import swaydb.core.level.compaction.io.CompactionIO
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
+import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.util.IDGenerator
 import swaydb.core.util.PipeOps._
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism

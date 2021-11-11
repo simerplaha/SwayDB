@@ -58,7 +58,8 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
                                                                            val blockCache: Option[BlockCache.State],
                                                                            val block: B)(implicit val byteOps: ByteOps[Byte]) extends BlockReaderBase {
 
-  val offset = block.offset
+  def offset: O =
+    block.offset
 
   override def moveTo(newPosition: Long): BlockedReader[O, B] = {
     moveTo(newPosition.toInt)

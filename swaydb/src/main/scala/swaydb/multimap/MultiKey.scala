@@ -16,7 +16,6 @@
 
 package swaydb.multimap
 
-import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder

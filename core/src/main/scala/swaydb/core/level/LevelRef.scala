@@ -16,7 +16,6 @@
 
 package swaydb.core.level
 
-import java.nio.file.Path
 import swaydb.core.data.KeyValue
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -26,6 +25,7 @@ import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.{Bag, IO}
 
+import java.nio.file.Path
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.FiniteDuration

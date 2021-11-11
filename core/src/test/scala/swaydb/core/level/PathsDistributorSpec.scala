@@ -16,17 +16,17 @@
 
 package swaydb.core.level
 
-import java.nio.file.{Path, Paths}
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.{data, effect}
-import swaydb.effect.Effect
-import swaydb.testkit.RunThis._
 import swaydb.data.order.KeyOrder
-import swaydb.effect.Dir
+import swaydb.effect
+import swaydb.effect.{Dir, Effect}
+import swaydb.testkit.RunThis._
+
+import java.nio.file.{Path, Paths}
 
 class PathsDistributorSpec extends TestBase with MockFactory {
 

@@ -44,11 +44,11 @@ object Benchmark extends LazyLogging {
       print(message)
 
   private def run[R, BAG[_]](message: String, inlinePrint: Boolean, useLazyLogging: Boolean)(benchmarkThis: => BAG[R])(implicit bag: Bag[BAG]): BAG[(R, BigDecimal)] = {
-//    if (!useLazyLogging) //don't need header Benchmarking log when using lazyLogging. LazyLogging is generally for user's viewing only.
-//      if (inlinePrint)
-//        doPrint(message = s"Benchmarking: ${if (message.isEmpty) "" else s"$message: "}", useLazyLogging = useLazyLogging, newLine = false)
-//      else
-//        doPrint(message = s"Benchmarking: $message", useLazyLogging = useLazyLogging, newLine = true)
+    //    if (!useLazyLogging) //don't need header Benchmarking log when using lazyLogging. LazyLogging is generally for user's viewing only.
+    //      if (inlinePrint)
+    //        doPrint(message = s"Benchmarking: ${if (message.isEmpty) "" else s"$message: "}", useLazyLogging = useLazyLogging, newLine = false)
+    //      else
+    //        doPrint(message = s"Benchmarking: $message", useLazyLogging = useLazyLogging, newLine = true)
 
     val collectionTimeBefore = ManagementFactory.getGarbageCollectorMXBeans.asScala.foldLeft(0L)(_ + _.getCollectionTime)
 

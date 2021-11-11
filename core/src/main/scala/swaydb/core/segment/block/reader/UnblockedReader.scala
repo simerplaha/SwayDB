@@ -86,12 +86,14 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
                                                                              val blockCache: Option[BlockCache.State],
                                                                              private[reader] val reader: Reader[Byte])(implicit val byteOps: ByteOps[Byte]) extends BlockReaderBase with UnblockedReaderOption[O, B] {
 
-  val offset = block.offset
-
-  override def isNone: Boolean = false
-
   val hasBlockCache: Boolean =
     blockCache.isDefined
+
+  def offset: O =
+    block.offset
+
+  override def isNone: Boolean =
+    false
 
   def underlyingArraySizeOrReaderSize: Int =
     reader match {
