@@ -43,12 +43,12 @@ private[core] object VolatileQueue {
 }
 
 /**
- * VolatileQueue which is concurrent for reads only. For [[swaydb.core.level.zero.LevelZero]]
+ * Concurrent for reads only. In [[swaydb.core.level.zero.LevelZero]]
  * we do not need concurrent writes as all writes a sequential.
  *
  * The reason to use this over [[java.util.concurrent.ConcurrentLinkedDeque]] is to improve
  * iteration performance in [[swaydb.core.level.zero.LevelZero]] with [[Walker]] and [[iterator]]
- * should reduce GC workload when performing reads.
+ * should reduce GC allocations when performing reads.
  */
 private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A],
                                              @volatile private var _last: Node[A],
