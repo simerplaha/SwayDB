@@ -62,10 +62,10 @@ case object Slice extends SliceCompanion {
  *
  * [[Slice]] is used extensively by all modules including core so it's performance is critical.
  */
-class Slice[@specialized(Byte) +T](array: Array[T],
-                                   val fromOffset: Int,
-                                   val toOffset: Int,
-                                   private var written: Int)(protected[this] implicit val classTag: ClassTag[T]) extends Iterable[T] with SliceOption[T] { self =>
+final class Slice[@specialized(Byte) +T](array: Array[T],
+                                         val fromOffset: Int,
+                                         val toOffset: Int,
+                                         private var written: Int)(protected[this] implicit val classTag: ClassTag[T]) extends Iterable[T] with SliceOption[T] { self =>
 
   private var writePosition =
     fromOffset + written
