@@ -16,7 +16,6 @@
 
 package swaydb.core.segment.entry.reader
 
-import java.util
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.io.reader.Reader
@@ -30,29 +29,51 @@ import swaydb.utils.TupleOrNone
 
 object PersistentReader extends LazyLogging {
 
-  private var cachedBaseEntryIds: util.HashMap[Int, (TimeReader[_], DeadlineReader[_], ValueOffsetReader[_], ValueLengthReader[_], ValueReader[_])] = _
+  /**
+   * Cache [[BaseEntryReader]]'s Ids.
+   *
+   * @note - None of the elements in this array can be null at creation but the
+   *       [[cachedBaseEntryIds]] itself can be null indicating disabled ID cache.
+   */
+  private var cachedBaseEntryIds: Array[(TimeReader[_], DeadlineReader[_], ValueOffsetReader[_], ValueLengthReader[_], ValueReader[_])] = _
 
   val zeroValueOffsetAndLength = (-1, 0)
 
+  /**
+   * Invoked when caching of [[BaseEntryReader]] ids are enabled so if-else binary search is
+   * not required.
+   *
+   * In-code binary search is a list of if-else statements organised to perform binary search in-code.
+   *
+   * @see [[swaydb.core.segment.entry.reader.base.BaseEntryReader1]] for an example on the binary-search
+   *      which is executed by invoking [[BaseEntryReader.search]].
+   */
   def populateBaseEntryIds(): Unit = {
-    cachedBaseEntryIds = new util.HashMap[Int, (TimeReader[_], DeadlineReader[_], ValueOffsetReader[_], ValueLengthReader[_], ValueReader[_])](BaseEntryReader.readers.head.maxID + 200)
+    cachedBaseEntryIds = new Array[(TimeReader[_], DeadlineReader[_], ValueOffsetReader[_], ValueLengthReader[_], ValueReader[_])](BaseEntryReader.readers.last.maxID + 1)
 
     logger.debug("Caching key-value IDs ...")
 
     (BaseEntryReader.readers.head.minID to BaseEntryReader.readers.last.maxID) foreach {
       baseId =>
-        val readers =
+        cachedBaseEntryIds(baseId) =
           BaseEntryReader.search(
             baseId = baseId,
             mightBeCompressed = true,
             keyCompressionOnly = false,
             parser = BaseEntryApplier.ReturnFinders
           )
-        cachedBaseEntryIds.put(baseId, readers)
     }
 
-    logger.info(s"Cached ${cachedBaseEntryIds.size()} key-value IDs!")
+    logger.info(s"Cached ${cachedBaseEntryIds.length} key-value IDs!")
   }
+
+  /**
+   * For test cases only because we do not want to unnecessarily create [[Option]] for each key read.
+   *
+   * For internal core, use the [[cachedBaseEntryIds]] directly.
+   */
+  def getBaseEntryIds(): Option[Array[(TimeReader[_], DeadlineReader[_], ValueOffsetReader[_], ValueLengthReader[_], ValueReader[_])]] =
+    Option(cachedBaseEntryIds)
 
   def read[T <: Persistent](indexOffset: Int,
                             headerInteger: Int,
@@ -120,20 +141,21 @@ object PersistentReader extends LazyLogging {
         0
 
     val (timeReader, deadlineReader, valueOffsetReader, valueLengthReader, valueBytesReader) =
-      if (cachedBaseEntryIds == null) {
+      if (cachedBaseEntryIds == null) //if caching is disabled search from in-code binary search. O(log N)
         BaseEntryReader.search(
           baseId = baseId,
           mightBeCompressed = mightBeCompressed,
           keyCompressionOnly = keyCompressionOnly,
           parser = BaseEntryApplier.ReturnFinders
         )
-      } else {
-        val result = cachedBaseEntryIds get baseId
-        if (result == null)
-          throw swaydb.Exception.InvalidBaseId(baseId)
-        else
-          result
-      }
+      else //else fetch from the cached array - O(1)
+        try
+          cachedBaseEntryIds(baseId)
+        catch {
+          case throwable: Throwable =>
+            //if there is a corruption report the cause with the ID so it can be debugged.
+            throw swaydb.Exception.InvalidBaseId(baseId, throwable)
+        }
 
     val deadline =
       deadlineReader.read(

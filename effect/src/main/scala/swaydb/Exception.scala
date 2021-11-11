@@ -87,7 +87,12 @@ object Exception {
   case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int) extends Exception(s"Failed to write all bytes written: $written, expected : $expected, bytesSize: $bytesSize")
   case class CannotCopyInMemoryFiles(file: Path) extends Exception(s"Cannot copy in-memory files $file")
   case class SegmentFileMissing(path: Path) extends Exception(s"$path: Segment file missing.")
-  case class InvalidBaseId(id: Int) extends Exception(s"Invalid keyValueId: $id.")
+
+  object InvalidBaseId {
+    def apply(id: Int): InvalidBaseId =
+      new InvalidBaseId(id, null) //null = there is no parent cause.
+  }
+  case class InvalidBaseId(id: Int, cause: Throwable) extends Exception(s"Invalid keyValueId: $id.", cause)
 
   case class InvalidDataId(id: Int, message: String = "") extends Exception(s"Invalid data id: $id. $message")
 
