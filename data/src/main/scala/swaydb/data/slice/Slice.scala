@@ -435,15 +435,6 @@ class Slice[+T](array: Array[T],
     else
       toArrayCopy[B]
 
-  def toArrayCopy[B >: T](implicit evidence$1: ClassTag[B]): Array[B] =
-    if (size == 0) {
-      Array.empty
-    } else {
-      val newArray = new Array[B](size)
-      Array.copy(array, fromOffset, newArray, 0, size)
-      newArray
-    }
-
   //for java
   def toArray: Array[T]@uncheckedVariance =
     if (size == array.length)
@@ -453,6 +444,15 @@ class Slice[+T](array: Array[T],
         array
     else
       toArrayCopy
+
+  def toArrayCopy[B >: T](implicit evidence$1: ClassTag[B]): Array[B] =
+    if (size == 0) {
+      Array.empty
+    } else {
+      val newArray = new Array[B](size)
+      Array.copy(array, fromOffset, newArray, 0, size)
+      newArray
+    }
 
   /**
    * Convenience function to convert Slice<Byte> to byte[] from Java

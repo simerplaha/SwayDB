@@ -22,7 +22,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.Memory
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.{Block, BlockOffset, BlockOps}
+import swaydb.core.segment.block.{Block, BlockCompressionInfo, BlockHeader, BlockOffset, BlockOps}
 import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.effect.IOStrategy
 import swaydb.data.config.UncompressedBlockInfo
@@ -171,7 +171,7 @@ private[core] case object ValuesBlock {
     )
   }
 
-  def read(header: Block.Header[ValuesBlock.Offset]): ValuesBlock =
+  def read(header: BlockHeader[ValuesBlock.Offset]): ValuesBlock =
     ValuesBlock(
       offset = header.offset,
       headerSize = header.headerSize,
@@ -207,12 +207,12 @@ private[core] case object ValuesBlock {
     override def createOffset(start: Int, size: Int): Offset =
       ValuesBlock.Offset(start = start, size = size)
 
-    override def readBlock(header: Block.Header[Offset]): ValuesBlock =
+    override def readBlock(header: BlockHeader[Offset]): ValuesBlock =
       ValuesBlock.read(header)
   }
 }
 
 private[core] case class ValuesBlock(offset: ValuesBlock.Offset,
                                      headerSize: Int,
-                                     compressionInfo: Option[Block.CompressionInfo]) extends Block[ValuesBlock.Offset]
+                                     compressionInfo: Option[BlockCompressionInfo]) extends Block[ValuesBlock.Offset]
 

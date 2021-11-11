@@ -55,7 +55,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
     override def createOffset(start: Int, size: Int): Offset =
       SortedIndexBlock.Offset(start = start, size = size)
 
-    override def readBlock(header: Block.Header[Offset]): SortedIndexBlock =
+    override def readBlock(header: BlockHeader[Offset]): SortedIndexBlock =
       SortedIndexBlock.read(header)
   }
 
@@ -512,7 +512,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
     )
   }
 
-  def read(header: Block.Header[SortedIndexBlock.Offset]): SortedIndexBlock = {
+  def read(header: BlockHeader[SortedIndexBlock.Offset]): SortedIndexBlock = {
     val enableAccessPositionIndex = header.headerReader.readBoolean()
     val optimiseForReverseIteration = header.headerReader.readBoolean()
     val hasPrefixCompression = header.headerReader.readBoolean()
@@ -1251,7 +1251,7 @@ private[core] case class SortedIndexBlock(offset: SortedIndexBlock.Offset,
                                           isPreNormalised: Boolean,
                                           headerSize: Int,
                                           segmentMaxIndexEntrySize: Int,
-                                          compressionInfo: Option[Block.CompressionInfo]) extends Block[SortedIndexBlock.Offset] {
+                                          compressionInfo: Option[BlockCompressionInfo]) extends Block[SortedIndexBlock.Offset] {
   val isBinarySearchable =
     !hasPrefixCompression && (normalised || isPreNormalised)
 

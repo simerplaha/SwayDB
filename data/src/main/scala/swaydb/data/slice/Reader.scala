@@ -27,6 +27,4 @@ trait Reader[B] extends ReaderBase[B] {
   override def skip(skip: Long): Reader[B] =
     moveTo(getPosition + skip)
 
-  override def reset(): Reader[B] =
-    this moveTo 0
 }

@@ -24,13 +24,12 @@ import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.util.MinMax
-import swaydb.effect.IOStrategy
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.effect.{IOAction, IOStrategy}
-import swaydb.utils.{FunctionSafe, Maybe}
 import swaydb.utils.Maybe.{Maybe, _}
+import swaydb.utils.{FunctionSafe, Maybe}
 
 import scala.annotation.tailrec
 
@@ -269,7 +268,7 @@ private[core] case object BinarySearchIndexBlock {
     )
   }
 
-  def read(header: Block.Header[BinarySearchIndexBlock.Offset]): BinarySearchIndexBlock = {
+  def read(header: BlockHeader[BinarySearchIndexBlock.Offset]): BinarySearchIndexBlock = {
     val formatId = header.headerReader.get()
     val format: BinarySearchEntryFormat = BinarySearchEntryFormat.formats.find(_.id == formatId) getOrElse IO.throws(s"Invalid binary search formatId: $formatId")
     val valuesCount = header.headerReader.readUnsignedInt()
@@ -758,7 +757,7 @@ private[core] case object BinarySearchIndexBlock {
     override def createOffset(start: Int, size: Int): Offset =
       BinarySearchIndexBlock.Offset(start, size)
 
-    override def readBlock(header: Block.Header[Offset]): BinarySearchIndexBlock =
+    override def readBlock(header: BlockHeader[Offset]): BinarySearchIndexBlock =
       BinarySearchIndexBlock.read(header)
   }
 
@@ -770,4 +769,4 @@ private[core] case class BinarySearchIndexBlock(format: BinarySearchEntryFormat,
                                                 headerSize: Int,
                                                 bytesPerValue: Int,
                                                 isFullIndex: Boolean,
-                                                compressionInfo: Option[Block.CompressionInfo]) extends Block[BinarySearchIndexBlock.Offset]
+                                                compressionInfo: Option[BlockCompressionInfo]) extends Block[BinarySearchIndexBlock.Offset]

@@ -32,9 +32,6 @@ trait ReaderBase[B] { self =>
 
   def get(): B
 
-  def read(size: Long): Slice[B] =
-    read(size.toInt)
-
   def read(size: Int): Slice[B]
 
   def size: Long
@@ -53,78 +50,81 @@ trait ReaderBase[B] { self =>
 
   def isFile: Boolean
 
-  def skip(skip: Long): ReaderBase[B] =
+  def copy(): ReaderBase[B]
+
+  def read(size: Long): Slice[B] =
+    read(size.toInt)
+
+  @inline def skip(skip: Long): ReaderBase[B] =
     moveTo(getPosition + skip)
 
-  def readBoolean(): Boolean =
+  @inline def readBoolean(): Boolean =
     byteOps.readBoolean(self)
 
-  def readInt(): Int =
+  @inline def readInt(): Int =
     byteOps.readInt(self)
 
-  def readInt(unsigned: Boolean): Int =
+  @inline def readInt(unsigned: Boolean): Int =
     if (unsigned)
       readUnsignedInt()
     else
       readInt()
 
-  def readUnsignedInt(): Int =
+  @inline def readUnsignedInt(): Int =
     byteOps.readUnsignedInt(self)
 
-  def readUnsignedIntWithByteSize(): (Int, Int) =
+  @inline def readUnsignedIntWithByteSize(): (Int, Int) =
     byteOps.readUnsignedIntWithByteSize(self)
 
-  def readUnsignedIntWithByteSizePair(): Pair[Int, Int] =
+  @inline def readUnsignedIntWithByteSizePair(): Pair[Int, Int] =
     Pair(readUnsignedIntWithByteSize())
 
-  def readNonZeroUnsignedInt(): Int =
+  @inline def readNonZeroUnsignedInt(): Int =
     byteOps.readUnsignedIntNonZero(self)
 
-  def readNonZeroStrictUnsignedInt(): Maybe[Int] =
+  @inline def readNonZeroStrictUnsignedInt(): Maybe[Int] =
     byteOps.readUnsignedIntNonZeroStrict(self)
 
-  def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
+  @inline def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
     byteOps.readUnsignedIntNonZeroWithByteSize(self)
 
-  def readNonZeroUnsignedIntWithByteSizePair(): Pair[Int, Int] =
+  @inline def readNonZeroUnsignedIntWithByteSizePair(): Pair[Int, Int] =
     Pair(readNonZeroUnsignedIntWithByteSize())
 
-  def readUnsignedIntSized(): Slice[B] =
+  @inline def readUnsignedIntSized(): Slice[B] =
     read(byteOps.readUnsignedInt(self))
 
-  def readSignedInt(): Int =
+  @inline def readSignedInt(): Int =
     byteOps.readSignedInt(self)
 
-  def readLong(): Long =
+  @inline def readLong(): Long =
     byteOps.readLong(self)
 
-  def readUnsignedLong(): Long =
+  @inline def readUnsignedLong(): Long =
     byteOps.readUnsignedLong(self)
 
-  def readSignedLong(): Long =
+  @inline def readSignedLong(): Long =
     byteOps.readSignedLong(self)
 
-  def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): String =
+  @inline def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): String =
     byteOps.readString(self, charset)
 
-  def readRemainingAsStringUTF8(): String =
+  @inline def readRemainingAsStringUTF8(): String =
     byteOps.readString(self, StandardCharsets.UTF_8)
 
-  def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): String =
+  @inline def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): String =
     byteOps.readString(size, self, charset)
 
-  def readStringUTF8(size: Int): String =
+  @inline def readStringUTF8(size: Int): String =
     byteOps.readString(size, self, StandardCharsets.UTF_8)
 
-  def readStringWithSizeUTF8(): String =
+  @inline def readStringWithSizeUTF8(): String =
     byteOps.readStringWithSizeUTF8(self)
 
-  def remaining: Long =
+  @inline def remaining: Long =
     size - getPosition
 
-  def copy(): ReaderBase[B]
-
-  def reset(): ReaderBase[B] =
+  @inline def reset(): ReaderBase[B] =
     this moveTo 0
 
   @tailrec

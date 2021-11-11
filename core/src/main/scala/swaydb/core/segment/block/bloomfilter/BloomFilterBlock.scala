@@ -18,10 +18,9 @@ package swaydb.core.segment.block.bloomfilter
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
+import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.{Block, BlockOffset, BlockOps}
 import swaydb.core.util.MurmurHash3Generic
-import swaydb.effect.IOStrategy
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.slice.Slice
 import swaydb.effect.{IOAction, IOStrategy}
@@ -211,7 +210,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
     )
   }
 
-  def read(header: Block.Header[BloomFilterBlock.Offset]): BloomFilterBlock = {
+  def read(header: BlockHeader[BloomFilterBlock.Offset]): BloomFilterBlock = {
     val numberOfBits = header.headerReader.readUnsignedInt()
     val maxProbe = header.headerReader.readUnsignedInt()
     BloomFilterBlock(
@@ -298,7 +297,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
     override def createOffset(start: Int, size: Int): Offset =
       BloomFilterBlock.Offset(start = start, size = size)
 
-    override def readBlock(header: Block.Header[Offset]): BloomFilterBlock =
+    override def readBlock(header: BlockHeader[Offset]): BloomFilterBlock =
       BloomFilterBlock.read(header)
   }
 }
@@ -307,5 +306,5 @@ private[core] case class BloomFilterBlock(offset: BloomFilterBlock.Offset,
                                           maxProbe: Int,
                                           numberOfBits: Int,
                                           headerSize: Int,
-                                          compressionInfo: Option[Block.CompressionInfo]) extends Block[BloomFilterBlock.Offset]
+                                          compressionInfo: Option[BlockCompressionInfo]) extends Block[BloomFilterBlock.Offset]
 

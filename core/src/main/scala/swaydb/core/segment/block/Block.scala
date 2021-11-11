@@ -33,7 +33,8 @@ import swaydb.utils.ByteSizeOf
 private[core] trait Block[+O <: BlockOffset] {
   def offset: O
   def headerSize: Int
-  def compressionInfo: Option[Block.CompressionInfo]
+  def compressionInfo: Option[BlockCompressionInfo]
+
   def decompressionAction: IOAction.DecompressAction =
     compressionInfo match {
       case Some(compressionInfo) =>
@@ -51,34 +52,6 @@ private[core] object Block extends LazyLogging {
 
   val uncompressedBlockId: Byte = 0.toByte
   val compressedBlockID: Byte = 1.toByte
-
-  object CompressionInfo {
-    def apply(decompressor: DecompressorInternal,
-              decompressedLength: Int): CompressionInfo =
-      new CompressionInfo(decompressor, decompressedLength)
-  }
-
-  class CompressionInfo(val decompressor: DecompressorInternal,
-                        val decompressedLength: Int)
-
-  class Header[O](val compressionInfo: Option[CompressionInfo],
-                  val headerReader: ReaderBase[Byte],
-                  val headerSize: Int,
-                  val offset: O)
-
-  class CompressionResult(val compressedBytes: Option[Slice[Byte]],
-                          val headerBytes: Slice[Byte]) {
-    /**
-     * More bytes could get allocated to headerBytes when it's created. This fixes the size to it's original size.
-     * currently not more that 1 byte is required to store the size of the header.
-     *
-     * @return mutates and sets the size of [[headerBytes]]
-     */
-    def fixHeaderSize(): Unit = {
-      headerBytes moveWritePosition 0
-      headerBytes addUnsignedInt (headerBytes.size - 1)
-    }
-  }
 
   private val headerSizeWithCompression =
     ByteSizeOf.byte + //headerSize
@@ -106,21 +79,21 @@ private[core] object Block extends LazyLogging {
    * Others using this function should ensure that [[minimumHeaderSize]] is accounted for in the byte size calculations.
    * They should also allocate enough bytes to write the total headerSize.
    *
-   * NOTE: Always invoke [[CompressionResult.fixHeaderSize()]] when done writing header bytes outside this function.
+   * NOTE: Always invoke [[BlockCompressionResult.fixHeaderSize()]] when done writing header bytes outside this function.
    */
   def compress(bytes: Slice[Byte],
                compressions: Iterable[CompressionInternal],
-               blockName: String): CompressionResult =
+               blockName: String): BlockCompressionResult =
     compressions.untilSome(_.compressor.compress(bytes)) match {
       case Some((compressedBytes, compression)) =>
         val header = Slice.of[Byte](Byte.MaxValue)
 
         header moveWritePosition 1 //skip writing header size since it's not known.
-        header add compressedBlockID
+        header add Block.compressedBlockID
         header addUnsignedInt compression.decompressor.id
         header addUnsignedInt bytes.size //decompressed bytes
 
-        new CompressionResult(
+        new BlockCompressionResult(
           compressedBytes = Some(compressedBytes),
           headerBytes = header
         )
@@ -136,9 +109,9 @@ private[core] object Block extends LazyLogging {
         val header = Slice.of[Byte](Byte.MaxValue)
 
         header moveWritePosition 1 //skip writing header size since it's not known.
-        header add uncompressedBlockId
+        header add Block.uncompressedBlockId
 
-        new CompressionResult(
+        new BlockCompressionResult(
           compressedBytes = None,
           headerBytes = header
         )
@@ -151,10 +124,10 @@ private[core] object Block extends LazyLogging {
       logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${blocks.segmentSize}.bytes uncompressed.")
       //      openSegment.segmentHeader moveWritePosition 0
       blocks.segmentHeader addUnsignedInt 1
-      blocks.segmentHeader add uncompressedBlockId
+      blocks.segmentHeader add Block.uncompressedBlockId
 
       val segmentBytes: Slice[Slice[Byte]] =
-        blocks.segmentBytes.collectToSlice {
+        blocks.segmentBytes collectToSlice {
           case bytes if bytes.nonEmpty => bytes.close()
         }
 
@@ -218,24 +191,23 @@ private[core] object Block extends LazyLogging {
 
   private def readCompressionInfo(formatID: Int,
                                   headerSize: Int,
-                                  reader: ReaderBase[Byte]): Option[CompressionInfo] =
-    if (formatID == compressedBlockID) {
-      val decompressor = DecompressorInternal(reader.readUnsignedInt())
-      val decompressedLength = reader.readUnsignedInt()
+                                  reader: ReaderBase[Byte]): Option[BlockCompressionInfo] =
+    if (formatID == Block.compressedBlockID)
       Some(
-        new CompressionInfo(
-          decompressor = decompressor,
-          decompressedLength = decompressedLength
+        new BlockCompressionInfo(
+          decompressor = DecompressorInternal(reader.readUnsignedInt()),
+          decompressedLength = reader.readUnsignedInt()
         )
       )
-    } else if (formatID == Block.uncompressedBlockId) {
+    else if (formatID == Block.uncompressedBlockId)
       None
-    } else {
-      val message = s"Invalid formatID: $formatID. Expected: ${Block.uncompressedBlockId} or ${Block.compressedBlockID}"
-      throw swaydb.Exception.InvalidDataId(formatID, message)
-    }
+    else
+      throw swaydb.Exception.InvalidDataId(
+        id = formatID,
+        message = s"Invalid formatID: $formatID. Expected: ${Block.uncompressedBlockId} or ${Block.compressedBlockID}"
+      )
 
-  def readHeader[O <: BlockOffset](reader: BlockRefReader[O])(implicit blockOps: BlockOps[O, _]): Block.Header[O] = {
+  def readHeader[O <: BlockOffset](reader: BlockRefReader[O])(implicit blockOps: BlockOps[O, _]): BlockHeader[O] = {
     val (headerSize, headerSizeByteSize) = reader.readUnsignedIntWithByteSize()
     val headerReader = Reader(reader.read(headerSize))
     val formatID = headerReader.get()
@@ -249,7 +221,7 @@ private[core] object Block extends LazyLogging {
 
     val actualHeaderSize = headerSize + headerSizeByteSize
 
-    new Header(
+    new BlockHeader(
       compressionInfo = compressionInfo,
       headerReader = headerReader,
       headerSize = actualHeaderSize,

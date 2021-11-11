@@ -18,7 +18,7 @@ package swaydb.core.segment.block.segment.footer
 
 import swaydb.IO
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.block.Block.CompressionInfo
+import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
@@ -27,7 +27,6 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.ClosedBlocks
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment.block.{Block, BlockOffset, BlockOps}
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.slice.Slice
 import swaydb.effect.{IOAction, IOStrategy}
@@ -295,14 +294,14 @@ private[core] case object SegmentFooterBlock {
     override def createOffset(start: Int, size: Int): Offset =
       SegmentFooterBlock.Offset(start, size)
 
-    override def readBlock(header: Block.Header[Offset]): SegmentFooterBlock =
+    override def readBlock(header: BlockHeader[Offset]): SegmentFooterBlock =
       throw IO.throwable("Footers do not have block header readers.")
   }
 }
 
 case class SegmentFooterBlock(offset: SegmentFooterBlock.Offset,
                               headerSize: Int,
-                              compressionInfo: Option[CompressionInfo],
+                              compressionInfo: Option[BlockCompressionInfo],
                               valuesOffset: Option[ValuesBlock.Offset],
                               sortedIndexOffset: SortedIndexBlock.Offset,
                               hashIndexOffset: Option[HashIndexBlock.Offset],

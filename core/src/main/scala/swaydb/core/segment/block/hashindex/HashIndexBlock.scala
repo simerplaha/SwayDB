@@ -242,7 +242,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
     )
   }
 
-  def read(header: Block.Header[HashIndexBlock.Offset]): HashIndexBlock = {
+  def read(header: BlockHeader[HashIndexBlock.Offset]): HashIndexBlock = {
     val formatId = header.headerReader.get()
     val format = HashIndexEntryFormat.formats.find(_.id == formatId) getOrElse IO.throws(s"Invalid HashIndex formatId: $formatId")
     val allocatedBytes = header.headerReader.readInt()
@@ -556,13 +556,13 @@ private[core] case object HashIndexBlock extends LazyLogging {
     override def createOffset(start: Int, size: Int): Offset =
       HashIndexBlock.Offset(start = start, size = size)
 
-    override def readBlock(header: Block.Header[Offset]): HashIndexBlock =
+    override def readBlock(header: BlockHeader[Offset]): HashIndexBlock =
       HashIndexBlock.read(header)
   }
 }
 
 private[core] case class HashIndexBlock(offset: HashIndexBlock.Offset,
-                                        compressionInfo: Option[Block.CompressionInfo],
+                                        compressionInfo: Option[BlockCompressionInfo],
                                         maxProbe: Int,
                                         format: HashIndexEntryFormat,
                                         minimumCRC: Long,

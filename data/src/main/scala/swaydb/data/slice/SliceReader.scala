@@ -59,12 +59,6 @@ case class SliceReader[B](slice: Slice[B],
     byte
   }
 
-  override def readUnsignedInt(): Int =
-    byteOps.readUnsignedInt(this)
-
-  override def readUnsignedIntWithByteSize(): (Int, Int) =
-    byteOps.readUnsignedIntWithByteSize(this)
-
   def hasMore =
     position < slice.size
 

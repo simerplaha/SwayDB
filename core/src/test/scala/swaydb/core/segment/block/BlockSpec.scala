@@ -4,7 +4,7 @@ import org.scalatest.OptionValues._
 import swaydb.compression.CompressionInternal
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.segment.block.Block.CompressionInfo
+import swaydb.core.segment.block.BlockCompressionInfo
 import swaydb.core.segment.block.reader.BlockRefReader
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegmentRef
@@ -21,16 +21,16 @@ class BlockSpec extends TestBase {
     ValuesBlock(ValuesBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = None).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
 
     //compressed
-    ValuesBlock(ValuesBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
-    ValuesBlock(ValuesBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
+    ValuesBlock(ValuesBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = Some(BlockCompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
+    ValuesBlock(ValuesBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(BlockCompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
 
     //uncompressed
     SegmentBlock(SegmentBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = None).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
     SegmentBlock(SegmentBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = None).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
 
     //compressed
-    SegmentBlock(SegmentBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
-    SegmentBlock(SegmentBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
+    SegmentBlock(SegmentBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = Some(BlockCompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
+    SegmentBlock(SegmentBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(BlockCompressionInfo(null, 200))).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
   }
 
   "block & unblock" when {

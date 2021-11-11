@@ -1841,7 +1841,7 @@ object TestData {
         bytes = bytes
       )
 
-    def blocked(bytes: Slice[Byte], headerSize: Int, compressionInfo: Block.CompressionInfo)(implicit updater: BlockOps[SegmentBlock.Offset, SegmentBlock]): BlockedReader[SegmentBlock.Offset, SegmentBlock] =
+    def blocked(bytes: Slice[Byte], headerSize: Int, compressionInfo: BlockCompressionInfo)(implicit updater: BlockOps[SegmentBlock.Offset, SegmentBlock]): BlockedReader[SegmentBlock.Offset, SegmentBlock] =
       BlockedReader(
         bytes = bytes,
         block =

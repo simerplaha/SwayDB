@@ -168,7 +168,7 @@ private[core] case object SegmentBlock extends LazyLogging {
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
-  def read(header: Block.Header[Offset]): SegmentBlock =
+  def read(header: BlockHeader[Offset]): SegmentBlock =
     SegmentBlock(
       offset = header.offset,
       headerSize = header.headerSize,
@@ -821,7 +821,7 @@ private[core] case object SegmentBlock extends LazyLogging {
     override def createOffset(start: Int, size: Int): Offset =
       SegmentBlock.Offset(start, size)
 
-    override def readBlock(header: Block.Header[SegmentBlock.Offset]): SegmentBlock =
+    override def readBlock(header: BlockHeader[SegmentBlock.Offset]): SegmentBlock =
       SegmentBlock.read(header)
   }
 
@@ -829,4 +829,4 @@ private[core] case object SegmentBlock extends LazyLogging {
 
 private[core] case class SegmentBlock(offset: SegmentBlock.Offset,
                                       headerSize: Int,
-                                      compressionInfo: Option[Block.CompressionInfo]) extends Block[SegmentBlock.Offset]
+                                      compressionInfo: Option[BlockCompressionInfo]) extends Block[SegmentBlock.Offset]
