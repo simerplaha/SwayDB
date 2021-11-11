@@ -373,13 +373,13 @@ private[core] case object Segment extends LazyLogging {
       else
         MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)
 
-    keyValues foreach builder.add
-
     val closedStats =
-      builder.close(
-        hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
-        optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
-      )
+      builder
+        .addAll(keyValues)
+        .close(
+          hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+          optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+        )
 
     Segment.persistent(
       pathsDistributor = pathsDistributor,

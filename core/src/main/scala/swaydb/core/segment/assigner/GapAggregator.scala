@@ -20,6 +20,7 @@ import swaydb.Aggregator
 import swaydb.core.data.Memory
 import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator}
 
+import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -46,11 +47,12 @@ object GapAggregator {
 
       var lastStatsOrNull: B = _
 
-      override def add(item: Assignable): Unit =
+      override def addOne(item: Assignable): this.type =
         item match {
           case collection: Assignable.Collection =>
             lastStatsOrNull = null
             buffer += collection
+            this
 
           case point: Assignable.Point =>
             if (lastStatsOrNull == null) {
@@ -58,10 +60,17 @@ object GapAggregator {
               buffer += Assignable.Stats(lastStatsOrNull)
             }
 
-            lastStatsOrNull add point.toMemory()
+            lastStatsOrNull addOne point.toMemory()
+            this
         }
+
+      override def addAll(items: IterableOnce[Assignable]): this.type = {
+        items foreach addOne
+        this
+      }
 
       override def result: ListBuffer[Assignable.Gap[B]] =
         buffer
+
     }
 }

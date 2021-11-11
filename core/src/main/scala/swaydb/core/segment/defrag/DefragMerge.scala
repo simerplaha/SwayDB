@@ -90,7 +90,7 @@ private[segment] object DefragMerge {
     else if (forceExpand)
       fragments.lastOption match {
         case Some(TransientSegment.Stats(lastStats)) =>
-          segment.iterator(initialiseIteratorsInOneSeek) foreach (keyValue => lastStats.add(keyValue.toMemory()))
+          segment.iterator(initialiseIteratorsInOneSeek) foreach (keyValue => lastStats.addOne(keyValue.toMemory()))
           segment
 
         case Some(_) | None =>

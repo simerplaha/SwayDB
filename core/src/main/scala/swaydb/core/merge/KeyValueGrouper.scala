@@ -32,9 +32,9 @@ private[core] object KeyValueGrouper extends LazyLogging {
     if (isLastLevel) {
       val keyValueToMergeOrNull = toLastLevelOrNull(keyValue)
       if (keyValueToMergeOrNull != null)
-        builder add keyValueToMergeOrNull
+        builder addOne keyValueToMergeOrNull
     } else {
-      builder add keyValue.toMemory()
+      builder addOne keyValue.toMemory()
     }
   }
 

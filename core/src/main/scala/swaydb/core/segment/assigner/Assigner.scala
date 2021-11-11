@@ -133,7 +133,7 @@ private[core] object Assigner {
                         assignTo: SEG): Unit =
       assignments.lastOption match {
         case Some(Assignment(bufferSegment, _, mid, _)) if bufferSegment == assignTo =>
-          mid add assignable
+          mid addOne assignable
 
         case _ =>
           assignments +=
@@ -152,20 +152,20 @@ private[core] object Assigner {
       assignments.lastOption match {
         case Some(Assignment(bufferSegment, headGap, midOverlap, tailGap)) if bufferSegment == assignTo =>
           if (midOverlap.result.isEmpty && assignable.key < assignTo.minKey)
-            headGap add assignable
+            headGap addOne assignable
           else
-            tailGap add assignable
+            tailGap addOne assignable
 
         case _ =>
           //assign the key to headGap or tailGap depending on it's position.
           val (headGap, tailGap) =
             if (assignable.key < assignTo.minKey) {
               val headGap = gapCreator.createNew()
-              headGap add assignable
+              headGap addOne assignable
               (headGap, gapCreator.createNew())
             } else {
               val tailGap = gapCreator.createNew()
-              tailGap add assignable
+              tailGap addOne assignable
               (gapCreator.createNew(), tailGap)
             }
 
@@ -356,7 +356,7 @@ private[core] object Assigner {
                           //there is no point adding a single key-value to a Segment.
                           assignments.lastOption match {
                             case Some(Assignment(segment, _, keyValues, _)) if segment == thisSegment =>
-                              keyValues add assignable
+                              keyValues addOne assignable
                               assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
 
                             case _ =>
@@ -389,7 +389,7 @@ private[core] object Assigner {
                           if (noGaps) {
                             assignments.lastOption match {
                               case Some(Assignment(segment, _, keyValues, _)) if segment == thisSegment =>
-                                keyValues add keyValue
+                                keyValues addOne keyValue
                                 assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
 
                               case _ =>

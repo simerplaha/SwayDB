@@ -46,10 +46,10 @@ class MergeStatsSizeCalculatorSpec extends TestBase with MockFactory with Either
         runThis(100.times, log = true) {
 
           val stats = MergeStatsCreator.PersistentCreator.create(randomBoolean())
-          stats.add(Memory.put(1, 1))
-          stats.add(Memory.put(2, 2))
-          stats.add(Memory.put(3, 3))
-          stats.add(Memory.put(4, 4))
+          stats.addOne(Memory.put(1, 1))
+          stats.addOne(Memory.put(2, 2))
+          stats.addOne(Memory.put(3, 3))
+          stats.addOne(Memory.put(4, 4))
 
           implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
 
@@ -69,10 +69,10 @@ class MergeStatsSizeCalculatorSpec extends TestBase with MockFactory with Either
         runThis(100.times, log = true) {
 
           val stats = MergeStatsCreator.PersistentCreator.create(randomBoolean())
-          stats.add(Memory.put(1, 1))
-          stats.add(Memory.put(2, 2))
-          stats.add(Memory.put(3, 3))
-          stats.add(Memory.put(4, 4))
+          stats.addOne(Memory.put(1, 1))
+          stats.addOne(Memory.put(2, 2))
+          stats.addOne(Memory.put(3, 3))
+          stats.addOne(Memory.put(4, 4))
 
           implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           implicit val segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = randomIntMax(stats.keyValues.size))
@@ -87,10 +87,10 @@ class MergeStatsSizeCalculatorSpec extends TestBase with MockFactory with Either
         runThis(100.times, log = true) {
 
           val stats = MergeStatsCreator.PersistentCreator.create(randomBoolean())
-          stats.add(Memory.put(1, 1))
-          stats.add(Memory.put(2, 2))
-          stats.add(Memory.put(3, 3))
-          stats.add(Memory.put(4, 4))
+          stats.addOne(Memory.put(1, 1))
+          stats.addOne(Memory.put(2, 2))
+          stats.addOne(Memory.put(3, 3))
+          stats.addOne(Memory.put(4, 4))
 
           implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
 
@@ -110,10 +110,10 @@ class MergeStatsSizeCalculatorSpec extends TestBase with MockFactory with Either
         runThis(100.times, log = true) {
 
           val stats = MergeStatsCreator.PersistentCreator.create(true)
-          stats.add(Memory.put(1, 1))
-          stats.add(Memory.put(2, 2))
-          stats.add(Memory.put(3, 3))
-          stats.add(Memory.remove(4))
+          stats.addOne(Memory.put(1, 1))
+          stats.addOne(Memory.put(2, 2))
+          stats.addOne(Memory.put(3, 3))
+          stats.addOne(Memory.remove(4))
 
           implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
           implicit val segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = 4)

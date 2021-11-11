@@ -16,12 +16,14 @@
 
 package swaydb.data.slice
 
+import swaydb.Aggregator
+
 import scala.annotation.tailrec
 import scala.collection._
 import scala.collection.compat.IterableOnce
 import scala.reflect.ClassTag
 
-class SliceBuilder[A: ClassTag](maxSize: Int) extends mutable.Builder[A, Slice[A]] {
+class SliceBuilder[A: ClassTag](maxSize: Int) extends mutable.Builder[A, Slice[A]] with Aggregator[A, Slice[A]] {
   //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
   protected var slice: Slice[A] = Slice.of[A](maxSize max 16)
 
@@ -51,4 +53,5 @@ class SliceBuilder[A: ClassTag](maxSize: Int) extends mutable.Builder[A, Slice[A
 
   def result(): Slice[A] =
     slice.close()
+
 }

@@ -78,7 +78,7 @@ private[segment] object DefragGap {
             statsOrNull
           }
 
-        collection.iterator(segmentConfig.initialiseIteratorsInOneSeek) foreach (keyValue => newOrOldStats.add(keyValue.toMemory()))
+        collection.iterator(segmentConfig.initialiseIteratorsInOneSeek) foreach (keyValue => newOrOldStats.addOne(keyValue.toMemory()))
 
         newOrOldStats
 
@@ -87,8 +87,7 @@ private[segment] object DefragGap {
           fragments += TransientSegment.Stats(stats)
           stats
         } else {
-          stats.keyValues foreach statsOrNull.add
-          statsOrNull
+          statsOrNull addAll stats.keyValues
         }
     }
 
@@ -107,11 +106,11 @@ private[segment] object DefragGap {
                                                                                       fragments: ListBuffer[TransientSegment.Fragment[S]],
                                                                                       removeDeletes: Boolean)(implicit mergeStatsCreator: MergeStatsCreator[S]): S =
     if (statsOrNull != null) {
-      keyValues foreach (keyValue => statsOrNull.add(keyValue.toMemory()))
+      keyValues foreach (keyValue => statsOrNull.addOne(keyValue.toMemory()))
       statsOrNull
     } else {
       val stats = mergeStatsCreator.create(removeDeletes)
-      keyValues foreach (keyValue => stats.add(keyValue.toMemory()))
+      keyValues foreach (keyValue => stats.addOne(keyValue.toMemory()))
       fragments += TransientSegment.Stats(stats)
       stats
     }

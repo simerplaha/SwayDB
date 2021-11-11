@@ -18,29 +18,29 @@ package swaydb
 
 import swaydb.data.slice.Slice
 
+import scala.collection.compat.IterableOnce
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
 /**
  * [[scala.collection.mutable.Builder]] requires two implementations for 2.13 and 2.12.
+ * 2.13 requires addOne and 2.12 requires +=.
  *
- * 2.13 requires addOne and 2.12 requires +=. So this type simply wrapper around
- * Builder which is used internally to avoid having 2 implementation of Builder.
+ * So this type provides similar APIs as a [[scala.collection.mutable.Builder]] and is shared
+ * by both 2.13 and 2.12.
  */
-protected trait Aggregator[-A, +T] extends ForEach[A] {
-  def add(item: A): Unit
+trait Aggregator[-A, +T] {
 
-  final def addAll(items: Iterable[A]): Unit =
-    items foreach add
+  def addOne(item: A): this.type
+
+  def addAll(items: IterableOnce[A]): this.type
 
   def result: T
 
-  final override def apply(item: A): Unit =
-    add(item)
 }
 
-protected case object Aggregator {
+case object Aggregator {
 
   /**
    * Allows creating [[Aggregator]] instances on demand where the final maximum size of
@@ -59,7 +59,7 @@ protected case object Aggregator {
 
     def createNew(item: A): Aggregator[A, T] = {
       val fresh = createNew()
-      fresh add item
+      fresh addOne item
       fresh
     }
   }
@@ -86,8 +86,15 @@ protected case object Aggregator {
 
   def fromBuilder[A, T](builder: mutable.Builder[A, T]): Aggregator[A, T] =
     new Aggregator[A, T] {
-      override def add(item: A): Unit =
+      override def addOne(item: A): this.type = {
         builder += item
+        this
+      }
+
+      override def addAll(items: IterableOnce[A]): this.type = {
+        builder ++= items
+        this
+      }
 
       override def result: T =
         builder.result()
@@ -100,22 +107,33 @@ protected case object Aggregator {
    */
   def nothingAggregator[A](): Aggregator[A, Nothing] =
     new Aggregator[A, Nothing] {
-      override def add(item: A): Unit =
+      override def addOne(item: A): this.type =
+        throw new Exception(s"Cannot add to Nothing ${Aggregator.productPrefix}")
+
+      override def addAll(items: IterableOnce[A]): this.type =
         throw new Exception(s"Cannot add to Nothing ${Aggregator.productPrefix}")
 
       override def result: Nothing =
         throw new Exception(s"Cannot fetch Nothing ${Aggregator.productPrefix}")
-    }
 
+    }
 
   def listBuffer[A]: Aggregator[A, ListBuffer[A]] =
     new Aggregator[A, ListBuffer[A]] {
       val buffer = ListBuffer.empty[A]
 
-      override def add(item: A): Unit =
+      override def addOne(item: A): this.type = {
         buffer += item
+        this
+      }
+
+      override def addAll(items: IterableOnce[A]): this.type = {
+        buffer ++= items
+        this
+      }
 
       override def result: ListBuffer[A] =
         buffer
+
     }
 }

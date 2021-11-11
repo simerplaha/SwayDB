@@ -241,17 +241,24 @@ protected case object TaskAssigner {
       new Aggregator[Assignable, mutable.SortedSet[A]] {
         val segments = mutable.SortedSet.empty[A]
 
-        override def add(item: Assignable): Unit =
+        override def addOne(item: Assignable): this.type =
           item match {
             case Memory.Put(_, value, _, _) =>
               segments += index(value.getC.readUnsignedInt())
+              this
 
             case Memory.Range(_, _, _, Value.Update(value, _, _)) =>
               segments += index(value.getC.readUnsignedInt())
+              this
 
             case assignable =>
               throw new Exception(s"Invalid item. ${assignable.getClass.getName}")
           }
+
+        override def addAll(items: IterableOnce[Assignable]): this.type = {
+          items foreach this.addOne
+          this
+        }
 
         override def result: mutable.SortedSet[A] =
           segments

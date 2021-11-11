@@ -22,6 +22,7 @@ import swaydb.{Aggregator, Prepare}
 
 import java.util
 import java.util.stream.Stream
+import scala.collection.compat.IterableOnce
 import scala.jdk.CollectionConverters._
 
 object MultiPrepareBuilder {
@@ -48,11 +49,19 @@ object MultiPrepareBuilder {
     implicit val aggregator: Aggregator[MultiPrepare[M, K, V, F], Stream[MultiPrepare[M, K, V, F]]] =
       new Aggregator[MultiPrepare[M, K, V, F], Stream[MultiPrepare[M, K, V, F]]] {
 
-        override def add(item: MultiPrepare[M, K, V, F]): Unit =
+        override def addOne(item: MultiPrepare[M, K, V, F]): this.type = {
           builder.accept(item)
+          this
+        }
+
+        override def addAll(items: IterableOnce[MultiPrepare[M, K, V, F]]): this.type = {
+          items foreach builder.accept
+          this
+        }
 
         override def result: Stream[MultiPrepare[M, K, V, F]] =
           builder.build()
+
       }
 
     swaydb.multimap.MultiPrepare.aggregator(
@@ -84,8 +93,15 @@ object MultiPrepareBuilder {
       new Aggregator[MultiPrepare[M, K, V, F], util.ArrayList[MultiPrepare[M, K, V, F]]] {
         val list = new util.ArrayList[MultiPrepare[M, K, V, F]]()
 
-        override def add(item: MultiPrepare[M, K, V, F]): Unit =
+        override def addOne(item: MultiPrepare[M, K, V, F]): this.type = {
           list.add(item)
+          this
+        }
+
+        override def addAll(items: IterableOnce[MultiPrepare[M, K, V, F]]): this.type = {
+          items foreach list.add
+          this
+        }
 
         override def result: util.ArrayList[MultiPrepare[M, K, V, F]] =
           list

@@ -49,7 +49,7 @@ object MultiPrepare {
                                            prepare: Iterable[Prepare[K, V, F]])(implicit aggregator: Aggregator[MultiPrepare[M, K, V, F], C[MultiPrepare[M, K, V, F]]]): Aggregator[MultiPrepare[M, K, V, F], C[MultiPrepare[M, K, V, F]]] = {
     prepare foreach {
       prepare =>
-        aggregator add MultiPrepare(map, prepare)
+        aggregator addOne MultiPrepare(map, prepare)
     }
 
     aggregator

@@ -368,9 +368,6 @@ trait SliceCompanion extends SliceBuildFrom {
         result.zipWith(next)(_ add _)
     }
 
-  @inline final def newBuilder[T: ClassTag](maxSize: Int): SliceBuilder[T] =
-    new SliceBuilder[T](maxSize)
-
   @inline private[swaydb] final def newAggregator[T: ClassTag](maxSize: Int): Aggregator[T, Slice[T]] =
-    Aggregator.fromBuilder[T, Slice[T]](newBuilder[T](maxSize))
+    new SliceBuilder[T](maxSize)
 }

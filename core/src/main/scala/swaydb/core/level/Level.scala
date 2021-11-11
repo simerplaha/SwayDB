@@ -637,8 +637,11 @@ private[core] case class Level(dirs: Seq[Dir],
                                                                                                                                                                     parallelism: CompactionParallelism): Future[Iterable[DefIO[SegmentOption, Iterable[MemorySegment]]]] =
     if (assignments.isEmpty) {
       //if there were not assignments then write new key-values are gap and run Defrag to avoid creating small Segments.
-      val gap = GapAggregator.create[MergeStats.Memory.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
-      newKeyValues foreach gap.add
+      val gap =
+        GapAggregator
+          .create[MergeStats.Memory.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords)
+          .createNew()
+          .addAll(newKeyValues)
 
       implicit val segmentConfigImplicit: SegmentBlockConfig = segmentConfig
 
@@ -679,8 +682,11 @@ private[core] case class Level(dirs: Seq[Dir],
                                                                                                                                                                             parallelism: CompactionParallelism): Future[Iterable[DefIO[SegmentOption, Iterable[PersistentSegment]]]] =
     if (assignments.isEmpty) {
       //if there were not assignments then write new key-values are gap and run Defrag to avoid creating small Segments.
-      val gap = GapAggregator.create[MergeStats.Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
-      newKeyValues foreach gap.add
+      val gap =
+        GapAggregator
+          .create[MergeStats.Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords)
+          .createNew()
+          .addAll(newKeyValues)
 
       implicit val valuesConfigImplicit: ValuesBlockConfig = valuesConfig
       implicit val sortedIndexConfigImplicit: SortedIndexBlockConfig = sortedIndexConfig

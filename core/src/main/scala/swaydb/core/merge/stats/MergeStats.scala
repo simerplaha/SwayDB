@@ -30,7 +30,12 @@ import scala.collection.mutable.ListBuffer
  */
 private[core] sealed trait MergeStats[-FROM, +T[_]] extends Aggregator[FROM, T[data.Memory]] {
 
-  def add(keyValue: FROM): Unit
+  def addOne(keyValue: FROM): this.type
+
+  override def addAll(items: IterableOnce[FROM]): MergeStats.this.type = {
+    items foreach addOne
+    this
+  }
 
   def keyValues: T[data.Memory]
 
@@ -57,23 +62,14 @@ private[core] case object MergeStats {
   implicit val memoryToMemory: data.Memory => data.Memory =
     (memory: data.Memory) => memory
 
-  def persistentBuilder[FROM](keyValues: IterableOnce[FROM])(implicit convert: FROM => data.Memory): MergeStats.Persistent.Builder[FROM, ListBuffer] = {
-    val stats = persistent[FROM, ListBuffer](Aggregator.listBuffer)
-    keyValues foreach stats.add
-    stats
-  }
+  def persistentBuilder[FROM](keyValues: IterableOnce[FROM])(implicit convert: FROM => data.Memory): MergeStats.Persistent.Builder[FROM, ListBuffer] =
+    persistent[FROM, ListBuffer](Aggregator.listBuffer) addAll keyValues
 
-  def memoryBuilder[FROM](keyValues: IterableOnce[FROM])(implicit convert: FROM => data.Memory): MergeStats.Memory.Builder[FROM, ListBuffer] = {
-    val stats = memory[FROM, ListBuffer](Aggregator.listBuffer)
-    keyValues foreach stats.add
-    stats
-  }
+  def memoryBuilder[FROM](keyValues: IterableOnce[FROM])(implicit convert: FROM => data.Memory): MergeStats.Memory.Builder[FROM, ListBuffer] =
+    memory[FROM, ListBuffer](Aggregator.listBuffer) addAll keyValues
 
-  def bufferBuilder[FROM](keyValues: IterableOnce[FROM])(implicit convert: FROM => data.Memory): MergeStats.Buffer[FROM, ListBuffer] = {
-    val stats = buffer[FROM, ListBuffer](Aggregator.listBuffer)
-    keyValues foreach stats.add
-    stats
-  }
+  def bufferBuilder[FROM](keyValues: IterableOnce[FROM])(implicit convert: FROM => data.Memory): MergeStats.Buffer[FROM, ListBuffer] =
+    buffer[FROM, ListBuffer](Aggregator.listBuffer) addAll keyValues
 
   def persistent[FROM, T[_]](aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory): MergeStats.Persistent.Builder[FROM, T] =
     new Persistent.Builder(
@@ -189,13 +185,16 @@ private[core] case object MergeStats {
         }
       }
 
-      def add(from: FROM): Unit = {
+      def addOne(from: FROM): this.type = {
         val keyValueOrNull = converterOrNull(from)
+
         if (keyValueOrNull != null) {
           totalKeyValueCount += 1
           updateStats(keyValueOrNull)
-          aggregator add keyValueOrNull
+          aggregator addOne keyValueOrNull
         }
+
+        this
       }
     }
 
@@ -244,13 +243,16 @@ private[core] case object MergeStats {
       override def keyValues: T[data.Memory] =
         aggregator.result
 
-      override def add(from: FROM): Unit = {
+      override def addOne(from: FROM): this.type = {
         val keyValueOrNull = converterOrNull(from)
+
         if (keyValueOrNull != null) {
-          aggregator add keyValueOrNull
+          aggregator addOne keyValueOrNull
           _totalKeyValueCount += 1
           _segmentSize += MergeStats.Memory calculateSize keyValueOrNull
         }
+
+        this
       }
 
       def close: Memory.Closed[T] =
@@ -276,10 +278,13 @@ private[core] case object MergeStats {
 
   class Buffer[-FROM, +T[_]](aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats[FROM, T] {
 
-    override def add(from: FROM): Unit = {
+    override def addOne(from: FROM): this.type = {
       val keyValueOrNull = converterOrNull(from)
+
       if (keyValueOrNull != null)
-        aggregator add keyValueOrNull
+        aggregator addOne keyValueOrNull
+
+      this
     }
 
     override def keyValues: T[data.Memory] =

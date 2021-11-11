@@ -524,14 +524,17 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   def toSlice(keyValueCount: Int,
               sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
               valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock]): Slice[Persistent] = {
-    val aggregator = Slice.newAggregator[Persistent](keyValueCount)
+    val slice = Slice.of[Persistent](keyValueCount)
 
     iterator(
       sortedIndexReader = sortedIndexReader,
       valuesReaderOrNull = valuesReaderOrNull
-    ) foreach aggregator.apply
+    ) foreach slice.add
 
-    aggregator.result
+    //Input requirement failed: keyValueCount cannot be less than the actual key-values in the readers.
+    require(slice.isOriginalFullSlice, s"Slice not full. Actual: ${slice.size}. Expected: $keyValueCount")
+
+    slice
   }
 
   def iterator(sortedIndexReader: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
