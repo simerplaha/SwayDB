@@ -17,7 +17,7 @@
 package swaydb.core.segment.block.segment.data
 
 import swaydb.core.data.KeyValue
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.reader.UnblockedReader
@@ -99,7 +99,7 @@ object TransientSegment {
     def valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]
     def sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]]
     def hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]]
-    def binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]]
+    def binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]]
     def bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]
     def footerUnblocked: Option[SegmentFooterBlock]
 
@@ -163,7 +163,7 @@ object TransientSegment {
     override def hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]] =
       ref.segmentBlockCache.cachedHashIndexSliceReader()
 
-    override def binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]] =
+    override def binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]] =
       ref.segmentBlockCache.cachedBinarySearchIndexSliceReader()
 
     override def bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]] =
@@ -254,7 +254,7 @@ object TransientSegment {
                  valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                  sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
                  hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
-                 binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                 binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
                  bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
                  footerUnblocked: Option[SegmentFooterBlock]) extends OneOrRemoteRef with OneOrRemoteRefOrMany {
 

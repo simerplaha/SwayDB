@@ -45,7 +45,7 @@ private[core] sealed trait BinarySearchEntryFormat {
 
   def read(offset: Int,
            seekSize: Int,
-           binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+           binarySearchIndex: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
            sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
            valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial
 }
@@ -79,7 +79,7 @@ private[core] object BinarySearchEntryFormat {
 
     override def read(offset: Int,
                       seekSize: Int,
-                      binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                      binarySearchIndex: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                       valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
       val sortedIndexOffsetValue =
@@ -119,7 +119,7 @@ private[core] object BinarySearchEntryFormat {
 
     override def read(offset: Int,
                       seekSize: Int,
-                      binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                      binarySearchIndex: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                       valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
       val entryReader = Reader(binarySearchIndex.moveTo(offset).read(seekSize))

@@ -112,11 +112,11 @@
 //              state.bytes.isFull shouldBe true
 //
 //              Seq(
-//                BlockRefReader[BinarySearchIndexBlock.Offset](createRandomFileReader(state.bytes)),
-//                BlockRefReader[BinarySearchIndexBlock.Offset](state.bytes)
+//                BlockRefReader[BinarySearchIndexBlockOffset](createRandomFileReader(state.bytes)),
+//                BlockRefReader[BinarySearchIndexBlockOffset](state.bytes)
 //              ) foreach {
 //                reader =>
-//                  val block = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlock.Offset](reader))
+//                  val block = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlockOffset](reader))
 //
 //                  val decompressedBytes = Block.unblock(reader.copy()).readFullBlock()
 //
@@ -157,11 +157,11 @@
 //          state.writtenValues shouldBe values.size
 //
 //          Seq(
-//            BlockRefReader[BinarySearchIndexBlock.Offset](createRandomFileReader(state.bytes)),
-//            BlockRefReader[BinarySearchIndexBlock.Offset](state.bytes)
+//            BlockRefReader[BinarySearchIndexBlockOffset](createRandomFileReader(state.bytes)),
+//            BlockRefReader[BinarySearchIndexBlockOffset](state.bytes)
 //          ) foreach {
 //            reader =>
-//              val block = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlock.Offset](reader))
+//              val block = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlockOffset](reader))
 //
 //              val decompressedBytes = Block.unblock(reader.copy()).readFullBlock()
 //

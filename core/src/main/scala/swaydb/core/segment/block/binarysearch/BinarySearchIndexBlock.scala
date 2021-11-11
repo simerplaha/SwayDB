@@ -34,8 +34,6 @@ private[core] case object BinarySearchIndexBlock {
 
   val blockName = this.productPrefix
 
-  case class Offset(start: Int, size: Int) extends BlockOffset
-
   def init(sortedIndexState: SortedIndexBlock.State,
            binarySearchConfig: BinarySearchIndexConfig): Option[BinarySearchIndexState] = {
 
@@ -106,11 +104,11 @@ private[core] case object BinarySearchIndexBlock {
     else
       None
 
-  def unblockedReader(closedState: BinarySearchIndexState): UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock] = {
+  def unblockedReader(closedState: BinarySearchIndexState): UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock] = {
     val block =
       BinarySearchIndexBlock(
         format = closedState.format,
-        offset = BinarySearchIndexBlock.Offset(0, closedState.cacheableBytes.size),
+        offset = BinarySearchIndexBlockOffset(0, closedState.cacheableBytes.size),
         valuesCount = closedState.writtenValues,
         headerSize = 0,
         bytesPerValue = closedState.bytesPerValue,
@@ -124,7 +122,7 @@ private[core] case object BinarySearchIndexBlock {
     )
   }
 
-  def read(header: BlockHeader[BinarySearchIndexBlock.Offset]): BinarySearchIndexBlock = {
+  def read(header: BlockHeader[BinarySearchIndexBlockOffset]): BinarySearchIndexBlock = {
     val formatId = header.headerReader.get()
     val format: BinarySearchEntryFormat = BinarySearchEntryFormat.formats.find(_.id == formatId) getOrElse IO.throws(s"Invalid binary search formatId: $formatId")
     val valuesCount = header.headerReader.readUnsignedInt()
@@ -220,7 +218,7 @@ private[core] case object BinarySearchIndexBlock {
                                               lowest: PersistentOption,
                                               highest: PersistentOption,
                                               keyValuesCount: => Int,
-                                              binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                                              binarySearchIndex: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                                               sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                               valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Persistent.Partial],
                                                                                                               keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOption = {
@@ -292,7 +290,7 @@ private[core] case object BinarySearchIndexBlock {
                                 lowest: PersistentOption,
                                 highest: PersistentOption,
                                 keyValuesCount: => Int,
-                                binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                                binarySearchIndex: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                                 sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                 valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                 partialOrder: KeyOrder[Persistent.Partial]): BinarySearchLowerResult.Some = {
@@ -421,7 +419,7 @@ private[core] case object BinarySearchIndexBlock {
              lowest: PersistentOption,
              highest: PersistentOption,
              keyValuesCount: => Int,
-             binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+             binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                    partialKeyOrder: KeyOrder[Persistent.Partial]): Persistent.PartialOption =
@@ -494,7 +492,7 @@ private[core] case object BinarySearchIndexBlock {
                    start: PersistentOption,
                    end: PersistentOption,
                    keyValuesCount: => Int,
-                   binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                   binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                          partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOption = {
@@ -544,7 +542,7 @@ private[core] case object BinarySearchIndexBlock {
                   start: PersistentOption,
                   end: PersistentOption,
                   keyValuesCount: Int,
-                  binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                  binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                         partialOrdering: KeyOrder[Persistent.Partial]): PersistentOption =
@@ -606,23 +604,23 @@ private[core] case object BinarySearchIndexBlock {
       )
     }
 
-  implicit object BinarySearchIndexBlockOps extends BlockOps[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock] {
+  implicit object BinarySearchIndexBlockOps extends BlockOps[BinarySearchIndexBlockOffset, BinarySearchIndexBlock] {
     override def updateBlockOffset(block: BinarySearchIndexBlock, start: Int, size: Int): BinarySearchIndexBlock =
-      block.copy(offset = BinarySearchIndexBlock.Offset(start = start, size = size))
+      block.copy(offset = BinarySearchIndexBlockOffset(start = start, size = size))
 
-    override def createOffset(start: Int, size: Int): Offset =
-      BinarySearchIndexBlock.Offset(start, size)
+    override def createOffset(start: Int, size: Int): BinarySearchIndexBlockOffset =
+      BinarySearchIndexBlockOffset(start, size)
 
-    override def readBlock(header: BlockHeader[Offset]): BinarySearchIndexBlock =
+    override def readBlock(header: BlockHeader[BinarySearchIndexBlockOffset]): BinarySearchIndexBlock =
       BinarySearchIndexBlock.read(header)
   }
 
 }
 
 private[core] case class BinarySearchIndexBlock(format: BinarySearchEntryFormat,
-                                                offset: BinarySearchIndexBlock.Offset,
+                                                offset: BinarySearchIndexBlockOffset,
                                                 valuesCount: Int,
                                                 headerSize: Int,
                                                 bytesPerValue: Int,
                                                 isFullIndex: Boolean,
-                                                compressionInfo: Option[BlockCompressionInfo]) extends Block[BinarySearchIndexBlock.Offset]
+                                                compressionInfo: Option[BlockCompressionInfo]) extends Block[BinarySearchIndexBlockOffset]

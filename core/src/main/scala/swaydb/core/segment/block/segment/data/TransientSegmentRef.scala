@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.block.segment.data
 
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.reader.UnblockedReader
@@ -56,7 +56,7 @@ class TransientSegmentRef(val minKey: Slice[Byte],
                           //binarySearch
                           val binarySearchIndexBlockHeader: Option[Slice[Byte]],
                           val binarySearchIndexBlock: Option[Slice[Byte]],
-                          val binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                          val binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
                           //bloomFilter
                           val bloomFilterBlockHeader: Option[Slice[Byte]],
                           val bloomFilterBlock: Option[Slice[Byte]],
