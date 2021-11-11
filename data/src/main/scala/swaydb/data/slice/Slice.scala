@@ -32,7 +32,7 @@ import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
 
-sealed trait SliceOption[+T] extends SomeOrNoneCovariant[SliceOption[T], Slice[T]] {
+sealed trait SliceOption[@specialized(Byte) +T] extends SomeOrNoneCovariant[SliceOption[T], Slice[T]] {
   override def noneC: SliceOption[Nothing] = Slice.Null
 
   def isUnslicedOption: Boolean
@@ -62,10 +62,10 @@ case object Slice extends SliceCompanion {
  *
  * [[Slice]] is used extensively by all modules including core so it's performance is critical.
  */
-class Slice[+T](array: Array[T],
-                val fromOffset: Int,
-                val toOffset: Int,
-                private var written: Int)(protected[this] implicit val classTag: ClassTag[T]) extends Iterable[T] with SliceOption[T] { self =>
+class Slice[@specialized(Byte) +T](array: Array[T],
+                                   val fromOffset: Int,
+                                   val toOffset: Int,
+                                   private var written: Int)(protected[this] implicit val classTag: ClassTag[T]) extends Iterable[T] with SliceOption[T] { self =>
 
   private var writePosition =
     fromOffset + written
