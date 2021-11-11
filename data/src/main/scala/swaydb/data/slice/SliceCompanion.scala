@@ -56,10 +56,12 @@ trait SliceCompanion extends SliceBuildFrom {
 
   final def range(from: Byte, to: Byte): Slice[Byte] = {
     val slice = of[Byte](to - from + 1)
+
     (from to to) foreach {
       i =>
         slice add i.toByte
     }
+
     slice.close()
   }
 
@@ -188,7 +190,10 @@ trait SliceCompanion extends SliceBuildFrom {
 
   @inline final def intersects[T](range1: (Slice[T], Slice[T]),
                                   range2: (Slice[T], Slice[T]))(implicit ordering: Ordering[Slice[T]]): Boolean =
-    intersects((range1._1, range1._2, true), (range2._1, range2._2, true))
+    intersects(
+      range1 = (range1._1, range1._2, true),
+      range2 = (range2._1, range2._2, true)
+    )
 
   def within[T](key: Slice[T],
                 minKey: Slice[T],
@@ -219,6 +224,7 @@ trait SliceCompanion extends SliceBuildFrom {
                 maxKey: T,
                 maxKeyInclusive: Boolean)(implicit keyOrder: Ordering[T]): Boolean = {
     import keyOrder._
+
     key >= minKey && {
       if (maxKeyInclusive)
         key <= maxKey
@@ -315,10 +321,12 @@ trait SliceCompanion extends SliceBuildFrom {
      */
     @inline final def closeAll(): Slice[Slice[T]] = {
       val newSlices = of[Slice[T]](slices.close().size)
+
       slices foreach {
         slice =>
           newSlices.add(slice.close())
       }
+
       newSlices
     }
   }
