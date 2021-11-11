@@ -140,14 +140,7 @@ object IO {
   type BootIO[+T] = IO[Error.Boot, T]
 
   val unit: IO.Right[Nothing, Unit] = IO.Right(())(IO.ExceptionHandler.Nothing)
-  val unitUnit: IO.Right[Nothing, IO.Right[Nothing, Unit]] = IO.Right(IO.Right(())(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
   val none: IO.Right[Nothing, Option[Nothing]] = IO.Right(None)(IO.ExceptionHandler.Nothing)
-  val `false`: IO.Right[Nothing, Boolean] = IO.Right(false)(IO.ExceptionHandler.Nothing)
-  val `true`: IO.Right[Nothing, Boolean] = IO.Right(true)(IO.ExceptionHandler.Nothing)
-  val someTrue: IO[Nothing, Some[Boolean]] = IO.Right(Some(true))(IO.ExceptionHandler.Nothing)
-  val someFalse: IO[Nothing, Some[Boolean]] = IO.Right(Some(false))(IO.ExceptionHandler.Nothing)
-  val zero: IO.Right[Nothing, Int] = IO.Right(0)(IO.ExceptionHandler.Nothing)
-  val zeroZero: IO[Nothing, IO.Right[Nothing, Int]] = IO.Right(IO.Right(0)(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
 
   @inline final def tryOrNone[A](block: => A): Option[A] =
     try

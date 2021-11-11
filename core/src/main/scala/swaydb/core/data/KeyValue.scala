@@ -46,18 +46,12 @@ private[core] sealed trait KeyValueOption {
 }
 
 private[core] sealed trait KeyValue extends Assignable.Point {
-  def key: Slice[Byte]
 
   def indexEntryDeadline: Option[Deadline]
-  def toMemory(): Memory
 
-  def keyLength =
-    key.size
 }
 
 private[core] object KeyValue {
-
-  val emptyIterable = Iterable.empty[KeyValue]
 
   sealed trait Null extends KeyValueOption
 
@@ -290,8 +284,6 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOption {
 
 private[swaydb] object Memory {
 
-  val emtpySeq = Seq.empty[Memory]
-
   final case object Null extends MemoryOption with KeyValue.Null {
     override val isNoneS: Boolean = true
 
@@ -443,7 +435,7 @@ private[swaydb] object Memory {
     override def toRangeValue(): Value.RangeValue =
       throw IO.throwable("Put cannot be converted to RangeValue")
 
-    override def toMemory: Memory.Put =
+    override def toMemory(): Memory.Put =
       this
   }
 
@@ -525,7 +517,7 @@ private[swaydb] object Memory {
     override def toRangeValue(): Value.Update =
       toFromValue()
 
-    override def toMemory: Memory.Update =
+    override def toMemory(): Memory.Update =
       this
   }
 
@@ -577,7 +569,7 @@ private[swaydb] object Memory {
     override def toRangeValue(): Value.Function =
       toFromValue()
 
-    override def toMemory: Memory.Function =
+    override def toMemory(): Memory.Function =
       this
   }
 
@@ -627,7 +619,7 @@ private[swaydb] object Memory {
     override def toRangeValue(): Value.PendingApply =
       toFromValue()
 
-    override def toMemory: Memory.PendingApply =
+    override def toMemory(): Memory.PendingApply =
       this
   }
 
@@ -683,7 +675,7 @@ private[swaydb] object Memory {
     override def toRangeValue(): Value.Remove =
       toFromValue()
 
-    override def toMemory: Memory.Remove =
+    override def toMemory(): Memory.Remove =
       this
 
   }
@@ -762,7 +754,7 @@ private[swaydb] object Memory {
     override def fetchFromAndRangeValueUnsafe: (Value.FromValueOption, Value.RangeValue) =
       (fromValue, rangeValue)
 
-    override def toMemory: Memory.Range =
+    override def toMemory(): Memory.Range =
       this
 
   }

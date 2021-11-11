@@ -75,7 +75,6 @@ object Assignable {
   }
 
   trait Point extends Assignable {
-    def key: Slice[Byte]
     def toMemory(): Memory
   }
 

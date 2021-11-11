@@ -313,7 +313,7 @@ private[swaydb] object Effect extends LazyLogging {
         emptyFolder && !nonEmptyFiles
       }
     else
-      IO.`true`
+      IO.Right(true)
 
   @inline def round(double: Double, scale: Int = 6): BigDecimal =
     BigDecimal(double).setScale(scale, BigDecimal.RoundingMode.HALF_UP)
