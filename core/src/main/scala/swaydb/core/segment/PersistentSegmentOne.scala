@@ -180,7 +180,7 @@ protected case object PersistentSegmentOne {
                           forceSaveApplier: ForceSaveApplier,
                           segmentIO: SegmentReadIO): PersistentSegment = {
 
-    val fileSize = file.fileSize.toInt
+    val fileSize = file.fileSize
 
     val refReader =
       BlockRefReader(

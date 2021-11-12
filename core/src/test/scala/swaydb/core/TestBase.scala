@@ -422,8 +422,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
   object TestLevelZero {
 
     def apply(nextLevel: Option[Level],
-              logSize: Long = randomIntMax(10.mb),
-              appliedFunctionsLogSize: Long = randomIntMax(1.mb),
+              logSize: Int = randomIntMax(10.mb),
+              appliedFunctionsLogSize: Int = randomIntMax(1.mb),
               clearAppliedFunctionsOnBoot: Boolean = false,
               enableTimer: Boolean = true,
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
@@ -495,7 +495,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     ).sweep()
   }
 
-  def createWriteableMMAPFile(path: Path, bufferSize: Long)(implicit sweeper: TestCaseSweeper): DBFile = {
+  def createWriteableMMAPFile(path: Path, bufferSize: Int)(implicit sweeper: TestCaseSweeper): DBFile = {
     import sweeper._
 
     DBFile.mmapInit(

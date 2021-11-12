@@ -23,7 +23,7 @@ import java.nio.file.Path
 
 protected class MemoryLog[K, V, C <: LogCache[K, V]](val cache: C,
                                                      flushOnOverflow: Boolean,
-                                                     val fileSize: Long) extends Log[K, V, C] with LazyLogging {
+                                                     val fileSize: Int) extends Log[K, V, C] with LazyLogging {
 
   private var currentBytesWritten: Long = 0
   var skipListKeyValuesMaxCount: Int = 0

@@ -76,7 +76,7 @@ private[core] object Timer {
   def persistent(path: Path,
                  mmap: MMAP.Log,
                  mod: Long = 100000,
-                 fileSize: Long = 1.mb)(implicit bufferCleaner: ByteBufferSweeperActor,
+                 fileSize: Int = 1.mb)(implicit bufferCleaner: ByteBufferSweeperActor,
                                         forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Log, PersistentTimer] = {
     implicit val writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]] = CounterLogEntryWriter.CounterPutLogEntryWriter
     implicit val reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]] = CounterLogEntryReader.CounterPutLogEntryReader

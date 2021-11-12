@@ -33,7 +33,7 @@ import scala.annotation.tailrec
 private[file] object MMAPFile {
 
   def write(path: Path,
-            bufferSize: Long,
+            bufferSize: Int,
             deleteAfterClean: Boolean,
             forceSave: ForceSave.MMAPFiles)(implicit cleaner: ByteBufferSweeperActor,
                                             forceSaveApplier: ForceSaveApplier): MMAPFile =
@@ -55,7 +55,7 @@ private[file] object MMAPFile {
       path = path,
       channel = channel,
       mode = MapMode.READ_ONLY,
-      bufferSize = channel.size(),
+      bufferSize = Effect.getIntFileSizeOrFail(channel),
       deleteAfterClean = deleteAfterClean,
       forceSave = ForceSave.Off
     )
@@ -64,7 +64,7 @@ private[file] object MMAPFile {
   private def apply(path: Path,
                     channel: FileChannel,
                     mode: MapMode,
-                    bufferSize: Long,
+                    bufferSize: Int,
                     deleteAfterClean: Boolean,
                     forceSave: ForceSave.MMAPFiles)(implicit cleaner: ByteBufferSweeperActor,
                                                     forceSaveApplier: ForceSaveApplier): MMAPFile = {
@@ -84,7 +84,7 @@ private[file] object MMAPFile {
 private[file] class MMAPFile(val path: Path,
                              val channel: FileChannel,
                              mode: MapMode,
-                             bufferSize: Long,
+                             bufferSize: Int,
                              val deleteAfterClean: Boolean,
                              val forceSaveConfig: ForceSave.MMAPFiles,
                              @volatile private var buffer: MappedByteBuffer)(implicit cleaner: ByteBufferSweeperActor,
@@ -182,9 +182,12 @@ private[file] class MMAPFile(val path: Path,
         watchNullPointer {
           //Although this code extends the buffer, currently there is no implementation that requires this feature.
           //All the bytes requires for each write operation are pre-calculated EXACTLY and an overflow should NEVER occur.
-          val requiredByteSize = slice.size.toLong
-          logger.debug("{}: BufferOverflowException. Required bytes: {}. Remaining bytes: {}. Extending buffer with {} bytes.",
-            path, requiredByteSize, buffer.remaining(), requiredByteSize, ex)
+          val requiredByteSize = slice.size
+
+          logger.debug(
+            "{}: BufferOverflowException. Required bytes: {}. Remaining bytes: {}. Extending buffer with {} bytes.",
+            path, requiredByteSize, buffer.remaining(), requiredByteSize, ex
+          )
 
           val positionBeforeClear = buffer.position()
           buffer.force()
@@ -238,11 +241,11 @@ private[file] class MMAPFile(val path: Path,
       buffer.get(position)
     }
 
-  override def size =
-    watchNullPointer(channel.size())
+  override def size: Int =
+    watchNullPointer(Effect.getIntFileSizeOrFail(channel))
 
   override def readAll: Slice[Byte] =
-    watchNullPointer(read(0, channel.size().toInt))
+    watchNullPointer(read(0, Effect.getIntFileSizeOrFail(channel)))
 
   override def isOpen =
     watchNullPointer(channel.isOpen)

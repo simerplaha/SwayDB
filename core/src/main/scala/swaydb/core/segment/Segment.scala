@@ -77,7 +77,7 @@ private[core] case object Segment extends LazyLogging {
   def memory(minSegmentSize: Int,
              maxKeyValueCountPerSegment: Int,
              pathsDistributor: PathsDistributor,
-             createdInLevel: Long,
+             createdInLevel: Int,
              stats: MergeStats.Memory.ClosedIgnoreStats[IterableOnce])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                                        functionStore: FunctionStore,
@@ -180,7 +180,7 @@ private[core] case object Segment extends LazyLogging {
             rangeCount = rangeCount,
             putCount = putCount,
             putDeadlineCount = putDeadlineCount,
-            createdInLevel = createdInLevel.toInt,
+            createdInLevel = createdInLevel,
             skipList = skipList,
             nearestPutDeadline = nearestDeadline,
             pathsDistributor = pathsDistributor

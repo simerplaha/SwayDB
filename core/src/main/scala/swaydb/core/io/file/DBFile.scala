@@ -275,7 +275,7 @@ object DBFile extends LazyLogging {
 
   def mmapInit(path: Path,
                fileOpenIOStrategy: IOStrategy.ThreadSafe,
-               bufferSize: Long,
+               bufferSize: Int,
                autoClose: Boolean,
                deleteAfterClean: Boolean,
                forceSave: ForceSave.MMAPFiles)(implicit fileSweeper: FileSweeper,
@@ -380,7 +380,7 @@ class DBFile(val path: Path,
     else
       fileCache.value(()).get.read(position = position, size = size)
 
-  def transfer(position: Int, count: Int, transferTo: DBFile): Long =
+  def transfer(position: Int, count: Int, transferTo: DBFile): Int =
     file.transfer(
       position = position,
       count = count,
@@ -396,7 +396,7 @@ class DBFile(val path: Path,
   def readAll: Slice[Byte] =
     fileCache.value(()).get.readAll
 
-  def fileSize: Long =
+  def fileSize: Int =
     fileCache.value(()).get.size
 
   //memory files are never closed, if it's memory file return true.

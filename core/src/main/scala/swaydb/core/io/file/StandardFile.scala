@@ -108,13 +108,13 @@ private[file] class StandardFile(val path: Path,
     read(position, 1).head
 
   def readAll: Slice[Byte] = {
-    val bytes = new Array[Byte](channel.size().toInt)
+    val bytes = new Array[Byte](Effect.getIntFileSizeOrFail(channel))
     channel.read(ByteBuffer.wrap(bytes))
     Slice(bytes)
   }
 
-  def size: Long =
-    channel.size()
+  def size: Int =
+    Effect.getIntFileSizeOrFail(channel)
 
   override def isOpen =
     channel.isOpen

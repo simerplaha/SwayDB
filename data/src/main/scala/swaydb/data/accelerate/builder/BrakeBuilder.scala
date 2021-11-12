@@ -25,7 +25,7 @@ import scala.concurrent.duration.FiniteDuration
 class BrakeBuilder {
   private var increaseLogSizeOnMapCount: Int = _
   private var increaseLogSizeBy: Int = _
-  private var maxLogSize: Long = _
+  private var maxLogSize: Int = _
   private var brakeOnMapCount: Int = _
   private var brakeFor: FiniteDuration = _
   private var releaseRate: FiniteDuration = _
@@ -49,7 +49,7 @@ object BrakeBuilder {
   }
 
   class Step2(builder: BrakeBuilder) {
-    def maxLogSize(maxLogSize: Long) = {
+    def maxLogSize(maxLogSize: Int) = {
       builder.maxLogSize = maxLogSize
       new Step3(builder)
     }

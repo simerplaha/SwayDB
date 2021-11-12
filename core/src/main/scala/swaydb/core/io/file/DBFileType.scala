@@ -44,7 +44,7 @@ private[file] trait DBFileType extends FileSweeperItem {
 
   def readAll: Slice[Byte]
 
-  def size: Long
+  def size: Int
 
   def append(slice: Slice[Byte]): Unit
 

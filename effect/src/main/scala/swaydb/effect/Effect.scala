@@ -56,6 +56,13 @@ private[swaydb] object Effect extends LazyLogging {
       Effect.exists(path)
   }
 
+  @inline def getIntFileSizeOrFail(channel: FileChannel): Int = {
+    val fileSize = channel.size()
+    val fileIntSize = fileSize.toInt
+    assert(fileSize == fileIntSize, s"file size $fileSize is larger than ${Int.MaxValue}")
+    fileIntSize
+  }
+
   def overwrite(to: Path,
                 bytes: Array[Byte]): Path =
     Files.write(to, bytes)

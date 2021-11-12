@@ -27,7 +27,7 @@ private[core] object BlockRefReader {
 
   def apply(file: DBFile,
             blockCache: Option[BlockCacheState]): BlockRefReader[SegmentBlockOffset] = {
-    val offset = SegmentBlockOffset(0, file.fileSize.toInt)
+    val offset = SegmentBlockOffset(0, file.fileSize)
 
     new BlockRefReader(
       offset = offset,
@@ -111,7 +111,7 @@ private[core] object BlockRefReader {
                               start: Int,
                               blockCache: Option[BlockCacheState])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader[O](
-      offset = blockOps.createOffset(ref.offset.start + start, ref.size.toInt),
+      offset = blockOps.createOffset(ref.offset.start + start, ref.size),
       rootBlockRefOffset = ref.rootBlockRefOffset,
       blockCache = blockCache,
       reader = ref.reader
@@ -130,10 +130,10 @@ private[core] object BlockRefReader {
 
   def apply[O <: BlockOffset](reader: Reader[Byte],
                               blockCache: Option[BlockCacheState])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] = {
-    val offset = blockOps.createOffset(0, reader.size.toInt)
+    val offset = blockOps.createOffset(0, reader.size)
 
     new BlockRefReader(
-      offset = blockOps.createOffset(0, reader.size.toInt),
+      offset = blockOps.createOffset(0, reader.size),
       rootBlockRefOffset = offset,
       blockCache = blockCache,
       reader = reader
@@ -145,11 +145,6 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
                                                              val rootBlockRefOffset: BlockOffset,
                                                              val blockCache: Option[BlockCacheState],
                                                              private[reader] val reader: Reader[Byte])(implicit val byteOps: ByteOps[Byte]) extends BlockReaderBase {
-
-  override def moveTo(newPosition: Long): BlockRefReader[O] = {
-    moveTo(newPosition.toInt)
-    this
-  }
 
   override def moveTo(newPosition: Int): BlockRefReader[O] = {
     super.moveTo(newPosition)

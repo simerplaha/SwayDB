@@ -26,8 +26,8 @@ import swaydb.utils.Java.JavaFunction
  * Java Builder class for [[swaydb.data.config.MemoryLevelZeroConfig]]
  */
 class MemoryLevelZeroConfigBuilder {
-  private var logSize: Long = _
-  private var appliedFunctionsLogSize: Long = _
+  private var logSize: Int = _
+  private var appliedFunctionsLogSize: Int = _
   private var clearAppliedFunctionsOnBoot: Boolean = _
   private var acceleration: LevelZeroMeter => Accelerator = _
   private var optimiseWrites: OptimiseWrites = _
@@ -37,14 +37,14 @@ class MemoryLevelZeroConfigBuilder {
 object MemoryLevelZeroConfigBuilder {
 
   class Step0(builder: MemoryLevelZeroConfigBuilder) {
-    def logSize(logSize: Long) = {
+    def logSize(logSize: Int) = {
       builder.logSize = logSize
       new Step1(builder)
     }
   }
 
   class Step1(builder: MemoryLevelZeroConfigBuilder) {
-    def appliedFunctionsLogSize(logSize: Long) = {
+    def appliedFunctionsLogSize(logSize: Int) = {
       builder.appliedFunctionsLogSize = logSize
       new Step2(builder)
     }

@@ -166,7 +166,7 @@ private[core] case object SegmentFooterBlock {
 
   //all these functions are wrapper with a try catch block with value only to make it easier to read.
   def read(reader: UnblockedReader[SegmentBlockOffset, SegmentBlock]): SegmentFooterBlock = {
-    val segmentBlockSize = reader.size.toInt
+    val segmentBlockSize = reader.size
     val approximateFooterOffset = (segmentBlockSize - SegmentFooterBlock.optimalBytesRequired) max 0
     val fullFooterBytes = Reader(reader.moveTo(approximateFooterOffset).readRemaining())
     val footerOffsetAndCrc = fullFooterBytes.moveTo(fullFooterBytes.size - (ByteSizeOf.int + ByteSizeOf.long))

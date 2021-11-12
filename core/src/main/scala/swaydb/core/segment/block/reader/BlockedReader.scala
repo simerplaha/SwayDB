@@ -61,11 +61,6 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
   def offset: O =
     block.offset
 
-  override def moveTo(newPosition: Long): BlockedReader[O, B] = {
-    moveTo(newPosition.toInt)
-    this
-  }
-
   override def moveTo(newPosition: Int): BlockedReader[O, B] = {
     super.moveTo(newPosition)
     this

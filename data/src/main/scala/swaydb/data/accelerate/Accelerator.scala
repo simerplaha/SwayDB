@@ -28,7 +28,7 @@ import scala.concurrent.duration._
  */
 object Accelerator {
 
-  def apply(nextLogSize: Long, brake: Optional[Brake]): Accelerator =
+  def apply(nextLogSize: Int, brake: Optional[Brake]): Accelerator =
     new Accelerator(
       nextLogSize = nextLogSize,
       brake = brake.asScala
@@ -39,7 +39,7 @@ object Accelerator {
    */
   private def nextLogSize(mapCount: Int,
                           increaseLogSizeBy: Int,
-                          maxLogSize: Long,
+                          maxLogSize: Int,
                           level0Meter: LevelZeroMeter) =
     if (level0Meter.logsCount < mapCount)
       level0Meter.defaultLogSize
@@ -51,7 +51,7 @@ object Accelerator {
    */
   def brake(increaseLogSizeOnMapCount: Int = 4,
             increaseLogSizeBy: Int = 2,
-            maxLogSize: Long = 24.mb,
+            maxLogSize: Int = 24.mb,
             brakeOnMapCount: Int = 6,
             brakeFor: FiniteDuration = 50.milliseconds,
             releaseRate: FiniteDuration = 1.millisecond,
@@ -84,7 +84,7 @@ object Accelerator {
 
   def noBrakes(onMapCount: Int = 6,
                increaseLogSizeBy: Int = 2,
-               maxLogSize: Long = 24.mb)(level0Meter: LevelZeroMeter): Accelerator =
+               maxLogSize: Int = 24.mb)(level0Meter: LevelZeroMeter): Accelerator =
     Accelerator(
       nextLogSize =
         nextLogSize(
@@ -107,5 +107,5 @@ object Accelerator {
 /**
  * http://swaydb.io/configuring-levels/acceleration
  */
-case class Accelerator(nextLogSize: Long,
+case class Accelerator(nextLogSize: Int,
                        brake: Option[Brake])

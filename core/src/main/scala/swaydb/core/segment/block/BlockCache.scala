@@ -116,7 +116,7 @@ private[core] object BlockCache extends LazyLogging {
       else
         (state.blockSizeDouble * Math.ceil(Math.abs(size / state.blockSizeDouble))).toInt
 
-    ((sourceSize.toInt - lowerFilePosition) min seekSize) max 0
+    ((sourceSize - lowerFilePosition) min seekSize) max 0
   }
 
   def seekPosition(position: Int, state: BlockCacheState): Int =

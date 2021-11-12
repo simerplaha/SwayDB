@@ -36,9 +36,9 @@ class BlockCacheSpec extends TestBase with MockFactory {
     val blockSize = 10
 
     def createTestData(): (BlockCacheSource, BlockCacheState) = {
-      val file =
+      val file: BlockCacheSource =
         new BlockCacheSource {
-          override def blockCacheMaxBytes: Long =
+          override def blockCacheMaxBytes: Int =
             bytes.size
 
           override def readFromSource(filePosition: Int, size: Int): Slice[Byte] =
@@ -57,7 +57,7 @@ class BlockCacheSpec extends TestBase with MockFactory {
         "size == blockSize" in {
           val (source, state) = createTestData()
 
-          (0 to source.blockCacheMaxBytes.toInt - blockSize).filter(_ % blockSize == 0) foreach {
+          (0 to source.blockCacheMaxBytes - blockSize).filter(_ % blockSize == 0) foreach {
             position =>
               val size =
                 BlockCache.seekSize(
@@ -99,7 +99,7 @@ class BlockCacheSpec extends TestBase with MockFactory {
           val (file, state) = createTestData()
           //in reality position should be multiples of blockSize.
           //but this works for the test-case.
-          ((file.blockCacheMaxBytes.toInt - blockSize + 1) to file.blockCacheMaxBytes.toInt) foreach {
+          ((file.blockCacheMaxBytes - blockSize + 1) to file.blockCacheMaxBytes) foreach {
             position =>
               val size =
                 BlockCache.seekSize(
@@ -110,7 +110,7 @@ class BlockCacheSpec extends TestBase with MockFactory {
                 )
 
               println(s"position: $position -> size: $size")
-              size shouldBe file.blockCacheMaxBytes.toInt - position
+              size shouldBe file.blockCacheMaxBytes - position
           }
         }
       }

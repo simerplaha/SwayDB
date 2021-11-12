@@ -28,13 +28,8 @@ private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[B
   def isLoaded: Boolean =
     file.isLoaded
 
-  override def size: Long =
+  override def size: Int =
     file.fileSize
-
-  def moveTo(newPosition: Long): FileReader = {
-    position = newPosition.toInt max 0
-    this
-  }
 
   def moveTo(newPosition: Int): FileReader = {
     position = newPosition max 0
@@ -44,7 +39,7 @@ private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[B
   def hasMore: Boolean =
     position < size
 
-  def hasAtLeast(size: Long): Boolean =
+  def hasAtLeast(size: Int): Boolean =
     (file.fileSize - position) >= size
 
   override def copy(): FileReader =

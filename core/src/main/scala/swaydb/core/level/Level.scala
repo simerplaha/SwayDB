@@ -228,7 +228,7 @@ private[core] case object Level extends LazyLogging {
   /**
    * A Segment is considered small if it's size is less than 40% of the default [[Level.minSegmentSize]]
    */
-  def isSmallSegment(segment: Segment, levelSegmentSize: Long): Boolean =
+  def isSmallSegment(segment: Segment, levelSegmentSize: Int): Boolean =
     segment.segmentSize < levelSegmentSize * 0.40
 
   def deleteUncommittedSegments(dirs: Seq[Dir], appendixSegments: Iterable[Segment]): IO[swaydb.Error.Level, Unit] =

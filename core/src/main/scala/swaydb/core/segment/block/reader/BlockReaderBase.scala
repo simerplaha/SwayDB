@@ -42,7 +42,7 @@ private[block] trait BlockReaderBase extends ReaderBase[Byte] with BlockCacheSou
   override val isFile: Boolean =
     reader.isFile
 
-  override def remaining: Long =
+  override def remaining: Int =
     offset.size - position
 
   def moveTo(position: Int) = {
@@ -53,13 +53,13 @@ private[block] trait BlockReaderBase extends ReaderBase[Byte] with BlockCacheSou
   override def hasMore: Boolean =
     hasAtLeast(1)
 
-  override def hasAtLeast(atLeastSize: Long): Boolean =
+  override def hasAtLeast(atLeastSize: Int): Boolean =
     hasAtLeast(position, atLeastSize)
 
-  def hasAtLeast(fromPosition: Long, atLeastSize: Long): Boolean =
+  def hasAtLeast(fromPosition: Int, atLeastSize: Int): Boolean =
     (offset.size - fromPosition) >= atLeastSize
 
-  override def size: Long =
+  override def size: Int =
     offset.size
 
   override def getPosition: Int =
@@ -87,7 +87,7 @@ private[block] trait BlockReaderBase extends ReaderBase[Byte] with BlockCacheSou
     }
 
   override def read(size: Int): Slice[Byte] = {
-    val remaining = this.remaining.toInt
+    val remaining = this.remaining
     if (remaining <= 0) {
       Slice.emptyBytes
     } else {
@@ -116,7 +116,7 @@ private[block] trait BlockReaderBase extends ReaderBase[Byte] with BlockCacheSou
       .moveTo(position + rootBlockRefOffset.start)
       .read(size)
 
-  override def blockCacheMaxBytes: Long =
+  override def blockCacheMaxBytes: Int =
     rootBlockRefOffset.size
 
   def readFullBlock(): Slice[Byte] =

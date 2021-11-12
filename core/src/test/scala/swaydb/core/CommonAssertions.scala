@@ -1631,7 +1631,7 @@ object CommonAssertions {
       blockRef =
         reader match {
           case reader: FileReader =>
-            BlockRefReader(reader.file, BlockCache.forSearch(reader.size.toInt, blockCacheMemorySweeper))
+            BlockRefReader(reader.file, BlockCache.forSearch(reader.size, blockCacheMemorySweeper))
 
           case SliceReader(slice, position) =>
             BlockRefReader[SegmentBlockOffset](slice.drop(position))

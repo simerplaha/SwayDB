@@ -60,8 +60,8 @@ private[core] case object LevelZero extends LazyLogging {
 
   type LevelZeroLog = Log[Slice[Byte], Memory, LevelZeroLogCache]
 
-  def apply(logSize: Long,
-            appliedFunctionsLogSize: Long,
+  def apply(logSize: Int,
+            appliedFunctionsLogSize: Int,
             clearAppliedFunctionsOnBoot: Boolean,
             storage: Level0Storage,
             enableTimer: Boolean,
@@ -256,7 +256,7 @@ private[core] case object LevelZero extends LazyLogging {
 }
 
 private[swaydb] case class LevelZero(path: Path,
-                                     logSize: Long,
+                                     logSize: Int,
                                      logs: Logs[Slice[Byte], Memory, LevelZeroLogCache],
                                      nextLevel: Option[NextLevel],
                                      inMemory: Boolean,

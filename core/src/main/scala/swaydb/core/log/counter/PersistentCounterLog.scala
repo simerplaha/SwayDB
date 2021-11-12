@@ -48,7 +48,7 @@ private[core] case object PersistentCounterLog extends LazyLogging {
   private[counter] def apply(path: Path,
                              mmap: MMAP.Log,
                              mod: Long,
-                             fileSize: Long)(implicit bufferCleaner: ByteBufferSweeperActor,
+                             fileSize: Int)(implicit bufferCleaner: ByteBufferSweeperActor,
                                              forceSaveApplier: ForceSaveApplier,
                                              writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]],
                                              reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Log, PersistentCounterLog] = {

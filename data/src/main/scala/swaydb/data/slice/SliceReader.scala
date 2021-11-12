@@ -28,10 +28,10 @@ case class SliceReader[B](slice: Slice[B],
 
   def path = Paths.get(this.productPrefix)
 
-  override def size: Long =
+  override def size: Int =
     slice.size
 
-  def hasAtLeast(size: Long): Boolean =
+  def hasAtLeast(size: Int): Boolean =
     (slice.size - position) >= size
 
   def read(size: Int): Slice[B] =
@@ -42,11 +42,6 @@ case class SliceReader[B](slice: Slice[B],
       position += size
       bytes
     }
-
-  def moveTo(newPosition: Long): SliceReader[B] = {
-    position = newPosition.toInt max 0
-    this
-  }
 
   def moveTo(newPosition: Int): SliceReader[B] = {
     position = newPosition max 0

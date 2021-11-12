@@ -31,7 +31,7 @@ class PersistentLevelConfigBuilder {
   private var dir: Path = _
   private var otherDirs: Seq[Dir] = _
   private var mmapAppendixLogs: MMAP.Log = _
-  private var appendixFlushCheckpointSize: Long = _
+  private var appendixFlushCheckpointSize: Int = _
   private var sortedIndex: SortedIndex = _
   private var hashIndex: HashIndex = _
   private var binarySearchIndex: BinarySearchIndex = _
@@ -73,7 +73,7 @@ object PersistentLevelConfigBuilder {
   }
 
   class Step3(builder: PersistentLevelConfigBuilder) {
-    def appendixFlushCheckpointSize(appendixFlushCheckpointSize: Long) = {
+    def appendixFlushCheckpointSize(appendixFlushCheckpointSize: Int) = {
       builder.appendixFlushCheckpointSize = appendixFlushCheckpointSize
       new Step4(builder)
     }

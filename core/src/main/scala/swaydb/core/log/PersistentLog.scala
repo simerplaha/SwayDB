@@ -38,7 +38,7 @@ private[log] object PersistentLog extends LazyLogging {
   private[log] def apply[K, V, C <: LogCache[K, V]](folder: Path,
                                                     mmap: MMAP.Log,
                                                     flushOnOverflow: Boolean,
-                                                    fileSize: Long,
+                                                    fileSize: Int,
                                                     dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
                                                                                        fileSweeper: FileSweeper,
                                                                                        bufferCleaner: ByteBufferSweeperActor,
@@ -78,7 +78,7 @@ private[log] object PersistentLog extends LazyLogging {
   private[log] def apply[K, V, C <: LogCache[K, V]](folder: Path,
                                                     mmap: MMAP.Log,
                                                     flushOnOverflow: Boolean,
-                                                    fileSize: Long)(implicit keyOrder: KeyOrder[K],
+                                                    fileSize: Int)(implicit keyOrder: KeyOrder[K],
                                                                     fileSweeper: FileSweeper,
                                                                     bufferCleaner: ByteBufferSweeperActor,
                                                                     cacheBuilder: LogCacheBuilder[C],
@@ -105,7 +105,7 @@ private[log] object PersistentLog extends LazyLogging {
 
   private[log] def firstFile(folder: Path,
                              memoryMapped: MMAP.Log,
-                             fileSize: Long)(implicit fileSweeper: FileSweeper,
+                             fileSize: Int)(implicit fileSweeper: FileSweeper,
                                              bufferCleaner: ByteBufferSweeperActor,
                                              forceSaveApplier: ForceSaveApplier): DBFile =
     memoryMapped match {
@@ -131,7 +131,7 @@ private[log] object PersistentLog extends LazyLogging {
 
   private[log] def recover[K, V, C <: LogCache[K, V]](folder: Path,
                                                       mmap: MMAP.Log,
-                                                      fileSize: Long,
+                                                      fileSize: Int,
                                                       cache: C,
                                                       dropCorruptedTailEntries: Boolean)(implicit writer: LogEntryWriter[LogEntry.Put[K, V]],
                                                                                          mapReader: LogEntryReader[LogEntry[K, V]],
@@ -194,7 +194,7 @@ private[log] object PersistentLog extends LazyLogging {
    */
   private[log] def nextFile[K, V, C <: LogCache[K, V]](oldFiles: Slice[DBFile],
                                                        mmap: MMAP.Log,
-                                                       fileSize: Long,
+                                                       fileSize: Int,
                                                        cache: C)(implicit writer: LogEntryWriter[LogEntry.Put[K, V]],
                                                                  fileSweeper: FileSweeper,
                                                                  bufferCleaner: ByteBufferSweeperActor,
@@ -226,7 +226,7 @@ private[log] object PersistentLog extends LazyLogging {
 
   private[log] def nextFile[K, V, C <: LogCache[K, V]](currentFile: DBFile,
                                                        mmap: MMAP.Log,
-                                                       size: Long,
+                                                       size: Int,
                                                        cache: C)(implicit writer: LogEntryWriter[LogEntry.Put[K, V]],
                                                                  fileSweeper: FileSweeper,
                                                                  bufferCleaner: ByteBufferSweeperActor,
@@ -264,7 +264,7 @@ private[log] object PersistentLog extends LazyLogging {
 
 protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
                                                               mmap: MMAP.Log,
-                                                              fileSize: Long,
+                                                              fileSize: Int,
                                                               flushOnOverflow: Boolean,
                                                               cache: C,
                                                               private var currentFile: DBFile)(implicit val fileSweeper: FileSweeper,
@@ -276,7 +276,7 @@ protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
   // In this case a file is created just to fit those bytes (for that one entry).
   // For eg: if fileSize is 4.mb and the entry size is 5.mb, a new file is created with 5.mb for that one entry.
   // all the subsequent entries value added to 4.mb files, if it fits, or else the size is extended again.
-  private var actualFileSize: Long = fileSize
+  private var actualFileSize: Int = fileSize
   // does not account of flushed entries.
   private var bytesWritten: Long = 0
   //minimum of writes we should see before logging out warning messages that the fileSize is too small.
@@ -318,7 +318,7 @@ protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
       //flushOnOverflow is executed if the current file is empty, even if flushOnOverflow = false.
       false
     } else {
-      val nextFilesSize = entryTotalByteSize.toLong max fileSize
+      val nextFilesSize = entryTotalByteSize max fileSize
 
       try {
         val newFile =

@@ -29,8 +29,8 @@ import java.nio.file.Path
  */
 class PersistentLevelZeroConfigBuilder {
   private var dir: Path = _
-  private var logSize: Long = _
-  private var appliedFunctionsLogSize: Long = _
+  private var logSize: Int = _
+  private var appliedFunctionsLogSize: Int = _
   private var clearAppliedFunctionsOnBoot: Boolean = _
   private var mmap: MMAP.Log = _
   private var recoveryMode: RecoveryMode = _
@@ -49,14 +49,14 @@ object PersistentLevelZeroConfigBuilder {
   }
 
   class Step1(builder: PersistentLevelZeroConfigBuilder) {
-    def logSize(logSize: Long) = {
+    def logSize(logSize: Int) = {
       builder.logSize = logSize
       new Step2(builder)
     }
   }
 
   class Step2(builder: PersistentLevelZeroConfigBuilder) {
-    def appliedFunctionsLogSize(logSize: Long) = {
+    def appliedFunctionsLogSize(logSize: Int) = {
       builder.appliedFunctionsLogSize = logSize
       new Step3(builder)
     }

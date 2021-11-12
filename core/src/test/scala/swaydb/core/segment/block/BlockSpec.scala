@@ -349,7 +349,7 @@ class BlockSpec extends TestBase {
     val child1DecompressedBytes = Block.unblock(child1Ref)
     child1DecompressedBytes.readFullBlock() shouldBe child1Bytes
 
-    val child2Ref = BlockRefReader.moveTo[ValuesBlockOffset, ValuesBlockOffset](child1Ref.size.toInt, compressedChildBytes2.size, decompressedRoot.copy(), None)
+    val child2Ref = BlockRefReader.moveTo[ValuesBlockOffset, ValuesBlockOffset](child1Ref.size, compressedChildBytes2.size, decompressedRoot.copy(), None)
     val child2DecompressedBytes = Block.unblock(child2Ref)
     child2DecompressedBytes.readFullBlock() shouldBe child2Bytes
   }

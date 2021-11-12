@@ -38,7 +38,7 @@ case object AppliedFunctionsLog extends LazyLogging {
   val folderName = "def-applied"
 
   def apply(dir: Path,
-            fileSize: Long,
+            fileSize: Int,
             mmap: MMAP.Log)(implicit bufferCleaner: ByteBufferSweeperActor,
                             forceSaveApplier: ForceSaveApplier): RecoveryResult[log.PersistentLog[Slice[Byte], Slice.Null.type, AppliedFunctionsLogCache]] = {
     val folder = dir.resolve(folderName)

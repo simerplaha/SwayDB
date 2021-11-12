@@ -34,15 +34,13 @@ trait ReaderBase[B] { self =>
 
   def read(size: Int): Slice[B]
 
-  def size: Long
+  def size: Int
 
   def hasMore: Boolean
 
-  def hasAtLeast(size: Long): Boolean
+  def hasAtLeast(size: Int): Boolean
 
   def getPosition: Int
-
-  def moveTo(position: Long): ReaderBase[B]
 
   def moveTo(position: Int): ReaderBase[B]
 
@@ -52,10 +50,7 @@ trait ReaderBase[B] { self =>
 
   def copy(): ReaderBase[B]
 
-  def read(size: Long): Slice[B] =
-    read(size.toInt)
-
-  @inline def skip(skip: Long): ReaderBase[B] =
+  @inline def skip(skip: Int): ReaderBase[B] =
     moveTo(getPosition + skip)
 
   @inline def readBoolean(): Boolean =
@@ -121,7 +116,7 @@ trait ReaderBase[B] { self =>
   @inline def readStringWithSizeUTF8(): String =
     byteOps.readStringWithSizeUTF8(self)
 
-  @inline def remaining: Long =
+  @inline def remaining: Int =
     size - getPosition
 
   @inline def reset(): ReaderBase[B] =

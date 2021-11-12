@@ -42,7 +42,7 @@ private[core] object Logs extends LazyLogging {
 
   val closeErrorMessage = "Cannot perform write on a closed instance."
 
-  def memory[K, V, C <: LogCache[K, V]](fileSize: Long,
+  def memory[K, V, C <: LogCache[K, V]](fileSize: Int,
                                         acceleration: LevelZeroMeter => Accelerator)(implicit keyOrder: KeyOrder[K],
                                                                                      fileSweeper: FileSweeper,
                                                                                      bufferCleaner: ByteBufferSweeperActor,
@@ -66,7 +66,7 @@ private[core] object Logs extends LazyLogging {
 
   def persistent[K, V, C <: LogCache[K, V]](path: Path,
                                             mmap: MMAP.Log,
-                                            fileSize: Long,
+                                            fileSize: Int,
                                             acceleration: LevelZeroMeter => Accelerator,
                                             recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
                                                                     fileSweeper: FileSweeper,
@@ -133,7 +133,7 @@ private[core] object Logs extends LazyLogging {
 
   private def recover[K, V, C <: LogCache[K, V]](folder: Path,
                                                  mmap: MMAP.Log,
-                                                 fileSize: Long,
+                                                 fileSize: Int,
                                                  recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
                                                                          fileSweeper: FileSweeper,
                                                                          bufferCleaner: ByteBufferSweeperActor,
@@ -256,7 +256,7 @@ private[core] object Logs extends LazyLogging {
     )
   }
 
-  def nextLogUnsafe[K, V, C <: LogCache[K, V]](nextLogSize: Long,
+  def nextLogUnsafe[K, V, C <: LogCache[K, V]](nextLogSize: Int,
                                                currentLog: Log[K, V, C])(implicit keyOrder: KeyOrder[K],
                                                                          fileSweeper: FileSweeper,
                                                                          bufferCleaner: ByteBufferSweeperActor,
@@ -282,7 +282,7 @@ private[core] object Logs extends LazyLogging {
 }
 
 private[core] class Logs[K, V, C <: LogCache[K, V]](private val queue: VolatileQueue[Log[K, V, C]],
-                                                    fileSize: Long,
+                                                    fileSize: Int,
                                                     acceleration: LevelZeroMeter => Accelerator,
                                                     @volatile private var currentLog: Log[K, V, C])(implicit keyOrder: KeyOrder[K],
                                                                                                     fileSweeper: FileSweeper,
@@ -303,9 +303,9 @@ private[core] class Logs[K, V, C <: LogCache[K, V]](private val queue: VolatileQ
 
   val meter =
     new LevelZeroMeter {
-      override def defaultLogSize: Long = fileSize
+      override def defaultLogSize: Int = fileSize
 
-      override def currentLogSize: Long = currentLog.fileSize
+      override def currentLogSize: Int = currentLog.fileSize
 
       override def logsCount: Int = self.queue.size
     }
@@ -319,7 +319,7 @@ private[core] class Logs[K, V, C <: LogCache[K, V]](private val queue: VolatileQ
       persist(logEntry(timer))
     }
 
-  private def initNextLog(logSize: Long) = {
+  private def initNextLog(logSize: Int) = {
     val nextLog =
       Logs.nextLogUnsafe(
         nextLogSize = logSize,

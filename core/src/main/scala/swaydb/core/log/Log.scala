@@ -39,7 +39,7 @@ private[core] object Log extends LazyLogging {
   def persistent[K, V, C <: LogCache[K, V]](folder: Path,
                                             mmap: MMAP.Log,
                                             flushOnOverflow: Boolean,
-                                            fileSize: Long,
+                                            fileSize: Int,
                                             dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
                                                                                fileSweeper: FileSweeper,
                                                                                bufferCleaner: ByteBufferSweeperActor,
@@ -58,7 +58,7 @@ private[core] object Log extends LazyLogging {
   def persistent[K, V, C <: LogCache[K, V]](folder: Path,
                                             mmap: MMAP.Log,
                                             flushOnOverflow: Boolean,
-                                            fileSize: Long)(implicit keyOrder: KeyOrder[K],
+                                            fileSize: Int)(implicit keyOrder: KeyOrder[K],
                                                             fileSweeper: FileSweeper,
                                                             bufferCleaner: ByteBufferSweeperActor,
                                                             writer: LogEntryWriter[LogEntry.Put[K, V]],
@@ -71,7 +71,7 @@ private[core] object Log extends LazyLogging {
       fileSize = fileSize
     )
 
-  def memory[K, V, C <: LogCache[K, V]](fileSize: Long = 0.byte,
+  def memory[K, V, C <: LogCache[K, V]](fileSize: Int = 0.byte,
                                         flushOnOverflow: Boolean = true)(implicit keyOrder: KeyOrder[K],
                                                                          cacheBuilder: LogCacheBuilder[C]): MemoryLog[K, V, C] =
     new MemoryLog[K, V, C](
@@ -87,7 +87,7 @@ private[core] trait Log[K, V, C <: LogCache[K, V]] {
 
   def mmap: MMAP.Log
 
-  val fileSize: Long
+  val fileSize: Int
 
   def writeSync(logEntry: LogEntry[K, V]): Boolean
 

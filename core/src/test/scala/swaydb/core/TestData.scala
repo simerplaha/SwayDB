@@ -337,8 +337,8 @@ object TestData {
     def reopen(implicit sweeper: TestCaseSweeper): LevelZero =
       reopen()
 
-    def reopen(logSize: Long = level.logs.log.fileSize,
-               appliedFunctionsLogSize: Long = level.appliedFunctionsLog.map(_.fileSize).getOrElse(0),
+    def reopen(logSize: Int = level.logs.log.fileSize,
+               appliedFunctionsLogSize: Int = level.appliedFunctionsLog.map(_.fileSize).getOrElse(0),
                clearAppliedFunctionsOnBoot: Boolean = false)(implicit timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                              sweeper: TestCaseSweeper): LevelZero = {
 
@@ -2118,7 +2118,7 @@ object TestData {
   implicit class DBFileImplicits(file: DBFile) {
     def toBlockCacheSource: BlockCacheSource =
       new BlockCacheSource {
-        override def blockCacheMaxBytes: Long =
+        override def blockCacheMaxBytes: Int =
           file.fileSize
 
         override def readFromSource(position: Int, size: Int): Slice[Byte] =

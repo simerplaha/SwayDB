@@ -874,7 +874,7 @@ class DBFileSpec extends TestBase with MockFactory {
             )
 
           file.append(Slice.emptyBytes)
-          file.readAll shouldBe Slice.fill(file.fileSize.toInt)(0)
+          file.readAll shouldBe Slice.fill(file.fileSize)(0)
           file.close()
 
           DBFile.mmapRead(
@@ -884,7 +884,7 @@ class DBFileSpec extends TestBase with MockFactory {
             deleteAfterClean = OperatingSystem.isWindows
           ) ==> {
             file2 =>
-              file2.readAll shouldBe Slice.fill(file.fileSize.toInt)(0)
+              file2.readAll shouldBe Slice.fill(file.fileSize)(0)
               file2.close()
           }
       }

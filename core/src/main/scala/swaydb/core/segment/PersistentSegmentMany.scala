@@ -403,7 +403,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
     if (fileExtension != Extension.Seg)
       throw new Exception(s"Invalid Segment file extension: $fileExtension")
 
-    val segmentSize = file.fileSize.toInt
+    val segmentSize = file.fileSize
 
     val listSegment: SegmentRef =
       initListSegment(
@@ -502,7 +502,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
       minKey = minKey,
       maxKey = maxKey,
       minMaxFunctionId = deadlineFunctionId.minMaxFunctionId.map(_.unslice()),
-      segmentSize = file.fileSize.toInt,
+      segmentSize = file.fileSize,
       nearestPutDeadline = deadlineFunctionId.nearestDeadline,
       updateCount = segmentRefs.values().foldLeft(0)(_ + _.updateCount),
       rangeCount = segmentRefs.values().foldLeft(0)(_ + _.rangeCount),

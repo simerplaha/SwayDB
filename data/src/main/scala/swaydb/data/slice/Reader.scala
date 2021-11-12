@@ -18,13 +18,11 @@ package swaydb.data.slice
 
 trait Reader[B] extends ReaderBase[B] {
 
-  def moveTo(position: Long): Reader[B]
-
   def moveTo(position: Int): Reader[B]
 
   override def copy(): Reader[B]
 
-  override def skip(skip: Long): Reader[B] =
+  override def skip(skip: Int): Reader[B] =
     moveTo(getPosition + skip)
 
 }
