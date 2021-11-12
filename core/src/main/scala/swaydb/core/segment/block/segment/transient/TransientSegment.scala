@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.segment.block.segment.data
+package swaydb.core.segment.block.segment.transient
 
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}

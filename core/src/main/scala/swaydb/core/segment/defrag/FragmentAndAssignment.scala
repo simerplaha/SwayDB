@@ -19,7 +19,7 @@ package swaydb.core.segment.defrag
 import swaydb.core.data.Memory
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.{Assignable, Assignment}
-import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.segment.block.segment.transient.TransientSegment
 
 import scala.collection.mutable.ListBuffer
 

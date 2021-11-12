@@ -32,7 +32,7 @@ import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.reader.BlockRefReader
-import swaydb.core.segment.block.segment.data.{TransientSegment, TransientSegmentSerialiser}
+import swaydb.core.segment.block.segment.transient.{TransientSegment, TransientSegmentSerialiser}
 import swaydb.core.segment.block.segment.{SegmentBlockConfig, SegmentBlockOffset}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig

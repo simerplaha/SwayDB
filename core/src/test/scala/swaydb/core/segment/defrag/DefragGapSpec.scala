@@ -25,7 +25,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
-import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.slice.Slice

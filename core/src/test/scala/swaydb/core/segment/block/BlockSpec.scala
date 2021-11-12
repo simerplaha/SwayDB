@@ -5,7 +5,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.segment.block.reader.BlockRefReader
-import swaydb.core.segment.block.segment.data.TransientSegmentRef
+import swaydb.core.segment.block.segment.transient.TransientSegmentRef
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.data.slice.Slice

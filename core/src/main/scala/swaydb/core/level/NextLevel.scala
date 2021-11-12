@@ -21,7 +21,7 @@ import swaydb.core.level.compaction.io.CompactionIO
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.{Assignable, Assignment}
-import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.{LevelMeter, LevelThrottle}

@@ -22,7 +22,7 @@ import swaydb.core.data.DefIO
 import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
-import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.SliceIOImplicits._

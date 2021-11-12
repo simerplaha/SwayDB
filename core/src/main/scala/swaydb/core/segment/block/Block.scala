@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
-import swaydb.core.segment.block.segment.data.{TransientSegment, TransientSegmentRef}
+import swaydb.core.segment.block.segment.transient.{TransientSegment, TransientSegmentRef}
 import swaydb.core.util.Collections._
 import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.effect.IOAction

@@ -139,7 +139,7 @@ object DBFile extends LazyLogging {
                                                forceSaveApplier: ForceSaveApplier): DBFile =
     if (checkExists && Effect.notExists(path))
       throw swaydb.Exception.NoSuchFile(path)
-    else {
+    else
       new DBFile(
         path = path,
         memoryMapped = false,
@@ -156,7 +156,6 @@ object DBFile extends LazyLogging {
             autoClose = autoClose
           )
       )
-    }
 
   def mmapWriteAndRead(path: Path,
                        fileOpenIOStrategy: IOStrategy.ThreadSafe,

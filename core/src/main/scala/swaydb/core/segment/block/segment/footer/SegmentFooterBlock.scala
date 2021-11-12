@@ -22,7 +22,7 @@ import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockOffset
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockOffset
 import swaydb.core.segment.block.hashindex.HashIndexBlockOffset
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.segment.data.ClosedBlocks
+import swaydb.core.segment.block.segment.transient.ClosedBlocks
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockOffset
 import swaydb.core.segment.block.values.ValuesBlockOffset

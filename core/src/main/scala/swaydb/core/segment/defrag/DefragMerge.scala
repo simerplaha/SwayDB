@@ -21,7 +21,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator}
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.defrag.DefragSource._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
