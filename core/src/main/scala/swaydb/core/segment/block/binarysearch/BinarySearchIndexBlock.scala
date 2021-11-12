@@ -84,7 +84,7 @@ private[core] case object BinarySearchIndexBlock {
           blockName = blockName
         )
 
-      compressionResult.compressedBytes foreach (state.compressibleBytes = _)
+      compressionResult.compressedBytes foreachC (state.compressibleBytes = _)
 
       compressionResult.headerBytes add state.format.id
       compressionResult.headerBytes addUnsignedInt state.writtenValues
@@ -112,7 +112,7 @@ private[core] case object BinarySearchIndexBlock {
         headerSize = 0,
         bytesPerValue = closedState.bytesPerValue,
         isFullIndex = closedState.isFullIndex,
-        compressionInfo = None
+        compressionInfo = BlockCompressionInfo.Null
       )
 
     UnblockedReader(
@@ -610,4 +610,4 @@ private[core] case class BinarySearchIndexBlock(format: BinarySearchEntryFormat,
                                                 headerSize: Int,
                                                 bytesPerValue: Int,
                                                 isFullIndex: Boolean,
-                                                compressionInfo: Option[BlockCompressionInfo]) extends Block[BinarySearchIndexBlockOffset]
+                                                compressionInfo: BlockCompressionInfoOption) extends Block[BinarySearchIndexBlockOffset]

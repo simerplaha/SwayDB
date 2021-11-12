@@ -1823,7 +1823,7 @@ object TestData {
         SegmentBlock(
           offset = SegmentBlockOffset.empty,
           headerSize = 0,
-          compressionInfo = None
+          compressionInfo = BlockCompressionInfo.Null
         )
       )
 
@@ -1836,7 +1836,7 @@ object TestData {
               size = bytes.size
             ),
             headerSize = 0,
-            compressionInfo = None
+            compressionInfo = BlockCompressionInfo.Null
           ),
         bytes = bytes
       )
@@ -1851,7 +1851,7 @@ object TestData {
               size = bytes.size
             ),
             headerSize = headerSize,
-            compressionInfo = Some(compressionInfo)
+            compressionInfo = compressionInfo
           )
       )
 
@@ -1893,7 +1893,7 @@ object TestData {
       (offset, _) =>
         IO[Nothing, UnblockedReader[ValuesBlockOffset, ValuesBlock]](
           UnblockedReader(
-            block = ValuesBlock(offset, 0, None),
+            block = ValuesBlock(offset, 0, BlockCompressionInfo.Null),
             bytes = bytes
           )
         )(Nothing)
@@ -1901,7 +1901,7 @@ object TestData {
 
   def buildSingleValueReader(bytes: Slice[Byte]): UnblockedReader[ValuesBlockOffset, ValuesBlock] =
     UnblockedReader(
-      block = ValuesBlock(ValuesBlockOffset(0, bytes.size), 0, None),
+      block = ValuesBlock(ValuesBlockOffset(0, bytes.size), 0, BlockCompressionInfo.Null),
       bytes = bytes
     )
 

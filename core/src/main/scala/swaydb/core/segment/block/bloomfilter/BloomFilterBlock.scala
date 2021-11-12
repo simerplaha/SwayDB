@@ -108,7 +108,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
           blockName = blockName
         )
 
-      compressionResult.compressedBytes foreach (state.compressibleBytes = _)
+      compressionResult.compressedBytes foreachC (state.compressibleBytes = _)
 
       compressionResult.headerBytes addUnsignedInt state.numberOfBits
       compressionResult.headerBytes addUnsignedInt state.maxProbe
@@ -136,7 +136,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
         maxProbe = closedState.maxProbe,
         numberOfBits = closedState.numberOfBits,
         headerSize = 0,
-        compressionInfo = None
+        compressionInfo = BlockCompressionInfo.Null
       )
 
     UnblockedReader(
@@ -228,5 +228,5 @@ private[core] case class BloomFilterBlock(offset: BloomFilterBlockOffset,
                                           maxProbe: Int,
                                           numberOfBits: Int,
                                           headerSize: Int,
-                                          compressionInfo: Option[BlockCompressionInfo]) extends Block[BloomFilterBlockOffset]
+                                          compressionInfo: BlockCompressionInfoOption) extends Block[BloomFilterBlockOffset]
 

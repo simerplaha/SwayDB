@@ -91,7 +91,7 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
             val compressed = Block.compress(body, compressions, "test")
             compressed.fixHeaderSize()
 
-            val compressedBytes = compressed.headerBytes ++ compressed.compressedBytes.getOrElse(body)
+            val compressedBytes = compressed.headerBytes ++ compressed.compressedBytes.getOrElseC(body)
 
             val ref = BlockRefReader[ValuesBlockOffset](compressedBytes)
             ref.copy().readRemaining() shouldBe compressedBytes

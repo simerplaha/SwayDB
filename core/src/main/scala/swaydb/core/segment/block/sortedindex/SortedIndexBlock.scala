@@ -298,7 +298,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         blockName = blockName
       )
 
-    state.compressibleBytes = compressionResult.compressedBytes getOrElse normalisedBytes
+    state.compressibleBytes = compressionResult.compressedBytes getOrElseC normalisedBytes
 
     compressionResult.headerBytes addBoolean state.enableAccessPositionIndex
     compressionResult.headerBytes addBoolean state.optimiseForReverseIteration
@@ -336,7 +336,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         isPreNormalised = closedState.isPreNormalised,
         headerSize = 0,
         segmentMaxIndexEntrySize = closedState.largestIndexEntrySize,
-        compressionInfo = None
+        compressionInfo = BlockCompressionInfo.Null
       )
 
     UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock](
@@ -1087,7 +1087,7 @@ private[core] case class SortedIndexBlock(offset: SortedIndexBlockOffset,
                                           isPreNormalised: Boolean,
                                           headerSize: Int,
                                           segmentMaxIndexEntrySize: Int,
-                                          compressionInfo: Option[BlockCompressionInfo]) extends Block[SortedIndexBlockOffset] {
+                                          compressionInfo: BlockCompressionInfoOption) extends Block[SortedIndexBlockOffset] {
   val isBinarySearchable: Boolean =
     !hasPrefixCompression && (normalised || isPreNormalised)
 

@@ -1,8 +1,8 @@
 package swaydb.core.segment.block
 
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOption}
 
-class BlockCompressionResult(val compressedBytes: Option[Slice[Byte]],
+class BlockCompressionResult(val compressedBytes: SliceOption[Byte],
                              val headerBytes: Slice[Byte]) {
   /**
    * More bytes could get allocated to headerBytes when it's created. This fixes the size to it's original size.

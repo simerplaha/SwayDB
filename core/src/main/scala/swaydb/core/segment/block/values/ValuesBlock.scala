@@ -85,7 +85,7 @@ private[core] case object ValuesBlock {
         blockName = blockName
       )
 
-    compressionResult.compressedBytes foreach (state.compressibleBytes = _)
+    compressionResult.compressedBytes foreachC (state.compressibleBytes = _)
 
     compressionResult.fixHeaderSize()
 
@@ -102,7 +102,7 @@ private[core] case object ValuesBlock {
       ValuesBlock(
         offset = ValuesBlockOffset(0, closedState.cacheableBytes.size),
         headerSize = 0,
-        compressionInfo = None
+        compressionInfo = BlockCompressionInfo.Null
       )
 
     UnblockedReader(
@@ -143,5 +143,5 @@ private[core] case object ValuesBlock {
 
 private[core] case class ValuesBlock(offset: ValuesBlockOffset,
                                      headerSize: Int,
-                                     compressionInfo: Option[BlockCompressionInfo]) extends Block[ValuesBlockOffset]
+                                     compressionInfo: BlockCompressionInfoOption) extends Block[ValuesBlockOffset]
 

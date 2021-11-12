@@ -249,7 +249,7 @@ private[core] case object SegmentFooterBlock {
       SegmentFooterBlock(
         offset = SegmentFooterBlockOffset(footerStartOffset, footerSize),
         headerSize = 0,
-        compressionInfo = None,
+        compressionInfo = BlockCompressionInfo.Null,
         valuesOffset = valuesOffset,
         sortedIndexOffset = sortedIndexOffset,
         hashIndexOffset = hashIndexOffset,
@@ -269,7 +269,7 @@ private[core] case object SegmentFooterBlock {
 
 case class SegmentFooterBlock(offset: SegmentFooterBlockOffset,
                               headerSize: Int,
-                              compressionInfo: Option[BlockCompressionInfo],
+                              compressionInfo: BlockCompressionInfoOption,
                               valuesOffset: Option[ValuesBlockOffset],
                               sortedIndexOffset: SortedIndexBlockOffset,
                               hashIndexOffset: Option[HashIndexBlockOffset],

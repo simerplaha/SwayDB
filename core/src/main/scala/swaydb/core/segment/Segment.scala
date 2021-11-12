@@ -26,6 +26,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.KeyValueGrouper
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.{Assignable, Assigner}
+import swaydb.core.segment.block.BlockCompressionInfo
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
@@ -460,10 +461,10 @@ private[core] case object Segment extends LazyLogging {
 
     val sortedIndexSize =
       sortedIndexBlock.compressionInfo match {
-        case Some(compressionInfo) =>
+        case compressionInfo: BlockCompressionInfo =>
           compressionInfo.decompressedLength
 
-        case None =>
+        case BlockCompressionInfo.Null =>
           sortedIndexBlock.offset.size
       }
 
@@ -471,10 +472,10 @@ private[core] case object Segment extends LazyLogging {
       valuesBlock match {
         case Some(valuesBlock) =>
           valuesBlock.compressionInfo match {
-            case Some(value) =>
+            case value: BlockCompressionInfo =>
               value.decompressedLength
 
-            case None =>
+            case BlockCompressionInfo.Null =>
               valuesBlock.offset.size
           }
         case None =>

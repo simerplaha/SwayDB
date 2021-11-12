@@ -32,17 +32,17 @@ import swaydb.utils.ByteSizeOf
 private[core] trait Block[+O <: BlockOffset] {
   def offset: O
   def headerSize: Int
-  def compressionInfo: Option[BlockCompressionInfo]
+  def compressionInfo: BlockCompressionInfoOption
 
   def decompressionAction: IOAction.DecompressAction =
     compressionInfo match {
-      case Some(compressionInfo) =>
+      case compressionInfo: BlockCompressionInfo =>
         IOAction.ReadCompressedData(
           compressedSize = offset.size - headerSize,
           decompressedSize = compressionInfo.decompressedLength
         )
 
-      case None =>
+      case BlockCompressionInfo.Null =>
         IOAction.ReadUncompressedData(offset.size - headerSize)
     }
 }
@@ -93,7 +93,7 @@ private[core] object Block extends LazyLogging {
         header addUnsignedInt bytes.size //decompressed bytes
 
         new BlockCompressionResult(
-          compressedBytes = Some(compressedBytes),
+          compressedBytes = compressedBytes,
           headerBytes = header
         )
 
@@ -111,7 +111,7 @@ private[core] object Block extends LazyLogging {
         header add Block.uncompressedBlockId
 
         new BlockCompressionResult(
-          compressedBytes = None,
+          compressedBytes = Slice.Null,
           headerBytes = header
         )
     }
@@ -162,7 +162,7 @@ private[core] object Block extends LazyLogging {
         )
 
       val compressedOrUncompressedSegmentBytes =
-        compressionResult.compressedBytes getOrElse uncompressedSegmentBytes
+        compressionResult.compressedBytes getOrElseC uncompressedSegmentBytes
 
       compressionResult.fixHeaderSize()
 
@@ -190,16 +190,14 @@ private[core] object Block extends LazyLogging {
 
   private def readCompressionInfo(formatID: Int,
                                   headerSize: Int,
-                                  reader: ReaderBase[Byte]): Option[BlockCompressionInfo] =
+                                  reader: ReaderBase[Byte]): BlockCompressionInfoOption =
     if (formatID == Block.compressedBlockID)
-      Some(
-        new BlockCompressionInfo(
-          decompressor = DecompressorInternal(reader.readUnsignedInt()),
-          decompressedLength = reader.readUnsignedInt()
-        )
+      new BlockCompressionInfo(
+        decompressor = DecompressorInternal(reader.readUnsignedInt()),
+        decompressedLength = reader.readUnsignedInt()
       )
     else if (formatID == Block.uncompressedBlockId)
-      None
+      BlockCompressionInfo.Null
     else
       throw swaydb.Exception.InvalidDataId(
         id = formatID,
@@ -245,7 +243,7 @@ private[core] object Block extends LazyLogging {
   def unblock[O <: BlockOffset, B <: Block[O]](reader: BlockedReader[O, B],
                                                readAllIfUncompressed: Boolean)(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
     reader.block.compressionInfo match {
-      case Some(compressionInfo) =>
+      case compressionInfo: BlockCompressionInfo =>
         val compressedBytes = reader.readFullBlock()
 
         val decompressedBytes =
@@ -267,7 +265,7 @@ private[core] object Block extends LazyLogging {
         else
           throw new Exception(s"Decompressed bytes size (${decompressedBytes.size}) != decompressedLength (${compressionInfo.decompressedLength}).")
 
-      case None =>
+      case BlockCompressionInfo.Null =>
         //no compression just skip the header bytes.
         val unblockedReader = UnblockedReader.fromUncompressed(reader)
         if (readAllIfUncompressed)

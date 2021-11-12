@@ -205,7 +205,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         } orNull
 
       val expectsCompressions = sortedIndexConfig.compressions(UncompressedBlockInfo(sortedIndex.compressibleBytes.size)).nonEmpty
-      sortedIndexBlock.compressionInfo.isDefined shouldBe expectsCompressions
+      sortedIndexBlock.compressionInfo.isSomeS shouldBe expectsCompressions
       sortedIndexBlock.enableAccessPositionIndex shouldBe sortedIndexConfig.enableAccessPositionIndex
       if (!sortedIndexConfig.enablePrefixCompression) sortedIndexBlock.hasPrefixCompression shouldBe false
       sortedIndexBlock.headerSize should be > 0

@@ -20,6 +20,7 @@ import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, PersistentOption}
+import swaydb.core.segment.block.BlockCompressionInfo
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
@@ -129,7 +130,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           hashIndexReaderOrNull = blocks.hashIndexReader.orNull,
           binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
           sortedIndexReader = blocks.sortedIndexReader,
-          valuesReaderOrNull = UnblockedReader.empty[ValuesBlockOffset, ValuesBlock](ValuesBlock(ValuesBlockOffset.zero(), 0, None)), //give it empty blocks since values are not read.
+          valuesReaderOrNull = UnblockedReader.empty[ValuesBlockOffset, ValuesBlock](ValuesBlock(ValuesBlockOffset.zero(), 0, BlockCompressionInfo.Null)), //give it empty blocks since values are not read.
           hasRange = blocks.footer.hasRange,
           keyValueCount = keyValues.size
         ).toOptionS shouldBe empty

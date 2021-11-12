@@ -130,7 +130,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
         )
 
       val allocatedBytes = state.compressibleBytes.allocatedSize
-      compressionResult.compressedBytes foreach (state.compressibleBytes = _)
+      compressionResult.compressedBytes foreachC (state.compressibleBytes = _)
 
       compressionResult.headerBytes add state.format.id
       compressionResult.headerBytes addInt allocatedBytes //allocated bytes
@@ -153,7 +153,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
     val block =
       HashIndexBlock(
         offset = HashIndexBlockOffset(0, closedState.cacheableBytes.size),
-        compressionInfo = None,
+        compressionInfo = BlockCompressionInfo.Null,
         maxProbe = closedState.maxProbe,
         format = closedState.format,
         minimumCRC = minimumCRCToWrite(closedState),
@@ -480,7 +480,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
 }
 
 private[core] case class HashIndexBlock(offset: HashIndexBlockOffset,
-                                        compressionInfo: Option[BlockCompressionInfo],
+                                        compressionInfo: BlockCompressionInfoOption,
                                         maxProbe: Int,
                                         format: HashIndexEntryFormat,
                                         minimumCRC: Long,
@@ -491,7 +491,7 @@ private[core] case class HashIndexBlock(offset: HashIndexBlockOffset,
                                         allocatedBytes: Int) extends Block[HashIndexBlockOffset] {
   val bytesToReadPerIndex = writeAbleLargestValueSize + 1 //+1 to read header/marker 0 byte.
 
-  val isCompressed = compressionInfo.isDefined
+  val isCompressed = compressionInfo.isSomeS
 
   val hashMaxOffset: Int =
     allocatedBytes - writeAbleLargestValueSize
