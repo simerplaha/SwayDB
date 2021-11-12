@@ -111,20 +111,23 @@ private[core] case object HashIndexBlock extends LazyLogging {
       }
     }
 
-  def minimumCRCToWrite(state: HashIndexBlockState): Long =
-  //CRC can be -1 when HashIndex is not fully copied.
-    if (state.minimumCRC == CRC32.disabledCRC)
-      0
-    else
-      state.minimumCRC
-
   def close(state: HashIndexBlockState): Option[HashIndexBlockState] =
     if (state.compressibleBytes.isEmpty || !state.hasMinimumHits)
       None
     else {
+      val headerSize: Int =
+        ByteSizeOf.byte + //formatId
+          ByteSizeOf.int + //allocatedBytes
+          Bytes.sizeOfUnsignedInt(state.maxProbe) +
+          Bytes.sizeOfUnsignedInt(state.hit) +
+          Bytes.sizeOfUnsignedInt(state.miss) +
+          Bytes.sizeOfUnsignedLong(state.minimumCRCToWrite()) +
+          Bytes.sizeOfUnsignedInt(state.writeAbleLargestValueSize)
+
       val compressionResult =
         Block.compress(
           bytes = state.compressibleBytes,
+          dataBlocksHeaderByteSize = headerSize,
           compressions = state.compressions(UncompressedBlockInfo(state.compressibleBytes.size)),
           blockName = blockName
         )
@@ -137,11 +140,12 @@ private[core] case object HashIndexBlock extends LazyLogging {
       compressionResult.headerBytes addUnsignedInt state.maxProbe
       compressionResult.headerBytes addUnsignedInt state.hit
       compressionResult.headerBytes addUnsignedInt state.miss
-      compressionResult.headerBytes addUnsignedLong minimumCRCToWrite(state)
+      compressionResult.headerBytes addUnsignedLong state.minimumCRCToWrite()
       compressionResult.headerBytes addUnsignedInt state.writeAbleLargestValueSize
 
       compressionResult.fixHeaderSize()
 
+      assert(compressionResult.headerBytes.isOriginalFullSlice)
       state.header = compressionResult.headerBytes
 
       //      if (state.bytes.currentWritePosition > state.headerSize)
@@ -156,7 +160,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
         compressionInfo = BlockCompressionInfo.Null,
         maxProbe = closedState.maxProbe,
         format = closedState.format,
-        minimumCRC = minimumCRCToWrite(closedState),
+        minimumCRC = closedState.minimumCRCToWrite(),
         hit = closedState.hit,
         miss = closedState.miss,
         writeAbleLargestValueSize = closedState.writeAbleLargestValueSize,

@@ -21,10 +21,11 @@ import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset, SortedIndexBlockSecondaryIndexEntry, SortedIndexBlockState}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
-import swaydb.core.util.MinMax
+import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.utils.ByteSizeOf
 import swaydb.utils.Maybe.{Maybe, _}
 
 import scala.annotation.tailrec
@@ -77,9 +78,16 @@ private[core] case object BinarySearchIndexBlock {
     if (state.compressibleBytes.isEmpty)
       None
     else if (state.hasMinimumKeys) {
+      val headerSize: Int =
+        ByteSizeOf.byte + //formatId
+          Bytes.sizeOfUnsignedInt(state.writtenValues) + //writtenValues
+          ByteSizeOf.int + //bytesPerValue
+          ByteSizeOf.boolean //isFullIndex
+
       val compressionResult =
         Block.compress(
           bytes = state.compressibleBytes,
+          dataBlocksHeaderByteSize = headerSize,
           compressions = state.compressions(UncompressedBlockInfo(state.compressibleBytes.size)),
           blockName = blockName
         )
@@ -94,6 +102,7 @@ private[core] case object BinarySearchIndexBlock {
 
       compressionResult.fixHeaderSize()
 
+      assert(compressionResult.headerBytes.isOriginalFullSlice)
       state.header = compressionResult.headerBytes
 
       //      if (state.bytes.currentWritePosition > state.headerSize)

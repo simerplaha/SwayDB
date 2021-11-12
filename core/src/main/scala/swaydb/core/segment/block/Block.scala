@@ -21,6 +21,7 @@ import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.segment.block.segment.transient.{TransientSegment, TransientSegmentRef}
+import swaydb.core.util.Bytes
 import swaydb.core.util.Collections._
 import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.effect.IOAction
@@ -52,21 +53,21 @@ private[core] object Block extends LazyLogging {
   val uncompressedBlockId: Byte = 0.toByte
   val compressedBlockID: Byte = 1.toByte
 
-  private val minHeaderSizeWithCompression =
+  private val headerSizeWithCompression =
     ByteSizeOf.byte + //headerSize
       ByteSizeOf.byte + //formatId
       ByteSizeOf.byte + //decompressor
       ByteSizeOf.varInt //decompressed length. +1 for larger varints
 
-  private val minHeaderSizeNoCompression =
+  private val headerSizeNoCompression =
     ByteSizeOf.byte + //headerSize
       ByteSizeOf.byte //formatId
 
   def minimumHeaderSize(hasCompression: Boolean): Int =
     if (hasCompression)
-      Block.minHeaderSizeWithCompression
+      Block.headerSizeWithCompression
     else
-      Block.minHeaderSizeNoCompression
+      Block.headerSizeNoCompression
 
   /**
    * Compress the bytes and update the header with the compression information.
@@ -78,14 +79,28 @@ private[core] object Block extends LazyLogging {
    * Others using this function should ensure that [[minimumHeaderSize]] is accounted for in the byte size calculations.
    * They should also allocate enough bytes to write the total headerSize.
    *
-   * NOTE: Always invoke [[BlockCompressionResult.fixHeaderSize()]] when done writing header bytes outside this function.
+   * NOTE: Always invoke [[BlockCompressionResult.fixHeaderSize]] when done writing header bytes outside this function.
+   *
+   * @param bytes                    Bytes to compress
+   * @param dataBlocksHeaderByteSize Extra header bytes required to store data block's header byte size.
+   * @param compressions             Compressions to apply
+   * @param blockName                Name of the block being compressed.
    */
   def compress(bytes: Slice[Byte],
+               dataBlocksHeaderByteSize: Int,
                compressions: Iterable[CompressionInternal],
                blockName: String): BlockCompressionResult =
     compressions.untilSome(_.compressor.compress(bytes)) match {
       case Some((compressedBytes, compression)) =>
-        val header = Slice.of[Byte](Byte.MaxValue)
+
+        val requiredByteSize =
+          ByteSizeOf.byte + //headerSize
+            ByteSizeOf.byte + //formatId
+            Bytes.sizeOfUnsignedInt(compression.decompressor.id) +
+            Bytes.sizeOfUnsignedInt(bytes.size) +
+            dataBlocksHeaderByteSize
+
+        val header = Slice.of[Byte](requiredByteSize)
 
         header moveWritePosition 1 //skip writing header size since it's not known.
         header add Block.compressedBlockID
@@ -105,7 +120,7 @@ private[core] object Block extends LazyLogging {
             s"Unable to satisfy compression requirement from ${compressions.size} compression strategies for $blockName. Storing ${bytes.size}.bytes uncompressed."
         }
 
-        val header = Slice.of[Byte](Byte.MaxValue)
+        val header = Slice.of[Byte](headerSizeNoCompression + dataBlocksHeaderByteSize)
 
         header moveWritePosition 1 //skip writing header size since it's not known.
         header add Block.uncompressedBlockId
@@ -157,6 +172,7 @@ private[core] object Block extends LazyLogging {
       val compressionResult =
         Block.compress(
           bytes = uncompressedSegmentBytes,
+          dataBlocksHeaderByteSize = 0,
           compressions = compressions,
           blockName = blockName
         )
@@ -164,13 +180,14 @@ private[core] object Block extends LazyLogging {
       val compressedOrUncompressedSegmentBytes =
         compressionResult.compressedBytes getOrElseC uncompressedSegmentBytes
 
+      assert(compressionResult.headerBytes.isOriginalFullSlice)
       compressionResult.fixHeaderSize()
 
       TransientSegment.One(
         minKey = segment.minKey,
         maxKey = segment.maxKey,
         fileHeader = Slice.emptyBytes,
-        bodyBytes = Slice(Array(compressionResult.headerBytes.close(), compressedOrUncompressedSegmentBytes)),
+        bodyBytes = Slice(Array(compressionResult.headerBytes, compressedOrUncompressedSegmentBytes)),
         minMaxFunctionId = segment.functionMinMax,
         nearestPutDeadline = segment.nearestDeadline,
         updateCount = segment.updateCount,

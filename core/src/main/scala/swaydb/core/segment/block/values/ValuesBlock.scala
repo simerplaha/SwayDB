@@ -81,6 +81,7 @@ private[core] case object ValuesBlock {
     val compressionResult =
       Block.compress(
         bytes = state.compressibleBytes,
+        dataBlocksHeaderByteSize = 0,
         compressions = state.compressions(UncompressedBlockInfo(state.compressibleBytes.size)),
         blockName = blockName
       )
@@ -89,6 +90,7 @@ private[core] case object ValuesBlock {
 
     compressionResult.fixHeaderSize()
 
+    assert(compressionResult.headerBytes.isOriginalFullSlice)
     state.header = compressionResult.headerBytes
 
     //    if (state.bytes.currentWritePosition > state.bytes.fromOffset + headerSize)

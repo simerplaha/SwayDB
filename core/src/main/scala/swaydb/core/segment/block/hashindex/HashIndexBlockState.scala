@@ -1,6 +1,7 @@
 package swaydb.core.segment.block.hashindex
 
 import swaydb.compression.CompressionInternal
+import swaydb.core.util.CRC32
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.slice.Slice
 
@@ -24,6 +25,13 @@ private[block] final class HashIndexBlockState(var hit: Int,
 
   def hasMinimumHits: Boolean =
     hit >= minimumNumberOfHits
+
+  //CRC can be -1 when HashIndex is not fully copied.
+  def minimumCRCToWrite(): Long =
+    if (minimumCRC == CRC32.disabledCRC)
+      0
+    else
+      minimumCRC
 
   val hashMaxOffset: Int =
     compressibleBytes.allocatedSize - writeAbleLargestValueSize

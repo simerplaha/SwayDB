@@ -291,9 +291,19 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   def close(state: SortedIndexBlockState): SortedIndexBlockState = {
     val normalisedBytes: Slice[Byte] = normaliseIfRequired(state)
 
+    val headerSize: Int =
+      ByteSizeOf.boolean + //enableAccessPositionIndex
+        ByteSizeOf.boolean + //optimiseForReverseIteration
+        ByteSizeOf.boolean + //hasPrefixCompression
+        ByteSizeOf.boolean + //prefixCompressKeysOnly
+        ByteSizeOf.boolean + //normaliseIndex
+        ByteSizeOf.boolean + //isPreNormalised
+        Bytes.sizeOfUnsignedInt(state.largestIndexEntrySize)
+
     val compressionResult =
       Block.compress(
         bytes = normalisedBytes,
+        dataBlocksHeaderByteSize = headerSize,
         compressions = state.compressions(UncompressedBlockInfo(normalisedBytes.size)),
         blockName = blockName
       )
@@ -319,6 +329,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
           MaxKey.Fixed(keyValue.key.unslice())
       }
 
+    assert(compressionResult.headerBytes.isOriginalFullSlice)
     state.header = compressionResult.headerBytes
 
     state

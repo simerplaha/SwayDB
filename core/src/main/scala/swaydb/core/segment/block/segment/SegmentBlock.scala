@@ -203,7 +203,6 @@ private[core] case object SegmentBlock extends LazyLogging {
 
               assert(listSegment.minMaxFunctionId.isEmpty, "minMaxFunctionId was not empty")
 
-
               TransientSegment.Many(
                 minKey = segments.head.minKey,
                 maxKey = segments.last.maxKey,

@@ -74,9 +74,12 @@ class BlockSpec extends TestBase {
           //          val headerSize = Block.headerSize(false) + 1 //+1 for Bytes.sizeOf(headerSize) that is calculated by the block itself.
           val dataBytes = randomBytesSlice(10)
 
+          val extraHeaderBytes = randomIntMax(5)
+
           val compressionResult =
             Block.compress(
               bytes = dataBytes,
+              dataBlocksHeaderByteSize = extraHeaderBytes,
               compressions = Seq.empty,
               blockName = "test-block"
             )
@@ -87,8 +90,14 @@ class BlockSpec extends TestBase {
 
           //          uncompressedBytes.drop(headerSize) shouldBe dataBytes
 
-          compressionResult.headerBytes should not be empty
+          val expectedHeaderSize = Block.minimumHeaderSize(false) + extraHeaderBytes
+          val headerByteSizeBeforeFix = compressionResult.headerBytes.size
+
+          compressionResult.headerBytes.underlyingArraySize shouldBe expectedHeaderSize
           compressionResult.fixHeaderSize()
+          //after fixHeaderSize underlying header byte size does not change
+          compressionResult.headerBytes.underlyingArraySize shouldBe expectedHeaderSize
+          compressionResult.headerBytes.size shouldBe headerByteSizeBeforeFix
 
           val segmentBytes = compressionResult.headerBytes ++ dataBytes
 
@@ -186,7 +195,7 @@ class BlockSpec extends TestBase {
           //          val uncompressedBytes = Slice.fill(headerSize)(0.toByte) ++ dataBytes
 
           val compression = randomCompressions().head
-          val compressedBytes = Block.compress(dataBytes, Seq(compression), "test-block")
+          val compressedBytes = Block.compress(dataBytes, 0, Seq(compression), "test-block")
           compressedBytes.fixHeaderSize()
 
           compressedBytes.compressedBytes.isSomeC shouldBe true
@@ -291,7 +300,7 @@ class BlockSpec extends TestBase {
     runThis(100.times) {
       val dataBytes = Slice.of[Byte](300, true)
       val compression = randomCompression()
-      val compressedBytes = Block.compress(dataBytes, Seq(compression), "testBlock")
+      val compressedBytes = Block.compress(dataBytes, 0, Seq(compression), "testBlock")
       compressedBytes.fixHeaderSize()
 
       compressedBytes.compressedBytes.isSomeC shouldBe true
@@ -322,11 +331,11 @@ class BlockSpec extends TestBase {
     def compression = randomCompression()
 
     //compress both child blocks
-    val childCompressionResult1 = Block.compress(child1Bytes, Seq(compression), "testBlock1")
+    val childCompressionResult1 = Block.compress(child1Bytes, 0, Seq(compression), "testBlock1")
     childCompressionResult1.fixHeaderSize()
     val compressedChildBytes1 = childCompressionResult1.headerBytes ++ childCompressionResult1.compressedBytes.getC
 
-    val childCompressionResult2 = Block.compress(child2Bytes, Seq(compression), "testBlock2")
+    val childCompressionResult2 = Block.compress(child2Bytes, 0, Seq(compression), "testBlock2")
     childCompressionResult2.fixHeaderSize()
     val compressedChildBytes2 = childCompressionResult2.headerBytes ++ childCompressionResult2.compressedBytes.getC
 
@@ -334,7 +343,7 @@ class BlockSpec extends TestBase {
     //fill with header bytes.
     val allChildBytes = compressedChildBytes1 ++ compressedChildBytes2
 
-    val compressionResult = Block.compress(allChildBytes, Seq(compression), "compressedRootBlocks")
+    val compressionResult = Block.compress(allChildBytes, 0, Seq(compression), "compressedRootBlocks")
     compressionResult.fixHeaderSize()
     val compressionBytes = compressionResult.headerBytes ++ compressionResult.compressedBytes.getC
 

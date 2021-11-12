@@ -88,7 +88,7 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
 
           def runTest(compressions: Iterable[CompressionInternal]) = {
             val body = randomBytesSlice(1000)
-            val compressed = Block.compress(body, compressions, "test")
+            val compressed = Block.compress(body, 0, compressions, "test")
             compressed.fixHeaderSize()
 
             val compressedBytes = compressed.headerBytes ++ compressed.compressedBytes.getOrElseC(body)

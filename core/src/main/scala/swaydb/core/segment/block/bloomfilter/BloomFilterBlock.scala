@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.util.MurmurHash3Generic
+import swaydb.core.util.{Bytes, MurmurHash3Generic}
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.slice.Slice
 import swaydb.utils.ByteSizeOf
@@ -101,9 +101,14 @@ private[core] case object BloomFilterBlock extends LazyLogging {
     if (state.compressibleBytes.isEmpty) {
       None
     } else {
+      val headerSize =
+        Bytes.sizeOfUnsignedInt(state.numberOfBits) + // numberOfBits
+          Bytes.sizeOfUnsignedInt(state.maxProbe) // maxProbe
+
       val compressionResult =
         Block.compress(
           bytes = state.compressibleBytes,
+          dataBlocksHeaderByteSize = headerSize,
           compressions = state.compressions(UncompressedBlockInfo(state.compressibleBytes.size)),
           blockName = blockName
         )
@@ -118,6 +123,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
       //header
       compressionResult.fixHeaderSize()
 
+      assert(compressionResult.headerBytes.isOriginalFullSlice)
       state.header = compressionResult.headerBytes
       //      if (state.bytes.currentWritePosition > state.headerSize) {
       //        throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
