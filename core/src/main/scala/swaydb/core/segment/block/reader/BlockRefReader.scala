@@ -162,8 +162,7 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
         reader.transfer(position = offset.start + position, count = count, transferTo = transferTo)
 
       case SliceReader(slice, position) =>
-        val toTransfer = slice.take(fromIndex = offset.start + position, count = count)
-        transferTo.append(toTransfer)
+        transferTo append slice.take(fromIndex = offset.start + position, count = count)
     }
 
   /**
@@ -175,8 +174,7 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
         reader.transfer(position = position, count = count, transferTo = transferTo)
 
       case SliceReader(slice, position) =>
-        val toTransfer = slice.take(fromIndex = position, count = count)
-        transferTo.append(toTransfer)
+        transferTo append slice.take(fromIndex = position, count = count)
     }
 
   def readFullBlockAndGetReader()(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =

@@ -244,7 +244,7 @@ private[core] case object SegmentBlock extends LazyLogging {
             segment =>
               Future {
                 Block.block(
-                  blocks = segment,
+                  segment = segment,
                   compressions = segmentConfig.compressions(UncompressedBlockInfo(segment.segmentSize)),
                   blockName = blockName
                 )

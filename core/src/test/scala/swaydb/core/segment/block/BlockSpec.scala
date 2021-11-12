@@ -13,22 +13,58 @@ import swaydb.testkit.RunThis._
 
 class BlockSpec extends TestBase {
 
-  "dataType" in {
+  "decompressionAction" in {
     //uncompressed
-    ValuesBlock(ValuesBlockOffset(start = 0, size = 20), headerSize = 10, compressionInfo = BlockCompressionInfo.Null).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
-    ValuesBlock(ValuesBlockOffset(start = 10, size = 20), headerSize = 10, compressionInfo = BlockCompressionInfo.Null).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
+    ValuesBlock(
+      offset = ValuesBlockOffset(start = 0, size = 20),
+      headerSize = 10,
+      compressionInfo = BlockCompressionInfo.Null
+    ).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
+
+    ValuesBlock(
+      offset = ValuesBlockOffset(start = 10, size = 20),
+      headerSize = 10,
+      compressionInfo = BlockCompressionInfo.Null
+    ).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
 
     //compressed
-    ValuesBlock(ValuesBlockOffset(start = 0, size = 20), headerSize = 10, compressionInfo = BlockCompressionInfo(null, 200)).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
-    ValuesBlock(ValuesBlockOffset(start = 10, size = 20), headerSize = 10, compressionInfo = BlockCompressionInfo(null, 200)).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
+    ValuesBlock(
+      offset = ValuesBlockOffset(start = 0, size = 20),
+      headerSize = 10,
+      compressionInfo = BlockCompressionInfo(null, 200)
+    ).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
+
+    ValuesBlock(
+      offset = ValuesBlockOffset(start = 10, size = 20),
+      headerSize = 10,
+      compressionInfo = BlockCompressionInfo(null, 200)
+    ).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
 
     //uncompressed
-    SegmentBlock(SegmentBlockOffset(start = 0, size = 20), headerSize = 10, compressionInfo = BlockCompressionInfo.Null).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
-    SegmentBlock(SegmentBlockOffset(start = 10, size = 20), headerSize = 10, compressionInfo = BlockCompressionInfo.Null).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
+    SegmentBlock(
+      offset = SegmentBlockOffset(start = 0, size = 20),
+      headerSize = 10,
+      compressionInfo = BlockCompressionInfo.Null
+    ).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
+
+    SegmentBlock(
+      offset = SegmentBlockOffset(start = 10, size = 20),
+      headerSize = 10,
+      compressionInfo = BlockCompressionInfo.Null
+    ).decompressionAction shouldBe IOAction.ReadUncompressedData(10)
 
     //compressed
-    SegmentBlock(SegmentBlockOffset(start = 0, size = 20), headerSize = 10, compressionInfo = BlockCompressionInfo(null, 200)).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
-    SegmentBlock(SegmentBlockOffset(start = 10, size = 20), headerSize = 10, compressionInfo = BlockCompressionInfo(null, 200)).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
+    SegmentBlock(
+      offset = SegmentBlockOffset(start = 0, size = 20),
+      headerSize = 10,
+      compressionInfo = BlockCompressionInfo(null, 200)
+    ).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
+
+    SegmentBlock(
+      offset = SegmentBlockOffset(start = 10, size = 20),
+      headerSize = 10,
+      compressionInfo = BlockCompressionInfo(null, 200)
+    ).decompressionAction shouldBe IOAction.ReadCompressedData(10, 200)
   }
 
   "block & unblock" when {
@@ -38,7 +74,12 @@ class BlockSpec extends TestBase {
           //          val headerSize = Block.headerSize(false) + 1 //+1 for Bytes.sizeOf(headerSize) that is calculated by the block itself.
           val dataBytes = randomBytesSlice(10)
 
-          val compressionResult = Block.compress(dataBytes, Seq.empty, "test-block")
+          val compressionResult =
+            Block.compress(
+              bytes = dataBytes,
+              compressions = Seq.empty,
+              blockName = "test-block"
+            )
 
           compressionResult.compressedBytes.isNoneC shouldBe true
           //          compressionResult.underlyingArraySize shouldBe uncompressedBytes.underlyingArraySize

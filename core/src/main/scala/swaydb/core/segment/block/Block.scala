@@ -52,21 +52,21 @@ private[core] object Block extends LazyLogging {
   val uncompressedBlockId: Byte = 0.toByte
   val compressedBlockID: Byte = 1.toByte
 
-  private val headerSizeWithCompression =
+  private val minHeaderSizeWithCompression =
     ByteSizeOf.byte + //headerSize
       ByteSizeOf.byte + //formatId
       ByteSizeOf.byte + //decompressor
       ByteSizeOf.varInt //decompressed length. +1 for larger varints
 
-  private val headerSizeNoCompression =
+  private val minHeaderSizeNoCompression =
     ByteSizeOf.byte + //headerSize
       ByteSizeOf.byte //formatId
 
   def minimumHeaderSize(hasCompression: Boolean): Int =
     if (hasCompression)
-      Block.headerSizeWithCompression
+      Block.minHeaderSizeWithCompression
     else
-      Block.headerSizeNoCompression
+      Block.minHeaderSizeNoCompression
 
   /**
    * Compress the bytes and update the header with the compression information.
@@ -116,43 +116,43 @@ private[core] object Block extends LazyLogging {
         )
     }
 
-  def block(blocks: TransientSegmentRef,
+  def block(segment: TransientSegmentRef,
             compressions: Iterable[CompressionInternal],
             blockName: String): TransientSegment.One =
     if (compressions.isEmpty) {
-      logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${blocks.segmentSize}.bytes uncompressed.")
+      logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${segment.segmentSize}.bytes uncompressed.")
       //      openSegment.segmentHeader moveWritePosition 0
-      blocks.segmentHeader addUnsignedInt 1
-      blocks.segmentHeader add Block.uncompressedBlockId
+      segment.segmentHeader addUnsignedInt 1
+      segment.segmentHeader add Block.uncompressedBlockId
 
       val segmentBytes: Slice[Slice[Byte]] =
-        blocks.segmentBytes collectToSlice {
+        segment.segmentBytes collectToSlice {
           case bytes if bytes.nonEmpty => bytes.close()
         }
 
       TransientSegment.One(
-        minKey = blocks.minKey,
-        maxKey = blocks.maxKey,
+        minKey = segment.minKey,
+        maxKey = segment.maxKey,
         fileHeader = Slice.emptyBytes,
         bodyBytes = segmentBytes,
-        minMaxFunctionId = blocks.functionMinMax,
-        nearestPutDeadline = blocks.nearestDeadline,
-        updateCount = blocks.updateCount,
-        rangeCount = blocks.rangeCount,
-        putCount = blocks.putCount,
-        putDeadlineCount = blocks.putDeadlineCount,
-        keyValueCount = blocks.keyValueCount,
-        createdInLevel = blocks.createdInLevel,
-        valuesUnblockedReader = blocks.valuesUnblockedReader,
-        sortedIndexUnblockedReader = blocks.sortedIndexUnblockedReader,
-        hashIndexUnblockedReader = blocks.hashIndexUnblockedReader,
-        binarySearchUnblockedReader = blocks.binarySearchUnblockedReader,
-        bloomFilterUnblockedReader = blocks.bloomFilterUnblockedReader,
-        footerUnblocked = blocks.footerUnblocked
+        minMaxFunctionId = segment.functionMinMax,
+        nearestPutDeadline = segment.nearestDeadline,
+        updateCount = segment.updateCount,
+        rangeCount = segment.rangeCount,
+        putCount = segment.putCount,
+        putDeadlineCount = segment.putDeadlineCount,
+        keyValueCount = segment.keyValueCount,
+        createdInLevel = segment.createdInLevel,
+        valuesUnblockedReader = segment.valuesUnblockedReader,
+        sortedIndexUnblockedReader = segment.sortedIndexUnblockedReader,
+        hashIndexUnblockedReader = segment.hashIndexUnblockedReader,
+        binarySearchUnblockedReader = segment.binarySearchUnblockedReader,
+        bloomFilterUnblockedReader = segment.bloomFilterUnblockedReader,
+        footerUnblocked = segment.footerUnblocked
       )
     } else {
       //header is empty so no header bytes are included.
-      val uncompressedSegmentBytes = blocks.flattenSegmentBytes
+      val uncompressedSegmentBytes = segment.flattenSegmentBytes
 
       val compressionResult =
         Block.compress(
@@ -167,24 +167,24 @@ private[core] object Block extends LazyLogging {
       compressionResult.fixHeaderSize()
 
       TransientSegment.One(
-        minKey = blocks.minKey,
-        maxKey = blocks.maxKey,
+        minKey = segment.minKey,
+        maxKey = segment.maxKey,
         fileHeader = Slice.emptyBytes,
-        bodyBytes = Slice(compressionResult.headerBytes.close(), compressedOrUncompressedSegmentBytes),
-        minMaxFunctionId = blocks.functionMinMax,
-        nearestPutDeadline = blocks.nearestDeadline,
-        updateCount = blocks.updateCount,
-        rangeCount = blocks.rangeCount,
-        putCount = blocks.putCount,
-        putDeadlineCount = blocks.putDeadlineCount,
-        keyValueCount = blocks.keyValueCount,
-        createdInLevel = blocks.createdInLevel,
-        valuesUnblockedReader = blocks.valuesUnblockedReader,
-        sortedIndexUnblockedReader = blocks.sortedIndexUnblockedReader,
-        hashIndexUnblockedReader = blocks.hashIndexUnblockedReader,
-        binarySearchUnblockedReader = blocks.binarySearchUnblockedReader,
-        bloomFilterUnblockedReader = blocks.bloomFilterUnblockedReader,
-        footerUnblocked = blocks.footerUnblocked
+        bodyBytes = Slice(Array(compressionResult.headerBytes.close(), compressedOrUncompressedSegmentBytes)),
+        minMaxFunctionId = segment.functionMinMax,
+        nearestPutDeadline = segment.nearestDeadline,
+        updateCount = segment.updateCount,
+        rangeCount = segment.rangeCount,
+        putCount = segment.putCount,
+        putDeadlineCount = segment.putDeadlineCount,
+        keyValueCount = segment.keyValueCount,
+        createdInLevel = segment.createdInLevel,
+        valuesUnblockedReader = segment.valuesUnblockedReader,
+        sortedIndexUnblockedReader = segment.sortedIndexUnblockedReader,
+        hashIndexUnblockedReader = segment.hashIndexUnblockedReader,
+        binarySearchUnblockedReader = segment.binarySearchUnblockedReader,
+        bloomFilterUnblockedReader = segment.bloomFilterUnblockedReader,
+        footerUnblocked = segment.footerUnblocked
       )
     }
 
@@ -230,11 +230,11 @@ private[core] object Block extends LazyLogging {
     )
   }
 
-  def unblock[O <: BlockOffset, B <: Block[O]](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
+  @inline def unblock[O <: BlockOffset, B <: Block[O]](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
     unblock(BlockRefReader(bytes))
 
-  def unblock[O <: BlockOffset, B <: Block[O]](ref: BlockRefReader[O],
-                                               readAllIfUncompressed: Boolean = false)(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
+  @inline def unblock[O <: BlockOffset, B <: Block[O]](ref: BlockRefReader[O],
+                                                       readAllIfUncompressed: Boolean = false)(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
     Block.unblock[O, B](
       reader = BlockedReader(ref),
       readAllIfUncompressed = readAllIfUncompressed

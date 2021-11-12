@@ -588,7 +588,9 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
 
     while (iterator.hasNext) {
       val item = iterator.next()
-      if (pf.isDefinedAt(item)) filtered add pf(item)
+
+      if (pf.isDefinedAt(item))
+        filtered add pf(item)
     }
 
     filtered.close()
