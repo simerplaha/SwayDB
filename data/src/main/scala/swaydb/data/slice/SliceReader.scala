@@ -23,8 +23,8 @@ import java.nio.file.Paths
 /**
  * http://www.swaydb.io/slice/byte-slice
  */
-case class SliceReader[B](slice: Slice[B],
-                          private var position: Int = 0)(implicit val byteOps: ByteOps[B]) extends Reader[B] {
+case class SliceReader[@specialized(Byte) B](slice: Slice[B],
+                                             private var position: Int = 0)(implicit val byteOps: ByteOps[B]) extends Reader[B] {
 
   def path = Paths.get(this.productPrefix)
 

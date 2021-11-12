@@ -22,7 +22,7 @@ import swaydb.utils.Maybe.Maybe
 import java.nio.charset.Charset
 import scala.reflect.ClassTag
 
-abstract class ByteOps[B](implicit val classTag: ClassTag[B]) {
+abstract class ByteOps[@specialized(Byte) B](implicit val classTag: ClassTag[B]) {
 
   def writeInt(int: Int, slice: Slice[B]): Unit
 
