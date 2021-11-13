@@ -62,7 +62,6 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             )
           )
 
-
         runThis(100.times) {
           val index = randomIntMax(1000)
           configFromUserConfig.shouldPrefixCompress(index) shouldBe prefixCompression.interval.shouldCompress(index)

@@ -142,7 +142,7 @@ private[core] object Assigner {
               //if noGaps is true then gapCreator will return Nothing Aggregator which cannot be accessed.
               //So use null so that no objects are created.
               headGap = if (noGaps) null else gapCreator.createNew(),
-              midOverlap = midCreator.createNew(assignable),
+              midOverlap = midCreator.createNew() addOne assignable,
               tailGap = if (noGaps) null else gapCreator.createNew(),
             )
       }

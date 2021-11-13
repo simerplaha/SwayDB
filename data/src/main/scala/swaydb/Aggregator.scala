@@ -57,11 +57,6 @@ case object Aggregator {
 
     def createNew(): Aggregator[A, T]
 
-    def createNew(item: A): Aggregator[A, T] = {
-      val fresh = createNew()
-      fresh addOne item
-      fresh
-    }
   }
 
   case object Creator {
