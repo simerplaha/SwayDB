@@ -148,14 +148,18 @@ private[core] case object BloomFilterBlock extends LazyLogging {
     )
   }
 
-  def read(header: BlockHeader[BloomFilterBlockOffset]): BloomFilterBlock =
+  def read(header: BlockHeader[BloomFilterBlockOffset]): BloomFilterBlock = {
+    val numberOfBits = header.headerReader.readUnsignedInt()
+    val maxProbe = header.headerReader.readUnsignedInt()
+
     BloomFilterBlock(
       offset = header.offset,
+      maxProbe = maxProbe,
+      numberOfBits = numberOfBits,
       headerSize = header.headerSize,
-      maxProbe = header.headerReader.readUnsignedInt(),
-      numberOfBits = header.headerReader.readUnsignedInt(),
       compressionInfo = header.compressionInfo
     )
+  }
 
   /**
    * Initialise bloomFilter if key-values do no contain remove range.
@@ -187,7 +191,15 @@ private[core] case object BloomFilterBlock extends LazyLogging {
       val computedHash = hash1 + probe * hash2
       val hashIndex = (computedHash & Long.MaxValue) % state.numberOfBits
       val offset = ((hashIndex >>> 6) * 8L).toInt
-      val long = state.compressibleBytes.take(offset, ByteSizeOf.long).readLong()
+
+      val existing = state.compressibleBytes.take(offset, ByteSizeOf.long)
+
+      val long =
+        if (existing.isEmpty)
+          0
+        else
+          existing.readLong()
+
       if ((long & (1L << hashIndex)) == 0) {
         state.compressibleBytes moveWritePosition offset
         state.compressibleBytes addLong (long | (1L << hashIndex))

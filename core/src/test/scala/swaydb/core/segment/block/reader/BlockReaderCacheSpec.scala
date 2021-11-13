@@ -40,6 +40,7 @@ class BlockReaderCacheSpec extends AnyWordSpec with Matchers {
         i =>
           BlockReaderCache.read(i, 10, state) shouldBe empty
       }
+
       BlockReaderCache.read(10, 1, state) shouldBe Slice[Byte](10.toByte)
       BlockReaderCache.read(10, 2, state) shouldBe Slice[Byte](10.toByte, 11.toByte)
       BlockReaderCache.read(10, 3, state) shouldBe Slice[Byte](10.toByte, 11.toByte, 12.toByte)

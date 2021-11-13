@@ -19,22 +19,30 @@ package swaydb.core.segment.block.reader
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions.orNone
 import swaydb.core.TestData._
-import swaydb.core.segment.block.segment.SegmentBlockOffset
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.values.ValuesBlockOffset
-import swaydb.core.segment.block.{Block, BlockCache}
+import swaydb.core.segment.block.{Block, BlockCache, BlockOps}
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.slice.Slice
+import swaydb.testkit.RunThis._
 
 class BlockedReaderSpec extends TestBase with MockFactory {
 
   "apply" when {
     "ref" in {
-      val header = Slice(1.toByte, 0.toByte)
-      val body = randomBytesSlice(100)
-      val bytes = header ++ body
+      runThis(20.times) {
+        val header = Slice(1.toByte, 0.toByte)
+        val body = randomBytesSlice(100)
+        val bytes = header ++ body
 
-      val ref = BlockRefReader[ValuesBlockOffset](bytes)
-      BlockedReader(ref).readRemaining() shouldBe body
+        val ref = BlockRefReader[ValuesBlockOffset](bytes)
+        val blockedReader = BlockedReader(ref)
+
+        blockedReader.readRemaining() shouldBe body
+
+        val unblockedReader = UnblockedReader(blockedReader, randomBoolean())
+        unblockedReader.readAllAndGetReader().readFullBlock() shouldBe body
+      }
     }
 
     "unblocked Segment" in {
@@ -43,7 +51,8 @@ class BlockedReaderSpec extends TestBase with MockFactory {
 
           val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 
-          implicit val ops = SegmentBlockOffset.SegmentBlockOps
+          implicit val ops: BlockOps[SegmentBlockOffset, SegmentBlock] =
+            SegmentBlockOffset.SegmentBlockOps
 
           val childHeader = Slice(1.toByte, 0.toByte)
           val childBody = Slice.fill(20)(9.toByte)
