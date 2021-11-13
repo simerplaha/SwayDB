@@ -575,7 +575,7 @@ private[core] case object Segment extends LazyLogging {
           )
 
         case _: MMAP.Off =>
-          DBFile.channelRead(
+          DBFile.standardRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
             autoClose = true,
@@ -712,7 +712,7 @@ private[core] case object Segment extends LazyLogging {
           )
 
         case _: MMAP.Off =>
-          DBFile.channelRead(
+          DBFile.standardRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
             autoClose = false,

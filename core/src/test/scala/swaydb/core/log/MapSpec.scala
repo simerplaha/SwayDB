@@ -753,7 +753,7 @@ class MapSpec extends TestBase {
             ).sweep()
 
           val nextFileSkipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
-          val nextFileBytes = DBFile.channelRead(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false).readAll
+          val nextFileBytes = DBFile.standardRead(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false).readAll
           nextFileBytes.size should be > 0
           val logEntries = LogEntrySerialiser.read(nextFileBytes, dropCorruptedTailEntries = false).value.item.value
           logEntries applyBatch nextFileSkipList

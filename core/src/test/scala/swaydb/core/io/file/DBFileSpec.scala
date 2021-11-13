@@ -111,15 +111,15 @@ class DBFileSpec extends TestBase with MockFactory {
           val bytes = randomBytesSlice()
 
           val mmap = createMMAPWriteAndRead(randomFilePath, bytes)
-          val channel = createChannelWriteAndRead(randomFilePath, bytes)
+          val standard = createStandardWriteAndRead(randomFilePath, bytes)
 
-          val files = List(mmap, channel)
+          val files = List(mmap, standard)
 
           files foreach {
             file =>
               //creating the same file again should fail
               IO(createMMAPWriteAndRead(file.path, randomBytesSlice())).left.value shouldBe a[FileAlreadyExistsException]
-              IO(createChannelWriteAndRead(file.path, randomBytesSlice())).left.value shouldBe a[FileAlreadyExistsException]
+              IO(createStandardWriteAndRead(file.path, randomBytesSlice())).left.value shouldBe a[FileAlreadyExistsException]
           }
 
           //flush
@@ -133,8 +133,8 @@ class DBFileSpec extends TestBase with MockFactory {
     }
   }
 
-  "channelWrite" should {
-    "initialise a FileChannel for writing and not reading and invoke the onOpen function on open" in {
+  "standardWrite" should {
+    "initialise a StandardFile for writing and not reading and invoke the onOpen function on open" in {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
@@ -153,7 +153,7 @@ class DBFileSpec extends TestBase with MockFactory {
           //      } repeat 3.times
 
           val file =
-            DBFile.channelWrite(
+            DBFile.standardWrite(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -182,7 +182,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
           file.close()
 
-          DBFile.channelRead(
+          DBFile.standardRead(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -196,8 +196,8 @@ class DBFileSpec extends TestBase with MockFactory {
     }
   }
 
-  "channelRead" should {
-    "initialise a FileChannel for reading only" in {
+  "standardRead" should {
+    "initialise a StandardFile for reading only" in {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
@@ -216,7 +216,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
           Effect.write(testFile, bytes.toByteBufferWrap)
 
-          val readFile = DBFile.channelRead(
+          val readFile = DBFile.standardRead(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -234,7 +234,7 @@ class DBFileSpec extends TestBase with MockFactory {
           //writing fails since the file is readonly
           IO(readFile.append(bytes)).left.value shouldBe a[NonWritableChannelException]
           //data remain unchanged
-          DBFile.channelRead(
+          DBFile.standardRead(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -257,7 +257,7 @@ class DBFileSpec extends TestBase with MockFactory {
         implicit sweeper =>
           import sweeper._
           IO {
-            DBFile.channelRead(
+            DBFile.standardRead(
               path = randomFilePath,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true
@@ -534,7 +534,7 @@ class DBFileSpec extends TestBase with MockFactory {
     //          ()
     //      } repeat 5.times
     //
-    //      val file = DBFile.channelWrite(
+    //      val file = DBFile.standardWrite(
     //        path = testFile,
     //        ioStrategy = randomIOStrategy(cacheOnAccess = true),
     //        blockCacheFileId = idGenerator.nextID,
@@ -620,7 +620,7 @@ class DBFileSpec extends TestBase with MockFactory {
       }
     }
 
-    "close a FileChannel and then reopening the file should open it in read only mode" in {
+    "close a StandardFile and then reopening the file should open it in read only mode" in {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
@@ -628,7 +628,7 @@ class DBFileSpec extends TestBase with MockFactory {
           val bytes = randomBytesSlice()
 
           val file =
-            DBFile.channelWrite(
+            DBFile.standardWrite(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -674,7 +674,7 @@ class DBFileSpec extends TestBase with MockFactory {
   }
 
   "append" should {
-    "append bytes to the end of the ChannelFile" in {
+    "append bytes to the end of the StandardFile" in {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
@@ -682,7 +682,7 @@ class DBFileSpec extends TestBase with MockFactory {
           val bytes = List(randomBytesSlice(), randomBytesSlice(), randomBytesSlice())
 
           val file =
-            DBFile.channelWrite(
+            DBFile.standardWrite(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -698,7 +698,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
           val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
-          DBFile.channelRead(
+          DBFile.standardRead(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -763,7 +763,7 @@ class DBFileSpec extends TestBase with MockFactory {
               file.close()
           }
 
-          DBFile.channelRead(
+          DBFile.standardRead(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -818,7 +818,7 @@ class DBFileSpec extends TestBase with MockFactory {
               file.close()
           }
 
-          DBFile.channelRead(
+          DBFile.standardRead(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -830,13 +830,13 @@ class DBFileSpec extends TestBase with MockFactory {
       }
     }
 
-    "not fail when appending empty bytes to ChannelFile" in {
+    "not fail when appending empty bytes to StandardFile" in {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
 
           val file =
-            DBFile.channelWrite(
+            DBFile.standardWrite(
               path = randomFilePath,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -845,7 +845,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
           file.append(Slice.emptyBytes)
 
-          DBFile.channelRead(
+          DBFile.standardRead(
             path = file.path,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -892,7 +892,7 @@ class DBFileSpec extends TestBase with MockFactory {
   }
 
   "read and find" should {
-    "read and find bytes at a position from a ChannelFile" in {
+    "read and find bytes at a position from a StandardFile" in {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
@@ -900,7 +900,7 @@ class DBFileSpec extends TestBase with MockFactory {
           val bytes = randomBytesSlice(100)
 
           val file =
-            DBFile.channelWrite(
+            DBFile.standardWrite(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -912,7 +912,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
           file.close()
 
-          val readFile = DBFile.channelRead(
+          val readFile = DBFile.standardRead(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -933,14 +933,14 @@ class DBFileSpec extends TestBase with MockFactory {
   }
 
   "delete" should {
-    "delete a ChannelFile" in {
+    "delete a StandardFile" in {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
           val bytes = randomBytesSlice(100)
 
           val file =
-            DBFile.channelWrite(
+            DBFile.standardWrite(
               path = randomFilePath,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -986,14 +986,14 @@ class DBFileSpec extends TestBase with MockFactory {
   }
 
   "copy" should {
-    "copy a ChannelFile" in {
+    "copy a StandardFile" in {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
           val bytes = randomBytesSlice(100)
 
           val file =
-            DBFile.channelWrite(
+            DBFile.standardWrite(
               path = randomFilePath,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -1005,7 +1005,7 @@ class DBFileSpec extends TestBase with MockFactory {
           val targetFile = randomFilePath
           file.copyTo(targetFile) shouldBe targetFile
 
-          DBFile.channelRead(
+          DBFile.standardRead(
             path = targetFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -1042,7 +1042,7 @@ class DBFileSpec extends TestBase with MockFactory {
           val targetFile = randomFilePath
           file.copyTo(targetFile) shouldBe targetFile
 
-          DBFile.channelRead(
+          DBFile.standardRead(
             path = targetFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true

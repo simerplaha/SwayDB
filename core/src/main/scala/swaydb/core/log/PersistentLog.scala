@@ -120,7 +120,7 @@ private[log] object PersistentLog extends LazyLogging {
         )
 
       case MMAP.Off(forceSave) =>
-        DBFile.channelWrite(
+        DBFile.standardWrite(
           path = folder.resolve(0.toLogFileId),
           fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
           autoClose = false,
@@ -145,7 +145,7 @@ private[log] object PersistentLog extends LazyLogging {
       files mapRecover {
         path =>
           logger.info(s"$path: Recovering key-values with dropCorruptedTailEntries set as $dropCorruptedTailEntries.")
-          val file = DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false)
+          val file = DBFile.standardRead(path, IOStrategy.SynchronisedIO(true), autoClose = false)
           val bytes = file.readAll
           val recovery = LogEntrySerialiser.read[K, V](bytes, dropCorruptedTailEntries).get
 
@@ -248,7 +248,7 @@ private[log] object PersistentLog extends LazyLogging {
           )
 
         case MMAP.Off(forceSave) =>
-          DBFile.channelWrite(
+          DBFile.standardWrite(
             path = nextPath,
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
             autoClose = false,

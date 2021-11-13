@@ -272,9 +272,9 @@ class EffectSpec extends TestBase {
           file =>
             //transfer bytes to both mmap and channel files
             val targetMMAPFile = createWriteableMMAPFile(randomFilePath, 100)
-            val targetChannelFile = createWriteableChannelFile(randomFilePath)
+            val targetStandardFile = createWriteableStandardFile(randomFilePath)
 
-            Seq(targetMMAPFile, targetChannelFile) foreach {
+            Seq(targetMMAPFile, targetStandardFile) foreach {
               targetFile =>
                 file.transfer(position = 0, count = 10, transferTo = targetFile)
                 targetFile.close()

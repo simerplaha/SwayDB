@@ -66,13 +66,13 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
         //        mmapFile.forceSave()
         //        mmapFile.close()
 
-        val channelFile =
-          DBFile.channelRead(
+        val standardFile =
+          DBFile.standardRead(
             path = Effect.write(path, bytes.toByteBufferWrap),
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
             autoClose = true
           )
-        val reader = BlockRefReader(file = channelFile, blockCache = blockCache)
+        val reader = BlockRefReader(file = standardFile, blockCache = blockCache)
 
         val bytesToRead = 15
 
@@ -105,7 +105,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
                 //              write.readInt()
                 //              Thread.sleep(1)
                 //          println(readBytes)
-                //                  channelFile.read(index, bytesToRead).get
+                //                  standardFile.read(index, bytesToRead).get
 
                 //                                  mmapFile.read(index, bytesToRead).get
 
@@ -147,8 +147,8 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //    val flattenBytes: Slice[Byte] = bytes.flatten.toSlice
   //
   //    /**
-  //     * [[ChannelFile]] and [[FileChannel]] have nearly the same performance results but exactly the same
-  //     * because [[ChannelFile]] has to maintain cache.
+  //     * [[StandardFile]] and [[FileChannel]] have nearly the same performance results but exactly the same
+  //     * because [[StandardFile]] has to maintain cache.
   //     */
   //    "Write performance" in {
   //      val path = randomFilePath
@@ -172,17 +172,17 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //       * Round 2: 1.328009528 seconds
   //       * Round 3: 1.3148811 seconds
   //       */
-  //      val channelFile = DBFile.channelWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val standardFile = DBFile.standardWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      Benchmark("FileChannel write Benchmark") {
-  //        bytes foreach channelFile.append
+  //        bytes foreach standardFile.append
   //      }
   //
   //      //check all the bytes were written
-  //      val readChannelFile = DBFile.channelRead(channelFile.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
-  //      readChannelFile.fileSize.runRandomIO.right.value shouldBe bytes.size * chunkSize
-  //      Effect.readAll(channelFile.path) shouldBe flattenBytes
-  //      channelFile.close().runRandomIO.right.value
-  //      readChannelFile.close().runRandomIO.right.value
+  //      val readStandardFile = DBFile.standardRead(standardFile.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      readStandardFile.fileSize.runRandomIO.right.value shouldBe bytes.size * chunkSize
+  //      Effect.readAll(standardFile.path) shouldBe flattenBytes
+  //      standardFile.close().runRandomIO.right.value
+  //      readStandardFile.close().runRandomIO.right.value
   //
   //      /**
   //       * Benchmark memory mapped files write
@@ -203,7 +203,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //
   //    "Get performance" in {
   //      val bytes = randomBytes(chunkSize)
-  //      val file = DBFile.channelWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val file = DBFile.standardWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      file.append(Slice(bytes))
   //      file.close().runRandomIO.right.value
   //
@@ -214,14 +214,14 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //       * Round 3: 1.842739196 seconds
   //       */
   //
-  //      val channelFile = DBFile.channelRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val standardFile = DBFile.standardRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      Benchmark("FileChannel value Benchmark") {
   //        bytes.indices foreach {
   //          index =>
-  //            channelFile.get(index).runRandomIO.right.value shouldBe bytes(index)
+  //            standardFile.get(index).runRandomIO.right.value shouldBe bytes(index)
   //        }
   //      }
-  //      channelFile.close().runRandomIO.right.value
+  //      standardFile.close().runRandomIO.right.value
   //
   //      /**
   //       * Benchmark memory mapped file read
@@ -249,7 +249,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //          allBytes addAll bytes
   //          bytes
   //      }
-  //      val file = DBFile.channelWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val file = DBFile.standardWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      bytes foreach (file.append(_).runRandomIO.right.value)
   //      file.close().runRandomIO.right.value
   //
@@ -260,16 +260,16 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //       * Round 3: 0.819253382 seconds
   //       */
   //
-  //      val channelFile = DBFile.channelRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val standardFile = DBFile.standardRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      Benchmark("FileChannel read Benchmark") {
   //        bytes.foldLeft(0) {
   //          case (index, byteSlice) =>
-  //            //            channelFile.read(index, chunkSize).runIO.array shouldBe byteSlice.array
-  //            channelFile.read(index, chunkSize)
+  //            //            standardFile.read(index, chunkSize).runIO.array shouldBe byteSlice.array
+  //            standardFile.read(index, chunkSize)
   //            index + chunkSize
   //        }
   //      }
-  //      channelFile.close().runRandomIO.right.value
+  //      standardFile.close().runRandomIO.right.value
   //
   //      /**
   //       * Benchmark memory mapped file read

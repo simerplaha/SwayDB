@@ -456,30 +456,30 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     if (Random.nextBoolean())
       createMMAPFileReader(path)
     else
-      createFileChannelFileReader(path)
+      createStandardFileFileReader(path)
 
   def createAllFilesReaders(path: Path)(implicit sweeper: TestCaseSweeper): List[FileReader] =
     List(
       createMMAPFileReader(path),
-      createFileChannelFileReader(path)
+      createStandardFileFileReader(path)
     )
 
   def createMMAPFileReader(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): FileReader =
     createMMAPFileReader(createFile(bytes))
 
   /**
-   * Creates all file types currently supported which are MMAP and FileChannel.
+   * Creates all file types currently supported which are MMAP and StandardFile.
    */
   def createDBFiles(mmapPath: Path, mmapBytes: Slice[Byte], channelPath: Path, channelBytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): List[DBFile] =
     List(
       createMMAPWriteAndRead(mmapPath, mmapBytes),
-      createChannelWriteAndRead(channelPath, channelBytes)
+      createStandardWriteAndRead(channelPath, channelBytes)
     )
 
   def createDBFiles(mmapBytes: Slice[Byte], channelBytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): List[DBFile] =
     List(
       createMMAPWriteAndRead(randomFilePath, mmapBytes),
-      createChannelWriteAndRead(randomFilePath, channelBytes)
+      createStandardWriteAndRead(randomFilePath, channelBytes)
     )
 
   def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): DBFile = {
@@ -508,10 +508,10 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     ).sweep()
   }
 
-  def createWriteableChannelFile(path: Path)(implicit sweeper: TestCaseSweeper): DBFile = {
+  def createWriteableStandardFile(path: Path)(implicit sweeper: TestCaseSweeper): DBFile = {
     import sweeper._
 
-    DBFile.channelWrite(
+    DBFile.standardWrite(
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
@@ -519,11 +519,11 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     )
   }
 
-  def createChannelWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): DBFile = {
+  def createStandardWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): DBFile = {
     import sweeper._
 
     val file =
-      DBFile.channelWrite(
+      DBFile.standardWrite(
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
@@ -533,11 +533,10 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     file.append(bytes)
     file.close()
 
-    DBFile.mmapRead(
+    DBFile.standardRead(
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
-      autoClose = true,
-      deleteAfterClean = OperatingSystem.isWindows,
+      autoClose = true
     ).sweep()
   }
 
@@ -555,14 +554,14 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     new FileReader(file = file)
   }
 
-  def createFileChannelFileReader(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): FileReader =
-    createFileChannelFileReader(createFile(bytes))
+  def createStandardFileFileReader(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): FileReader =
+    createStandardFileFileReader(createFile(bytes))
 
-  def createFileChannelFileReader(path: Path)(implicit sweeper: TestCaseSweeper): FileReader = {
+  def createStandardFileFileReader(path: Path)(implicit sweeper: TestCaseSweeper): FileReader = {
     import sweeper._
 
     val file =
-      DBFile.channelRead(
+      DBFile.standardRead(
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true

@@ -36,11 +36,11 @@
 //    //use a larger size (200000) to test on larger data-set.
 //    val bytes = randomByteChunks(size = 20000, sizePerChunk = 50.bytes)
 //
-//    "write key values to a ChannelFile" in {
+//    "write key values to a StandardFile" in {
 //      val path = randomFilePath
 //
-//      val file = DBFile.channelWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
-//      Benchmark("write 1 million key values to a ChannelFile") {
+//      val file = DBFile.standardWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//      Benchmark("write 1 million key values to a StandardFile") {
 //        bytes foreach {
 //          byteChunk =>
 //            file.append(byteChunk).runRandomIO.right.value
@@ -49,11 +49,11 @@
 //      file.close().runRandomIO.right.value
 //    }
 //
-//    "write key values to a ChannelFile concurrently" in {
+//    "write key values to a StandardFile concurrently" in {
 //      val path = randomFilePath
 //
-//      val file = DBFile.channelWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
-//      Benchmark("write 1 million key values to a ChannelFile concurrently") {
+//      val file = DBFile.standardWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//      Benchmark("write 1 million key values to a StandardFile concurrently") {
 //        Future.sequence {
 //          bytes map {
 //            chunk =>

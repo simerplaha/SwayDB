@@ -33,7 +33,7 @@
 //    val iterations = 5000
 //    //        val bytes = randomBytesSlice(blockSize * iterations)
 //    val bytes = Slice.fill(blockSize * iterations)(1.toByte)
-//    val fileReader = createFileChannelFileReader(bytes)
+//    val fileReader = createFileStandardFileReader(bytes)
 //
 //    val blockSizeToReader = blockSize
 //

@@ -269,8 +269,8 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
         )
 
       case MMAP.ReadOnly(deleteAfterClean) =>
-        val channelWrite =
-          DBFile.channelWrite(
+        val standardWrite =
+          DBFile.standardWrite(
             path = path,
             fileOpenIOStrategy = segmentReadIO.fileOpenIO,
             autoClose = true,
@@ -278,26 +278,26 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
           )
 
         try
-          byteTransferer(channelWrite)
+          byteTransferer(standardWrite)
         catch {
           case throwable: Throwable =>
             logger.error(s"Failed to write $mmap file with applier. Closing file: $path", throwable)
-            channelWrite.close()
+            standardWrite.close()
             throw throwable
         }
 
-        channelWrite.close()
+        standardWrite.close()
 
         DBFile.mmapRead(
-          path = channelWrite.path,
+          path = standardWrite.path,
           fileOpenIOStrategy = segmentReadIO.fileOpenIO,
           autoClose = true,
           deleteAfterClean = deleteAfterClean
         )
 
       case _: MMAP.Off =>
-        val channelWrite =
-          DBFile.channelWrite(
+        val standardWrite =
+          DBFile.standardWrite(
             path = path,
             fileOpenIOStrategy = segmentReadIO.fileOpenIO,
             autoClose = true,
@@ -305,18 +305,18 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
           )
 
         try
-          byteTransferer(channelWrite)
+          byteTransferer(standardWrite)
         catch {
           case throwable: Throwable =>
             logger.error(s"Failed to write $mmap file with applier. Closing file: $path", throwable)
-            channelWrite.close()
+            standardWrite.close()
             throw throwable
         }
 
-        channelWrite.close()
+        standardWrite.close()
 
-        DBFile.channelRead(
-          path = channelWrite.path,
+        DBFile.standardRead(
+          path = standardWrite.path,
           fileOpenIOStrategy = segmentReadIO.fileOpenIO,
           autoClose = true
         )
@@ -335,7 +335,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
       //      //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
       //      //is probably not the most efficient and should not be used.
       //      file.close()
-      //      DBFile.channelRead(
+      //      DBFile.standardRead(
       //        path = file.path,
       //        ioStrategy = SegmentIO.segmentBlockIO(IOAction.OpenResource),
       //        blockCacheFileId = BlockCacheFileIDGenerator.nextID,

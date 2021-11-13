@@ -106,12 +106,12 @@ object DBFile extends LazyLogging {
     cache
   }
 
-  def channelWrite(path: Path,
-                   fileOpenIOStrategy: IOStrategy.ThreadSafe,
-                   autoClose: Boolean,
-                   forceSave: ForceSave.StandardFiles)(implicit fileSweeper: FileSweeper,
-                                                       bufferCleaner: ByteBufferSweeperActor,
-                                                       forceSaveApplier: ForceSaveApplier): DBFile = {
+  def standardWrite(path: Path,
+                    fileOpenIOStrategy: IOStrategy.ThreadSafe,
+                    autoClose: Boolean,
+                    forceSave: ForceSave.StandardFiles)(implicit fileSweeper: FileSweeper,
+                                                        bufferCleaner: ByteBufferSweeperActor,
+                                                        forceSaveApplier: ForceSaveApplier): DBFile = {
     val file = StandardFile.write(path, forceSave)
     new DBFile(
       path = path,
@@ -131,12 +131,12 @@ object DBFile extends LazyLogging {
     )
   }
 
-  def channelRead(path: Path,
-                  fileOpenIOStrategy: IOStrategy.ThreadSafe,
-                  autoClose: Boolean,
-                  checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
-                                               bufferCleaner: ByteBufferSweeperActor,
-                                               forceSaveApplier: ForceSaveApplier): DBFile =
+  def standardRead(path: Path,
+                   fileOpenIOStrategy: IOStrategy.ThreadSafe,
+                   autoClose: Boolean,
+                   checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
+                                                bufferCleaner: ByteBufferSweeperActor,
+                                                forceSaveApplier: ForceSaveApplier): DBFile =
     if (checkExists && Effect.notExists(path))
       throw swaydb.Exception.NoSuchFile(path)
     else
