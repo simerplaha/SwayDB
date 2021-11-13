@@ -1339,7 +1339,49 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
   }
 
-  "collectToSlice" in {
+  "collectToSlice" when {
+    "empty - no head" in {
+      val collection: Slice[Byte] =
+        Slice.empty[Byte] collectToSlice {
+          case byte => byte
+        }
 
+      collection shouldBe empty
+    }
+
+    "empty - head" in {
+      val collection: Slice[Byte] =
+        Slice.empty[Byte].collectToSlice(1.toByte) {
+          case byte => byte
+        }
+
+      collection should contain only 1
+    }
+
+    "no head" in {
+      val slice = Slice.range(1, 10)
+
+      val collection: Slice[Int] =
+        slice collectToSlice {
+          case int if int % 2 == 0 =>
+            int
+        }
+
+      collection shouldBe Slice(2, 4, 6, 8, 10)
+      collection.size shouldBe 5
+    }
+
+    "head" in {
+      val slice = Slice.range(1, 10)
+
+      val collection: Slice[Int] =
+        slice.collectToSlice(1) {
+          case int if int % 2 == 0 =>
+            int
+        }
+
+      collection shouldBe Slice(1, 2, 4, 6, 8, 10)
+      collection.size shouldBe 6
+    }
   }
 }
