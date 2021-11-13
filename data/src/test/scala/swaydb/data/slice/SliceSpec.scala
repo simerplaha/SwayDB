@@ -1338,4 +1338,8 @@ class SliceSpec extends AnyWordSpec with Matchers {
       }
     }
   }
+
+  "collectToSlice" in {
+
+  }
 }

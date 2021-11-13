@@ -29,63 +29,122 @@ import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.Deadline
 
-class TransientSegmentRef(val minKey: Slice[Byte],
-                          val maxKey: MaxKey[Slice[Byte]],
-                          val functionMinMax: Option[MinMax[Slice[Byte]]],
-                          val nearestDeadline: Option[Deadline],
-                          val createdInLevel: Int,
-                          //counts
-                          val updateCount: Int,
-                          val rangeCount: Int,
-                          val putCount: Int,
-                          val putDeadlineCount: Int,
-                          val keyValueCount: Int,
-                          //values
-                          val valuesBlockHeader: Option[Slice[Byte]],
-                          val valuesBlock: Option[Slice[Byte]],
-                          val valuesUnblockedReader: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]],
-                          //sortedIndex
-                          val sortedIndexClosedState: SortedIndexBlockState,
-                          val sortedIndexBlockHeader: Slice[Byte],
-                          val sortedIndexBlock: Slice[Byte],
-                          val sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]],
-                          //hashIndex
-                          val hashIndexBlockHeader: Option[Slice[Byte]],
-                          val hashIndexBlock: Option[Slice[Byte]],
-                          val hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
-                          //binarySearch
-                          val binarySearchIndexBlockHeader: Option[Slice[Byte]],
-                          val binarySearchIndexBlock: Option[Slice[Byte]],
-                          val binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
-                          //bloomFilter
-                          val bloomFilterBlockHeader: Option[Slice[Byte]],
-                          val bloomFilterBlock: Option[Slice[Byte]],
-                          val bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
-                          //footer
-                          val footerBlock: Slice[Byte]) {
+class TransientSegmentRef( //key info
+                           val minKey: Slice[Byte],
+                           val maxKey: MaxKey[Slice[Byte]],
+                           val functionMinMax: Option[MinMax[Slice[Byte]]],
+                           val nearestDeadline: Option[Deadline],
+                           val createdInLevel: Int,
+                           //counts
+                           val updateCount: Int,
+                           val rangeCount: Int,
+                           val putCount: Int,
+                           val putDeadlineCount: Int,
+                           val keyValueCount: Int,
+                           //values
+                           val valuesBlockHeader: Option[Slice[Byte]],
+                           val valuesBlock: Option[Slice[Byte]],
+                           val valuesUnblockedReader: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]],
+                           //sortedIndex
+                           val sortedIndexClosedState: SortedIndexBlockState,
+                           val sortedIndexBlockHeader: Slice[Byte],
+                           val sortedIndexBlock: Slice[Byte],
+                           val sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]],
+                           //hashIndex
+                           val hashIndexBlockHeader: Option[Slice[Byte]],
+                           val hashIndexBlock: Option[Slice[Byte]],
+                           val hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
+                           //binarySearch
+                           val binarySearchIndexBlockHeader: Option[Slice[Byte]],
+                           val binarySearchIndexBlock: Option[Slice[Byte]],
+                           val binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
+                           //bloomFilter
+                           val bloomFilterBlockHeader: Option[Slice[Byte]],
+                           val bloomFilterBlock: Option[Slice[Byte]],
+                           val bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
+                           //footer
+                           val footerBlock: Slice[Byte]) {
 
-  val segmentHeader: Slice[Byte] = Slice.of[Byte](Byte.MaxValue)
+  val (segmentBytesWithoutHeader, segmentSizeWithoutHeader): (Slice[Slice[Byte]], Int) = {
+    val allBytes = Slice.of[Slice[Byte]](12)
+    var segmentSize = 0
 
-  val segmentBytes: Slice[Slice[Byte]] = {
-    val allBytes = Slice.of[Slice[Byte]](13)
-    allBytes add segmentHeader
+    /**
+     * VALUES BLOCK
+     */
+    valuesBlockHeader foreach {
+      valuesBlockHeader =>
+        allBytes add valuesBlockHeader
+        segmentSize += valuesBlockHeader.size
+    }
 
-    valuesBlockHeader foreach allBytes.add
-    valuesBlock foreach allBytes.add
+    valuesBlock foreach {
+      valuesBlock =>
+        allBytes add valuesBlock
+        segmentSize += valuesBlock.size
+    }
 
+    /**
+     * SORTED-INDEX BLOCK
+     */
     allBytes add sortedIndexBlockHeader
+    segmentSize += sortedIndexBlockHeader.size
+
     allBytes add sortedIndexBlock
+    segmentSize += sortedIndexBlock.size
 
-    hashIndexBlockHeader foreach allBytes.add
-    hashIndexBlock foreach allBytes.add
+    /**
+     * HashIndex
+     */
+    hashIndexBlockHeader foreach {
+      hashIndexBlockHeader =>
+        allBytes add hashIndexBlockHeader
+        segmentSize += hashIndexBlockHeader.size
+    }
 
-    binarySearchIndexBlockHeader foreach allBytes.add
-    binarySearchIndexBlock foreach allBytes.add
+    hashIndexBlock foreach {
+      hashIndexBlock =>
+        allBytes add hashIndexBlock
+        segmentSize += hashIndexBlock.size
+    }
 
-    bloomFilterBlockHeader foreach allBytes.add
-    bloomFilterBlock foreach allBytes.add
+    /**
+     * Binary search index
+     */
+    binarySearchIndexBlockHeader foreach {
+      binarySearchIndexBlockHeader =>
+        allBytes add binarySearchIndexBlockHeader
+        segmentSize += binarySearchIndexBlockHeader.size
+    }
 
+    binarySearchIndexBlock foreach {
+      binarySearchIndexBlock =>
+        allBytes add binarySearchIndexBlock
+        segmentSize += binarySearchIndexBlock.size
+    }
+
+    /**
+     * BoomFilter
+     */
+    bloomFilterBlockHeader foreach {
+      bloomFilterBlockHeader =>
+        allBytes add bloomFilterBlockHeader
+        segmentSize += bloomFilterBlockHeader.size
+    }
+
+    bloomFilterBlock foreach {
+      bloomFilterBlock =>
+        allBytes add bloomFilterBlock
+        segmentSize += bloomFilterBlock.size
+    }
+
+    /**
+     * Footer
+     */
     allBytes add footerBlock
+    segmentSize += footerBlock.size
+
+    (allBytes, segmentSize)
   }
 
   //If sortedIndexUnblockedReader is defined then caching is enabled
@@ -103,16 +162,9 @@ class TransientSegmentRef(val minKey: Slice[Byte],
     else
       None
 
-  def isEmpty: Boolean =
-    segmentBytes.exists(_.isEmpty)
-
-  def segmentSize =
-    segmentBytes.foldLeft(0)(_ + _.size)
-
-  def flattenSegmentBytes: Slice[Byte] = {
-    val size = segmentBytes.foldLeft(0)(_ + _.size)
-    val slice = Slice.of[Byte](size)
-    segmentBytes foreach (slice addAll _)
+  def flattenSegmentBytesWithoutHeader: Slice[Byte] = {
+    val slice = Slice.of[Byte](segmentSizeWithoutHeader)
+    segmentBytesWithoutHeader foreach (slice addAll _)
     assert(slice.isFull)
     slice
   }

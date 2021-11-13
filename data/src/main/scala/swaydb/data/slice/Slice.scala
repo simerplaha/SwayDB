@@ -582,18 +582,32 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
     filtered.close()
   }
 
-  def collectToSlice[B: ClassTag](pf: PartialFunction[T, B]): Slice[B] = {
-    val filtered = Slice.of[B](self.size)
+  def collectToSlice[B: ClassTag](pf: PartialFunction[T, B]): Slice[B] =
+    collectToSliceAndClose(Slice.of[B](self.size), pf)
+
+  /**
+   * Collects but also inserts the [[head]] item which is NOT by the partial function.
+   */
+  def collectToSlice[B: ClassTag](head: B)(pf: PartialFunction[T, B]): Slice[B] = {
+    val target =
+      Slice
+        .of[B](self.size + 1)
+        .add(head)
+
+    collectToSliceAndClose(target, pf)
+  }
+
+  @inline private def collectToSliceAndClose[B: ClassTag](target: Slice[B], pf: PartialFunction[T, B]): Slice[B] = {
     val iterator = self.iterator
 
     while (iterator.hasNext) {
       val item = iterator.next()
 
       if (pf.isDefinedAt(item))
-        filtered add pf(item)
+        target add pf(item)
     }
 
-    filtered.close()
+    target.close()
   }
 
   override def filterNot(p: T => Boolean): Slice[T] = {

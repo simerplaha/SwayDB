@@ -291,26 +291,20 @@ object TransientSegment {
     def segmentSize =
       fileHeader.size + listSegment.segmentSizeIgnoreHeader + segments.foldLeft(0)(_ + _.segmentSizeIgnoreHeader)
 
-    override val updateCount: Int =
-      segments.foldLeft(0)(_ + _.updateCount)
-
-    override val rangeCount: Int =
-      segments.foldLeft(0)(_ + _.rangeCount)
-
-    override val putCount: Int =
-      segments.foldLeft(0)(_ + _.putCount)
-
-    override val putDeadlineCount: Int =
-      segments.foldLeft(0)(_ + _.putDeadlineCount)
-
-    override val keyValueCount: Int =
-      segments.foldLeft(0)(_ + _.keyValueCount)
-
-    override val createdInLevel: Int =
-      segments.foldLeft(Int.MaxValue)(_ min _.createdInLevel)
+    val (updateCount, rangeCount, putCount, putDeadlineCount, keyValueCount, createdInLevel) =
+      segments.foldLeft((0, 0, 0, 0, 0, Int.MaxValue)) {
+        case ((updateCount, rangeCount, putCount, putDeadlineCount, keyValueCount, createdInLevel), segment) =>
+          (
+            updateCount + segment.updateCount,
+            rangeCount + segment.rangeCount,
+            putCount + segment.putCount,
+            putDeadlineCount + segment.putDeadlineCount,
+            keyValueCount + segment.keyValueCount,
+            createdInLevel min segment.createdInLevel
+          )
+      }
 
     override def toString: String =
       s"minKey: $minKey, maxKey: $maxKey, fileHeader: $fileHeader, segments: ${segments.size}"
-
   }
 }

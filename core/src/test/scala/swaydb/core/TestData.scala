@@ -39,13 +39,20 @@ import swaydb.core.merge.{KeyValueGrouper, KeyValueMerger}
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block._
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockOffset.BinarySearchIndexBlockOps
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlockConfig}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
+import swaydb.core.segment.block.bloomfilter.BloomFilterBlockOffset.BloomFilterBlockOps
+import swaydb.core.segment.block.hashindex.HashIndexBlockOffset.HashIndexBlockOps
 import swaydb.core.segment.block.hashindex.{HashIndexBlockConfig, HashIndexEntryFormat}
 import swaydb.core.segment.block.reader.{BlockedReader, UnblockedReader}
+import swaydb.core.segment.block.segment.SegmentBlockOffset.SegmentBlockOps
+import swaydb.core.segment.block.segment.footer.SegmentFooterBlockOffset.SegmentFooterBlockOps
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig, SegmentBlockOffset}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
+import swaydb.core.segment.block.sortedindex.SortedIndexBlockOffset.SortedIndexBlockOps
+import swaydb.core.segment.block.values.ValuesBlockOffset.ValuesBlockOps
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockOffset}
 import swaydb.core.segment.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.entry.writer.EntryWriter
@@ -1203,6 +1210,20 @@ object TestData {
     else
       Value.Update(value, Some(deadline), testTimer.next)
 
+  def allBlockOps(): Array[BlockOps[_, _]] =
+    Array(
+      BinarySearchIndexBlockOps,
+      BloomFilterBlockOps,
+      HashIndexBlockOps,
+      SegmentBlockOps,
+      SegmentFooterBlockOps,
+      SortedIndexBlockOps,
+      ValuesBlockOps
+    )
+
+  def randomBlockOps(): BlockOps[_, _] =
+    Random.shuffle(allBlockOps().to(List)).head
+
   def randomCharacters(size: Int = 10) = Random.alphanumeric.take(size max 1).mkString
 
   def randomBytes(size: Int = 10) = Array.fill(size)(randomByte())
@@ -2043,8 +2064,7 @@ object TestData {
   implicit class TransientSegmentImplicits(segment: TransientSegment.Persistent) {
 
     def flattenSegmentBytes: Slice[Byte] = {
-      val size = segment.segmentSize
-      val slice = Slice.of[Byte](size)
+      val slice = Slice.of[Byte](segment.segmentSize)
 
       segment match {
         case segment: TransientSegment.OneOrRemoteRef =>

@@ -318,8 +318,6 @@ private[core] case object SortedIndexBlock extends LazyLogging {
     compressionResult.headerBytes addBoolean state.isPreNormalised
     compressionResult.headerBytes addUnsignedInt state.largestIndexEntrySize
 
-    compressionResult.fixHeaderSize()
-
     state.maxKey =
       state.lastKeyValue match {
         case range: Memory.Range =>

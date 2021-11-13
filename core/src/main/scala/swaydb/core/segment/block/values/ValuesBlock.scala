@@ -88,8 +88,6 @@ private[core] case object ValuesBlock {
 
     compressionResult.compressedBytes foreachC (state.compressibleBytes = _)
 
-    compressionResult.fixHeaderSize()
-
     assert(compressionResult.headerBytes.isOriginalFullSlice)
     state.header = compressionResult.headerBytes
 

@@ -2,6 +2,11 @@ package swaydb.core.segment.block
 
 import swaydb.data.slice.ReaderBase
 
+object BlockHeader {
+  val uncompressedBlockId: Byte = 0.toByte
+  val compressedBlockID: Byte = 1.toByte
+}
+
 class BlockHeader[O](val compressionInfo: BlockCompressionInfoOption,
                      val headerReader: ReaderBase[Byte],
                      val headerSize: Int,

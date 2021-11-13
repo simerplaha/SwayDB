@@ -100,8 +100,6 @@ private[core] case object BinarySearchIndexBlock {
       state.isFullIndex = state.writtenValues == uncompressedKeyValuesCount
       compressionResult.headerBytes addBoolean state.isFullIndex
 
-      compressionResult.fixHeaderSize()
-
       assert(compressionResult.headerBytes.isOriginalFullSlice)
       state.header = compressionResult.headerBytes
 

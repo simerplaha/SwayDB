@@ -120,9 +120,6 @@ private[core] case object BloomFilterBlock extends LazyLogging {
 
       //      compressionResult.headerBytes moveWritePosition state.headerSize
 
-      //header
-      compressionResult.fixHeaderSize()
-
       assert(compressionResult.headerBytes.isOriginalFullSlice)
       state.header = compressionResult.headerBytes
       //      if (state.bytes.currentWritePosition > state.headerSize) {

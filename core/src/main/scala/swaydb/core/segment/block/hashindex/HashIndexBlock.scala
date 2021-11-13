@@ -143,8 +143,6 @@ private[core] case object HashIndexBlock extends LazyLogging {
       compressionResult.headerBytes addUnsignedLong state.minimumCRCToWrite()
       compressionResult.headerBytes addUnsignedInt state.writeAbleLargestValueSize
 
-      compressionResult.fixHeaderSize()
-
       assert(compressionResult.headerBytes.isOriginalFullSlice)
       state.header = compressionResult.headerBytes
 
