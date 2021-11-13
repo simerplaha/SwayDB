@@ -380,6 +380,14 @@ class DBFile(val path: Path,
     else
       fileCache.value(()).get.read(position = position, size = size)
 
+  def read(position: Int,
+           size: Int,
+           blockSize: Int): Array[Slice[Byte]] =
+    if (size == 0)
+      Array.empty //no need to have this as global val because core never asks for 0 size
+    else
+      fileCache.value(()).get.read(position = position, size = size, blockSize = blockSize)
+
   def transfer(position: Int, count: Int, transferTo: DBFile): Int =
     file.transfer(
       position = position,

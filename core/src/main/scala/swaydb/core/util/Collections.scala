@@ -141,4 +141,21 @@ private[swaydb] object Collections {
 
       allGroups
     }
+
+  /**
+   * Copy of [[Array.fill]] and also appends a last element.
+   */
+  def fillArrayWithLast[T: ClassTag](last: T, n: Int)(elem: => T): Array[T] =
+    if (n <= 0) {
+      Array(last)
+    } else {
+      val array = new Array[T](n + 1)
+      var i = 0
+      while (i < n) {
+        array(i) = elem
+        i += 1
+      }
+      array(i) = last
+      array
+    }
 }

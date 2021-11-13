@@ -225,15 +225,58 @@ private[file] class MMAPFile(val path: Path,
         count
     }
 
+  /**
+   * Loads array from the [[buffer]] and does not watch for null pointer.
+   */
+  private def loadFromBuffer(array: Array[Byte], position: Int): Unit = {
+    val arrayLength = array.length
+    var i = 0
+    while (i < arrayLength) {
+      array(i) = buffer.get(i + position)
+      i += 1
+    }
+  }
+
   def read(position: Int, size: Int): Slice[Byte] =
     watchNullPointer {
       val array = new Array[Byte](size)
-      var i = 0
-      while (i < size) {
-        array(i) = buffer.get(i + position)
-        i += 1
-      }
+      loadFromBuffer(array = array, position = position)
       Slice(array)
+    }
+
+  def read(position: Int, size: Int, blockSize: Int): Array[Slice[Byte]] =
+    if (size == 0) {
+      Array.empty //no need to have this as global val because core never asks for 0 size
+    } else if (blockSize > size) {
+      Array(read(position, size))
+    } else {
+      val buffersCount = size / blockSize //minimum buffers required
+      val lastBufferLength = size % blockSize //last buffer size
+
+      val slices =
+        if (lastBufferLength == 0) //no overflow. Smaller last buffer not needed
+          new Array[Slice[Byte]](buffersCount)
+        else //needs another slice
+          new Array[Slice[Byte]](buffersCount + 1)
+
+      watchNullPointer {
+        var i = 0
+        val sliceCount = slices.length
+        while (i < sliceCount) {
+          val array =
+            if (lastBufferLength != 0 && i == sliceCount - 1) //if last buffer is of a smaller size
+              new Array[Byte](lastBufferLength)
+            else
+              new Array[Byte](blockSize)
+
+          loadFromBuffer(array, position + (i * blockSize))
+          slices(i) = Slice(array)
+
+          i += 1
+        }
+      }
+
+      slices
     }
 
   def get(position: Int): Byte =

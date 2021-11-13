@@ -17,6 +17,7 @@
 package swaydb.core.io.file
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.util.Collections
 import swaydb.data.config.ForceSave
 import swaydb.data.slice.Slice
 import swaydb.effect.Effect
@@ -103,6 +104,25 @@ private[file] class StandardFile(val path: Path,
     channel.read(buffer, position)
     Slice(buffer.array())
   }
+
+  def read(position: Int, size: Int, blockSize: Int): Array[Slice[Byte]] =
+    if (size == 0) {
+      Array.empty //no need to have this as global val because core never asks for 0 size
+    } else if (blockSize > size) {
+      Array(read(position, size))
+    } else {
+      val buffersCount = size / blockSize //minimum buffers required
+      val lastBufferLength = size % blockSize //last buffer size
+
+      val buffers =
+        if (lastBufferLength == 0) //no overflow
+          Array.fill(buffersCount)(ByteBuffer.allocate(blockSize))
+        else //last buffer will be of smaller size
+          Collections.fillArrayWithLast(ByteBuffer.allocate(lastBufferLength), buffersCount)(ByteBuffer.allocate(blockSize))
+
+      channel.read(buffers, position, buffers.length) //read data
+      buffers.map(buffer => Slice.ofScala(buffer)) //create slices
+    }
 
   def get(position: Int): Byte =
     read(position, 1).head

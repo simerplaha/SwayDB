@@ -1116,4 +1116,95 @@ class DBFileSpec extends TestBase with MockFactory {
   //    }
   //
   //  }
+
+  "read chunked bytes" when {
+    "size is empty" in {
+      TestCaseSweeper {
+        implicit sweeper =>
+          createDBFiles(randomBytesSlice(100), randomBytesSlice(100)) foreach {
+            file =>
+              file.read(0, 0, 10) shouldBe empty
+          }
+      }
+    }
+
+    "blockSize == size" in {
+      TestCaseSweeper {
+        implicit sweeper =>
+          val bytes = randomBytesSlice(100)
+
+          createDBFiles(bytes, bytes) foreach {
+            file =>
+              val slices = file.read(0, bytes.size, bytes.size)
+              slices should have size 1
+              slices.flatten.toList shouldBe bytes.toList
+          }
+      }
+    }
+
+    "blockSize > size" in {
+      TestCaseSweeper {
+        implicit sweeper =>
+          val bytes = randomBytesSlice(100)
+
+          createDBFiles(bytes, bytes) foreach {
+            file =>
+              val slices = file.read(0, bytes.size, bytes.size + 1)
+              slices should have size 1
+              slices.flatten.toList shouldBe bytes.toList
+          }
+      }
+    }
+
+    "blockSize < size" when {
+      "size is multiple of blockSize" in {
+        TestCaseSweeper {
+          implicit sweeper =>
+            val bytes = randomBytesSlice(100)
+
+            createDBFiles(bytes, bytes) foreach {
+              file =>
+                val slices = file.read(0, bytes.size, 10)
+                slices should have size 10
+
+                val zip = slices.zip(bytes.grouped(10))
+
+                zip should have size 10
+
+                zip foreach {
+                  case (readSlice, expectedSlice) =>
+                    readSlice shouldBe expectedSlice
+                }
+
+                slices.flatten.toList shouldBe bytes.toList
+            }
+        }
+      }
+
+      "size is not a multiple of blockSize" in {
+        TestCaseSweeper {
+          implicit sweeper =>
+            val bytes = randomBytesSlice(100)
+
+            createDBFiles(bytes, bytes) foreach {
+              file =>
+                //blockSize is 9 so expect 12 slices to get created with the last slice being of size 1
+                val slices = file.read(0, bytes.size, 9)
+                slices should have size 12
+
+                slices.indices foreach {
+                  index =>
+                    //underlying array sizes should be exact. No unnecessary arrays should get created
+                    if (index == slices.length - 1)
+                      slices(index).underlyingArraySize shouldBe 1 //last slice is of size 1
+                    else
+                      slices(index).underlyingArraySize shouldBe 9
+
+                    slices(index) shouldBe bytes.drop(index * 9).take(9)
+                }
+            }
+        }
+      }
+    }
+  }
 }
