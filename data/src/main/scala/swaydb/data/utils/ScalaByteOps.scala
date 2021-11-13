@@ -16,7 +16,7 @@
 
 package swaydb.data.utils
 
-import swaydb.data.slice.{ReaderBase, Slice, SliceReader}
+import swaydb.data.slice.{ReaderBase, Slice, SliceMut, SliceReader}
 import swaydb.utils.Maybe.Maybe
 import swaydb.utils.{ByteSizeOf, Maybe}
 
@@ -24,7 +24,7 @@ import java.nio.charset.{Charset, StandardCharsets}
 
 private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
 
-  def writeInt(int: Int, slice: Slice[Byte]): Unit = {
+  def writeInt(int: Int, slice: SliceMut[Byte]): Unit = {
     slice add (int >>> 24).toByte
     slice add (int >>> 16).toByte
     slice add (int >>> 8).toByte
@@ -43,7 +43,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
       bytes.getUnchecked_Unsafe(3) & 0xff
   }
 
-  def writeLong(long: Long, slice: Slice[Byte]): Unit = {
+  def writeLong(long: Long, slice: SliceMut[Byte]): Unit = {
     slice add (long >>> 56).toByte
     slice add (long >>> 48).toByte
     slice add (long >>> 40).toByte
@@ -106,8 +106,8 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     reader.readStringUTF8(reader.readUnsignedInt())
 
   def writeString(string: String,
-                  bytes: Slice[Byte],
-                  charsets: Charset): Slice[Byte] =
+                  bytes: SliceMut[Byte],
+                  charsets: Charset): SliceMut[Byte] =
     bytes addAll string.getBytes(charsets)
 
   def writeString(string: String,
@@ -124,8 +124,8 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
   }
 
   def writeStringWithSize(string: String,
-                          bytes: Slice[Byte],
-                          charsets: Charset): Slice[Byte] = {
+                          bytes: SliceMut[Byte],
+                          charsets: Charset): SliceMut[Byte] = {
     val stringBytes = string.getBytes(charsets)
     bytes
       .addUnsignedInt(stringBytes.length)
@@ -135,7 +135,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
   def writeStringWithSizeUTF8(string: String): Slice[Byte] =
     writeStringWithSize(string, StandardCharsets.UTF_8)
 
-  def writeBoolean(bool: Boolean, slice: Slice[Byte]): Slice[Byte] = {
+  def writeBoolean(bool: Boolean, slice: SliceMut[Byte]): SliceMut[Byte] = {
     slice add (if (bool) 1.toByte else 0.toByte)
     slice
   }
@@ -149,7 +149,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
    * Need to re-evaluate this code and see if abstract functions can be used.
    * *********************************************** */
 
-  def writeSignedInt(x: Int, slice: Slice[Byte]): Unit =
+  def writeSignedInt(x: Int, slice: SliceMut[Byte]): Unit =
     writeUnsignedInt((x << 1) ^ (x >> 31), slice)
 
   def readSignedInt(reader: ReaderBase[Byte]): Int = {
@@ -170,7 +170,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     tmp ^ (unsigned & (1 << 31))
   }
 
-  def writeUnsignedInt(int: Int, slice: Slice[Byte]): Unit = {
+  def writeUnsignedInt(int: Int, slice: SliceMut[Byte]): Unit = {
     if (int > 0x0FFFFFFF || int < 0) slice.add((0x80 | int >>> 28).asInstanceOf[Byte])
     if (int > 0x1FFFFF || int < 0) slice.add((0x80 | ((int >>> 21) & 0x7F)).asInstanceOf[Byte])
     if (int > 0x3FFF || int < 0) slice.add((0x80 | ((int >>> 14) & 0x7F)).asInstanceOf[Byte])
@@ -185,7 +185,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     slice.close()
   }
 
-  private[swaydb] def writeUnsignedIntNonZero(int: Int, slice: Slice[Byte]): Unit = {
+  private[swaydb] def writeUnsignedIntNonZero(int: Int, slice: SliceMut[Byte]): Unit = {
     var x = int
     while ((x & 0xFFFFFF80) != 0L) {
       slice add ((x & 0x7F) | 0x80).toByte
@@ -416,7 +416,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     (int, slice.size - index)
   }
 
-  def writeSignedLong(long: Long, slice: Slice[Byte]): Unit =
+  def writeSignedLong(long: Long, slice: SliceMut[Byte]): Unit =
     writeUnsignedLong((long << 1) ^ (long >> 63), slice)
 
   def readSignedLong(reader: ReaderBase[Byte]): Long = {
@@ -435,7 +435,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     tmp ^ (unsigned & (1L << 63))
   }
 
-  def writeUnsignedLong(long: Long, slice: Slice[Byte]): Unit = {
+  def writeUnsignedLong(long: Long, slice: SliceMut[Byte]): Unit = {
     if (long < 0) slice.add(0x81.toByte)
     if (long > 0xFFFFFFFFFFFFFFL || long < 0) slice.add((0x80 | ((long >>> 56) & 0x7FL)).asInstanceOf[Byte])
     if (long > 0x1FFFFFFFFFFFFL || long < 0) slice.add((0x80 | ((long >>> 49) & 0x7FL)).asInstanceOf[Byte])

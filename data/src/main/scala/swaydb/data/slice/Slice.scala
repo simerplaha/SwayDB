@@ -57,30 +57,192 @@ case object Slice extends SliceCompanion {
 
 }
 
+
 /**
  * [[Slice]] allows managing a large [[Array]] without copying it's values unless needed.
  *
  * [[Slice]] is used extensively by all modules including core so it's performance is critical.
  */
-final class Slice[@specialized(Byte) +T](array: Array[T],
-                                         val fromOffset: Int,
-                                         val toOffset: Int,
-                                         private var written: Int)(protected[this] implicit val classTag: ClassTag[T]) extends Iterable[T] with SliceOption[T] { self =>
+final class SliceMut[@specialized(Byte) +T](protected[this] override val array: Array[T],
+                                            val fromOffset: Int,
+                                            val toOffset: Int,
+                                            private var written: Int)(override protected[this] implicit val classTag: ClassTag[T]) extends Slice[T] { self =>
 
   private var writePosition =
     fromOffset + written
 
+  override def size: Int =
+    written
+
+  override def getC: SliceMut[T] =
+    this
+
+  @throws[ArrayIndexOutOfBoundsException]
+  private[swaydb] def moveWritePosition(writePosition: Int): Unit = {
+    val adjustedPosition = fromOffset + writePosition
+    //+1 because write position can be a step ahead for the next write but cannot over over toOffset.
+    if (adjustedPosition > toOffset + 1) throw new ArrayIndexOutOfBoundsException(adjustedPosition)
+    this.writePosition = adjustedPosition
+    written = adjustedPosition max written
+  }
+
+  def add(item: T@uncheckedVariance): SliceMut[T] = {
+    if (writePosition < fromOffset || writePosition > toOffset) throw new ArrayIndexOutOfBoundsException(writePosition)
+    array(writePosition) = item
+    writePosition += 1
+    written = (writePosition - fromOffset) max written
+    self
+  }
+
+  @tailrec
+  def addAllOrNew(items: scala.collection.compat.IterableOnce[T]@uncheckedVariance, expandBy: Int): SliceMut[T] =
+    items match {
+      case array: mutable.WrappedArray[T] =>
+        if (hasSpace(array.length)) {
+          this.copyAll(array.array, 0, array.length)
+        } else {
+          //TODO - core's code make sure that this does not occur often.
+          val newSlice = Slice.of[T]((this.size + array.length) * expandBy)
+          newSlice addAll self
+          newSlice addAll array.array.asInstanceOf[Array[T]]
+        }
+
+      case items: Slice[T] =>
+        if (hasSpace(items.size)) {
+          addAll[T](items)
+        } else {
+          //TODO - core's code make sure that this does not occur often.
+          val newSlice = Slice.of[T]((this.size + items.size) * expandBy)
+          newSlice addAll self
+          newSlice addAll items
+        }
+
+      case items: Iterable[T] =>
+        addAllOrNew(items.toArray[T], expandBy)
+
+      case items =>
+        val buffer = ListBuffer.empty[T]
+        buffer ++= items
+
+        val newSlice = Slice.of[T]((self.size + buffer.size) * expandBy)
+
+        newSlice addAll self
+        newSlice addAll buffer.toArray
+
+        newSlice
+    }
+
+  def addAll[B >: T](items: Array[B]): SliceMut[B] =
+    this.copyAll(items, 0, items.length)
+
+  def addAll[B >: T](items: Slice[B]): SliceMut[B] =
+    this.copyAll(items.unsafeInnerArray, items.fromOffset, items.size)
+
+  def hasSpace(size: Int): Boolean = {
+    val futurePosition = writePosition + size - 1
+    futurePosition >= fromOffset && futurePosition <= toOffset
+  }
+
+  private def copyAll[B >: T](items: Array[_], fromPosition: Int, itemsSize: Int): SliceMut[B] =
+    if (itemsSize > 0) {
+      val futurePosition = writePosition + itemsSize - 1
+      if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
+      Array.copy(items, fromPosition, this.array, currentWritePosition, itemsSize)
+      writePosition += itemsSize
+      written = (writePosition - fromOffset) max written
+      self
+    } else {
+      self
+    }
+
+  def currentWritePosition =
+    writePosition
+
+  def currentWritePositionInThisSlice: Int =
+    writePosition - fromOffset
+
+  @inline def addBoolean[B >: T](bool: Boolean)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
+    byteOps.writeBoolean(bool, self)
+    self
+  }
+
+  @inline def addInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
+    byteOps.writeInt(integer, self)
+    self
+  }
+
+  @inline def addSignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
+    byteOps.writeSignedInt(integer, self)
+    self
+  }
+
+  @inline def addUnsignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
+    byteOps.writeUnsignedInt(integer, self)
+    self
+  }
+
+  @inline def addNonZeroUnsignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
+    byteOps.writeUnsignedIntNonZero(integer, self)
+    self
+  }
+
+  @inline def addLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
+    byteOps.writeLong(num, self)
+    self
+  }
+
+  @inline def addUnsignedLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
+    byteOps.writeUnsignedLong(num, self)
+    self
+  }
+
+  @inline def addSignedLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
+    byteOps.writeSignedLong(num, self)
+    self
+  }
+
+  @inline def addString[B >: T](string: String, charsets: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
+    byteOps.writeString(string, self, charsets)
+    self
+  }
+
+  @inline def addStringUTF8[B >: T](string: String)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
+    byteOps.writeString(string, self, StandardCharsets.UTF_8)
+    self
+  }
+
+  @inline def addStringUTF8WithSize[B >: T](string: String)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
+    byteOps.writeStringWithSize(string, self, StandardCharsets.UTF_8)
+    self
+  }
+}
+
+
+/**
+ * [[Slice]] allows managing a large [[Array]] without copying it's values unless needed.
+ *
+ * [[Slice]] is used extensively by all modules including core so it's performance is critical.
+ */
+trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { self =>
+
+  val fromOffset: Int
+
+  val toOffset: Int
+
   val allocatedSize: Int =
     toOffset - fromOffset + 1
+
+  protected[this] implicit def classTag: ClassTag[T]
+
+  protected[this] def array: Array[T]
+
+  def size: Int
 
   override val isNoneC: Boolean =
     false
 
   override def getC: Slice[T] =
     this
-
-  override def size: Int =
-    written
 
   override def isEmpty: Boolean =
     size == 0
@@ -101,13 +263,13 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
       self
 
   /**
-   * Create a new Slice for the offsets.
+   * Create a new SliceMut for the offsets.
    *
    * @param fromOffset start offset
    * @param toOffset   end offset
    * @return Slice for the given offsets
    */
-  override def slice(fromOffset: Int, toOffset: Int): Slice[T] =
+  override def slice(fromOffset: Int, toOffset: Int): this.type =
     if (toOffset < 0) {
       Slice.empty[T]
     } else {
@@ -124,16 +286,16 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
       if (fromOffsetAdjusted > toOffsetAdjusted) {
         Slice.empty
       } else {
-        val actualWritePosition = this.fromOffset + written //in-case the slice was manually moved.
+        val actualWritePosition = this.fromOffset + self.size //in-case the slice was manually moved.
         val sliceWritePosition =
-          if (actualWritePosition <= fromOffsetAdjusted) //not written
+          if (actualWritePosition <= fromOffsetAdjusted) //not self.size
             0
           else if (actualWritePosition > toOffsetAdjusted) //fully written
             toOffsetAdjusted - fromOffsetAdjusted + 1
           else //partially written
             actualWritePosition - fromOffsetAdjusted
 
-        new Slice[T](
+        new SliceMut[T](
           array = array,
           fromOffset = fromOffsetAdjusted,
           toOffset = toOffsetAdjusted,
@@ -161,36 +323,28 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
     groupedSlice(size).iterator
 
   def groupedSlice(size: Int): Slice[Slice[T]] = {
-    @tailrec
-    def group(groups: Slice[Slice[T]],
-              slice: Slice[T],
-              size: Int): Slice[Slice[T]] =
-      if (size <= 1) {
-        groups add slice
-        groups
-      } else {
-        val (slice1, slice2) = slice.splitAt(slice.size / size)
-        groups add slice1
-        group(groups, slice2, size - 1)
-      }
-
-    if (size == 0)
-      Slice(self)
-    else
-      group(Slice.of[Slice[T]](size), self, size)
+    //    @tailrec
+    //    def group(groups: Slice[Slice[T]],
+    //              slice: Slice[T],
+    //              size: Int): Slice[Slice[T]] =
+    //      if (size <= 1) {
+    //        groups add slice
+    //        groups
+    //      } else {
+    //        val (slice1, slice2) = slice.splitAt(slice.size / size)
+    //        groups add slice1
+    //        group(groups, slice2, size - 1)
+    //      }
+    //
+    //    if (size == 0)
+    //      Slice(self)
+    //    else
+    //      group(Slice.of[Slice[T]](size), self, size)
+    ???
   }
 
-  @throws[ArrayIndexOutOfBoundsException]
-  private[swaydb] def moveWritePosition(writePosition: Int): Unit = {
-    val adjustedPosition = fromOffset + writePosition
-    //+1 because write position can be a step ahead for the next write but cannot over over toOffset.
-    if (adjustedPosition > toOffset + 1) throw new ArrayIndexOutOfBoundsException(adjustedPosition)
-    this.writePosition = adjustedPosition
-    written = adjustedPosition max written
-  }
-
-  private[swaydb] def openEnd(): Slice[T] =
-    new Slice[T](
+  private[swaydb] def openEnd(): this.type =
+    new SliceMut[T](
       array = array,
       fromOffset = fromOffset,
       toOffset = array.length - 1,
@@ -260,22 +414,22 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
 
   //For performance. To avoid creation of Some wrappers
   def headOrNull: T =
-    if (written <= 0)
+    if (self.size <= 0)
       null.asInstanceOf[T]
     else
       array(fromOffset)
 
   //For performance. To avoid creation of Some wrappers
   def lastOrNull: T =
-    if (written <= 0)
+    if (self.size <= 0)
       null.asInstanceOf[T]
     else
-      array(fromOffset + written - 1)
+      array(fromOffset + self.size - 1)
 
   override def head: T = {
     val headValue = headOrNull
     if (headValue == null)
-      throw new Exception(s"Slice is empty. Written: $written")
+      throw new Exception(s"Slice is empty. Written: ${self.size}")
     else
       headValue
   }
@@ -283,7 +437,7 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
   override def last: T = {
     val lastValue = lastOrNull
     if (lastValue == null)
-      throw new Exception(s"Slice is empty. Written: $written")
+      throw new Exception(s"Slice is empty. Written: ${self.size}")
     else
       lastValue
   }
@@ -345,75 +499,6 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
 
   def apply(index: Int): T =
     get(index)
-
-  def add(item: T@uncheckedVariance): Slice[T] = {
-    if (writePosition < fromOffset || writePosition > toOffset) throw new ArrayIndexOutOfBoundsException(writePosition)
-    array(writePosition) = item
-    writePosition += 1
-    written = (writePosition - fromOffset) max written
-    self
-  }
-
-  @tailrec
-  def addAllOrNew(items: scala.collection.compat.IterableOnce[T]@uncheckedVariance, expandBy: Int): Slice[T] =
-    items match {
-      case array: mutable.WrappedArray[T] =>
-        if (hasSpace(array.length)) {
-          this.copyAll(array.array, 0, array.length)
-        } else {
-          //TODO - core's code make sure that this does not occur often.
-          val newSlice = Slice.of[T]((this.size + array.length) * expandBy)
-          newSlice addAll self
-          newSlice addAll array.array.asInstanceOf[Array[T]]
-        }
-
-      case items: Slice[T] =>
-        if (hasSpace(items.size)) {
-          addAll[T](items)
-        } else {
-          //TODO - core's code make sure that this does not occur often.
-          val newSlice = Slice.of[T]((this.size + items.size) * expandBy)
-          newSlice addAll self
-          newSlice addAll items
-        }
-
-      case items: Iterable[T] =>
-        addAllOrNew(items.toArray[T], expandBy)
-
-      case items =>
-        val buffer = ListBuffer.empty[T]
-        buffer ++= items
-
-        val newSlice = Slice.of[T]((self.size + buffer.size) * expandBy)
-
-        newSlice addAll self
-        newSlice addAll buffer.toArray
-
-        newSlice
-    }
-
-  def addAll[B >: T](items: Array[B]): Slice[B] =
-    this.copyAll(items, 0, items.length)
-
-  def addAll[B >: T](items: Slice[B]): Slice[B] =
-    this.copyAll(items.unsafeInnerArray, items.fromOffset, items.size)
-
-  def hasSpace(size: Int): Boolean = {
-    val futurePosition = writePosition + size - 1
-    futurePosition >= fromOffset && futurePosition <= toOffset
-  }
-
-  private def copyAll[B >: T](items: Array[_], fromPosition: Int, itemsSize: Int): Slice[B] =
-    if (itemsSize > 0) {
-      val futurePosition = writePosition + itemsSize - 1
-      if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
-      Array.copy(items, fromPosition, this.array, currentWritePosition, itemsSize)
-      writePosition += itemsSize
-      written = (writePosition - fromOffset) max written
-      self
-    } else {
-      self
-    }
 
   def toByteBufferWrap: ByteBuffer =
     ByteBuffer.wrap(array.asInstanceOf[Array[Byte]], fromOffset, size)
@@ -597,7 +682,7 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
     collectToSliceAndClose(target, pf)
   }
 
-  @inline private def collectToSliceAndClose[B: ClassTag](target: Slice[B], pf: PartialFunction[T, B]): Slice[B] = {
+  @inline private def collectToSliceAndClose[B: ClassTag](target: SliceMut[B], pf: PartialFunction[T, B]): Slice[B] = {
     val iterator = self.iterator
 
     while (iterator.hasNext) {
@@ -749,12 +834,6 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
   def sortBy[B >: T, C](f: T => C)(implicit ordering: Ordering[C]): Slice[B] =
     Slice(toArrayCopy.sortBy(f)(ordering))
 
-  def currentWritePosition =
-    writePosition
-
-  def currentWritePositionInThisSlice: Int =
-    writePosition - fromOffset
-
   /**
    * @return A tuple2 where _1 is written bytes and _2 is tail unwritten bytes.
    */
@@ -764,12 +843,12 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
   def unwrittenTailSize() =
     toOffset - fromOffset - size
 
-  def unwrittenTail(): Slice[T] = {
+  def unwrittenTail(): this.type = {
     val from = fromOffset + size
     if (from > toOffset)
       Slice.empty[T]
     else
-      new Slice[T](
+      new SliceMut[T](
         array = array,
         fromOffset = from,
         toOffset = toOffset,
@@ -777,26 +856,16 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
       )
   }
 
-  def copy(): Slice[T] =
-    new Slice[T](
+  def copy(): this.type =
+    new SliceMut[T](
       array = array,
       fromOffset = fromOffset,
       toOffset = toOffset,
-      written = written
+      written = self.size
     )
-
-  @inline def addBoolean[B >: T](bool: Boolean)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeBoolean(bool, self)
-    self
-  }
 
   @inline def readBoolean[B >: T]()(implicit byteOps: ByteOps[B]): Boolean =
     byteOps.readBoolean(self)
-
-  @inline def addInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeInt(integer, self)
-    self
-  }
 
   @inline def readInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
     byteOps.readInt(self)
@@ -806,23 +875,8 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
     self drop byteSize
   }
 
-  @inline def addSignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeSignedInt(integer, self)
-    self
-  }
-
   @inline def readSignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
     byteOps.readSignedInt(self)
-
-  @inline def addUnsignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeUnsignedInt(integer, self)
-    self
-  }
-
-  @inline def addNonZeroUnsignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeUnsignedIntNonZero(integer, self)
-    self
-  }
 
   @inline def readUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
     byteOps.readUnsignedInt(self)
@@ -833,18 +887,8 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
   @inline def readNonZeroUnsignedIntWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Int, Int) =
     byteOps.readUnsignedIntNonZeroWithByteSize(self)
 
-  @inline def addLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeLong(num, self)
-    self
-  }
-
   @inline def readLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
     byteOps.readLong(self)
-
-  @inline def addUnsignedLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeUnsignedLong(num, self)
-    self
-  }
 
   @inline def readUnsignedLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
     byteOps.readUnsignedLong(self)
@@ -855,28 +899,8 @@ final class Slice[@specialized(Byte) +T](array: Array[T],
   @inline def readUnsignedLongByteSize[B >: T]()(implicit byteOps: ByteOps[B]): Int =
     byteOps.readUnsignedLongByteSize(self)
 
-  @inline def addSignedLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeSignedLong(num, self)
-    self
-  }
-
   @inline def readSignedLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
     byteOps.readSignedLong(self)
-
-  @inline def addString[B >: T](string: String, charsets: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeString(string, self, charsets)
-    self
-  }
-
-  @inline def addStringUTF8[B >: T](string: String)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeString(string, self, StandardCharsets.UTF_8)
-    self
-  }
-
-  @inline def addStringUTF8WithSize[B >: T](string: String)(implicit byteOps: ByteOps[B]): Slice[T] = {
-    byteOps.writeStringWithSize(string, self, StandardCharsets.UTF_8)
-    self
-  }
 
   @inline def readString[B >: T](charset: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): String =
     byteOps.readString(self, charset)
