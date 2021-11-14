@@ -23,7 +23,7 @@ import swaydb.core.TestData._
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.Bytes
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceRO, Slices}
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 
@@ -43,6 +43,9 @@ class BlockCacheSpec extends TestBase with MockFactory {
 
           override def readFromSource(filePosition: Int, size: Int): Slice[Byte] =
             bytes.drop(filePosition).take(size)
+
+          override def readFromSource(filePosition: Int, size: Int, blockSize: Int): SliceRO[Byte] =
+            Slices(bytes.drop(filePosition).take(size).split(blockSize))
         }
 
       val state =

@@ -18,7 +18,7 @@ package swaydb.core.segment.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.segment.block.{BlockCache, BlockCacheSource, BlockCacheState, BlockOffset}
-import swaydb.data.slice.{Reader, ReaderBase, Slice, SliceOption}
+import swaydb.data.slice.{Reader, ReaderBase, Slice, SliceOption, SliceRO}
 
 /**
  * Defers [[ReaderBase]] related operations to [[BlockReader]].
@@ -111,10 +111,40 @@ private[block] trait BlockReaderBase extends ReaderBase[Byte] with BlockCacheSou
     }
   }
 
+  override def read(size: Int, blockSize: Int): SliceRO[Byte] = {
+    val remaining = this.remaining
+    if (remaining <= 0) {
+      Slice.emptyBytes
+    } else {
+      val bytesToRead = size min remaining
+
+      val bytes =
+        if (reader.isFile && blockCache.isDefined)
+          BlockCache.getOrSeek(
+            position = offset.start + position - rootBlockRefOffset.start,
+            size = bytesToRead,
+            source = this,
+            state = blockCache.get
+          )
+        else
+          reader
+            .moveTo(offset.start + position)
+            .read(bytesToRead, blockSize)
+
+      position += bytesToRead
+      bytes
+    }
+  }
+
   override def readFromSource(position: Int, size: Int): Slice[Byte] =
     reader
       .moveTo(position + rootBlockRefOffset.start)
       .read(size)
+
+  override def readFromSource(position: Int, size: Int, blockSize: Int): SliceRO[Byte] =
+    reader
+      .moveTo(position + rootBlockRefOffset.start)
+      .read(size, blockSize)
 
   override def blockCacheMaxBytes: Int =
     rootBlockRefOffset.size

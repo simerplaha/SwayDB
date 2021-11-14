@@ -19,6 +19,7 @@ package swaydb.data.slice
 import swaydb.data.utils.ByteOps
 
 import java.nio.file.Paths
+import scala.reflect.ClassTag
 
 /**
  * http://www.swaydb.io/slice/byte-slice
@@ -42,6 +43,18 @@ case class SliceReader[@specialized(Byte) B](slice: Slice[B],
       position += size
       bytes
     }
+
+  def read(size: Int, blockSize: Int): SliceRO[B] = {
+    implicit val classTag: ClassTag[B] = slice.classTag
+
+    if (size <= 0) {
+      Slice.empty[B]
+    } else {
+      val bytes = slice.take(position, size)
+      position += size
+      Slices(bytes.split(blockSize))
+    }
+  }
 
   def moveTo(newPosition: Int): SliceReader[B] = {
     position = newPosition max 0

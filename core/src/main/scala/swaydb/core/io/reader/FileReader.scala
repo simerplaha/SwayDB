@@ -18,8 +18,10 @@ package swaydb.core.io.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.file.DBFile
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.{Reader, Slice, SliceRO}
 import swaydb.data.utils.ByteOps
+
+import java.nio.file.Path
 
 private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[Byte]) extends Reader[Byte] with LazyLogging {
 
@@ -57,7 +59,7 @@ private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[B
     byte
   }
 
-  override def read(size: Int) =
+  override def read(size: Int): Slice[Byte] =
     if (size <= 0) {
       Slice.emptyBytes
     } else {
@@ -71,7 +73,22 @@ private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[B
       bytes
     }
 
-  def path =
+  override def read(size: Int, blockSize: Int): SliceRO[Byte] =
+    if (size <= 0) {
+      Slice.emptyBytes
+    } else {
+      val bytes =
+        file.read(
+          position = position,
+          size = size,
+          blockSize = blockSize
+        )
+
+      position += size
+      bytes
+    }
+
+  def path: Path =
     file.path
 
   override def readRemaining(): Slice[Byte] =

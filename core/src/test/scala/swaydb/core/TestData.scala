@@ -66,7 +66,7 @@ import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.{LevelMeter, LevelThrottle}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.{Slice, SliceOption, SliceRO}
 import swaydb.data.storage.{Level0Storage, LevelStorage}
 import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
 import swaydb.effect.{Dir, IOAction, IOStrategy}
@@ -2143,6 +2143,9 @@ object TestData {
 
         override def readFromSource(position: Int, size: Int): Slice[Byte] =
           file.read(position = position, size = size)
+
+        override def readFromSource(position: Int, size: Int, blockSize: Int): SliceRO[Byte] =
+          file.read(position = position, size = size, blockSize = blockSize)
       }
   }
 

@@ -34,6 +34,8 @@ trait ReaderBase[B] { self =>
 
   def read(size: Int): Slice[B]
 
+  def read(size: Int, blockSize: Int): SliceRO[B]
+
   def size: Int
 
   def hasMore: Boolean

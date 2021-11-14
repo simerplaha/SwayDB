@@ -16,9 +16,11 @@
 
 package swaydb.core.segment.block
 
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceRO}
 
 trait BlockCacheSource {
   def blockCacheMaxBytes: Int
   def readFromSource(position: Int, size: Int): Slice[Byte]
+  def readFromSource(position: Int, size: Int, blockSize: Int): SliceRO[Byte]
+
 }
