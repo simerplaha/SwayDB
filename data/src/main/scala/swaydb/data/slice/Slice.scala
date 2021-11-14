@@ -1169,11 +1169,13 @@ case class Slices[@specialized(Byte) A: ClassTag](slices: Array[Slice[A]]) exten
     } else {
       val array = new Array[A](size)
       var currentWritePosition = 0
-      slices foreach {
-        slice =>
-          val sliceArray = slice.toArray
-          Array.copy(sliceArray, 0, array, currentWritePosition, sliceArray.length)
-          currentWritePosition += sliceArray.length
+      var i = 0
+      while (i < slices.length) {
+        val slice = slices(i)
+        val (sliceArray, from, size) = slice.underlyingWrittenArrayUnsafe[A]
+        Array.copy(sliceArray, from, array, currentWritePosition, size)
+        currentWritePosition += sliceArray.length
+        i += 1
       }
       array
     }

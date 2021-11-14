@@ -23,6 +23,8 @@ class SlicesSpec extends AnyWordSpec with Matchers {
       }
 
       assertThrows[ArrayIndexOutOfBoundsException](slices.get(15))
+
+      slices.toArray shouldBe Slice.range(0, 14).toArray
     }
 
     "it contains a small last slice" in {
@@ -38,6 +40,8 @@ class SlicesSpec extends AnyWordSpec with Matchers {
       }
 
       assertThrows[ArrayIndexOutOfBoundsException](slices.get(12))
+
+      slices.toArray shouldBe Slice.range(0, 11).toArray
     }
   }
 }
