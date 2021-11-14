@@ -621,9 +621,6 @@ sealed trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T
   def isOriginalFullSlice =
     isOriginalSlice && isFull
 
-  def arrayLength =
-    array.length
-
   def cut(): Self =
     createNew(toArray)
 
