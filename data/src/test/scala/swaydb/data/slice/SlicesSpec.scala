@@ -7,21 +7,13 @@ class SlicesSpec extends AnyWordSpec with Matchers {
 
   "get" when {
     "empty" in {
-      val slices = Slices[Int](Array.empty)
-
-      assertThrows[NoSuchElementException](slices.blockSize())
-      slices.size shouldBe 0
-
-      Slice.range(0, 14) foreach {
-        int =>
-          assertThrows[NoSuchElementException](slices.get(int))
-      }
+      assertThrows[NoSuchElementException](Slices[Int](Array.empty))
     }
 
     "all slices are equal" in {
       val slices = Slices(Array(Slice.range(0, 4), Slice.range(5, 9), Slice.range(10, 14)))
 
-      slices.blockSize() shouldBe 5
+      slices.blockSize shouldBe 5
       slices.size shouldBe 15
 
       Slice.range(0, 14) foreach {
@@ -36,7 +28,7 @@ class SlicesSpec extends AnyWordSpec with Matchers {
     "it contains a small last slice" in {
       val slices = Slices(Array(Slice.range(0, 4), Slice.range(5, 9), Slice.range(10, 11)))
 
-      slices.blockSize() shouldBe 5
+      slices.blockSize shouldBe 5
       slices.size shouldBe 12
 
       Slice.range(0, 11) foreach {

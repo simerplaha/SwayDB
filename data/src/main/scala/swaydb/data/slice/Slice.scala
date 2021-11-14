@@ -1118,11 +1118,13 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
 /**
  * Stores a sequence of slices fetched from cache or from disk seek.
  *
- * @note Head slices are always of equal size except the last slice.
+ * Pre-Conditions:
+ *    - Head slices are always of equal size except the last slice.
+ *    - Slices cannot be empty
  */
 case class Slices[@specialized(Byte) A: ClassTag](slices: Array[Slice[A]]) extends SliceRO[A] {
 
-  def blockSize(): Int =
+  val blockSize: Int =
     slices.head.size
 
   //FIXME - implement without cut
@@ -1130,22 +1132,18 @@ case class Slices[@specialized(Byte) A: ClassTag](slices: Array[Slice[A]]) exten
     this.cut().createReader[B]()
 
   def get(index: Int): A =
-    if (slices.length == 1) {
+    if (slices.length == 1)
       slices.head(index)
-    } else {
-      val blockSize = slices.head.size
-      //slice(slot)(slotIndex)
+    else
+    //slice(slot)(slotIndex)
       slices(index / blockSize).get(index % blockSize)
-    }
 
   override private[swaydb] def getUnchecked_Unsafe(index: Int) =
-    if (slices.length == 1) {
+    if (slices.length == 1)
       slices.head(index)
-    } else {
-      val blockSize = slices.head.size
-      //slice(slot)(slotIndex)
+    else
+    //slice(slot)(slotIndex)
       slices(index / blockSize).getUnchecked_Unsafe(index % blockSize)
-    }
 
   override def cut(): Slice[A] =
     if (slices.length == 1)
