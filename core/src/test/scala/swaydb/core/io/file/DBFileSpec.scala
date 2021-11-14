@@ -24,7 +24,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, Slices}
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
@@ -1135,7 +1135,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
           createDBFiles(bytes, bytes) foreach {
             file =>
-              val slices = file.read(0, bytes.size, bytes.size)
+              val slices = file.read(0, bytes.size, bytes.size).asInstanceOf[Slices[Byte]].slices
               slices should have size 1
               slices.flatten.toList shouldBe bytes.toList
           }
@@ -1149,9 +1149,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
           createDBFiles(bytes, bytes) foreach {
             file =>
-              val slices = file.read(0, bytes.size, bytes.size + 1)
-              slices should have size 1
-              slices.flatten.toList shouldBe bytes.toList
+              file.read(0, bytes.size, bytes.size + 1).asInstanceOf[Slice[Byte]] shouldBe bytes
           }
       }
     }
@@ -1164,7 +1162,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
             createDBFiles(bytes, bytes) foreach {
               file =>
-                val slices = file.read(0, bytes.size, 10)
+                val slices = file.read(0, bytes.size, 10).asInstanceOf[Slices[Byte]].slices
                 slices should have size 10
 
                 val zip = slices.zip(bytes.grouped(10))
@@ -1189,7 +1187,7 @@ class DBFileSpec extends TestBase with MockFactory {
             createDBFiles(bytes, bytes) foreach {
               file =>
                 //blockSize is 9 so expect 12 slices to get created with the last slice being of size 1
-                val slices = file.read(0, bytes.size, 9)
+                val slices = file.read(0, bytes.size, 9).asInstanceOf[Slices[Byte]].slices
                 slices should have size 12
 
                 slices.indices foreach {

@@ -22,7 +22,7 @@ import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, FileSweeperItem}
 import swaydb.data.cache.Cache
 import swaydb.data.config.ForceSave
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceRO}
 import swaydb.effect.{Effect, IOStrategy, Reserve}
 import swaydb.{Error, IO}
 
@@ -382,9 +382,9 @@ class DBFile(val path: Path,
 
   def read(position: Int,
            size: Int,
-           blockSize: Int): Array[Slice[Byte]] =
+           blockSize: Int): SliceRO[Byte] =
     if (size == 0)
-      Array.empty //no need to have this as global val because core never asks for 0 size
+      Slice.emptyBytes //no need to have this as global val because core never asks for 0 size
     else
       fileCache.value(()).get.read(position = position, size = size, blockSize = blockSize)
 

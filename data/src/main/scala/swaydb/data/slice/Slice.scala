@@ -239,7 +239,9 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
 }
 
 sealed trait SliceRO[@specialized(Byte) +T] extends Iterable[T] {
+
   def cut(): Slice[T]
+
 }
 
 /**

@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.sweeper.ByteBufferSweeper
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.config.ForceSave
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceRO, Slices}
 import swaydb.effect.{Effect, Reserve}
 
 import java.nio.channels.FileChannel.MapMode
@@ -244,11 +244,11 @@ private[file] class MMAPFile(val path: Path,
       Slice(array)
     }
 
-  def read(position: Int, size: Int, blockSize: Int): Array[Slice[Byte]] =
+  def read(position: Int, size: Int, blockSize: Int): SliceRO[Byte] =
     if (size == 0) {
-      Array.empty //no need to have this as global val because core never asks for 0 size
+      Slice.emptyBytes //no need to have this as global val because core never asks for 0 size
     } else if (blockSize > size) {
-      Array(read(position, size))
+      read(position, size)
     } else {
       val buffersCount = size / blockSize //minimum buffers required
       val lastBufferLength = size % blockSize //last buffer size
@@ -276,7 +276,7 @@ private[file] class MMAPFile(val path: Path,
         }
       }
 
-      slices
+      Slices(slices)
     }
 
   def get(position: Int): Byte =

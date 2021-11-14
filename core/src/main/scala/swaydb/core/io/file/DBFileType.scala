@@ -17,7 +17,7 @@
 package swaydb.core.io.file
 
 import swaydb.core.sweeper.FileSweeperItem
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceRO}
 
 import java.nio.channels.WritableByteChannel
 import java.nio.file.Path
@@ -54,7 +54,7 @@ private[file] trait DBFileType extends FileSweeperItem {
 
   def read(position: Int, size: Int): Slice[Byte]
 
-  def read(position: Int, size: Int, blockSize: Int): Array[Slice[Byte]]
+  def read(position: Int, size: Int, blockSize: Int): SliceRO[Byte]
 
   def get(position: Int): Byte
 }
