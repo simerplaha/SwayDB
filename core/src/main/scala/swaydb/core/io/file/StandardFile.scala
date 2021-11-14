@@ -59,7 +59,6 @@ private[file] class StandardFile(val path: Path,
                                  channel: FileChannel,
                                  forceSave: ForceSave.StandardFiles)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with DBFileType {
 
-
   //Force is applied on files after they are marked immutable so it only needs
   //to be invoked once.
   private val forced = {
@@ -101,6 +100,7 @@ private[file] class StandardFile(val path: Path,
 
   def read(position: Int, size: Int): Slice[Byte] = {
     val buffer = ByteBuffer.allocate(size)
+    //no need for synchronized since this does not update channel's position
     channel.read(buffer, position)
     Slice(buffer.array())
   }
@@ -120,7 +120,13 @@ private[file] class StandardFile(val path: Path,
         else //last buffer will be of smaller size
           Collections.fillArrayWithLast(ByteBuffer.allocate(lastBufferLength), buffersCount)(ByteBuffer.allocate(blockSize))
 
-      channel.read(buffers, position, buffers.length) //read data
+      //TODO review these synchronized blocks. For this functions it seems we need these to avoid
+      //     channel's position being updated concurrently.
+      this.synchronized {
+        channel.position(position)
+        channel.read(buffers) //read data
+      }
+
       Slices(buffers.map(buffer => Slice.ofScala(buffer))) //create slices
     }
 
@@ -129,7 +135,11 @@ private[file] class StandardFile(val path: Path,
 
   def readAll: Slice[Byte] = {
     val bytes = new Array[Byte](Effect.getIntFileSizeOrFail(channel))
-    channel.read(ByteBuffer.wrap(bytes))
+    //TODO review these synchronized blocks. For this functions it seems we need these to avoid
+    //     channel's position being updated concurrently.
+    this.synchronized {
+      channel.read(ByteBuffer.wrap(bytes))
+    }
     Slice(bytes)
   }
 

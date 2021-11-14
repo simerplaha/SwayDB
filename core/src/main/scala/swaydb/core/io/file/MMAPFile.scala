@@ -228,7 +228,7 @@ private[file] class MMAPFile(val path: Path,
   /**
    * Loads array from the [[buffer]] and does not watch for null pointer.
    */
-  private def loadFromBuffer(array: Array[Byte], position: Int): Unit = {
+  @inline private def loadFromBuffer(array: Array[Byte], position: Int): Unit = {
     val arrayLength = array.length
     var i = 0
     while (i < arrayLength) {

@@ -1135,9 +1135,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
           createDBFiles(bytes, bytes) foreach {
             file =>
-              val slices = file.read(0, bytes.size, bytes.size).asInstanceOf[Slices[Byte]].slices
-              slices should have size 1
-              slices.flatten.toList shouldBe bytes.toList
+              file.read(0, bytes.size, bytes.size) shouldBe bytes
           }
       }
     }

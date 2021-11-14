@@ -168,10 +168,12 @@ private[core] object BlockCache extends LazyLogging {
             size = position - keyPosition + size,
             source = source,
             state = state
-          ).cut() //TODO - remove the use of cut. Slices needs more APIs for this to work
+          )
+
+        val seekedBytesCut = seekedBytes.cut() //TODO - remove the use of cut. Slices needs more APIs for this to work
 
         val bytesToReturn =
-          seekedBytes.take(position - keyPosition, size)
+          seekedBytesCut.take(position - keyPosition, size)
 
         if (headBytes == null)
           bytesToReturn
