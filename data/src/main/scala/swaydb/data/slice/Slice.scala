@@ -20,7 +20,7 @@ import swaydb.data.utils.ByteOps
 import swaydb.utils.SomeOrNoneCovariant
 
 import java.io.ByteArrayInputStream
-import java.lang
+import java.{lang, util}
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 import scala.annotation.tailrec
@@ -241,9 +241,20 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
 
 }
 
-sealed trait SliceRO[@specialized(Byte) +T] extends Iterable[T] {
+/**
+ * Read-only [[Slice]] type.
+ *
+ * This can either be [[Slice]] or [[Slices]].
+ */
+sealed trait SliceRO[@specialized(Byte) +A] extends Iterable[A] {
 
-  def cut(): Slice[T]
+  def get(index: Int): A
+
+  private[swaydb] def getUnchecked_Unsafe(index: Int): A
+
+  def cut(): Slice[A]
+
+  def toArray: Array[A]@uncheckedVariance
 
 }
 
@@ -1102,10 +1113,39 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
 
 }
 
+/**
+ * Stores a sequence of slices fetched from cache or from disk seek.
+ *
+ * @note Head slices are always of equal size except the last slice.
+ */
 case class Slices[@specialized(Byte) A: ClassTag](slices: Array[Slice[A]]) extends SliceRO[A] {
 
+  def blockSize(): Int =
+    slices.head.size
+
+  def get(index: Int): A =
+    if (slices.length == 1) {
+      slices.head(index)
+    } else {
+      val blockSize = slices.head.size
+      //slice(slot)(slotIndex)
+      slices(index / blockSize).get(index % blockSize)
+    }
+
+  override private[swaydb] def getUnchecked_Unsafe(index: Int) =
+    if (slices.length == 1) {
+      slices.head(index)
+    } else {
+      val blockSize = slices.head.size
+      //slice(slot)(slotIndex)
+      slices(index / blockSize).getUnchecked_Unsafe(index % blockSize)
+    }
+
   override def cut(): Slice[A] =
-    Slice.from(slices)
+    if (slices.length == 1)
+      slices.head
+    else
+      Slice.from(slices)
 
   override def isEmpty: Boolean =
     slices.forall(_.isEmpty)
@@ -1118,5 +1158,20 @@ case class Slices[@specialized(Byte) A: ClassTag](slices: Array[Slice[A]]) exten
 
   override def iterator: Iterator[A] =
     slices.iterator.flatMap(_.iterator)
+
+  def toArray: Array[A] =
+    if (slices.length == 1) {
+      slices.head.toArray
+    } else {
+      val array = new Array[A](size)
+      var currentWritePosition = 0
+      slices foreach {
+        slice =>
+          val sliceArray = slice.toArray
+          Array.copy(sliceArray, 0, array, currentWritePosition, sliceArray.length)
+          currentWritePosition += sliceArray.length
+      }
+      array
+    }
 
 }
