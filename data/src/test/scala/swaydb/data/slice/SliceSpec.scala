@@ -1384,4 +1384,56 @@ class SliceSpec extends AnyWordSpec with Matchers {
       collection.size shouldBe 6
     }
   }
+
+  "split" when {
+    "slice is empty" in {
+      Slice.empty[Int].split(10) shouldBe empty
+    }
+
+    "blockSize is <= 0" in {
+      assertThrows[IllegalArgumentException] {
+        Slice(1, 2, 3).split(0)
+      }
+
+      assertThrows[IllegalArgumentException] {
+        Slice(1, 2, 3).split(-1)
+      }
+    }
+
+    "blockSize < slice.size" in {
+      val slice: Slice[Int] = Slice((1 to 100).toArray)
+      //even equal slices
+      val splits = slice.split(10)
+      splits should have size 10
+
+      splits.zipWithIndex foreach {
+        case (split, index) =>
+          split shouldBe slice.drop(index * 10).take(10)
+          split.underlyingArraySize shouldBe 10
+      }
+
+      Slice(splits).flatten shouldBe slice
+    }
+
+    "blockSize >= slice.size" when {
+      def runTest(slice: Slice[Int], blockSize: Int): Unit = {
+        //even equal slices
+        val splits = slice.split(blockSize)
+        splits should have size 1
+        splits.head shouldBe slice
+      }
+
+      val slice: Slice[Int] = Slice((1 to 100).toArray)
+
+      "blockSize == slice.slice" in {
+        runTest(slice, slice.size)
+      }
+
+      "blockSize > slice.slice" in {
+        runTest(slice, slice.size + 1)
+        //-1 should not result in 1 slice
+        assertThrows[Exception](runTest(slice, slice.size - 1))
+      }
+    }
+  }
 }

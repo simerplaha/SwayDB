@@ -73,7 +73,7 @@ trait SliceCompanion extends SliceBuildFrom {
       array = Array.fill(length)(elem),
       fromOffset = 0,
       toOffset = if (length == 0) -1 else length - 1,
-      written = length
+      _written = length
     )
 
   def ofBytesScala(length: Int): SliceMut[Byte] =
@@ -87,7 +87,7 @@ trait SliceCompanion extends SliceBuildFrom {
       array = new Array[T](length),
       fromOffset = 0,
       toOffset = if (length == 0) -1 else length - 1,
-      written = if (isFull) length else 0
+      _written = if (isFull) length else 0
     )
 
   def ofJava(array: Array[java.lang.Byte]): Slice[lang.Byte] =
@@ -108,7 +108,7 @@ trait SliceCompanion extends SliceBuildFrom {
         array = data,
         fromOffset = 0,
         toOffset = data.length - 1,
-        written = data.length
+        _written = data.length
       )
 
   def from[T: ClassTag](iterator: Iterator[T], size: Int): Slice[T] = {
@@ -134,7 +134,7 @@ trait SliceCompanion extends SliceBuildFrom {
       array = byteBuffer.array().asInstanceOf[Array[java.lang.Byte]],
       fromOffset = byteBuffer.arrayOffset(),
       toOffset = byteBuffer.position() - 1,
-      written = byteBuffer.position()
+      _written = byteBuffer.position()
     )
 
   def ofJava(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[java.lang.Byte] =
@@ -142,7 +142,7 @@ trait SliceCompanion extends SliceBuildFrom {
       array = byteBuffer.array().asInstanceOf[Array[java.lang.Byte]],
       fromOffset = from,
       toOffset = to,
-      written = to - from + 1
+      _written = to - from + 1
     )
 
   def ofScala(byteBuffer: ByteBuffer): Slice[Byte] =
@@ -150,7 +150,7 @@ trait SliceCompanion extends SliceBuildFrom {
       array = byteBuffer.array(),
       fromOffset = byteBuffer.arrayOffset(),
       toOffset = byteBuffer.position() - 1,
-      written = byteBuffer.position()
+      _written = byteBuffer.position()
     )
 
   def ofScala(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[Byte] =
@@ -158,7 +158,7 @@ trait SliceCompanion extends SliceBuildFrom {
       array = byteBuffer.array(),
       fromOffset = from,
       toOffset = to,
-      written = to - from + 1
+      _written = to - from + 1
     )
 
   @inline final def apply[T: ClassTag](data: T*): Slice[T] =

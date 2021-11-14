@@ -67,15 +67,18 @@ case object Slice extends SliceCompanion {
 final class SliceMut[@specialized(Byte) +T](protected[this] override val array: Array[T],
                                             val fromOffset: Int,
                                             val toOffset: Int,
-                                            private var written: Int)(override protected[this] implicit val classTag: ClassTag[T]) extends Slice[T] { self =>
+                                            private var _written: Int)(override implicit val classTag: ClassTag[T]@uncheckedVariance) extends Slice[T] { self =>
 
   override type This = SliceMut[T]@uncheckedVariance
 
   private var writePosition =
-    fromOffset + written
+    fromOffset + _written
 
   override def size: Int =
-    written
+    _written
+
+  override def written: Int =
+    _written
 
   @inline override def asMut(): SliceMut[T] =
     this
@@ -94,7 +97,7 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
       array = array,
       fromOffset = fromOffset,
       toOffset = toOffset,
-      written = written
+      _written = written
     )
 
   @throws[ArrayIndexOutOfBoundsException]
@@ -103,14 +106,14 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
     //+1 because write position can be a step ahead for the next write but cannot over over toOffset.
     if (adjustedPosition > toOffset + 1) throw new ArrayIndexOutOfBoundsException(adjustedPosition)
     this.writePosition = adjustedPosition
-    written = adjustedPosition max written
+    _written = adjustedPosition max _written
   }
 
   def add(item: T@uncheckedVariance): SliceMut[T] = {
     if (writePosition < fromOffset || writePosition > toOffset) throw new ArrayIndexOutOfBoundsException(writePosition)
     array(writePosition) = item
     writePosition += 1
-    written = (writePosition - fromOffset) max written
+    _written = (writePosition - fromOffset) max _written
     self
   }
 
@@ -169,7 +172,7 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
       if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
       Array.copy(items, fromPosition, this.array, currentWritePosition, itemsSize)
       writePosition += itemsSize
-      written = (writePosition - fromOffset) max written
+      _written = (writePosition - fromOffset) max _written
       self
     } else {
       self
@@ -262,7 +265,14 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
   val allocatedSize: Int =
     toOffset - fromOffset + 1
 
-  protected[this] implicit def classTag: ClassTag[T]
+  /**
+   * Make parent implement written so [[size]]
+   * is ensured to not invoke [[Iterable.size]]
+   * for older versions of Scala.
+   */
+  def written: Int
+
+  implicit def classTag: ClassTag[T]@uncheckedVariance
 
   protected[this] def array: Array[T]
 
@@ -280,7 +290,9 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
    */
   @inline def asMut(): SliceMut[T]
 
-  def size: Int
+
+  override def size: Int =
+    written
 
   override val isNoneC: Boolean =
     false
@@ -384,6 +396,54 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
       Slice(self)
     else
       group(Slice.of[Slice[T]](size), self, size)
+  }
+
+  def split[B >: T : ClassTag](blockSize: Int): Array[Slice[B]] = {
+    val sliceSize = self.size
+    if (sliceSize == 0) {
+      Array.empty
+    } else if (blockSize <= 0) {
+      //there is no reason for blockSize to be <= 0. This is invalid input and
+      //could result in data loss so empty returns from this function should never be allowed.
+      throw new IllegalArgumentException(s"Invalid input '$blockSize'. blockSize should be > 0.")
+    } else if (blockSize >= sliceSize) {
+      Array(self)
+    } else {
+      @inline def loadFromSlice(array: Array[B], position: Int): Unit = {
+        val arrayLength = array.length
+        var i = 0
+        while (i < arrayLength) {
+          array(i) = self.get(i + position)
+          i += 1
+        }
+      }
+
+      val slicesCount = sliceSize / blockSize //minimum slices required
+      val lastSliceLength = sliceSize % blockSize //last slices size
+
+      val slices =
+        if (lastSliceLength == 0) //no overflow. Smaller last slice not needed
+          new Array[Slice[B]](slicesCount)
+        else //needs another slice
+          new Array[Slice[B]](slicesCount + 1)
+
+      var i = 0
+      val sliceCount = slices.length
+      while (i < sliceCount) {
+        val array =
+          if (lastSliceLength != 0 && i == sliceCount - 1) //if last slice is of a smaller size
+            new Array[B](lastSliceLength)
+          else
+            new Array[B](blockSize)
+
+        loadFromSlice(array, i * blockSize)
+        slices(i) = Slice(array)
+
+        i += 1
+      }
+
+      slices
+    }
   }
 
   private[swaydb] def openEnd(): This =
