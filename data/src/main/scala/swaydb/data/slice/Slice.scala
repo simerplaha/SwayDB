@@ -20,7 +20,7 @@ import swaydb.data.utils.ByteOps
 import swaydb.utils.SomeOrNoneCovariant
 
 import java.io.ByteArrayInputStream
-import java.{lang, util}
+import java.lang
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 import scala.annotation.tailrec
@@ -253,6 +253,8 @@ sealed trait SliceRO[@specialized(Byte) +A] extends Iterable[A] {
   private[swaydb] def getUnchecked_Unsafe(index: Int): A
 
   def cut(): Slice[A]
+
+  def createReader[B >: A]()(implicit byteOps: ByteOps[B]): SliceReader[B]
 
   def toArray: Array[A]@uncheckedVariance
 
@@ -1122,6 +1124,10 @@ case class Slices[@specialized(Byte) A: ClassTag](slices: Array[Slice[A]]) exten
 
   def blockSize(): Int =
     slices.head.size
+
+  //FIXME - implement without cut
+  def createReader[B >: A]()(implicit byteOps: ByteOps[B]): SliceReader[B] =
+    this.cut().createReader[B]()
 
   def get(index: Int): A =
     if (slices.length == 1) {

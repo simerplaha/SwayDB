@@ -16,7 +16,7 @@
 
 package swaydb.data.utils
 
-import swaydb.data.slice.{ReaderBase, Slice, SliceMut, SliceReader}
+import swaydb.data.slice.{ReaderBase, Slice, SliceMut, SliceRO, SliceReader}
 import swaydb.utils.Maybe.Maybe
 
 import java.nio.charset.Charset
@@ -28,17 +28,17 @@ abstract class ByteOps[@specialized(Byte) B](implicit val classTag: ClassTag[B])
 
   def readInt(reader: ReaderBase[B]): Int
 
-  def readInt(bytes: Slice[B]): Int
+  def readInt(bytes: SliceRO[B]): Int
 
   def writeLong(long: Long, slice: SliceMut[B]): Unit
 
-  def readLong(bytes: Slice[B]): Long
+  def readLong(bytes: SliceRO[B]): Long
 
   def readLong(reader: ReaderBase[B]): Long
 
   def readBoolean(reader: ReaderBase[B]): Boolean
 
-  def readBoolean(slice: Slice[B]): Boolean
+  def readBoolean(slice: SliceRO[B]): Boolean
 
   def readString(reader: ReaderBase[B], charset: Charset): String
 
@@ -46,11 +46,11 @@ abstract class ByteOps[@specialized(Byte) B](implicit val classTag: ClassTag[B])
                  reader: ReaderBase[B],
                  charset: Charset): String
 
-  def readString(slice: Slice[B], charset: Charset): String
+  def readString(slice: SliceRO[B], charset: Charset): String
 
-  def readStringWithSize(slice: Slice[B], charset: Charset): String
+  def readStringWithSize(slice: SliceRO[B], charset: Charset): String
 
-  def readStringWithSizeUTF8(slice: Slice[B]): String
+  def readStringWithSizeUTF8(slice: SliceRO[B]): String
 
   def readStringWithSizeUTF8(reader: ReaderBase[B]): String
 
@@ -74,7 +74,7 @@ abstract class ByteOps[@specialized(Byte) B](implicit val classTag: ClassTag[B])
 
   def readSignedInt(reader: ReaderBase[B]): Int
 
-  def readSignedInt(slice: Slice[B]): Int
+  def readSignedInt(slice: SliceRO[B]): Int
 
   def writeUnsignedInt(int: Int, slice: SliceMut[B]): Unit
 
@@ -82,13 +82,13 @@ abstract class ByteOps[@specialized(Byte) B](implicit val classTag: ClassTag[B])
 
   private[swaydb] def writeUnsignedIntNonZero(int: Int, slice: SliceMut[B]): Unit
 
-  private[swaydb] def readUnsignedIntNonZero(slice: Slice[B]): Int
+  private[swaydb] def readUnsignedIntNonZero(slice: SliceRO[B]): Int
 
   private[swaydb] def readUnsignedIntNonZero(reader: ReaderBase[B]): Int
 
   private[swaydb] def readUnsignedIntNonZeroStrict(reader: ReaderBase[B]): Maybe[Int]
 
-  private[swaydb] def readUnsignedIntNonZeroWithByteSize(slice: Slice[B]): (Int, Int)
+  private[swaydb] def readUnsignedIntNonZeroWithByteSize(slice: SliceRO[B]): (Int, Int)
 
   private[swaydb] def readUnsignedIntNonZeroWithByteSize(reader: ReaderBase[B]): (Int, Int)
 
@@ -98,31 +98,31 @@ abstract class ByteOps[@specialized(Byte) B](implicit val classTag: ClassTag[B])
 
   def readUnsignedInt(sliceReader: SliceReader[B]): Int
 
-  def readUnsignedInt(slice: Slice[B]): Int
+  def readUnsignedInt(slice: SliceRO[B]): Int
 
-  def readUnsignedIntWithByteSize(slice: Slice[B]): (Int, Int)
+  def readUnsignedIntWithByteSize(slice: SliceRO[B]): (Int, Int)
 
   def readUnsignedIntWithByteSize(reader: ReaderBase[B]): (Int, Int)
 
   def readUnsignedIntWithByteSize(reader: SliceReader[B]): (Int, Int)
 
-  def readLastUnsignedInt(slice: Slice[B]): (Int, Int)
+  def readLastUnsignedInt(slice: SliceRO[B]): (Int, Int)
 
   def writeSignedLong(long: Long, slice: SliceMut[B]): Unit
 
   def readSignedLong(reader: ReaderBase[B]): Long
 
-  def readSignedLong(slice: Slice[B]): Long
+  def readSignedLong(slice: SliceRO[B]): Long
 
   def writeUnsignedLong(long: Long, slice: SliceMut[B]): Unit
 
   def readUnsignedLong(reader: ReaderBase[B]): Long
 
-  def readUnsignedLong(slice: Slice[B]): Long
+  def readUnsignedLong(slice: SliceRO[B]): Long
 
-  def readUnsignedLongWithByteSize(slice: Slice[B]): (Long, Int)
+  def readUnsignedLongWithByteSize(slice: SliceRO[B]): (Long, Int)
 
-  def readUnsignedLongByteSize(slice: Slice[B]): Int
+  def readUnsignedLongByteSize(slice: SliceRO[B]): Int
 }
 
 object ByteOps {

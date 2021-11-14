@@ -29,7 +29,7 @@ import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Slice, SliceMut}
+import swaydb.data.slice.{Slice, SliceMut, SliceRO}
 import swaydb.utils.{ByteSizeOf, FiniteDurations}
 
 import scala.annotation.tailrec

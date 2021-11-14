@@ -67,7 +67,7 @@ case class SliceReader[@specialized(Byte) B](slice: Slice[B],
     byte
   }
 
-  def hasMore =
+  def hasMore: Boolean =
     position < slice.size
 
   override def getPosition: Int =

@@ -16,7 +16,7 @@
 
 package swaydb.data.utils
 
-import swaydb.data.slice.{ReaderBase, Slice, SliceMut, SliceReader}
+import swaydb.data.slice.{ReaderBase, Slice, SliceMut, SliceRO, SliceReader}
 import swaydb.utils.Maybe.Maybe
 import swaydb.utils.{ByteSizeOf, Maybe}
 
@@ -34,7 +34,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
   def readInt(reader: ReaderBase[Byte]): Int =
     readInt(reader.read(ByteSizeOf.int))
 
-  def readInt(bytes: Slice[Byte]): Int = {
+  def readInt(bytes: SliceRO[Byte]): Int = {
     require(bytes.size >= 4)
 
     bytes.getUnchecked_Unsafe(0).toInt << 24 |
@@ -54,7 +54,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     slice add long.toByte
   }
 
-  def readLong(bytes: Slice[Byte]): Long = {
+  def readLong(bytes: SliceRO[Byte]): Long = {
     require(bytes.size >= 8)
 
     (bytes.getUnchecked_Unsafe(0).toLong << 56) |
@@ -73,7 +73,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
   def readBoolean(reader: ReaderBase[Byte]): Boolean =
     reader.get() == 1
 
-  def readBoolean(slice: Slice[Byte]): Boolean =
+  def readBoolean(slice: SliceRO[Byte]): Boolean =
     slice.head == 1
 
   def readString(reader: ReaderBase[Byte], charset: Charset): String = {
@@ -90,16 +90,16 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
   }
 
   //TODO - readString is expensive. If the slice bytes are a sub-slice of another other Slice a copy of the array will be created.
-  def readString(slice: Slice[Byte], charset: Charset): String =
+  def readString(slice: SliceRO[Byte], charset: Charset): String =
     new String(slice.toArray[Byte], charset)
 
-  def readStringWithSize(slice: Slice[Byte], charset: Charset): String = {
+  def readStringWithSize(slice: SliceRO[Byte], charset: Charset): String = {
     val reader = slice.createReader()
     val string = reader.readString(reader.readUnsignedInt(), charset)
     string
   }
 
-  def readStringWithSizeUTF8(slice: Slice[Byte]): String =
+  def readStringWithSizeUTF8(slice: SliceRO[Byte]): String =
     readStringWithSize(slice, StandardCharsets.UTF_8)
 
   def readStringWithSizeUTF8(reader: ReaderBase[Byte]): String =
@@ -161,7 +161,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     tmp ^ (unsigned & (1 << 31))
   }
 
-  def readSignedInt(slice: Slice[Byte]): Int = {
+  def readSignedInt(slice: SliceRO[Byte]): Int = {
     val unsigned = readUnsignedInt(slice)
     //Credit - https://github.com/larroy/varint-scala
     // undo even odd mapping
@@ -194,7 +194,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     slice add (x & 0x7F).toByte
   }
 
-  private[swaydb] def readUnsignedIntNonZero(slice: Slice[Byte]): Int = {
+  private[swaydb] def readUnsignedIntNonZero(slice: SliceRO[Byte]): Int = {
     var index = 0
     var i = 0
     var int = 0
@@ -250,7 +250,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     Maybe.some(int)
   }
 
-  private[swaydb] def readUnsignedIntNonZeroWithByteSize(slice: Slice[Byte]): (Int, Int) = {
+  private[swaydb] def readUnsignedIntNonZeroWithByteSize(slice: SliceRO[Byte]): (Int, Int) = {
     var index = 0
     var i = 0
     var int = 0
@@ -332,7 +332,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     int
   }
 
-  def readUnsignedInt(slice: Slice[Byte]): Int = {
+  def readUnsignedInt(slice: SliceRO[Byte]): Int = {
     var index = 0
     var byte = slice.get(index)
     var int: Int = byte & 0x7F
@@ -346,7 +346,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     int
   }
 
-  def readUnsignedIntWithByteSize(slice: Slice[Byte]): (Int, Int) = {
+  def readUnsignedIntWithByteSize(slice: SliceRO[Byte]): (Int, Int) = {
     var index = 0
     var byte = slice.get(index)
     var int: Int = byte & 0x7F
@@ -400,7 +400,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
   /**
    * @return Tuple where the first integer is the unsigned integer and the second is the number of bytes read.
    */
-  def readLastUnsignedInt(slice: Slice[Byte]): (Int, Int) = {
+  def readLastUnsignedInt(slice: SliceRO[Byte]): (Int, Int) = {
     var index = slice.size - 1
     var byte = slice.get(index)
     var int: Int = byte & 0x7F
@@ -427,7 +427,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     tmp ^ (unsigned & (1L << 63))
   }
 
-  def readSignedLong(slice: Slice[Byte]): Long = {
+  def readSignedLong(slice: SliceRO[Byte]): Long = {
     val unsigned = readUnsignedLong(slice)
     // undo even odd mapping
     val tmp = (((unsigned << 63) >> 63) ^ unsigned) >> 1
@@ -468,7 +468,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     long
   }
 
-  def readUnsignedLong(slice: Slice[Byte]): Long = {
+  def readUnsignedLong(slice: SliceRO[Byte]): Long = {
     var index = 0
     var byte = slice.get(index)
     var long: Long = byte & 0x7F
@@ -484,7 +484,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     long
   }
 
-  def readUnsignedLongWithByteSize(slice: Slice[Byte]): (Long, Int) = {
+  def readUnsignedLongWithByteSize(slice: SliceRO[Byte]): (Long, Int) = {
     var index = 0
     var byte = slice.get(index)
     var long: Long = byte & 0x7F
@@ -500,7 +500,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
     (long, index + 1)
   }
 
-  def readUnsignedLongByteSize(slice: Slice[Byte]): Int = {
+  def readUnsignedLongByteSize(slice: SliceRO[Byte]): Int = {
     var index = 0
     var byte = slice.get(index)
 
