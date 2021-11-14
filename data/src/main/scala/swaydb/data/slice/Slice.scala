@@ -69,7 +69,7 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
                                             val toOffset: Int,
                                             private var written: Int)(override protected[this] implicit val classTag: ClassTag[T]) extends Slice[T] { self =>
 
-  override type Self = SliceMut[T]@uncheckedVariance
+  override type This = SliceMut[T]@uncheckedVariance
 
   private var writePosition =
     fromOffset + written
@@ -253,7 +253,7 @@ sealed trait SliceRO[@specialized(Byte) +T] extends Iterable[T] {
  */
 sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T] { self =>
 
-  type Self <: Slice[T]@uncheckedVariance
+  type This <: Slice[T]@uncheckedVariance
 
   val fromOffset: Int
 
@@ -266,14 +266,14 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
 
   protected[this] def array: Array[T]
 
-  protected[this] def createEmpty: Self
+  protected[this] def createEmpty: This
 
-  protected[this] def createNew(array: Array[T]): Self
+  protected[this] def createNew(array: Array[T]): This
 
   protected[this] def createNew(array: Array[T],
                                 fromOffset: Int,
                                 toOffset: Int,
-                                written: Int): Self
+                                written: Int): This
 
   /**
    * Returns the current slice as mutable.
@@ -313,7 +313,7 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
    * @param toOffset   end offset
    * @return Slice for the given offsets
    */
-  override def slice(fromOffset: Int, toOffset: Int): Self =
+  override def slice(fromOffset: Int, toOffset: Int): This =
     if (toOffset < 0) {
       this.createEmpty
     } else {
@@ -348,7 +348,7 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
       }
     }
 
-  private def splitAt(index: Int, size: Int): (Self, Self) =
+  private def splitAt(index: Int, size: Int): (This, This) =
     if (index == 0) {
       (this.createEmpty, slice(0, size - 1))
     } else {
@@ -357,10 +357,10 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
       (split1, split2)
     }
 
-  def splitInnerArrayAt(index: Int): (Self, Self) =
+  def splitInnerArrayAt(index: Int): (This, This) =
     splitAt(index, allocatedSize)
 
-  override def splitAt(index: Int): (Self, Self) =
+  override def splitAt(index: Int): (This, This) =
     splitAt(index, size)
 
   override def grouped(size: Int): Iterator[Slice[T]] =
@@ -386,7 +386,7 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
       group(Slice.of[Slice[T]](size), self, size)
   }
 
-  private[swaydb] def openEnd(): Self =
+  private[swaydb] def openEnd(): This =
     self.createNew(
       array = array,
       fromOffset = fromOffset,
@@ -394,15 +394,15 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
       written = array.length - fromOffset
     )
 
-  override def drop(count: Int): Self =
+  override def drop(count: Int): This =
     if (count <= 0)
-      self.asInstanceOf[Self]
+      self.asInstanceOf[This]
     else if (count >= size)
       this.createEmpty
     else
       slice(count, size - 1)
 
-  def dropHead(): Self =
+  def dropHead(): This =
     drop(1)
 
   /**
@@ -425,33 +425,33 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
         drop(index)
     }
 
-  override def dropRight(count: Int): Self =
+  override def dropRight(count: Int): This =
     if (count <= 0)
-      self.asInstanceOf[Self]
+      self.asInstanceOf[This]
     else if (count >= size)
       this.createEmpty
     else
       slice(0, size - count - 1)
 
-  override def take(count: Int): Self =
+  override def take(count: Int): This =
     if (count <= 0)
       this.createEmpty
     else if (size == count)
-      self.asInstanceOf[Self]
+      self.asInstanceOf[This]
     else
       slice(0, (size min count) - 1)
 
-  def take(fromIndex: Int, count: Int): Self =
+  def take(fromIndex: Int, count: Int): This =
     if (count == 0)
       this.createEmpty
     else
       slice(fromIndex, fromIndex + count - 1)
 
-  override def takeRight(count: Int): Self =
+  override def takeRight(count: Int): This =
     if (count <= 0)
       this.createEmpty
     else if (size == count)
-      self.asInstanceOf[Self]
+      self.asInstanceOf[This]
     else
       slice(size - count, size - 1)
 
@@ -491,9 +491,9 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
   override def lastOption: Option[T] =
     Option(lastOrNull)
 
-  def headSlice: Self = slice(0, 0)
+  def headSlice: This = slice(0, 0)
 
-  def lastSlice: Self = slice(size - 1, size - 1)
+  def lastSlice: This = slice(size - 1, size - 1)
 
   /**
    * @return the element at given index after running bound checks.
@@ -534,9 +534,9 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
   /**
    * Returns a new non-writable slice. Unless position is moved manually.
    */
-  def close(): Self =
+  def close(): This =
     if (allocatedSize == size)
-      self.asInstanceOf[Self]
+      self.asInstanceOf[This]
     else
       slice(0, size - 1)
 
@@ -627,7 +627,7 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
   def isOriginalFullSlice =
     isOriginalSlice && isFull
 
-  def cut(): Self =
+  override def cut(): This =
     createNew(toArray)
 
   def toOptionCut(): Option[Slice[T]] = {
@@ -691,7 +691,7 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
     Slice.from[B](buffer, buffer.size)
   }
 
-  override def takeWhile(p: T => Boolean): Self = {
+  override def takeWhile(p: T => Boolean): This = {
     val filtered = Slice.of[T](self.size)
     val iterator = self.iterator
 
@@ -704,7 +704,7 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
         continue = false
     }
 
-    filtered.close().asInstanceOf[Self]
+    filtered.close().asInstanceOf[This]
   }
 
   def collectToSlice[B: ClassTag](pf: PartialFunction[T, B]): Slice[B] =
@@ -735,7 +735,7 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
     target.close()
   }
 
-  override def filterNot(p: T => Boolean): Self = {
+  override def filterNot(p: T => Boolean): This = {
     val filtered = Slice.of[T](self.size)
     val iterator = self.iterator
 
@@ -744,10 +744,10 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
       if (!p(item)) filtered add item
     }
 
-    filtered.close().asInstanceOf[Self]
+    filtered.close().asInstanceOf[This]
   }
 
-  override def filter(p: T => Boolean): Self = {
+  override def filter(p: T => Boolean): This = {
     val filtered = Slice.of[T](self.size)
     val iterator = self.iterator
 
@@ -756,7 +756,7 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
       if (p(item)) filtered add item
     }
 
-    filtered.close().asInstanceOf[Self]
+    filtered.close().asInstanceOf[This]
   }
 
   def existsFor(forItems: Int, exists: T => Boolean): Boolean =
@@ -877,13 +877,13 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
   /**
    * @return A tuple2 where _1 is written bytes and _2 is tail unwritten bytes.
    */
-  def splitUnwritten(): (Self, Self) =
+  def splitUnwritten(): (This, This) =
     (this.close(), unwrittenTail())
 
   def unwrittenTailSize() =
     toOffset - fromOffset - size
 
-  def unwrittenTail(): Self = {
+  def unwrittenTail(): This = {
     val from = fromOffset + size
     if (from > toOffset)
       this.createEmpty
@@ -896,7 +896,7 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
       )
   }
 
-  def copy(): Self =
+  def copy(): This =
     self.createNew(
       array = array,
       fromOffset = fromOffset,
@@ -910,7 +910,7 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
   @inline def readInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
     byteOps.readInt(self)
 
-  @inline def dropUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Self = {
+  @inline def dropUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): This = {
     val (_, byteSize) = readUnsignedIntWithByteSize[B]()
     self drop byteSize
   }

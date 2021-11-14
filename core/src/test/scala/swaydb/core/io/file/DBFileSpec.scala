@@ -1165,7 +1165,7 @@ class DBFileSpec extends TestBase with MockFactory {
                 val slices = file.read(0, bytes.size, 10).asInstanceOf[Slices[Byte]].slices
                 slices should have size 10
 
-                val zip = slices.zip(bytes.grouped(10))
+                val zip = slices.zip(bytes.grouped(10).toList) //.toList for scala 2.12
 
                 zip should have size 10
 
