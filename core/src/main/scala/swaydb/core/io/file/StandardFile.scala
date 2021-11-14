@@ -108,7 +108,7 @@ private[file] class StandardFile(val path: Path,
   def read(position: Int, size: Int, blockSize: Int): SliceRO[Byte] =
     if (size == 0) {
       Slice.emptyBytes //no need to have this as global val because core never asks for 0 size
-    } else if (blockSize > size) {
+    } else if (blockSize >= size) {
       read(position, size)
     } else {
       val buffersCount = size / blockSize //minimum buffers required

@@ -860,13 +860,13 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "toOptionCut" in {
-    Slice.empty.toOptionCut() shouldBe None
-    Slice.empty[Slice[Byte]].toOptionCut() shouldBe None
-    Slice(1, 2, 3).take(0).toOptionCut() shouldBe None
-    Slice(1, 2, 3).drop(3).toOptionCut() shouldBe None
-    Slice(1, 2, 3).drop(1).toOptionCut() shouldBe defined
-    Slice(1, 2, 3).drop(1).drop(1).toOptionCut() shouldBe defined
-    Slice(1, 2, 3).drop(1).drop(1).drop(1).toOptionCut() shouldBe None
+    Slice.empty.cutToOption() shouldBe None
+    Slice.empty[Slice[Byte]].cutToOption() shouldBe None
+    Slice(1, 2, 3).take(0).cutToOption() shouldBe None
+    Slice(1, 2, 3).drop(3).cutToOption() shouldBe None
+    Slice(1, 2, 3).drop(1).cutToOption() shouldBe defined
+    Slice(1, 2, 3).drop(1).drop(1).cutToOption() shouldBe defined
+    Slice(1, 2, 3).drop(1).drop(1).drop(1).cutToOption() shouldBe None
   }
 
   "toOption" in {

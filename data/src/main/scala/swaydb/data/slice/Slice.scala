@@ -688,9 +688,12 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
     isOriginalSlice && isFull
 
   override def cut(): This =
-    createNew(toArray)
+    if (size == array.length)
+      self.asInstanceOf[This]
+    else
+      createNew(toArray)
 
-  def toOptionCut(): Option[Slice[T]] = {
+  def cutToOption(): Option[Slice[T]] = {
     val slice = cut()
     if (slice.isEmpty)
       None
