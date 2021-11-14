@@ -437,19 +437,21 @@ class Actor[-T, S] private[swaydb](val name: String,
   override def send(message: T, delay: FiniteDuration): TimerTask =
     scheduler.value(()).task(delay)(self send message)
 
-  override def send(message: T): Unit = {
+  @inline private def stashMessage(message: T): Long = {
     //message weight cannot be <= 0 as that could lead to messages in queue with empty weight.
     val messageWeight = weigher(message) max 1
     queue.add((message, messageWeight))
 
-    val currentStashed =
-      weight updateAndGet {
-        new LongUnaryOperator {
-          override def applyAsLong(currentWeight: Long): Long =
-            currentWeight + messageWeight
-        }
+    weight updateAndGet {
+      new LongUnaryOperator {
+        override def applyAsLong(currentWeight: Long): Long =
+          currentWeight + messageWeight
       }
+    }
+  }
 
+  override def send(message: T): Unit = {
+    val currentStashed = stashMessage(message)
     //skip wakeUp if it's a timerLoop. Run only if no task is scheduled for the task.
     //if eager wakeUp on overflow is required using timer instead of timerLoop.
     if (!(isTimerLoop && task.nonEmpty))
@@ -460,7 +462,8 @@ class Actor[-T, S] private[swaydb](val name: String,
     bag.suspend {
       val promise = Promise[R]()
 
-      implicit val queueOrder = QueueOrder.FIFO
+      implicit val queueOrder: QueueOrder.FIFO.type =
+        QueueOrder.FIFO
 
       val replyTo: ActorRef[R, Unit] = Actor[R](name + "_response")((response, _) => promise.success(response)).start()
       this send message(replyTo)
