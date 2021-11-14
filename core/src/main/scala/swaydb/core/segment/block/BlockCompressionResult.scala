@@ -1,6 +1,6 @@
 package swaydb.core.segment.block
 
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.{SliceMut, SliceOption}
 
 class BlockCompressionResult(val compressedBytes: SliceOption[Byte],
-                             val headerBytes: Slice[Byte])
+                             val headerBytes: SliceMut[Byte])

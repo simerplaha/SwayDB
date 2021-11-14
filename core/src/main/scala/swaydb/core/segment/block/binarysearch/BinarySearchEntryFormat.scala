@@ -24,7 +24,7 @@ import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlock
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.util.Bytes
 import swaydb.data.config.IndexFormat
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceMut}
 import swaydb.macros.Sealed
 import swaydb.utils.ByteSizeOf
 
@@ -41,7 +41,7 @@ private[core] sealed trait BinarySearchEntryFormat {
   def write(indexOffset: Int,
             mergedKey: Slice[Byte],
             keyType: Byte,
-            bytes: Slice[Byte]): Unit
+            bytes: SliceMut[Byte]): Unit
 
   def read(offset: Int,
            seekSize: Int,
@@ -74,7 +74,7 @@ private[core] object BinarySearchEntryFormat {
     override def write(indexOffset: Int,
                        mergedKey: Slice[Byte],
                        keyType: Byte,
-                       bytes: Slice[Byte]): Unit =
+                       bytes: SliceMut[Byte]): Unit =
       bytes addUnsignedInt indexOffset
 
     override def read(offset: Int,
@@ -110,7 +110,7 @@ private[core] object BinarySearchEntryFormat {
     override def write(indexOffset: Int,
                        mergedKey: Slice[Byte],
                        keyType: Byte,
-                       bytes: Slice[Byte]): Unit = {
+                       bytes: SliceMut[Byte]): Unit = {
       bytes addUnsignedInt mergedKey.size
       bytes addAll mergedKey
       bytes add keyType

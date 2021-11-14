@@ -133,7 +133,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
         )
 
       val allocatedBytes = state.compressibleBytes.allocatedSize
-      compressionResult.compressedBytes foreachC (state.compressibleBytes = _)
+      compressionResult.compressedBytes foreachC (slice => state.compressibleBytes = slice.asMut())
 
       compressionResult.headerBytes add state.format.id
       compressionResult.headerBytes addInt allocatedBytes //allocated bytes

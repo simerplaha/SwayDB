@@ -23,7 +23,7 @@ import swaydb.core.segment.block.reader.{BlockRefReader, BlockedReader, Unblocke
 import swaydb.core.segment.block.segment.transient.{TransientSegment, TransientSegmentRef}
 import swaydb.core.util.Bytes
 import swaydb.core.util.Collections._
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.data.slice.{ReaderBase, Slice, SliceMut}
 import swaydb.effect.IOAction
 import swaydb.utils.ByteSizeOf
 
@@ -76,7 +76,7 @@ private[core] object Block extends LazyLogging {
    */
   def createCompressedHeaderBytes(bytes: Slice[Byte],
                                   dataBlocksHeaderByteSize: Int,
-                                  compression: CompressionInternal): Slice[Byte] = {
+                                  compression: CompressionInternal): SliceMut[Byte] = {
     val requiredByteSize =
       ByteSizeOf.byte + //headerSize
         ByteSizeOf.byte + //formatId
@@ -98,7 +98,7 @@ private[core] object Block extends LazyLogging {
    * @param dataBlocksHeaderByteSize extra header bytes required by the data-byte
    * @return header bytes
    */
-  @inline def createUnCompressedHeaderBytes(dataBlocksHeaderByteSize: Int): Slice[Byte] = {
+  @inline def createUnCompressedHeaderBytes(dataBlocksHeaderByteSize: Int): SliceMut[Byte] = {
     val requiredBytes = headerSizeNoCompression + dataBlocksHeaderByteSize
 
     val header = Slice.of[Byte](requiredBytes)
@@ -164,7 +164,8 @@ private[core] object Block extends LazyLogging {
 
       val segmentBytes: Slice[Slice[Byte]] =
         segment.segmentBytesWithoutHeader.collectToSlice(header) {
-          case bytes if bytes.nonEmpty => bytes.close()
+          case bytes if bytes.nonEmpty =>
+            bytes.close().asMut()
         }
 
       TransientSegment.One(

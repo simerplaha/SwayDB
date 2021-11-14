@@ -2,11 +2,11 @@ package swaydb.core.segment.block.bloomfilter
 
 import swaydb.compression.CompressionInternal
 import swaydb.data.config.UncompressedBlockInfo
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceMut}
 
 private[core] class BloomFilterBlockState(val numberOfBits: Int,
                                           val maxProbe: Int,
-                                          var compressibleBytes: Slice[Byte],
+                                          var compressibleBytes: SliceMut[Byte],
                                           val cacheableBytes: Slice[Byte],
                                           var header: Slice[Byte],
                                           val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {

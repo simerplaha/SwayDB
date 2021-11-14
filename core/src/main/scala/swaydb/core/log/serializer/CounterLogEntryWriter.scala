@@ -18,7 +18,7 @@ package swaydb.core.log.serializer
 
 import swaydb.core.log.LogEntry
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceMut}
 import swaydb.utils.ByteSizeOf
 
 private[swaydb] object CounterLogEntryWriter {
@@ -29,7 +29,7 @@ private[swaydb] object CounterLogEntryWriter {
     override val isRange: Boolean = false
     override val isUpdate: Boolean = false
 
-    override def write(entry: LogEntry.Put[Slice[Byte], Slice[Byte]], bytes: Slice[Byte]): Unit =
+    override def write(entry: LogEntry.Put[Slice[Byte], Slice[Byte]], bytes: SliceMut[Byte]): Unit =
       bytes
         .add(id)
         .addUnsignedInt(entry.key.size)

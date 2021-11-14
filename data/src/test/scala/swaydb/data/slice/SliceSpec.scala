@@ -169,10 +169,10 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "throw ArrayIndexOutOfBoundsException when adding items outside it's offset and when the Slice is a sub slice" in {
-      val slice1 = Slice.fill(4)(Random.nextInt())
+      val slice1 = Slice.fill(4)(Random.nextInt()).asMut()
       slice1.size shouldBe 4
 
-      val slice2 = slice1.slice(1, 2)
+      val slice2: SliceMut[Int] = slice1.slice(1, 2)
       slice2.size shouldBe 2
 
       slice2.size shouldBe 2
@@ -1039,11 +1039,11 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
       left.isEmpty shouldBe true
       left.underlyingArraySize shouldBe 0
-      assertThrows[ArrayIndexOutOfBoundsException](left add 11)
+      assertThrows[ArrayIndexOutOfBoundsException](left.asMut() add 11)
 
       right.isEmpty shouldBe true
       right.underlyingArraySize shouldBe 0
-      assertThrows[ArrayIndexOutOfBoundsException](right add 11)
+      assertThrows[ArrayIndexOutOfBoundsException](right.asMut() add 11)
     }
 
     "return empty for unwritten bytes" in {

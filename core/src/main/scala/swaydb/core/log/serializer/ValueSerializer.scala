@@ -20,7 +20,7 @@ import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Times._
 import swaydb.core.util.{Bytes, MinMax}
-import swaydb.data.slice.{ReaderBase, Slice, SliceOption}
+import swaydb.data.slice.{ReaderBase, Slice, SliceMut, SliceOption}
 import swaydb.utils.ByteSizeOf
 import swaydb.utils.Options.OptionsImplicits
 
@@ -32,7 +32,7 @@ import scala.concurrent.duration.Deadline
 @implicitNotFound("Type class implementation not found for ValueSerializer of type ${T}")
 private[core] sealed trait ValueSerializer[T] {
 
-  def write(value: T, bytes: Slice[Byte]): Unit
+  def write(value: T, bytes: SliceMut[Byte]): Unit
 
   def read(reader: ReaderBase[Byte]): T
 
@@ -78,7 +78,7 @@ private[core] object ValueSerializer {
 
   implicit object ValuePutSerializer extends ValueSerializer[Value.Put] {
 
-    override def write(value: Value.Put, bytes: Slice[Byte]): Unit =
+    override def write(value: Value.Put, bytes: SliceMut[Byte]): Unit =
       bytes
         .addUnsignedLong(value.deadline.toNanos)
         .addUnsignedInt(value.time.size)
@@ -101,7 +101,7 @@ private[core] object ValueSerializer {
 
   implicit object ValueUpdateSerializer extends ValueSerializer[Value.Update] {
 
-    override def write(value: Value.Update, bytes: Slice[Byte]): Unit =
+    override def write(value: Value.Update, bytes: SliceMut[Byte]): Unit =
       bytes
         .addUnsignedLong(value.deadline.toNanos)
         .addUnsignedInt(value.time.size)
@@ -124,7 +124,7 @@ private[core] object ValueSerializer {
 
   implicit object ValueRemoveSerializer extends ValueSerializer[Value.Remove] {
 
-    override def write(value: Value.Remove, bytes: Slice[Byte]): Unit =
+    override def write(value: Value.Remove, bytes: SliceMut[Byte]): Unit =
       bytes
         .addUnsignedLong(value.deadline.toNanos)
         .addAll(value.time.time)
@@ -141,7 +141,7 @@ private[core] object ValueSerializer {
   }
 
   implicit object ValueFunctionSerializer extends ValueSerializer[Value.Function] {
-    override def write(value: Value.Function, bytes: Slice[Byte]): Unit =
+    override def write(value: Value.Function, bytes: SliceMut[Byte]): Unit =
       ValueSerializer.write((value.function, value.time.time))(bytes)(TupleOfBytesSerializer)
 
     override def bytesRequired(value: Value.Function): Int =
@@ -155,7 +155,7 @@ private[core] object ValueSerializer {
 
   implicit object ValueSliceApplySerializer extends ValueSerializer[Slice[Value.Apply]] {
 
-    override def write(applies: Slice[Value.Apply], bytes: Slice[Byte]): Unit = {
+    override def write(applies: Slice[Value.Apply], bytes: SliceMut[Byte]): Unit = {
       bytes.addUnsignedInt(applies.size)
       applies foreach {
         case value: Value.Update =>
@@ -218,7 +218,7 @@ private[core] object ValueSerializer {
 
   implicit object ValuePendingApplySerializer extends ValueSerializer[Value.PendingApply] {
 
-    override def write(value: Value.PendingApply, bytes: Slice[Byte]): Unit =
+    override def write(value: Value.PendingApply, bytes: SliceMut[Byte]): Unit =
       ValueSerializer.write(value.applies)(bytes)
 
     override def bytesRequired(value: Value.PendingApply): Int =
@@ -233,7 +233,7 @@ private[core] object ValueSerializer {
    */
   implicit object SeqOfBytesSerializer extends ValueSerializer[Iterable[Slice[Byte]]] {
 
-    override def write(values: Iterable[Slice[Byte]], bytes: Slice[Byte]): Unit =
+    override def write(values: Iterable[Slice[Byte]], bytes: SliceMut[Byte]): Unit =
       values foreach {
         value =>
           bytes
@@ -261,7 +261,7 @@ private[core] object ValueSerializer {
    */
   implicit object TupleOfBytesSerializer extends ValueSerializer[(Slice[Byte], Slice[Byte])] {
 
-    override def write(value: (Slice[Byte], Slice[Byte]), bytes: Slice[Byte]): Unit =
+    override def write(value: (Slice[Byte], Slice[Byte]), bytes: SliceMut[Byte]): Unit =
       SeqOfBytesSerializer.write(Seq(value._1, value._2), bytes)
 
     override def bytesRequired(value: (Slice[Byte], Slice[Byte])): Int =
@@ -281,7 +281,7 @@ private[core] object ValueSerializer {
    */
   implicit object TupleBytesAndOptionBytesSerializer extends ValueSerializer[(Slice[Byte], SliceOption[Byte])] {
 
-    override def write(value: (Slice[Byte], SliceOption[Byte]), bytes: Slice[Byte]): Unit =
+    override def write(value: (Slice[Byte], SliceOption[Byte]), bytes: SliceMut[Byte]): Unit =
       value._2 match {
         case second: Slice[Byte] =>
           bytes.addSignedInt(1)
@@ -320,7 +320,7 @@ private[core] object ValueSerializer {
   implicit object IntMapListBufferSerializer extends ValueSerializer[mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]]] {
     val formatId = 0.toByte
 
-    override def write(map: mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]], bytes: Slice[Byte]): Unit = {
+    override def write(map: mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]], bytes: SliceMut[Byte]): Unit = {
       bytes add formatId
       map foreach {
         case (int, tuples) =>
@@ -398,7 +398,7 @@ private[core] object ValueSerializer {
   }
 
   implicit object MinMaxSerialiser extends ValueSerializer[Option[MinMax[Slice[Byte]]]] {
-    override def write(minMax: Option[MinMax[Slice[Byte]]], bytes: Slice[Byte]): Unit =
+    override def write(minMax: Option[MinMax[Slice[Byte]]], bytes: SliceMut[Byte]): Unit =
       minMax match {
         case Some(minMax) =>
           bytes addUnsignedInt minMax.min.size
@@ -448,7 +448,7 @@ private[core] object ValueSerializer {
     bytes
   }
 
-  def write[T](value: T)(bytes: Slice[Byte])(implicit serializer: ValueSerializer[T]): Unit =
+  def write[T](value: T)(bytes: SliceMut[Byte])(implicit serializer: ValueSerializer[T]): Unit =
     serializer.write(value, bytes)
 
   def read[T](value: Slice[Byte])(implicit serializer: ValueSerializer[T]): T =

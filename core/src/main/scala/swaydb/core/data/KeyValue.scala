@@ -734,7 +734,7 @@ private[swaydb] object Memory {
     override lazy val value: SliceOption[Byte] = {
       val bytesRequired = OptionRangeValueSerializer.bytesRequired(fromValue, rangeValue)
       val bytes = if (bytesRequired == 0) Slice.Null else Slice.of[Byte](bytesRequired)
-      bytes.foreachC(OptionRangeValueSerializer.write(fromValue, rangeValue, _))
+      bytes.foreachC(slice => OptionRangeValueSerializer.write(fromValue, rangeValue, slice.asMut()))
       bytes
     }
 

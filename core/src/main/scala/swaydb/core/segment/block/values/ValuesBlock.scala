@@ -23,7 +23,7 @@ import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.data.config.UncompressedBlockInfo
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceMut}
 
 private[core] case object ValuesBlock {
 
@@ -59,7 +59,7 @@ private[core] case object ValuesBlock {
       None
   }
 
-  def init(bytes: Slice[Byte],
+  def init(bytes: SliceMut[Byte],
            valuesConfig: ValuesBlockConfig,
            //the builder created by SortedIndex.
            builder: EntryWriter.Builder): ValuesBlockState =
@@ -86,7 +86,7 @@ private[core] case object ValuesBlock {
         blockName = blockName
       )
 
-    compressionResult.compressedBytes foreachC (state.compressibleBytes = _)
+    compressionResult.compressedBytes foreachC (slice => state.compressibleBytes = slice.asMut())
 
     assert(compressionResult.headerBytes.isOriginalFullSlice)
     state.header = compressionResult.headerBytes

@@ -17,13 +17,13 @@
 package swaydb.core.log.serializer
 
 import swaydb.core.log.LogEntry
-import swaydb.data.slice.Slice
+import swaydb.data.slice.SliceMut
 
 import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for LogEntryWriter of type ${T}")
 trait LogEntryWriter[T <: LogEntry[_, _]] {
-  def write(entry: T, bytes: Slice[Byte]): Unit
+  def write(entry: T, bytes: SliceMut[Byte]): Unit
 
   def bytesRequired(entry: T): Int
 
@@ -34,7 +34,7 @@ trait LogEntryWriter[T <: LogEntry[_, _]] {
 
 object LogEntryWriter {
 
-  def write[T <: LogEntry[_, _]](entry: T, bytes: Slice[Byte])(implicit serializer: LogEntryWriter[T]): Unit =
+  def write[T <: LogEntry[_, _]](entry: T, bytes: SliceMut[Byte])(implicit serializer: LogEntryWriter[T]): Unit =
     serializer.write(entry, bytes)
 
   def bytesRequired[T <: LogEntry[_, _]](entry: T)(implicit serializer: LogEntryWriter[T]): Int =

@@ -75,7 +75,7 @@ private[core] class AppendixLogEntryReader(mmapSegment: MMAP.Segment,
   implicit object AppendixRemoveReader extends LogEntryReader[LogEntry.Remove[Slice[Byte]]] {
     override def read(reader: ReaderBase[Byte]): LogEntry.Remove[Slice[Byte]] = {
       val minKeyLength = reader.readUnsignedInt()
-      val minKey = reader.read(minKeyLength).unslice()
+      val minKey: Slice[Byte] = reader.read(minKeyLength).unslice()
       LogEntry.Remove(minKey)(AppendixLogEntryWriter.AppendixRemoveWriter)
     }
   }

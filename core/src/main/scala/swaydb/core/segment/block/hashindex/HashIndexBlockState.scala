@@ -3,7 +3,7 @@ package swaydb.core.segment.block.hashindex
 import swaydb.compression.CompressionInternal
 import swaydb.core.util.CRC32
 import swaydb.data.config.UncompressedBlockInfo
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceMut}
 
 import scala.beans.BeanProperty
 
@@ -15,7 +15,7 @@ private[block] final class HashIndexBlockState(var hit: Int,
                                                val writeAbleLargestValueSize: Int,
                                                @BeanProperty var minimumCRC: Long,
                                                val maxProbe: Int,
-                                               var compressibleBytes: Slice[Byte],
+                                               var compressibleBytes: SliceMut[Byte],
                                                val cacheableBytes: Slice[Byte],
                                                var header: Slice[Byte],
                                                val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {

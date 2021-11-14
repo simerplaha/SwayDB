@@ -16,7 +16,7 @@
 
 package swaydb.core.util
 
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceMut}
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
@@ -115,7 +115,7 @@ private[swaydb] object Collections {
     } else {
       val allGroups =
         Slice
-          .of[Slice[T]](items.size)
+          .of[SliceMut[T]](items.size)
           .add(Slice.of[T](items.size))
 
       var currentGroupSize: Int = 0

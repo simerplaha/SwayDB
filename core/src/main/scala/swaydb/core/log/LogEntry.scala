@@ -22,7 +22,7 @@ import swaydb.core.log.serializer.{LogEntrySerialiser, LogEntryWriter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.skiplist.{SkipList, SkipListBatchable, SkipListConcurrent}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceMut}
 
 import scala.collection.mutable.ListBuffer
 
@@ -58,7 +58,7 @@ private[swaydb] sealed trait LogEntry[K, +V] { thisEntry =>
   def totalByteSize: Int =
     entryBytesSize + LogEntrySerialiser.headerSize
 
-  def writeTo(slice: Slice[Byte]): Unit
+  def writeTo(slice: SliceMut[Byte]): Unit
 
   protected val _entries: ListBuffer[LogEntry.Point[K, _]]
 
@@ -138,7 +138,7 @@ private[swaydb] case object LogEntry {
         override val entryBytesSize: Int =
           left.entryBytesSize + right.entryBytesSize
 
-        override def writeTo(slice: Slice[Byte]): Unit =
+        override def writeTo(slice: SliceMut[Byte]): Unit =
           _entries foreach (_.writeTo(slice))
 
         override def asString(keyParser: K => String, valueParser: V => String): String =
@@ -217,7 +217,7 @@ private[swaydb] case object LogEntry {
       calculatedEntriesByteSize
     }
 
-    override def writeTo(slice: Slice[Byte]): Unit =
+    override def writeTo(slice: SliceMut[Byte]): Unit =
       serializer.write(this, slice)
 
     override def applyBatch[T >: V](skipList: SkipListBatchable[_, _, K, T]): Unit =
@@ -255,7 +255,7 @@ private[swaydb] case object LogEntry {
       calculatedEntriesByteSize
     }
 
-    override def writeTo(slice: Slice[Byte]): Unit =
+    override def writeTo(slice: SliceMut[Byte]): Unit =
       serializer.write(this, slice)
 
     override def applyBatch[T >: Nothing](skipList: SkipListBatchable[_, _, K, T]): Unit =

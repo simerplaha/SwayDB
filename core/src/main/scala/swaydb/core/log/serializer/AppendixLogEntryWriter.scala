@@ -19,7 +19,7 @@ package swaydb.core.log.serializer
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.{Segment, SegmentSerialiser}
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceMut}
 
 private[core] object AppendixLogEntryWriter {
 
@@ -29,7 +29,7 @@ private[core] object AppendixLogEntryWriter {
     override val isRange: Boolean = false
     override val isUpdate: Boolean = false
 
-    override def write(entry: LogEntry.Remove[Slice[Byte]], bytes: Slice[Byte]): Unit =
+    override def write(entry: LogEntry.Remove[Slice[Byte]], bytes: SliceMut[Byte]): Unit =
       bytes
         .addUnsignedInt(this.id)
         .addUnsignedInt(entry.key.size)
@@ -47,7 +47,7 @@ private[core] object AppendixLogEntryWriter {
     override val isRange: Boolean = false
     override val isUpdate: Boolean = false
 
-    override def write(entry: LogEntry.Put[Slice[Byte], Segment], bytes: Slice[Byte]): Unit =
+    override def write(entry: LogEntry.Put[Slice[Byte], Segment], bytes: SliceMut[Byte]): Unit =
       SegmentSerialiser.FormatA.write(
         segment = entry.value,
         bytes = bytes.addUnsignedInt(this.id)

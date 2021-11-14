@@ -29,7 +29,7 @@ import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceMut}
 import swaydb.utils.{ByteSizeOf, FiniteDurations}
 
 import scala.annotation.tailrec
@@ -81,7 +81,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
       sortedIndexConfig = sortedIndexConfig
     )
 
-  def init(bytes: Slice[Byte],
+  def init(bytes: SliceMut[Byte],
            compressDuplicateValues: Boolean,
            compressDuplicateRangeValues: Boolean,
            sortedIndexConfig: SortedIndexBlockConfig): SortedIndexBlockState = {
@@ -308,7 +308,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         blockName = blockName
       )
 
-    state.compressibleBytes = compressionResult.compressedBytes getOrElseC normalisedBytes
+    state.compressibleBytes = (compressionResult.compressedBytes getOrElseC normalisedBytes).asMut()
 
     compressionResult.headerBytes addBoolean state.enableAccessPositionIndex
     compressionResult.headerBytes addBoolean state.optimiseForReverseIteration

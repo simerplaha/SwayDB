@@ -24,7 +24,7 @@ import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlock
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.IndexFormat
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceMut}
 import swaydb.macros.Sealed
 import swaydb.utils.ByteSizeOf
 
@@ -68,7 +68,7 @@ private[core] object HashIndexEntryFormat {
     def write(indexOffset: Int,
               mergedKey: Slice[Byte],
               keyType: Byte,
-              bytes: Slice[Byte]): Unit =
+              bytes: SliceMut[Byte]): Unit =
       bytes addNonZeroUnsignedInt (indexOffset + 1)
 
     override def readOrNull(entry: Slice[Byte],
@@ -105,7 +105,7 @@ private[core] object HashIndexEntryFormat {
     def write(indexOffset: Int,
               mergedKey: Slice[Byte],
               keyType: Byte,
-              bytes: Slice[Byte]): Long = {
+              bytes: SliceMut[Byte]): Long = {
       val position = bytes.currentWritePosition
       bytes addUnsignedInt mergedKey.size
       bytes addAll mergedKey

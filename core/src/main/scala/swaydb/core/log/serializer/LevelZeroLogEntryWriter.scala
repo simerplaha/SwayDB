@@ -19,7 +19,7 @@ package swaydb.core.log.serializer
 import swaydb.core.data.Memory
 import swaydb.core.log.LogEntry
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceMut}
 import swaydb.utils.ByteSizeOf
 
 /**
@@ -33,7 +33,7 @@ private[core] object LevelZeroLogEntryWriter {
     override val isRange: Boolean = false
     override val isUpdate: Boolean = false
 
-    override def write(entry: LogEntry.Put[Slice[Byte], Memory.Remove], bytes: Slice[Byte]): Unit =
+    override def write(entry: LogEntry.Put[Slice[Byte], Memory.Remove], bytes: SliceMut[Byte]): Unit =
       bytes
         .add(id)
         .addUnsignedInt(entry.value.key.size)
@@ -57,7 +57,7 @@ private[core] object LevelZeroLogEntryWriter {
     override val isRange: Boolean = false
     override val isUpdate: Boolean = false
 
-    override def write(entry: LogEntry.Put[Slice[Byte], Memory.Put], bytes: Slice[Byte]): Unit =
+    override def write(entry: LogEntry.Put[Slice[Byte], Memory.Put], bytes: SliceMut[Byte]): Unit =
       bytes
         .add(id)
         .addUnsignedInt(entry.value.key.size)
@@ -88,7 +88,7 @@ private[core] object LevelZeroLogEntryWriter {
     override val isRange: Boolean = false
     override val isUpdate: Boolean = true
 
-    override def write(entry: LogEntry.Put[Slice[Byte], Memory.Update], bytes: Slice[Byte]): Unit =
+    override def write(entry: LogEntry.Put[Slice[Byte], Memory.Update], bytes: SliceMut[Byte]): Unit =
       bytes
         .add(id)
         .addUnsignedInt(entry.value.key.size)
@@ -119,7 +119,7 @@ private[core] object LevelZeroLogEntryWriter {
     override val isRange: Boolean = false
     override val isUpdate: Boolean = true
 
-    override def write(entry: LogEntry.Put[Slice[Byte], Memory.Function], bytes: Slice[Byte]): Unit =
+    override def write(entry: LogEntry.Put[Slice[Byte], Memory.Function], bytes: SliceMut[Byte]): Unit =
       bytes
         .add(id)
         .addUnsignedInt(entry.value.key.size)
@@ -148,7 +148,7 @@ private[core] object LevelZeroLogEntryWriter {
     override val isRange: Boolean = true
     override val isUpdate: Boolean = false
 
-    override def write(entry: LogEntry.Put[Slice[Byte], Memory.Range], bytes: Slice[Byte]): Unit = {
+    override def write(entry: LogEntry.Put[Slice[Byte], Memory.Range], bytes: SliceMut[Byte]): Unit = {
       val valueBytesRequired = RangeValueSerializer.bytesRequired(entry.value.fromValue, entry.value.rangeValue)
       RangeValueSerializer.write(entry.value.fromValue, entry.value.rangeValue) {
         bytes
@@ -185,7 +185,7 @@ private[core] object LevelZeroLogEntryWriter {
     /**
      * No need to write time since it can be computed from applies.
      */
-    override def write(entry: LogEntry.Put[Slice[Byte], Memory.PendingApply], bytes: Slice[Byte]): Unit = {
+    override def write(entry: LogEntry.Put[Slice[Byte], Memory.PendingApply], bytes: SliceMut[Byte]): Unit = {
       val appliesBytesRequired = ValueSerializer.bytesRequired(entry.value.applies)
       ValueSerializer.write(entry.value.applies) {
         bytes
@@ -214,7 +214,7 @@ private[core] object LevelZeroLogEntryWriter {
     override val isRange: Boolean = true
     override val isUpdate: Boolean = true
 
-    override def write(entry: LogEntry.Put[Slice[Byte], Memory], bytes: Slice[Byte]): Unit =
+    override def write(entry: LogEntry.Put[Slice[Byte], Memory], bytes: SliceMut[Byte]): Unit =
       entry match {
         case entry @ LogEntry.Put(_, _: Memory.Put) =>
           LogEntryWriter.write(entry.asInstanceOf[LogEntry.Put[Slice[Byte], Memory.Put]], bytes)

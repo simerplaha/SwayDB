@@ -57,8 +57,9 @@ case object Slice extends SliceCompanion {
 
 }
 
-
 /**
+ * Mutable slice.
+ *
  * [[Slice]] allows managing a large [[Array]] without copying it's values unless needed.
  *
  * [[Slice]] is used extensively by all modules including core so it's performance is critical.
@@ -68,14 +69,33 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
                                             val toOffset: Int,
                                             private var written: Int)(override protected[this] implicit val classTag: ClassTag[T]) extends Slice[T] { self =>
 
+  override type Self = SliceMut[T]@uncheckedVariance
+
   private var writePosition =
     fromOffset + written
 
   override def size: Int =
     written
 
-  override def getC: SliceMut[T] =
+  @inline override def asMut(): SliceMut[T] =
     this
+
+  override protected[this] def createEmpty: SliceMut[T] =
+    Slice.of[T](0)
+
+  override protected[this] def createNew(array: Array[T]): SliceMut[T] =
+    Slice(array).asMut()
+
+  override protected[this] def createNew(array: Array[T],
+                                         fromOffset: Int,
+                                         toOffset: Int,
+                                         written: Int): SliceMut[T] =
+    new SliceMut[T](
+      array = array,
+      fromOffset = fromOffset,
+      toOffset = toOffset,
+      written = written
+    )
 
   @throws[ArrayIndexOutOfBoundsException]
   private[swaydb] def moveWritePosition(writePosition: Int): Unit = {
@@ -215,15 +235,19 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
     byteOps.writeStringWithSize(string, self, StandardCharsets.UTF_8)
     self
   }
+
 }
 
-
 /**
+ * Immutable Slice. Can be casted to mutable with [[asMut]]
+ *
  * [[Slice]] allows managing a large [[Array]] without copying it's values unless needed.
  *
  * [[Slice]] is used extensively by all modules including core so it's performance is critical.
  */
-trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { self =>
+sealed trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { self =>
+
+  type Self <: Slice[T]@uncheckedVariance
 
   val fromOffset: Int
 
@@ -235,6 +259,20 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
   protected[this] implicit def classTag: ClassTag[T]
 
   protected[this] def array: Array[T]
+
+  protected[this] def createEmpty: Self
+
+  protected[this] def createNew(array: Array[T]): Self
+
+  protected[this] def createNew(array: Array[T],
+                                fromOffset: Int,
+                                toOffset: Int,
+                                written: Int): Self
+
+  /**
+   * Returns the current slice as mutable.
+   */
+  @inline def asMut(): SliceMut[T]
 
   def size: Int
 
@@ -269,9 +307,9 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
    * @param toOffset   end offset
    * @return Slice for the given offsets
    */
-  override def slice(fromOffset: Int, toOffset: Int): this.type =
+  override def slice(fromOffset: Int, toOffset: Int): Self =
     if (toOffset < 0) {
-      Slice.empty[T]
+      this.createEmpty
     } else {
       //overflow check
       var fromOffsetAdjusted = fromOffset + this.fromOffset
@@ -284,7 +322,7 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
         toOffsetAdjusted = this.toOffset
 
       if (fromOffsetAdjusted > toOffsetAdjusted) {
-        Slice.empty
+        this.createEmpty
       } else {
         val actualWritePosition = this.fromOffset + self.size //in-case the slice was manually moved.
         val sliceWritePosition =
@@ -295,7 +333,7 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
           else //partially written
             actualWritePosition - fromOffsetAdjusted
 
-        new SliceMut[T](
+        self.createNew(
           array = array,
           fromOffset = fromOffsetAdjusted,
           toOffset = toOffsetAdjusted,
@@ -304,62 +342,61 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
       }
     }
 
-  private def splitAt(index: Int, size: Int): (Slice[T], Slice[T]) =
+  private def splitAt(index: Int, size: Int): (Self, Self) =
     if (index == 0) {
-      (Slice.empty[T], slice(0, size - 1))
+      (this.createEmpty, slice(0, size - 1))
     } else {
       val split1 = slice(0, index - 1)
       val split2 = slice(index, size - 1)
       (split1, split2)
     }
 
-  def splitInnerArrayAt(index: Int): (Slice[T], Slice[T]) =
+  def splitInnerArrayAt(index: Int): (Self, Self) =
     splitAt(index, allocatedSize)
 
-  override def splitAt(index: Int): (Slice[T], Slice[T]) =
+  override def splitAt(index: Int): (Self, Self) =
     splitAt(index, size)
 
   override def grouped(size: Int): Iterator[Slice[T]] =
     groupedSlice(size).iterator
 
   def groupedSlice(size: Int): Slice[Slice[T]] = {
-    //    @tailrec
-    //    def group(groups: Slice[Slice[T]],
-    //              slice: Slice[T],
-    //              size: Int): Slice[Slice[T]] =
-    //      if (size <= 1) {
-    //        groups add slice
-    //        groups
-    //      } else {
-    //        val (slice1, slice2) = slice.splitAt(slice.size / size)
-    //        groups add slice1
-    //        group(groups, slice2, size - 1)
-    //      }
-    //
-    //    if (size == 0)
-    //      Slice(self)
-    //    else
-    //      group(Slice.of[Slice[T]](size), self, size)
-    ???
+    @tailrec
+    def group(groups: SliceMut[Slice[T]],
+              slice: Slice[T],
+              size: Int): Slice[Slice[T]] =
+      if (size <= 1) {
+        groups add slice
+        groups
+      } else {
+        val (slice1, slice2) = slice.splitAt(slice.size / size)
+        groups add slice1
+        group(groups, slice2, size - 1)
+      }
+
+    if (size == 0)
+      Slice(self)
+    else
+      group(Slice.of[Slice[T]](size), self, size)
   }
 
-  private[swaydb] def openEnd(): this.type =
-    new SliceMut[T](
+  private[swaydb] def openEnd(): Self =
+    self.createNew(
       array = array,
       fromOffset = fromOffset,
       toOffset = array.length - 1,
       written = array.length - fromOffset
     )
 
-  override def drop(count: Int): Slice[T] =
+  override def drop(count: Int): Self =
     if (count <= 0)
-      self
+      self.asInstanceOf[Self]
     else if (count >= size)
-      Slice.empty[T]
+      this.createEmpty
     else
       slice(count, size - 1)
 
-  def dropHead(): Slice[T] =
+  def dropHead(): Self =
     drop(1)
 
   /**
@@ -382,33 +419,33 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
         drop(index)
     }
 
-  override def dropRight(count: Int): Slice[T] =
+  override def dropRight(count: Int): Self =
     if (count <= 0)
-      self
+      self.asInstanceOf[Self]
     else if (count >= size)
-      Slice.empty[T]
+      this.createEmpty
     else
       slice(0, size - count - 1)
 
-  override def take(count: Int): Slice[T] =
+  override def take(count: Int): Self =
     if (count <= 0)
-      Slice.empty[T]
+      this.createEmpty
     else if (size == count)
-      self
+      self.asInstanceOf[Self]
     else
       slice(0, (size min count) - 1)
 
-  def take(fromIndex: Int, count: Int): Slice[T] =
+  def take(fromIndex: Int, count: Int): Self =
     if (count == 0)
-      Slice.empty
+      this.createEmpty
     else
       slice(fromIndex, fromIndex + count - 1)
 
-  override def takeRight(count: Int): Slice[T] =
+  override def takeRight(count: Int): Self =
     if (count <= 0)
-      Slice.empty[T]
+      this.createEmpty
     else if (size == count)
-      self
+      self.asInstanceOf[Self]
     else
       slice(size - count, size - 1)
 
@@ -448,9 +485,9 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
   override def lastOption: Option[T] =
     Option(lastOrNull)
 
-  def headSlice: Slice[T] = slice(0, 0)
+  def headSlice: Self = slice(0, 0)
 
-  def lastSlice: Slice[T] = slice(size - 1, size - 1)
+  def lastSlice: Self = slice(size - 1, size - 1)
 
   /**
    * @return the element at given index after running bound checks.
@@ -491,9 +528,9 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
   /**
    * Returns a new non-writable slice. Unless position is moved manually.
    */
-  def close(): Slice[T] =
+  def close(): Self =
     if (allocatedSize == size)
-      self
+      self.asInstanceOf[Self]
     else
       slice(0, size - 1)
 
@@ -587,8 +624,8 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
   def arrayLength =
     array.length
 
-  def unslice(): Slice[T] =
-    Slice(toArray)
+  def unslice(): Self =
+    createNew(toArray)
 
   def toOptionUnsliced(): Option[Slice[T]] = {
     val slice = unslice()
@@ -651,7 +688,7 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
     Slice.from[B](buffer, buffer.size)
   }
 
-  override def takeWhile(p: T => Boolean): Slice[T] = {
+  override def takeWhile(p: T => Boolean): Self = {
     val filtered = Slice.of[T](self.size)
     val iterator = self.iterator
 
@@ -664,7 +701,7 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
         continue = false
     }
 
-    filtered.close()
+    filtered.close().asInstanceOf[Self]
   }
 
   def collectToSlice[B: ClassTag](pf: PartialFunction[T, B]): Slice[B] =
@@ -695,7 +732,7 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
     target.close()
   }
 
-  override def filterNot(p: T => Boolean): Slice[T] = {
+  override def filterNot(p: T => Boolean): Self = {
     val filtered = Slice.of[T](self.size)
     val iterator = self.iterator
 
@@ -704,10 +741,10 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
       if (!p(item)) filtered add item
     }
 
-    filtered.close()
+    filtered.close().asInstanceOf[Self]
   }
 
-  override def filter(p: T => Boolean): Slice[T] = {
+  override def filter(p: T => Boolean): Self = {
     val filtered = Slice.of[T](self.size)
     val iterator = self.iterator
 
@@ -716,7 +753,7 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
       if (p(item)) filtered add item
     }
 
-    filtered.close()
+    filtered.close().asInstanceOf[Self]
   }
 
   def existsFor(forItems: Int, exists: T => Boolean): Boolean =
@@ -837,18 +874,18 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
   /**
    * @return A tuple2 where _1 is written bytes and _2 is tail unwritten bytes.
    */
-  def splitUnwritten(): (Slice[T], Slice[T]) =
+  def splitUnwritten(): (Self, Self) =
     (this.close(), unwrittenTail())
 
   def unwrittenTailSize() =
     toOffset - fromOffset - size
 
-  def unwrittenTail(): this.type = {
+  def unwrittenTail(): Self = {
     val from = fromOffset + size
     if (from > toOffset)
-      Slice.empty[T]
+      this.createEmpty
     else
-      new SliceMut[T](
+      self.createNew(
         array = array,
         fromOffset = from,
         toOffset = toOffset,
@@ -856,8 +893,8 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
       )
   }
 
-  def copy(): this.type =
-    new SliceMut[T](
+  def copy(): Self =
+    self.createNew(
       array = array,
       fromOffset = fromOffset,
       toOffset = toOffset,
@@ -870,7 +907,7 @@ trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { sel
   @inline def readInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
     byteOps.readInt(self)
 
-  @inline def dropUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Slice[T] = {
+  @inline def dropUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Self = {
     val (_, byteSize) = readUnsignedIntWithByteSize[B]()
     self drop byteSize
   }

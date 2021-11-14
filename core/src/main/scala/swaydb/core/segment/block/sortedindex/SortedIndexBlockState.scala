@@ -6,7 +6,7 @@ import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.config.UncompressedBlockInfo
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceMut}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
@@ -17,7 +17,7 @@ import scala.concurrent.duration.Deadline
  * resulted in very slow compaction because immutable compaction was creation
  * millions of temporary objects every second causing GC halts.
  */
-private[block] class SortedIndexBlockState(var compressibleBytes: Slice[Byte],
+private[block] class SortedIndexBlockState(var compressibleBytes: SliceMut[Byte],
                                            var cacheableBytes: Slice[Byte],
                                            var header: Slice[Byte],
                                            var minKey: Slice[Byte],

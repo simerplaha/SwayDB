@@ -26,7 +26,7 @@ import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.data.slice.{ReaderBase, Slice, SliceMut}
 import swaydb.effect.{Effect, Extension}
 import swaydb.utils.ByteSizeOf
 import swaydb.utils.Options.OptionsImplicits
@@ -39,7 +39,7 @@ import scala.concurrent.duration.Deadline
 private[core] sealed trait SegmentSerialiser {
 
   def write(value: Segment,
-            bytes: Slice[Byte]): Unit
+            bytes: SliceMut[Byte]): Unit
 
   def read(reader: ReaderBase[Byte],
            mmapSegment: MMAP.Segment,
@@ -63,7 +63,7 @@ private[core] object SegmentSerialiser {
   object FormatA extends SegmentSerialiser {
     val formatId: Byte = 0.toByte
 
-    override def write(segment: Segment, bytes: Slice[Byte]): Unit = {
+    override def write(segment: Segment, bytes: SliceMut[Byte]): Unit = {
       val segmentPath = Slice(segment.path.toString.getBytes(StandardCharsets.UTF_8))
 
       val (maxKeyId, maxKeyBytes) =

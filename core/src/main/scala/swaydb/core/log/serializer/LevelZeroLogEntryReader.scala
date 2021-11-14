@@ -29,7 +29,7 @@ private[core] object LevelZeroLogEntryReader {
 
     override def read(reader: ReaderBase[Byte]): LogEntry.Put[Slice[Byte], Memory.Remove] = {
       val keyLength = reader.readUnsignedInt()
-      val key = reader.read(keyLength).unslice()
+      val key: Slice[Byte] = reader.read(keyLength).unslice()
       val timeLength = reader.readUnsignedInt()
       val time = reader.read(timeLength).unslice()
       val deadlineLong = reader.readUnsignedLong()
@@ -42,7 +42,7 @@ private[core] object LevelZeroLogEntryReader {
 
     override def read(reader: ReaderBase[Byte]): LogEntry.Put[Slice[Byte], Memory.Put] = {
       val keyLength = reader.readUnsignedInt()
-      val key = reader.read(keyLength).unslice()
+      val key: Slice[Byte] = reader.read(keyLength).unslice()
       val timeLength = reader.readUnsignedInt()
       val time = reader.read(timeLength).unslice()
       val valueLength = reader.readUnsignedInt()
@@ -58,7 +58,7 @@ private[core] object LevelZeroLogEntryReader {
 
     override def read(reader: ReaderBase[Byte]): LogEntry.Put[Slice[Byte], Memory.Update] = {
       val keyLength = reader.readUnsignedInt()
-      val key = reader.read(keyLength).unslice()
+      val key: Slice[Byte] = reader.read(keyLength).unslice()
       val timeLength = reader.readUnsignedInt()
       val time = reader.read(timeLength).unslice()
       val valueLength = reader.readUnsignedInt()
@@ -74,7 +74,7 @@ private[core] object LevelZeroLogEntryReader {
 
     override def read(reader: ReaderBase[Byte]): LogEntry.Put[Slice[Byte], Memory.Function] = {
       val keyLength = reader.readUnsignedInt()
-      val key = reader.read(keyLength).unslice()
+      val key: Slice[Byte] = reader.read(keyLength).unslice()
       val timeLength = reader.readUnsignedInt()
       val time = reader.read(timeLength).unslice()
       val functionLength = reader.readUnsignedInt()
@@ -88,7 +88,7 @@ private[core] object LevelZeroLogEntryReader {
 
     override def read(reader: ReaderBase[Byte]): LogEntry.Put[Slice[Byte], Memory.Range] = {
       val fromKeyLength = reader.readUnsignedInt()
-      val fromKey = reader.read(fromKeyLength).unslice()
+      val fromKey: Slice[Byte] = reader.read(fromKeyLength).unslice()
       val toKeyLength = reader.readUnsignedInt()
       val toKey = reader.read(toKeyLength).unslice()
       val valueLength = reader.readUnsignedInt()
@@ -103,7 +103,7 @@ private[core] object LevelZeroLogEntryReader {
 
     override def read(reader: ReaderBase[Byte]): LogEntry.Put[Slice[Byte], Memory.PendingApply] = {
       val keyLength = reader.readUnsignedInt()
-      val key = reader.read(keyLength).unslice()
+      val key: Slice[Byte] = reader.read(keyLength).unslice()
       val valueLength = reader.readUnsignedInt()
       val valueBytes = reader.read(valueLength)
       val applies = ValueSerializer.read[Slice[Value.Apply]](valueBytes)

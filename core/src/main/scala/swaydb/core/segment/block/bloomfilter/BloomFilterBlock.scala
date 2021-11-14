@@ -113,7 +113,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
           blockName = blockName
         )
 
-      compressionResult.compressedBytes foreachC (state.compressibleBytes = _)
+      compressionResult.compressedBytes foreachC (slice => state.compressibleBytes = slice.asMut())
 
       compressionResult.headerBytes addUnsignedInt state.numberOfBits
       compressionResult.headerBytes addUnsignedInt state.maxProbe

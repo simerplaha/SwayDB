@@ -92,7 +92,7 @@ private[core] case object BinarySearchIndexBlock {
           blockName = blockName
         )
 
-      compressionResult.compressedBytes foreachC (state.compressibleBytes = _)
+      compressionResult.compressedBytes foreachC (slice => state.compressibleBytes = slice.asMut())
 
       compressionResult.headerBytes add state.format.id
       compressionResult.headerBytes addUnsignedInt state.writtenValues
