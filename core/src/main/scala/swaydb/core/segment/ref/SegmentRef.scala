@@ -164,8 +164,8 @@ private[core] class SegmentRef(val path: Path,
   private[segment] def addToSkipList(keyValue: Persistent): Unit =
     skipList foreach {
       skipList =>
-        //unslice not required anymore since SegmentSearch always unsliced.
-        //keyValue.unsliceKeys
+        //cut not required anymore since SegmentSearch always cutd.
+        //keyValue.cutKeys
         if (skipList.putIfAbsent(keyValue.key, keyValue))
           keyValueMemorySweeper.foreach(_.add(keyValue, skipList))
     }

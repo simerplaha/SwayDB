@@ -456,10 +456,10 @@ protected case object PersistentSegmentMany extends LazyLogging {
     val maxKey =
       lastKeyValue match {
         case fixed: Persistent.Fixed =>
-          MaxKey.Fixed(fixed.key.unslice())
+          MaxKey.Fixed(fixed.key.cut())
 
         case range: Persistent.Range =>
-          MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+          MaxKey.Range(range.fromKey.cut(), range.toKey.cut())
 
         case Persistent.Null =>
           throw new Exception("Empty Segment read. Persisted Segments cannot be empty.")
@@ -469,7 +469,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
 
     val deadlineFunctionId = DeadlineAndFunctionId(allKeyValues)
 
-    val minKey = segmentRefKeyValues.head.key.unslice()
+    val minKey = segmentRefKeyValues.head.key.cut()
 
     val listSegmentUpdateCount = listSegmentFooter.updateCount
     val listSegmentRangeCount = listSegmentFooter.rangeCount
@@ -501,7 +501,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
       createdInLevel = listSegmentFooter.createdInLevel,
       minKey = minKey,
       maxKey = maxKey,
-      minMaxFunctionId = deadlineFunctionId.minMaxFunctionId.map(_.unslice()),
+      minMaxFunctionId = deadlineFunctionId.minMaxFunctionId.map(_.cut()),
       segmentSize = file.fileSize,
       nearestPutDeadline = deadlineFunctionId.nearestDeadline,
       updateCount = segmentRefs.values().foldLeft(0)(_ + _.updateCount),

@@ -219,14 +219,14 @@ protected case object PersistentSegmentOne {
     PersistentSegmentOne(
       file = file,
       createdInLevel = footer.createdInLevel,
-      minKey = keyValues.head.key.unslice(),
+      minKey = keyValues.head.key.cut(),
       maxKey =
         keyValues.last match {
           case fixed: KeyValue.Fixed =>
-            MaxKey.Fixed(fixed.key.unslice())
+            MaxKey.Fixed(fixed.key.cut())
 
           case range: KeyValue.Range =>
-            MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+            MaxKey.Range(range.fromKey.cut(), range.toKey.cut())
         },
       minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
       segmentSize = fileSize,

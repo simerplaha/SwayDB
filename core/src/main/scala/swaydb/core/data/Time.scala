@@ -56,8 +56,8 @@ private[core] object Time {
 }
 
 private[core] case class Time private(time: Slice[Byte]) {
-  def unslice(): Time =
-    Time(time.unslice())
+  def cut(): Time =
+    Time(time.cut())
 
   def isEmpty =
     time.isEmpty

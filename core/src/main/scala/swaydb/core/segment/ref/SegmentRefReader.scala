@@ -378,8 +378,8 @@ object SegmentRefReader {
       optional =>
         optional foreachS {
           found =>
-            found.unsliceKeys
-            val unslicedKey = key.unslice()
+            found.cutMutKeys
+            val cutKey = key.cut()
 
             segmentStateOptional match {
               case SegmentReadState.Null =>
@@ -387,14 +387,14 @@ object SegmentRefReader {
                   path = path,
                   nextIndexOffset =
                     new SegmentReadState(
-                      keyValue = (unslicedKey, found),
-                      lower = TupleOrNone.Some(unslicedKey, found),
+                      keyValue = (cutKey, found),
+                      lower = TupleOrNone.Some(cutKey, found),
                       isSequential = true
                     )
                 )
 
               case state: SegmentReadState =>
-                state.lower = TupleOrNone.Some(unslicedKey, found)
+                state.lower = TupleOrNone.Some(cutKey, found)
             }
             segmentRef addToSkipList found
         }

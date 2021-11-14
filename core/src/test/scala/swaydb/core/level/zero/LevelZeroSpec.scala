@@ -128,7 +128,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
 
           val gotFromLevelZero = zero.get(one, ThreadReadState.random).getPut.getOrFetchValue.getC
           gotFromLevelZero shouldBe one
-          //ensure that key-values are not unsliced in LevelZero.
+          //ensure that key-values are not cutd in LevelZero.
           gotFromLevelZero.underlyingArraySize shouldBe 10
 
           //the following does not apply to in-memory Levels
@@ -138,7 +138,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
             level.put(Slice(Memory.put(one, one))).runRandomIO
             val gotFromLevelOne = level.get(one, ThreadReadState.random).getPut
             gotFromLevelOne.getOrFetchValue shouldBe one
-            //ensure that key-values are not unsliced in LevelOne.
+            //ensure that key-values are not cutd in LevelOne.
             gotFromLevelOne.getOrFetchValue.getC.underlyingArraySize shouldBe 4
           }
       }

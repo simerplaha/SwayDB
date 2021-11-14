@@ -27,10 +27,10 @@ import scala.annotation.tailrec
 private[core] object MinMax {
 
   implicit class MinMaxByteImplicits(minMax: MinMax[Slice[Byte]]) {
-    @inline def unslice(): MinMax[Slice[Byte]] =
+    @inline def cut(): MinMax[Slice[Byte]] =
       MinMax(
-        min = minMax.min.unslice(),
-        max = minMax.max.unslice()
+        min = minMax.min.cut(),
+        max = minMax.max.cut()
       )
   }
 

@@ -40,7 +40,7 @@ object BlockCacheIO {
       } else if (bytes.isEmpty) {
         Slice.emptyBytes
       } else if (bytes.size <= state.blockSize) {
-        val value = bytes.unslice()
+        val value = bytes.cut()
         val map = state.mapCache.value(())
         map.put(keyPosition, value)
         state.sweeper.add(keyPosition, value, state.mapCache)

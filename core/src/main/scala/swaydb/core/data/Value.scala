@@ -23,8 +23,8 @@ import scala.concurrent.duration.Deadline
 
 private[swaydb] sealed trait Value {
   def mightContainRemove: Boolean
-  def unslice(): Value
-  def isUnsliced: Boolean
+  def cut(): Value
+  def isCut: Boolean
   def time: Time
 }
 
@@ -51,7 +51,7 @@ private[swaydb] object Value {
     }
 
   private[swaydb] sealed trait RangeValue extends FromValue {
-    def unslice(): RangeValue
+    def cut(): RangeValue
   }
 
   sealed trait FromValueOption extends SomeOrNone[FromValueOption, Value.FromValue] {
@@ -72,7 +72,7 @@ private[swaydb] object Value {
 
   private[swaydb] sealed trait FromValue extends Value with FromValueOption {
     def isPut: Boolean
-    def unslice(): FromValue
+    def cut(): FromValue
     def toMemory(key: Slice[Byte]): Memory.Fixed
     def toPutMayBe(key: Slice[Byte]): Option[Memory.Put]
 
@@ -83,7 +83,7 @@ private[swaydb] object Value {
   }
 
   private[swaydb] sealed trait Apply extends RangeValue {
-    def unslice(): Apply
+    def cut(): Apply
     def time: Time
   }
 
@@ -94,10 +94,10 @@ private[swaydb] object Value {
 
     override val mightContainRemove: Boolean = true
 
-    def unslice(): Value.Remove =
-      Remove(deadline = deadline, time = time.unslice())
+    def cut(): Value.Remove =
+      Remove(deadline = deadline, time = time.cut())
 
-    override def isUnsliced: Boolean =
+    override def isCut: Boolean =
       time.time.isOriginalFullSlice
 
     def hasTimeLeft(): Boolean =
@@ -123,11 +123,11 @@ private[swaydb] object Value {
 
     override val mightContainRemove: Boolean = false
 
-    def unslice(): Value.Put =
-      Put(value = value.unsliceOption(), deadline, time.unslice())
+    def cut(): Value.Put =
+      Put(value = value.cutToSliceOption(), deadline, time.cut())
 
-    override def isUnsliced: Boolean =
-      value.isUnslicedOption && time.time.isOriginalFullSlice
+    override def isCut: Boolean =
+      value.isNullOrNonEmptyCut && time.time.isOriginalFullSlice
 
     def toMemory(key: Slice[Byte]): Memory.Put =
       Memory.Put(
@@ -153,11 +153,11 @@ private[swaydb] object Value {
 
     override val mightContainRemove: Boolean = false
 
-    def unslice(): Value.Update =
-      Update(value = value.unsliceOption(), deadline, time.unslice())
+    def cut(): Value.Update =
+      Update(value = value.cutToSliceOption(), deadline, time.cut())
 
-    override def isUnsliced: Boolean =
-      value.isUnslicedOption && time.time.isOriginalFullSlice
+    override def isCut: Boolean =
+      value.isNullOrNonEmptyCut && time.time.isOriginalFullSlice
 
     def toMemory(key: Slice[Byte]): Memory.Update =
       Memory.Update(
@@ -182,10 +182,10 @@ private[swaydb] object Value {
 
     override val mightContainRemove: Boolean = true
 
-    def unslice(): Function =
-      Function(function.unslice(), time.unslice())
+    def cut(): Function =
+      Function(function.cut(), time.cut())
 
-    override def isUnsliced: Boolean =
+    override def isCut: Boolean =
       function.isOriginalFullSlice && time.time.isOriginalFullSlice
 
     def toMemory(key: Slice[Byte]): Memory.Function =
@@ -209,11 +209,11 @@ private[swaydb] object Value {
 
     override def time = Time.fromApplies(applies)
 
-    def unslice(): Value.PendingApply =
-      PendingApply(applies.mapToSlice(_.unslice()))
+    def cut(): Value.PendingApply =
+      PendingApply(applies.mapToSlice(_.cut()))
 
-    override def isUnsliced: Boolean =
-      applies.forall(_.isUnsliced)
+    override def isCut: Boolean =
+      applies.forall(_.isCut)
 
     def toMemory(key: Slice[Byte]): Memory.PendingApply =
       Memory.PendingApply(

@@ -62,11 +62,11 @@ private[ref] object SegmentReadState {
                                     forKey: Slice[Byte],
                                     readState: ThreadReadState,
                                     found: Persistent): Unit = {
-    found.unsliceKeys
+    found.cutMutKeys
 
     val segmentState =
       new SegmentReadState(
-        keyValue = (forKey.unslice(), found),
+        keyValue = (forKey.cut(), found),
         lower = TupleOrNone.None,
         isSequential = true
       )
@@ -79,10 +79,10 @@ private[ref] object SegmentReadState {
                                     readState: ThreadReadState,
                                     segmentState: SegmentReadState,
                                     found: Persistent): Unit = {
-    found.unsliceKeys
+    found.cutMutKeys
     val state = segmentState.getS
     //mutate segmentState for next sequential read
-    state.keyValue = (forKey.unslice(), found)
+    state.keyValue = (forKey.cut(), found)
     state.isSequential = true
   }
 
@@ -121,11 +121,11 @@ private[ref] object SegmentReadState {
     if (foundOption.isSomeS) {
       val foundKeyValue = foundOption.getS
 
-      foundKeyValue.unsliceKeys
+      foundKeyValue.cutMutKeys
 
       val segmentState =
         new SegmentReadState(
-          keyValue = (forKey.unslice(), foundKeyValue),
+          keyValue = (forKey.cut(), foundKeyValue),
           lower = TupleOrNone.None,
           isSequential = start.isSomeS && foundKeyValue.indexOffset == start.getS.nextIndexOffset
         )
@@ -143,9 +143,9 @@ private[ref] object SegmentReadState {
                             foundOption: PersistentOption): Unit =
     if (foundOption.isSomeS) {
       val foundKeyValue = foundOption.getS
-      foundKeyValue.unsliceKeys
+      foundKeyValue.cutMutKeys
       segmentState.isSequential = foundKeyValue.indexOffset == segmentState.keyValue._2.nextIndexOffset
-      segmentState.keyValue = (forKey.unslice(), foundKeyValue)
+      segmentState.keyValue = (forKey.cut(), foundKeyValue)
     } else {
       segmentState.isSequential = false
     }

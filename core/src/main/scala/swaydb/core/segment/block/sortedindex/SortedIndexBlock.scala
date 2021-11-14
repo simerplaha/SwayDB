@@ -133,7 +133,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
     val positionBeforeWrite = state.compressibleBytes.currentWritePositionInThisSlice
 
     if (state.minKey == null)
-      state.minKey = keyValue.key.unslice()
+      state.minKey = keyValue.key.cut()
 
     if (state.enablePrefixCompression && state.shouldPrefixCompress(state.entriesCount))
       state.builder.enablePrefixCompressionForCurrentWrite = true
@@ -321,10 +321,10 @@ private[core] case object SortedIndexBlock extends LazyLogging {
     state.maxKey =
       state.lastKeyValue match {
         case range: Memory.Range =>
-          MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+          MaxKey.Range(range.fromKey.cut(), range.toKey.cut())
 
         case keyValue: Memory.Fixed =>
-          MaxKey.Fixed(keyValue.key.unslice())
+          MaxKey.Fixed(keyValue.key.cut())
       }
 
     assert(compressionResult.headerBytes.isOriginalFullSlice)

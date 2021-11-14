@@ -336,23 +336,23 @@ trait SliceCompanion extends SliceBuildFrom {
 
   implicit class OptionByteSliceImplicits(slice: Option[Slice[Byte]]) {
 
-    @inline final def unslice(): Option[Slice[Byte]] =
+    @inline final def cut(): Option[Slice[Byte]] =
       slice flatMap {
         slice =>
           if (slice.isEmpty)
             None
           else
-            Some(slice.unslice())
+            Some(slice.cut())
       }
   }
 
   implicit class SeqByteSliceImplicits(slice: Seq[Slice[Byte]]) {
 
-    @inline final def unslice(): Seq[Slice[Byte]] =
+    @inline final def cut(): Seq[Slice[Byte]] =
       if (slice.isEmpty)
         slice
       else
-        slice.map(_.unslice())
+        slice.map(_.cut())
   }
 
   implicit class JavaByteSliced(sliced: Slice[java.lang.Byte]) {

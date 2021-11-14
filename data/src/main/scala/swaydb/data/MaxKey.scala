@@ -39,13 +39,13 @@ object MaxKey {
   }
 
   implicit class MaxKeyImplicits(maxKey: MaxKey[Slice[Byte]]) {
-    @inline final def unslice() =
+    @inline final def cut() =
       maxKey match {
         case Fixed(maxKey) =>
-          Fixed(maxKey.unslice())
+          Fixed(maxKey.cut())
 
         case Range(fromKey, maxKey) =>
-          Range(fromKey.unslice(), maxKey.unslice())
+          Range(fromKey.cut(), maxKey.cut())
       }
 
     @inline final def lessThan(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {

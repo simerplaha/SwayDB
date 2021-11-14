@@ -272,7 +272,7 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOption {
   def toKey: Slice[Byte]
   def maxKey: MaxKey[Slice[Byte]]
 
-  def unslice(): Memory
+  def cut(): Memory
 
   override def isNoneS: Boolean =
     false
@@ -306,7 +306,7 @@ private[swaydb] object Memory {
   }
 
   sealed trait Fixed extends Memory with KeyValue.Fixed {
-    def unslice(): Memory.Fixed
+    def cut(): Memory.Fixed
 
     override def isRange: Boolean = false
 
@@ -394,15 +394,15 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
-    def unslice(): Memory.Put =
-      if (key.isOriginalFullSlice && value.isUnslicedOption && time.time.isOriginalFullSlice)
+    def cut(): Memory.Put =
+      if (key.isOriginalFullSlice && value.isNullOrNonEmptyCut && time.time.isOriginalFullSlice)
         this
       else
         Put(
-          key = key.unslice(),
-          value = value.unsliceOption(),
+          key = key.cut(),
+          value = value.cutToSliceOption(),
           deadline = deadline,
-          time = time.unslice()
+          time = time.cut()
         )
 
     override def valueLength: Int =
@@ -461,15 +461,15 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
-    def unslice(): Memory.Update =
-      if (key.isOriginalFullSlice && value.isUnslicedOption && time.time.isOriginalFullSlice)
+    def cut(): Memory.Update =
+      if (key.isOriginalFullSlice && value.isNullOrNonEmptyCut && time.time.isOriginalFullSlice)
         this
       else
         Update(
-          key = key.unslice(),
-          value = value.unsliceOption(),
+          key = key.cut(),
+          value = value.cutToSliceOption(),
           deadline = deadline,
-          time = time.unslice()
+          time = time.cut()
         )
 
     def hasTimeLeft(): Boolean =
@@ -546,14 +546,14 @@ private[swaydb] object Memory {
 
     override def deadline: Option[Deadline] = None
 
-    def unslice(): Memory.Function =
+    def cut(): Memory.Function =
       if (key.isOriginalFullSlice && function.isOriginalFullSlice && time.time.isOriginalFullSlice)
         this
       else
         Function(
-          key = key.unslice(),
-          function = function.unslice(),
-          time = time.unslice()
+          key = key.cut(),
+          function = function.cut(),
+          time = time.cut()
         )
 
     override def getOrFetchFunction: Slice[Byte] =
@@ -593,13 +593,13 @@ private[swaydb] object Memory {
 
     override lazy val value: SliceOption[Byte] = ValueSerializer.writeBytes(applies)
 
-    def unslice(): Memory.PendingApply =
-      if (key.isOriginalFullSlice && applies.forall(_.isUnsliced))
+    def cut(): Memory.PendingApply =
+      if (key.isOriginalFullSlice && applies.forall(_.isCut))
         this
       else
         PendingApply(
-          key = key.unslice(),
-          applies = applies.mapToSlice(_.unslice())
+          key = key.cut(),
+          applies = applies.mapToSlice(_.cut())
         )
 
     override val deadline =
@@ -646,14 +646,14 @@ private[swaydb] object Memory {
 
     override def value: SliceOption[Byte] = Slice.Null
 
-    override def unslice(): Memory.Remove =
+    override def cut(): Memory.Remove =
       if (key.isOriginalFullSlice && time.time.isOriginalFullSlice)
         this
       else
         Remove(
-          key = key.unslice(),
+          key = key.cut(),
           deadline = deadline,
-          time = time.unslice()
+          time = time.cut()
         )
 
     def hasTimeLeft(): Boolean =
@@ -718,15 +718,15 @@ private[swaydb] object Memory {
 
     def isRange: Boolean = true
 
-    override def unslice(): Memory.Range =
-      if (fromKey.isOriginalFullSlice && toKey.isOriginalFullSlice && fromValue.forallS(_.isUnsliced) && rangeValue.isUnsliced)
+    override def cut(): Memory.Range =
+      if (fromKey.isOriginalFullSlice && toKey.isOriginalFullSlice && fromValue.forallS(_.isCut) && rangeValue.isCut)
         this
       else
         Range(
-          fromKey = fromKey.unslice(),
-          toKey = toKey.unslice(),
-          fromValue = fromValue.flatMapS(_.unslice()),
-          rangeValue = rangeValue.unslice()
+          fromKey = fromKey.cut(),
+          toKey = toKey.cut(),
+          fromValue = fromValue.flatMapS(_.cut()),
+          rangeValue = rangeValue.cut()
         )
 
     override lazy val mergedKey: Slice[Byte] = Bytes.compressJoin(fromKey, toKey)
@@ -811,7 +811,7 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
    * This function is NOT thread-safe and is mutable. It should always be invoke at the time of creation
    * and before inserting into the Segment's cache.
    */
-  def unsliceKeys: Unit
+  def cutMutKeys: Unit
 }
 
 private[core] object Persistent {
@@ -975,9 +975,9 @@ private[core] object Persistent {
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
-    override def unsliceKeys(): Unit = {
-      _key = _key.unslice()
-      _time = _time.unslice()
+    override def cutMutKeys(): Unit = {
+      _key = _key.cut()
+      _time = _time.cut()
     }
 
     def hasTimeLeft(): Boolean =
@@ -1035,7 +1035,7 @@ private[core] object Persistent {
                 UnblockedReader.moveTo(offset, valuesReaderOrNull)
                   .copy()
                   .readFullBlockOrNone()
-                  .unsliceOption()
+                  .cutToSliceOption()
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1059,9 +1059,9 @@ private[core] object Persistent {
                  valueLength: Int,
                  sortedIndexAccessPosition: Int,
                  previousIndexOffset: Int) extends Persistent.Fixed with KeyValue.Put {
-    override def unsliceKeys: Unit = {
-      _key = _key.unslice()
-      _time = _time.unslice()
+    override def cutMutKeys: Unit = {
+      _key = _key.cut()
+      _time = _time.cut()
     }
 
     override def key: Slice[Byte] =
@@ -1142,7 +1142,7 @@ private[core] object Persistent {
                 UnblockedReader.moveTo(offset, valuesReaderOrNull)
                   .copy()
                   .readFullBlockOrNone()
-                  .unsliceOption()
+                  .cutToSliceOption()
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1166,9 +1166,9 @@ private[core] object Persistent {
                     valueLength: Int,
                     sortedIndexAccessPosition: Int,
                     previousIndexOffset: Int) extends Persistent.Fixed with KeyValue.Update {
-    override def unsliceKeys: Unit = {
-      _key = _key.unslice()
-      _time = _time.unslice()
+    override def cutMutKeys: Unit = {
+      _key = _key.cut()
+      _time = _time.cut()
     }
 
     override def key: Slice[Byte] =
@@ -1300,7 +1300,7 @@ private[core] object Persistent {
                 UnblockedReader.moveTo(offset, valuesReaderOrNull)
                   .copy()
                   .readFullBlock()
-                  .unslice()
+                  .cut()
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1323,9 +1323,9 @@ private[core] object Persistent {
                       valueLength: Int,
                       sortedIndexAccessPosition: Int,
                       previousIndexOffset: Int) extends Persistent.Fixed with KeyValue.Function {
-    override def unsliceKeys: Unit = {
-      _key = _key.unslice()
-      _time = _time.unslice()
+    override def cutMutKeys: Unit = {
+      _key = _key.cut()
+      _time = _time.cut()
     }
 
     override def key: Slice[Byte] =
@@ -1395,7 +1395,7 @@ private[core] object Persistent {
 
                 ValueSerializer
                   .read[Slice[Value.Apply]](bytes)
-                  .mapToSlice(_.unslice())
+                  .mapToSlice(_.cut())
               }
           },
         nextIndexOffset = nextIndexOffset,
@@ -1419,9 +1419,9 @@ private[core] object Persistent {
                           valueLength: Int,
                           sortedIndexAccessPosition: Int,
                           previousIndexOffset: Int) extends Persistent.Fixed with KeyValue.PendingApply {
-    override def unsliceKeys: Unit = {
-      _key = _key.unslice()
-      _time = _time.unslice()
+    override def cutMutKeys: Unit = {
+      _key = _key.cut()
+      _time = _time.cut()
     }
 
     override def key: Slice[Byte] =
@@ -1531,7 +1531,7 @@ private[core] object Persistent {
                 val (from, range) =
                   RangeValueSerializer.read(bytes)
 
-                (from.flatMapS(_.unslice()), range.unslice())
+                (from.flatMapS(_.cut()), range.cut())
               }
 
           },
@@ -1562,9 +1562,9 @@ private[core] object Persistent {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def unsliceKeys: Unit = {
-      this._fromKey = _fromKey.unslice()
-      this._toKey = _toKey.unslice()
+    override def cutMutKeys: Unit = {
+      this._fromKey = _fromKey.cut()
+      this._toKey = _toKey.cut()
     }
 
     override def key: Slice[Byte] =

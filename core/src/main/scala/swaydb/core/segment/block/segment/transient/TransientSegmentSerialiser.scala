@@ -235,8 +235,8 @@ object TransientSegmentSerialiser {
 
           SegmentRef(
             path = file.path.resolve(s"ref.$segmentOffset"),
-            minKey = range.fromKey.unslice(),
-            maxKey = MaxKey.Fixed(range.toKey.unslice()),
+            minKey = range.fromKey.cut(),
+            maxKey = MaxKey.Fixed(range.toKey.cut()),
             nearestPutDeadline = deadline,
             minMaxFunctionId = minMaxFunctionId,
             blockRef =
@@ -276,8 +276,8 @@ object TransientSegmentSerialiser {
 
           SegmentRef(
             path = file.path.resolve(s"ref.$segmentOffset"),
-            minKey = range.fromKey.unslice(),
-            maxKey = MaxKey.Range(maxKeyMinKey.unslice(), range.toKey.unslice()),
+            minKey = range.fromKey.cut(),
+            maxKey = MaxKey.Range(maxKeyMinKey.cut(), range.toKey.cut()),
             nearestPutDeadline = deadline,
             minMaxFunctionId = minMaxFunctionId,
             blockRef =
@@ -339,8 +339,8 @@ object TransientSegmentSerialiser {
 
       SegmentRef(
         path = file.path.resolve(s"ref.$segmentOffset"),
-        minKey = minKey.unslice(),
-        maxKey = MaxKey.Fixed(put.key.unslice()),
+        minKey = minKey.cut(),
+        maxKey = MaxKey.Fixed(put.key.cut()),
         nearestPutDeadline = put.deadline,
         minMaxFunctionId = minMaxFunctionId,
         blockRef =
@@ -380,8 +380,8 @@ object TransientSegmentSerialiser {
 
       SegmentRef(
         path = file.path.resolve(s"ref.$segmentOffset"),
-        minKey = put.key.unslice(),
-        maxKey = MaxKey.Range(maxKeyMinKey.unslice(), put.key.unslice()),
+        minKey = put.key.cut(),
+        maxKey = MaxKey.Range(maxKeyMinKey.cut(), put.key.cut()),
         nearestPutDeadline = put.deadline,
         minMaxFunctionId = minMaxFunctionId,
         blockRef =

@@ -75,7 +75,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
       slice2.toList should contain inOrderElementsOf List(array(1), array(2))
       slice2.underlyingArraySize shouldBe slice1.size
 
-      val slice2Copy = slice2.unslice()
+      val slice2Copy = slice2.cut()
       slice2Copy.allocatedSize shouldBe 2
       slice2Copy.size shouldBe 2
       slice2Copy.underlyingArraySize shouldBe 2
@@ -859,14 +859,14 @@ class SliceSpec extends AnyWordSpec with Matchers {
     Slice.empty == Slice.empty shouldBe true
   }
 
-  "toOptionUnsliced" in {
-    Slice.empty.toOptionUnsliced() shouldBe None
-    Slice.empty[Slice[Byte]].toOptionUnsliced() shouldBe None
-    Slice(1, 2, 3).take(0).toOptionUnsliced() shouldBe None
-    Slice(1, 2, 3).drop(3).toOptionUnsliced() shouldBe None
-    Slice(1, 2, 3).drop(1).toOptionUnsliced() shouldBe defined
-    Slice(1, 2, 3).drop(1).drop(1).toOptionUnsliced() shouldBe defined
-    Slice(1, 2, 3).drop(1).drop(1).drop(1).toOptionUnsliced() shouldBe None
+  "toOptionCut" in {
+    Slice.empty.toOptionCut() shouldBe None
+    Slice.empty[Slice[Byte]].toOptionCut() shouldBe None
+    Slice(1, 2, 3).take(0).toOptionCut() shouldBe None
+    Slice(1, 2, 3).drop(3).toOptionCut() shouldBe None
+    Slice(1, 2, 3).drop(1).toOptionCut() shouldBe defined
+    Slice(1, 2, 3).drop(1).drop(1).toOptionCut() shouldBe defined
+    Slice(1, 2, 3).drop(1).drop(1).drop(1).toOptionCut() shouldBe None
   }
 
   "toOption" in {

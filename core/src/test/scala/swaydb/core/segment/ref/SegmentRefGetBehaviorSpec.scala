@@ -148,7 +148,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
             Persistent.Remove(
               _key =
                 eitherOne(
-                  //tests that sorted keys are unsliced.
+                  //tests that sorted keys are cutd.
                   (key ++ Slice.fill[Byte](10)(randomByte())).dropRight(10),
                   (Slice.fill[Byte](10)(randomByte()) ++ key).drop(10)
                 ),

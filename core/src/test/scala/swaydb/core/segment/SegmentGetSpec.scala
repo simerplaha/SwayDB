@@ -165,7 +165,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
       }
     }
 
-    "add unsliced key-values to Segment's caches" in {
+    "add cutd key-values to Segment's caches" in {
       TestCaseSweeper {
         implicit sweeper =>
           TestSweeper.createMemorySweeperMax().value.sweep()
@@ -189,7 +189,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
                     gotFromCache match {
                       case range: KeyValue.Range =>
-                        //if it's a range, toKey should also be unsliced.
+                        //if it's a range, toKey should also be cutd.
                         range.toKey.underlyingArraySize shouldBe keyValues.find(_.key == range.fromKey).value.key.toArray.length
                       case _ =>
                         gotFromCache.getOrFetchValue.map(_.underlyingArraySize) shouldBe keyValue.getOrFetchValue.map(_.toArray.length)

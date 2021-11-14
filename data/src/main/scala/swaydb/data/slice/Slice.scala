@@ -35,15 +35,15 @@ import scala.util.hashing.MurmurHash3
 sealed trait SliceOption[@specialized(Byte) +T] extends SomeOrNoneCovariant[SliceOption[T], Slice[T]] {
   override def noneC: SliceOption[Nothing] = Slice.Null
 
-  def isUnslicedOption: Boolean
+  def isNullOrNonEmptyCut: Boolean
 
   def asSliceOption(): SliceOption[T]
 
-  def unsliceOption(): SliceOption[T] =
+  def cutToSliceOption(): SliceOption[T] =
     if (this.isNoneC || this.getC.isEmpty)
       Slice.Null
     else
-      this.getC.unslice()
+      this.getC.cut()
 }
 
 case object Slice extends SliceCompanion {
@@ -51,7 +51,7 @@ case object Slice extends SliceCompanion {
   final case object Null extends SliceOption[Nothing] {
     override val isNoneC: Boolean = true
     override def getC: Slice[Nothing] = throw new Exception(s"${Slice.productPrefix} is of type ${Slice.Null.productPrefix}")
-    override def isUnslicedOption: Boolean = true
+    override def isNullOrNonEmptyCut: Boolean = true
     override def asSliceOption(): SliceOption[Nothing] = this
   }
 
@@ -291,7 +291,7 @@ sealed trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T
   def isFull: Boolean =
     size == allocatedSize
 
-  def isUnslicedOption: Boolean =
+  def isNullOrNonEmptyCut: Boolean =
     nonEmpty && isOriginalFullSlice
 
   def asSliceOption(): SliceOption[T] =
@@ -624,11 +624,11 @@ sealed trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T
   def arrayLength =
     array.length
 
-  def unslice(): Self =
+  def cut(): Self =
     createNew(toArray)
 
-  def toOptionUnsliced(): Option[Slice[T]] = {
-    val slice = unslice()
+  def toOptionCut(): Option[Slice[T]] = {
+    val slice = cut()
     if (slice.isEmpty)
       None
     else

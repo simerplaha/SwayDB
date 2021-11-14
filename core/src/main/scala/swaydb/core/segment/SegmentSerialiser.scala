@@ -124,15 +124,15 @@ private[core] object SegmentSerialiser {
       val keyValueCount = reader.readUnsignedInt()
 
       val segmentPathLength = reader.readUnsignedInt()
-      val segmentPathBytes = reader.read(segmentPathLength).unslice()
+      val segmentPathBytes = reader.read(segmentPathLength).cut()
       val segmentPath = Paths.get(new String(segmentPathBytes.toArray[Byte], StandardCharsets.UTF_8))
       val createdInLevel = reader.readUnsignedInt()
       val segmentSize = reader.readUnsignedInt()
       val minKeyLength = reader.readUnsignedInt()
-      val minKey = reader.read(minKeyLength).unslice()
+      val minKey = reader.read(minKeyLength).cut()
       val maxKeyId = reader.readUnsignedInt()
       val maxKeyLength = reader.readUnsignedInt()
-      val maxKeyBytes = reader.read(maxKeyLength).unslice()
+      val maxKeyBytes = reader.read(maxKeyLength).cut()
 
       val maxKey =
         if (maxKeyId == 1) {

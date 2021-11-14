@@ -115,7 +115,7 @@ class SegmentBlockSpec extends TestBase {
                 .flattenSegmentBytes
 
             //in memory
-            assertReads(keyValues.toSlice, Reader(segmentBytes.unslice()))
+            assertReads(keyValues.toSlice, Reader(segmentBytes.cut()))
             //on disk
             assertReads(keyValues.toSlice, createRandomFileReader(segmentBytes))
         }

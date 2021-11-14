@@ -2050,12 +2050,12 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           //all returned segments contain all the KeyValues ???
           //      segments should have size 5
-          //      segments(0).getAll().value shouldBe keyValues1.slice(0, 1).unslice()
-          //      segments(1).getAll().value shouldBe keyValues1.slice(2, 3).unslice()
-          //      segments(2).getAll().value shouldBe keyValues1.slice(4, 5).unslice()
-          //      segments(3).getAll().value shouldBe keyValues2.slice(0, 1).unslice()
-          //      segments(4).getAll().value shouldBe keyValues2.slice(2, 3).unslice()
-          //      segments(5).getAll().value shouldBe keyValues2.slice(4, 5).unslice()
+          //      segments(0).getAll().value shouldBe keyValues1.slice(0, 1).cut()
+          //      segments(1).getAll().value shouldBe keyValues1.slice(2, 3).cut()
+          //      segments(2).getAll().value shouldBe keyValues1.slice(4, 5).cut()
+          //      segments(3).getAll().value shouldBe keyValues2.slice(0, 1).cut()
+          //      segments(4).getAll().value shouldBe keyValues2.slice(2, 3).cut()
+          //      segments(5).getAll().value shouldBe keyValues2.slice(4, 5).cut()
 
           //all the paths are used to write Segments
           segments(0).path.getParent shouldBe dirs(0).path

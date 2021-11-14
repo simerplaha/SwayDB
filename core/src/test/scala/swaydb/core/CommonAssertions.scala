@@ -106,7 +106,7 @@ object CommonAssertions {
       val actualMemory = actual.toMemory()
       val expectedMemory = expected.toMemory()
 
-      actualMemory should be(expectedMemory.unslice())
+      actualMemory should be(expectedMemory.cut())
     }
 
     def getOrFetchValue: Option[Slice[Byte]] =
@@ -145,7 +145,7 @@ object CommonAssertions {
             case keyValue: Persistent.PendingApply =>
               val applies = keyValue.getOrFetchApplies.runRandomIO.right.value
 
-              applies.forall(_.isUnsliced) shouldBe true
+              applies.forall(_.isCut) shouldBe true
 
               val bytes = Slice.of[Byte](ValueSerializer.bytesRequired(applies))
               ValueSerializer.write(applies)(bytes)
@@ -156,8 +156,8 @@ object CommonAssertions {
 
             case range: Persistent.Range =>
               val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe.runRandomIO.right.value
-              fromValue.forallS(_.isUnsliced) shouldBe true
-              rangeValue.isUnsliced shouldBe true
+              fromValue.forallS(_.isCut) shouldBe true
+              rangeValue.isCut shouldBe true
 
               val bytes = Slice.of[Byte](RangeValueSerializer.bytesRequired(fromValue, rangeValue))
               RangeValueSerializer.write(fromValue, rangeValue)(bytes)

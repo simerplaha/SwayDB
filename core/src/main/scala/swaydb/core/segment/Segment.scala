@@ -115,7 +115,7 @@ private[core] case object Segment extends LazyLogging {
       }
 
       def put(keyValue: Memory): Unit =
-        keyValue.unslice() match {
+        keyValue.cut() match {
           case keyValue: Memory.Put =>
             putCount += 1
             if (keyValue.deadline.isDefined) putDeadlineCount += 1
@@ -160,19 +160,19 @@ private[core] case object Segment extends LazyLogging {
         val path = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
 
         //Note: Memory key-values can be received from Persistent Segments in which case it's important that
-        //all byte arrays are unsliced before writing them to Memory Segment.
+        //all byte arrays are cutd before writing them to Memory Segment.
 
         val segment =
           MemorySegment(
             path = path,
-            minKey = minKey.unslice(),
+            minKey = minKey.cut(),
             maxKey =
               lastKeyValue match {
                 case range: Memory.Range =>
-                  MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+                  MaxKey.Range(range.fromKey.cut(), range.toKey.cut())
 
                 case keyValue: Memory.Fixed =>
-                  MaxKey.Fixed(keyValue.key.unslice())
+                  MaxKey.Fixed(keyValue.key.cut())
               },
             minMaxFunctionId = minMaxFunctionId,
             segmentSize = currentSegmentSize,
