@@ -21,10 +21,10 @@ import swaydb.ActorConfig.QueueOrder
 import swaydb.Bag.Implicits._
 import swaydb.Error.IO.ExceptionHandler
 import swaydb._
+import swaydb.cache.{Cache, CacheNoIO}
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.sweeper.ByteBufferCleaner.Cleaner
 import swaydb.core.util.English
-import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.config.ForceSave
 import swaydb.effect.Effect
 import swaydb.utils.FiniteDurations.FiniteDurationImplicits

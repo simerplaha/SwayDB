@@ -16,6 +16,7 @@
 
 package swaydb.core.data
 
+import swaydb.cache.{Cache, CacheNoIO}
 import swaydb.core.log.serializer.RangeValueSerializer.OptionRangeValueSerializer
 import swaydb.core.log.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.segment.assigner.Assignable
@@ -24,7 +25,6 @@ import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.ref.search.KeyMatcher
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
-import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.utils.{SomeOrNone, SomeOrNoneCovariant, TupleOrNone}

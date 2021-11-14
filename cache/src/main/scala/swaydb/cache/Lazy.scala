@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.data.cache
+package swaydb.cache
 
 import swaydb.IO
 

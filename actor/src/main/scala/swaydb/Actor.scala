@@ -19,7 +19,7 @@ package swaydb
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorConfig.QueueOrder
 import swaydb.Bag.Implicits._
-import swaydb.data.cache.{Cache, CacheNoIO}
+import swaydb.cache.{Cache, CacheNoIO}
 import swaydb.effect.Reserve
 import swaydb.utils.{AtomicThreadLocalBoolean, FunctionSafe, Options}
 

@@ -21,6 +21,7 @@ import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IOValues._
+import swaydb.cache.Cache
 import swaydb.compression.CompressionInternal
 import swaydb.compression.CompressionTestGen._
 import swaydb.core.CommonAssertions._
@@ -61,7 +62,6 @@ import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.{AtomicRanges, IDGenerator}
 import swaydb.data.accelerate.Accelerator
-import swaydb.data.cache.Cache
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.{LevelMeter, LevelThrottle}
 import swaydb.data.config._

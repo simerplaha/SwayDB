@@ -19,6 +19,7 @@ package swaydb.core.segment
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
+import swaydb.cache.{Cache, CacheNoIO}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
@@ -45,7 +46,6 @@ import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey
-import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}

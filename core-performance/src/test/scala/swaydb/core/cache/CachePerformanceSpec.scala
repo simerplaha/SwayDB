@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package swaydb.data.cache
+package swaydb.core.cache
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
+import swaydb.cache.Cache
 import swaydb.core.CommonAssertions._
 import swaydb.core.util.Benchmark
 import swaydb.effect.Reserve

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.data.cache
+package swaydb.cache
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
