@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.cache.Cache
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.HashedMap
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.{Slice, SliceOption, SliceRO, Slices}
 import swaydb.utils.Options
 
 import java.util.concurrent.ConcurrentHashMap
@@ -131,38 +131,44 @@ private[core] object BlockCache extends LazyLogging {
   @tailrec
   private def getOrSeek(position: Int,
                         size: Int,
-                        headBytes: Slice[Byte],
+                        headBytes: SliceRO[Byte],
                         source: BlockCacheSource,
                         state: BlockCacheState,
-                        blockCacheIO: BlockCacheIO): Slice[Byte] = {
+                        blockCacheIO: BlockCacheIO): SliceRO[Byte] = {
     val keyPosition = seekPosition(position, state)
     state.mapCache.value(()).get(keyPosition) match {
       case fromCache: Slice[Byte] =>
         //        println(s"Memory seek size: $size")
         //        memorySeeks += 1
-        val seekedBytes = fromCache.take(position - keyPosition, size)
+        val gotFromCache = fromCache.take(position - keyPosition, size)
 
         val mergedBytes =
           if (headBytes == null)
-            seekedBytes
-          else
-            headBytes ++ seekedBytes
+            gotFromCache
+          else //head bytes exist. Merge headBytes and bytes from cache into Slices
+            headBytes match {
+              case headBytes: Slice[Byte] =>
+                Slices(Array(headBytes, gotFromCache))
 
-        if (seekedBytes.isEmpty || seekedBytes.size == size)
-          mergedBytes
+              case Slices(headBytes) =>
+                Slices(headBytes :+ gotFromCache)
+            }
+
+        if (gotFromCache.isEmpty || gotFromCache.size == size)
+          mergedBytes //got enough data to satisfy this request!
         else
-          getOrSeek(
-            position = position + seekedBytes.size,
-            size = size - seekedBytes.size,
+          getOrSeek( //not enough. Keep reading!
+            position = position + gotFromCache.size,
+            size = size - gotFromCache.size,
             headBytes = mergedBytes,
             source = source,
             state = state,
             blockCacheIO = blockCacheIO
           )
 
-      case Slice.Null =>
+      case Slice.Null => //not found in cache, go to disk.
         //        println(s"Disk seek size: $size")
-        val seekedBytes =
+        val diskBytes = //read from disk
           blockCacheIO.seek(
             keyPosition = keyPosition,
             size = position - keyPosition + size,
@@ -170,15 +176,31 @@ private[core] object BlockCache extends LazyLogging {
             state = state
           )
 
-        val seekedBytesCut = seekedBytes.cut() //TODO - remove the use of cut. Slices needs more APIs for this to work
-
-        val bytesToReturn =
-          seekedBytesCut.take(position - keyPosition, size)
+        val gotFromDisk = //take enough bytes to satisfy this read request.
+          diskBytes.take(position - keyPosition, size)
 
         if (headBytes == null)
-          bytesToReturn
+          gotFromDisk // head bytes are empty. Returns disk read bytes.
         else
-          headBytes ++ bytesToReturn
+          headBytes match { //head bytes exist so merge with disk read bytes and return.
+            case headBytes: Slice[Byte] =>
+              gotFromDisk match {
+                case tailBytes: Slice[Byte] =>
+                  Slices(Array(headBytes, tailBytes))
+
+                case Slices(tailBytes) =>
+                  Slices(headBytes +: tailBytes)
+              }
+
+            case Slices(headBytes) =>
+              gotFromDisk match {
+                case tailBytes: Slice[Byte] =>
+                  Slices(headBytes :+ tailBytes)
+
+                case Slices(tailBytes) =>
+                  Slices(headBytes ++ tailBytes)
+              }
+          }
     }
   }
 
@@ -200,5 +222,5 @@ private[core] object BlockCache extends LazyLogging {
         source = source,
         state = state,
         blockCacheIO = blockCacheIO
-      )
+      ).cut() //TODO - remove CUT and make this function return SliceRO
 }

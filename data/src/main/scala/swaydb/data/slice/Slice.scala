@@ -246,13 +246,15 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
  *
  * This can either be [[Slice]] or [[Slices]].
  */
-sealed trait SliceRO[@specialized(Byte) +A] extends Iterable[A] {
+sealed trait SliceRO[+A] extends Iterable[A] {
 
   def get(index: Int): A
 
   private[swaydb] def getUnchecked_Unsafe(index: Int): A
 
   def cut(): Slice[A]
+
+  def take(fromIndex: Int, count: Int): SliceRO[A]
 
   def createReader[B >: A]()(implicit byteOps: ByteOps[B]): SliceReader[B]
 
@@ -1122,7 +1124,7 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
  *    - Head slices are always of equal size except the last slice.
  *    - Slices cannot be empty
  */
-case class Slices[@specialized(Byte) A: ClassTag](slices: Array[Slice[A]]) extends SliceRO[A] {
+case class Slices[A: ClassTag](slices: Array[Slice[A]]) extends SliceRO[A] {
 
   val blockSize: Int =
     slices.head.size
@@ -1144,6 +1146,33 @@ case class Slices[@specialized(Byte) A: ClassTag](slices: Array[Slice[A]]) exten
     else
     //slice(slot)(slotIndex)
       slices(index / blockSize).getUnchecked_Unsafe(index % blockSize)
+
+  override def take(n: Int): SliceRO[A] =
+    take(fromIndex = 0, count = n)
+
+  /**
+   * Performs take without copying array elements.
+   */
+  override def take(fromIndex: Int, count: Int): SliceRO[A] = {
+    var slot = fromIndex / blockSize //starting slot
+    var slotIndex = fromIndex % blockSize //starting slot's index
+
+    val buffer = ListBuffer.empty[Slice[A]] //collect slices in a buffer
+    var taken = 0
+    while (taken < count && slot < slices.length) {
+      //fetch slice required
+      val slotSlice = slices(slot).drop(slotIndex).take(count - taken)
+      buffer += slotSlice
+      taken += slotSlice.size
+      slot += 1 //move to next slot
+      slotIndex = 0 //set the next slot's index to be 0
+    }
+
+    if (buffer.length == 1)
+      buffer.head
+    else
+      Slices(buffer.toArray)
+  }
 
   override def cut(): Slice[A] =
     if (slices.length == 1)
