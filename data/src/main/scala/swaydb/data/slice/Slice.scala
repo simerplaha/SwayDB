@@ -238,6 +238,10 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
 
 }
 
+sealed trait SliceRO[@specialized(Byte) +T] extends Iterable[T] {
+  def cut(): Slice[T]
+}
+
 /**
  * Immutable Slice. Can be casted to mutable with [[asMut]]
  *
@@ -245,7 +249,7 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
  *
  * [[Slice]] is used extensively by all modules including core so it's performance is critical.
  */
-sealed trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T] { self =>
+sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T] { self =>
 
   type Self <: Slice[T]@uncheckedVariance
 
@@ -294,7 +298,7 @@ sealed trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T
   def isNullOrNonEmptyCut: Boolean =
     nonEmpty && isOriginalFullSlice
 
-  def asSliceOption(): SliceOption[T] =
+  override def asSliceOption(): SliceOption[T] =
     if (isEmpty)
       Slice.Null
     else
@@ -1030,5 +1034,24 @@ sealed trait Slice[@specialized(Byte) +T] extends Iterable[T] with SliceOption[T
     }
     MurmurHash3.finalizeHash(seed, size)
   }
+
+}
+
+case class Slices[@specialized(Byte) A: ClassTag](slices: Array[Slice[A]]) extends SliceRO[A] {
+
+  override def cut(): Slice[A] =
+    Slice.from(slices)
+
+  override def isEmpty: Boolean =
+    slices.forall(_.isEmpty)
+
+  override def nonEmpty: Boolean =
+    !isEmpty
+
+  override def size: Int =
+    slices.foldLeft(0)(_ + _.size)
+
+  override def iterator: Iterator[A] =
+    slices.iterator.flatMap(_.iterator)
 
 }
