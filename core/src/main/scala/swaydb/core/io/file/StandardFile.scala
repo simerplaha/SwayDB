@@ -23,7 +23,7 @@ import swaydb.data.slice.{Slice, SliceRO, Slices}
 import swaydb.effect.Effect
 
 import java.nio.ByteBuffer
-import java.nio.channels.{FileChannel, WritableByteChannel}
+import java.nio.channels.{FileChannel, GatheringByteChannel}
 import java.nio.file.{Path, StandardOpenOption}
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -68,7 +68,7 @@ private[file] class StandardFile(val path: Path,
       new AtomicBoolean(mode == StandardOpenOption.READ)
   }
 
-  override private[file] def writeableChannel: WritableByteChannel =
+  override private[file] def writeableChannel: GatheringByteChannel =
     channel
 
   def close(): Unit = {
@@ -79,8 +79,18 @@ private[file] class StandardFile(val path: Path,
   def append(slice: Slice[Byte]): Unit =
     Effect.writeUnclosed(channel, slice.toByteBufferWrap)
 
-  def append(slice: Iterable[Slice[Byte]]): Unit =
-    Effect.writeUnclosed(channel, slice.iterator.map(_.toByteBufferWrap))
+  def append(slice: Array[Slice[Byte]]): Unit = {
+    var totalBytes = 0
+
+    val buffers =
+      slice map {
+        slice =>
+          totalBytes += slice.size
+          slice.toByteBufferWrap
+      }
+
+    Effect.writeUnclosedGathering(channel, totalBytes, buffers)
+  }
 
   override def transfer(position: Int, count: Int, transferTo: DBFileType): Int =
     transferTo match {

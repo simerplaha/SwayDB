@@ -61,7 +61,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows,
               forceSave = TestForceSave.mmap(),
-              bytes = Slice(randomBytesSlice())
+              bytes = Array(randomBytesSlice())
             )
 
           val innerFile = file.file.asInstanceOf[MMAPFile]

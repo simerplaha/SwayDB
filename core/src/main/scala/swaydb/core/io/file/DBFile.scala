@@ -162,7 +162,7 @@ object DBFile extends LazyLogging {
                        autoClose: Boolean,
                        deleteAfterClean: Boolean,
                        forceSave: ForceSave.MMAPFiles,
-                       bytes: Iterable[Slice[Byte]])(implicit fileSweeper: FileSweeper,
+                       bytes: Array[Slice[Byte]])(implicit fileSweeper: FileSweeper,
                                                      bufferCleaner: ByteBufferSweeperActor,
                                                      forceSaveApplier: ForceSaveApplier): DBFile = {
     val totalWritten =
@@ -370,7 +370,7 @@ class DBFile(val path: Path,
   def append(slice: Slice[Byte]) =
     fileCache.value(()).get.append(slice)
 
-  def append(slice: Iterable[Slice[Byte]]) =
+  def append(slice: Array[Slice[Byte]]) =
     fileCache.value(()).get.append(slice)
 
   def read(position: Int,

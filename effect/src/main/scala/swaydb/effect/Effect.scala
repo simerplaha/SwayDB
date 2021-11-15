@@ -21,7 +21,7 @@ import swaydb.IO
 
 import java.io.IOException
 import java.nio.ByteBuffer
-import java.nio.channels.{FileChannel, WritableByteChannel}
+import java.nio.channels.{FileChannel, GatheringByteChannel, WritableByteChannel}
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import java.util
@@ -108,16 +108,40 @@ private[swaydb] object Effect extends LazyLogging {
     }
 
   def writeUnclosed(channel: WritableByteChannel,
-                    bytes: ByteBuffer): Unit = {
-    val byteSize = bytes.remaining() - bytes.arrayOffset()
+                    buffer: ByteBuffer): Unit = {
+    val byteSize = buffer.remaining() - buffer.arrayOffset()
 
-    val written = channel write bytes
+    val written = channel write buffer
 
     // toByteBuffer uses size of Slice instead of written,
     // but here the check on written ensures that only the actually written bytes find written.
     // All the client code invoking writes to Disk using Slice should ensure that no Slice contains empty bytes.
     if (written != byteSize)
       throw swaydb.Exception.FailedToWriteAllBytes(written, byteSize, byteSize)
+  }
+
+  /**
+   * Batch write all [[ByteBuffer]] to disk.
+   *
+   * @param channel            Writable [[FileChannel]]
+   * @param totalExpectedBytes Expected byte count. Invoker should compute this
+   *                           at the time of building the [[ByteBuffer]] array.
+   *                           This should really be handled by this function but
+   *                           this module is not dependant on swaydb.data.Slice yet.
+   * @param buffers            Byte buffers to persist.
+   */
+  def writeUnclosedGathering(channel: GatheringByteChannel,
+                             totalExpectedBytes: Int,
+                             buffers: Array[ByteBuffer]): Unit = {
+    //totalByteCount cannot be long or negative
+    require(totalExpectedBytes > 0 && totalExpectedBytes <= Int.MaxValue, s"totalByteCount: $totalExpectedBytes is not a valid Int value.")
+
+    val written = channel write buffers
+    // toByteBuffer uses size of Slice instead of written,
+    // but here the check on written ensures that only the actually written bytes find written.
+    // All the client code invoking writes to Disk using Slice should ensure that no Slice contains empty bytes.
+    if (written != totalExpectedBytes)
+      throw swaydb.Exception.FailedToWriteAllBytes(written.toInt, totalExpectedBytes, totalExpectedBytes)
   }
 
   def transfer(position: Int, count: Int, from: FileChannel, transferTo: WritableByteChannel): Int = {

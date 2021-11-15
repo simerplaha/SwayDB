@@ -170,7 +170,7 @@ private[file] class MMAPFile(val path: Path,
         )
     }
 
-  override def append(slice: Iterable[Slice[Byte]]): Unit =
+  override def append(slice: Array[Slice[Byte]]): Unit =
     slice foreach append
 
   @tailrec

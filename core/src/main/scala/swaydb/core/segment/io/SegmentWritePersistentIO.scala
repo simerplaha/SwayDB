@@ -118,7 +118,8 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                       byteTransferer =
                         file => {
                           file.append(segment.fileHeader)
-                          file.append(segment.bodyBytes)
+                          //toArray is not expensive. bodyBytes is a very small number < 12
+                          file.append(segment.bodyBytes.toArray)
                         }
                     )
 
@@ -170,7 +171,8 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                       byteTransferer =
                         file => {
                           file.append(segment.fileHeader)
-                          file.append(segment.listSegment.bodyBytes)
+                          //toArray is not expensive. bodyBytes is a very small number < 12
+                          file.append(segment.listSegment.bodyBytes.toArray)
 
                           writeOrTransfer(
                             segments = segment.segments,
@@ -240,7 +242,8 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
 
             case nextOne: TransientSegment.One =>
               batchTransfer(batchableRemotes)
-              target.append(nextOne.bodyBytes)
+              //toArray is not expensive. bodyBytes is a very small number < 12
+              target.append(nextOne.bodyBytes.toArray)
               batchableRemotes
           }
       }
