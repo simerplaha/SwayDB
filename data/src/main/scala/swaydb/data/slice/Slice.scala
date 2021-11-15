@@ -32,6 +32,12 @@ import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
 
+/**
+ * Provides base implementation for [[Slice]] to be used as Option.
+ *
+ * Slice is used heavily by core and every other API so we cannot use
+ * `Option[Slice[T]]` as it increases memory allocations.
+ */
 sealed trait SliceOption[@specialized(Byte) +T] extends SomeOrNoneCovariant[SliceOption[T], Slice[T]] {
   override def noneC: SliceOption[Nothing] = Slice.Null
 
@@ -58,7 +64,7 @@ case object Slice extends SliceCompanion {
 }
 
 /**
- * Mutable slice.
+ * Mutable slice. This instance implements APIs that can mutate the internal [[array]].
  *
  * [[Slice]] allows managing a large [[Array]] without copying it's values unless needed.
  *
@@ -248,10 +254,20 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
  */
 sealed trait SliceRO[+A] extends Iterable[A] {
 
+  /**
+   * Get element at index after doing bound checks.
+   */
   def get(index: Int): A
 
+  /**
+   * Get element at index without doing bound checks.
+   */
   private[swaydb] def getUnchecked_Unsafe(index: Int): A
 
+  /**
+   * Returns this [[Slice]] if this [[Slice]] is not a sub-slice
+   * else copies the content of this [[Slice]] into a new slice.
+   */
   def cut(): Slice[A]
 
   def take(fromIndex: Int, count: Int): SliceRO[A]
@@ -461,6 +477,9 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
     }
   }
 
+  /**
+   * Extends the [[toOffset]] of the underlying [[array]]'s last index.
+   */
   private[swaydb] def openEnd(): This =
     self.createNew(
       array = array,
@@ -1118,11 +1137,23 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
 }
 
 /**
- * Stores a sequence of slices fetched from cache or from disk seek.
  *
- * Pre-Conditions:
- *    - Head slices are always of equal size except the last slice.
- *    - Slices cannot be empty
+ * Stores multiple slices and implements some functions to
+ * provide similar functionality as [[Slice]].
+ *
+ * This type is mainly used by BlockCache which stores byte arrays
+ * in the configured block-size via <a href="https://swaydb.io/configuration/memoryCache/?language=java">minIOSeekSize</a>.
+ *
+ * When a read is submitted to BlockCache which is greater than the configured `minIOSeekSize`
+ * we do not want to copy byte arrays to form a single [[Slice]] but use [[Slices]] which can
+ * hold multiple slices while still behaving like a single [[Slice]].
+ *
+ * [[cut]] can be used to convert this type to [[Slice]].
+ *
+ * Pre-Conditions: These checks are assumed and are not validated by this instance.
+ *    - Head slices are always of equal size except the last slice which can be <= head slice.
+ *    - [[slices]] cannot be empty.
+ *
  */
 case class Slices[A: ClassTag](slices: Array[Slice[A]]) extends SliceRO[A] {
 

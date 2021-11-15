@@ -46,19 +46,19 @@ trait SliceCompanion extends SliceBuildFrom {
     of[T](0)
 
   final def range(from: Int, to: Int): Slice[Int] = {
-    val slice = of[Int](to - from + 1).asMut()
+    val slice = of[Int](to - from + 1)
     (from to to) foreach slice.add
     slice
   }
 
   final def range(from: Char, to: Char): Slice[Char] = {
-    val slice = of[Char](26).asMut()
+    val slice = of[Char](26)
     (from to to) foreach slice.add
     slice.close()
   }
 
   final def range(from: Byte, to: Byte): Slice[Byte] = {
-    val slice = of[Byte](to - from + 1).asMut()
+    val slice = of[Byte](to - from + 1)
 
     (from to to) foreach {
       i =>
