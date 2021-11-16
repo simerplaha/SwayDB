@@ -56,7 +56,7 @@ private[skiplist] case object KeyValue {
 
 private[core] object SkipListSeries {
 
-  def randomWriteWarning(count: Int) =
+  def randomWriteWarning(count: Long): String =
     s"Performance warning! Random write inserted $count ${English.plural(count, "time")}. " +
       s"${OptimiseWrites.productPrefix}.${classOf[OptimiseWrites.SequentialOrder].getSimpleName} is not optimised for random writes. " +
       s"Consider using ${OptimiseWrites.productPrefix}.${classOf[OptimiseWrites.RandomOrder].getSimpleName}."

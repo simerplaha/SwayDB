@@ -747,7 +747,7 @@ object IO {
      */
     private def runSync[B >: A, BAG[_]](tried: Int)(implicit bag: Bag.Sync[BAG]): BAG[B] = {
 
-      def blockIfNeeded(deferred: IO.Defer[E, B]): Unit =
+      @inline def blockIfNeeded(deferred: IO.Defer[E, B]): Unit =
         deferred.error foreach {
           error =>
             ExceptionHandler.recover(error) foreach {
@@ -793,7 +793,7 @@ object IO {
        * If the value is already fetched [[isPending]] run in current thread
        * else return a T that listens for the value to be complete.
        */
-      def delayedRun(deferred: IO.Defer[E, B]): Option[BAG[Unit]] =
+      @inline def delayedRun(deferred: IO.Defer[E, B]): Option[BAG[Unit]] =
         deferred.error flatMap {
           error =>
             ExceptionHandler.recover(error) flatMap {
@@ -806,16 +806,16 @@ object IO {
             }
         }
 
-      def runDelayed(deferred: IO.Defer[E, B],
-                     tried: Int,
-                     async: BAG[Unit]): BAG[B] =
+      @inline def runDelayed(deferred: IO.Defer[E, B],
+                             tried: Int,
+                             async: BAG[Unit]): BAG[B] =
         bag.flatMap(async) {
           _ =>
             runNow(deferred, tried)
         }
 
       //TO-DO moved Options.scala to data package.
-      def when[X](condition: Boolean)(success: => Option[X]): Option[X] =
+      @inline def when[X](condition: Boolean)(success: => Option[X]): Option[X] =
         if (condition)
           success
         else

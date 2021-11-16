@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 object WhenOccurs {
 
-  @inline def apply(mod: Int)(f: Int => Unit): WhenOccurs =
+  @inline def apply(mod: Long)(f: Long => Unit): WhenOccurs =
     new WhenOccurs(mod)(f)
 
 }
@@ -28,7 +28,7 @@ object WhenOccurs {
 /**
  * Run something if it's occurs [[interval]] number of times.
  */
-class WhenOccurs(interval: Int)(f: Int => Unit) extends LazyLogging {
+class WhenOccurs(interval: Long)(f: Long => Unit) extends LazyLogging {
 
   @volatile private var count = 0
 
