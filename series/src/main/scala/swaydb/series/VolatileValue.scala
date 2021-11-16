@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.series
+package swaydb.series
 
-private[swaydb] trait Series[T] extends Iterable[T] {
-  def getOrNull(index: Int): T
-  def set(index: Int, item: T): Unit
-  def length: Int
-  def isConcurrent: Boolean
-}
+final private class VolatileValue[T](@volatile var value: T)

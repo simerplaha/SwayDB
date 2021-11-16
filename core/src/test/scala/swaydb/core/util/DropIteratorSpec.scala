@@ -26,6 +26,7 @@ import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.utils.DropIterator
 
 class DropIteratorSpec extends AnyWordSpec with Matchers {
 

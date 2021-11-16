@@ -14,37 +14,35 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.series
+package swaydb.series
 
-import java.util.concurrent.atomic.AtomicReferenceArray
+object SeriesVolatile {
 
-object SeriesAtomic {
-
-  def apply[T](limit: Int): SeriesAtomic[T] =
-    new SeriesAtomic[T](new AtomicReferenceArray[T](limit))
+  def apply[T >: Null](limit: Int): SeriesVolatile[T] =
+    new SeriesVolatile[T](Array.fill[VolatileValue[T]](limit)(new VolatileValue[T](null)))
 
 }
 
-class SeriesAtomic[T](array: AtomicReferenceArray[T]) extends Series[T] {
+class SeriesVolatile[T >: Null](array: Array[VolatileValue[T]]) extends Series[T] {
   override def getOrNull(index: Int): T =
-    array.get(index)
+    array(index).value
 
   def set(index: Int, item: T): Unit =
-    array.set(index, item)
+    array(index).value = item
 
   override def length: Int =
-    array.length()
+    array.length
+
+  def lastOrNull: T =
+    array(array.length - 1).value
+
+  def headOrNull: T =
+    array(0).value
 
   override def iterator: Iterator[T] =
-    new Iterator[T] {
-      val innerIterator = (0 until array.length()).iterator
-
-      override def hasNext: Boolean =
-        innerIterator.hasNext
-
-      override def next(): T =
-        array.get(innerIterator.next())
-    }
+    array
+      .iterator
+      .map(_.value)
 
   override def isConcurrent: Boolean =
     true

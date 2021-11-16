@@ -60,7 +60,7 @@ import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.util.{AtomicRanges, IDGenerator}
+import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.{LevelMeter, LevelThrottle}
@@ -72,6 +72,7 @@ import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
 import swaydb.effect.{Dir, IOAction, IOStrategy}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.skiplist.AtomicRanges
 import swaydb.testkit.RunThis.FutureImplicits
 import swaydb.utils.StorageUnits._
 import swaydb.utils.{FiniteDurations, OperatingSystem}

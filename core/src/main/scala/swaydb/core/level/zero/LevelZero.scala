@@ -38,7 +38,7 @@ import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.FileSweeper
 import swaydb.skiplist.SkipList
-import swaydb.core.util.{DropIterator, MinMax}
+import swaydb.core.util.MinMax
 import swaydb.core.{CoreState, MemoryPathGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, LevelZeroThrottle}
@@ -48,7 +48,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.effect.{Effect, FileLocker}
-import swaydb.utils.Options
+import swaydb.utils.{DropIterator, Options}
 import swaydb.{Bag, Error, Glass, IO, OK}
 
 import java.nio.channels.FileChannel

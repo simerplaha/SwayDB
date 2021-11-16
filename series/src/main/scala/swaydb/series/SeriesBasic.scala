@@ -14,36 +14,29 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.series
+package swaydb.series
 
-object SeriesVolatile {
+import scala.reflect.ClassTag
 
-  def apply[T >: Null](limit: Int): SeriesVolatile[T] =
-    new SeriesVolatile[T](Array.fill[VolatileValue[T]](limit)(new VolatileValue[T](null)))
-
+object SeriesBasic {
+  def apply[T: ClassTag](limit: Int): SeriesBasic[T] =
+    new SeriesBasic[T](new Array[T](limit))
 }
 
-class SeriesVolatile[T >: Null](array: Array[VolatileValue[T]]) extends Series[T] {
+class SeriesBasic[T](array: Array[T]) extends Series[T] {
+
   override def getOrNull(index: Int): T =
-    array(index).value
+    array(index)
 
   def set(index: Int, item: T): Unit =
-    array(index).value = item
+    array(index) = item
 
   override def length: Int =
     array.length
 
-  def lastOrNull: T =
-    array(array.length - 1).value
-
-  def headOrNull: T =
-    array(0).value
-
   override def iterator: Iterator[T] =
-    array
-      .iterator
-      .map(_.value)
+    array.iterator
 
   override def isConcurrent: Boolean =
-    true
+    false
 }

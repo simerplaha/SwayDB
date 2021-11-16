@@ -14,29 +14,38 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.series
+package swaydb.series
 
-import scala.reflect.ClassTag
+import java.util.concurrent.atomic.AtomicReferenceArray
 
-object SeriesBasic {
-  def apply[T: ClassTag](limit: Int): SeriesBasic[T] =
-    new SeriesBasic[T](new Array[T](limit))
+object SeriesAtomic {
+
+  def apply[T](limit: Int): SeriesAtomic[T] =
+    new SeriesAtomic[T](new AtomicReferenceArray[T](limit))
+
 }
 
-class SeriesBasic[T](array: Array[T]) extends Series[T] {
-
+class SeriesAtomic[T](array: AtomicReferenceArray[T]) extends Series[T] {
   override def getOrNull(index: Int): T =
-    array(index)
+    array.get(index)
 
   def set(index: Int, item: T): Unit =
-    array(index) = item
+    array.set(index, item)
 
   override def length: Int =
-    array.length
+    array.length()
 
   override def iterator: Iterator[T] =
-    array.iterator
+    new Iterator[T] {
+      val innerIterator = (0 until array.length()).iterator
+
+      override def hasNext: Boolean =
+        innerIterator.hasNext
+
+      override def next(): T =
+        array.get(innerIterator.next())
+    }
 
   override def isConcurrent: Boolean =
-    false
+    true
 }

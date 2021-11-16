@@ -14,25 +14,11 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.series.appendable
+package swaydb.series
 
-trait SeriesAppendable[T >: Null] {
-
-  def get(index: Int): T
-
-  def add(item: T): Unit
-
+private[swaydb] trait Series[T] extends Iterable[T] {
+  def getOrNull(index: Int): T
+  def set(index: Int, item: T): Unit
   def length: Int
-
-  def innerArrayLength: Int
-
-  def lastOrNull: T
-
-  def isFull: Boolean
-
-  def headOrNull: T
-
-  def iterator: Iterator[T]
-
-  def iterator(from: Int): Iterator[T]
+  def isConcurrent: Boolean
 }

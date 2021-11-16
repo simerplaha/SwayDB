@@ -106,7 +106,7 @@ private[swaydb] case object AtomicRanges extends LazyLogging {
 
   case class Key[K](fromKey: K, toKey: K, toKeyInclusive: Boolean, action: Action)
 
-  private[skiplist] class Value[V](val value: V)
+  private[swaydb] class Value[V](val value: V)
 
   def apply[K]()(implicit ordering: Ordering[K]): AtomicRanges[K] = {
     implicit val keyOrder = Key.order(ordering)

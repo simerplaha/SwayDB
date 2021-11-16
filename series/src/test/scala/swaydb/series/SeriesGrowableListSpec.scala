@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.series
+package swaydb.series
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.util.series.growable.SeriesGrowableList
+import swaydb.series.growable.SeriesGrowableList
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag

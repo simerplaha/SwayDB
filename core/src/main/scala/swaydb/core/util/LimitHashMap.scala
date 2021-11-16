@@ -16,7 +16,7 @@
 
 package swaydb.core.util
 
-import swaydb.core.util.series.{Series, SeriesBasic, SeriesVolatile}
+import swaydb.series.{Series, SeriesBasic, SeriesVolatile}
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.annotation.tailrec

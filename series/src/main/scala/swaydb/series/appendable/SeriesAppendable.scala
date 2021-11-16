@@ -14,6 +14,25 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.series
+package swaydb.series.appendable
 
-final private class VolatileValue[T](@volatile var value: T)
+trait SeriesAppendable[T >: Null] {
+
+  def get(index: Int): T
+
+  def add(item: T): Unit
+
+  def length: Int
+
+  def innerArrayLength: Int
+
+  def lastOrNull: T
+
+  def isFull: Boolean
+
+  def headOrNull: T
+
+  def iterator: Iterator[T]
+
+  def iterator(from: Int): Iterator[T]
+}

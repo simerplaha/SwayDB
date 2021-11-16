@@ -24,7 +24,7 @@ import swaydb._
 import swaydb.cache.{Cache, CacheNoIO}
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.sweeper.ByteBufferCleaner.Cleaner
-import swaydb.core.util.English
+import swaydb.utils.English
 import swaydb.data.config.ForceSave
 import swaydb.effect.Effect
 import swaydb.utils.FiniteDurations.FiniteDurationImplicits

@@ -16,7 +16,7 @@
 
 package swaydb.core.util.queue
 
-import swaydb.core.util.DropIterator
+import swaydb.utils.DropIterator
 
 private[core] object VolatileQueue {
 

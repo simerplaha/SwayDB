@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.series.appendable
+package swaydb.series.appendable
 
-import swaydb.core.util.series.VolatileValue
+import swaydb.series.VolatileValue
 
 private[series] object SeriesAppendableVolatile {
 

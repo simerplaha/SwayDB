@@ -227,6 +227,18 @@ lazy val skiplist =
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(
       data,
+      series,
+      testkit % Test,
+      serializers % Test
+    )
+
+lazy val series =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(
+      data,
       testkit % Test,
       serializers % Test
     )

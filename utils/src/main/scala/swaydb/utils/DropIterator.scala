@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.util
+package swaydb.utils
 
 import scala.collection.compat._
 
@@ -27,7 +27,7 @@ import scala.collection.compat._
  * A Segment can easily have over 100,000 key-values to merge and an immutable
  * version of this class would create the same number of [[DropIterator]] instances in-memory.
  */
-private[core] sealed trait DropIterator[H >: Null <: T, T >: Null] {
+private[swaydb] sealed trait DropIterator[H >: Null <: T, T >: Null] {
 
   def headOrNull: T
 
@@ -42,7 +42,7 @@ private[core] sealed trait DropIterator[H >: Null <: T, T >: Null] {
   def iterator: Iterator[T]
 }
 
-private[core] object DropIterator {
+private[swaydb] object DropIterator {
 
   @inline final def empty[H >: Null <: T, T >: Null] =
     new Flat[H, T](null, null, Iterator.empty)
@@ -154,8 +154,8 @@ private[core] object DropIterator {
       }
   }
 
-  private[core] class Nest[H >: Null <: T, T >: Null] private[DropIterator](private var left: DropIterator[H, T],
-                                                                            right: DropIterator[H, T]) extends DropIterator[H, T] {
+  private[swaydb] class Nest[H >: Null <: T, T >: Null] private[DropIterator](private var left: DropIterator[H, T],
+                                                                              right: DropIterator[H, T]) extends DropIterator[H, T] {
 
     override def dropHead(): DropIterator[H, T] =
       if (left.isEmpty && right.isEmpty) {

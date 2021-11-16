@@ -17,7 +17,7 @@
 package swaydb.core.segment.entry.reader.base
 
 import swaydb.core.segment.entry.reader.BaseEntryApplier
-import swaydb.core.util.NullOps
+import swaydb.utils.NullOps
 
 private[core] trait BaseEntryReader {
 

@@ -21,7 +21,7 @@ import swaydb.core.data.{KeyValue, Memory, MemoryOption, Value}
 import swaydb.core.segment.assigner.AssignmentTarget._
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.{PersistentSegmentMany, Segment}
-import swaydb.core.util.DropIterator
+import swaydb.utils.DropIterator
 import swaydb.skiplist.SkipList
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder

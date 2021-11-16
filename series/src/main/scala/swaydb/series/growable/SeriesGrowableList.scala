@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.series.growable
+package swaydb.series.growable
 
-import swaydb.core.util.series.appendable.SeriesAppendableVolatile
+import swaydb.series.appendable.SeriesAppendableVolatile
 
 import scala.reflect.ClassTag
 
-private[core] object SeriesGrowableList {
+private[swaydb] object SeriesGrowableList {
 
   @inline def volatile[T >: Null : ClassTag](lengthPerSeries: Int): SeriesGrowableList[T] = {
     val sizePerSeries = lengthPerSeries max 1 //size cannot be 0
@@ -54,7 +54,7 @@ private[core] object SeriesGrowableList {
 
 }
 
-private[core] class SeriesGrowableList[T >: Null : ClassTag] private(@volatile private var series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
+private[swaydb] class SeriesGrowableList[T >: Null : ClassTag] private(@volatile private var series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
                                                                      lengthPerSeries: Int) { self =>
 
   @volatile private var _written = 0
