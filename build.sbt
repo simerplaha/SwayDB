@@ -198,12 +198,13 @@ lazy val core =
       cache,
       actor,
       compression,
+      skiplist,
       testkit % Test,
       macros % "test->test;compile-internal",
-      compression % "test->test",
-      data % "test->test",
-      configs % "test->test",
-      serializers % "test->test"
+      compression % Test,
+      data % Test,
+      configs % Test,
+      serializers % Test
     )
 
 lazy val data =
@@ -217,6 +218,17 @@ lazy val data =
       actor,
       utils,
       testkit % Test
+    )
+
+lazy val skiplist =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(
+      data,
+      testkit % Test,
+      serializers % Test
     )
 
 lazy val `data-java` =
@@ -266,7 +278,7 @@ lazy val swaydb =
       configs,
       stream,
       core % "test->test;compile->compile",
-      `x-interop-boopickle` % "test->test"
+      `x-interop-boopickle` % Test
     )
 
 lazy val configs =
@@ -303,7 +315,7 @@ lazy val compression =
           :+ "org.lz4" % "lz4-java" % lz4Version
           :+ "org.xerial.snappy" % "snappy-java" % snappyVersion
     )
-    .dependsOn(data, serializers % "test->test")
+    .dependsOn(data, serializers % Test)
 
 lazy val macros =
   project
@@ -317,7 +329,7 @@ lazy val `swaydb-stress` =
     .settings(commonSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(core, configs)
-    .dependsOn(swaydb, core % "test->test")
+    .dependsOn(swaydb, core % Test)
 
 lazy val `swaydb-java` =
   project

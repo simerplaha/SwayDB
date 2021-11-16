@@ -17,7 +17,7 @@
 package swaydb.core.log.applied
 
 import swaydb.core.log.{LogCache, LogCacheBuilder, LogEntry}
-import swaydb.core.util.skiplist.SkipListConcurrent
+import swaydb.skiplist.SkipListConcurrent
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
 

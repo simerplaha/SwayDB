@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.skiplist
+package swaydb.skiplist
 
 import swaydb.data.order.KeyOrder
 
@@ -32,7 +32,7 @@ object SkipListTreeMap {
 
 }
 
-private[core] class SkipListTreeMap[OK, OV, K <: OK, V <: OV] private(protected val skipList: util.TreeMap[K, V],
+private[swaydb] class SkipListTreeMap[OK, OV, K <: OK, V <: OV] private(protected val skipList: util.TreeMap[K, V],
                                                                       val nullKey: OK,
                                                                       val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipListNavigable[OK, OV, K, V](skipList.size()) {
 

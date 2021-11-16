@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.skiplist
+package swaydb.skiplist
 
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -41,7 +41,7 @@ object SkipListConcurrentLimit {
 
 }
 
-private[core] class SkipListConcurrentLimit[OK, OV, K <: OK, V <: OV](limit: Int,
+private[swaydb] class SkipListConcurrentLimit[OK, OV, K <: OK, V <: OV](limit: Int,
                                                                       skipList: SkipListConcurrent[OK, OV, K, V],
                                                                       val nullKey: OK,
                                                                       val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipList[OK, OV, K, V] {

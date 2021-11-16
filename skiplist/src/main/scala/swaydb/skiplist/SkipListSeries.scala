@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.skiplist
+package swaydb.skiplist
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.series.growable.SeriesGrowableList
-import swaydb.core.util.{English, WhenOccurs}
+import swaydb.utils.{English, WhenOccurs}
 import swaydb.data.OptimiseWrites
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -54,7 +54,7 @@ private[skiplist] case object KeyValue {
   }
 }
 
-private[core] object SkipListSeries {
+private[swaydb] object SkipListSeries {
 
   def randomWriteWarning(count: Long): String =
     s"Performance warning! Random write inserted $count ${English.plural(count, "time")}. " +
@@ -231,7 +231,7 @@ private[core] object SkipListSeries {
  * SkipListSeries HashDisabled - 0.254108 seconds
  *
  */
-private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile private[skiplist] var series: SeriesGrowableList[KeyValue.Some[K, V]],
+private[swaydb] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile private[skiplist] var series: SeriesGrowableList[KeyValue.Some[K, V]],
                                                                      //maintain a count of number of removed items i.e. value is null.
                                                                      @volatile private[skiplist] var _removed: Int,
                                                                      val nullKey: OK,

@@ -53,7 +53,7 @@ private[swaydb] object HashedMap {
       if (map.remove(key) != null)
         counter.decrementAndGet()
 
-    def size() =
+    def size(): Long =
       counter.get()
 
     def isEmpty: Boolean =

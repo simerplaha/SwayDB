@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.skiplist
+package swaydb.skiplist
 
 import swaydb.data.order.KeyOrder
 
@@ -31,7 +31,7 @@ object SkipListConcurrent {
     )
 }
 
-private[core] class SkipListConcurrent[OK, OV, K <: OK, V <: OV] private(@volatile protected var skipList: ConcurrentSkipListMap[K, V],
+private[swaydb] class SkipListConcurrent[OK, OV, K <: OK, V <: OV] private(@volatile protected var skipList: ConcurrentSkipListMap[K, V],
                                                                          val nullKey: OK,
                                                                          val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipListNavigable[OK, OV, K, V](skipList.size()) with SkipListBatchable[OK, OV, K, V] {
 

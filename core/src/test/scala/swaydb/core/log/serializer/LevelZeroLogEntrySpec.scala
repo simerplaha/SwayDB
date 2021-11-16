@@ -25,7 +25,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.io.reader.Reader
 import swaydb.core.log.LogEntry
-import swaydb.core.util.skiplist.SkipListConcurrent
+import swaydb.skiplist.SkipListConcurrent
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}

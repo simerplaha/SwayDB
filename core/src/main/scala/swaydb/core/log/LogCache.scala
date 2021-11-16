@@ -27,7 +27,7 @@ trait LogCache[K, V] {
   def isEmpty: Boolean
 
   /**
-   * Max and not exact but [[swaydb.core.util.skiplist.SkipListSeries]] could've nulled key-values.
+   * Max and not exact but [[swaydb.skiplist.SkipListSeries]] could've nulled key-values.
    */
   def maxKeyValueCount: Int
 

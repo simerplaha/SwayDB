@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.skiplist
+package swaydb.skiplist
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

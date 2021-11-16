@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.util
+package swaydb.utils
 
 private[swaydb] object English {
 

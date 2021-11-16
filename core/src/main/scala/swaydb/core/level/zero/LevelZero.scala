@@ -37,7 +37,7 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.FileSweeper
-import swaydb.core.util.skiplist.SkipList
+import swaydb.skiplist.SkipList
 import swaydb.core.util.{DropIterator, MinMax}
 import swaydb.core.{CoreState, MemoryPathGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}

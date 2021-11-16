@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package swaydb.core.util
+package swaydb.skiplist
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
 import swaydb.Bag.Implicits._
-import swaydb.core.util.AtomicRanges.{Action, Value}
+import swaydb.skiplist.AtomicRanges.{Action, Value}
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
 import swaydb.effect.Reserve
@@ -35,7 +35,7 @@ import scala.concurrent.Promise
  * - [[AtomicRanges]] is asynchronous/non-blocking for [[Bag.Async]] and is blocking for [[Bag.Sync]]
  * - Requires ranges and [[Action]]s for applying concurrency.
  */
-private[core] case object AtomicRanges extends LazyLogging {
+private[swaydb] case object AtomicRanges extends LazyLogging {
 
   private val readCount = new AtomicLong(0)
 
@@ -106,7 +106,7 @@ private[core] case object AtomicRanges extends LazyLogging {
 
   case class Key[K](fromKey: K, toKey: K, toKeyInclusive: Boolean, action: Action)
 
-  private[util] class Value[V](val value: V)
+  private[skiplist] class Value[V](val value: V)
 
   def apply[K]()(implicit ordering: Ordering[K]): AtomicRanges[K] = {
     implicit val keyOrder = Key.order(ordering)
@@ -274,7 +274,7 @@ private[core] case object AtomicRanges extends LazyLogging {
   }
 }
 
-private[core] class AtomicRanges[K](private val transactions: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]])(implicit val keyRangeOrdering: Ordering[AtomicRanges.Key[K]],
+private[swaydb] class AtomicRanges[K](private val transactions: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]])(implicit val keyRangeOrdering: Ordering[AtomicRanges.Key[K]],
                                                                                                                                 keyOrder: Ordering[K]) {
 
   private implicit val self: AtomicRanges[K] =

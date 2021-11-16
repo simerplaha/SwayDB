@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.skiplist
+package swaydb.skiplist
 
 import swaydb.Bag
-import swaydb.core.util.AtomicRanges
+import swaydb.skiplist.AtomicRanges
 import swaydb.data.order.KeyOrder
 
-private[core] trait SkipList[OK, OV, K <: OK, V <: OV] {
+private[swaydb] trait SkipList[OK, OV, K <: OK, V <: OV] {
 
   val keyOrder: KeyOrder[K]
 

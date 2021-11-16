@@ -46,7 +46,7 @@ private[core] object LevelZeroLogEntryReader {
       val timeLength = reader.readUnsignedInt()
       val time = reader.read(timeLength).cut()
       val valueLength = reader.readUnsignedInt()
-      val value = if (valueLength == 0) Slice.Null else reader.read(valueLength)
+      val value = if (valueLength == 0) Slice.Null else reader.read(valueLength) // TODO - cut not needed?
       val deadlineLong = reader.readUnsignedLong()
 
       val deadline = if (deadlineLong == 0) None else Some(Deadline((deadlineLong, TimeUnit.NANOSECONDS)))

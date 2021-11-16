@@ -23,7 +23,7 @@ import swaydb.IO.ApiIO
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestExecutionContext
-import swaydb.core.util.AtomicRanges.Action
+import swaydb.skiplist.AtomicRanges.Action
 import swaydb.testkit.RunThis._
 import swaydb.{Bag, Glass, IO}
 

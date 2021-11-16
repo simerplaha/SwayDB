@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.skiplist
+package swaydb.skiplist
 
-import swaydb.core.util.NullOps
+import swaydb.utils.NullOps
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -29,7 +29,7 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
-private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private(protected val sizer: AtomicInteger) extends SkipList[OK, OV, K, V] {
+private[swaydb] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private(protected val sizer: AtomicInteger) extends SkipList[OK, OV, K, V] {
 
   protected def skipList: util.NavigableMap[K, V]
 
