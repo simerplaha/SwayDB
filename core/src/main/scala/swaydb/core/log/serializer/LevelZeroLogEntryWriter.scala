@@ -19,7 +19,7 @@ package swaydb.core.log.serializer
 import swaydb.core.data.Memory
 import swaydb.core.log.LogEntry
 import swaydb.core.util.Bytes
-import swaydb.data.slice.{Slice, SliceMut}
+import swaydb.slice.{Slice, SliceMut}
 import swaydb.utils.ByteSizeOf
 
 /**

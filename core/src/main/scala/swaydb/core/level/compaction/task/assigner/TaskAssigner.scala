@@ -16,7 +16,7 @@
 
 package swaydb.core.level.compaction.task.assigner
 
-import swaydb.Aggregator
+import swaydb.utils.Aggregator
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.level.Level
@@ -26,7 +26,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, AssignmentResult}
 import swaydb.data.compaction.PushStrategy
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.data.{MaxKey, NonEmptyList}
 
 import scala.annotation.tailrec

@@ -23,7 +23,7 @@ import swaydb.IOValues._
 import swaydb.OK
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.testkit.RunThis._

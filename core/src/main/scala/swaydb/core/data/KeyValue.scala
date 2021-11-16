@@ -26,7 +26,7 @@ import swaydb.core.segment.ref.search.KeyMatcher
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.{SomeOrNone, SomeOrNoneCovariant, TupleOrNone}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}

@@ -16,7 +16,7 @@
 
 package swaydb.core.util
 
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 private[core] object CRC32 {
 

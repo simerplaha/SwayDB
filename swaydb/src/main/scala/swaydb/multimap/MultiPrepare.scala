@@ -16,7 +16,8 @@
 
 package swaydb.multimap
 
-import swaydb.{Aggregator, MultiMap, Prepare}
+import swaydb.utils.Aggregator
+import swaydb.{MultiMap, Prepare}
 
 import scala.collection.mutable
 import scala.concurrent.duration.Deadline

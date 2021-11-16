@@ -23,7 +23,7 @@ import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.segment.block.{Block, BlockCache, BlockOps}
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 
 class BlockedReaderSpec extends TestBase with MockFactory {

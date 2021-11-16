@@ -21,7 +21,7 @@ import swaydb.series.growable.SeriesGrowableList
 import swaydb.utils.{English, WhenOccurs}
 import swaydb.data.OptimiseWrites
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag

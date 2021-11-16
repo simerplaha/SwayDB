@@ -19,7 +19,7 @@ package swaydb.core.function
 import swaydb.OK
 import swaydb.core.data.{SwayFunction, Value}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import java.util.concurrent.ConcurrentHashMap
 import scala.annotation.tailrec

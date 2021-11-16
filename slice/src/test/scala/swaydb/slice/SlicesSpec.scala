@@ -1,4 +1,4 @@
-package swaydb.data.slice
+package swaydb.slice
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

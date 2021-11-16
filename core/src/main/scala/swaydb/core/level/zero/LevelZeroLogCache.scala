@@ -22,7 +22,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.log.{LogCache, LogCacheBuilder, LogEntry}
 import swaydb.skiplist.{SkipList, SkipListConcurrent, SkipListSeries}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.data.{Atomic, MaxKey, MaxKeyOption, OptimiseWrites}
 
 import scala.collection.mutable.ListBuffer

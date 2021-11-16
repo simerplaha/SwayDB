@@ -19,7 +19,7 @@ package swaydb.core.segment.entry.reader
 import swaydb.core.data.{Persistent, PersistentOption, Time}
 import swaydb.core.segment.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
-import swaydb.data.slice.ReaderBase
+import swaydb.slice.ReaderBase
 
 import scala.annotation.implicitNotFound
 

@@ -48,13 +48,13 @@ import swaydb.core.util._
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.{LevelMeter, LevelThrottle}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.SliceIOImplicits._
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.slice.SliceIOImplicits._
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.data.storage.LevelStorage
 import swaydb.effect.Effect._
 import swaydb.effect.{Dir, Effect, Extension, FileLocker}
-import swaydb.utils.Futures
-import swaydb.{Aggregator, Bag, Error, IO}
+import swaydb.utils.{Aggregator, Futures}
+import swaydb.{Bag, Error, IO}
 
 import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}

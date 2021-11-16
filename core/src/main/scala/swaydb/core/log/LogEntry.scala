@@ -22,7 +22,7 @@ import swaydb.core.log.serializer.{LogEntrySerialiser, LogEntryWriter}
 import swaydb.core.segment.Segment
 import swaydb.skiplist.{SkipList, SkipListBatchable, SkipListConcurrent}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Slice, SliceMut}
+import swaydb.slice.{Slice, SliceMut}
 
 import scala.collection.mutable.ListBuffer
 

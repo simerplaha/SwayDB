@@ -127,7 +127,7 @@ private[swaydb] object Effect extends LazyLogging {
    * @param totalExpectedBytes Expected byte count. Invoker should compute this
    *                           at the time of building the [[ByteBuffer]] array.
    *                           This should really be handled by this function but
-   *                           this module is not dependant on swaydb.data.Slice yet.
+   *                           this module is not dependant on swaydb.slice yet.
    * @param buffers            Byte buffers to persist.
    */
   def writeUnclosedGathering(channel: GatheringByteChannel,

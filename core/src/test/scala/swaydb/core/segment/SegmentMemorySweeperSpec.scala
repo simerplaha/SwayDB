@@ -27,7 +27,7 @@ import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
 import swaydb.data.config.MemoryCache
 import swaydb.data.order.TimeOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 
 import scala.concurrent.duration._

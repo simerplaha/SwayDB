@@ -18,8 +18,8 @@ package swaydb.core.io.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.file.DBFile
-import swaydb.data.slice.{Reader, Slice, SliceRO}
-import swaydb.data.utils.ByteOps
+import swaydb.slice.{Reader, Slice, SliceRO}
+import swaydb.slice.utils.ByteOps
 
 import java.nio.file.Path
 

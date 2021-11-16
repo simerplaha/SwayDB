@@ -19,8 +19,8 @@ package swaydb.core.util
 import swaydb.OK
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
-import swaydb.data.slice.Slice
-import swaydb.data.utils.ScalaByteOps
+import swaydb.slice.Slice
+import swaydb.slice.utils.ScalaByteOps
 
 private[swaydb] object Bytes extends ScalaByteOps {
 

@@ -24,7 +24,7 @@ import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.serializers.Serializer
 
 import java.nio.file.Path

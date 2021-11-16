@@ -22,7 +22,7 @@ import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, MurmurHash3Generic}
 import swaydb.data.config.UncompressedBlockInfo
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.utils.ByteSizeOf
 
 private[core] case object BloomFilterBlock extends LazyLogging {

@@ -23,7 +23,7 @@ import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 private[core] trait SegmentSearcher {
 

@@ -21,7 +21,7 @@ import swaydb.core.Core
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.serializers.{Serializer, _}
 import swaydb.stream.{From, SourceFree}
 

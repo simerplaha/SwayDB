@@ -32,7 +32,7 @@ import swaydb.core.util.{Bytes, Collections, MinMax}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.utils.Futures._
 import swaydb.utils.{ByteSizeOf, Futures}
 

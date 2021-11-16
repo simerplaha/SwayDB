@@ -66,17 +66,17 @@ import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.{LevelMeter, LevelThrottle}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOption, SliceRO}
 import swaydb.data.storage.{Level0Storage, LevelStorage}
 import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
 import swaydb.effect.{Dir, IOAction, IOStrategy}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.skiplist.AtomicRanges
+import swaydb.slice.{Slice, SliceOption, SliceRO}
 import swaydb.testkit.RunThis.FutureImplicits
 import swaydb.utils.StorageUnits._
-import swaydb.utils.{FiniteDurations, OperatingSystem}
-import swaydb.{ActorConfig, Aggregator, Error, Glass, IO}
+import swaydb.utils.{Aggregator, FiniteDurations, OperatingSystem}
+import swaydb.{ActorConfig, Error, Glass, IO}
 
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit

@@ -17,7 +17,7 @@
 package swaydb.core.io.file
 
 import swaydb.core.sweeper.FileSweeperItem
-import swaydb.data.slice.{Slice, SliceRO}
+import swaydb.slice.{Slice, SliceRO}
 
 import java.nio.channels.WritableByteChannel
 import java.nio.file.Path

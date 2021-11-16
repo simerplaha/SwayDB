@@ -49,7 +49,7 @@ import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.data.storage.{Level0Storage, LevelStorage}
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.effect.{Dir, Effect}

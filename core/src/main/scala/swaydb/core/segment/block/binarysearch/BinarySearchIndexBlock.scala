@@ -24,7 +24,7 @@ import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.utils.ByteSizeOf
 import swaydb.utils.Maybe.{Maybe, _}
 

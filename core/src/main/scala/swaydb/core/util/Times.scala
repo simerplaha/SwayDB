@@ -16,7 +16,7 @@
 
 package swaydb.core.util
 
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.Deadline

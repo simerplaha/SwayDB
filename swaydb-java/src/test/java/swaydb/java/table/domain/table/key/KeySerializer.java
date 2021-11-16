@@ -16,9 +16,9 @@
 
 package swaydb.java.table.domain.table.key;
 
-import swaydb.data.slice.Slice;
-import swaydb.data.slice.SliceReader;
-import swaydb.data.utils.ByteOps;
+import swaydb.slice.Slice;
+import swaydb.slice.SliceReader;
+import swaydb.slice.utils.ByteOps;
 import swaydb.java.serializers.Serializer;
 
 public class KeySerializer implements Serializer<Key> {

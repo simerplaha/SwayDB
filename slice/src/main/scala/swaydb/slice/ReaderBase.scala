@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package swaydb.data.slice
+package swaydb.slice
 
-import swaydb.data.utils.ByteOps
+import swaydb.IO
+import swaydb.slice.utils.ByteOps
 import swaydb.utils.Maybe.Maybe
-import swaydb.{IO, Pair}
 
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.Path
@@ -73,9 +73,6 @@ trait ReaderBase[B] { self =>
   @inline def readUnsignedIntWithByteSize(): (Int, Int) =
     byteOps.readUnsignedIntWithByteSize(self)
 
-  @inline def readUnsignedIntWithByteSizePair(): Pair[Int, Int] =
-    Pair(readUnsignedIntWithByteSize())
-
   @inline def readNonZeroUnsignedInt(): Int =
     byteOps.readUnsignedIntNonZero(self)
 
@@ -84,9 +81,6 @@ trait ReaderBase[B] { self =>
 
   @inline def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
     byteOps.readUnsignedIntNonZeroWithByteSize(self)
-
-  @inline def readNonZeroUnsignedIntWithByteSizePair(): Pair[Int, Int] =
-    Pair(readNonZeroUnsignedIntWithByteSize())
 
   @inline def readUnsignedIntSized(): Slice[B] =
     read(byteOps.readUnsignedInt(self))

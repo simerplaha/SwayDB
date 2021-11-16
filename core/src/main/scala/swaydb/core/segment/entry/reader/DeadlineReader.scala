@@ -20,7 +20,7 @@ import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.segment.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.core.util.Times._
-import swaydb.data.slice.ReaderBase
+import swaydb.slice.ReaderBase
 import swaydb.utils.ByteSizeOf
 
 import scala.annotation.implicitNotFound

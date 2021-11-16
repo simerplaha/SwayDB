@@ -16,7 +16,7 @@
 
 package swaydb.data.order
 
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 object KeyOrder {
 

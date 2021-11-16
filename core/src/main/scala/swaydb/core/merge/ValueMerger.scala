@@ -19,7 +19,7 @@ package swaydb.core.merge
 import swaydb.core.data.Value
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.TimeOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 private[core] object ValueMerger {
 

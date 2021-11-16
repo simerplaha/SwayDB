@@ -33,7 +33,7 @@ import swaydb.core.segment.io.SegmentReadIO
 import swaydb.skiplist.SkipListConcurrent
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.effect.Effect._
 import swaydb.effect.{Effect, Extension}

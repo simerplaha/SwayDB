@@ -17,7 +17,7 @@
 package swaydb.core.segment.ref.search
 
 import swaydb.core.data.{Persistent, PersistentOption}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.utils.{SomeOrNone, TupleOrNone}
 
 import java.nio.file.Path

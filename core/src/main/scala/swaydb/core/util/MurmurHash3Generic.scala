@@ -17,7 +17,7 @@
 package swaydb.core.util
 
 import swaydb.core.io.reader.Reader
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import java.lang.Long.rotateLeft
 

@@ -25,8 +25,8 @@ import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper}
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
-import swaydb.data.slice.SliceIOImplicits._
+import swaydb.slice.Slice
+import swaydb.slice.SliceIOImplicits._
 import swaydb.effect.Effect._
 import swaydb.effect.{Effect, Extension, IOStrategy}
 

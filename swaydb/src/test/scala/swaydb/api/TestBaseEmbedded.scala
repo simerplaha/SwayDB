@@ -24,7 +24,7 @@ import swaydb._
 import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.{Core, TestBase, TestExecutionContext}
 import swaydb.data.sequencer.Sequencer
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.testkit.RunThis._
 

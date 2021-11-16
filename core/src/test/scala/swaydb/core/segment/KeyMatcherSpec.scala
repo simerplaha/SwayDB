@@ -25,7 +25,7 @@ import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.segment.ref.search.KeyMatcher
 import swaydb.core.segment.ref.search.KeyMatcher.Result._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

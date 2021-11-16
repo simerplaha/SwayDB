@@ -22,7 +22,7 @@ import swaydb.cache.Cache
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, FileSweeperItem}
 import swaydb.data.config.ForceSave
-import swaydb.data.slice.{Slice, SliceRO}
+import swaydb.slice.{Slice, SliceRO}
 import swaydb.effect.{Effect, IOStrategy, Reserve}
 import swaydb.{Error, IO}
 

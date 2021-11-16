@@ -24,7 +24,7 @@ import swaydb.core.segment.block.Block
 import swaydb.core.segment.block.reader.{BlockRefReader, BlockedReader}
 import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.testkit.RunThis._

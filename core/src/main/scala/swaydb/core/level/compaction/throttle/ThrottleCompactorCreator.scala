@@ -24,7 +24,7 @@ import swaydb.core.level.compaction.{Compactor, CompactorCreator}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.sweeper.FileSweeper
 import swaydb.data.compaction.CompactionConfig
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.{Actor, DefActor, Error, IO}
 
 import scala.concurrent.ExecutionContext

@@ -25,8 +25,8 @@ import swaydb.KeyVal;
 import swaydb.Pair;
 import swaydb.Prepare;
 import swaydb.data.java.TestBase;
-import swaydb.data.slice.Slice;
-import swaydb.data.utils.ByteOps;
+import swaydb.slice.Slice;
+import swaydb.slice.utils.ByteOps;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;

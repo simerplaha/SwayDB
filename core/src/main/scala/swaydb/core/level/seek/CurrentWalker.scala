@@ -19,7 +19,7 @@ package swaydb.core.level.seek
 import swaydb.core.data.KeyValue
 import swaydb.core.level.LevelSeek
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 trait CurrentWalker {
 

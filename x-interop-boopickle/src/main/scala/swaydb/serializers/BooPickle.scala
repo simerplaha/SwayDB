@@ -18,7 +18,7 @@ package swaydb.serializers
 
 import boopickle.Default.{Pickle, Unpickle}
 import boopickle.{PickleState, Pickler}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 object BooPickle {
 

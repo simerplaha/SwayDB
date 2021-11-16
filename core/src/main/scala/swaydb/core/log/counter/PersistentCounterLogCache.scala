@@ -17,7 +17,7 @@
 package swaydb.core.log.counter
 
 import swaydb.core.log.{LogCache, LogCacheBuilder, LogEntry}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 object PersistentCounterLogCache {
   implicit def builder =

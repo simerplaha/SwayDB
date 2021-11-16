@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package swaydb.data.utils
+package swaydb.slice.utils
 
-import swaydb.data.slice.{ReaderBase, Slice, SliceMut, SliceRO, SliceReader}
+import swaydb.slice.{ReaderBase, Slice, SliceMut, SliceRO, SliceReader}
 import swaydb.utils.Maybe.Maybe
 
 import java.nio.charset.Charset

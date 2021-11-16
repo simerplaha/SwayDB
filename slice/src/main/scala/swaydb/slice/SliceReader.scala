@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package swaydb.data.slice
+package swaydb.slice
 
-import swaydb.data.utils.ByteOps
+import swaydb.slice.utils.ByteOps
 
 import java.nio.file.Paths
 import scala.reflect.ClassTag

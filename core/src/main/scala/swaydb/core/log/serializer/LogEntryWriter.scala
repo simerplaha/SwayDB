@@ -17,7 +17,7 @@
 package swaydb.core.log.serializer
 
 import swaydb.core.log.LogEntry
-import swaydb.data.slice.SliceMut
+import swaydb.slice.SliceMut
 
 import scala.annotation.implicitNotFound
 

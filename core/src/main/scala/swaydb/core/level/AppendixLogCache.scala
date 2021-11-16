@@ -21,7 +21,7 @@ import swaydb.core.log.{LogCache, LogCacheBuilder, LogEntry}
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.skiplist.SkipListConcurrent
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.slice.{Slice, SliceOption}
 
 import scala.reflect.ClassTag
 

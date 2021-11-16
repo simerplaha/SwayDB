@@ -22,7 +22,7 @@ import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.DataType
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.effect.{Effect, Extension}
 import swaydb.utils.ByteSizeOf
 

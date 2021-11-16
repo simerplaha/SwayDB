@@ -16,8 +16,8 @@
 
 package swaydb.serializers
 
-import swaydb.data.slice.Slice
-import swaydb.data.utils.ScalaByteOps
+import swaydb.slice.Slice
+import swaydb.slice.utils.ScalaByteOps
 import swaydb.utils.ByteSizeOf
 
 import java.nio.ByteBuffer

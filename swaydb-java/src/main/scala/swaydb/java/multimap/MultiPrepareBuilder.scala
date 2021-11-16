@@ -16,9 +16,10 @@
 
 package swaydb.java.multimap
 
+import swaydb.Prepare
 import swaydb.java.MultiMap
 import swaydb.multimap.MultiPrepare
-import swaydb.{Aggregator, Prepare}
+import swaydb.utils.Aggregator
 
 import java.util
 import java.util.stream.Stream

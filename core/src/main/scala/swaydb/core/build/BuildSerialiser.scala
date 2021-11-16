@@ -18,7 +18,7 @@ package swaydb.core.build
 
 import swaydb.core.util.CRC32
 import swaydb.data.DataType
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.utils.ByteSizeOf
 
 import java.nio.file.Path

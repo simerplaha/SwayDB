@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package swaydb.data.slice
+package swaydb.slice
 
-import swaydb.Aggregator
+import swaydb.utils.Aggregator
 
 import scala.annotation.tailrec
 import scala.collection._

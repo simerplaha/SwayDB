@@ -19,7 +19,7 @@ package swaydb.core.io.file
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Collections
 import swaydb.data.config.ForceSave
-import swaydb.data.slice.{Slice, SliceRO, Slices}
+import swaydb.slice.{Slice, SliceRO, Slices}
 import swaydb.effect.Effect
 
 import java.nio.ByteBuffer

@@ -37,7 +37,7 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestSweeper
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.SegmentRefCacheLife
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.effect.{Dir, IOAction, IOStrategy}
 import swaydb.testkit.RunThis.FutureImplicits
 import swaydb.utils.StorageUnits._

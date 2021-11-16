@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.block.reader
 
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import scala.beans.BeanProperty
 

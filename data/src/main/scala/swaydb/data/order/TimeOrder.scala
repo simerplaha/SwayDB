@@ -16,8 +16,8 @@
 
 package swaydb.data.order
 
-import swaydb.data.slice.Slice
-import swaydb.data.utils.ScalaByteOps
+import swaydb.slice.Slice
+import swaydb.slice.utils.ScalaByteOps
 
 private[swaydb] object TimeOrder {
   val long = new TimeOrder[Slice[Byte]] {

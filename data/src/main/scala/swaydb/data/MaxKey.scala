@@ -17,7 +17,7 @@
 package swaydb.data
 
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.utils.SomeOrNoneCovariant
 
 sealed trait MaxKeyOption[+T] extends SomeOrNoneCovariant[MaxKeyOption[T], MaxKey[T]] {
@@ -36,6 +36,53 @@ object MaxKey {
   final case object Null extends MaxKeyOption[Nothing] {
     override def isNoneC: Boolean = true
     override def getC: MaxKey[Nothing] = throw new Exception("MaxKey is of type Null")
+  }
+
+  def within[T](key: Slice[T],
+                minKey: Slice[T],
+                maxKey: MaxKey[Slice[T]])(implicit keyOrder: Ordering[Slice[T]]): Boolean =
+    Slice.within(
+      key = key,
+      minKey = minKey,
+      maxKey = maxKey.maxKey,
+      maxKeyInclusive = maxKey.inclusive
+    )
+
+
+  def within[T](source: MaxKey[T],
+                target: MaxKey[T])(implicit keyOrder: Ordering[T]): Boolean = {
+    import keyOrder._
+
+    source match {
+      case MaxKey.Fixed(sourceMaxKey) =>
+        target match {
+          case MaxKey.Fixed(targetMaxKey) =>
+            keyOrder.equiv(sourceMaxKey, targetMaxKey)
+
+          case MaxKey.Range(targetFromKey, targetMaxKey) =>
+            Slice.within(
+              key = sourceMaxKey,
+              minKey = targetFromKey,
+              maxKey = targetMaxKey,
+              maxKeyInclusive = false
+            )
+        }
+
+      case MaxKey.Range(sourceFromKey, sourceMaxKey) =>
+        target match {
+          case MaxKey.Fixed(targetMaxKey) =>
+            keyOrder.equiv(sourceFromKey, targetMaxKey) &&
+              keyOrder.equiv(sourceMaxKey, targetMaxKey)
+
+          case MaxKey.Range(targetFromKey, targetMaxKey) =>
+            Slice.within(
+              key = sourceFromKey,
+              minKey = targetFromKey,
+              maxKey = targetMaxKey,
+              maxKeyInclusive = false
+            ) && sourceMaxKey <= targetMaxKey
+        }
+    }
   }
 
   implicit class MaxKeyImplicits(maxKey: MaxKey[Slice[Byte]]) {

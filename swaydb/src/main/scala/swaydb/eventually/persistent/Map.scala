@@ -25,7 +25,7 @@ import swaydb.data.compaction.CompactionConfig
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.data.{Atomic, DataType, Functions, OptimiseWrites}
 import swaydb.effect.Dir
 import swaydb.function.FunctionConverter

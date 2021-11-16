@@ -17,7 +17,7 @@
 package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Aggregator
+import swaydb.utils.Aggregator
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -46,8 +46,8 @@ import swaydb.data.MaxKey
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.SliceIOImplicits._
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.slice.SliceIOImplicits._
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.effect.Effect
 import swaydb.utils.Futures.FutureUnitImplicits
 import swaydb.utils.{FiniteDurations, SomeOrNone}

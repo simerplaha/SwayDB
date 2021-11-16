@@ -21,7 +21,7 @@ import swaydb.core.segment.ref.search.{SegmentReadState, SegmentReadStateOption,
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.utils.TupleOrNone
 
 import java.nio.file.Path

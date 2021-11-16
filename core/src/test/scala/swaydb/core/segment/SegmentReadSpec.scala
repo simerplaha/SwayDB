@@ -30,7 +30,7 @@ import swaydb.core.segment.io.SegmentReadIO
 import swaydb.data.MaxKey
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.effect.Effect
 import swaydb.serializers.Default._
 import swaydb.serializers._

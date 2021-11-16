@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.assigner
 
-import swaydb.Aggregator
+import swaydb.utils.Aggregator
 
 object Assignment {
 

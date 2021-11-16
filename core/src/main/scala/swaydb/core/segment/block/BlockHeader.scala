@@ -1,6 +1,6 @@
 package swaydb.core.segment.block
 
-import swaydb.data.slice.ReaderBase
+import swaydb.slice.ReaderBase
 
 object BlockHeader {
   val uncompressedBlockId: Byte = 0.toByte

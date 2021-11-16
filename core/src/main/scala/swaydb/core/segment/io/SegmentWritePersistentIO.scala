@@ -29,8 +29,8 @@ import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.IDGenerator
 import swaydb.data.config.{ForceSave, MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
-import swaydb.data.slice.SliceIOImplicits._
+import swaydb.slice.Slice
+import swaydb.slice.SliceIOImplicits._
 import swaydb.{Error, IO}
 
 import java.nio.file.Path

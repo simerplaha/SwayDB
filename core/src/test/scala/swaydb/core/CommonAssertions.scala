@@ -52,14 +52,15 @@ import swaydb.skiplist.SkipListConcurrent
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.PushStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.SliceIOImplicits._
-import swaydb.data.slice.{Reader, Slice, SliceOption, SliceReader}
+import swaydb.slice.SliceIOImplicits._
+import swaydb.slice.{Reader, Slice, SliceOption, SliceReader}
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.effect.{Effect, IOStrategy}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.testkit.RunThis._
-import swaydb.{Aggregator, Bag, Error, Glass, IO}
+import swaydb.utils.Aggregator
+import swaydb.{Bag, Error, Glass, IO}
 
 import java.nio.file.Paths
 import scala.annotation.tailrec

@@ -17,7 +17,7 @@
 package swaydb.core.log.serializer
 
 import swaydb.core.log.LogEntry
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.slice.{ReaderBase, Slice}
 
 private[swaydb] object CounterLogEntryReader {
 

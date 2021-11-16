@@ -18,7 +18,7 @@ package swaydb.core.log.serializer
 
 import swaydb.core.io.reader.Reader
 import swaydb.core.log.LogEntry
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.slice.{ReaderBase, Slice}
 
 import scala.annotation.implicitNotFound
 

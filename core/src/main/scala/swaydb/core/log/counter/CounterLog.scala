@@ -22,7 +22,7 @@ import swaydb.core.log.LogEntry
 import swaydb.core.log.serializer.{LogEntryReader, LogEntryWriter}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.config.MMAP
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import java.nio.file.Path
 

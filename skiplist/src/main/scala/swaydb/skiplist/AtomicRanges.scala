@@ -19,10 +19,10 @@ package swaydb.skiplist
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
 import swaydb.Bag.Implicits._
-import swaydb.skiplist.AtomicRanges.{Action, Value}
 import swaydb.data.MaxKey
-import swaydb.data.slice.Slice
 import swaydb.effect.Reserve
+import swaydb.skiplist.AtomicRanges.{Action, Value}
+import swaydb.slice.Slice
 
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicLong

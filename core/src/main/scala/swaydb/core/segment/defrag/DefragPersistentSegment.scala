@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.defrag
 
-import swaydb.Aggregator
+import swaydb.utils.Aggregator
 import swaydb.core.data.{DefIO, Memory}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
@@ -41,7 +41,7 @@ import swaydb.core.util.IDGenerator
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.utils.Futures
 import swaydb.utils.Futures.FutureUnitImplicits
 

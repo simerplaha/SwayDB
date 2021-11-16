@@ -4,7 +4,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 import swaydb.utils.ByteSizeOf
 

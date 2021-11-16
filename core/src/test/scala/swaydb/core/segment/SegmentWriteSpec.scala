@@ -45,7 +45,7 @@ import swaydb.data.MaxKey
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.effect.Effect._
 import swaydb.effect.{Dir, Effect, Extension}
 import swaydb.serializers.Default._

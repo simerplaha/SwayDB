@@ -26,7 +26,7 @@ import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.segment.block.values.ValuesBlockOffset.ValuesBlockOps
 import swaydb.core.segment.block.{Block, BlockCache}
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.slice.{Reader, Slice}
 
 class BlockRefReaderSpec extends TestBase with MockFactory {
 

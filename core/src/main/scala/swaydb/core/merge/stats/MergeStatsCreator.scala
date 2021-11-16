@@ -16,7 +16,7 @@
 
 package swaydb.core.merge.stats
 
-import swaydb.Aggregator
+import swaydb.utils.Aggregator
 import swaydb.core.data.Memory
 import swaydb.core.merge.KeyValueGrouper
 

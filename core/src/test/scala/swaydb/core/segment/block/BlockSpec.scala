@@ -7,7 +7,7 @@ import swaydb.core.segment.block.reader.BlockRefReader
 import swaydb.core.segment.block.segment.transient.TransientSegmentRef
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.effect.IOAction
 import swaydb.testkit.RunThis._
 

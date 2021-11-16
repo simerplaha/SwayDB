@@ -24,8 +24,8 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.data.slice.Slice
-import swaydb.data.slice.SliceIOImplicits._
+import swaydb.slice.Slice
+import swaydb.slice.SliceIOImplicits._
 import swaydb.{Error, IO}
 
 protected case object BehaviourCommit extends LazyLogging {

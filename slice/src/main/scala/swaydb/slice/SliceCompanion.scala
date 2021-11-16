@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package swaydb.data.slice
+package swaydb.slice
 
-import swaydb.Aggregator
-import swaydb.data.MaxKey
-import swaydb.data.utils.ByteOps
+import swaydb.utils.Aggregator
+import swaydb.slice.utils.ByteOps
 import swaydb.utils.ByteSizeOf
 
 import java.lang
@@ -200,16 +199,6 @@ trait SliceCompanion extends SliceBuildFrom {
 
   def within[T](key: Slice[T],
                 minKey: Slice[T],
-                maxKey: MaxKey[Slice[T]])(implicit keyOrder: Ordering[Slice[T]]): Boolean =
-    within(
-      key = key,
-      minKey = minKey,
-      maxKey = maxKey.maxKey,
-      maxKeyInclusive = maxKey.inclusive
-    )
-
-  def within[T](key: Slice[T],
-                minKey: Slice[T],
                 maxKey: Slice[T],
                 maxKeyInclusive: Boolean)(implicit keyOrder: Ordering[Slice[T]]): Boolean = {
     import keyOrder._
@@ -236,41 +225,6 @@ trait SliceCompanion extends SliceBuildFrom {
     }
   }
 
-  def within[T](source: MaxKey[T],
-                target: MaxKey[T])(implicit keyOrder: Ordering[T]): Boolean = {
-    import keyOrder._
-
-    source match {
-      case MaxKey.Fixed(sourceMaxKey) =>
-        target match {
-          case MaxKey.Fixed(targetMaxKey) =>
-            keyOrder.equiv(sourceMaxKey, targetMaxKey)
-
-          case MaxKey.Range(targetFromKey, targetMaxKey) =>
-            Slice.within(
-              key = sourceMaxKey,
-              minKey = targetFromKey,
-              maxKey = targetMaxKey,
-              maxKeyInclusive = false
-            )
-        }
-
-      case MaxKey.Range(sourceFromKey, sourceMaxKey) =>
-        target match {
-          case MaxKey.Fixed(targetMaxKey) =>
-            keyOrder.equiv(sourceFromKey, targetMaxKey) &&
-              keyOrder.equiv(sourceMaxKey, targetMaxKey)
-
-          case MaxKey.Range(targetFromKey, targetMaxKey) =>
-            Slice.within(
-              key = sourceFromKey,
-              minKey = targetFromKey,
-              maxKey = targetMaxKey,
-              maxKeyInclusive = false
-            ) && sourceMaxKey <= targetMaxKey
-        }
-    }
-  }
 
   def minMax[T](left: Option[(Slice[T], Slice[T], Boolean)],
                 right: Option[(Slice[T], Slice[T], Boolean)])(implicit keyOrder: Ordering[Slice[T]]): Option[(Slice[T], Slice[T], Boolean)] = {

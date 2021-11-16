@@ -16,7 +16,7 @@
 
 package swaydb.java.serializers
 
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.serializers.Default._
 
 import java.nio.charset.StandardCharsets

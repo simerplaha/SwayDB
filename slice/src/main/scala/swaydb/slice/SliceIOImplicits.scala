@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.data.slice
+package swaydb.slice
 
 import swaydb.IO
 

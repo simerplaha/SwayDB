@@ -30,7 +30,7 @@ import swaydb.core.util.PipeOps._
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.data.storage.LevelStorage
 import swaydb.effect.Effect._
 import swaydb.effect.{Dir, Effect, Extension}

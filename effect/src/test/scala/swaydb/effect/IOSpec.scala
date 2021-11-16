@@ -20,9 +20,9 @@
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.IO
 //import swaydb.IO.ExceptionHandler.Throwable
-//import swaydb.data.slice.Slice
-//import swaydb.data.slice.Slice
-//import swaydb.data.slice.Slice
+//import swaydb.slice.Slice
+//import swaydb.slice.Slice
+//import swaydb.slice.Slice
 //
 //import scala.collection.mutable.ListBuffer
 //

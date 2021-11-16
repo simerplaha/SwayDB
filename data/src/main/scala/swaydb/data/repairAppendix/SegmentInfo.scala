@@ -17,7 +17,7 @@
 package swaydb.data.repairAppendix
 
 import swaydb.data.MaxKey
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import java.nio.file.Path
 

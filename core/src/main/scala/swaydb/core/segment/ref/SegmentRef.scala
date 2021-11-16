@@ -35,7 +35,7 @@ import swaydb.core.util.MinMax
 import swaydb.skiplist.{SkipList, SkipListConcurrent, SkipListConcurrentLimit}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.SomeOrNoneCovariant
 
 import java.nio.file.Path

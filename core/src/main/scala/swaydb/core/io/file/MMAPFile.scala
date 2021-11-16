@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.sweeper.ByteBufferSweeper
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.config.ForceSave
-import swaydb.data.slice.{Slice, SliceRO, Slices}
+import swaydb.slice.{Slice, SliceRO, Slices}
 import swaydb.effect.{Effect, Reserve}
 
 import java.nio.channels.FileChannel.MapMode

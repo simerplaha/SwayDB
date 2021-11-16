@@ -23,7 +23,7 @@ import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{KeyValue, Memory, Value}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.utils.DropIterator

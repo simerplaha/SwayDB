@@ -23,7 +23,7 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.utils.DropIterator
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer

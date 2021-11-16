@@ -22,7 +22,7 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{ForceSave, MMAP}
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.{Bag, IO}
 
 import java.nio.file.Path

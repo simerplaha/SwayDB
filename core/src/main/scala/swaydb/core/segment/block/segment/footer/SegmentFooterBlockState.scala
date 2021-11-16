@@ -1,6 +1,6 @@
 package swaydb.core.segment.block.segment.footer
 
-import swaydb.data.slice.SliceMut
+import swaydb.slice.SliceMut
 
 private[block] case class SegmentFooterBlockState(footerSize: Int,
                                                   createdInLevel: Int,

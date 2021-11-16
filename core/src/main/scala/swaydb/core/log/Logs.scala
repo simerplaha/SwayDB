@@ -29,7 +29,7 @@ import swaydb.core.util.queue.VolatileQueue
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.SliceIOImplicits._
+import swaydb.slice.SliceIOImplicits._
 import swaydb.effect.Effect
 import swaydb.effect.Effect._
 import swaydb.{Error, IO}

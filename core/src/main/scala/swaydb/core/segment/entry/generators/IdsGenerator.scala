@@ -17,7 +17,7 @@
 package swaydb.core.segment.entry.generators
 
 import swaydb.core.segment.entry.id._
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.effect.Effect
 
 import java.nio.file.Paths

@@ -20,7 +20,7 @@ import org.scalatest.OptionValues._
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.serializers.Serializer
 import swaydb.{Bag, Glass}
 

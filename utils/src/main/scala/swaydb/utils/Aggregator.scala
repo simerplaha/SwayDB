@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 
-package swaydb
-
-import swaydb.data.slice.Slice
+package swaydb.utils
 
 import scala.collection.compat.IterableOnce
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.reflect.ClassTag
 
 /**
  * [[scala.collection.mutable.Builder]] requires two implementations for 2.13 and 2.12.
@@ -64,11 +61,11 @@ case object Aggregator {
       () =>
         Aggregator.listBuffer[A]
 
-    def slice[A: ClassTag]() =
-      new CreatorSizeable[A, Slice[A]] {
-        override def createNewSizeHint(size: Int): Aggregator[A, Slice[A]] =
-          Slice.newAggregator(size)
-      }
+//    def slice[A: ClassTag]() =
+//      new CreatorSizeable[A, Slice[A]] {
+//        override def createNewSizeHint(size: Int): Aggregator[A, Slice[A]] =
+//          Slice.newAggregator(size)
+//      }
 
     /**
      * Nothing disables inserting and adding elements the [[Aggregator]].

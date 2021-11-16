@@ -24,7 +24,7 @@ import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlock
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.util.Bytes
 import swaydb.data.config.IndexFormat
-import swaydb.data.slice.{Slice, SliceMut}
+import swaydb.slice.{Slice, SliceMut}
 import swaydb.macros.Sealed
 import swaydb.utils.ByteSizeOf
 

@@ -22,7 +22,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.sweeper.ByteBufferCleaner
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._

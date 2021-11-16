@@ -16,7 +16,7 @@
 
 package swaydb.core.level.compaction.task.assigner
 
-import swaydb.Aggregator
+import swaydb.utils.Aggregator
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.Level
@@ -30,7 +30,7 @@ import swaydb.core.segment.assigner.Assignable
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.PushStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.data.{MaxKey, NonEmptyList}
 import swaydb.utils.Futures
 

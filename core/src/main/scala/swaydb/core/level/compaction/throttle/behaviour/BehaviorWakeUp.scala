@@ -27,7 +27,7 @@ import swaydb.core.sweeper.FileSweeper
 import swaydb.data.NonEmptyList
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.PushStrategy
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.utils.FiniteDurations
 import swaydb.utils.FiniteDurations.FiniteDurationImplicits
 import swaydb.utils.Futures.{FutureUnitImplicits, _}

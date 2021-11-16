@@ -30,7 +30,7 @@ import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.block.{Block, BlockCache, BlockCacheState, BlockOffset, BlockOps}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.sweeper.MemorySweeper
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.effect.{IOAction, IOStrategy, Reserve}
 import swaydb.{Error, IO}
 

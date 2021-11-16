@@ -195,6 +195,7 @@ lazy val core =
       data,
       effect,
       utils,
+      slice,
       cache,
       actor,
       compression,
@@ -217,6 +218,7 @@ lazy val data =
       effect,
       actor,
       utils,
+      slice,
       testkit % Test
     )
 
@@ -241,6 +243,16 @@ lazy val series =
       data,
       testkit % Test,
       serializers % Test
+    )
+
+lazy val slice =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(
+      effect,
+      testkit % Test,
     )
 
 lazy val `data-java` =

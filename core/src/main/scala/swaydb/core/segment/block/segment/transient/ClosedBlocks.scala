@@ -23,7 +23,7 @@ import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset, SortedIndexBlockState}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset, ValuesBlockState}
 import swaydb.core.util.MinMax
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import scala.concurrent.duration.Deadline
 

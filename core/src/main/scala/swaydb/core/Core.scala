@@ -34,7 +34,7 @@ import swaydb.data.compaction.{CompactionConfig, LevelMeter}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.TupleOrNone
 
 import java.nio.file.Path

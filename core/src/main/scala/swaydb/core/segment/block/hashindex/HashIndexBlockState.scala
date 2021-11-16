@@ -3,7 +3,7 @@ package swaydb.core.segment.block.hashindex
 import swaydb.compression.CompressionInternal
 import swaydb.core.util.CRC32
 import swaydb.data.config.UncompressedBlockInfo
-import swaydb.data.slice.{Slice, SliceMut}
+import swaydb.slice.{Slice, SliceMut}
 
 import scala.beans.BeanProperty
 

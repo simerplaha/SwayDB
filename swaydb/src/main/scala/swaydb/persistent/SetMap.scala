@@ -26,7 +26,7 @@ import swaydb.data.compaction.{CompactionConfig, LevelMeter, LevelThrottle, Leve
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.data.{Atomic, DataType, Functions, OptimiseWrites}
 import swaydb.effect.Dir
 import swaydb.serializers.Serializer

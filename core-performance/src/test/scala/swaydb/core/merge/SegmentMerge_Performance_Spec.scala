@@ -20,7 +20,7 @@ import swaydb.core.data.{Memory, Time}
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 
 class SegmentMerge_Performance_Spec extends TestBase {

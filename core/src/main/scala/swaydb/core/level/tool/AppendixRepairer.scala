@@ -30,8 +30,8 @@ import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.KeyOrder
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
-import swaydb.data.slice.Slice
-import swaydb.data.slice.SliceIOImplicits._
+import swaydb.slice.Slice
+import swaydb.slice.SliceIOImplicits._
 import swaydb.effect.{Effect, Extension}
 import swaydb.utils.StorageUnits._
 

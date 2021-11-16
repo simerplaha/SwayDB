@@ -1,7 +1,7 @@
 package swaydb.core.segment.block
 
 import swaydb.core.segment.block.BlockCache.seekSize
-import swaydb.data.slice.{Slice, SliceRO, Slices}
+import swaydb.slice.{Slice, SliceRO, Slices}
 
 sealed trait BlockCacheIO {
 

@@ -18,7 +18,7 @@ package swaydb.core.log.serializer
 
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.log.LogEntry
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.slice.{ReaderBase, Slice}
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.Deadline

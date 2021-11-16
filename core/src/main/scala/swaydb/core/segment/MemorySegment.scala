@@ -31,7 +31,7 @@ import swaydb.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.slice.{Slice, SliceOption}
 
 import java.nio.file.Path
 import scala.collection.mutable.ListBuffer

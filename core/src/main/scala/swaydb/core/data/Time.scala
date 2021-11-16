@@ -18,8 +18,8 @@ package swaydb.core.data
 
 import swaydb.IO
 import swaydb.data.order.TimeOrder
-import swaydb.data.slice.Slice
-import swaydb.data.utils.ScalaByteOps
+import swaydb.slice.Slice
+import swaydb.slice.utils.ScalaByteOps
 import swaydb.utils.ByteSizeOf
 
 private[core] object Time {

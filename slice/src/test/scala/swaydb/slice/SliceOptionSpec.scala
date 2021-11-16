@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-package swaydb.data.slice
+package swaydb.slice
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.data.order.KeyOrder
 
 import scala.util.Random
 
 class SliceOptionSpec extends AnyWordSpec with Matchers {
-
-  implicit val keyOrder = KeyOrder.default
 
   def randomByte() = (Random.nextInt(256) - 128).toByte
   val slice: Slice[Int] = Slice(1, 2, 3)

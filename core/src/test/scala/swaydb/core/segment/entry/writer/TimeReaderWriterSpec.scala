@@ -24,7 +24,7 @@
 //import swaydb.core.io.reader.Reader
 //import swaydb.core.segment.entry.id.BaseEntryId
 //import swaydb.core.segment.entry.reader.TimeReader
-//import swaydb.data.slice.Slice
+//import swaydb.slice.Slice
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
 //

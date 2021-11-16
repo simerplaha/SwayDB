@@ -22,7 +22,7 @@ import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.log.{LogEntry, RecoveryResult}
 import swaydb.core.util.CRC32
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.utils.ByteSizeOf
 
 private[core] object LogEntrySerialiser extends LazyLogging {

@@ -19,7 +19,7 @@ package swaydb.core.segment.entry.reader
 import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.segment.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.slice.{ReaderBase, Slice}
 import swaydb.utils.ByteSizeOf
 
 import scala.annotation.implicitNotFound

@@ -23,7 +23,7 @@ import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.data.Functions
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.utils.StorageUnits._
 import swaydb.{Apply, Bag, Glass, MultiMap, Prepare, PureFunction}

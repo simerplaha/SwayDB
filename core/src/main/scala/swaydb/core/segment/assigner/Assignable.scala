@@ -16,13 +16,13 @@
 
 package swaydb.core.segment.assigner
 
-import swaydb.Aggregator
+import swaydb.utils.Aggregator
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.log.Log
 import swaydb.core.merge.stats.MergeStats
 import swaydb.data.MaxKey
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import scala.collection.mutable.ListBuffer
 

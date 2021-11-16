@@ -25,7 +25,7 @@ import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlock
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import scala.concurrent.duration.Deadline
 

@@ -19,7 +19,7 @@ package swaydb.core.segment.ref.search
 import swaydb.core.data.Persistent
 import swaydb.core.segment.ref.search.KeyMatcher.Result._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 private[core] sealed trait KeyMatcher {
   def key: Slice[Byte]

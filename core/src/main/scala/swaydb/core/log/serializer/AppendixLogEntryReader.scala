@@ -25,7 +25,7 @@ import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.slice.{ReaderBase, Slice}
 
 private[core] object AppendixLogEntryReader {
   def apply(mmapSegment: MMAP.Segment,

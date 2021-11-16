@@ -23,7 +23,7 @@ import swaydb.core.TestData._
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.Bytes
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.slice.{Slice, SliceRO, Slices}
+import swaydb.slice.{Slice, SliceRO, Slices}
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 

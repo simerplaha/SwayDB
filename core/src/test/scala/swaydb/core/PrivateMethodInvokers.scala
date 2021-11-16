@@ -23,7 +23,7 @@ import swaydb.core.segment.PersistentSegment
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.util.queue.VolatileQueue
 import swaydb.core.util.{HashedMap, IDGenerator}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}

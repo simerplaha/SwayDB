@@ -6,7 +6,7 @@ import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.config.UncompressedBlockInfo
-import swaydb.data.slice.{Slice, SliceMut}
+import swaydb.slice.{Slice, SliceMut}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline

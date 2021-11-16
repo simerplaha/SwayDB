@@ -19,7 +19,7 @@ package swaydb.core.log.serializer
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.{Segment, SegmentSerialiser}
 import swaydb.core.util.Bytes
-import swaydb.data.slice.{Slice, SliceMut}
+import swaydb.slice.{Slice, SliceMut}
 
 private[core] object AppendixLogEntryWriter {
 

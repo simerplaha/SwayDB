@@ -25,7 +25,7 @@ import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.{LevelMeter, LevelThrottle}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.effect.Dir
 import swaydb.{Error, IO}
 

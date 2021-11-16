@@ -20,7 +20,7 @@ import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.CompactionConfig
 import swaydb.data.config._
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.effect.Dir
 import swaydb.eventually.persistent.DefaultConfigs

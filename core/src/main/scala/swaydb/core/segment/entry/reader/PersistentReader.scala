@@ -24,7 +24,7 @@ import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.entry.id.PersistentToKeyValueIdBinder
 import swaydb.core.segment.entry.reader.base.BaseEntryReader
 import swaydb.core.util.Bytes
-import swaydb.data.slice.{ReaderBase, Slice, SliceOption}
+import swaydb.slice.{ReaderBase, Slice, SliceOption}
 import swaydb.utils.TupleOrNone
 
 object PersistentReader extends LazyLogging {

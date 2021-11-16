@@ -19,9 +19,9 @@ package swaydb.java.slice;
 import org.junit.jupiter.api.Test;
 import scala.Int;
 import scala.reflect.ClassTag;
-import swaydb.data.slice.Slice;
-import swaydb.data.slice.SliceReader;
-import swaydb.data.utils.ByteOps;
+import swaydb.slice.Slice;
+import swaydb.slice.SliceReader;
+import swaydb.slice.utils.ByteOps;
 
 import java.util.ArrayList;
 import java.util.Arrays;

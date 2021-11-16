@@ -16,7 +16,7 @@
 
 package swaydb.core.util
 
-import swaydb.data.slice.{Slice, SliceMut}
+import swaydb.slice.{Slice, SliceMut}
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag

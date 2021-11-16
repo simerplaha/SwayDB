@@ -27,7 +27,7 @@ import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockOffset
 import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.util.{Bytes, CRC32}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.utils.ByteSizeOf
 
 private[core] case object SegmentFooterBlock {

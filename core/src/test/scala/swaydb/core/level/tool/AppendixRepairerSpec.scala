@@ -27,7 +27,7 @@ import swaydb.data.compaction.LevelThrottle
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 import swaydb.effect.Effect
 import swaydb.effect.Effect._
 import swaydb.testkit.RunThis._

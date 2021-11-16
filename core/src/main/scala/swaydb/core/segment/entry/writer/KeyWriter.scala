@@ -19,7 +19,7 @@ package swaydb.core.segment.entry.writer
 import swaydb.core.data.Memory
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 trait KeyWriter {
   def write[T <: Memory](current: T,

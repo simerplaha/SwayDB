@@ -23,7 +23,7 @@ import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.data.config.UncompressedBlockInfo
-import swaydb.data.slice.{Slice, SliceMut}
+import swaydb.slice.{Slice, SliceMut}
 
 private[core] case object ValuesBlock {
 

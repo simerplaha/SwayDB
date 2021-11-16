@@ -32,7 +32,7 @@ import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.util.IDGenerator
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.{MMAP, SegmentRefCacheLife}
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import java.nio.file.Path
 import scala.collection.mutable.ListBuffer

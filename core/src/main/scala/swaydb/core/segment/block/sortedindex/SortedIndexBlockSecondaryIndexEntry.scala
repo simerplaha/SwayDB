@@ -1,6 +1,6 @@
 package swaydb.core.segment.block.sortedindex
 
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 /**
  * IndexEntries that are used to create secondary indexes - binarySearchIndex & hashIndex

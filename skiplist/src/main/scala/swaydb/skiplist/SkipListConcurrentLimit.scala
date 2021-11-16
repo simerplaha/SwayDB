@@ -17,7 +17,7 @@
 package swaydb.skiplist
 
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import java.util
 import scala.collection.mutable

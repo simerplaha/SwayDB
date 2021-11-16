@@ -22,7 +22,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.compression.CompressionTestGen._
 import swaydb.core.TestData._
 import swaydb.core.log.serializer.ValueSerializer.IntMapListBufferSerializer
-import swaydb.data.slice.Slice
+import swaydb.slice.Slice
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer

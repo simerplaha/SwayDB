@@ -20,7 +20,7 @@ import swaydb.core.data.Value
 import swaydb.core.data.Value.{Put, Remove, Update}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
-import swaydb.data.slice.{ReaderBase, Slice, SliceMut}
+import swaydb.slice.{ReaderBase, Slice, SliceMut}
 
 import scala.annotation.implicitNotFound
 
