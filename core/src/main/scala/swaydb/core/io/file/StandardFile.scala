@@ -79,7 +79,7 @@ private[file] class StandardFile(val path: Path,
   def append(slice: Slice[Byte]): Unit =
     Effect.writeUnclosed(channel, slice.toByteBufferWrap)
 
-  def append(slice: Array[Slice[Byte]]): Unit = {
+  def appendBatch(slice: Array[Slice[Byte]]): Unit = {
     var totalBytes = 0
 
     val buffers =

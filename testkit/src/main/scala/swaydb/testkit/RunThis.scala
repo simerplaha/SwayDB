@@ -109,6 +109,13 @@ object RunThis extends Eventually {
         f
     }
 
+  def runThisNumbered(times: Int, log: Boolean = false, otherInfo: String = "")(f: Int => Unit): Unit =
+    (1 to times) foreach {
+      i =>
+        if (log) println(s"Iteration: $i${if (otherInfo.nonEmpty) s": $otherInfo" else ""}/$times")
+        f(i)
+    }
+
   def runThisParallel(times: Int, log: Boolean = false, otherInfo: String = "")(f: => Unit)(implicit ec: ExecutionContext): Unit = {
     val futures =
       (1 to times) map {

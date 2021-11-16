@@ -170,8 +170,58 @@ private[file] class MMAPFile(val path: Path,
         )
     }
 
-  override def append(slice: Array[Slice[Byte]]): Unit =
-    slice foreach append
+  /**
+   * Increments the current size of existing [[buffer]].
+   */
+  private def incrementBufferSize(increment: Int) = {
+    val positionBeforeClear = buffer.position()
+    buffer.force()
+    clearBuffer()
+    buffer = channel.map(mode, 0, positionBeforeClear + increment)
+    buffer.position(positionBeforeClear)
+  }
+
+  override def appendBatch(slices: Array[Slice[Byte]]): Unit = {
+    /**
+     * Extends the buffer when if there is not enough room in the current mapped buffer.
+     */
+    @tailrec
+    def run(fromIndex: Int): Unit = {
+      var currentIndex = fromIndex
+      try
+        watchNullPointer[Unit] {
+          while (currentIndex < slices.length) {
+            buffer.put(slices(currentIndex).toByteBufferWrap)
+            currentIndex += 1
+          }
+        }
+      catch {
+        case ex: BufferOverflowException =>
+          watchNullPointer {
+            //Although this code extends the buffer, currently there is no implementation that requires this feature.
+            //All the bytes requires for each write operation are pre-calculated EXACTLY and an overflow should NEVER occur.
+
+            //calculate the total number of bytes needed
+            val requiredByteSize =
+              (currentIndex until slices.length).foldLeft(0) {
+                case (required, sliceIndex) =>
+                  required + slices(sliceIndex).size
+              }
+
+            logger.error(
+              "{}: BufferOverflowException. Required bytes: {}. Remaining bytes: {}. Extending buffer with {} bytes.",
+              path, requiredByteSize, buffer.remaining(), requiredByteSize, ex
+            )
+
+            incrementBufferSize(requiredByteSize)
+          }
+
+          run(currentIndex)
+      }
+    }
+
+    run(0)
+  }
 
   @tailrec
   final def append(slice: Slice[Byte]): Unit =
@@ -184,16 +234,12 @@ private[file] class MMAPFile(val path: Path,
           //All the bytes requires for each write operation are pre-calculated EXACTLY and an overflow should NEVER occur.
           val requiredByteSize = slice.size
 
-          logger.debug(
+          logger.error(
             "{}: BufferOverflowException. Required bytes: {}. Remaining bytes: {}. Extending buffer with {} bytes.",
             path, requiredByteSize, buffer.remaining(), requiredByteSize, ex
           )
 
-          val positionBeforeClear = buffer.position()
-          buffer.force()
-          clearBuffer()
-          buffer = channel.map(mode, 0, positionBeforeClear + requiredByteSize)
-          buffer.position(positionBeforeClear)
+          incrementBufferSize(requiredByteSize)
         }
         append(slice)
     }

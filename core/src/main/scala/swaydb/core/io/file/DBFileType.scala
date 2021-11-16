@@ -48,7 +48,7 @@ private[file] trait DBFileType extends FileSweeperItem {
 
   def append(slice: Slice[Byte]): Unit
 
-  def append(slice: Array[Slice[Byte]]): Unit
+  def appendBatch(slice: Array[Slice[Byte]]): Unit
 
   def transfer(position: Int, count: Int, transferTo: DBFileType): Int
 

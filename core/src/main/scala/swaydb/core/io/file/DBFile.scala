@@ -184,7 +184,7 @@ object DBFile extends LazyLogging {
         deleteAfterClean = deleteAfterClean
       )
 
-    file.append(bytes)
+    file.appendBatch(bytes)
     file
   }
 
@@ -370,8 +370,8 @@ class DBFile(val path: Path,
   def append(slice: Slice[Byte]) =
     fileCache.value(()).get.append(slice)
 
-  def append(slice: Array[Slice[Byte]]) =
-    fileCache.value(()).get.append(slice)
+  def appendBatch(slice: Array[Slice[Byte]]) =
+    fileCache.value(()).get.appendBatch(slice)
 
   def read(position: Int,
            size: Int): Slice[Byte] =

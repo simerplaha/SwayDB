@@ -457,13 +457,12 @@ class DBFileSpec extends TestBase with MockFactory {
     }
   }
 
-  "mmapInit" should {
-    "open a file for writing" in {
-      runThis(10.times, log = true) {
+  "open a file for writing and handle BufferOverflow" in {
+    runThisNumbered(10.times, log = true) {
+      testNumber =>
         TestCaseSweeper {
           implicit sweeper =>
             import sweeper._
-            val testFile = randomFilePath
             val bytes1 = Slice("bytes one".getBytes())
             val bytes2 = Slice("bytes two".getBytes())
             val bytes3 = Slice("bytes three".getBytes())
@@ -475,30 +474,54 @@ class DBFileSpec extends TestBase with MockFactory {
               bytes1.size + bytes2.size + bytes3.size + (bytes4.size / (randomIntMax(3) max 1))
             }
 
-            val file =
+            val mmapFile =
               DBFile.mmapInit(
-                path = testFile,
+                path = randomFilePath,
                 fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                 bufferSize = bufferSize,
                 autoClose = true,
                 deleteAfterClean = OperatingSystem.isWindows,
                 forceSave = TestForceSave.mmap()
-              )
+              ).sweep()
 
-            file.append(bytes1)
-            file.isFull shouldBe false
-            file.append(bytes2)
-            file.isFull shouldBe false
-            file.append(bytes3)
-            //          file.isFull shouldBe true
-            file.append(bytes4) //overflow write, buffer gets extended
-            file.isFull shouldBe true
+            val standardFile =
+              DBFile.standardWrite(
+                path = randomFilePath,
+                fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                autoClose = true,
+                forceSave = TestForceSave.channel()
+              ).sweep()
 
-            file.readAll shouldBe (bytes1 ++ bytes2 ++ bytes3 ++ bytes4)
+            Seq(mmapFile, standardFile) foreach {
+              file =>
+                //Either use batch append or singular appends.
+                if (testNumber % 2 == 0) {
+                  //bytes4 will cause buffer overflow.
+                  file.appendBatch(Array(bytes1, bytes2, bytes3, bytes4))
+                  if (file.isMemoryMapped) file.isFull shouldBe true
+                } else {
+                  file.append(bytes1)
+                  file.isFull shouldBe false
+                  file.append(bytes2)
+                  file.isFull shouldBe false
+                  file.append(bytes3)
+                  //          file.isFull shouldBe true
+                  file.append(bytes4) //overflow write, buffer gets extended
+                  if (file.isMemoryMapped) file.isFull shouldBe true
+                }
+
+                val allBytes = bytes1 ++ bytes2 ++ bytes3 ++ bytes4
+
+                if (file.isMemoryMapped)
+                  file.readAll shouldBe allBytes
+                else
+                  Effect.readAllBytes(standardFile.path) shouldBe allBytes.toArray
+            }
         }
-      }
     }
+  }
 
+  "mmapInit" should {
     "fail to initialise if it already exists" in {
       TestCaseSweeper {
         implicit sweeper =>
