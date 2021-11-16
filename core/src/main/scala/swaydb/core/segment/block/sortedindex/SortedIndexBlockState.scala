@@ -4,7 +4,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.Memory
 import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.core.util.MinMax
-import swaydb.data.MaxKey
+import swaydb.slice.MaxKey
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.slice.{Slice, SliceMut}
 

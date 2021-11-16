@@ -18,9 +18,8 @@ package swaydb.java
 
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.java.data.util.Java._
+import swaydb.java.util.Java._
 import swaydb.utils.Java._
-import swaydb.utils.Pair
 import swaydb.{Apply, Expiration, Glass, Prepare, PureFunction}
 
 import java.nio.file.Path

@@ -19,10 +19,10 @@ package swaydb.java;
 
 import org.junit.jupiter.api.Test;
 import swaydb.*;
-import swaydb.data.java.TestBase;
+import swaydb.java.TestBase;
 import swaydb.java.memory.MemorySet;
 import swaydb.java.serializers.Serializer;
-import swaydb.utils.Pair;
+import swaydb.java.Pair;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -31,7 +31,7 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static swaydb.data.java.JavaEventually.eventually;
+import static swaydb.java.JavaEventually.eventually;
 import static swaydb.java.serializers.Default.intSerializer;
 
 abstract class SetTest extends TestBase {

@@ -18,7 +18,7 @@ package swaydb.java;
 
 import swaydb.Apply;
 import swaydb.PureFunction;
-import swaydb.data.java.TestBase;
+import swaydb.java.TestBase;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;

@@ -27,7 +27,7 @@ import swaydb.core._
 import swaydb.core.data._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.data.MaxKey
+import swaydb.slice.MaxKey
 import swaydb.data.config.MMAP
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice

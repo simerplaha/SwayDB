@@ -22,7 +22,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
-import swaydb.data.MaxKey
+import swaydb.slice.MaxKey
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.serializers.Default._

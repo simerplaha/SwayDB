@@ -18,7 +18,7 @@ package swaydb.java;
 
 import org.junit.jupiter.api.Test;
 import swaydb.Prepare;
-import swaydb.data.java.TestBase;
+import swaydb.java.TestBase;
 import swaydb.java.multimap.MultiPrepareBuilder;
 import swaydb.java.serializers.Serializer;
 import swaydb.java.table.domain.table.key.Key;
@@ -42,7 +42,7 @@ import java.util.Iterator;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
-import static swaydb.data.java.JavaTest.*;
+import static swaydb.java.JavaTest.*;
 import static swaydb.java.serializers.Default.intSerializer;
 import static swaydb.java.serializers.Default.stringSerializer;
 

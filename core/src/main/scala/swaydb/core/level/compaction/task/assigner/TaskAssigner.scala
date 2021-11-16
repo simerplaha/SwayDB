@@ -23,7 +23,7 @@ import swaydb.core.level.compaction.task.CompactionDataType._
 import swaydb.core.level.compaction.task.{CompactionDataType, CompactionTask}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, AssignmentResult}
-import swaydb.data.MaxKey
+import swaydb.slice.MaxKey
 import swaydb.data.compaction.PushStrategy
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder

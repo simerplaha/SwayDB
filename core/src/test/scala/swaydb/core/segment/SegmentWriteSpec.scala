@@ -41,7 +41,7 @@ import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.util.IDGenerator
-import swaydb.data.MaxKey
+import swaydb.slice.MaxKey
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
 import swaydb.slice.order.{KeyOrder, TimeOrder}

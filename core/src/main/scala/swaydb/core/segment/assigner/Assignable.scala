@@ -21,7 +21,7 @@ import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.log.Log
 import swaydb.core.merge.stats.MergeStats
-import swaydb.data.MaxKey
+import swaydb.slice.MaxKey
 import swaydb.slice.Slice
 
 import scala.collection.mutable.ListBuffer

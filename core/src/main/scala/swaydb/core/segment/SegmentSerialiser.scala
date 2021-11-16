@@ -23,7 +23,7 @@ import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.Bytes
-import swaydb.data.MaxKey
+import swaydb.slice.MaxKey
 import swaydb.data.config.{MMAP, SegmentRefCacheLife}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{ReaderBase, Slice, SliceMut}

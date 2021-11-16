@@ -19,7 +19,7 @@ package swaydb.java;
 import org.junit.jupiter.api.Test;
 import swaydb.Exception;
 import swaydb.data.DataType;
-import swaydb.data.java.TestBase;
+import swaydb.java.TestBase;
 import swaydb.java.persistent.PersistentMap;
 import swaydb.java.persistent.PersistentSet;
 
@@ -28,7 +28,7 @@ import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static swaydb.data.java.JavaTest.shouldBe;
+import static swaydb.java.JavaTest.shouldBe;
 import static swaydb.java.serializers.Default.intSerializer;
 
 

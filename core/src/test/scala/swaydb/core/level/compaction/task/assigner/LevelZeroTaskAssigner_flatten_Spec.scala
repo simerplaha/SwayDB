@@ -21,7 +21,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.Segment
 import swaydb.core.{merge => _, _}
-import swaydb.data.MaxKey
+import swaydb.slice.MaxKey
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice

@@ -144,8 +144,7 @@ lazy val SwayDB =
       utils,
       effect,
       core,
-      data,
-      `data-java`,
+      `core-config`,
       actor,
       stream,
       cache,
@@ -192,7 +191,7 @@ lazy val core =
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(
-      data,
+      `core-config`,
       effect,
       utils,
       slice,
@@ -203,12 +202,11 @@ lazy val core =
       testkit % Test,
       macros % "test->test;compile-internal",
       compression % Test,
-      data % Test,
       configs % Test,
       serializers % Test
     )
 
-lazy val data =
+lazy val `core-config` =
   project
     .settings(commonSettings)
     .settings(publishSettings)
@@ -228,8 +226,9 @@ lazy val skiplist =
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(
-      data,
       series,
+      effect,
+      slice,
       testkit % Test,
       serializers % Test
     )
@@ -240,7 +239,6 @@ lazy val series =
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(
-      data,
       testkit % Test,
       serializers % Test
     )
@@ -253,18 +251,6 @@ lazy val slice =
     .dependsOn(
       effect,
       testkit % Test,
-    )
-
-lazy val `data-java` =
-  project
-    .settings(commonSettings)
-    .settings(publishSettings)
-    .settings(libraryDependencies ++= commonJavaDependencies)
-    .dependsOn(
-      data,
-      actor,
-      stream,
-      utils
     )
 
 lazy val actor =
@@ -309,13 +295,13 @@ lazy val configs =
   project
     .settings(commonSettings)
     .settings(publishSettings)
-    .dependsOn(data)
+    .dependsOn(`core-config`)
 
 lazy val serializers =
   project
     .settings(commonSettings)
     .settings(publishSettings)
-    .dependsOn(data)
+    .dependsOn(slice)
 
 lazy val `core-stress` =
   project
@@ -339,7 +325,7 @@ lazy val compression =
           :+ "org.lz4" % "lz4-java" % lz4Version
           :+ "org.xerial.snappy" % "snappy-java" % snappyVersion
     )
-    .dependsOn(data, serializers % Test)
+    .dependsOn(`core-config`, serializers % Test)
 
 lazy val macros =
   project
@@ -361,7 +347,7 @@ lazy val `swaydb-java` =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonJavaDependencies)
-    .dependsOn(swaydb, `data-java`)
+    .dependsOn(swaydb)
 
 /**
  * Support modules - Effect
@@ -372,7 +358,7 @@ lazy val `x-interop-monix` =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies += "io.monix" %% "monix" % monixVersion)
-    .dependsOn(data)
+    .dependsOn(effect)
 
 lazy val `x-interop-zio` =
   project
@@ -380,7 +366,7 @@ lazy val `x-interop-zio` =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies += "dev.zio" %% "zio" % zioVersion)
-    .dependsOn(data)
+    .dependsOn(effect)
 
 lazy val `x-interop-cats-effect` =
   project
@@ -388,7 +374,7 @@ lazy val `x-interop-cats-effect` =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies += "org.typelevel" %% "cats-effect" % catsEffectVersion)
-    .dependsOn(data)
+    .dependsOn(effect)
 
 /**
  * Support modules - Serialisers.
@@ -399,4 +385,4 @@ lazy val `x-interop-boopickle` =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies += "io.suzaku" %% "boopickle" % boopickleVersion)
-    .dependsOn(serializers)
+    .dependsOn(serializers, slice)

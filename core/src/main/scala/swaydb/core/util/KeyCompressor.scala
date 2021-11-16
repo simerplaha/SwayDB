@@ -17,7 +17,7 @@
 package swaydb.core.util
 
 import swaydb.core.data.{Memory, MemoryOption}
-import swaydb.data.MaxKey
+import swaydb.slice.MaxKey
 import swaydb.slice.Slice
 
 

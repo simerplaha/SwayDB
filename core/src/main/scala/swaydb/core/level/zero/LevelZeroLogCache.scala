@@ -20,10 +20,10 @@ import swaydb.Bag
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.log.{LogCache, LogCacheBuilder, LogEntry}
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.skiplist.{SkipList, SkipListConcurrent, SkipListSeries}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.{Slice, SliceOption}
-import swaydb.data.{Atomic, MaxKey, MaxKeyOption, OptimiseWrites}
+import swaydb.slice.{MaxKey, MaxKeyOption, Slice, SliceOption}
 
 import scala.collection.mutable.ListBuffer
 

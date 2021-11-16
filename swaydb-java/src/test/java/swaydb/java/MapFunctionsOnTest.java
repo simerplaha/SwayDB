@@ -20,9 +20,9 @@ import org.junit.jupiter.api.Test;
 import swaydb.Exception;
 import swaydb.*;
 import swaydb.core.Core;
-import swaydb.data.java.TestBase;
+import swaydb.java.TestBase;
 import swaydb.java.serializers.Serializer;
-import swaydb.utils.KeyVal;
+import swaydb.java.KeyVal;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static swaydb.PureFunctionJava.*;
-import static swaydb.data.java.JavaTest.*;
+import static swaydb.java.JavaTest.*;
 import static swaydb.java.serializers.Default.intSerializer;
 import static swaydb.java.serializers.Default.stringSerializer;
 

@@ -21,7 +21,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
-import swaydb.data.MaxKey
+import swaydb.slice.MaxKey
 import swaydb.slice.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._

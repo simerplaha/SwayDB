@@ -18,10 +18,9 @@ package swaydb.skiplist
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.series.growable.SeriesGrowableList
-import swaydb.utils.{English, WhenOccurs}
-import swaydb.data.OptimiseWrites
-import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
+import swaydb.utils.{English, WhenOccurs}
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
@@ -58,8 +57,8 @@ private[swaydb] object SkipListSeries {
 
   def randomWriteWarning(count: Long): String =
     s"Performance warning! Random write inserted $count ${English.plural(count, "time")}. " +
-      s"${OptimiseWrites.productPrefix}.${classOf[OptimiseWrites.SequentialOrder].getSimpleName} is not optimised for random writes. " +
-      s"Consider using ${OptimiseWrites.productPrefix}.${classOf[OptimiseWrites.RandomOrder].getSimpleName}."
+      s"OptimiseWrites.SequentialOrder is not optimised for random writes. " +
+      s"Consider using OptimiseWrites.RandomOrder."
 
   def apply[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](lengthPerSeries: Int,
                                                                             nullKey: OptionKey,

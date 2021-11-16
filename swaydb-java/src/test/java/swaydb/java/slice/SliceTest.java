@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static swaydb.data.java.JavaTest.*;
+import static swaydb.java.JavaTest.*;
 
 public class SliceTest {
 

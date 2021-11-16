@@ -33,7 +33,7 @@ import swaydb.core.segment.ref.search.{SegmentSearcher, ThreadReadState}
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.MinMax
 import swaydb.skiplist.{SkipList, SkipListConcurrent, SkipListConcurrentLimit}
-import swaydb.data.MaxKey
+import swaydb.slice.MaxKey
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.SomeOrNoneCovariant

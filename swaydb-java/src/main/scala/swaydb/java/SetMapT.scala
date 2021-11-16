@@ -19,7 +19,6 @@ package swaydb.java
 import swaydb.Expiration
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.utils.KeyVal
 
 import java.nio.file.Path
 import java.time.Duration

@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.build.Build
 import swaydb.core.level.tool.AppendixRepairer
 import swaydb.core.sweeper.FileSweeper
-import swaydb.data.MaxKey
+import swaydb.slice.MaxKey
 import swaydb.slice.order.KeyOrder
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._

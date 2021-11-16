@@ -27,7 +27,7 @@ import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.{MemorySegment, PersistentSegment, Segment}
 import swaydb.core.util.MinMax
-import swaydb.data.MaxKey
+import swaydb.slice.MaxKey
 import swaydb.slice.Slice
 
 import scala.concurrent.Future

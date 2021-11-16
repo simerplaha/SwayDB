@@ -19,7 +19,7 @@ package swaydb.core.segment.defrag
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.Segment
 import swaydb.core.segment.ref.SegmentRef
-import swaydb.data.MaxKey
+import swaydb.slice.MaxKey
 import swaydb.slice.Slice
 
 import scala.annotation.implicitNotFound

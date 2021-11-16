@@ -22,12 +22,12 @@ import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
 import scala.Int;
 import swaydb.Prepare;
-import swaydb.data.java.TestBase;
+import swaydb.java.TestBase;
 import swaydb.java.serializers.Serializer;
 import swaydb.slice.Slice;
 import swaydb.slice.utils.ByteOps;
-import swaydb.utils.KeyVal;
-import swaydb.utils.Pair;
+import swaydb.java.KeyVal;
+import swaydb.java.Pair;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -36,8 +36,8 @@ import java.util.*;
 
 import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static swaydb.data.java.JavaEventually.sleep;
-import static swaydb.data.java.JavaTest.*;
+import static swaydb.java.JavaEventually.sleep;
+import static swaydb.java.JavaTest.*;
 import static swaydb.java.serializers.Default.intSerializer;
 import static swaydb.java.serializers.Default.stringSerializer;
 
