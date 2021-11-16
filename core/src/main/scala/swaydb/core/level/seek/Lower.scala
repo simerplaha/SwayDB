@@ -22,7 +22,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.level.LevelSeek
 import swaydb.core.merge._
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 
 import scala.annotation.tailrec

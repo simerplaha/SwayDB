@@ -29,7 +29,7 @@ import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.serializers.Default._

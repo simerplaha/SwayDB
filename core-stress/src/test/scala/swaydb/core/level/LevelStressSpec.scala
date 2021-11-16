@@ -24,7 +24,7 @@
 //import swaydb.core.TestData._
 //import swaydb.core.group.compression.data.GroupByInternal.KeyValues
 //import swaydb.core.util.Benchmark
-//import swaydb.data.order.KeyOrder
+//import swaydb.slice.order.KeyOrder
 //import swaydb.data.util.StorageUnits._
 //
 //import scala.collection.immutable

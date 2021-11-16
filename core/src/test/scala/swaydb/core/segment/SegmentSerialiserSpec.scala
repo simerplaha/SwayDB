@@ -23,7 +23,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.config.MMAP
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 

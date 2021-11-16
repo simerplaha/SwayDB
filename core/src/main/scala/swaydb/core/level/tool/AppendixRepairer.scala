@@ -27,7 +27,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.data.config.{ForceSave, MMAP}
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
 import swaydb.slice.Slice

@@ -46,7 +46,7 @@ import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.{MMAP, SegmentRefCacheLife}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 
 import java.nio.file.{Path, Paths}

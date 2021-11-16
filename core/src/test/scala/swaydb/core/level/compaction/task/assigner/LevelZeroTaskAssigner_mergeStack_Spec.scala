@@ -25,7 +25,7 @@ import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

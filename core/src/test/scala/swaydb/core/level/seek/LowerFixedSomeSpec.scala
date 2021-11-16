@@ -26,7 +26,7 @@ import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.LevelSeek
 import swaydb.core.merge.FixedMerger
 import swaydb.core.{TestData, TestTimer}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

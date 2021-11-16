@@ -35,7 +35,7 @@ case object OptimiseWrites {
 
   /**
    * Optimises writes for sequential order. Eg: if you inserts are simple
-   * sequential put eg - 1, 2, 3 ... N with [[swaydb.data.order.KeyOrder.integer]].
+   * sequential put eg - 1, 2, 3 ... N with [[swaydb.slice.order.KeyOrder.integer]].
    * Then this setting would increase write throughput.
    *
    * @param initialSkipListLength set the initial length of SkipList's Array.

@@ -22,7 +22,7 @@ import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
 import swaydb.data.NonEmptyList
 import swaydb.data.compaction.PushStrategy
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 
 case object LevelTaskAssigner {

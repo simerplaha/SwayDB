@@ -28,7 +28,7 @@ import swaydb.utils.DropIterator
 import swaydb.core.util.queue.VolatileQueue
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{MMAP, RecoveryMode}
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.SliceIOImplicits._
 import swaydb.effect.Effect
 import swaydb.effect.Effect._

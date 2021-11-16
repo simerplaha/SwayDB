@@ -44,7 +44,7 @@ import swaydb.core.util.{Benchmark, IDGenerator}
 import swaydb.data.MaxKey
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.effect.Effect._
 import swaydb.effect.{Dir, Effect, Extension}

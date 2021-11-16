@@ -24,7 +24,7 @@ import swaydb.core.log.serializer.{LogEntryReader, LogEntrySerialiser, LogEntryW
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper}
 import swaydb.data.config.MMAP
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.slice.SliceIOImplicits._
 import swaydb.effect.Effect._

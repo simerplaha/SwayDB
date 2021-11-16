@@ -18,7 +18,7 @@ import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, Persistent
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.config.MemoryCache
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.effect.IOStrategy
 import swaydb.serializers.Default._

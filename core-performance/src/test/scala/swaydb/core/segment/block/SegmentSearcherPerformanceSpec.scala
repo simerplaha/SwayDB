@@ -22,7 +22,7 @@
 //import swaydb.core.io.file.BlockCache
 //import swaydb.core.util.Benchmark
 //import swaydb.data.config.IOStrategy
-//import swaydb.data.order.KeyOrder
+//import swaydb.slice.order.KeyOrder
 //import swaydb.slice.Slice
 //import swaydb.serializers.Default._
 //import swaydb.serializers._

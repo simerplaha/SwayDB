@@ -29,7 +29,7 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.PushStrategy
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.data.{MaxKey, NonEmptyList}
 import swaydb.utils.Futures

@@ -23,7 +23,7 @@ import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.defrag.DefragSource._
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 
 import scala.collection.mutable.ListBuffer

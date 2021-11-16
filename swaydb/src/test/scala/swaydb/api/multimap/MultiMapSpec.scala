@@ -22,7 +22,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.multimap.MultiPrepare
 import swaydb.serializers.Default._

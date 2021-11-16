@@ -28,7 +28,7 @@ import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.IDGenerator
 import swaydb.data.config.{ForceSave, MMAP, SegmentRefCacheLife}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.slice.SliceIOImplicits._
 import swaydb.{Error, IO}

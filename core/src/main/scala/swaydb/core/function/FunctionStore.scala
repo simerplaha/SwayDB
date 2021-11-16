@@ -18,7 +18,7 @@ package swaydb.core.function
 
 import swaydb.OK
 import swaydb.core.data.{SwayFunction, Value}
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 
 import java.util.concurrent.ConcurrentHashMap

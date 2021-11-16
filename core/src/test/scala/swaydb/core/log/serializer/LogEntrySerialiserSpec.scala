@@ -26,7 +26,7 @@ import swaydb.core.data._
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.skiplist.SkipListConcurrent
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.serializers.Default._
 import swaydb.serializers._

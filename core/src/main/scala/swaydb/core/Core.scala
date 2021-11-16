@@ -32,7 +32,7 @@ import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.{CompactionConfig, LevelMeter}
 import swaydb.data.config._
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.TupleOrNone

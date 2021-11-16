@@ -26,7 +26,7 @@ import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.level.LevelSeek
 import swaydb.core.{TestData, TestTimer}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

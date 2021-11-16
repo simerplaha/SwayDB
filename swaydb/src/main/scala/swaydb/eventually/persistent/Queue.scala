@@ -22,7 +22,7 @@ import swaydb.core.build.BuildValidator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.CompactionConfig
 import swaydb.data.config._
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
 import swaydb.slice.Slice
 import swaydb.data.{Atomic, DataType, OptimiseWrites}

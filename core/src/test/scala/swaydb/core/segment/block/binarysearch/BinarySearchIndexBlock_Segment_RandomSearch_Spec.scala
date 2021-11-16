@@ -24,7 +24,7 @@ import swaydb.core.data.{Memory, Persistent, PersistentOption}
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

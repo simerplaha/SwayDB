@@ -26,7 +26,7 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.NonEmptyList
 import swaydb.data.compaction.PushStrategy
 import swaydb.data.config.MMAP
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

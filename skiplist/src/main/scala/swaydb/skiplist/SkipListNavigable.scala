@@ -17,7 +17,7 @@
 package swaydb.skiplist
 
 import swaydb.utils.NullOps
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 
 import java.util

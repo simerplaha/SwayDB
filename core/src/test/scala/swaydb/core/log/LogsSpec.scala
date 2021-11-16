@@ -27,7 +27,7 @@ import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.{MMAP, RecoveryMode}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.effect.Effect._

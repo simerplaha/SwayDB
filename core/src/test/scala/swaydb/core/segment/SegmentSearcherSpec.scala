@@ -28,7 +28,7 @@ import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.SegmentSearcher
 import swaydb.core.util.Benchmark
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

@@ -31,7 +31,7 @@ import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

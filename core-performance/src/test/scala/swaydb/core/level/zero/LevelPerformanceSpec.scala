@@ -22,7 +22,7 @@
 //import swaydb.core.segment.ReadState
 //import swaydb.core.util.{Benchmark, SkipList}
 //import swaydb.core.{TestBase, TestSweeper}
-//import swaydb.data.order.KeyOrder
+//import swaydb.slice.order.KeyOrder
 //import swaydb.slice.Slice
 //import swaydb.data.util.StorageUnits._
 //

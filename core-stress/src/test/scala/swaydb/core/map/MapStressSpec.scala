@@ -25,7 +25,7 @@
 //import swaydb.core.level.zero.LevelZeroSkipListMerger
 //import swaydb.core.log.serializer.LevelZeroLogEntryWriter.Level0PutWriter
 //import swaydb.core.{TestBase, TestSweeper, TestTimer}
-//import swaydb.data.order.{KeyOrder, TimeOrder}
+//import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.slice.Slice
 //import swaydb.data.util.StorageUnits._
 //

@@ -28,7 +28,7 @@ import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.config.UncompressedBlockInfo
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.{Slice, SliceMut, SliceRO}
 import swaydb.utils.{ByteSizeOf, FiniteDurations}
 

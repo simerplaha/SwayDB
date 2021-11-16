@@ -24,7 +24,7 @@ import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util.IDGenerator
 import swaydb.data.config.MMAP
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.utils.StorageUnits._
 
 import java.nio.file.Path

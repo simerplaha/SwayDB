@@ -26,7 +26,7 @@ import swaydb.core.log.serializer.LevelZeroLogEntryWriter
 import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.MergeStats
 import swaydb.skiplist.{SkipListConcurrent, SkipListSeries}
-import swaydb.data.order.TimeOrder
+import swaydb.slice.order.TimeOrder
 import swaydb.slice.Slice
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.serializers.Default._
@@ -34,7 +34,7 @@ import swaydb.serializers._
 
 class LevelZeroLogCacheSpec extends AnyWordSpec with Matchers {
 
-  implicit val keyOrder = swaydb.data.order.KeyOrder.default
+  implicit val keyOrder = swaydb.slice.order.KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder = TimeOrder.long
 

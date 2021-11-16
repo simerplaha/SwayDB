@@ -18,7 +18,7 @@ package swaydb.skiplist
 
 import swaydb.Bag
 import swaydb.skiplist.AtomicRanges
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 
 private[swaydb] trait SkipList[OK, OV, K <: OK, V <: OV] {
 

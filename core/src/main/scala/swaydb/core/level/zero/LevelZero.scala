@@ -43,7 +43,7 @@ import swaydb.core.{CoreState, MemoryPathGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, LevelZeroThrottle}
 import swaydb.data.config.MMAP
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.{Atomic, OptimiseWrites}

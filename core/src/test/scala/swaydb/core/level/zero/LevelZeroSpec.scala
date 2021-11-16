@@ -31,7 +31,7 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.LevelThrottle
 import swaydb.data.config.MMAP
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.data.storage.LevelStorage
 import swaydb.effect.{Dir, Effect}

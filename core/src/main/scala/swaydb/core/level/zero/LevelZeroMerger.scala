@@ -22,7 +22,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.level.zero.LevelZeroLogCache.State
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.merge.{FixedMerger, KeyValueMerger}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 
 import scala.collection.mutable.ListBuffer

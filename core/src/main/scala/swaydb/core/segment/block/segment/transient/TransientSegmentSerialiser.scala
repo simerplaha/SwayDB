@@ -33,7 +33,7 @@ import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.utils.ByteSizeOf
 

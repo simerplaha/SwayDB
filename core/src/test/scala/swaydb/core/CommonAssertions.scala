@@ -51,7 +51,7 @@ import swaydb.core.sweeper.{ByteBufferSweeper, MemorySweeper}
 import swaydb.skiplist.SkipListConcurrent
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.PushStrategy
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.SliceIOImplicits._
 import swaydb.slice.{Reader, Slice, SliceOption, SliceReader}
 import swaydb.data.{Atomic, OptimiseWrites}

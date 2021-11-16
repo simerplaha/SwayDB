@@ -28,7 +28,7 @@
 //import swaydb.core.{TestBase, TestSweeper, TestTimer}
 //import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 //import swaydb.data.config.RecoveryMode
-//import swaydb.data.order.{KeyOrder, TimeOrder}
+//import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.slice.Slice
 //import swaydb.data.util.StorageUnits._
 //

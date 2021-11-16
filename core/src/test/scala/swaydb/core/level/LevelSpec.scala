@@ -28,7 +28,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.data.storage.LevelStorage
 import swaydb.effect.Effect._

@@ -21,7 +21,7 @@ import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.CompactionConfig
 import swaydb.data.config._
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.effect.Dir

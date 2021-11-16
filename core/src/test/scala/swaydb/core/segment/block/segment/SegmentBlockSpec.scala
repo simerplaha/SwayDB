@@ -30,7 +30,7 @@ import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

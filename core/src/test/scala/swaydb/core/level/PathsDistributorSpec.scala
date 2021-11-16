@@ -21,7 +21,7 @@ import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.effect
 import swaydb.effect.{Dir, Effect}
 import swaydb.testkit.RunThis._

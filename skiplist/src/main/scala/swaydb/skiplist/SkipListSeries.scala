@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.series.growable.SeriesGrowableList
 import swaydb.utils.{English, WhenOccurs}
 import swaydb.data.OptimiseWrites
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 
 import scala.collection.mutable.ListBuffer

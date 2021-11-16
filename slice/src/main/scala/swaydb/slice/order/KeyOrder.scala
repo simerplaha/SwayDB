@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.data.order
+package swaydb.slice.order
 
 import swaydb.slice.Slice
 

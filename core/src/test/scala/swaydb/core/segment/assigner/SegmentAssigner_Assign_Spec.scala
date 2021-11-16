@@ -24,7 +24,7 @@ import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, Persistent
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.config.MMAP
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem

@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Bytes
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.serializers.Serializer
 import swaydb.stream.StreamFree

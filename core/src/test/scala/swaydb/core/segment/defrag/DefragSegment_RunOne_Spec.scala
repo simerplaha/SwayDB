@@ -34,7 +34,7 @@ import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

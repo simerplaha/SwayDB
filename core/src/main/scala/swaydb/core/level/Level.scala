@@ -47,7 +47,7 @@ import swaydb.core.util.Exceptions._
 import swaydb.core.util._
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.{LevelMeter, LevelThrottle}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.SliceIOImplicits._
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.data.storage.LevelStorage

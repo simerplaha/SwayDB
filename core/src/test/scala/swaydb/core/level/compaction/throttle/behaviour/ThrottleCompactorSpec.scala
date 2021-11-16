@@ -28,7 +28,7 @@
 //import swaydb.testkit.RunThis._
 //import swaydb.data.compaction.CompactionExecutionContext
 //import swaydb.data.config.MMAP
-//import swaydb.data.order.{KeyOrder, TimeOrder}
+//import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.slice.Slice
 //import swaydb.data.util.OperatingSystem
 //

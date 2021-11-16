@@ -16,7 +16,7 @@
 
 package swaydb.data
 
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.utils.SomeOrNoneCovariant
 

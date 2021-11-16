@@ -25,7 +25,7 @@ import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.ref.search.KeyMatcher
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.{SomeOrNone, SomeOrNoneCovariant, TupleOrNone}
 

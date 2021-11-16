@@ -3,7 +3,7 @@ package swaydb
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.MaxKey
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 
 class MaxKeySpec extends AnyWordSpec with Matchers {

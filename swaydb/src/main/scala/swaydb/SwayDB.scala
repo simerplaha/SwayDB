@@ -21,7 +21,7 @@ import swaydb.core.build.Build
 import swaydb.core.level.tool.AppendixRepairer
 import swaydb.core.sweeper.FileSweeper
 import swaydb.data.MaxKey
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
 import swaydb.slice.Slice

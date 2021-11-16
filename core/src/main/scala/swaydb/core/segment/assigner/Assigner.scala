@@ -24,7 +24,7 @@ import swaydb.core.segment.{PersistentSegmentMany, Segment}
 import swaydb.utils.DropIterator
 import swaydb.skiplist.SkipList
 import swaydb.data.MaxKey
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.{Slice, SliceOption}
 
 import scala.annotation.tailrec

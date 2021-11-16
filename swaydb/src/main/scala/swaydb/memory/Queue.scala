@@ -21,7 +21,7 @@ import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config._
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
 import swaydb.slice.Slice
 import swaydb.data.{Atomic, OptimiseWrites}

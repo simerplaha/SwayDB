@@ -31,7 +31,7 @@ import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.{Bytes, Collections, MinMax}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config._
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.utils.Futures._
 import swaydb.utils.{ByteSizeOf, Futures}

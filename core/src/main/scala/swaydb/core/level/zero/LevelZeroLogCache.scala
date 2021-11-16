@@ -21,7 +21,7 @@ import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.log.{LogCache, LogCacheBuilder, LogEntry}
 import swaydb.skiplist.{SkipList, SkipListConcurrent, SkipListSeries}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.data.{Atomic, MaxKey, MaxKeyOption, OptimiseWrites}
 

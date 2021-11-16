@@ -20,7 +20,7 @@ import swaydb.IOValues._
 import swaydb._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis._

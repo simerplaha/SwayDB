@@ -25,7 +25,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data._
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

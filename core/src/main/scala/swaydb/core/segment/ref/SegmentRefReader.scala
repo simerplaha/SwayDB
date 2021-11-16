@@ -20,7 +20,7 @@ import swaydb.core.data.{KeyValue, Persistent, PersistentOption}
 import swaydb.core.segment.ref.search.{SegmentReadState, SegmentReadStateOption, SegmentSearcher, ThreadReadState}
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.utils.TupleOrNone
 

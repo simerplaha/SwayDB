@@ -22,7 +22,7 @@ import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.data.MaxKey
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.testkit.RunThis._

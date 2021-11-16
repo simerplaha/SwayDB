@@ -65,7 +65,7 @@ import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.{LevelMeter, LevelThrottle}
 import swaydb.data.config._
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.data.storage.{Level0Storage, LevelStorage}
 import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
 import swaydb.effect.{Dir, IOAction, IOStrategy}

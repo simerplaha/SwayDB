@@ -25,7 +25,7 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSa
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.LevelThrottle
 import swaydb.data.config.MMAP
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
 import swaydb.slice.Slice
 import swaydb.effect.Effect

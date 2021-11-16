@@ -18,7 +18,7 @@ package swaydb.core.merge
 
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.data.order.TimeOrder
+import swaydb.slice.order.TimeOrder
 import swaydb.slice.Slice
 
 private[core] object FunctionMerger {

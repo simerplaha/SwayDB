@@ -27,7 +27,7 @@
 //import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
 //import swaydb.core.util.Benchmark
 //import swaydb.data.config.{IOAction, IOStrategy}
-//import swaydb.data.order.KeyOrder
+//import swaydb.slice.order.KeyOrder
 //import swaydb.slice.Slice
 //import swaydb.data.util.StorageUnits._
 //import swaydb.core.CommonAssertions._

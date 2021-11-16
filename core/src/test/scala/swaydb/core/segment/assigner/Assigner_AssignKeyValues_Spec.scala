@@ -25,7 +25,7 @@ import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.config.MMAP
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.effect.Effect._
 import swaydb.serializers.Default._

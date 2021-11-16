@@ -25,7 +25,7 @@ import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.config.{MMAP, SegmentRefCacheLife}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{ReaderBase, Slice, SliceMut}
 import swaydb.effect.{Effect, Extension}
 import swaydb.utils.ByteSizeOf

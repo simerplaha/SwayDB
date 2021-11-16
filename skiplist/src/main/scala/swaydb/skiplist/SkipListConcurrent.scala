@@ -16,7 +16,7 @@
 
 package swaydb.skiplist
 
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 
 import java.util.concurrent.ConcurrentSkipListMap
 

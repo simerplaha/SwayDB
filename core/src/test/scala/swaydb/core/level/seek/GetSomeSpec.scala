@@ -27,7 +27,7 @@ import swaydb.core.data.{SwayFunctionOutput, Value}
 import swaydb.core.merge.{FixedMerger, FunctionMerger, PendingApplyMerger}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestData, TestTimer}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

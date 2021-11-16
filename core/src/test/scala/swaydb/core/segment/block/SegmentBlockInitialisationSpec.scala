@@ -30,7 +30,7 @@ import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.config.MMAP
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.effect.IOStrategy
 import swaydb.serializers.Default._

@@ -45,7 +45,7 @@ import swaydb.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.data.MaxKey
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.{MMAP, SegmentRefCacheLife}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.SliceIOImplicits._
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.effect.Effect

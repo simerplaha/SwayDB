@@ -22,7 +22,7 @@ import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.data.Functions
-import swaydb.data.order.KeyOrder
+import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.utils.StorageUnits._
