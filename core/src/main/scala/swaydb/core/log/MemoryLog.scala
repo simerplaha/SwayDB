@@ -17,7 +17,7 @@
 package swaydb.core.log
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.config.{ForceSave, MMAP}
+import swaydb.config.{ForceSave, MMAP}
 
 import java.nio.file.Path
 

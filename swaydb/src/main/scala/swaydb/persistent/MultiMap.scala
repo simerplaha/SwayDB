@@ -19,13 +19,13 @@ package swaydb.persistent
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
-import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
-import swaydb.data.config._
+import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
+import swaydb.config._
 import swaydb.slice.order.KeyOrder
-import swaydb.data.sequencer.Sequencer
+import swaydb.config.sequencer.Sequencer
 import swaydb.slice.Slice
-import swaydb.data.{Atomic, DataType, Functions, OptimiseWrites}
+import swaydb.config.{Atomic, DataType, Functions, OptimiseWrites}
 import swaydb.effect.Dir
 import swaydb.function.FunctionConverter
 import swaydb.multimap.{MultiKey, MultiValue}

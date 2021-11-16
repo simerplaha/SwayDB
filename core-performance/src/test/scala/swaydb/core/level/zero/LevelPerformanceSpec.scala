@@ -24,7 +24,7 @@
 //import swaydb.core.{TestBase, TestSweeper}
 //import swaydb.slice.order.KeyOrder
 //import swaydb.slice.Slice
-//import swaydb.data.util.StorageUnits._
+//import swaydb.config.util.StorageUnits._
 //
 //import scala.util.Random
 //

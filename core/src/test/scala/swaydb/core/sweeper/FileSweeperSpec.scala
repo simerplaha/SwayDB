@@ -25,7 +25,7 @@ import swaydb.core.data.Memory
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.FileSweeper._
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.testkit.RunThis._

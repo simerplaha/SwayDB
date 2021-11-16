@@ -19,9 +19,9 @@ package swaydb.compression
 import com.typesafe.scalalogging.LazyLogging
 import net.jpountz.lz4.{LZ4Compressor, LZ4Factory}
 import org.xerial.snappy
-import swaydb.data.compression.LZ4Compressor.{Fast, High}
-import swaydb.data.compression.LZ4Instance
-import swaydb.data.compression.LZ4Instance._
+import swaydb.config.compression.LZ4Compressor.{Fast, High}
+import swaydb.config.compression.LZ4Instance
+import swaydb.config.compression.LZ4Instance._
 import swaydb.slice.Slice
 
 import java.nio.ByteBuffer
@@ -36,8 +36,8 @@ private[swaydb] sealed trait CompressorInternal {
 
 private[swaydb] object CompressorInternal extends LazyLogging {
 
-  def apply(instance: swaydb.data.compression.LZ4Instance,
-            compressor: swaydb.data.compression.LZ4Compressor): CompressorInternal.LZ4 =
+  def apply(instance: swaydb.config.compression.LZ4Instance,
+            compressor: swaydb.config.compression.LZ4Compressor): CompressorInternal.LZ4 =
     lz4Compressor(
       compressor = compressor,
       factory = lz4Factory(instance)
@@ -54,7 +54,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
       //@formatter:on
     }
 
-  private def lz4Compressor(compressor: swaydb.data.compression.LZ4Compressor,
+  private def lz4Compressor(compressor: swaydb.config.compression.LZ4Compressor,
                             factory: LZ4Factory): CompressorInternal.LZ4 =
     compressor match {
       case Fast(minCompressionPercentage) =>

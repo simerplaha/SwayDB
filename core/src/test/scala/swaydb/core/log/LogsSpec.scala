@@ -25,11 +25,11 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, MemoryOption, Value}
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.data.accelerate.Accelerator
-import swaydb.data.config.{MMAP, RecoveryMode}
+import swaydb.config.accelerate.Accelerator
+import swaydb.config.{MMAP, RecoveryMode}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
-import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.effect.Effect._
 import swaydb.effect.{Effect, Extension}
 import swaydb.serializers.Default._

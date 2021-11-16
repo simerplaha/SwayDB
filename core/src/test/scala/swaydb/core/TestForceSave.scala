@@ -16,7 +16,7 @@
 
 package swaydb.core
 
-import swaydb.data.config.ForceSave
+import swaydb.config.ForceSave
 import swaydb.utils.OperatingSystem
 
 import scala.util.Random

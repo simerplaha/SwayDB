@@ -2,7 +2,7 @@ package swaydb.core.segment.block.segment
 
 import swaydb.Compression
 import swaydb.compression.CompressionInternal
-import swaydb.data.config.{MMAP, SegmentConfig, SegmentRefCacheLife, UncompressedBlockInfo}
+import swaydb.config.{MMAP, SegmentConfig, SegmentRefCacheLife, UncompressedBlockInfo}
 import swaydb.effect.{IOAction, IOStrategy}
 
 import scala.concurrent.duration.FiniteDuration

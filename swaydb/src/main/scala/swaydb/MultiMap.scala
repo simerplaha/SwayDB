@@ -20,8 +20,9 @@ import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.log.counter.CounterLog
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.util.Times._
-import swaydb.data.accelerate.LevelZeroMeter
-import swaydb.data.compaction.LevelMeter
+import swaydb.config.accelerate.LevelZeroMeter
+import swaydb.config.compaction.LevelMeter
+import swaydb.OK
 import swaydb.slice.Slice
 import swaydb.multimap.{MultiKey, MultiPrepare, MultiValue, Schema}
 import swaydb.serializers.{Serializer, _}
@@ -40,7 +41,7 @@ object MultiMap {
   val rootMapId: Long = CounterLog.startId
 
   private[swaydb] def withPersistentCounter[M, K, V, F, BAG[_]](path: Path,
-                                                                mmap: swaydb.data.config.MMAP.Log,
+                                                                mmap: swaydb.config.MMAP.Log,
                                                                 map: swaydb.Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG])(implicit bag: swaydb.Bag[BAG],
                                                                                                                                                                                             keySerializer: Serializer[K],
                                                                                                                                                                                             mapKeySerializer: Serializer[M],

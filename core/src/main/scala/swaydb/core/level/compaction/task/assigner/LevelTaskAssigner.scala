@@ -21,7 +21,7 @@ import swaydb.core.level.compaction.task.CompactionDataType._
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
 import swaydb.utils.NonEmptyList
-import swaydb.data.compaction.PushStrategy
+import swaydb.config.compaction.PushStrategy
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 

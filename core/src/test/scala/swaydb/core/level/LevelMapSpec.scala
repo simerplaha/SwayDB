@@ -27,11 +27,11 @@ import swaydb.core.data._
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.config.MMAP
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.MMAP
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
-import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.utils.OperatingSystem

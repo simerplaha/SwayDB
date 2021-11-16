@@ -22,7 +22,7 @@ import swaydb.IOValues._
 import swaydb._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{Core, TestCaseSweeper}
-import swaydb.data.DataType
+import swaydb.config.DataType
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis.runThis
 

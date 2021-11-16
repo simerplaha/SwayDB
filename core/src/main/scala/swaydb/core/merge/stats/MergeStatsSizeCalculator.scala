@@ -41,7 +41,7 @@ object MergeStatsSizeCalculator {
    * be pre-computed if their configurations are custom.
    *
    * Logic is - MergeStats is considered small if it's sortedIndex size is less than half
-   * the size of [[swaydb.data.config.SegmentConfig.minSegmentSize]].
+   * the size of [[swaydb.config.SegmentConfig.minSegmentSize]].
    */
   class PersistentSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig) extends MergeStatsSizeCalculator[MergeStats.Persistent.Builder[Memory, ListBuffer]] {
 

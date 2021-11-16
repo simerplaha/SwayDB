@@ -36,7 +36,7 @@ object DefaultExecutionContext extends LazyLogging {
     ExecutionContext.fromExecutor(Executors.newFixedThreadPool(maxThreads max 1, DefaultThreadFactory.create()))
 
   /**
-   * ExecutionContext used for [[swaydb.data.config.FileCache]] and [[swaydb.data.config.MemoryCache]].
+   * ExecutionContext used for [[swaydb.config.FileCache]] and [[swaydb.config.MemoryCache]].
    *
    * Initialised lazily and used globally for all SwayDB instances. Sweepers are cache/memory and
    * file(close, clean & delete) managers and their execution is needed at machine level so that
@@ -44,8 +44,8 @@ object DefaultExecutionContext extends LazyLogging {
    * at machine level.
    *
    * If you have multiple SwayDB instances this CachedThreadPool should be enough as thread counts
-   * will adjust dynamically or else you can overwrite this by provided your own [[swaydb.data.config.FileCache]]
-   * and [[swaydb.data.config.MemoryCache]] configurations.
+   * will adjust dynamically or else you can overwrite this by provided your own [[swaydb.config.FileCache]]
+   * and [[swaydb.config.MemoryCache]] configurations.
    *
    * For a single instance it needs at least 2-3 threads. 1 for processing, 1 scheduling and optionally 1
    * when [[swaydb.Bag.Sync]] bag is used for termination (during shutdown). But for majority of the cases only 1

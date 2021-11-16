@@ -22,7 +22,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.Functions
+import swaydb.config.Functions
 import swaydb.macros.Sealed
 import swaydb.serializers.Default._
 import swaydb.serializers.Serializer

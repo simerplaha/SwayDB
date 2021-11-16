@@ -48,7 +48,7 @@ object JavaTest {
     items.hasNext shouldBe false
 
   def shouldBeEmptyEventually[T](timeout: Int, option: Supplier[Optional[T]]): Unit =
-    eventually(
+    JavaEventually.eventually(
       timeout.seconds,
       new Test {
         override def assert(): Unit =

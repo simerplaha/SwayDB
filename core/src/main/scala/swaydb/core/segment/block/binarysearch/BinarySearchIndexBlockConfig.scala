@@ -1,7 +1,7 @@
 package swaydb.core.segment.block.binarysearch
 
 import swaydb.compression.CompressionInternal
-import swaydb.data.config.UncompressedBlockInfo
+import swaydb.config.UncompressedBlockInfo
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.FunctionSafe
 
@@ -18,9 +18,9 @@ object BinarySearchIndexBlockConfig {
       compressions = _ => Seq.empty
     )
 
-  def apply(config: swaydb.data.config.BinarySearchIndex): BinarySearchIndexBlockConfig =
+  def apply(config: swaydb.config.BinarySearchIndex): BinarySearchIndexBlockConfig =
     config match {
-      case swaydb.data.config.BinarySearchIndex.Off(searchSortedIndexDirectly) =>
+      case swaydb.config.BinarySearchIndex.Off(searchSortedIndexDirectly) =>
         BinarySearchIndexBlockConfig(
           enabled = false,
           format = BinarySearchEntryFormat.Reference,
@@ -31,7 +31,7 @@ object BinarySearchIndexBlockConfig {
           compressions = _ => Seq.empty
         )
 
-      case enable: swaydb.data.config.BinarySearchIndex.FullIndex =>
+      case enable: swaydb.config.BinarySearchIndex.FullIndex =>
         BinarySearchIndexBlockConfig(
           enabled = true,
           format = BinarySearchEntryFormat(enable.indexFormat),
@@ -46,7 +46,7 @@ object BinarySearchIndexBlockConfig {
             )
         )
 
-      case enable: swaydb.data.config.BinarySearchIndex.SecondaryIndex =>
+      case enable: swaydb.config.BinarySearchIndex.SecondaryIndex =>
         BinarySearchIndexBlockConfig(
           enabled = true,
           format = BinarySearchEntryFormat(enable.indexFormat),

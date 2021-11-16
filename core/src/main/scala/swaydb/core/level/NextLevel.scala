@@ -23,8 +23,8 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.{Assignable, Assignment}
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.compaction.{LevelMeter, LevelThrottle}
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.slice.Slice
 import swaydb.effect.Dir
 import swaydb.{Error, IO}

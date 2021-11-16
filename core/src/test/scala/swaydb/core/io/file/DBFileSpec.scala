@@ -1086,7 +1086,7 @@ class DBFileSpec extends TestBase with MockFactory {
   //        runThis(1000.times, log = true) {
   //          import sweeper._
   //          val testFile = randomFilePath
-  //          import swaydb.data.util.StorageUnits._
+  //          import swaydb.config.util.StorageUnits._
   //          val bytes = randomBytesSlice(1.kb)
   //          val file =
   //            DBFile.mmapWriteAndRead(

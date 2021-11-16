@@ -17,7 +17,7 @@
 package swaydb.compression
 
 import swaydb.compression.CompressionInternal.{LZ4, Snappy, UnCompressed}
-import swaydb.data.compression.{DecompressorId, LZ4Instance}
+import swaydb.config.compression.{DecompressorId, LZ4Instance}
 
 import scala.util.Random
 
@@ -50,7 +50,7 @@ object CompressionTestGen {
     def randomLZ4(minCompressionSavingsPercent: Double = Double.MinValue): CompressorInternal.LZ4 =
       CompressorInternal(
         instance = LZ4Instance.random(),
-        compressor = swaydb.data.compression.LZ4Compressor.random(minCompressionSavingsPercent = minCompressionSavingsPercent)
+        compressor = swaydb.config.compression.LZ4Compressor.random(minCompressionSavingsPercent = minCompressionSavingsPercent)
       )
   }
 

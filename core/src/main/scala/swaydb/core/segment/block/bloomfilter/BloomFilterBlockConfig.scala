@@ -1,7 +1,7 @@
 package swaydb.core.segment.block.bloomfilter
 
 import swaydb.compression.CompressionInternal
-import swaydb.data.config.UncompressedBlockInfo
+import swaydb.config.UncompressedBlockInfo
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.FunctionSafe
 
@@ -16,9 +16,9 @@ object BloomFilterBlockConfig {
       compressions = _ => Seq.empty
     )
 
-  def apply(config: swaydb.data.config.BloomFilter): BloomFilterBlockConfig =
+  def apply(config: swaydb.config.BloomFilter): BloomFilterBlockConfig =
     config match {
-      case swaydb.data.config.BloomFilter.Off =>
+      case swaydb.config.BloomFilter.Off =>
         BloomFilterBlockConfig(
           falsePositiveRate = 0.0,
           minimumNumberOfKeys = Int.MaxValue,
@@ -27,7 +27,7 @@ object BloomFilterBlockConfig {
           compressions = _ => Seq.empty
         )
 
-      case enable: swaydb.data.config.BloomFilter.On =>
+      case enable: swaydb.config.BloomFilter.On =>
         BloomFilterBlockConfig(
           falsePositiveRate = enable.falsePositiveRate,
           minimumNumberOfKeys = enable.minimumNumberOfKeys,

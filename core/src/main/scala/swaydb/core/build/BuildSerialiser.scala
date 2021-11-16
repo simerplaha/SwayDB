@@ -17,7 +17,7 @@
 package swaydb.core.build
 
 import swaydb.core.util.CRC32
-import swaydb.data.DataType
+import swaydb.config.DataType
 import swaydb.slice.Slice
 import swaydb.utils.ByteSizeOf
 

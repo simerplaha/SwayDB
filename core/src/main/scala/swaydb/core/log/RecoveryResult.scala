@@ -19,7 +19,7 @@ package swaydb.core.log
 import swaydb.IO
 
 /**
- * Files can be partially recovered based on the value set for [[swaydb.data.config.RecoveryMode]].
+ * Files can be partially recovered based on the value set for [[swaydb.config.RecoveryMode]].
  *
  * This instance stores the result of the recovery of the target [[swaydb.core.io.file.DBFile]]
  * and the result of each partial recovery.

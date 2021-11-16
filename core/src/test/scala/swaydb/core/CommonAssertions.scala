@@ -49,12 +49,12 @@ import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment.ref.search.{KeyMatcher, SegmentSearcher, ThreadReadState}
 import swaydb.core.sweeper.{ByteBufferSweeper, MemorySweeper}
 import swaydb.skiplist.SkipListConcurrent
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.compaction.PushStrategy
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.PushStrategy
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.SliceIOImplicits._
 import swaydb.slice.{Reader, Slice, SliceOption, SliceReader}
-import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.effect.{Effect, IOStrategy}
 import swaydb.serializers.Default._
 import swaydb.serializers._

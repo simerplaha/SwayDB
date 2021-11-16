@@ -16,7 +16,7 @@
 
 package swaydb
 
-import swaydb.data.Functions
+import swaydb.config.Functions
 
 import java.util.Optional
 import scala.concurrent.duration.Deadline

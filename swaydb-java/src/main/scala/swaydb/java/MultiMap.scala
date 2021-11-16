@@ -16,8 +16,8 @@
 
 package swaydb.java
 
-import swaydb.data.accelerate.LevelZeroMeter
-import swaydb.data.compaction.LevelMeter
+import swaydb.config.accelerate.LevelZeroMeter
+import swaydb.config.compaction.LevelMeter
 import swaydb.java.util.Java._
 import swaydb.multimap.MultiPrepare
 import swaydb.utils.Java._
@@ -340,7 +340,7 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Glass])(imp
   def hasChildren: Boolean =
     asScala.hasChildren
 
-  def asJava: util.Map[K, V] =
+  def asJava: java.util.Map[K, V] =
     asScala.asScala.asJava
 
   def close(): Unit =

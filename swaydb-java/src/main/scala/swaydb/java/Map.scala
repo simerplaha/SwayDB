@@ -16,12 +16,11 @@
 
 package swaydb.java
 
-import swaydb.data.accelerate.LevelZeroMeter
-import swaydb.data.compaction.LevelMeter
+import swaydb.config.accelerate.LevelZeroMeter
+import swaydb.config.compaction.LevelMeter
+import swaydb.java.KeyVal._
 import swaydb.java.util.Java._
 import swaydb.utils.Java._
-import swaydb.java.{KeyVal, Pair}
-import swaydb.java.KeyVal._
 import swaydb.{Expiration, Glass, Prepare, PureFunction}
 
 import java.nio.file.Path
@@ -225,7 +224,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Glass])(implicit evd: F <:<
   def isFunctionApplied(function: F): Boolean =
     asScala.isFunctionApplied(function)
 
-  def asJava: util.Map[K, V] =
+  def asJava: java.util.Map[K, V] =
     asScala.asScala.asJava
 
   def close(): Unit =

@@ -30,8 +30,8 @@ import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.util.IDGenerator
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.config.{MMAP, SegmentRefCacheLife}
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.slice.Slice
 
 import java.nio.file.Path

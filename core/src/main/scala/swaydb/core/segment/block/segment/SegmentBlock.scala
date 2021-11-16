@@ -29,8 +29,8 @@ import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlock
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockState}
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.{Bytes, MinMax}
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.config._
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.utils.Futures._

@@ -20,7 +20,7 @@ import swaydb.core.TestData.randomBytesSlice
 import swaydb.core.sweeper.ByteBufferCleaner
 import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.config.ForceSave
+import swaydb.config.ForceSave
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem

@@ -26,7 +26,7 @@ import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util.IDGenerator
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.utils.Futures

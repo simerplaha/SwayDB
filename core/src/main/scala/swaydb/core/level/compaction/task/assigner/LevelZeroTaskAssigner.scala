@@ -27,8 +27,8 @@ import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.slice.MaxKey
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.compaction.PushStrategy
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.PushStrategy
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.{Aggregator, Futures, NonEmptyList}

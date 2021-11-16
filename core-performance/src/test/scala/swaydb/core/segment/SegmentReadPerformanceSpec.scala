@@ -34,8 +34,8 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestSweeper}
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.config.SegmentRefCacheLife
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.SegmentRefCacheLife
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.effect.{Dir, IOAction, IOStrategy}

@@ -38,8 +38,8 @@ import swaydb.core.segment.ref.{SegmentRef, SegmentRefOption}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.IDGenerator
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.config.{MMAP, SegmentRefCacheLife}
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.utils.Futures

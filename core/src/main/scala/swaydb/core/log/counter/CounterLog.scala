@@ -21,7 +21,7 @@ import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.log.LogEntry
 import swaydb.core.log.serializer.{LogEntryReader, LogEntryWriter}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.data.config.MMAP
+import swaydb.config.MMAP
 import swaydb.slice.Slice
 
 import java.nio.file.Path

@@ -27,7 +27,7 @@
 //import swaydb.core.{TestBase, TestSweeper, TestTimer}
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.slice.Slice
-//import swaydb.data.util.StorageUnits._
+//import swaydb.config.util.StorageUnits._
 //
 //class MapStressSpec extends TestBase {
 //

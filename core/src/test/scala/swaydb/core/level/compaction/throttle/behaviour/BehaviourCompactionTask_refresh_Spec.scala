@@ -23,7 +23,7 @@ import swaydb.core._
 import swaydb.core.data.Memory
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.serializers.Default._

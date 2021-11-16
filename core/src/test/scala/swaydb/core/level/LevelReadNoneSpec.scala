@@ -22,7 +22,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestForceSave}
-import swaydb.data.config.MMAP
+import swaydb.config.MMAP
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.serializers.Default._

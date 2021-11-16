@@ -23,7 +23,7 @@ import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.log.serializer.{LogEntryReader, LogEntrySerialiser, LogEntryWriter}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper}
-import swaydb.data.config.MMAP
+import swaydb.config.MMAP
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.slice.SliceIOImplicits._

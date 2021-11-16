@@ -22,7 +22,7 @@
 //import swaydb.core.TestBase
 //import swaydb.Benchmark
 //import swaydb.slice.Slice
-//import swaydb.data.util.StorageUnits._
+//import swaydb.config.util.StorageUnits._
 //
 //import scala.concurrent.duration._
 //

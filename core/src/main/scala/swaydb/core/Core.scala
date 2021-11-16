@@ -29,11 +29,11 @@ import swaydb.core.log.serializer.LevelZeroLogEntryWriter
 import swaydb.core.log.timer.Timer
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.data.accelerate.LevelZeroMeter
-import swaydb.data.compaction.{CompactionConfig, LevelMeter}
-import swaydb.data.config._
+import swaydb.config.accelerate.LevelZeroMeter
+import swaydb.config.compaction.{CompactionConfig, LevelMeter}
+import swaydb.config._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.data.sequencer.Sequencer
+import swaydb.config.sequencer.Sequencer
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.TupleOrNone
 

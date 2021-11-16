@@ -20,6 +20,10 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.Exception.FunctionNotFound
+import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.config.compaction.{LevelMeter, LevelZeroThrottle}
+import swaydb.config.storage.Level0Storage
+import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 import swaydb.core.data.KeyValue.{Put, PutOption}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
@@ -37,17 +41,12 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.FileSweeper
-import swaydb.skiplist.SkipList
 import swaydb.core.util.MinMax
 import swaydb.core.{CoreState, MemoryPathGenerator}
-import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, LevelZeroThrottle}
-import swaydb.data.config.MMAP
+import swaydb.effect.{Effect, FileLocker}
+import swaydb.skiplist.SkipList
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
-import swaydb.data.storage.Level0Storage
-import swaydb.data.{Atomic, OptimiseWrites}
-import swaydb.effect.{Effect, FileLocker}
 import swaydb.utils.{DropIterator, Options}
 import swaydb.{Bag, Error, Glass, IO, OK}
 

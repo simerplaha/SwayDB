@@ -28,12 +28,12 @@ import swaydb.core.log.applied.AppliedFunctionsLog
 import swaydb.core.log.timer.Timer
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.compaction.LevelThrottle
-import swaydb.data.config.MMAP
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.LevelThrottle
+import swaydb.config.MMAP
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
-import swaydb.data.storage.LevelStorage
+import swaydb.config.storage.LevelStorage
 import swaydb.effect.{Dir, Effect}
 import swaydb.serializers.Default._
 import swaydb.serializers._

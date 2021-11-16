@@ -28,7 +28,7 @@ import swaydb.core.log.timer.Timer.PersistentTimer
 import swaydb.core.sweeper.ByteBufferSweeper
 import swaydb.core.sweeper.ByteBufferSweeper.{ByteBufferSweeperActor, State}
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
-import swaydb.data.config.MMAP
+import swaydb.config.MMAP
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._

@@ -23,7 +23,7 @@ import swaydb.core.log.serializer.{LogEntryReader, LogEntryWriter}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util.IDGenerator
-import swaydb.data.config.MMAP
+import swaydb.config.MMAP
 import swaydb.slice.order.KeyOrder
 import swaydb.utils.StorageUnits._
 

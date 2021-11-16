@@ -22,7 +22,7 @@ import swaydb.cache.CacheNoIO
 import swaydb.core.data.Persistent
 import swaydb.utils.HashedMap
 import swaydb.skiplist.SkipList
-import swaydb.data.config.MemoryCache
+import swaydb.config.MemoryCache
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.ByteSizeOf
 import swaydb.{Actor, ActorConfig, ActorRef, Glass}

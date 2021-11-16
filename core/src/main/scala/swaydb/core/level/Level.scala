@@ -45,12 +45,12 @@ import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.Exceptions._
 import swaydb.core.util._
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.compaction.{LevelMeter, LevelThrottle}
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.SliceIOImplicits._
 import swaydb.slice.{Slice, SliceOption}
-import swaydb.data.storage.LevelStorage
+import swaydb.config.storage.LevelStorage
 import swaydb.effect.Effect._
 import swaydb.effect.{Dir, Effect, Extension, FileLocker}
 import swaydb.utils.{Aggregator, Futures}

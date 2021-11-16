@@ -26,10 +26,10 @@ import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.segment.Segment
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
-import swaydb.data.config.{ForceSave, MMAP}
+import swaydb.config.{ForceSave, MMAP}
 import swaydb.slice.order.KeyOrder
-import swaydb.data.repairAppendix.AppendixRepairStrategy._
-import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
+import swaydb.config.repairAppendix.AppendixRepairStrategy._
+import swaydb.config.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
 import swaydb.slice.Slice
 import swaydb.slice.SliceIOImplicits._
 import swaydb.effect.{Effect, Extension}

@@ -28,12 +28,12 @@
 //import swaydb.core.segment.block.segment.SegmentBlock
 //import swaydb.core._
 //import swaydb.testkit.RunThis._
-//import swaydb.data.compaction.ParallelMerge
-//import swaydb.data.config.{MMAP, PushForwardStrategy}
+//import swaydb.config.compaction.ParallelMerge
+//import swaydb.config.{MMAP, PushForwardStrategy}
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.slice.Slice
-//import swaydb.data.util.OperatingSystem
-//import swaydb.data.util.StorageUnits._
+//import swaydb.config.util.OperatingSystem
+//import swaydb.config.util.StorageUnits._
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
 //

@@ -1,7 +1,7 @@
 package swaydb.core.segment.block.sortedindex
 
 import swaydb.compression.CompressionInternal
-import swaydb.data.config.UncompressedBlockInfo
+import swaydb.config.UncompressedBlockInfo
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.FunctionSafe
 
@@ -19,13 +19,13 @@ object SortedIndexBlockConfig {
       compressions = (_: UncompressedBlockInfo) => Seq.empty
     )
 
-  def apply(config: swaydb.data.config.SortedIndex): SortedIndexBlockConfig =
+  def apply(config: swaydb.config.SortedIndex): SortedIndexBlockConfig =
     config match {
-      case config: swaydb.data.config.SortedIndex.On =>
+      case config: swaydb.config.SortedIndex.On =>
         apply(config)
     }
 
-  def apply(enable: swaydb.data.config.SortedIndex.On): SortedIndexBlockConfig =
+  def apply(enable: swaydb.config.SortedIndex.On): SortedIndexBlockConfig =
     SortedIndexBlockConfig(
       ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
       shouldPrefixCompress = enable.prefixCompression.shouldCompress,

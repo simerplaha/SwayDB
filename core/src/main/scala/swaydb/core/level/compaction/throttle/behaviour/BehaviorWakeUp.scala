@@ -25,8 +25,8 @@ import swaydb.core.level.compaction.throttle.{LevelState, ThrottleCompactor, Thr
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.sweeper.FileSweeper
 import swaydb.utils.NonEmptyList
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.compaction.PushStrategy
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.PushStrategy
 import swaydb.slice.Slice
 import swaydb.utils.FiniteDurations
 import swaydb.utils.FiniteDurations.FiniteDurationImplicits

@@ -28,8 +28,8 @@ import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockOffset}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.Benchmark
-import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
-import swaydb.data.config.{PrefixCompression, UncompressedBlockInfo}
+import swaydb.config.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
+import swaydb.config.{PrefixCompression, UncompressedBlockInfo}
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 
@@ -53,7 +53,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         //test via User created object.
         val configFromUserConfig =
           SortedIndexBlockConfig(
-            swaydb.data.config.SortedIndex.On(
+            swaydb.config.SortedIndex.On(
               prefixCompression = prefixCompression,
               enablePositionIndex = randomBoolean(),
               optimiseForReverseIteration = randomBoolean(),
@@ -95,7 +95,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         //use created config
         val configFromUserConfig =
           SortedIndexBlockConfig(
-            swaydb.data.config.SortedIndex.On(
+            swaydb.config.SortedIndex.On(
               prefixCompression = prefixCompression,
               enablePositionIndex = randomBoolean(),
               optimiseForReverseIteration = randomBoolean(),

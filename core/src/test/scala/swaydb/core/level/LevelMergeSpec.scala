@@ -25,8 +25,8 @@ import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data.Value.FromValue
 import swaydb.core.level.compaction.io.CompactionIO
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.config.MMAP
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.MMAP
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.serializers.Default._

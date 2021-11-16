@@ -43,8 +43,8 @@ import swaydb.utils.Collections._
 import swaydb.core.util._
 import swaydb.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.slice.MaxKey
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.config.{MMAP, SegmentRefCacheLife}
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.SliceIOImplicits._
 import swaydb.slice.{Slice, SliceOption}

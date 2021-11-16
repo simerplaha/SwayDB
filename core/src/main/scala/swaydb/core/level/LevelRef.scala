@@ -20,8 +20,8 @@ import swaydb.core.data.KeyValue
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.data.compaction.LevelMeter
-import swaydb.data.config.{ForceSave, MMAP}
+import swaydb.config.compaction.LevelMeter
+import swaydb.config.{ForceSave, MMAP}
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.{Bag, IO}
 

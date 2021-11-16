@@ -16,9 +16,9 @@
 
 package swaydb.eventually.persistent
 
-import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.config.MemoryCache.ByteCacheOnly
-import swaydb.data.config._
+import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.config.MemoryCache.ByteCacheOnly
+import swaydb.config._
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.StorageUnits._
 import swaydb.{ActorConfig, CommonConfigs}

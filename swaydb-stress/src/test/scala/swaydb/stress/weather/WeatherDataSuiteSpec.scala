@@ -19,7 +19,7 @@ package swaydb.stress.weather
 import swaydb.IO
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.data.Atomic
+import swaydb.config.Atomic
 import swaydb.serializers.Default._
 
 class Memory_NonAtomic_WeatherDataSpec extends WeatherDataSpec {

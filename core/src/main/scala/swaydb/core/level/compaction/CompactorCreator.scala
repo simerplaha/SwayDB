@@ -18,7 +18,7 @@ package swaydb.core.level.compaction
 
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.sweeper.FileSweeper
-import swaydb.data.compaction.CompactionConfig
+import swaydb.config.compaction.CompactionConfig
 import swaydb.{DefActor, IO}
 
 /**

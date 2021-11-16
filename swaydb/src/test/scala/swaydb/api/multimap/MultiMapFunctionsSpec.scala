@@ -21,7 +21,7 @@ import swaydb.PureFunctionScala._
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.data.Functions
+import swaydb.config.Functions
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.serializers.Default._

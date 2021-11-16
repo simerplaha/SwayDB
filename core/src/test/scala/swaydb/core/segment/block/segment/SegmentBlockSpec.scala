@@ -29,7 +29,7 @@ import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.serializers.Default._

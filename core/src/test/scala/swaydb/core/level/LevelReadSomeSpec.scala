@@ -24,8 +24,8 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.config.MMAP
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.MMAP
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._

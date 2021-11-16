@@ -16,8 +16,8 @@
 
 package swaydb.java
 
-import swaydb.data.accelerate.LevelZeroMeter
-import swaydb.data.compaction.LevelMeter
+import swaydb.config.accelerate.LevelZeroMeter
+import swaydb.config.compaction.LevelMeter
 import swaydb.java.util.Java._
 import swaydb.utils.Java._
 import swaydb.{Apply, Expiration, Glass, Prepare, PureFunction}
@@ -177,7 +177,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Glass])(implicit evd: F <:< PureF
   override def last: Optional[A] =
     asScala.last.asJava
 
-  def asJava: util.Set[A] =
+  def asJava: java.util.Set[A] =
     asScala.asScala.asJava
 
   def close(): Unit =

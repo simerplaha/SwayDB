@@ -16,8 +16,8 @@
 
 package swaydb.java
 
-import swaydb.data.accelerate.LevelZeroMeter
-import swaydb.data.compaction.LevelMeter
+import swaydb.config.accelerate.LevelZeroMeter
+import swaydb.config.compaction.LevelMeter
 import swaydb.java.KeyVal._
 import swaydb.java.util.Java._
 import swaydb.utils.Java._
@@ -134,7 +134,7 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Glass]) extends SetMapT[K, 
   override def last: Optional[KeyVal[K, V]] =
     asScala.last.asJavaMap(KeyVal(_))
 
-  def asJava: util.Map[K, V] =
+  def asJava: java.util.Map[K, V] =
     asScala.asScala.asJava
 
   override def asScalaStream: swaydb.Source[K, KeyVal[K, V], Glass] =

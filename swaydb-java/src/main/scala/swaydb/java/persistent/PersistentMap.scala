@@ -18,12 +18,12 @@ package swaydb.java.persistent
 
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.utils.Eithers
-import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
-import swaydb.data.config._
+import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
+import swaydb.config._
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
-import swaydb.data.{Atomic, Functions, OptimiseWrites}
+import swaydb.config.{Atomic, Functions, OptimiseWrites}
 import swaydb.effect.Dir
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{KeyComparator, KeyOrderConverter}

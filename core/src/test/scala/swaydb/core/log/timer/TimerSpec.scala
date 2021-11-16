@@ -24,7 +24,7 @@ import swaydb.core.log.counter.CounterLog
 import swaydb.core.log.serializer.{CounterLogEntryReader, CounterLogEntryWriter, LogEntryReader, LogEntryWriter}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
-import swaydb.data.config.MMAP
+import swaydb.config.MMAP
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.utils.OperatingSystem

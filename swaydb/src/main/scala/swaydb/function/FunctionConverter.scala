@@ -18,7 +18,7 @@ package swaydb.function
 
 import swaydb.core.data.SwayFunctionOutput
 import swaydb.core.function.FunctionStore
-import swaydb.data.Functions
+import swaydb.config.Functions
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
 import swaydb.slice.{Slice, SliceOption}

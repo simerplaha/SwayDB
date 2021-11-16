@@ -28,7 +28,7 @@ import swaydb.core.merge.stats.MergeStats
 import swaydb.skiplist.{SkipListConcurrent, SkipListSeries}
 import swaydb.slice.order.TimeOrder
 import swaydb.slice.Slice
-import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

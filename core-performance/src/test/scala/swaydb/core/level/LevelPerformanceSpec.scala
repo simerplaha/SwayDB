@@ -26,10 +26,10 @@
 //import swaydb.core.segment.block.{BloomFilterBlock, SegmentBlock, SortedIndexBlock, ValuesBlock}
 //import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
 //import swaydb.Benchmark
-//import swaydb.data.config.{IOAction, IOStrategy}
+//import swaydb.config.{IOAction, IOStrategy}
 //import swaydb.slice.order.KeyOrder
 //import swaydb.slice.Slice
-//import swaydb.data.util.StorageUnits._
+//import swaydb.config.util.StorageUnits._
 //import swaydb.core.CommonAssertions._
 //import scala.util.Random
 //

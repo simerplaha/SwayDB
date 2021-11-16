@@ -24,7 +24,7 @@ import swaydb.core.log.serializer.{AppliedFunctionsLogEntryReader, AppliedFuncti
 import swaydb.core.log.{Log, RecoveryResult}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.FileSweeper
-import swaydb.data.config.MMAP
+import swaydb.config.MMAP
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.effect.Effect

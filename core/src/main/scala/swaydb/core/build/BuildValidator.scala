@@ -17,7 +17,7 @@
 package swaydb.core.build
 
 import swaydb.Exception.{IncompatibleVersions, MissingMultiMapGenFolder}
-import swaydb.data.DataType
+import swaydb.config.DataType
 import swaydb.effect.Effect
 import swaydb.{Exception, IO}
 

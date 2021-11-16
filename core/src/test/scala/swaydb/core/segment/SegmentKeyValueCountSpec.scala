@@ -21,7 +21,7 @@ import org.scalatest.concurrent.ScalaFutures
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
-import swaydb.data.config.MMAP
+import swaydb.config.MMAP
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem

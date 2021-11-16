@@ -29,7 +29,7 @@ import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util._
 import swaydb.skiplist.SkipListTreeMap
 import swaydb.slice.MaxKey
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
 

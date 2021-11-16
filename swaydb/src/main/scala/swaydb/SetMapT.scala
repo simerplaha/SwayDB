@@ -16,8 +16,8 @@
 
 package swaydb
 
-import swaydb.data.accelerate.LevelZeroMeter
-import swaydb.data.compaction.LevelMeter
+import swaydb.config.accelerate.LevelZeroMeter
+import swaydb.config.compaction.LevelMeter
 
 import java.nio.file.Path
 import scala.collection.compat.IterableOnce

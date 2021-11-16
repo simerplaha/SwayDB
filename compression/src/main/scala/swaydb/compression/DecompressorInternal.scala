@@ -18,7 +18,7 @@ package swaydb.compression
 
 import net.jpountz.lz4.{LZ4Factory, LZ4FastDecompressor, LZ4SafeDecompressor}
 import org.xerial.snappy
-import swaydb.data.compression.{DecompressorId, LZ4Decompressor, LZ4Instance}
+import swaydb.config.compression.{DecompressorId, LZ4Decompressor, LZ4Instance}
 import swaydb.slice.Slice
 
 /**

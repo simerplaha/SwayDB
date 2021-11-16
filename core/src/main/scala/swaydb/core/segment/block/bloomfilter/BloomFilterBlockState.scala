@@ -1,7 +1,7 @@
 package swaydb.core.segment.block.bloomfilter
 
 import swaydb.compression.CompressionInternal
-import swaydb.data.config.UncompressedBlockInfo
+import swaydb.config.UncompressedBlockInfo
 import swaydb.slice.{Slice, SliceMut}
 
 private[core] class BloomFilterBlockState(val numberOfBits: Int,

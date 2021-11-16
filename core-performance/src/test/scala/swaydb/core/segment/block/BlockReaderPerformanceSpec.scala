@@ -25,9 +25,9 @@
 //import swaydb.core.segment.block.reader.{BlockReader, BlockRefReader}
 //import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 //import swaydb.core.{TestBase, TestSweeper}
-//import swaydb.data.config.IOStrategy
-//import swaydb.data.util.OperatingSystem
-//import swaydb.data.util.StorageUnits._
+//import swaydb.config.IOStrategy
+//import swaydb.config.util.OperatingSystem
+//import swaydb.config.util.StorageUnits._
 //
 //class BlockReaderPerformanceSpec extends TestBase {
 //

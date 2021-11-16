@@ -24,8 +24,8 @@ import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.utils.NonEmptyList
-import swaydb.data.compaction.PushStrategy
-import swaydb.data.config.MMAP
+import swaydb.config.compaction.PushStrategy
+import swaydb.config.MMAP
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.serializers.Default._

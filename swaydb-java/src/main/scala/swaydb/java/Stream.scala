@@ -91,7 +91,7 @@ trait Stream[A] {
   def partition[B](predicate: Predicate[A]): Pair[lang.Iterable[A], lang.Iterable[A]] =
     partitionList(predicate)
 
-  def partitionList[B](predicate: Predicate[A]): Pair[util.List[A], util.List[A]] = {
+  def partitionList[B](predicate: Predicate[A]): Pair[java.util.List[A], java.util.List[A]] = {
     val (left, right) = asScalaStream.partitionBuffer(predicate.test)
     Pair(left.asJava, right.asJava)
   }
@@ -108,7 +108,7 @@ trait Stream[A] {
   def count(predicate: Predicate[A]): Int =
     asScalaStream.count(predicate.test)
 
-  def iterator(): util.Iterator[A] =
+  def iterator(): java.util.Iterator[A] =
     asScalaStream.iterator(Bag.glass).asJava
 
   def count: Int =
@@ -117,6 +117,6 @@ trait Stream[A] {
   def materialize: lang.Iterable[A] =
     asScalaStream.materialize.asJava
 
-  def materializeList: util.List[A] =
+  def materializeList: java.util.List[A] =
     asScalaStream.materializeBuffer.asJava
 }

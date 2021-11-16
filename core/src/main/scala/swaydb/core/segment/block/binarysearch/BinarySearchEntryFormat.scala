@@ -23,7 +23,7 @@ import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.util.Bytes
-import swaydb.data.config.IndexFormat
+import swaydb.config.IndexFormat
 import swaydb.slice.{Slice, SliceMut}
 import swaydb.macros.Sealed
 import swaydb.utils.ByteSizeOf

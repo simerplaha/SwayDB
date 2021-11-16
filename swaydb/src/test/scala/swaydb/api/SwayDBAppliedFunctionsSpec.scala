@@ -21,7 +21,7 @@ import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.log.applied.AppliedFunctionsLog
 import swaydb.Benchmark
-import swaydb.data.Functions
+import swaydb.config.Functions
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis.{eventual, runThis}
 import swaydb.{Glass, _}

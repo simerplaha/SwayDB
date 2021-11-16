@@ -21,7 +21,7 @@ import swaydb.DefActor
 import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.throttle.behaviour._
 import swaydb.core.sweeper.FileSweeper
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 
 import scala.concurrent.{ExecutionContext, Future}
 

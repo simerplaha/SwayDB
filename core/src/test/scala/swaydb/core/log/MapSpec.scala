@@ -31,10 +31,10 @@ import swaydb.core.log.serializer._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.skiplist.SkipListConcurrent
-import swaydb.data.config.MMAP
+import swaydb.config.MMAP
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
-import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.effect.Effect._
 import swaydb.effect.{Effect, Extension}
 import swaydb.serializers.Default._

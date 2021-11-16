@@ -25,13 +25,13 @@
 //import swaydb.core.level.zero.LevelZeroSkipListMerger
 //import swaydb.Benchmark
 //import swaydb.core.{TestBase, TestSweeper, TestTimer}
-//import swaydb.data.accelerate.Accelerator
-//import swaydb.data.config.RecoveryMode
+//import swaydb.config.accelerate.Accelerator
+//import swaydb.config.RecoveryMode
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.slice.Slice
 
 
-//import swaydb.data.util.StorageUnits._
+//import swaydb.config.util.StorageUnits._
 //
 //class MapsPerformanceSpec extends TestBase {
 //

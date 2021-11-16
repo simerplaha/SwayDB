@@ -44,14 +44,14 @@ import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.IDGenerator
-import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
-import swaydb.data.config.{MMAP, RecoveryMode}
+import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
+import swaydb.config.{MMAP, RecoveryMode}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
-import swaydb.data.storage.{Level0Storage, LevelStorage}
-import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.config.storage.{Level0Storage, LevelStorage}
+import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.effect.{Dir, Effect}
 import swaydb.testkit.RunThis.FutureImplicits
 import swaydb.utils.OperatingSystem

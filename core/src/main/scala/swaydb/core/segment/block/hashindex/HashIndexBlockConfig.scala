@@ -1,7 +1,7 @@
 package swaydb.core.segment.block.hashindex
 
 import swaydb.compression.CompressionInternal
-import swaydb.data.config.{HashIndex, UncompressedBlockInfo}
+import swaydb.config.{HashIndex, UncompressedBlockInfo}
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.FunctionSafe
 
@@ -18,12 +18,12 @@ object HashIndexBlockConfig {
       compressions = _ => Seq.empty
     )
 
-  def apply(config: swaydb.data.config.HashIndex): HashIndexBlockConfig =
+  def apply(config: swaydb.config.HashIndex): HashIndexBlockConfig =
     config match {
-      case swaydb.data.config.HashIndex.Off =>
+      case swaydb.config.HashIndex.Off =>
         HashIndexBlockConfig.disabled()
 
-      case enable: swaydb.data.config.HashIndex.On =>
+      case enable: swaydb.config.HashIndex.On =>
         HashIndexBlockConfig(
           maxProbe = enable.maxProbe,
           minimumNumberOfKeys = enable.minimumNumberOfKeys,

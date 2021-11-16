@@ -25,7 +25,7 @@ import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.sweeper.MemorySweeper
 import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
-import swaydb.data.config.MemoryCache
+import swaydb.config.MemoryCache
 import swaydb.slice.order.TimeOrder
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._

@@ -23,7 +23,7 @@ import swaydb.PureFunctionScala._
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestData._
-import swaydb.data.Functions
+import swaydb.config.Functions
 import swaydb.slice.Slice
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Default._

@@ -26,7 +26,7 @@ import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.IDGenerator
-import swaydb.data.config.{MMAP, SegmentRefCacheLife}
+import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.{Error, IO}

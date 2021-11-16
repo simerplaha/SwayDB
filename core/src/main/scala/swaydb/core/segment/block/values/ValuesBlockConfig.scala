@@ -1,7 +1,7 @@
 package swaydb.core.segment.block.values
 
 import swaydb.compression.CompressionInternal
-import swaydb.data.config.UncompressedBlockInfo
+import swaydb.config.UncompressedBlockInfo
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.FunctionSafe
 
@@ -15,7 +15,7 @@ object ValuesBlockConfig {
       compressions = _ => Seq.empty
     )
 
-  def apply(enable: swaydb.data.config.ValuesConfig): ValuesBlockConfig =
+  def apply(enable: swaydb.config.ValuesConfig): ValuesBlockConfig =
     ValuesBlockConfig(
       compressDuplicateValues = enable.compressDuplicateValues,
       compressDuplicateRangeValues = enable.compressDuplicateRangeValues,

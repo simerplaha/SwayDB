@@ -29,9 +29,9 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.compaction.LevelThrottle
-import swaydb.data.config.MMAP
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.LevelThrottle
+import swaydb.config.MMAP
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.effect.Effect._

@@ -21,7 +21,7 @@ import swaydb.Exception.InvalidDirectoryType
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.DataType
+import swaydb.config.DataType
 import swaydb.slice.Slice
 import swaydb.effect.{Effect, Extension}
 import swaydb.utils.ByteSizeOf

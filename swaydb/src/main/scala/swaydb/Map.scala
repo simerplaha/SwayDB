@@ -17,12 +17,12 @@
 package swaydb
 
 import swaydb.PrepareImplicits._
+import swaydb.config.accelerate.LevelZeroMeter
+import swaydb.config.compaction.LevelMeter
 import swaydb.core.Core
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.data.accelerate.LevelZeroMeter
-import swaydb.data.compaction.LevelMeter
-import swaydb.slice.{Slice, SliceOption}
 import swaydb.serializers._
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.stream.{From, SourceFree}
 import swaydb.utils.TupleOrNone
 

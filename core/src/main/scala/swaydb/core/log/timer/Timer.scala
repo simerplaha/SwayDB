@@ -23,7 +23,7 @@ import swaydb.core.log.LogEntry
 import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}
 import swaydb.core.log.serializer.{CounterLogEntryReader, CounterLogEntryWriter, LogEntryReader, LogEntryWriter}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.data.config.MMAP
+import swaydb.config.MMAP
 import swaydb.slice.Slice
 import swaydb.effect.Effect
 import swaydb.utils.StorageUnits._

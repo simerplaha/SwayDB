@@ -26,11 +26,11 @@
 //import swaydb.core.level.compaction.{Compaction, Compactor}
 //import swaydb.core._
 //import swaydb.testkit.RunThis._
-//import swaydb.data.compaction.CompactionExecutionContext
-//import swaydb.data.config.MMAP
+//import swaydb.config.compaction.CompactionExecutionContext
+//import swaydb.config.MMAP
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.slice.Slice
-//import swaydb.data.util.OperatingSystem
+//import swaydb.config.util.OperatingSystem
 //
 //import scala.collection.mutable
 //import scala.concurrent.Promise

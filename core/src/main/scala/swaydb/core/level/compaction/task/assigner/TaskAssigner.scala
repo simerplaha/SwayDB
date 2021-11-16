@@ -24,7 +24,7 @@ import swaydb.core.level.compaction.task.{CompactionDataType, CompactionTask}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, AssignmentResult}
 import swaydb.slice.MaxKey
-import swaydb.data.compaction.PushStrategy
+import swaydb.config.compaction.PushStrategy
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.utils.{Aggregator, NonEmptyList}
@@ -36,7 +36,7 @@ import scala.collection.mutable.ListBuffer
 
 /**
  * Builds optimal compaction tasks to perform that meet the configured
- * [[swaydb.data.compaction.LevelThrottle]] criteria.
+ * [[swaydb.config.compaction.LevelThrottle]] criteria.
  */
 protected case object TaskAssigner {
 
@@ -72,7 +72,7 @@ protected case object TaskAssigner {
    * @param copyToLevel  Level to with data can be copied to.
    * @param lowerLevels  Remaining levels.
    * @param dataOverflow Sets the total size of data to compact. This is dictated
-   *                     by the [[swaydb.data.compaction.LevelThrottle]] configuration.
+   *                     by the [[swaydb.config.compaction.LevelThrottle]] configuration.
    * @param tasks        Final [[CompactionTask.Task]] that will contain optimal
    *                     assignments.
    * @tparam A the type of input data.

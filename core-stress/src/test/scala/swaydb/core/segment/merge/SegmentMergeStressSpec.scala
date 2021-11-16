@@ -25,7 +25,7 @@
 //import swaydb.Benchmark
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.slice.Slice
-//import swaydb.data.util.StorageUnits._
+//import swaydb.config.util.StorageUnits._
 //
 //class SegmentMergeStressSpec extends TestBase {
 //

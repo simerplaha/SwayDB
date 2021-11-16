@@ -23,7 +23,7 @@ import swaydb.IOValues._
 import swaydb._
 import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.{Core, TestBase, TestExecutionContext}
-import swaydb.data.sequencer.Sequencer
+import swaydb.config.sequencer.Sequencer
 import swaydb.slice.Slice
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.testkit.RunThis._
@@ -118,7 +118,7 @@ trait TestBaseEmbedded extends TestBase {
             db.expiration(i).value match {
               case Some(deadline) =>
                 //print out for debugging
-                //                import swaydb.data.util.FiniteDurations._
+                //                import swaydb.config.util.FiniteDurations._
                 //                println("Time-left: " + deadline.timeLeft.asString)
 
                 //if timeLeft is false then read again should return empty now

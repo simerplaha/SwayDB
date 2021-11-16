@@ -23,7 +23,7 @@ import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne, Segment}
 import swaydb.utils.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.data.config.MMAP
+import swaydb.config.MMAP
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._

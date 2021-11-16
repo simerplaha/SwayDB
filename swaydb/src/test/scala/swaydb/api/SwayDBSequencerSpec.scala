@@ -21,7 +21,7 @@ import swaydb.Bag.Implicits._
 import swaydb._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
-import swaydb.data.sequencer.Sequencer
+import swaydb.config.sequencer.Sequencer
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis.FutureImplicits
 

@@ -24,9 +24,9 @@ import swaydb.core.level.compaction.throttle.LevelState
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.compaction.LevelThrottle
-import swaydb.data.config.MMAP
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.LevelThrottle
+import swaydb.config.MMAP
 import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

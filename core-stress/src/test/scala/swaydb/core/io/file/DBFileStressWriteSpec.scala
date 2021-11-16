@@ -24,8 +24,8 @@
 //import swaydb.core.sweeper.FileSweeper
 //import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 //import swaydb.core.{TestBase, TestSweeper}
-//import swaydb.data.util.OperatingSystem
-//import swaydb.data.util.StorageUnits._
+//import swaydb.config.util.OperatingSystem
+//import swaydb.config.util.StorageUnits._
 //
 //import scala.concurrent.Future
 //import scala.concurrent.duration._

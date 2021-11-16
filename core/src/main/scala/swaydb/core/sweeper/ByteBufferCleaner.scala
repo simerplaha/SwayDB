@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.IO.ExceptionHandler
 import swaydb.core.io.file.ForceSaveApplier
-import swaydb.data.config.ForceSave
+import swaydb.config.ForceSave
 
 import java.lang.invoke.{MethodHandle, MethodHandles, MethodType}
 import java.nio.file.Path

@@ -23,7 +23,7 @@ import swaydb.core._
 import swaydb.core.log.LogEntry
 import swaydb.core.log.MapTestUtil._
 import swaydb.core.log.serializer._
-import swaydb.data.config.MMAP
+import swaydb.config.MMAP
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.serializers.Default._

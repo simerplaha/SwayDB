@@ -24,6 +24,12 @@ import swaydb.IOValues._
 import swaydb.cache.Cache
 import swaydb.compression.CompressionInternal
 import swaydb.compression.CompressionTestGen._
+import swaydb.config.accelerate.Accelerator
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.{LevelMeter, LevelThrottle}
+import swaydb.config._
+import swaydb.config.storage.{Level0Storage, LevelStorage}
+import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
@@ -61,18 +67,12 @@ import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.IDGenerator
-import swaydb.data.accelerate.Accelerator
-import swaydb.data.compaction.CompactionConfig.CompactionParallelism
-import swaydb.data.compaction.{LevelMeter, LevelThrottle}
-import swaydb.data.config._
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.data.storage.{Level0Storage, LevelStorage}
-import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
 import swaydb.effect.{Dir, IOAction, IOStrategy}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.skiplist.AtomicRanges
-import swaydb.slice.{Slice, SliceOption, SliceRO}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.{MaxKey, Slice, SliceOption, SliceRO}
 import swaydb.testkit.RunThis.FutureImplicits
 import swaydb.utils.StorageUnits._
 import swaydb.utils.{Aggregator, FiniteDurations, OperatingSystem}

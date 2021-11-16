@@ -26,11 +26,11 @@
 //import swaydb.core.io.file.Effect._
 //import swaydb.core.level.zero.LevelZeroSkipListMerger
 //import swaydb.core.{TestBase, TestSweeper, TestTimer}
-//import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-//import swaydb.data.config.RecoveryMode
+//import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
+//import swaydb.config.RecoveryMode
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.slice.Slice
-//import swaydb.data.util.StorageUnits._
+//import swaydb.config.util.StorageUnits._
 //
 //class MapsStressSpec extends TestBase {
 //

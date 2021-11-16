@@ -20,13 +20,13 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.{DefaultExecutionContext, DefaultMemoryConfig}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
-import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
-import swaydb.data.config.{FileCache, MemoryCache, ThreadStateCache}
+import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
+import swaydb.config.{FileCache, MemoryCache, ThreadStateCache}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.data.sequencer.Sequencer
+import swaydb.config.sequencer.Sequencer
 import swaydb.slice.Slice
-import swaydb.data.{Atomic, DataType, Functions, OptimiseWrites}
+import swaydb.config.{Atomic, DataType, Functions, OptimiseWrites}
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Serializer
 import swaydb.{Apply, CommonConfigs, KeyOrderConverter, PureFunction}
