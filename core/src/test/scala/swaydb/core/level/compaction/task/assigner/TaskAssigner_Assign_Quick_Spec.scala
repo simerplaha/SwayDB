@@ -23,7 +23,7 @@ import swaydb.core.level.Level
 import swaydb.core.level.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.data.NonEmptyList
+import swaydb.utils.NonEmptyList
 import swaydb.data.compaction.PushStrategy
 import swaydb.data.config.MMAP
 import swaydb.slice.order.KeyOrder

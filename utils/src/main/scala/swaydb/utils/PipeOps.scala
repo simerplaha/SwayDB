@@ -16,16 +16,16 @@
 
 package swaydb.utils
 
-object PipeOps {
+private[swaydb] object PipeOps {
 
   class Pipe[A](a: A) {
-    def ==>[B](f: A => B) = f(a)
+    @inline final def ==>[B](f: A => B) = f(a)
   }
 
   object Pipe {
-    def apply[A](v: A) = new Pipe(v)
+    @inline final def apply[A](v: A) = new Pipe(v)
   }
 
-  implicit def pipe[A](a: A): Pipe[A] = Pipe(a)
+  @inline final implicit def pipe[A](a: A): Pipe[A] = Pipe(a)
 }
 

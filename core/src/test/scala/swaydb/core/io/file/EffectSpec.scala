@@ -19,7 +19,7 @@ package swaydb.core.io.file
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.TestData._
-import swaydb.core.util.Benchmark
+import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.slice.Slice
 import swaydb.effect.{Effect, Extension}

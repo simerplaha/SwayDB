@@ -16,7 +16,8 @@
 
 package swaydb.java
 
-import swaydb.{Expiration, KeyVal, Pair, Prepare}
+import swaydb.utils.{KeyVal, Pair}
+import swaydb.{Expiration, Prepare}
 
 import java.time.Duration
 import java.util.Optional

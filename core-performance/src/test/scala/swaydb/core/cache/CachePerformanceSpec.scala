@@ -22,7 +22,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.cache.Cache
 import swaydb.core.CommonAssertions._
-import swaydb.core.util.Benchmark
+import swaydb.Benchmark
 import swaydb.effect.Reserve
 import swaydb.testkit.RunThis._
 

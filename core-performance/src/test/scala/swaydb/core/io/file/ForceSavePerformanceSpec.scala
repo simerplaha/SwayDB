@@ -18,7 +18,7 @@ package swaydb.core.io.file
 
 import swaydb.core.TestData.randomBytesSlice
 import swaydb.core.sweeper.ByteBufferCleaner
-import swaydb.core.util.Benchmark
+import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.config.ForceSave
 import swaydb.effect.Effect

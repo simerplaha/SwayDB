@@ -22,12 +22,12 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
-import swaydb.slice.{Slice, Slices}
 import swaydb.effect.Effect
+import swaydb.slice.{Slice, Slices}
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
+import swaydb.utils.PipeOps._
 
 import java.nio.ReadOnlyBufferException
 import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}

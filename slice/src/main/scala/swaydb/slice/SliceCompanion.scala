@@ -271,6 +271,41 @@ trait SliceCompanion extends SliceBuildFrom {
     check(range1, range2) || check(range2, range1)
   }
 
+  def groupedBySize[T: ClassTag](minGroupSize: Int,
+                                 itemSize: T => Int,
+                                 items: Slice[T]): Slice[Slice[T]] =
+    if (minGroupSize <= 0) {
+      Slice(items)
+    } else {
+      val allGroups =
+        Slice
+          .of[SliceMut[T]](items.size)
+          .add(Slice.of[T](items.size))
+
+      var currentGroupSize: Int = 0
+
+      var i = 0
+      while (i < items.size) {
+        if (currentGroupSize < minGroupSize) {
+          val currentItem = items(i)
+          allGroups.last add currentItem
+          currentGroupSize += itemSize(currentItem)
+          i += 1
+        } else {
+          val tailItemsSize = items.drop(i).foldLeft(0)(_ + itemSize(_))
+          if (tailItemsSize >= minGroupSize) {
+            val newGroup = Slice.of[T](items.size - i + 1)
+            allGroups add newGroup
+            currentGroupSize = 0
+          } else {
+            currentGroupSize = minGroupSize - 1
+          }
+        }
+      }
+
+      allGroups
+    }
+
   implicit class SlicesImplicits[T: ClassTag](slices: Slice[Slice[T]]) {
     /**
      * Closes this Slice and children Slices which disables

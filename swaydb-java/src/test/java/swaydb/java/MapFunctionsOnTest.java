@@ -22,6 +22,7 @@ import swaydb.*;
 import swaydb.core.Core;
 import swaydb.data.java.TestBase;
 import swaydb.java.serializers.Serializer;
+import swaydb.utils.KeyVal;
 
 import java.io.IOException;
 import java.time.Duration;

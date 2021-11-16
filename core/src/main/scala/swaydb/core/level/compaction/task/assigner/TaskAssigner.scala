@@ -16,7 +16,6 @@
 
 package swaydb.core.level.compaction.task.assigner
 
-import swaydb.utils.Aggregator
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.level.Level
@@ -24,10 +23,11 @@ import swaydb.core.level.compaction.task.CompactionDataType._
 import swaydb.core.level.compaction.task.{CompactionDataType, CompactionTask}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, AssignmentResult}
+import swaydb.data.MaxKey
 import swaydb.data.compaction.PushStrategy
-import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
-import swaydb.data.{MaxKey, NonEmptyList}
+import swaydb.slice.order.KeyOrder
+import swaydb.utils.{Aggregator, NonEmptyList}
 
 import scala.annotation.tailrec
 import scala.collection.compat._

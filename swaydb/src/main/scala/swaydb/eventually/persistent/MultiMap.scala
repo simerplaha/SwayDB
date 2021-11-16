@@ -30,6 +30,7 @@ import swaydb.effect.Dir
 import swaydb.function.FunctionConverter
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
+import swaydb.data.Functions
 import swaydb.utils.StorageUnits._
 import swaydb.{Apply, CommonConfigs, KeyOrderConverter, MultiMap, PureFunction}
 

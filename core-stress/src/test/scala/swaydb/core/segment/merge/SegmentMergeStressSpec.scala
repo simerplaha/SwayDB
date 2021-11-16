@@ -22,7 +22,7 @@
 //import swaydb.core.segment.block._
 //import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 //import swaydb.core.segment.block.hashindex.HashIndexBlock
-//import swaydb.core.util.Benchmark
+//import swaydb.Benchmark
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.slice.Slice
 //import swaydb.data.util.StorageUnits._

@@ -14,13 +14,25 @@
  * limitations under the License.
  */
 
-package swaydb.core.util
+package swaydb.utils
 
-private[swaydb] object Numbers {
+object Eithers {
 
-  @inline final def whenOrZero(condition: Boolean)(int: Int): Int =
-    if (condition)
-      int
-    else
-      0
+  val unit: Right[Nothing, Unit] = Right(())
+
+  def nullCheck[L, R](left: L, right: R, default: L): Either[L, R] =
+    (left, right) match {
+      case (null, null) =>
+        Left(default)
+
+      case (left, null) =>
+        Left(left)
+
+      case (null, right) =>
+        Right(right)
+
+      case (left, right) =>
+        Left(left)
+    }
+
 }

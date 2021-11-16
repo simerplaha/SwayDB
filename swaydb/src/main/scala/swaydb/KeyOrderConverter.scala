@@ -16,7 +16,7 @@
 
 package swaydb
 
-import swaydb.core.util.Eithers
+import swaydb.utils.Eithers
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 import swaydb.serializers.Serializer

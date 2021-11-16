@@ -17,6 +17,7 @@
 package swaydb
 
 import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
+import swaydb.utils.Pair
 
 sealed trait Compression
 object Compression {

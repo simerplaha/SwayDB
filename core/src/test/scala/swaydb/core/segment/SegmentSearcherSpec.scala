@@ -26,7 +26,7 @@ import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.SegmentSearcher
-import swaydb.core.util.Benchmark
+import swaydb.Benchmark
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice

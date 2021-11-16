@@ -26,10 +26,11 @@ import swaydb.data.config._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
 import swaydb.slice.Slice
-import swaydb.data.{Atomic, DataType, Functions, OptimiseWrites}
+import swaydb.data.{Atomic, DataType, OptimiseWrites}
 import swaydb.effect.Dir
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Serializer
+import swaydb.data.Functions
 import swaydb.utils.StorageUnits._
 import swaydb.{Apply, CommonConfigs, KeyOrderConverter, PureFunction}
 

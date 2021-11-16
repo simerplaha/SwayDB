@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.CommonConfigs
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
-import swaydb.core.util.Eithers
+import swaydb.utils.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.CompactionConfig
 import swaydb.data.config._

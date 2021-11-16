@@ -14,18 +14,12 @@
  * limitations under the License.
  */
 
-package swaydb.core.util
+package swaydb.utils
 
-private[swaydb] object PipeOps {
+import scala.util.Success
 
-  class Pipe[A](a: A) {
-    @inline final def ==>[B](f: A => B) = f(a)
-  }
+object Trys {
 
-  object Pipe {
-    @inline final def apply[A](v: A) = new Pipe(v)
-  }
+  val unit: Success[Unit] = Success(())
 
-  @inline final implicit def pipe[A](a: A): Pipe[A] = Pipe(a)
 }
-

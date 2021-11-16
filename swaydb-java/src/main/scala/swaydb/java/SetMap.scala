@@ -16,12 +16,13 @@
 
 package swaydb.java
 
-import swaydb.KeyVal._
+import swaydb.utils.KeyVal._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.java.data.util.Java._
 import swaydb.utils.Java._
-import swaydb.{Expiration, Glass, KeyVal}
+import swaydb.utils.KeyVal
+import swaydb.{Expiration, Glass}
 
 import java.nio.file.Path
 import java.time.Duration

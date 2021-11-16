@@ -27,7 +27,7 @@ import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
-import swaydb.core.util.Benchmark
+import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.slice.order.KeyOrder

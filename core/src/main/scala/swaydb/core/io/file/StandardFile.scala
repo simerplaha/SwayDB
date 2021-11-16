@@ -17,7 +17,7 @@
 package swaydb.core.io.file
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.util.Collections
+import swaydb.utils.Collections
 import swaydb.data.config.ForceSave
 import swaydb.slice.{Slice, SliceRO, Slices}
 import swaydb.effect.Effect

@@ -19,9 +19,9 @@ package swaydb.function
 import swaydb.core.data.SwayFunctionOutput
 import swaydb.core.function.FunctionStore
 import swaydb.data.Functions
-import swaydb.slice.{Slice, SliceOption}
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.{Apply, Expiration, MultiMap, PureFunction, PureFunctionJava, PureFunctionScala}
 
 import java.util.Optional

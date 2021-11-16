@@ -40,7 +40,7 @@ import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper}
-import swaydb.core.util.{Benchmark, IDGenerator}
+import swaydb.core.util.IDGenerator
 import swaydb.data.MaxKey
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config.MMAP
@@ -53,7 +53,7 @@ import swaydb.serializers._
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 import swaydb.utils.{ByteSizeOf, OperatingSystem}
-import swaydb.{ActorConfig, IO}
+import swaydb.{ActorConfig, Benchmark, IO}
 
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import scala.collection.mutable.ListBuffer

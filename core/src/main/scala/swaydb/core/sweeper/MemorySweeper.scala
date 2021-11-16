@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorConfig.QueueOrder
 import swaydb.cache.CacheNoIO
 import swaydb.core.data.Persistent
-import swaydb.core.util.HashedMap
+import swaydb.utils.HashedMap
 import swaydb.skiplist.SkipList
 import swaydb.data.config.MemoryCache
 import swaydb.slice.{Slice, SliceOption}

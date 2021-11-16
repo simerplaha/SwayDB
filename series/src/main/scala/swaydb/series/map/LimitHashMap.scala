@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package swaydb.core.util
+package swaydb.series.map
 
-import swaydb.series.{Series, SeriesBasic, SeriesVolatile}
+import swaydb.series._
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.annotation.tailrec

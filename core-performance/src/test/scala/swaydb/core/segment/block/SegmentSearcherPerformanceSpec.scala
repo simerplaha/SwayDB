@@ -20,7 +20,7 @@
 //import swaydb.core.{TestBase, TestSweeper}
 //import swaydb.core.TestData._
 //import swaydb.core.io.file.BlockCache
-//import swaydb.core.util.Benchmark
+//import swaydb.Benchmark
 //import swaydb.data.config.IOStrategy
 //import swaydb.slice.order.KeyOrder
 //import swaydb.slice.Slice

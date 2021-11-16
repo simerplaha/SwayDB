@@ -23,16 +23,16 @@ import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockConfig, BinarySearchIndexBlockState}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig, HashIndexBlockState}
-import swaydb.core.segment.block.segment.transient.{ClosedBlocks, TransientSegment, TransientSegmentRef}
 import swaydb.core.segment.block.segment.footer.{SegmentFooterBlock, SegmentFooterBlockState}
+import swaydb.core.segment.block.segment.transient.{ClosedBlocks, TransientSegment, TransientSegmentRef}
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig, SortedIndexBlockState}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockState}
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
-import swaydb.core.util.{Bytes, Collections, MinMax}
+import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.config._
-import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.utils.Futures._
 import swaydb.utils.{ByteSizeOf, Futures}
 
@@ -106,7 +106,7 @@ private[core] case object SegmentBlock extends LazyLogging {
         .unit
         .flatMapUnit {
           val groups: Slice[Slice[TransientSegment.OneOrRemoteRef]] =
-            Collections.groupedBySize[TransientSegment.OneOrRemoteRef](
+            Slice.groupedBySize[TransientSegment.OneOrRemoteRef](
               minGroupSize = segmentConfig.minSize,
               itemSize = _.segmentSize,
               items = ones

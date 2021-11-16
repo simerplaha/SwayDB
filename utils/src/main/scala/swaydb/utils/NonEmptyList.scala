@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.data
+package swaydb.utils
 
 import scala.jdk.CollectionConverters._
 

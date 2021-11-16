@@ -27,7 +27,7 @@ import swaydb.core.segment.block.Block
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockOffset}
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.util.Benchmark
+import swaydb.Benchmark
 import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
 import swaydb.data.config.{PrefixCompression, UncompressedBlockInfo}
 import swaydb.slice.order.KeyOrder

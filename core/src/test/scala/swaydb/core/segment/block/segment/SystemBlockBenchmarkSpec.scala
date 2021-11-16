@@ -20,7 +20,7 @@
 //import swaydb.IO
 //import swaydb.testkit.RunThis._
 //import swaydb.core.TestBase
-//import swaydb.core.util.Benchmark
+//import swaydb.Benchmark
 //import swaydb.slice.Slice
 //import swaydb.data.util.StorageUnits._
 //

@@ -20,7 +20,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.ActorConfig.QueueOrder
 import swaydb.core.TestExecutionContext
-import swaydb.core.util.Benchmark
+import swaydb.Benchmark
 import swaydb.{Actor, ActorRef}
 
 import java.util.concurrent.ConcurrentLinkedQueue

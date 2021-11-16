@@ -1,9 +1,8 @@
-package swaydb.core.util
+package swaydb.series.map
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.effect.Base._
 
 class ProbeLimitHashMap extends LimitHashMapSpec {
   def createMap[K, V >: Null](limit: Integer) = LimitHashMap[K, V](limit, 10)
@@ -18,7 +17,7 @@ class NoProbeLimitHashMap extends LimitHashMapSpec {
     eitherOne(
       //create directly with noProbe or via 0 or negative probe.
       LimitHashMap[K, V](limit),
-      LimitHashMap[K, V](limit, -randomIntMax(2))
+      LimitHashMap[K, V](limit, -eitherOne(0, 1, 2))
     )
 }
 
@@ -27,7 +26,7 @@ class NoProbeLimitConcurrentHashMap extends LimitHashMapSpec {
     eitherOne(
       //create directly with noProbe or via 0 or negative probe.
       LimitHashMap.volatile[K, V](limit),
-      LimitHashMap.volatile[K, V](limit, -randomIntMax(2))
+      LimitHashMap.volatile[K, V](limit, -eitherOne(0, 1, 2))
     )
 }
 

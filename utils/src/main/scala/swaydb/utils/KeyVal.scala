@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb
+package swaydb.utils
 
 object KeyVal {
   def apply[K, V](keyVal: (K, V)): KeyVal[K, V] =

@@ -17,7 +17,7 @@
 package swaydb.java.persistent
 
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.core.util.Eithers
+import swaydb.utils.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.data.config._

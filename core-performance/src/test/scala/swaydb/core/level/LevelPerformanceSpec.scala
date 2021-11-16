@@ -25,7 +25,7 @@
 //import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
 //import swaydb.core.segment.block.{BloomFilterBlock, SegmentBlock, SortedIndexBlock, ValuesBlock}
 //import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
-//import swaydb.core.util.Benchmark
+//import swaydb.Benchmark
 //import swaydb.data.config.{IOAction, IOStrategy}
 //import swaydb.slice.order.KeyOrder
 //import swaydb.slice.Slice

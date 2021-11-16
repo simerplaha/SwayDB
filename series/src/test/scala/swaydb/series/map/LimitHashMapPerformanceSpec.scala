@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package swaydb.core.util
+package swaydb.series.map
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import swaydb.Benchmark
 
 class LimitHashMapPerformanceSpec extends AnyFlatSpec with Matchers {
 

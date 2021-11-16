@@ -21,7 +21,7 @@ import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.block.reader.BlockRefReader
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
-import swaydb.core.util.Benchmark
+import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
 import swaydb.effect.{Effect, IOStrategy}
 import swaydb.utils.StorageUnits._

@@ -23,7 +23,7 @@
 //import swaydb.core.data.Memory
 //import swaydb.core.io.file.Effect
 //import swaydb.core.level.zero.LevelZeroSkipListMerger
-//import swaydb.core.util.Benchmark
+//import swaydb.Benchmark
 //import swaydb.core.{TestBase, TestSweeper, TestTimer}
 //import swaydb.data.accelerate.Accelerator
 //import swaydb.data.config.RecoveryMode

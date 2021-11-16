@@ -19,7 +19,7 @@ package swaydb.core.level
 import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.segment.Segment
-import swaydb.core.util.Benchmark
+import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.slice.order.KeyOrder
 import swaydb.effect

@@ -18,7 +18,7 @@ package swaydb.api.queue
 
 import org.scalatest.OptionValues._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.util.Benchmark
+import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.serializers.Default._
 import swaydb.{Glass, Queue}

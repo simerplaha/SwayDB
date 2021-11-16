@@ -17,7 +17,7 @@
 package swaydb.core.io.file
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.util.Benchmark
+import swaydb.Benchmark
 import swaydb.data.config.ForceSave
 
 import java.nio.MappedByteBuffer

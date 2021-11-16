@@ -39,7 +39,7 @@ import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, FileSweeperItem, MemorySweeper}
-import swaydb.core.util.Collections._
+import swaydb.utils.Collections._
 import swaydb.core.util._
 import swaydb.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.data.MaxKey

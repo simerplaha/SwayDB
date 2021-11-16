@@ -17,7 +17,7 @@
 package swaydb.data.java;
 
 import org.junit.jupiter.api.Test;
-import swaydb.Pair;
+import swaydb.utils.Pair;
 import swaydb.java.Stream;
 
 import java.util.Arrays;

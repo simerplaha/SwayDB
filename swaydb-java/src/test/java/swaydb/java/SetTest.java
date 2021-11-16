@@ -22,6 +22,7 @@ import swaydb.*;
 import swaydb.data.java.TestBase;
 import swaydb.java.memory.MemorySet;
 import swaydb.java.serializers.Serializer;
+import swaydb.utils.Pair;
 
 import java.io.IOException;
 import java.io.Serializable;

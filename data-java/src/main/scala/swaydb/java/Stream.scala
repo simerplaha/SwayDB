@@ -17,7 +17,8 @@
 package swaydb.java
 
 import swaydb.utils.Java._
-import swaydb.{Bag, Glass, Pair}
+import swaydb.utils.Pair
+import swaydb.{Bag, Glass}
 
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}

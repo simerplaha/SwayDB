@@ -20,7 +20,7 @@ import swaydb.PureFunctionScala._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.log.applied.AppliedFunctionsLog
-import swaydb.core.util.Benchmark
+import swaydb.Benchmark
 import swaydb.data.Functions
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis.{eventual, runThis}

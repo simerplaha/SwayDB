@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb
+package swaydb.utils
 
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration.{Deadline, FiniteDuration}

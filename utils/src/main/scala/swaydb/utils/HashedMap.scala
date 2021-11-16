@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.util
+package swaydb.utils
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong

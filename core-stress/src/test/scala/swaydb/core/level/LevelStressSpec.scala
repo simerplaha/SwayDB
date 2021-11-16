@@ -23,7 +23,7 @@
 //import swaydb.core.TestBase
 //import swaydb.core.TestData._
 //import swaydb.core.group.compression.data.GroupByInternal.KeyValues
-//import swaydb.core.util.Benchmark
+//import swaydb.Benchmark
 //import swaydb.slice.order.KeyOrder
 //import swaydb.data.util.StorageUnits._
 //

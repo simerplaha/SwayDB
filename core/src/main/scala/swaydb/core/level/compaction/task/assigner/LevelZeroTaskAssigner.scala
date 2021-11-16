@@ -16,7 +16,6 @@
 
 package swaydb.core.level.compaction.task.assigner
 
-import swaydb.utils.Aggregator
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.Level
@@ -27,12 +26,12 @@ import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
+import swaydb.data.MaxKey
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.PushStrategy
-import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
-import swaydb.data.{MaxKey, NonEmptyList}
-import swaydb.utils.Futures
+import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.utils.{Aggregator, Futures, NonEmptyList}
 
 import java.util
 import scala.collection.compat._

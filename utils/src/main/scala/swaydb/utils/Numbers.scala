@@ -14,29 +14,13 @@
  * limitations under the License.
  */
 
-package swaydb.core.util
+package swaydb.utils
 
-import swaydb.effect.Effect
+private[swaydb] object Numbers {
 
-import java.nio.file.Path
-
-object FileUtils {
-
-  def printFilesSize(folder: Path, fileExtension: String): Unit =
-    Effect.printFilesSize(
-      folder = folder,
-      fileExtension = fileExtension
-    )
-
-  def getFilesSize(folder: Path, fileExtension: String): String =
-    try
-      Effect.getFilesSize(
-        folder = folder,
-        fileExtension = fileExtension
-      )
-    catch {
-      case throwable: Throwable =>
-        throwable.getMessage
-    }
-
+  @inline final def whenOrZero(condition: Boolean)(int: Int): Int =
+    if (condition)
+      int
+    else
+      0
 }

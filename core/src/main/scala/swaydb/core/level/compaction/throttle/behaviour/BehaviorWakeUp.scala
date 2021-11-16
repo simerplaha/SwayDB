@@ -24,7 +24,7 @@ import swaydb.core.level.compaction.task.assigner.{LevelTaskAssigner, LevelZeroT
 import swaydb.core.level.compaction.throttle.{LevelState, ThrottleCompactor, ThrottleCompactorContext, ThrottleLevelOrdering}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.sweeper.FileSweeper
-import swaydb.data.NonEmptyList
+import swaydb.utils.NonEmptyList
 import swaydb.data.compaction.CompactionConfig.CompactionParallelism
 import swaydb.data.compaction.PushStrategy
 import swaydb.slice.Slice
