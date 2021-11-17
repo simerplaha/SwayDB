@@ -25,8 +25,8 @@ import swaydb.config.compaction.{LevelMeter, LevelZeroThrottle}
 import swaydb.config.storage.Level0Storage
 import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
@@ -34,6 +34,7 @@ import swaydb.core.log.applied.{AppliedFunctionsLog, AppliedFunctionsLogCache}
 import swaydb.core.log.serialiser.AppliedFunctionsLogEntryWriter
 import swaydb.core.log.timer.Timer
 import swaydb.core.log.{Log, LogEntry, Logs}
+import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.data.KeyValue.{Put, PutOption}
 import swaydb.core.segment.data.Value.FromValue
 import swaydb.core.segment.data._
@@ -45,7 +46,7 @@ import swaydb.core.util.MinMax
 import swaydb.core.{CoreState, MemoryPathGenerator}
 import swaydb.effect.{Effect, FileLocker}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.{Slice, SliceOption}
+import swaydb.slice.{MaxKey, Slice, SliceOption}
 import swaydb.utils.{DropIterator, Options}
 import swaydb.{Bag, Error, Glass, IO, OK}
 
@@ -57,6 +58,21 @@ import scala.concurrent.duration._
 private[core] case object LevelZero extends LazyLogging {
 
   type LevelZeroLog = Log[Slice[Byte], Memory, LevelZeroLogCache]
+
+  def toAssignableCollection(map: LevelZeroLog): Assignable.Collection =
+    new Assignable.Collection {
+      override def maxKey: MaxKey[Slice[Byte]] =
+        map.cache.maxKey().getC
+
+      override def iterator(inOneSeek: Boolean): Iterator[KeyValue] =
+        map.cache.skipList.valuesIterator
+
+      override def keyValueCount: Int =
+        map.cache.skipList.size
+
+      override def key: Slice[Byte] =
+        map.cache.skipList.headKey.getC
+    }
 
   def apply(logSize: Int,
             appliedFunctionsLogSize: Int,

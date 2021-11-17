@@ -27,6 +27,7 @@ import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.level.seek._
+import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.log.serialiser._
 import swaydb.core.log.{Log, LogEntry}
@@ -409,7 +410,7 @@ private[core] case class Level(dirs: Seq[Dir],
              removeDeletedRecords: Boolean): DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, newKeyValues.cache.skipList.size)
     assign(
-      newKeyValues = Seq(Assignable.Collection.fromMap(newKeyValues)),
+      newKeyValues = Seq(LevelZero.toAssignableCollection(newKeyValues)),
       targetSegments = targetSegments,
       removeDeletedRecords = removeDeletedRecords,
       noGaps = false

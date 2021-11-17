@@ -76,7 +76,7 @@ private[core] object ValueSerialiser {
       remaining
   }
 
-  implicit object ValuePutSerialiser$ extends ValueSerialiser[Value.Put] {
+  implicit object ValuePutSerialiser extends ValueSerialiser[Value.Put] {
 
     override def write(value: Value.Put, bytes: SliceMut[Byte]): Unit =
       bytes
@@ -99,7 +99,7 @@ private[core] object ValueSerialiser {
     }
   }
 
-  implicit object ValueUpdateSerialiser$ extends ValueSerialiser[Value.Update] {
+  implicit object ValueUpdateSerialiser extends ValueSerialiser[Value.Update] {
 
     override def write(value: Value.Update, bytes: SliceMut[Byte]): Unit =
       bytes
@@ -122,7 +122,7 @@ private[core] object ValueSerialiser {
     }
   }
 
-  implicit object ValueRemoveSerialiser$ extends ValueSerialiser[Value.Remove] {
+  implicit object ValueRemoveSerialiser extends ValueSerialiser[Value.Remove] {
 
     override def write(value: Value.Remove, bytes: SliceMut[Byte]): Unit =
       bytes
@@ -153,7 +153,7 @@ private[core] object ValueSerialiser {
     }
   }
 
-  implicit object ValueSliceApplySerialiser$ extends ValueSerialiser[Slice[Value.Apply]] {
+  implicit object ValueSliceApplySerialiser extends ValueSerialiser[Slice[Value.Apply]] {
 
     override def write(applies: Slice[Value.Apply], bytes: SliceMut[Byte]): Unit = {
       bytes.addUnsignedInt(applies.size)

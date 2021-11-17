@@ -38,7 +38,7 @@ private[core] object RangeValueSerialiser {
    * Single
    */
 
-  implicit object UnitRemoveSerialiser$ extends RangeValueSerialiser[Unit, Value.Remove] {
+  implicit object UnitRemoveSerialiser extends RangeValueSerialiser[Unit, Value.Remove] {
 
     val id = swaydb.core.log.serialiser.RemoveRange.id
 
@@ -52,7 +52,7 @@ private[core] object RangeValueSerialiser {
       ((), ValueSerialiser.read[Value.Remove](reader))
   }
 
-  implicit object UnitUpdateSerialiser$ extends RangeValueSerialiser[Unit, Value.Update] {
+  implicit object UnitUpdateSerialiser extends RangeValueSerialiser[Unit, Value.Update] {
 
     val id = swaydb.core.log.serialiser.UpdateRange.id
 
@@ -66,7 +66,7 @@ private[core] object RangeValueSerialiser {
       ((), ValueSerialiser.read[Value.Update](reader))
   }
 
-  implicit object UnitFunctionSerialiser$ extends RangeValueSerialiser[Unit, Value.Function] {
+  implicit object UnitFunctionSerialiser extends RangeValueSerialiser[Unit, Value.Function] {
 
     val id = swaydb.core.log.serialiser.FunctionRange.id
 
@@ -80,7 +80,7 @@ private[core] object RangeValueSerialiser {
       ((), ValueSerialiser.read[Value.Function](reader))
   }
 
-  implicit object UnitPendingApplySerialiser$ extends RangeValueSerialiser[Unit, Value.PendingApply] {
+  implicit object UnitPendingApplySerialiser extends RangeValueSerialiser[Unit, Value.PendingApply] {
 
     val id = swaydb.core.log.serialiser.PendingApplyRange.id
 
@@ -97,7 +97,7 @@ private[core] object RangeValueSerialiser {
   /**
    * Remove
    */
-  implicit object RemoveRemoveSerialiser$ extends RangeValueSerialiser[Value.Remove, Value.Remove] {
+  implicit object RemoveRemoveSerialiser extends RangeValueSerialiser[Value.Remove, Value.Remove] {
 
     val id = swaydb.core.log.serialiser.RemoveRemoveRange.id
 
@@ -126,7 +126,7 @@ private[core] object RangeValueSerialiser {
     }
   }
 
-  implicit object RemoveUpdateSerialiser$ extends RangeValueSerialiser[Value.Remove, Value.Update] {
+  implicit object RemoveUpdateSerialiser extends RangeValueSerialiser[Value.Remove, Value.Update] {
 
     val id = swaydb.core.log.serialiser.RemoveUpdateRange.id
 
@@ -155,7 +155,7 @@ private[core] object RangeValueSerialiser {
     }
   }
 
-  implicit object RemoveFunctionSerialiser$ extends RangeValueSerialiser[Value.Remove, Value.Function] {
+  implicit object RemoveFunctionSerialiser extends RangeValueSerialiser[Value.Remove, Value.Function] {
 
     val id = swaydb.core.log.serialiser.RemoveFunctionRange.id
 
@@ -184,7 +184,7 @@ private[core] object RangeValueSerialiser {
     }
   }
 
-  implicit object RemovePendingApplySerialiser$ extends RangeValueSerialiser[Value.Remove, Value.PendingApply] {
+  implicit object RemovePendingApplySerialiser extends RangeValueSerialiser[Value.Remove, Value.PendingApply] {
 
     val id = swaydb.core.log.serialiser.RemovePendingApplyRange.id
 
@@ -217,7 +217,7 @@ private[core] object RangeValueSerialiser {
    * Put
    */
 
-  implicit object PutRemoveSerialiser$ extends RangeValueSerialiser[Value.Put, Value.Remove] {
+  implicit object PutRemoveSerialiser extends RangeValueSerialiser[Value.Put, Value.Remove] {
 
     val id = swaydb.core.log.serialiser.PutRemoveRange.id
 
@@ -246,7 +246,7 @@ private[core] object RangeValueSerialiser {
     }
   }
 
-  implicit object PutUpdateSerialiser$ extends RangeValueSerialiser[Value.Put, Value.Update] {
+  implicit object PutUpdateSerialiser extends RangeValueSerialiser[Value.Put, Value.Update] {
 
     val id = swaydb.core.log.serialiser.PutUpdateRange.id
 
@@ -275,7 +275,7 @@ private[core] object RangeValueSerialiser {
     }
   }
 
-  implicit object PutFunctionSerialiser$ extends RangeValueSerialiser[Value.Put, Value.Function] {
+  implicit object PutFunctionSerialiser extends RangeValueSerialiser[Value.Put, Value.Function] {
 
     val id = swaydb.core.log.serialiser.PutFunctionRange.id
 
@@ -304,7 +304,7 @@ private[core] object RangeValueSerialiser {
     }
   }
 
-  implicit object PutPendingApplySerialiser$ extends RangeValueSerialiser[Value.Put, Value.PendingApply] {
+  implicit object PutPendingApplySerialiser extends RangeValueSerialiser[Value.Put, Value.PendingApply] {
 
     val id = swaydb.core.log.serialiser.PutPendingApplyRange.id
 
@@ -336,7 +336,7 @@ private[core] object RangeValueSerialiser {
   /**
    * Update
    */
-  implicit object UpdateRemoveSerialiser$ extends RangeValueSerialiser[Value.Update, Value.Remove] {
+  implicit object UpdateRemoveSerialiser extends RangeValueSerialiser[Value.Update, Value.Remove] {
     val id = swaydb.core.log.serialiser.UpdateRemoveRange.id
 
     override def write(fromValue: Value.Update, rangeValue: Value.Remove, bytes: SliceMut[Byte]): Unit = {
@@ -364,7 +364,7 @@ private[core] object RangeValueSerialiser {
     }
   }
 
-  implicit object UpdateUpdateSerialiser$ extends RangeValueSerialiser[Value.Update, Value.Update] {
+  implicit object UpdateUpdateSerialiser extends RangeValueSerialiser[Value.Update, Value.Update] {
 
     val id = swaydb.core.log.serialiser.UpdateUpdateRange.id
 
@@ -393,7 +393,7 @@ private[core] object RangeValueSerialiser {
     }
   }
 
-  implicit object UpdateFunctionSerialiser$ extends RangeValueSerialiser[Value.Update, Value.Function] {
+  implicit object UpdateFunctionSerialiser extends RangeValueSerialiser[Value.Update, Value.Function] {
     val id = swaydb.core.log.serialiser.UpdateFunctionRange.id
 
     override def write(fromValue: Value.Update, rangeValue: Value.Function, bytes: SliceMut[Byte]): Unit = {
@@ -421,7 +421,7 @@ private[core] object RangeValueSerialiser {
     }
   }
 
-  implicit object UpdatePendingApplySerialiser$ extends RangeValueSerialiser[Value.Update, Value.PendingApply] {
+  implicit object UpdatePendingApplySerialiser extends RangeValueSerialiser[Value.Update, Value.PendingApply] {
     val id = swaydb.core.log.serialiser.UpdatePendingApplyRange.id
 
     override def write(fromValue: Value.Update, rangeValue: Value.PendingApply, bytes: SliceMut[Byte]): Unit = {
@@ -566,7 +566,7 @@ private[core] object RangeValueSerialiser {
   /**
    * Function
    */
-  implicit object PendingApplyRemoveSerialiser$ extends RangeValueSerialiser[Value.PendingApply, Value.Remove] {
+  implicit object PendingApplyRemoveSerialiser extends RangeValueSerialiser[Value.PendingApply, Value.Remove] {
     val id = swaydb.core.log.serialiser.PendingApplyRemoveRange.id
 
     override def write(fromValue: Value.PendingApply, rangeValue: Value.Remove, bytes: SliceMut[Byte]): Unit = {
@@ -594,7 +594,7 @@ private[core] object RangeValueSerialiser {
     }
   }
 
-  implicit object PendingApplyUpdateSerialiser$ extends RangeValueSerialiser[Value.PendingApply, Value.Update] {
+  implicit object PendingApplyUpdateSerialiser extends RangeValueSerialiser[Value.PendingApply, Value.Update] {
     val id = swaydb.core.log.serialiser.PendingApplyUpdateRange.id
 
     override def write(fromValue: Value.PendingApply, rangeValue: Value.Update, bytes: SliceMut[Byte]): Unit = {
@@ -650,7 +650,7 @@ private[core] object RangeValueSerialiser {
     }
   }
 
-  implicit object PendingApplyPendingApplySerialiser$ extends RangeValueSerialiser[Value.PendingApply, Value.PendingApply] {
+  implicit object PendingApplyPendingApplySerialiser extends RangeValueSerialiser[Value.PendingApply, Value.PendingApply] {
     val id = swaydb.core.log.serialiser.PendingApplyPendingApplyRange.id
 
     override def write(fromValue: Value.PendingApply, rangeValue: Value.PendingApply, bytes: SliceMut[Byte]): Unit = {
@@ -809,32 +809,32 @@ private[core] object RangeValueSerialiser {
   private def read(rangeId: Int,
                    reader: ReaderBase[Byte]): (Value.FromValueOption, Value.RangeValue) =
     rangeId match {
-      case RemoveRemoveSerialiser$.id =>
-        RemoveRemoveSerialiser$.read(reader)
-      case RemoveUpdateSerialiser$.id =>
-        RemoveUpdateSerialiser$.read(reader)
-      case RemoveFunctionSerialiser$.id =>
-        RemoveFunctionSerialiser$.read(reader)
-      case RemovePendingApplySerialiser$.id =>
-        RemovePendingApplySerialiser$.read(reader)
+      case RemoveRemoveSerialiser.id =>
+        RemoveRemoveSerialiser.read(reader)
+      case RemoveUpdateSerialiser.id =>
+        RemoveUpdateSerialiser.read(reader)
+      case RemoveFunctionSerialiser.id =>
+        RemoveFunctionSerialiser.read(reader)
+      case RemovePendingApplySerialiser.id =>
+        RemovePendingApplySerialiser.read(reader)
 
-      case PutRemoveSerialiser$.id =>
-        PutRemoveSerialiser$.read(reader)
-      case PutUpdateSerialiser$.id =>
-        PutUpdateSerialiser$.read(reader)
-      case PutFunctionSerialiser$.id =>
-        PutFunctionSerialiser$.read(reader)
-      case PutPendingApplySerialiser$.id =>
-        PutPendingApplySerialiser$.read(reader)
+      case PutRemoveSerialiser.id =>
+        PutRemoveSerialiser.read(reader)
+      case PutUpdateSerialiser.id =>
+        PutUpdateSerialiser.read(reader)
+      case PutFunctionSerialiser.id =>
+        PutFunctionSerialiser.read(reader)
+      case PutPendingApplySerialiser.id =>
+        PutPendingApplySerialiser.read(reader)
 
-      case UpdateRemoveSerialiser$.id =>
-        UpdateRemoveSerialiser$.read(reader)
-      case UpdateUpdateSerialiser$.id =>
-        UpdateUpdateSerialiser$.read(reader)
-      case UpdateFunctionSerialiser$.id =>
-        UpdateFunctionSerialiser$.read(reader)
-      case UpdatePendingApplySerialiser$.id =>
-        UpdatePendingApplySerialiser$.read(reader)
+      case UpdateRemoveSerialiser.id =>
+        UpdateRemoveSerialiser.read(reader)
+      case UpdateUpdateSerialiser.id =>
+        UpdateUpdateSerialiser.read(reader)
+      case UpdateFunctionSerialiser.id =>
+        UpdateFunctionSerialiser.read(reader)
+      case UpdatePendingApplySerialiser.id =>
+        UpdatePendingApplySerialiser.read(reader)
 
       case FunctionRemoveSerialiser.id =>
         FunctionRemoveSerialiser.read(reader)
@@ -845,23 +845,23 @@ private[core] object RangeValueSerialiser {
       case FunctionPendingApplySerialiser.id =>
         FunctionPendingApplySerialiser.read(reader)
 
-      case PendingApplyRemoveSerialiser$.id =>
-        PendingApplyRemoveSerialiser$.read(reader)
-      case PendingApplyUpdateSerialiser$.id =>
-        PendingApplyUpdateSerialiser$.read(reader)
+      case PendingApplyRemoveSerialiser.id =>
+        PendingApplyRemoveSerialiser.read(reader)
+      case PendingApplyUpdateSerialiser.id =>
+        PendingApplyUpdateSerialiser.read(reader)
       case PendingApplyFunctionSerialiser.id =>
         PendingApplyFunctionSerialiser.read(reader)
-      case PendingApplyPendingApplySerialiser$.id =>
-        PendingApplyPendingApplySerialiser$.read(reader)
+      case PendingApplyPendingApplySerialiser.id =>
+        PendingApplyPendingApplySerialiser.read(reader)
 
-      case UnitRemoveSerialiser$.id =>
-        UnitRemoveSerialiser$.read(reader)
-      case UnitUpdateSerialiser$.id =>
-        UnitUpdateSerialiser$.read(reader)
-      case UnitFunctionSerialiser$.id =>
-        UnitFunctionSerialiser$.read(reader)
-      case UnitPendingApplySerialiser$.id =>
-        UnitPendingApplySerialiser$.read(reader)
+      case UnitRemoveSerialiser.id =>
+        UnitRemoveSerialiser.read(reader)
+      case UnitUpdateSerialiser.id =>
+        UnitUpdateSerialiser.read(reader)
+      case UnitFunctionSerialiser.id =>
+        UnitFunctionSerialiser.read(reader)
+      case UnitPendingApplySerialiser.id =>
+        UnitPendingApplySerialiser.read(reader)
     }
 
   def read(bytes: Slice[Byte]): (Value.FromValueOption, Value.RangeValue) = {

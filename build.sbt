@@ -147,7 +147,6 @@ lazy val SwayDB =
       core,
       `core-cache`,
       `core-interop`,
-      `core-compression`,
       stream,
       swaydb,
       `swaydb-java`,
@@ -195,12 +194,12 @@ lazy val core =
       slice,
       effect,
       utils,
+      `core-segment`,
       `core-file`,
       `core-interop`,
       `core-queue`,
       `core-cache`,
       `core-compression`,
-      `core-skiplist`,
       testkit % Test,
       macros % "test->test;compile-internal",
       configs % Test,
@@ -231,6 +230,24 @@ lazy val `core-file` =
       slice,
       effect,
       utils,
+      `core-interop`,
+      `core-cache`,
+      testkit % Test,
+    )
+
+lazy val `core-segment` =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(
+      macros % "compile-internal",
+      slice,
+      effect,
+      utils,
+      `core-compression`,
+      `core-skiplist`,
+      `core-file`,
       `core-interop`,
       `core-cache`,
       testkit % Test,
