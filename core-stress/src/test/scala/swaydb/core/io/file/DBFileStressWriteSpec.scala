@@ -19,9 +19,9 @@
 //import swaydb.IOValues._
 //import swaydb.testkit.RunThis._
 //import swaydb.core.TestData._
-//import swaydb.core.sweeper.FileSweeper
-//import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-//import swaydb.core.sweeper.FileSweeper
+//import swaydb.core.file.sweeper.FileSweeper
+//import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+//import swaydb.core.file.sweeper.FileSweeper
 //import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 //import swaydb.core.{TestBase, TestSweeper}
 //import swaydb.config.util.OperatingSystem

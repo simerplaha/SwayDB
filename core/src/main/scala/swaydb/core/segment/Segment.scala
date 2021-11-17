@@ -37,14 +37,15 @@ import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.sweeper.{FileSweeper, FileSweeperItem, MemorySweeper}
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.{FileSweeper, FileSweeperItem}
 import swaydb.utils.Collections._
 import swaydb.core.util._
 import swaydb.core.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.slice.MaxKey
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.{MMAP, SegmentRefCacheLife}
+import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.SliceIOImplicits._
 import swaydb.slice.{Slice, SliceOption}

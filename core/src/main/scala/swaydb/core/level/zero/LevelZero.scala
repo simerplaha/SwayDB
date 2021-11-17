@@ -39,8 +39,8 @@ import swaydb.core.log.{Log, LogEntry, Logs}
 import swaydb.core.segment.entry.reader.PersistentReader
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.sweeper.FileSweeper
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.util.MinMax
 import swaydb.core.{CoreState, MemoryPathGenerator}
 import swaydb.effect.{Effect, FileLocker}

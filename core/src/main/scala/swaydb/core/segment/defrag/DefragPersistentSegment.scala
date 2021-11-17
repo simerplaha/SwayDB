@@ -36,8 +36,9 @@ import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.defrag.DefragSource._
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
 import swaydb.core.segment.ref.{SegmentRef, SegmentRefOption}
-import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.util.{DefIO, IDGenerator}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}

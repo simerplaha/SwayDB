@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package swaydb.core.sweeper
+package swaydb.core.file.sweeper
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorConfig.QueueOrder

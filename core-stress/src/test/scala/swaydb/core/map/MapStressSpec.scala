@@ -20,7 +20,7 @@
 //import swaydb.IOValues._
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.TestData._
-//import swaydb.core.sweeper.FileSweeper
+//import swaydb.core.file.sweeper.FileSweeper
 //import swaydb.core.segment.data.Memory
 //import swaydb.core.level.zero.LevelZeroSkipListMerger
 //import swaydb.core.log.serializer.LevelZeroLogEntryWriter.Level0PutWriter

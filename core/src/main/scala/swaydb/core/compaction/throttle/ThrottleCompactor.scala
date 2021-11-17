@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.DefActor
 import swaydb.core.compaction.Compactor
 import swaydb.core.compaction.throttle.behaviour._
-import swaydb.core.sweeper.FileSweeper
+import swaydb.core.file.sweeper.FileSweeper
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 
 import scala.concurrent.{ExecutionContext, Future}

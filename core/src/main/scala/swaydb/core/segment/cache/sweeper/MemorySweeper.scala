@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.sweeper
+package swaydb.core.segment.cache.sweeper
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorConfig.QueueOrder

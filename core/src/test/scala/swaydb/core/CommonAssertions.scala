@@ -47,7 +47,8 @@ import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment.ref.search.{KeyMatcher, SegmentSearcher, ThreadReadState}
-import swaydb.core.sweeper.{ByteBufferSweeper, MemorySweeper}
+import swaydb.core.file.sweeper.ByteBufferSweeper
+import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.compaction.PushStrategy

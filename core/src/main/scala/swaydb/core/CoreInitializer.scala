@@ -32,8 +32,8 @@ import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, MemorySweeper}
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper}
 import swaydb.config.compaction.CompactionConfig
 import swaydb.config._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -41,6 +41,7 @@ import swaydb.config.sequencer.Sequencer
 import swaydb.slice.Slice
 import swaydb.config.storage.{Level0Storage, LevelStorage}
 import swaydb.config.{Atomic, OptimiseWrites}
+import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.effect.Effect._
 import swaydb.effect.IOStrategy
 import swaydb.utils.StorageUnits._

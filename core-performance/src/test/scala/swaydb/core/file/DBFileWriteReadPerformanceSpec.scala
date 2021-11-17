@@ -19,8 +19,9 @@ package swaydb.core.file
 import swaydb.core.TestData._
 import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.block.reader.BlockRefReader
-import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
 import swaydb.effect.{Effect, IOStrategy}

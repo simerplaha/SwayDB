@@ -24,8 +24,9 @@ import swaydb.core.level.AppendixLogCache
 import swaydb.core.log.serialiser.LogEntryWriter
 import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.segment.Segment
-import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.config.{ForceSave, MMAP}
 import swaydb.slice.order.KeyOrder
 import swaydb.config.repairAppendix.AppendixRepairStrategy._

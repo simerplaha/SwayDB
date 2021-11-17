@@ -22,7 +22,7 @@ import swaydb.core.log.LogEntry
 import swaydb.core.log.MapTestUtil._
 import swaydb.core.log.counter.CounterLog
 import swaydb.core.log.serialiser.{CounterLogEntryReader, CounterLogEntryWriter, LogEntryReader, LogEntryWriter}
-import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.config.MMAP
 import swaydb.slice.order.{KeyOrder, TimeOrder}

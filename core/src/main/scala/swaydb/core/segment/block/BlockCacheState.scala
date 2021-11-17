@@ -1,7 +1,7 @@
 package swaydb.core.segment.block
 
 import swaydb.core.cache.CacheNoIO
-import swaydb.core.sweeper.MemorySweeper
+import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.utils.HashedMap
 import swaydb.slice.{Slice, SliceOption}
 

@@ -3,7 +3,7 @@ package swaydb.tools
 import swaydb.IO
 import swaydb.config.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.config.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, RepairResult, SegmentInfo}
-import swaydb.core.sweeper.FileSweeper
+import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.tool.AppendixRepairer
 import swaydb.serializers.Serializer
 import swaydb.slice.{MaxKey, Slice}

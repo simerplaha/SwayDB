@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.sweeper
+package swaydb.core.file.sweeper
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorConfig.QueueOrder
@@ -23,7 +23,7 @@ import swaydb.Error.IO.ExceptionHandler
 import swaydb._
 import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.sweeper.ByteBufferCleaner.Cleaner
+import swaydb.core.file.sweeper.ByteBufferCleaner.Cleaner
 import swaydb.utils.English
 import swaydb.config.ForceSave
 import swaydb.effect.Effect

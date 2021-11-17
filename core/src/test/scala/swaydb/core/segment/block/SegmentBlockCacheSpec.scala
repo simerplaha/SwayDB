@@ -15,7 +15,7 @@ import swaydb.core.segment.block.segment.{SegmentBlockCache, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
-import swaydb.core.sweeper.MemorySweeper
+import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.config.MemoryCache
 import swaydb.slice.order.KeyOrder

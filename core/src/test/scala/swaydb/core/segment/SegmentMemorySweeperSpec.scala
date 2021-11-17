@@ -22,7 +22,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
-import swaydb.core.sweeper.MemorySweeper
+import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
 import swaydb.config.MemoryCache

@@ -18,7 +18,7 @@ package swaydb
 
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.log.counter.CounterLog
-import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.util.Times._
 import swaydb.config.accelerate.LevelZeroMeter
 import swaydb.config.compaction.LevelMeter

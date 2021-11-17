@@ -25,7 +25,7 @@ import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.defrag.DefragMemorySegment
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.sweeper.FileSweeper
+import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.util._
 import swaydb.core.skiplist.SkipListTreeMap
 import swaydb.slice.MaxKey

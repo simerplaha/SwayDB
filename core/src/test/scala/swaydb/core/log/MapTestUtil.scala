@@ -25,8 +25,8 @@ import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
 import swaydb.core.log.timer.Timer
 import swaydb.core.log.timer.Timer.PersistentTimer
-import swaydb.core.sweeper.ByteBufferSweeper
-import swaydb.core.sweeper.ByteBufferSweeper.{ByteBufferSweeperActor, State}
+import swaydb.core.file.sweeper.ByteBufferSweeper
+import swaydb.core.file.sweeper.ByteBufferSweeper.{ByteBufferSweeperActor, State}
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
 import swaydb.config.MMAP
 import swaydb.slice.order.KeyOrder

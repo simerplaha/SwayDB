@@ -22,8 +22,8 @@ import swaydb.core.brake.BrakePedal
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
 import swaydb.core.log.timer.Timer
-import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.sweeper.FileSweeper
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.FileSweeper
 import swaydb.utils.DropIterator
 import swaydb.core.queue.VolatileQueue
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}

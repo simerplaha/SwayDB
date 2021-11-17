@@ -22,7 +22,7 @@ import swaydb.core.level.LevelRef
 import swaydb.core.compaction.throttle.behaviour.BehaviorWakeUp
 import swaydb.core.compaction.{Compactor, CompactorCreator}
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.sweeper.FileSweeper
+import swaydb.core.file.sweeper.FileSweeper
 import swaydb.config.compaction.CompactionConfig
 import swaydb.slice.Slice
 import swaydb.{Actor, DefActor, Error, IO}

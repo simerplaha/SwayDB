@@ -30,7 +30,7 @@ import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlock
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.{SegmentSearcher, ThreadReadState}
-import swaydb.core.sweeper.MemorySweeper
+import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.util.MinMax
 import swaydb.core.skiplist.{SkipList, SkipListConcurrent, SkipListConcurrentLimit}
 import swaydb.slice.MaxKey

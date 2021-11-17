@@ -19,9 +19,9 @@ package swaydb.core.file
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
 import swaydb.core.cache.Cache
-import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, FileSweeperItem}
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.config.ForceSave
+import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper, FileSweeperItem}
 import swaydb.slice.{Slice, SliceRO}
 import swaydb.effect.{Effect, IOStrategy, Reserve}
 import swaydb.{Error, IO}

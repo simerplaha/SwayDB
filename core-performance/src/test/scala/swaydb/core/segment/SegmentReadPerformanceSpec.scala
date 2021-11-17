@@ -31,7 +31,7 @@ import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.entry.reader.PersistentReader
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.sweeper.MemorySweeper
+import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestSweeper}
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism

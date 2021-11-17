@@ -55,7 +55,7 @@ private[core] object KeyValue {
   sealed trait Null extends KeyValueOption
 
   /**
-   * Key-values that can be added to [[swaydb.core.sweeper.MemorySweeper]].
+   * Key-values that can be added to [[swaydb.core.segment.cache.sweeper.MemorySweeper]].
    *
    * These key-values can remain in memory depending on the cacheSize and are dropped or uncompressed on overflow.
    */

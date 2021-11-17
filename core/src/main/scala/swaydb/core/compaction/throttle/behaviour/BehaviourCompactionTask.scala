@@ -23,7 +23,7 @@ import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.compaction.task.CompactionTask
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.core.sweeper.FileSweeper
+import swaydb.core.file.sweeper.FileSweeper
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.slice.Slice
 import swaydb.utils.Futures

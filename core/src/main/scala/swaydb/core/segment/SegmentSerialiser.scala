@@ -20,8 +20,9 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.log.serialiser.ValueSerialiser.MinMaxSerialiser
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.util.Bytes
 import swaydb.slice.MaxKey
 import swaydb.config.{MMAP, SegmentRefCacheLife}
