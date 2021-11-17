@@ -22,6 +22,7 @@ import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.compaction.task.CompactionTask
 import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand}
 import swaydb.core.level._
+import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.util.DefIO
@@ -29,6 +30,8 @@ import swaydb.slice.Slice
 import swaydb.utils.Futures
 import swaydb.utils.Futures.FutureImplicits
 
+import java.nio.file.Path
+import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -68,8 +71,19 @@ protected object BehaviourCompactionTask extends LazyLogging {
     //No need to wait for a response because FileSweeper's queue is ordered prioritising PauseResume messages.
     //Who not? Because the Actor is configurable which could be a cached timer with longer time interval
     //which means we might not get a response immediately.
-    fileSweeper.closer.send(FileSweeperCommand.Pause(levels))
-    compact.unitCallback(fileSweeper.send(FileSweeperCommand.Resume(levels)))
+    val paths = mutable.Set.empty[Path]
+
+    levels foreach {
+      case zero: LevelZero =>
+        paths += zero.path
+
+      case level: NextLevel =>
+        for (dir <- level.dirs)
+          paths += dir.path
+    }
+
+    fileSweeper.closer.send(FileSweeperCommand.Pause(paths))
+    compact.unitCallback(fileSweeper.send(FileSweeperCommand.Resume(paths)))
   }
 
   private def runTasks[A <: Assignable.Collection](tasks: Iterable[CompactionTask.Task[A]],

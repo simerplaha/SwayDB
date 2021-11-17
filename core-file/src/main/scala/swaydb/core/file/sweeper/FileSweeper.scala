@@ -20,16 +20,11 @@ import swaydb.ActorConfig.QueueOrder
 import swaydb.Bag.Implicits._
 import swaydb.config.FileCache
 import swaydb.core.cache.CacheNoIO
-import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.{LevelRef, NextLevel}
-import swaydb.{Actor, ActorConfig, ActorRef, Bag, IO}
+import swaydb.{ActorConfig, ActorRef, Bag}
 
 import java.nio.file.Path
-import java.util.concurrent.atomic.AtomicLong
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{Deadline, DurationInt}
-import scala.ref.WeakReference
 
 private[swaydb] sealed trait FileSweeper {
   def closer: ActorRef[FileSweeperCommand.Close, FileSweeper.State]

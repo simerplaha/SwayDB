@@ -1,7 +1,6 @@
 package swaydb.core.file.sweeper
 
-import swaydb.core.level.LevelRef
-
+import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicLong
 import scala.concurrent.duration.Deadline
 import scala.ref.WeakReference
@@ -44,6 +43,6 @@ object FileSweeperCommand {
   case class CloseFiles private(files: Iterable[WeakReference[FileSweeperItem]]) extends CloseFile
 
   sealed trait PauseResume extends Close
-  case class Pause(levels: Iterable[LevelRef]) extends PauseResume
-  case class Resume(levels: Iterable[LevelRef]) extends PauseResume
+  case class Pause(levels: Iterable[Path]) extends PauseResume
+  case class Resume(levels: Iterable[Path]) extends PauseResume
 }

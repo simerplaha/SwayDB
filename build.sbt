@@ -195,6 +195,7 @@ lazy val core =
       slice,
       effect,
       utils,
+      `core-file`,
       `core-interop`,
       `core-queue`,
       `core-cache`,
@@ -218,6 +219,21 @@ lazy val `core-interop` =
       utils,
       slice,
       testkit % Test
+    )
+
+lazy val `core-file` =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(
+      macros % "compile-internal",
+      slice,
+      effect,
+      utils,
+      `core-interop`,
+      `core-cache`,
+      testkit % Test,
     )
 
 lazy val `core-skiplist` =

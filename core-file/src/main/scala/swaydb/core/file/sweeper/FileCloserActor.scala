@@ -3,8 +3,6 @@ package swaydb.core.file.sweeper
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorConfig.QueueOrder
 import swaydb.core.file.sweeper.FileSweeper.State
-import swaydb.core.level.NextLevel
-import swaydb.core.level.zero.LevelZero
 import swaydb.{Actor, ActorConfig, ActorRef, IO}
 
 import java.nio.file.Path
@@ -73,25 +71,13 @@ private object FileCloserActor extends LazyLogging {
             self = self
           )
 
-      case FileSweeperCommand.Pause(levels) =>
-        levels foreach {
-          case zero: LevelZero =>
-            self.state.pausedFolders += zero.path
+      case FileSweeperCommand.Pause(paths) =>
+        for (path <- paths)
+          self.state.pausedFolders += path
 
-          case level: NextLevel =>
-            for (dir <- level.dirs)
-              self.state.pausedFolders += dir.path
-        }
-
-      case FileSweeperCommand.Resume(levels) =>
-        levels foreach {
-          case zero: LevelZero =>
-            self.state.pausedFolders -= zero.path
-
-          case level: NextLevel =>
-            for (dir <- level.dirs)
-              self.state.pausedFolders -= dir.path
-        }
+      case FileSweeperCommand.Resume(paths) =>
+        for (path <- paths)
+          self.state.pausedFolders -= path
     }
 
   def create(maxOpenSegments: Int, actorConfig: ActorConfig): ActorRef[FileSweeperCommand.Close, FileSweeper.State] =
