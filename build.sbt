@@ -6,11 +6,11 @@ import xerial.sbt.Sonatype._
 //CORE dependencies
 val lz4Version = "1.8.0"
 val snappyVersion = "1.1.8.4"
-val scalaJava8CompatVersion = "1.0.1"
-val scalaCollectionsCompat = "2.5.0"
+val scalaJava8CompatVersion = "1.0.2"
+val scalaCollectionsCompat = "2.6.0"
 
 //TEST dependencies - Libraries used for tests
-val logbackClassicVersion = "1.2.6"
+val logbackClassicVersion = "1.2.7"
 val scalaLoggingVersion = "3.9.4"
 val scalaMockVersion = "5.1.0"
 val scalaTestVersion = "3.2.10"
@@ -124,7 +124,7 @@ val commonJavaDependencies =
     "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
     "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompat % Test,
     "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion % Test,
-    "org.projectlombok" % "lombok" % "1.18.16" % Test
+    "org.projectlombok" % "lombok" % "1.18.22" % Test
   )
 
 def commonDependencies(scalaVersion: String) =
@@ -141,16 +141,16 @@ lazy val SwayDB =
     .settings(publishSettings)
     .dependsOn(swaydb)
     .aggregate(
+      actor,
       utils,
       effect,
       core,
-      `core-interop`,
-      actor,
-      stream,
       `core-cache`,
+      `core-interop`,
+      `core-compression`,
+      stream,
       swaydb,
       `swaydb-java`,
-      `core-compression`,
       configs,
       serializers,
       `x-interop-boopickle`,
@@ -191,18 +191,17 @@ lazy val core =
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(
-      `core-interop`,
+      actor,
+      slice,
       effect,
       utils,
+      `core-interop`,
       `core-queue`,
-      slice,
       `core-cache`,
-      actor,
       `core-compression`,
       `core-skiplist`,
       testkit % Test,
       macros % "test->test;compile-internal",
-      `core-compression` % Test,
       configs % Test,
       serializers % Test
     )
@@ -342,7 +341,7 @@ lazy val macros =
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .settings(libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value)
 
-lazy val `swaydb-stress` =
+lazy val stress =
   project
     .settings(commonSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -402,10 +401,7 @@ lazy val `x-interop-boopickle` =
     .settings(libraryDependencies += "io.suzaku" %% "boopickle" % boopickleVersion)
     .dependsOn(serializers, slice)
 
-/**
- * TOOLS
- */
-lazy val `swaydb-tools` =
+lazy val tools =
   project
     .settings(name := "tools")
     .settings(commonSettings)
