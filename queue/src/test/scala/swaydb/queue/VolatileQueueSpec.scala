@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.queue
+package swaydb.queue
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

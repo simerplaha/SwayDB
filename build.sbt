@@ -194,6 +194,7 @@ lazy val core =
       `core-interop`,
       effect,
       utils,
+      queue,
       slice,
       cache,
       actor,
@@ -242,6 +243,13 @@ lazy val series =
       testkit % Test,
       serializers % Test
     )
+
+lazy val queue =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(utils)
 
 lazy val slice =
   project

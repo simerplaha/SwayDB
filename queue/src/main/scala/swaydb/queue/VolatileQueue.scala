@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.util.queue
+package swaydb.queue
 
 import swaydb.utils.DropIterator
 

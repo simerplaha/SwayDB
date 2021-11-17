@@ -22,7 +22,7 @@ import swaydb.core.log.{Log, LogCache, Logs}
 import swaydb.core.segment.PersistentSegment
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.util.IDGenerator
-import swaydb.core.util.queue.VolatileQueue
+import swaydb.queue.VolatileQueue
 import swaydb.slice.Slice
 import swaydb.utils.HashedMap
 
