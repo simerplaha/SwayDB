@@ -107,7 +107,7 @@ private[core] object MemorySweeper extends LazyLogging {
       if (actor.isDefined) {
         actor.get send new MemorySweeperCommand.SweepSkipListMap(
           key = key,
-          weight = weight,
+          weight = weight + MemorySweeperCommand.commandWeight,
           cache = new WeakReference(cache)
         )
       } else {
@@ -123,7 +123,7 @@ private[core] object MemorySweeper extends LazyLogging {
             cache: swaydb.core.cache.Cache[_, _, _]): Unit =
       if (actor.isDefined) {
         actor.get send new MemorySweeperCommand.SweepCache(
-          weight = weight,
+          weight = weight + MemorySweeperCommand.commandWeight,
           cache = new WeakReference[swaydb.core.cache.Cache[_, _, _]](cache)
         )
       } else {

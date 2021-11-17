@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.effect.Dir
-import swaydb.utils.StorageUnits.StorageDoubleImplicits
 
 import java.nio.file.{Path, Paths}
 
-package object swaydb {
+package object swaydb extends LazyLogging {
 
   //transparent type
   type Glass[+A] = A
@@ -69,34 +69,52 @@ package object swaydb {
   implicit def pathToDirs(dir: Path): Seq[Dir] =
     Seq(Dir(dir, 1))
 
-  implicit class StorageByteImplicits(measure: Int) {
+  implicit class StorageIntImplicits(measure: Int) {
 
     @inline final def bytes: Int = measure
 
     @inline final def byte: Int = measure
   }
 
-  implicit class StorageImplicits(measure: Double) {
+  private def validate(bytes: Int, unit: String): Int = {
+    if (bytes < 0) {
+      val exception = new Exception(s"Negative Integer size. $bytes.$unit = $bytes.bytes")
+      logger.error(exception.getMessage)
+      throw exception
+    }
 
-    val units = new StorageDoubleImplicits(measure)
+    bytes
+  }
+
+  private def validate(bytes: Long, unit: String): Long = {
+    if (bytes < 0) {
+      val exception = new Exception(s"Negative Long size. $bytes.$unit = $bytes.bytes")
+      logger.error(exception.getMessage)
+      throw exception
+    }
+
+    bytes
+  }
+
+  implicit class StorageDoubleImplicits(measure: Double) {
 
     @inline final def mb: Int =
-      units.mb
+      validate(bytes = (measure * 1000000).toInt, unit = "mb")
 
     @inline final def gb: Int =
-      units.gb
+      validate(bytes = measure.mb * 1000, unit = "gb")
 
     @inline final def kb: Int =
-      units.kb
+      validate(bytes = (measure * 1000).toInt, unit = "kb")
 
     @inline final def mb_long: Long =
-      units.mb_long
+      validate(bytes = (measure * 1000000L).toLong, unit = "mb_long")
 
     @inline final def gb_long: Long =
-      units.gb_long
+      validate(bytes = measure.mb_long * 1000L, unit = "gb_long")
 
     @inline final def kb_long: Long =
-      units.kb_long
+      validate(bytes = (measure * 1000L).toLong, unit = "kb_long")
   }
 
 }

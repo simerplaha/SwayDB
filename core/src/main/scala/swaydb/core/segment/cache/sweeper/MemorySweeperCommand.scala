@@ -4,6 +4,7 @@ import swaydb.core.cache.CacheNoIO
 import swaydb.core.segment.data.Persistent
 import swaydb.core.skiplist.SkipList
 import swaydb.slice.{Slice, SliceOption}
+import swaydb.utils.StorageUnits.StorageIntImplicits
 import swaydb.utils.{ByteSizeOf, HashedMap}
 
 import java.util.concurrent.ConcurrentSkipListMap
@@ -11,6 +12,8 @@ import scala.ref.WeakReference
 
 protected sealed trait MemorySweeperCommand
 protected object MemorySweeperCommand {
+
+  val commandWeight = 264.bytes
 
   private[sweeper] class SweepKeyValue(val keyValueRef: WeakReference[Persistent],
                                        val skipListRef: WeakReference[SkipList[_, _, Slice[Byte], _]]) extends MemorySweeperCommand
