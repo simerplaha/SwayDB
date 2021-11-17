@@ -19,7 +19,7 @@ package swaydb.core.segment.io
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment._

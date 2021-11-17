@@ -24,7 +24,7 @@ import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.file.reader.Reader
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand}
 import swaydb.core.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor

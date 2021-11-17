@@ -19,7 +19,7 @@ package swaydb
 import swaydb.config.accelerate.LevelZeroMeter
 import swaydb.config.compaction.LevelMeter
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.log.counter.CounterLog
 import swaydb.core.util.Times._
 import swaydb.multimap.{MultiKey, MultiPrepare, MultiValue, Schema}

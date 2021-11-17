@@ -25,7 +25,7 @@ import swaydb.config.compaction.{LevelMeter, LevelZeroThrottle}
 import swaydb.config.storage.Level0Storage
 import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog

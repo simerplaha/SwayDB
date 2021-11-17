@@ -23,7 +23,7 @@ import swaydb.config.repairAppendix.AppendixRepairStrategy._
 import swaydb.config.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
 import swaydb.config.{ForceSave, MMAP}
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.level.AppendixLogCache
 import swaydb.core.log.serialiser.LogEntryWriter

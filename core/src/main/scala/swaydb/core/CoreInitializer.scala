@@ -26,8 +26,9 @@ import swaydb.core.build.{Build, BuildValidator}
 import swaydb.core.compaction._
 import swaydb.core.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper}
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelCloser, NextLevel}
 import swaydb.core.segment.{FunctionStore, block}

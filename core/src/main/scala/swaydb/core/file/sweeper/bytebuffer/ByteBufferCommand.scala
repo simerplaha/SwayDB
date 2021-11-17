@@ -1,8 +1,8 @@
-package swaydb.core.file.sweeper
+package swaydb.core.file.sweeper.bytebuffer
 
 import swaydb.config.ForceSave
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.ByteBufferSweeper.{ByteBufferSweeperActor, State}
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.{ByteBufferSweeperActor, State}
 import swaydb.{Actor, ActorRef}
 
 import java.nio.MappedByteBuffer

@@ -18,7 +18,7 @@ package swaydb.core.log.timer
 
 import swaydb.config.MMAP
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.log.LogEntry
 import swaydb.core.log.MapTestUtil._
 import swaydb.core.log.counter.CounterLog

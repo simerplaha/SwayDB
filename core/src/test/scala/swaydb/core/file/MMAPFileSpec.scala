@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.file.sweeper.ByteBufferCleaner
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferCleaner
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.effect.Effect
 import swaydb.slice.Slice

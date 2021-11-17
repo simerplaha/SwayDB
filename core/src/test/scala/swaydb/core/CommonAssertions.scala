@@ -27,7 +27,7 @@ import swaydb.config.compaction.PushStrategy
 import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.core.TestData._
 import swaydb.core.file.reader.{FileReader, Reader}
-import swaydb.core.file.sweeper.{ByteBufferCommand, ByteBufferSweeper}
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.log.serialiser.{LogEntryWriter, RangeValueSerialiser, ValueSerialiser}

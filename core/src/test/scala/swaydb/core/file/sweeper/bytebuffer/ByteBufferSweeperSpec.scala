@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.file
+package swaydb.core.file.sweeper.bytebuffer
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
@@ -22,8 +22,9 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.{ByteBufferCommand, ByteBufferSweeper, FileSweeper}
+import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.{DBFile, ForceSaveApplier, MMAPFile}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._

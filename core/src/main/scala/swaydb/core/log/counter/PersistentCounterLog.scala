@@ -21,7 +21,7 @@ import swaydb.Error.Log.ExceptionHandler
 import swaydb.IO
 import swaydb.config.MMAP
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
 import swaydb.core.log.{Log, LogEntry, PersistentLog}

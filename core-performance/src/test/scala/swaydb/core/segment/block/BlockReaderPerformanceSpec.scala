@@ -18,7 +18,7 @@
 //
 //import swaydb.IOValues._
 //import swaydb.core.TestData._
-//import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+//import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 //import swaydb.core.file.sweeper.FileSweeper
 //import swaydb.core.file.{BlockCache, DBFile}
 //import swaydb.core.file.reader.FileReader

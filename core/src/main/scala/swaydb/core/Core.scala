@@ -25,7 +25,7 @@ import swaydb.config.compaction.{CompactionConfig, LevelMeter}
 import swaydb.config.sequencer.Sequencer
 import swaydb.core.build.BuildValidator
 import swaydb.core.compaction.Compactor
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.log.LogEntry
 import swaydb.core.log.serialiser.LevelZeroLogEntryWriter

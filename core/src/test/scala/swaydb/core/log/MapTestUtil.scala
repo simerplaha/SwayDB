@@ -22,8 +22,8 @@ import swaydb.config.MMAP
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.ByteBufferCommand
-import swaydb.core.file.sweeper.ByteBufferSweeper.{ByteBufferSweeperActor, State}
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.{ByteBufferSweeperActor, State}
 import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
 import swaydb.core.log.timer.Timer

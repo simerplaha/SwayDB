@@ -26,7 +26,8 @@ import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper}
+import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.block.BlockCacheState
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -47,8 +48,8 @@ import swaydb.effect.Effect._
 import swaydb.effect.{Dir, Effect, Extension}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.slice.{MaxKey, Slice}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.{MaxKey, Slice}
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 import swaydb.utils.{ByteSizeOf, OperatingSystem}

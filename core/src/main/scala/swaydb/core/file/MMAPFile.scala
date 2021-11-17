@@ -18,8 +18,8 @@ package swaydb.core.file
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.config.ForceSave
-import swaydb.core.file.sweeper.ByteBufferCommand
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.effect.{Effect, Reserve}
 import swaydb.slice.{Slice, SliceRO, Slices}
 

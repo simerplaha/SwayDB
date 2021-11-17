@@ -21,8 +21,9 @@ import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.TestSweeper._
 import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.compaction.io.CompactionIO
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper}
+import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.LevelRef
 import swaydb.core.log.counter.CounterLog
