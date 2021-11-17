@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.data
+package swaydb.core.util
 
 object DefIO {
 

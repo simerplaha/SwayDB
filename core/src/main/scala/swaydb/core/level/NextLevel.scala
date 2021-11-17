@@ -16,17 +16,18 @@
 
 package swaydb.core.level
 
-import swaydb.core.data.{DefIO, Memory}
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.core.compaction.io.CompactionIO
+import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.{Assignable, Assignment}
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.compaction.{LevelMeter, LevelThrottle}
-import swaydb.slice.Slice
+import swaydb.core.util.DefIO
 import swaydb.effect.Dir
+import swaydb.slice.Slice
 import swaydb.{Error, IO}
 
 import scala.collection.compat.IterableOnce

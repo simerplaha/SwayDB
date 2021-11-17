@@ -66,7 +66,7 @@ import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.util.IDGenerator
+import swaydb.core.util.{DefIO, IDGenerator}
 import swaydb.effect.{Dir, IOAction, IOStrategy}
 import swaydb.serializers.Default._
 import swaydb.serializers._

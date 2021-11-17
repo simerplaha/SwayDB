@@ -19,7 +19,7 @@ package swaydb.core.compaction.throttle.behaviour
 import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.DefIO
+import swaydb.core.util.DefIO
 import swaydb.core.compaction.throttle.LevelState
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig

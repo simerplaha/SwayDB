@@ -18,7 +18,7 @@ package swaydb.core.compaction.throttle.behaviour
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.core.data.DefIO
+import swaydb.core.util.DefIO
 import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog

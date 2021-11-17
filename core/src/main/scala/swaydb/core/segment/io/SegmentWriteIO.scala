@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.io
 
-import swaydb.core.data.DefIO
+import swaydb.core.util.DefIO
 import swaydb.core.function.FunctionStore
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.level.PathsDistributor

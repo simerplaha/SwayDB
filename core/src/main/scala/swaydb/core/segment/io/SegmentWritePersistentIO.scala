@@ -18,7 +18,7 @@ package swaydb.core.segment.io
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.core.data.DefIO
+import swaydb.core.util.DefIO
 import swaydb.core.function.FunctionStore
 import swaydb.core.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor

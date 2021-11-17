@@ -16,15 +16,16 @@
 
 package swaydb.core.segment.defrag
 
-import swaydb.core.data.{DefIO, Memory}
+import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.defrag.DefragSource._
-import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.core.util.DefIO
 import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}

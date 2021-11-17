@@ -16,7 +16,8 @@
 
 package swaydb.core.segment.defrag
 
-import swaydb.core.data.{DefIO, Memory}
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.stats.MergeStats
@@ -25,10 +26,9 @@ import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.sweeper.FileSweeper
-import swaydb.core.util.IDGenerator
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.core.util.{DefIO, IDGenerator}
 import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.Futures
 
 import scala.collection.mutable.ListBuffer
