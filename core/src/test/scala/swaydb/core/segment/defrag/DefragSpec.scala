@@ -74,7 +74,7 @@ class MemorySegment_DefragSpec extends DefragSpec[MemorySegment, MemorySegmentOp
     MergeStatsCreator.MemoryCreator
 
   override implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig): MergeStatsSizeCalculator[MergeStats.Memory.Builder[Memory, ListBuffer]] =
-    MergeStatsSizeCalculator.MemoryCreator
+    MergeStatsSizeCalculator.MemorySizeCalculator
 }
 
 
