@@ -17,7 +17,7 @@
 package swaydb.slice
 
 import scala.collection.compat.IterableOnce
-import scala.collection.mutable
+import scala.collection.{ClassTagIterableFactory, mutable}
 import scala.reflect.ClassTag
 
 class SliceFactory(maxSize: Int) extends ClassTagIterableFactory[Slice] {

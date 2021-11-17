@@ -34,6 +34,7 @@ import swaydb.{ActorConfig, _}
 import java.nio.file.{Path, Paths}
 import java.util.concurrent.ConcurrentSkipListSet
 import scala.collection.mutable.ListBuffer
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 
 class FileSweeperSpec extends TestBase with MockFactory {

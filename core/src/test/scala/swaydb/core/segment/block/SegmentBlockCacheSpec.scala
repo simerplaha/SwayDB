@@ -27,6 +27,7 @@ import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 
 import java.util.concurrent.ConcurrentLinkedQueue
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.Random

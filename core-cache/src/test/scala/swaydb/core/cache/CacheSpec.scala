@@ -26,6 +26,7 @@ import swaydb.testkit.RunThis._
 import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._

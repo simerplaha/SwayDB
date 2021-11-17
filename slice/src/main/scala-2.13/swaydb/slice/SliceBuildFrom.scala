@@ -18,7 +18,7 @@ package swaydb.slice
 
 import com.typesafe.scalalogging.LazyLogging
 
-import scala.collection.mutable
+import scala.collection.{BuildFrom, mutable}
 import scala.reflect.ClassTag
 
 /**

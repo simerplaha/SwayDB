@@ -66,6 +66,7 @@ import swaydb.{Bag, Error, Glass, IO}
 import java.nio.file.Paths
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag

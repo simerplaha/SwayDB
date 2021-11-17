@@ -19,10 +19,12 @@ package swaydb.core.cache
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{Benchmark, IO}
 import swaydb.core.CommonAssertions._
 import swaydb.effect.Reserve
 import swaydb.testkit.RunThis._
+import swaydb.{Benchmark, IO}
+
+import scala.collection.parallel.CollectionConverters._
 
 class CachePerformanceSpec extends AnyWordSpec with Matchers {
 

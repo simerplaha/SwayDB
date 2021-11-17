@@ -18,6 +18,7 @@ package swaydb.testkit
 
 import org.scalatest.concurrent.Eventually
 
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.{Deadline, FiniteDuration, _}
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Random

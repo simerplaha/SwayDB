@@ -23,6 +23,7 @@ import swaydb.serializers.Default._
 import swaydb.{Benchmark, Glass, Queue}
 
 import java.util.concurrent.ConcurrentLinkedQueue
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.Random

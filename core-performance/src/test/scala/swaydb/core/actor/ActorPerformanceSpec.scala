@@ -23,6 +23,7 @@ import swaydb.core.TestExecutionContext
 import swaydb.{Actor, ActorRef, Benchmark}
 
 import java.util.concurrent.ConcurrentLinkedQueue
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 
 class ActorPerformanceSpec extends AnyWordSpec with Matchers {
