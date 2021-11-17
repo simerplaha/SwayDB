@@ -17,36 +17,16 @@
 package swaydb.core.segment.cache.sweeper
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.ActorConfig.QueueOrder
 import swaydb.config.MemoryCache
 import swaydb.core.cache.CacheNoIO
 import swaydb.core.segment.data.Persistent
 import swaydb.core.skiplist.SkipList
 import swaydb.slice.{Slice, SliceOption}
-import swaydb.utils.{ByteSizeOf, HashedMap}
-import swaydb.{Actor, ActorConfig, ActorRef, Glass}
+import swaydb.utils.HashedMap
+import swaydb.{ActorConfig, ActorRef, Glass}
 
 import java.util.concurrent.ConcurrentSkipListMap
 import scala.ref.WeakReference
-
-private[core] sealed trait Command
-private[core] object Command {
-
-  private[sweeper] class KeyValue(val keyValueRef: WeakReference[Persistent],
-                                  val skipListRef: WeakReference[SkipList[_, _, Slice[Byte], _]]) extends Command
-
-  private[sweeper] class Cache(val weight: Int,
-                               val cache: WeakReference[swaydb.core.cache.Cache[_, _, _]]) extends Command
-
-  private[sweeper] class SkipListMap(val key: Slice[Byte],
-                                     val weight: Int,
-                                     val cache: WeakReference[ConcurrentSkipListMap[Slice[Byte], _]]) extends Command
-
-  private[sweeper] class BlockCache(val key: Long,
-                                    val valueSize: Int,
-                                    val map: CacheNoIO[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]]) extends Command
-
-}
 
 private[core] sealed trait MemorySweeper
 
@@ -98,99 +78,26 @@ private[core] object MemorySweeper extends LazyLogging {
   def close(sweeper: Option[MemorySweeper]): Unit =
     sweeper.foreach(close)
 
-  def close(sweeper: MemorySweeper): Unit =
-    sweeper match {
-      case MemorySweeper.Off =>
-        ()
-
-      case enabled: MemorySweeper.On =>
-        close(enabled)
-    }
-
-  def close(sweeper: MemorySweeper.On): Unit =
+  def closeOn(sweeper: MemorySweeper.On): Unit =
     sweeper.actor foreach {
       actor =>
         logger.info("Clearing cached key-values")
         actor.terminateAndClear[Glass]()
     }
 
-  def weigher(entry: Command): Int =
-    entry match {
-      case command: Command.BlockCache =>
-        ByteSizeOf.long + command.valueSize + 264
+  def close(sweeper: MemorySweeper): Unit =
+    sweeper match {
+      case MemorySweeper.Off =>
+        ()
 
-      case command: Command.Cache =>
-        ByteSizeOf.long + command.weight + 264
-
-      case command: Command.SkipListMap =>
-        ByteSizeOf.long + command.weight + 264
-
-      case command: Command.KeyValue =>
-        command.keyValueRef.get map {
-          keyValue =>
-            MemorySweeper.weight(keyValue).toInt
-        } getOrElse 264 //264 for the weight of WeakReference itself.
+      case enabled: MemorySweeper.On =>
+        closeOn(enabled)
     }
-
-  def weight(keyValue: Persistent) = {
-    val otherBytes = (Math.ceil(keyValue.key.size + keyValue.valueLength / 8.0) - 1.0) * 8
-    //        if (keyValue.hasRemoveMayBe) (168 + otherBytes).toLong else (264 + otherBytes).toLong
-    (264 * 2) + otherBytes
-  }
-
-  protected sealed trait SweeperImplementation {
-    def cacheSize: Long
-
-    def actorConfig: Option[ActorConfig]
-
-    val actor: Option[ActorRef[Command, Unit]] =
-      actorConfig map {
-        actorConfig =>
-          Actor.cacheFromConfig[Command](
-            config = actorConfig,
-            stashCapacity = cacheSize,
-            queueOrder = QueueOrder.FIFO,
-            weigher = MemorySweeper.weigher
-          ) {
-            (command, _) =>
-              command match {
-                case command: Command.KeyValue =>
-                  for {
-                    skipList <- command.skipListRef.get
-                    keyValue <- command.keyValueRef.get
-                  } yield {
-                    skipList remove keyValue.key
-                  }
-
-                case block: Command.BlockCache =>
-                  val cacheOptional = block.map.get()
-                  if (cacheOptional.isDefined) {
-                    val cache = cacheOptional.get
-                    cache.remove(block.key)
-                    if (cache.isEmpty) block.map.clear()
-                  }
-
-                case ref: Command.SkipListMap =>
-                  val cacheOptional = ref.cache.get
-                  if (cacheOptional.isDefined)
-                    cacheOptional.get.remove(ref.key)
-
-                case cache: Command.Cache =>
-                  val cacheOptional = cache.cache.get
-                  if (cacheOptional.isDefined)
-                    cacheOptional.get.clear()
-              }
-          }.start()
-      }
-
-    def terminateAndClear() =
-      actor.foreach(_.terminateAndClear[Glass]())
-  }
 
   case object Off extends MemorySweeper
 
   sealed trait On extends MemorySweeper {
-    def actor: Option[ActorRef[Command, Unit]]
+    def actor: Option[ActorRef[MemorySweeperCommand, Unit]]
 
     def terminateAndClear(): Unit
 
@@ -198,7 +105,7 @@ private[core] object MemorySweeper extends LazyLogging {
             weight: Int,
             cache: ConcurrentSkipListMap[Slice[Byte], _]): Unit =
       if (actor.isDefined) {
-        actor.get send new Command.SkipListMap(
+        actor.get send new MemorySweeperCommand.SweepSkipListMap(
           key = key,
           weight = weight,
           cache = new WeakReference(cache)
@@ -212,9 +119,10 @@ private[core] object MemorySweeper extends LazyLogging {
 
   sealed trait Cache extends On {
 
-    def add(weight: Int, cache: swaydb.core.cache.Cache[_, _, _]): Unit =
+    def add(weight: Int,
+            cache: swaydb.core.cache.Cache[_, _, _]): Unit =
       if (actor.isDefined) {
-        actor.get send new Command.Cache(
+        actor.get send new MemorySweeperCommand.SweepCache(
           weight = weight,
           cache = new WeakReference[swaydb.core.cache.Cache[_, _, _]](cache)
         )
@@ -236,7 +144,7 @@ private[core] object MemorySweeper extends LazyLogging {
             value: Slice[Byte],
             map: CacheNoIO[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]]): Unit =
       if (actor.isDefined) {
-        actor.get send new Command.BlockCache(
+        actor.get send new MemorySweeperCommand.SweepBlockCache(
           key = key,
           valueSize = value.underlyingArraySize,
           map = map
@@ -252,7 +160,7 @@ private[core] object MemorySweeper extends LazyLogging {
                           cacheSize: Long,
                           skipBlockCacheSeekSize: Int,
                           disableForSearchIO: Boolean,
-                          actorConfig: Option[ActorConfig]) extends SweeperImplementation with Block
+                          actorConfig: Option[ActorConfig]) extends MemorySweeperActor with Block
 
   sealed trait KeyValue extends On {
 
@@ -264,7 +172,7 @@ private[core] object MemorySweeper extends LazyLogging {
             skipList: SkipList[_, _, Slice[Byte], _]): Unit =
       if (sweepKeyValues)
         if (actor.isDefined) {
-          actor.get send new Command.KeyValue(
+          actor.get send new MemorySweeperCommand.SweepKeyValue(
             keyValueRef = new WeakReference(keyValue),
             skipListRef = new WeakReference[SkipList[_, _, Slice[Byte], _]](skipList)
           )
@@ -277,7 +185,7 @@ private[core] object MemorySweeper extends LazyLogging {
 
   case class KeyValueSweeper(cacheSize: Long,
                              maxKeyValuesPerSegment: Option[Int],
-                             actorConfig: Option[ActorConfig]) extends SweeperImplementation with KeyValue {
+                             actorConfig: Option[ActorConfig]) extends MemorySweeperActor with KeyValue {
     override val sweepKeyValues: Boolean = actorConfig.isDefined
   }
 
@@ -287,6 +195,6 @@ private[core] object MemorySweeper extends LazyLogging {
                  maxKeyValuesPerSegment: Option[Int],
                  sweepKeyValues: Boolean,
                  disableForSearchIO: Boolean,
-                 actorConfig: Option[ActorConfig]) extends SweeperImplementation with Block with KeyValue
+                 actorConfig: Option[ActorConfig]) extends MemorySweeperActor with Block with KeyValue
 
 }
