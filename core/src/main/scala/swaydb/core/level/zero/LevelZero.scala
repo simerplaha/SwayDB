@@ -27,7 +27,7 @@ import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 import swaydb.core.segment.data.KeyValue.{Put, PutOption}
 import swaydb.core.segment.data.Value.FromValue
 import swaydb.core.segment.data._
-import swaydb.core.function.FunctionStore
+import swaydb.core.segment.FunctionStore
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog

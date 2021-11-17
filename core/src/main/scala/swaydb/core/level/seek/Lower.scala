@@ -18,7 +18,7 @@ package swaydb.core.level.seek
 
 import swaydb.core.segment.data.Value.FromValueOption
 import swaydb.core.segment.data.{KeyValue, Memory, Value}
-import swaydb.core.function.FunctionStore
+import swaydb.core.segment.FunctionStore
 import swaydb.core.level.LevelSeek
 import swaydb.core.segment.data.merge._
 import swaydb.core.segment.ref.search.ThreadReadState

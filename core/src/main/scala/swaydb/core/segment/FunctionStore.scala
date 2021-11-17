@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.function
+package swaydb.core.segment
 
 import swaydb.OK
 import swaydb.core.segment.data.{SwayFunction, Value}

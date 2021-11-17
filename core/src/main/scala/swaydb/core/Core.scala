@@ -21,7 +21,7 @@ import swaydb.Bag.Implicits._
 import swaydb._
 import swaydb.core.build.BuildValidator
 import swaydb.core.segment.data.{Memory, SwayFunction, Value}
-import swaydb.core.function.FunctionStore
+import swaydb.core.segment.FunctionStore
 import swaydb.core.compaction.Compactor
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.log.LogEntry

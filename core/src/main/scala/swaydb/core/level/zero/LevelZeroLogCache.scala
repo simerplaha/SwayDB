@@ -18,7 +18,7 @@ package swaydb.core.level.zero
 
 import swaydb.Bag
 import swaydb.core.segment.data.{Memory, MemoryOption}
-import swaydb.core.function.FunctionStore
+import swaydb.core.segment.FunctionStore
 import swaydb.core.log.{LogCache, LogCacheBuilder, LogEntry}
 import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.core.skiplist.{SkipList, SkipListConcurrent, SkipListSeries}

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.function
+package swaydb.core.segment
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

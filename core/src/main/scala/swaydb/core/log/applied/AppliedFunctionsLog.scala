@@ -17,7 +17,7 @@
 package swaydb.core.log.applied
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.function.FunctionStore
+import swaydb.core.segment.FunctionStore
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.log
 import swaydb.core.log.serialiser.{AppliedFunctionsLogEntryReader, AppliedFunctionsLogEntryWriter}

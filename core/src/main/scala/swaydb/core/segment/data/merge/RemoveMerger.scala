@@ -17,7 +17,7 @@
 package swaydb.core.segment.data.merge
 
 import swaydb.core.segment.data.{KeyValue, Memory, Value}
-import swaydb.core.function.FunctionStore
+import swaydb.core.segment.FunctionStore
 import swaydb.slice.order.TimeOrder
 import swaydb.slice.Slice
 

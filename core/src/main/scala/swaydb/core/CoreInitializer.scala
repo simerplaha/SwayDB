@@ -19,7 +19,7 @@ package swaydb.core
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.build.{Build, BuildValidator}
-import swaydb.core.function.FunctionStore
+import swaydb.core.segment.FunctionStore
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.compaction._
 import swaydb.core.compaction.throttle.ThrottleCompactorCreator

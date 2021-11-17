@@ -33,7 +33,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.cache.Cache
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.file.DBFile
-import swaydb.core.function.FunctionStore
+import swaydb.core.segment.FunctionStore
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog

@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultExecutionContext}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
-import swaydb.core.function.FunctionStore
+import swaydb.core.segment.FunctionStore
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.CompactionConfig
 import swaydb.config._

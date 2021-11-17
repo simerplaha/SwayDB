@@ -18,7 +18,7 @@ package swaydb.core.segment.defrag
 
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.segment.data.Memory
-import swaydb.core.function.FunctionStore
+import swaydb.core.segment.FunctionStore
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment._

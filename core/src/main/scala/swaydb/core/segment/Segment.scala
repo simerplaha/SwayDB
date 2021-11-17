@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.utils.Aggregator
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.segment.data._
-import swaydb.core.function.FunctionStore
+import swaydb.core.segment.FunctionStore
 import swaydb.core.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.data.merge.KeyValueGrouper

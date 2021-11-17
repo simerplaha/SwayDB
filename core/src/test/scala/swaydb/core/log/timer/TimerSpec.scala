@@ -16,7 +16,7 @@
 
 package swaydb.core.log.timer
 
-import swaydb.core.function.FunctionStore
+import swaydb.core.segment.FunctionStore
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.log.LogEntry
 import swaydb.core.log.MapTestUtil._

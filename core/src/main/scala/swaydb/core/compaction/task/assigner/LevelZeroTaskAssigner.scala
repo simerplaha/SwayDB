@@ -17,7 +17,7 @@
 package swaydb.core.compaction.task.assigner
 
 import swaydb.core.segment.data.{KeyValue, Memory}
-import swaydb.core.function.FunctionStore
+import swaydb.core.segment.FunctionStore
 import swaydb.core.level.Level
 import swaydb.core.compaction.task.CompactionTask
 import swaydb.core.compaction.task.CompactionTask.CompactLogs
