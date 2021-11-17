@@ -19,12 +19,12 @@ package swaydb.api.multimap
 import org.scalatest.OptionValues._
 import swaydb.PureFunctionScala._
 import swaydb.api.TestBaseEmbedded
+import swaydb.config.Functions
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.config.Functions
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.utils.StorageUnits._
 import swaydb.{Apply, Bag, Glass, MultiMap, Prepare, PureFunction}
 

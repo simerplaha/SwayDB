@@ -16,16 +16,15 @@
 
 package swaydb.core.compaction.task.assigner
 
-import swaydb.core.segment.data.Value.FromValue
-import swaydb.core.segment.data.{Memory, Time, Value}
-import swaydb.core.level.Level
+import swaydb.config.compaction.PushStrategy
 import swaydb.core.compaction.task.CompactionDataType._
 import swaydb.core.compaction.task.{CompactionDataType, CompactionTask}
+import swaydb.core.level.Level
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, AssignmentResult}
-import swaydb.slice.MaxKey
-import swaydb.config.compaction.PushStrategy
-import swaydb.slice.Slice
+import swaydb.core.segment.data.Value.FromValue
+import swaydb.core.segment.data.{Memory, Time, Value}
+import swaydb.slice.{MaxKey, Slice}
 import swaydb.slice.order.KeyOrder
 import swaydb.utils.{Aggregator, NonEmptyList}
 

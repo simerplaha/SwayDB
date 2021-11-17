@@ -23,13 +23,13 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.segment.data._
 import swaydb.core.level.LevelSeek
+import swaydb.core.segment.data._
 import swaydb.core.{TestData, TestTimer}
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 class HigherRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {

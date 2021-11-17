@@ -17,7 +17,6 @@
 package swaydb.java;
 
 import org.junit.jupiter.api.Test;
-import swaydb.java.TestBase;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;

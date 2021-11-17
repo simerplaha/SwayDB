@@ -17,16 +17,16 @@
 package swaydb.core.level
 
 import swaydb.IOValues._
+import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestForceSave}
-import swaydb.config.MMAP
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
 

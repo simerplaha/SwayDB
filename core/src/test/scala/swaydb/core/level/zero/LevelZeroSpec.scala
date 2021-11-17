@@ -20,23 +20,23 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import swaydb.IO
 import swaydb.IOValues._
+import swaydb.config.MMAP
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.LevelThrottle
+import swaydb.config.storage.LevelStorage
 import swaydb.core.CommonAssertions._
 import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestData._
-import swaydb.core.segment.data.Memory
 import swaydb.core.log.applied.AppliedFunctionsLog
 import swaydb.core.log.timer.Timer
+import swaydb.core.segment.data.Memory
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.compaction.LevelThrottle
-import swaydb.config.MMAP
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.Slice
-import swaydb.config.storage.LevelStorage
 import swaydb.effect.{Dir, Effect}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._

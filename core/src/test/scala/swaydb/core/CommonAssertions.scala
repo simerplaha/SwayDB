@@ -22,17 +22,16 @@ import org.scalatest.exceptions.TestFailedException
 import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.PushStrategy
+import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.core.TestData._
-import swaydb.core.segment.data.Memory.PendingApply
-import swaydb.core.segment.data.Value.FromValue
-import swaydb.core.segment.data._
 import swaydb.core.file.reader.{FileReader, Reader}
+import swaydb.core.file.sweeper.ByteBufferSweeper
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.log.serialiser.{LogEntryWriter, RangeValueSerialiser, ValueSerialiser}
 import swaydb.core.log.{LogEntry, Logs}
-import swaydb.core.segment.data.merge._
-import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -44,21 +43,22 @@ import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache, SegmentBlockConfig, SegmentBlockOffset}
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
 import swaydb.core.segment.block.values.ValuesBlockConfig
+import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.segment.data.Memory.PendingApply
+import swaydb.core.segment.data.Value.FromValue
+import swaydb.core.segment.data._
+import swaydb.core.segment.data.merge._
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment.ref.search.{KeyMatcher, SegmentSearcher, ThreadReadState}
-import swaydb.core.file.sweeper.ByteBufferSweeper
-import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.compaction.PushStrategy
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.SliceIOImplicits._
-import swaydb.slice.{Reader, Slice, SliceOption, SliceReader}
-import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.effect.{Effect, IOStrategy}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.SliceIOImplicits._
+import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.{Reader, Slice, SliceOption, SliceReader}
 import swaydb.testkit.RunThis._
 import swaydb.utils.Aggregator
 import swaydb.{Bag, Error, Glass, IO}
@@ -66,7 +66,6 @@ import swaydb.{Bag, Error, Glass, IO}
 import java.nio.file.Paths
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag

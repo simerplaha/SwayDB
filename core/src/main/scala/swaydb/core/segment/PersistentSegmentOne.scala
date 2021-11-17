@@ -19,36 +19,34 @@ package swaydb.core.segment
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.core.segment.data._
-import swaydb.core.segment.FunctionStore
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.{MMAP, SegmentRefCacheLife}
+import swaydb.core.compaction.io.CompactionIO
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
-import swaydb.core.compaction.io.CompactionIO
-import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockConfig, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig, BloomFilterBlockOffset}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig, HashIndexBlockOffset}
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
+import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.block.segment.{SegmentBlockCache, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockOffset}
+import swaydb.core.segment.block.{BlockCache, BlockCacheState}
+import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.segment.data._
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.defrag.DefragPersistentSegment
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.FileSweeper
-import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.util._
-import swaydb.slice.MaxKey
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.{MMAP, SegmentRefCacheLife}
+import swaydb.slice.{MaxKey, Slice}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.Slice
 
 import java.nio.file.{Path, Paths}
 import scala.collection.mutable.ListBuffer
@@ -118,14 +116,14 @@ protected case object PersistentSegmentOne {
             bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
             footerCacheable: Option[SegmentFooterBlock],
             previousBlockCache: Option[BlockCacheState])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                          functionStore: FunctionStore,
-                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                          blockCacheSweeper: Option[MemorySweeper.Block],
-                                                          fileSweeper: FileSweeper,
-                                                          bufferCleaner: ByteBufferSweeperActor,
-                                                          forceSaveApplier: ForceSaveApplier,
-                                                          segmentIO: SegmentReadIO): PersistentSegmentOne = {
+                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                         functionStore: FunctionStore,
+                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                         blockCacheSweeper: Option[MemorySweeper.Block],
+                                                         fileSweeper: FileSweeper,
+                                                         bufferCleaner: ByteBufferSweeperActor,
+                                                         forceSaveApplier: ForceSaveApplier,
+                                                         segmentIO: SegmentReadIO): PersistentSegmentOne = {
 
     val fileSize = segmentSize - 1
 

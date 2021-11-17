@@ -21,12 +21,12 @@ import swaydb.ActorConfig.QueueOrder
 import swaydb.Bag.Implicits._
 import swaydb.Error.IO.ExceptionHandler
 import swaydb._
+import swaydb.config.ForceSave
 import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.ByteBufferCleaner.Cleaner
-import swaydb.utils.English
-import swaydb.config.ForceSave
 import swaydb.effect.Effect
+import swaydb.utils.English
 import swaydb.utils.FiniteDurations.FiniteDurationImplicits
 
 import java.io.FileNotFoundException

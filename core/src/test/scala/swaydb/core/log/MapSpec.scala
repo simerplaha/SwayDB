@@ -18,27 +18,26 @@ package swaydb.core.log
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
+import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.segment.data.{Memory, MemoryOption, Value}
 import swaydb.core.file.DBFile
 import swaydb.core.level.AppendixLogCache
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.log.MapTestUtil._
 import swaydb.core.log.serialiser._
 import swaydb.core.segment.Segment
+import swaydb.core.segment.data.{Memory, MemoryOption, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.config.MMAP
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.{Slice, SliceOption}
-import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.effect.Effect._
 import swaydb.effect.{Effect, Extension}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._

@@ -16,9 +16,9 @@
 
 package swaydb.java.serializers
 
-import swaydb.slice.Slice
 import swaydb.java.serializers.{Serializer => JavaSerializer}
 import swaydb.serializers.{Serializer => ScalaSerializer}
+import swaydb.slice.Slice
 
 object SerializerConverter {
 

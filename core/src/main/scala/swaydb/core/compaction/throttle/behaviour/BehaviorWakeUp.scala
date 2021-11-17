@@ -18,19 +18,18 @@ package swaydb.core.compaction.throttle.behaviour
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.DefActor
-import swaydb.core.level._
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.PushStrategy
 import swaydb.core.compaction.task.CompactionTask
 import swaydb.core.compaction.task.assigner.{LevelTaskAssigner, LevelZeroTaskAssigner}
 import swaydb.core.compaction.throttle.{LevelState, ThrottleCompactor, ThrottleCompactorContext, ThrottleLevelOrdering}
-import swaydb.core.level.zero.LevelZero
 import swaydb.core.file.sweeper.FileSweeper
-import swaydb.utils.NonEmptyList
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.compaction.PushStrategy
+import swaydb.core.level._
+import swaydb.core.level.zero.LevelZero
 import swaydb.slice.Slice
-import swaydb.utils.FiniteDurations
 import swaydb.utils.FiniteDurations.FiniteDurationImplicits
 import swaydb.utils.Futures.{FutureUnitImplicits, _}
+import swaydb.utils.{FiniteDurations, NonEmptyList}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}

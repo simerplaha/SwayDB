@@ -20,8 +20,8 @@ import org.scalatest.OptionValues._
 import swaydb.Glass
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 

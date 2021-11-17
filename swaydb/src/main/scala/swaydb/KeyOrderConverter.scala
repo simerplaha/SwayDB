@@ -16,10 +16,10 @@
 
 package swaydb
 
-import swaydb.utils.Eithers
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.serializers.Serializer
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
+import swaydb.utils.Eithers
 
 protected object KeyOrderConverter {
 

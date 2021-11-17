@@ -19,14 +19,13 @@ package swaydb.core.compaction.task.assigner
 import org.scalamock.scalatest.MockFactory
 import swaydb.EitherValues._
 import swaydb.core.TestData._
-import swaydb.core.segment.data.{Memory, Time, Value}
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
+import swaydb.core.segment.data.{Memory, Time, Value}
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
-import swaydb.slice.MaxKey
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.{MaxKey, Slice}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 import scala.jdk.CollectionConverters._

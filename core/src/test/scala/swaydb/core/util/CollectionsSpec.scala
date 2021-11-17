@@ -19,9 +19,9 @@ package swaydb.core.util
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Benchmark
-import swaydb.utils.Collections._
 import swaydb.slice.Slice
 import swaydb.utils.Collections
+import swaydb.utils.Collections._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 

@@ -23,8 +23,8 @@ import swaydb.IOValues._
 import swaydb.OK
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.{TestData, TestTimer}
 import swaydb.core.segment.data._
+import swaydb.core.{TestData, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice

@@ -16,9 +16,9 @@
 
 package swaydb.core.segment.block.sortedindex
 
-import swaydb.core.segment.data.{Persistent, PersistentOption}
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
+import swaydb.core.segment.data.{Persistent, PersistentOption}
 import swaydb.core.segment.entry.reader.PersistentParser
 import swaydb.slice.Slice
 

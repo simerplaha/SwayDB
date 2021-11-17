@@ -18,19 +18,19 @@ package swaydb.core.log
 
 import org.scalatest.matchers.should.Matchers._
 import swaydb.IOValues._
+import swaydb.config.MMAP
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.file.ForceSaveApplier
+import swaydb.core.file.sweeper.ByteBufferSweeper
+import swaydb.core.file.sweeper.ByteBufferSweeper.{ByteBufferSweeperActor, State}
 import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
 import swaydb.core.log.timer.Timer
 import swaydb.core.log.timer.Timer.PersistentTimer
-import swaydb.core.file.sweeper.ByteBufferSweeper
-import swaydb.core.file.sweeper.ByteBufferSweeper.{ByteBufferSweeperActor, State}
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
-import swaydb.config.MMAP
-import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
 import swaydb.{Bag, Glass}

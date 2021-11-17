@@ -17,8 +17,8 @@
 package swaydb.core.segment.data
 
 import swaydb.IO
-import swaydb.slice.order.TimeOrder
 import swaydb.slice.Slice
+import swaydb.slice.order.TimeOrder
 import swaydb.slice.utils.ScalaByteOps
 import swaydb.utils.ByteSizeOf
 

@@ -20,9 +20,9 @@ import swaydb.IOValues._
 import swaydb._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 
 class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {

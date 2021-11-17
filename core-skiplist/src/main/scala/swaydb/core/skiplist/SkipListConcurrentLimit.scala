@@ -16,8 +16,8 @@
 
 package swaydb.core.skiplist
 
-import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 
 import java.util
 import scala.collection.mutable
@@ -42,9 +42,9 @@ object SkipListConcurrentLimit {
 }
 
 private[swaydb] class SkipListConcurrentLimit[OK, OV, K <: OK, V <: OV](limit: Int,
-                                                                      skipList: SkipListConcurrent[OK, OV, K, V],
-                                                                      val nullKey: OK,
-                                                                      val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipList[OK, OV, K, V] {
+                                                                        skipList: SkipListConcurrent[OK, OV, K, V],
+                                                                        val nullKey: OK,
+                                                                        val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipList[OK, OV, K, V] {
 
   def dropOverflow(key: K): Unit =
     while (skipList.size > limit)

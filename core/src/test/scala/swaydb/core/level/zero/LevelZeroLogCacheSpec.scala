@@ -17,20 +17,20 @@ package swaydb.core.level.zero
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
-import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.log.LogEntry
 import swaydb.core.log.serialiser.LevelZeroLogEntryWriter
 import swaydb.core.segment.data.merge.KeyValueMerger
 import swaydb.core.segment.data.merge.stats.MergeStats
+import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.skiplist.{SkipListConcurrent, SkipListSeries}
-import swaydb.slice.order.TimeOrder
-import swaydb.slice.Slice
-import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.TimeOrder
 
 class LevelZeroLogCacheSpec extends AnyWordSpec with Matchers {
 

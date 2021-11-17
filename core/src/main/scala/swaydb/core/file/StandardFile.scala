@@ -17,10 +17,10 @@
 package swaydb.core.file
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.utils.Collections
 import swaydb.config.ForceSave
-import swaydb.slice.{Slice, SliceRO, Slices}
 import swaydb.effect.Effect
+import swaydb.slice.{Slice, SliceRO, Slices}
+import swaydb.utils.Collections
 
 import java.nio.ByteBuffer
 import java.nio.channels.{FileChannel, GatheringByteChannel}

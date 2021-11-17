@@ -17,13 +17,13 @@
 package swaydb.core
 
 import swaydb.ActorConfig
+import swaydb.config.MemoryCache
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.CommonAssertions._
-import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper}
+import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.config.MemoryCache
 import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._

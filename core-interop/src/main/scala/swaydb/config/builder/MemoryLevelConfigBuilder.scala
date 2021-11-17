@@ -16,8 +16,8 @@
 
 package swaydb.config.builder
 
-import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.config.MemoryLevelConfig
+import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.utils.Java.JavaFunction
 
 import java.time.Duration

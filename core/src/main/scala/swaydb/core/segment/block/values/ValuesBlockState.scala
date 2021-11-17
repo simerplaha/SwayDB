@@ -1,8 +1,8 @@
 package swaydb.core.segment.block.values
 
 import swaydb.compression.CompressionInternal
-import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.config.UncompressedBlockInfo
+import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.slice.{Slice, SliceMut}
 
 private[block] class ValuesBlockState(var compressibleBytes: SliceMut[Byte],

@@ -17,23 +17,23 @@
 package swaydb.core.segment.block.segment
 
 import org.scalatest.OptionValues._
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.segment.data._
 import swaydb.core.file.reader.Reader
-import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
 import swaydb.core.segment.block.values.ValuesBlockConfig
+import swaydb.core.segment.data._
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 
 import scala.collection.mutable.ListBuffer

@@ -20,10 +20,10 @@ import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestData._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
-import swaydb.slice.MaxKey
-import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.MaxKey
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 import scala.collection.mutable.ListBuffer

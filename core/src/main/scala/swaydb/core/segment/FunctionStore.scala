@@ -18,8 +18,8 @@ package swaydb.core.segment
 
 import swaydb.OK
 import swaydb.core.segment.data.{SwayFunction, Value}
-import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 
 import java.util.concurrent.ConcurrentHashMap
 import scala.annotation.tailrec

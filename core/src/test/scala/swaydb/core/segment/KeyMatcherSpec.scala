@@ -16,18 +16,18 @@
 
 package swaydb.core.segment
 
-import swaydb.core.cache.Cache
 import swaydb.core.TestBase
+import swaydb.core.cache.Cache
+import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.segment.data.Persistent._
 import swaydb.core.segment.data.Value.FromValueOption
 import swaydb.core.segment.data.{Persistent, Time, Value}
-import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.segment.ref.search.KeyMatcher
 import swaydb.core.segment.ref.search.KeyMatcher.Result._
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 
 import scala.util.Random
 

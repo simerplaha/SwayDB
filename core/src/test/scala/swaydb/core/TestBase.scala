@@ -21,38 +21,37 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import swaydb.IOValues._
+import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
+import swaydb.config.storage.{Level0Storage, LevelStorage}
+import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.segment.data.{Memory, Time}
-import swaydb.core.file.DBFile
-import swaydb.core.file.reader.FileReader
 import swaydb.core.compaction._
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.compaction.throttle.ThrottleCompactorCreator
+import swaydb.core.file.DBFile
+import swaydb.core.file.reader.FileReader
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
 import swaydb.core.log.{Log, LogEntry}
-import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
+import swaydb.core.segment.data.merge.stats.MergeStats
+import swaydb.core.segment.data.{Memory, Time}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.IDGenerator
-import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
-import swaydb.config.{MMAP, RecoveryMode}
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.Slice
-import swaydb.config.storage.{Level0Storage, LevelStorage}
-import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.effect.{Dir, Effect}
+import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis.FutureImplicits
 import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._

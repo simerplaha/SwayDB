@@ -16,16 +16,14 @@
 
 package swaydb.core.segment.assigner
 
-import swaydb.utils.Aggregator
-import swaydb.core.segment.data.{KeyValue, Memory, MemoryOption, Value}
 import swaydb.core.segment.assigner.AssignmentTarget._
+import swaydb.core.segment.data.{KeyValue, Memory, MemoryOption, Value}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.{PersistentSegmentMany, Segment}
-import swaydb.utils.DropIterator
 import swaydb.core.skiplist.SkipList
-import swaydb.slice.MaxKey
 import swaydb.slice.order.KeyOrder
-import swaydb.slice.{Slice, SliceOption}
+import swaydb.slice.{MaxKey, Slice, SliceOption}
+import swaydb.utils.{Aggregator, DropIterator}
 
 import scala.annotation.tailrec
 import scala.collection.compat._

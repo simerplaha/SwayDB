@@ -1,8 +1,8 @@
 package swaydb.core.segment.block.binarysearch
 
 import swaydb.compression.CompressionInternal
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock.optimalBytesRequired
 import swaydb.config.UncompressedBlockInfo
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock.optimalBytesRequired
 import swaydb.slice.{Slice, SliceMut}
 import swaydb.utils.Maybe
 

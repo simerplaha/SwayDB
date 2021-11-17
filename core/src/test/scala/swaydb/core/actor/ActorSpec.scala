@@ -27,7 +27,6 @@ import swaydb.testkit.RunThis._
 
 import java.util.concurrent.{ConcurrentLinkedDeque, ConcurrentSkipListSet}
 import scala.collection.mutable.ListBuffer
-import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, Promise}
 import scala.jdk.CollectionConverters._

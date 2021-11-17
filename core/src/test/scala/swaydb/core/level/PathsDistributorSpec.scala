@@ -21,9 +21,9 @@ import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.slice.order.KeyOrder
 import swaydb.effect
 import swaydb.effect.{Dir, Effect}
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 
 import java.nio.file.{Path, Paths}

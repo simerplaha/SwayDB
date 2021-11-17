@@ -22,9 +22,9 @@ import swaydb.core.TestData._
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.{Block, BlockCache}
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.slice.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 
 import scala.util.Random

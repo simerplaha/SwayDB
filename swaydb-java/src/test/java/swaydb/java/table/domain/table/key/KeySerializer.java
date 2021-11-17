@@ -16,10 +16,10 @@
 
 package swaydb.java.table.domain.table.key;
 
+import swaydb.java.serializers.Serializer;
 import swaydb.slice.Slice;
 import swaydb.slice.SliceReader;
 import swaydb.slice.utils.ByteOps;
-import swaydb.java.serializers.Serializer;
 
 public class KeySerializer implements Serializer<Key> {
 

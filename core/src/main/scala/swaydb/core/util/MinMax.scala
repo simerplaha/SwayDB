@@ -16,9 +16,9 @@
 
 package swaydb.core.util
 
+import swaydb.core.segment.FunctionStore
 import swaydb.core.segment.data.Value.{FromValue, FromValueOption}
 import swaydb.core.segment.data.{KeyValue, Memory, Value}
-import swaydb.core.segment.FunctionStore
 import swaydb.slice.Slice
 import swaydb.utils.{SomeOrNone, SomeOrNoneCovariant}
 

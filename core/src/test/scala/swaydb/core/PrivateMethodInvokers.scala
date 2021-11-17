@@ -19,10 +19,10 @@ package swaydb.core
 import org.scalatest.PrivateMethodTester._
 import swaydb.core.log.timer.Timer
 import swaydb.core.log.{Log, LogCache, Logs}
+import swaydb.core.queue.VolatileQueue
 import swaydb.core.segment.PersistentSegment
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.util.IDGenerator
-import swaydb.core.queue.VolatileQueue
 import swaydb.slice.Slice
 import swaydb.utils.HashedMap
 

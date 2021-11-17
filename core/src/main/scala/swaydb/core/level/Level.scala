@@ -19,16 +19,17 @@ package swaydb.core.level
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.core.segment.data._
-import swaydb.core.segment.FunctionStore
-import swaydb.core.file.ForceSaveApplier
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.{LevelMeter, LevelThrottle}
+import swaydb.config.storage.LevelStorage
 import swaydb.core.compaction.io.CompactionIO
+import swaydb.core.file.ForceSaveApplier
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.log.serialiser._
 import swaydb.core.log.{Log, LogEntry}
-import swaydb.core.segment.data.merge.stats.MergeStats
-import swaydb.core.segment.data.merge.stats.MergeStats.{Memory, Persistent}
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, GapAggregator}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -38,22 +39,20 @@ import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
+import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.segment.data._
+import swaydb.core.segment.data.merge.stats.MergeStats
+import swaydb.core.segment.data.merge.stats.MergeStats.{Memory, Persistent}
 import swaydb.core.segment.defrag.{DefragMemorySegment, DefragPersistentSegment}
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteMemoryIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.util.Exceptions._
 import swaydb.core.util._
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.compaction.{LevelMeter, LevelThrottle}
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.SliceIOImplicits._
-import swaydb.slice.{Slice, SliceOption}
-import swaydb.config.storage.LevelStorage
-import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.effect.Effect._
 import swaydb.effect.{Dir, Effect, Extension, FileLocker}
+import swaydb.slice.SliceIOImplicits._
+import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.{Aggregator, Futures}
 import swaydb.{Bag, Error, IO}
 

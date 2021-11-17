@@ -16,10 +16,10 @@
 
 package swaydb.core
 
-import swaydb.core.segment.data.Time
 import swaydb.core.log.timer.Timer
-import swaydb.slice.Slice
+import swaydb.core.segment.data.Time
 import swaydb.macros.Sealed
+import swaydb.slice.Slice
 
 import java.util.concurrent.atomic.AtomicLong
 import scala.util.Random

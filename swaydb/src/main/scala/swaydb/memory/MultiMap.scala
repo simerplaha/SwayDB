@@ -17,18 +17,17 @@
 package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.configs.level.DefaultExecutionContext
-import swaydb.core.log.counter.CounterLog
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
-import swaydb.config._
-import swaydb.slice.order.KeyOrder
 import swaydb.config.sequencer.Sequencer
-import swaydb.slice.Slice
-import swaydb.config.{Atomic, Functions, OptimiseWrites}
+import swaydb.config._
+import swaydb.configs.level.DefaultExecutionContext
+import swaydb.core.log.counter.CounterLog
 import swaydb.function.FunctionConverter
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.{Apply, CommonConfigs, KeyOrderConverter, MultiMap, PureFunction}
 
 import scala.concurrent.duration.FiniteDuration

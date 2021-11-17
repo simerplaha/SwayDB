@@ -17,15 +17,15 @@
 package swaydb.core.segment.block.hashindex
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.segment.data.Persistent
+import swaydb.config.{HashIndex, UncompressedBlockInfo}
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset, SortedIndexBlockSecondaryIndexEntry, SortedIndexBlockState}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
+import swaydb.core.segment.data.Persistent
 import swaydb.core.util.{Bytes, CRC32}
-import swaydb.config.{HashIndex, UncompressedBlockInfo}
-import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.utils.ByteSizeOf
 
 import scala.annotation.tailrec

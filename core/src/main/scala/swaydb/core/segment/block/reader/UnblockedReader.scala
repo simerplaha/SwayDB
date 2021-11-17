@@ -17,9 +17,9 @@
 package swaydb.core.segment.block.reader
 
 import swaydb.core.file.reader.{FileReader, Reader}
-import swaydb.core.segment.block.{Block, BlockCache, BlockCacheState, BlockOffset, BlockOps}
-import swaydb.slice.{Reader, Slice, SliceReader}
+import swaydb.core.segment.block.{Block, BlockCacheState, BlockOffset, BlockOps}
 import swaydb.slice.utils.ByteOps
+import swaydb.slice.{Reader, Slice, SliceReader}
 
 /**
  * A typed object that indicates that block is already decompressed and now is reading data bytes.

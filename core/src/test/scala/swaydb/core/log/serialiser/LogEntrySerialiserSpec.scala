@@ -26,10 +26,10 @@ import swaydb.core.segment.data._
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.{Slice, SliceOption}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.{Slice, SliceOption}
 
 class LogEntrySerialiserSpec extends TestBase {
 

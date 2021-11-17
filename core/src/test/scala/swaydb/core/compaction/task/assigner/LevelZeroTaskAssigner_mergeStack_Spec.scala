@@ -18,17 +18,17 @@ package swaydb.core.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.segment.data.Memory
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.segment.Segment
+import swaydb.core.segment.data.Memory
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 class LevelZeroTaskAssigner_mergeStack_Spec extends TestBase with MockFactory {

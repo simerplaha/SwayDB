@@ -18,7 +18,6 @@ package swaydb.java;
 
 import org.junit.jupiter.api.Test;
 import swaydb.Prepare;
-import swaydb.java.TestBase;
 import swaydb.java.multimap.MultiPrepareBuilder;
 import swaydb.java.serializers.Serializer;
 import swaydb.java.table.domain.table.key.Key;

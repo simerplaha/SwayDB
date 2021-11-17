@@ -17,12 +17,12 @@
 package swaydb.java;
 
 import org.junit.jupiter.api.Test;
+import swaydb.Apply;
 import swaydb.Exception;
-import swaydb.*;
+import swaydb.Prepare;
+import swaydb.PureFunction;
 import swaydb.core.Core;
-import swaydb.java.TestBase;
 import swaydb.java.serializers.Serializer;
-import swaydb.java.KeyVal;
 
 import java.io.IOException;
 import java.time.Duration;

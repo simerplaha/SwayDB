@@ -17,21 +17,21 @@
 package swaydb.core.segment.assigner
 
 import org.scalatest.OptionValues._
+import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.segment.Segment
+import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.utils.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.config.MMAP
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.effect.Effect._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
+import swaydb.utils.PipeOps._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._

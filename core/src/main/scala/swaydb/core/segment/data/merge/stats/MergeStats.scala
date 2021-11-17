@@ -16,11 +16,10 @@
 
 package swaydb.core.segment.data.merge.stats
 
-import swaydb.utils.Aggregator
 import swaydb.core.segment.data
 import swaydb.core.segment.entry.id.KeyValueId
 import swaydb.core.util.Bytes
-import swaydb.utils.ByteSizeOf
+import swaydb.utils.{Aggregator, ByteSizeOf}
 
 import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer

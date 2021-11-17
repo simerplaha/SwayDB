@@ -16,7 +16,6 @@
 
 package swaydb.core.segment.block.segment.transient
 
-import swaydb.core.segment.data.KeyValue
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
@@ -24,11 +23,11 @@ import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
+import swaydb.core.segment.data.KeyValue
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.{MemorySegment, PersistentSegment, Segment}
 import swaydb.core.util.MinMax
-import swaydb.slice.MaxKey
-import swaydb.slice.Slice
+import swaydb.slice.{MaxKey, Slice}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.Deadline

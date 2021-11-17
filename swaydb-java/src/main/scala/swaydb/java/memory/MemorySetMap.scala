@@ -16,18 +16,17 @@
 
 package swaydb.java.memory
 
-import swaydb.configs.level.DefaultExecutionContext
-import swaydb.utils.Eithers
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
-import swaydb.config.{FileCache, ThreadStateCache}
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
-import swaydb.config.{Atomic, OptimiseWrites}
+import swaydb.config.{Atomic, FileCache, OptimiseWrites, ThreadStateCache}
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.java._
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
+import swaydb.utils.Eithers
 import swaydb.utils.Java.JavaFunction
 import swaydb.{Bag, CommonConfigs, Glass}
 

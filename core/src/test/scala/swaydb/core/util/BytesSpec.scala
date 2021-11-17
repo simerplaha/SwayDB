@@ -23,9 +23,9 @@ import swaydb.IOValues._
 import swaydb.OK
 import swaydb.core.TestData._
 import swaydb.core.file.reader.Reader
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 

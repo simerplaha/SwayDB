@@ -17,8 +17,8 @@
 package swaydb.api.multimap.multiprepare
 
 import boopickle.Default.{Pickle, Unpickle, _}
-import swaydb.slice.Slice
 import swaydb.serializers.Serializer
+import swaydb.slice.Slice
 
 /**
  * All row types for [[Table]]

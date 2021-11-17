@@ -21,12 +21,12 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.ActorConfig.QueueOrder
 import swaydb.PureFunctionScala._
 import swaydb.api.TestBaseEmbedded
+import swaydb.config.Functions
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestData._
-import swaydb.config.Functions
-import swaydb.slice.Slice
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Default._
+import swaydb.slice.Slice
 import swaydb.stress.simulation.Domain._
 import swaydb.stress.simulation.ProductCommand._
 import swaydb.stress.simulation.RemoveAsserted._

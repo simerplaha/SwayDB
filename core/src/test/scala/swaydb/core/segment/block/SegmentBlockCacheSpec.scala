@@ -3,10 +3,10 @@ package swaydb.core.segment.block
 import org.scalatest.OptionValues._
 import swaydb.ActorConfig
 import swaydb.IOValues._
+import swaydb.config.MemoryCache
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.segment.data.Memory
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
@@ -14,20 +14,19 @@ import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.{SegmentBlockCache, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
-import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.segment.data.Memory
+import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
-import swaydb.config.MemoryCache
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.effect.IOStrategy
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 
 import java.util.concurrent.ConcurrentLinkedQueue
-import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.Random

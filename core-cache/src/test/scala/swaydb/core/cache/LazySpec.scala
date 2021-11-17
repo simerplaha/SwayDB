@@ -23,7 +23,6 @@ import swaydb.IO
 import swaydb.effect.Base._
 import swaydb.testkit.RunThis._
 
-import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.util.Random
 

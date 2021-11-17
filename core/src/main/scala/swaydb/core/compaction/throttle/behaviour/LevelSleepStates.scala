@@ -16,8 +16,8 @@
 
 package swaydb.core.compaction.throttle.behaviour
 
-import swaydb.core.level.Level
 import swaydb.core.compaction.throttle.LevelState
+import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
 
 protected object LevelSleepStates {

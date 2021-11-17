@@ -16,16 +16,16 @@
 
 package swaydb.core.segment.block.binarysearch
 
-import swaydb.core.segment.data.Persistent.Partial
-import swaydb.core.segment.data.{Memory, Persistent}
+import swaydb.config.IndexFormat
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
+import swaydb.core.segment.data.Persistent.Partial
+import swaydb.core.segment.data.{Memory, Persistent}
 import swaydb.core.util.Bytes
-import swaydb.config.IndexFormat
-import swaydb.slice.{Slice, SliceMut}
 import swaydb.macros.Sealed
+import swaydb.slice.{Slice, SliceMut}
 import swaydb.utils.ByteSizeOf
 
 private[core] sealed trait BinarySearchEntryFormat {

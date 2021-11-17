@@ -17,10 +17,9 @@
 package swaydb.config
 
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.config.compaction.{LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.config.builder.{MemoryLevelConfigBuilder, MemoryLevelZeroConfigBuilder, PersistentLevelConfigBuilder, PersistentLevelZeroConfigBuilder}
+import swaydb.config.compaction.{LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.config.storage.Level0Storage
-import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.effect.Dir
 import swaydb.utils.Java.JavaFunction
 

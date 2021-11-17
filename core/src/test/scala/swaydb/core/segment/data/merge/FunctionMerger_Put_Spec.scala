@@ -22,10 +22,10 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.segment.data._
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 class FunctionMerger_Put_Spec extends AnyWordSpec with Matchers {

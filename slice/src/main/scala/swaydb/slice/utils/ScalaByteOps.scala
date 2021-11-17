@@ -16,7 +16,7 @@
 
 package swaydb.slice.utils
 
-import swaydb.slice.{ReaderBase, Slice, SliceMut, SliceRO, SliceReader}
+import swaydb.slice._
 import swaydb.utils.Maybe.Maybe
 import swaydb.utils.{ByteSizeOf, Maybe}
 

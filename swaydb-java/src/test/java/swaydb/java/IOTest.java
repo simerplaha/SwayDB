@@ -17,7 +17,6 @@
 package swaydb.java;
 
 import org.junit.jupiter.api.Test;
-import swaydb.java.IO;
 
 import javax.naming.NoPermissionException;
 

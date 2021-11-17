@@ -19,11 +19,11 @@ package swaydb.core.build
 import swaydb.Error.IO
 import swaydb.Exception.InvalidDirectoryType
 import swaydb.IOValues._
+import swaydb.config.DataType
 import swaydb.core.TestData._
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.config.DataType
-import swaydb.slice.Slice
 import swaydb.effect.{Effect, Extension}
+import swaydb.slice.Slice
 import swaydb.utils.ByteSizeOf
 
 import java.nio.file.FileAlreadyExistsException

@@ -18,12 +18,12 @@ package swaydb.core.compaction.throttle.behaviour
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.core.util.DefIO
 import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
+import swaydb.core.util.DefIO
 import swaydb.slice.Slice
 import swaydb.slice.SliceIOImplicits._
 import swaydb.{Error, IO}

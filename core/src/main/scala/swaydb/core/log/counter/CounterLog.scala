@@ -17,11 +17,11 @@
 package swaydb.core.log.counter
 
 import swaydb.IO
+import swaydb.config.MMAP
 import swaydb.core.file.ForceSaveApplier
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.log.LogEntry
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.config.MMAP
 import swaydb.slice.Slice
 
 import java.nio.file.Path
@@ -44,9 +44,9 @@ private[swaydb] object CounterLog {
                  mmap: MMAP.Log,
                  mod: Long,
                  fileSize: Int)(implicit bufferCleaner: ByteBufferSweeperActor,
-                                 forceSaveApplier: ForceSaveApplier,
-                                 writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]],
-                                 reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Log, PersistentCounterLog] =
+                                forceSaveApplier: ForceSaveApplier,
+                                writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]],
+                                reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Log, PersistentCounterLog] =
     PersistentCounterLog(
       path = dir,
       mmap = mmap,

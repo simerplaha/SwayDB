@@ -16,25 +16,24 @@
 
 package swaydb.core.segment.block
 
-import swaydb.IO
+import swaydb.{Benchmark, IO}
+import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.segment.data._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig}
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
+import swaydb.core.segment.data._
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
-import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
-import swaydb.config.MMAP
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.effect.IOStrategy
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 

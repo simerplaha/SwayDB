@@ -20,9 +20,9 @@ import org.scalatest.OptionValues._
 import swaydb.Exception.InvalidDirectoryType
 import swaydb.IOValues._
 import swaydb._
+import swaydb.config.DataType
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{Core, TestCaseSweeper}
-import swaydb.config.DataType
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis.runThis
 

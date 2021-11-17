@@ -18,18 +18,18 @@ package swaydb.core.tool
 
 import swaydb.Glass
 import swaydb.IOValues._
+import swaydb.config.MMAP
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.compaction.LevelThrottle
+import swaydb.config.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.compaction.LevelThrottle
-import swaydb.config.MMAP
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.config.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
-import swaydb.slice.Slice
 import swaydb.effect.Effect
 import swaydb.effect.Effect._
+import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._

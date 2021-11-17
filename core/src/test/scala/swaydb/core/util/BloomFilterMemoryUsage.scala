@@ -17,8 +17,8 @@
 package swaydb.core.util
 
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
-import swaydb.slice.order.KeyOrder
 import swaydb.serializers.Default.LongSerializer
+import swaydb.slice.order.KeyOrder
 
 object BloomFilterMemoryUsage extends App {
 

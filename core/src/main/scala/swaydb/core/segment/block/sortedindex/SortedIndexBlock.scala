@@ -17,19 +17,18 @@
 package swaydb.core.segment.block.sortedindex
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.segment.data._
-import swaydb.core.segment.data.merge.stats.MergeStats
+import swaydb.config.UncompressedBlockInfo
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockOffset}
+import swaydb.core.segment.data._
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.entry.writer._
 import swaydb.core.segment.ref.search.KeyMatcher
 import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.util.{Bytes, MinMax}
-import swaydb.slice.MaxKey
-import swaydb.config.UncompressedBlockInfo
 import swaydb.slice.order.KeyOrder
-import swaydb.slice.{Slice, SliceMut, SliceRO}
+import swaydb.slice.{MaxKey, Slice, SliceMut}
 import swaydb.utils.{ByteSizeOf, FiniteDurations}
 
 import scala.annotation.tailrec

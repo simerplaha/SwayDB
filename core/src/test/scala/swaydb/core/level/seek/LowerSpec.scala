@@ -22,9 +22,9 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.data.Value
 import swaydb.core.{TestData, TestTimer}
-import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 class LowerSpec extends AnyWordSpec with Matchers {

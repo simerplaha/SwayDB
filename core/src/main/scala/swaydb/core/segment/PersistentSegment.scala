@@ -19,10 +19,8 @@ package swaydb.core.segment
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.compaction.io.CompactionIO
-import swaydb.core.segment.data.Memory
 import swaydb.core.file.DBFile
 import swaydb.core.level.PathsDistributor
-import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
@@ -31,6 +29,8 @@ import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
+import swaydb.core.segment.data.Memory
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.util.{DefIO, IDGenerator}
 import swaydb.slice.Slice
 

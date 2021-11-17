@@ -16,13 +16,12 @@
 
 package swaydb.core.file
 
-import swaydb.IO
+import swaydb.{Benchmark, IO}
 import swaydb.IOValues._
 import swaydb.core.TestData._
-import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.slice.Slice
 import swaydb.effect.{Effect, Extension}
+import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 

@@ -17,15 +17,14 @@
 package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.configs.level.DefaultExecutionContext
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
-import swaydb.config._
-import swaydb.slice.order.KeyOrder
 import swaydb.config.sequencer.Sequencer
-import swaydb.slice.Slice
-import swaydb.config.{Atomic, OptimiseWrites}
+import swaydb.config._
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.serializers.Serializer
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.{Bag, CommonConfigs}
 
 import scala.concurrent.duration.FiniteDuration

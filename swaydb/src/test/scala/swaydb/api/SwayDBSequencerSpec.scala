@@ -19,9 +19,9 @@ package swaydb.api
 import org.scalatest.OptionValues._
 import swaydb.Bag.Implicits._
 import swaydb._
+import swaydb.config.sequencer.Sequencer
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
-import swaydb.config.sequencer.Sequencer
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis.FutureImplicits
 

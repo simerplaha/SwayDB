@@ -17,20 +17,19 @@
 package swaydb.core.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.TestData._
-import swaydb.core.segment.data.Memory
-import swaydb.core.level.Level
-import swaydb.core.compaction.task.CompactionTask
-import swaydb.core.segment.Segment
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.utils.NonEmptyList
-import swaydb.config.compaction.PushStrategy
 import swaydb.config.MMAP
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
+import swaydb.config.compaction.PushStrategy
+import swaydb.core.TestData._
+import swaydb.core.compaction.task.CompactionTask
+import swaydb.core.level.Level
+import swaydb.core.segment.Segment
+import swaydb.core.segment.data.Memory
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.utils.OperatingSystem
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
+import swaydb.utils.{NonEmptyList, OperatingSystem}
 
 import scala.collection.SortedSet
 

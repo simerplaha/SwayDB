@@ -20,14 +20,14 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.exceptions.TestFailedException
 import swaydb.IO
 import swaydb.IOValues._
+import swaydb.config.MMAP
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.MMAP
-import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
 

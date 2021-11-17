@@ -2,8 +2,8 @@ package swaydb.core.segment.block
 
 import swaydb.core.cache.CacheNoIO
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.utils.HashedMap
 import swaydb.slice.{Slice, SliceOption}
+import swaydb.utils.HashedMap
 
 class BlockCacheState(val blockSize: Int,
                       val skipBlockCacheSeekSize: Int,

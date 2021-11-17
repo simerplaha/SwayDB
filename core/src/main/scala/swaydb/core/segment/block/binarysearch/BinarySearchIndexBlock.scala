@@ -16,15 +16,15 @@
 
 package swaydb.core.segment.block.binarysearch
 
-import swaydb.core.segment.data.{Persistent, PersistentOption}
+import swaydb.config.UncompressedBlockInfo
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset, SortedIndexBlockSecondaryIndexEntry, SortedIndexBlockState}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
+import swaydb.core.segment.data.{Persistent, PersistentOption}
 import swaydb.core.util.{Bytes, MinMax}
-import swaydb.config.UncompressedBlockInfo
-import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.utils.ByteSizeOf
 import swaydb.utils.Maybe.{Maybe, _}
 

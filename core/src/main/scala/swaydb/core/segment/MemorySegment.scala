@@ -17,21 +17,19 @@
 package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.segment.data._
-import swaydb.core.segment.FunctionStore
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.level.PathsDistributor
-import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlockConfig
+import swaydb.core.segment.data._
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.defrag.DefragMemorySegment
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.file.sweeper.FileSweeper
-import swaydb.core.util._
 import swaydb.core.skiplist.SkipListTreeMap
-import swaydb.slice.MaxKey
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.core.util._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.{Slice, SliceOption}
+import swaydb.slice.{MaxKey, Slice, SliceOption}
 
 import java.nio.file.Path
 import scala.collection.mutable.ListBuffer

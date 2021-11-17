@@ -18,18 +18,17 @@ package swaydb.eventually.persistent
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.CommonConfigs
-import swaydb.configs.level.DefaultExecutionContext
-import swaydb.core.build.BuildValidator
-import swaydb.utils.Eithers
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.CompactionConfig
-import swaydb.config._
-import swaydb.slice.order.KeyOrder
 import swaydb.config.sequencer.Sequencer
-import swaydb.slice.Slice
-import swaydb.config.{Atomic, DataType, Functions, OptimiseWrites}
+import swaydb.config._
+import swaydb.configs.level.DefaultExecutionContext
+import swaydb.core.build.BuildValidator
 import swaydb.effect.Dir
 import swaydb.serializers.Serializer
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
+import swaydb.utils.Eithers
 import swaydb.utils.StorageUnits._
 
 import java.nio.file.Path

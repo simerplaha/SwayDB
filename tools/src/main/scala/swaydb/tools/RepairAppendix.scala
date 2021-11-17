@@ -6,8 +6,8 @@ import swaydb.config.repairAppendix.{AppendixRepairStrategy, OverlappingSegments
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.tool.AppendixRepairer
 import swaydb.serializers.Serializer
-import swaydb.slice.{MaxKey, Slice}
 import swaydb.slice.order.KeyOrder
+import swaydb.slice.{MaxKey, Slice}
 
 import java.nio.file.Path
 

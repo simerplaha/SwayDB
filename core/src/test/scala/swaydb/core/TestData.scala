@@ -23,17 +23,16 @@ import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IOValues._
 import swaydb.compression.CompressionInternal
 import swaydb.compression.CompressionTestGen._
+import swaydb.config._
 import swaydb.config.accelerate.Accelerator
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.config.storage.{Level0Storage, LevelStorage}
-import swaydb.config._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.cache.Cache
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.file.DBFile
-import swaydb.core.segment.FunctionStore
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog

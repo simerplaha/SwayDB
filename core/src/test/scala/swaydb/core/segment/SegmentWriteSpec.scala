@@ -19,37 +19,36 @@ package swaydb.core.segment
 import org.scalatest.OptionValues.convertOptionToValuable
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
+import swaydb.config.MMAP
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.segment.data.Value.FromValue
-import swaydb.core.segment.data._
+import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.level.PathsDistributor
-import swaydb.core.segment.data.merge.KeyValueMerger
-import swaydb.core.segment.data.merge.stats.MergeStats
-import swaydb.core.segment.block.{BlockCache, BlockCacheState}
+import swaydb.core.segment.block.BlockCacheState
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
+import swaydb.core.segment.data.Value.FromValue
+import swaydb.core.segment.data._
+import swaydb.core.segment.data.merge.KeyValueMerger
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.util.IDGenerator
-import swaydb.slice.MaxKey
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.MMAP
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.Slice
 import swaydb.effect.Effect._
 import swaydb.effect.{Dir, Effect, Extension}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.{MaxKey, Slice}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 import swaydb.utils.{ByteSizeOf, OperatingSystem}

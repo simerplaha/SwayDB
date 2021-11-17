@@ -18,6 +18,8 @@ package swaydb.core.segment.defrag
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.EitherValues
+import swaydb.config.MMAP
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.level.PathsDistributor
@@ -31,10 +33,8 @@ import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.MMAP
-import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 import scala.collection.mutable.ListBuffer

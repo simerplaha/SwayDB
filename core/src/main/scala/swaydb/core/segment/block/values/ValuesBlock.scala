@@ -17,12 +17,12 @@
 package swaydb.core.segment.block.values
 
 import swaydb.IO
-import swaydb.core.segment.data.Memory
-import swaydb.core.segment.data.merge.stats.MergeStats
+import swaydb.config.UncompressedBlockInfo
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
+import swaydb.core.segment.data.Memory
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.entry.writer.EntryWriter
-import swaydb.config.UncompressedBlockInfo
 import swaydb.slice.{Slice, SliceMut}
 
 private[core] case object ValuesBlock {

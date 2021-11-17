@@ -18,8 +18,7 @@ package swaydb.config.builder
 
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.LevelZeroThrottle
-import swaydb.config.{ConfigWizard, MMAP, RecoveryMode}
-import swaydb.config.{Atomic, OptimiseWrites}
+import swaydb.config._
 import swaydb.utils.Java.JavaFunction
 
 import java.nio.file.Path

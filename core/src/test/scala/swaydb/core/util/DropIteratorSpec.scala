@@ -23,9 +23,9 @@ import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.segment.data.Value.FromValue
 import swaydb.core.segment.data.{KeyValue, Memory, Value}
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
 import swaydb.utils.DropIterator
 
 class DropIteratorSpec extends AnyWordSpec with Matchers {

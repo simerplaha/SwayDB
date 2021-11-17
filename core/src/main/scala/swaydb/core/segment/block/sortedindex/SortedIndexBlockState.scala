@@ -1,12 +1,11 @@
 package swaydb.core.segment.block.sortedindex
 
 import swaydb.compression.CompressionInternal
+import swaydb.config.UncompressedBlockInfo
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.core.util.MinMax
-import swaydb.slice.MaxKey
-import swaydb.config.UncompressedBlockInfo
-import swaydb.slice.{Slice, SliceMut}
+import swaydb.slice.{MaxKey, Slice, SliceMut}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline

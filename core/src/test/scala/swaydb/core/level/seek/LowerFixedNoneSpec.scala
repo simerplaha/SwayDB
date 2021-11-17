@@ -22,13 +22,13 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.core.TestData._
-import swaydb.core.segment.data.KeyValue
 import swaydb.core.level.LevelSeek
+import swaydb.core.segment.data.KeyValue
 import swaydb.core.{TestData, TestTimer}
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 class LowerFixedNoneSpec extends AnyWordSpec with Matchers with MockFactory with OptionValues {

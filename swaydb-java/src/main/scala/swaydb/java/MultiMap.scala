@@ -18,17 +18,16 @@ package swaydb.java
 
 import swaydb.config.accelerate.LevelZeroMeter
 import swaydb.config.compaction.LevelMeter
+import swaydb.java.KeyVal._
 import swaydb.java.util.Java._
 import swaydb.multimap.MultiPrepare
 import swaydb.utils.Java._
-import swaydb.java.{KeyVal, Pair}
-import swaydb.java.KeyVal._
 import swaydb.{Expiration, Glass, Prepare, PureFunction}
 
+import java.lang
 import java.nio.file.Path
 import java.time.Duration
 import java.util.Optional
-import java.{lang, util}
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration
 import scala.jdk.CollectionConverters._

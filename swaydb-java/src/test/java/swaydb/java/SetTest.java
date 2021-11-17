@@ -18,11 +18,12 @@ package swaydb.java;
 
 
 import org.junit.jupiter.api.Test;
-import swaydb.*;
-import swaydb.java.TestBase;
+import swaydb.Apply;
+import swaydb.Prepare;
+import swaydb.PureFunction;
+import swaydb.PureFunctionJava;
 import swaydb.java.memory.MemorySet;
 import swaydb.java.serializers.Serializer;
-import swaydb.java.Pair;
 
 import java.io.IOException;
 import java.io.Serializable;

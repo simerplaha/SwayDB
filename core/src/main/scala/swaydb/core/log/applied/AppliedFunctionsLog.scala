@@ -17,17 +17,17 @@
 package swaydb.core.log.applied
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.segment.FunctionStore
+import swaydb.config.MMAP
 import swaydb.core.file.ForceSaveApplier
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.log
 import swaydb.core.log.serialiser.{AppliedFunctionsLogEntryReader, AppliedFunctionsLogEntryWriter}
 import swaydb.core.log.{Log, RecoveryResult}
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.FileSweeper
-import swaydb.config.MMAP
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
+import swaydb.core.segment.FunctionStore
 import swaydb.effect.Effect
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.{Error, IO}
 
 import java.nio.file.Path

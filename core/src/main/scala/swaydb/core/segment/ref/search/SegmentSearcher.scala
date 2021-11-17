@@ -16,14 +16,14 @@
 package swaydb.core.segment.ref.search
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.segment.data.{Persistent, PersistentOption}
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
-import swaydb.slice.order.KeyOrder
+import swaydb.core.segment.data.{Persistent, PersistentOption}
 import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 
 private[core] trait SegmentSearcher {
 

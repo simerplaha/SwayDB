@@ -23,10 +23,10 @@ import swaydb.java.util.Java._
 import swaydb.utils.Java._
 import swaydb.{Expiration, Glass, Prepare, PureFunction}
 
+import java.lang
 import java.nio.file.Path
 import java.time.Duration
 import java.util.Optional
-import java.{lang, util}
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration
 import scala.jdk.CollectionConverters._

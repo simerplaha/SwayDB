@@ -23,10 +23,10 @@ import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.segment.data.Value.FromValueOption
 import swaydb.core.segment.data.{Memory, Value}
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 class KeyValueMerger_Range_Into_Range extends AnyWordSpec {

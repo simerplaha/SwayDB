@@ -19,9 +19,8 @@ package swaydb.core.segment.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.cache.Cache
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.utils.HashedMap
 import swaydb.slice.{Slice, SliceOption, SliceRO, Slices}
-import swaydb.utils.Options
+import swaydb.utils.{HashedMap, Options}
 
 import java.util.concurrent.ConcurrentHashMap
 import scala.annotation.tailrec

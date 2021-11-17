@@ -18,24 +18,24 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
+import swaydb.config.MMAP
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.storage.LevelStorage
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.segment.data._
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.segment.block.segment.SegmentBlockConfig
+import swaydb.core.segment.data._
 import swaydb.core.util.IDGenerator
-import swaydb.utils.PipeOps._
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.MMAP
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.Slice
-import swaydb.config.storage.LevelStorage
 import swaydb.effect.Effect._
 import swaydb.effect.{Dir, Effect, Extension}
+import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
+import swaydb.utils.PipeOps._
 import swaydb.utils.StorageUnits._
 import swaydb.{Glass, IO}
 

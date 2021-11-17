@@ -18,9 +18,9 @@ package swaydb.multimap
 
 import swaydb.core.file.reader.Reader
 import swaydb.core.util.Bytes
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.serializers.Serializer
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 
 private[swaydb] sealed trait MultiKey[+C, +K] {
   def childId: Long

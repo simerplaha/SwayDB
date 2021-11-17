@@ -16,11 +16,10 @@
 
 package swaydb.java.memory
 
-import swaydb.configs.level.DefaultExecutionContext
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
-import swaydb.config.{FileCache, ThreadStateCache}
-import swaydb.config.{Atomic, OptimiseWrites}
+import swaydb.config.{Atomic, FileCache, OptimiseWrites, ThreadStateCache}
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer

@@ -17,8 +17,8 @@
 package swaydb.core.segment.block.segment
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.segment.data.Memory
-import swaydb.core.segment.data.merge.stats.MergeStats
+import swaydb.config._
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockConfig, BinarySearchIndexBlockState}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig}
@@ -27,10 +27,10 @@ import swaydb.core.segment.block.segment.footer.{SegmentFooterBlock, SegmentFoot
 import swaydb.core.segment.block.segment.transient.{ClosedBlocks, TransientSegment, TransientSegmentRef}
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig, SortedIndexBlockState}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockState}
+import swaydb.core.segment.data.Memory
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.{Bytes, MinMax}
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.utils.Futures._

@@ -16,9 +16,9 @@
 
 package swaydb
 
-import swaydb.configs.level.DefaultExecutionContext
 import swaydb.config.compaction.{CompactionConfig, PushStrategy}
 import swaydb.config.{Atomic, OptimiseWrites}
+import swaydb.configs.level.DefaultExecutionContext
 
 import scala.concurrent.duration._
 

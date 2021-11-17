@@ -18,13 +18,11 @@ package swaydb.api.queue
 
 import org.scalatest.OptionValues._
 import swaydb.core.TestCaseSweeper._
-import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.serializers.Default._
-import swaydb.{Glass, Queue}
+import swaydb.{Benchmark, Glass, Queue}
 
 import java.util.concurrent.ConcurrentLinkedQueue
-import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.Random

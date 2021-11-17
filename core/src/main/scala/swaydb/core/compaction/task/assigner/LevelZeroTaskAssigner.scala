@@ -16,20 +16,19 @@
 
 package swaydb.core.compaction.task.assigner
 
-import swaydb.core.segment.data.{KeyValue, Memory}
-import swaydb.core.segment.FunctionStore
-import swaydb.core.level.Level
-import swaydb.core.compaction.task.CompactionTask
-import swaydb.core.compaction.task.CompactionTask.CompactLogs
-import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.zero.LevelZero.LevelZeroLog
-import swaydb.core.segment.data.merge.KeyValueMerger
-import swaydb.core.segment.data.merge.stats.MergeStats
-import swaydb.core.segment.assigner.Assignable
-import swaydb.slice.MaxKey
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.compaction.PushStrategy
-import swaydb.slice.Slice
+import swaydb.core.compaction.task.CompactionTask
+import swaydb.core.compaction.task.CompactionTask.CompactLogs
+import swaydb.core.level.Level
+import swaydb.core.level.zero.LevelZero
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
+import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.assigner.Assignable
+import swaydb.core.segment.data.merge.KeyValueMerger
+import swaydb.core.segment.data.merge.stats.MergeStats
+import swaydb.core.segment.data.{KeyValue, Memory}
+import swaydb.slice.{MaxKey, Slice}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.{Aggregator, Futures, NonEmptyList}
 

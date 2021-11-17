@@ -16,11 +16,10 @@
 
 package swaydb.java.persistent
 
-import swaydb.configs.level.DefaultExecutionContext
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.config._
-import swaydb.config.{Atomic, OptimiseWrites}
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.effect.Dir
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.persistent.DefaultConfigs

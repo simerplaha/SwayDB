@@ -16,7 +16,6 @@
 
 package swaydb.core.segment.block.segment.transient
 
-import swaydb.core.segment.data.{Memory, Persistent, Time, Value}
 import swaydb.core.file.DBFile
 import swaydb.core.file.reader.Reader
 import swaydb.core.log.serialiser.ValueSerialiser.MinMaxSerialiser
@@ -28,13 +27,13 @@ import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
+import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.segment.data.{Memory, Persistent, Time, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentRef
-import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.util.Bytes
-import swaydb.slice.MaxKey
+import swaydb.slice.{MaxKey, Slice}
 import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.utils.ByteSizeOf
 
 object TransientSegmentSerialiser {

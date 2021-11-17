@@ -17,7 +17,6 @@
 package swaydb.java;
 
 import org.junit.jupiter.api.Test;
-import swaydb.java.IO;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;

@@ -21,10 +21,10 @@ import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Default._
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 import swaydb.{Bag, Glass, MultiMap, Prepare}

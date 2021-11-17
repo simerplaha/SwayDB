@@ -16,17 +16,16 @@
 
 package swaydb.java.eventually.persistent
 
-import swaydb.configs.level.DefaultExecutionContext
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.CompactionConfig
 import swaydb.config._
-import swaydb.slice.Slice
-import swaydb.config.{Atomic, OptimiseWrites}
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.effect.Dir
 import swaydb.eventually.persistent.DefaultConfigs
 import swaydb.java._
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.serializers.Serializer
+import swaydb.slice.Slice
 import swaydb.utils.Java.JavaFunction
 import swaydb.utils.StorageUnits._
 import swaydb.{Bag, CommonConfigs, Glass}

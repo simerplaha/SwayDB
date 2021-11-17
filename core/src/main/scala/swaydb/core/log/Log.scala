@@ -18,12 +18,12 @@ package swaydb.core.log
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
+import swaydb.config.MMAP
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
 import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
 import swaydb.core.util.IDGenerator
-import swaydb.config.MMAP
 import swaydb.slice.order.KeyOrder
 import swaydb.utils.StorageUnits._
 
@@ -59,11 +59,11 @@ private[core] object Log extends LazyLogging {
                                             mmap: MMAP.Log,
                                             flushOnOverflow: Boolean,
                                             fileSize: Int)(implicit keyOrder: KeyOrder[K],
-                                                            fileSweeper: FileSweeper,
-                                                            bufferCleaner: ByteBufferSweeperActor,
-                                                            writer: LogEntryWriter[LogEntry.Put[K, V]],
-                                                            cacheBuilder: LogCacheBuilder[C],
-                                                            forceSaveApplier: ForceSaveApplier): PersistentLog[K, V, C] =
+                                                           fileSweeper: FileSweeper,
+                                                           bufferCleaner: ByteBufferSweeperActor,
+                                                           writer: LogEntryWriter[LogEntry.Put[K, V]],
+                                                           cacheBuilder: LogCacheBuilder[C],
+                                                           forceSaveApplier: ForceSaveApplier): PersistentLog[K, V, C] =
     PersistentLog(
       folder = folder,
       mmap = mmap,

@@ -19,10 +19,9 @@ package swaydb.core.skiplist
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
 import swaydb.Bag.Implicits._
-import swaydb.slice.MaxKey
-import swaydb.effect.Reserve
 import swaydb.core.skiplist.AtomicRanges.{Action, Value}
-import swaydb.slice.Slice
+import swaydb.effect.Reserve
+import swaydb.slice.{MaxKey, Slice}
 
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicLong
@@ -275,7 +274,7 @@ private[swaydb] case object AtomicRanges extends LazyLogging {
 }
 
 private[swaydb] class AtomicRanges[K](private val transactions: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]])(implicit val keyRangeOrdering: Ordering[AtomicRanges.Key[K]],
-                                                                                                                                keyOrder: Ordering[K]) {
+                                                                                                                                  keyOrder: Ordering[K]) {
 
   private implicit val self: AtomicRanges[K] =
     this

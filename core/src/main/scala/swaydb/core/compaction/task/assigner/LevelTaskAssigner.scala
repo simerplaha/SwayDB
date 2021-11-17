@@ -16,14 +16,14 @@
 
 package swaydb.core.compaction.task.assigner
 
-import swaydb.core.level.Level
+import swaydb.config.compaction.PushStrategy
 import swaydb.core.compaction.task.CompactionDataType._
 import swaydb.core.compaction.task.CompactionTask
+import swaydb.core.level.Level
 import swaydb.core.segment.Segment
-import swaydb.utils.NonEmptyList
-import swaydb.config.compaction.PushStrategy
-import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
+import swaydb.utils.NonEmptyList
 
 case object LevelTaskAssigner {
 

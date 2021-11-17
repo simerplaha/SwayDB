@@ -16,10 +16,10 @@
 
 package swaydb.persistent
 
-import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.config.compaction.{LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.config.MemoryCache.ByteCacheOnly
 import swaydb.config._
+import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.config.compaction.{LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._

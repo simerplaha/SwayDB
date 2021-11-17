@@ -16,13 +16,11 @@
 
 package swaydb.core.segment.assigner
 
-import swaydb.utils.Aggregator
-import swaydb.core.segment.data.{KeyValue, Memory}
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
-import swaydb.core.log.Log
 import swaydb.core.segment.data.merge.stats.MergeStats
-import swaydb.slice.MaxKey
-import swaydb.slice.Slice
+import swaydb.core.segment.data.{KeyValue, Memory}
+import swaydb.slice.{MaxKey, Slice}
+import swaydb.utils.Aggregator
 
 import scala.collection.mutable.ListBuffer
 
@@ -31,7 +29,7 @@ import scala.collection.mutable.ListBuffer
  *
  * Current types
  * - [[swaydb.core.segment.Segment]]
- * - [[Log[Slice[Byte], Memory, LevelZeroMapCache]]
+ * - [[swaydb.core.log.Log[Slice[Byte], Memory, LevelZeroMapCache]]
  * - [[swaydb.core.segment.data.KeyValue]]
  */
 sealed trait Assignable {
@@ -60,9 +58,9 @@ object Assignable {
 
   /**
    * A [[Collection]] is a collection of key-values like [[swaydb.core.segment.Segment]]
-   * and [[Log[Slice[Byte], Memory, LevelZeroMapCache]].
+   * and [[swaydb.core.log.Log[Slice[Byte], Memory, LevelZeroMapCache]].
    *
-   * [[Log]] can be created using [[Collection.fromMap]].
+   * [[swaydb.core.log.Log]] can be created using [[Collection.fromMap]].
    *
    * This type is needed for cases where we can assign a group of key-values to a
    * [[swaydb.core.segment.Segment]] without need to assign each key-value saving

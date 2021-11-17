@@ -25,7 +25,6 @@ import swaydb.core.TestData._
 import swaydb.core.file.sweeper.ByteBufferSweeper.{ByteBufferSweeperActor, Command}
 import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
-import swaydb.slice.Slice
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem

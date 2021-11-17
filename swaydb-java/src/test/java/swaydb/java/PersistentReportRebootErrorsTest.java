@@ -19,7 +19,6 @@ package swaydb.java;
 import org.junit.jupiter.api.Test;
 import swaydb.Exception;
 import swaydb.config.DataType;
-import swaydb.java.TestBase;
 import swaydb.java.persistent.PersistentMap;
 import swaydb.java.persistent.PersistentSet;
 

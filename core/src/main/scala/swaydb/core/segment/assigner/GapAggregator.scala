@@ -16,9 +16,9 @@
 
 package swaydb.core.segment.assigner
 
-import swaydb.utils.Aggregator
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.data.merge.stats.{MergeStats, MergeStatsCreator}
+import swaydb.utils.Aggregator
 
 import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer

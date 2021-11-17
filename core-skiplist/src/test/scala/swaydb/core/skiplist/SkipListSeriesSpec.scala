@@ -18,10 +18,10 @@ package swaydb.core.skiplist
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.{Slice, SliceOption}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.order.KeyOrder
+import swaydb.slice.{Slice, SliceOption}
 
 import scala.util.Random
 

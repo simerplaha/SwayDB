@@ -18,18 +18,17 @@ package swaydb.api
 
 import swaydb.IOValues._
 import swaydb.PureFunctionScala._
+import swaydb.config.Functions
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.config.Functions
 import swaydb.macros.Sealed
 import swaydb.serializers.Default._
 import swaydb.serializers.Serializer
 import swaydb.testkit.RunThis._
 import swaydb.{Apply, IO, Prepare, PureFunction, StorageByteImplicits}
 
-import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.DurationInt
 
 sealed trait Key

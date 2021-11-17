@@ -19,7 +19,6 @@ package swaydb
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb.utils.Maths
-import swaydb.{Bag, Glass}
 
 import java.lang.management.ManagementFactory
 import java.util.function.Supplier

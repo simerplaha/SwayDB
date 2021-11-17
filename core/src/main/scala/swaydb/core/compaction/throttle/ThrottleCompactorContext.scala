@@ -17,8 +17,8 @@
 package swaydb.core.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.level.LevelRef
 import swaydb.config.compaction.CompactionConfig
+import swaydb.core.level.LevelRef
 import swaydb.slice.Slice
 
 import java.util.TimerTask

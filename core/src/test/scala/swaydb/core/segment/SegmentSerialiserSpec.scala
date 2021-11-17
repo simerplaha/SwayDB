@@ -16,15 +16,15 @@
 
 package swaydb.core.segment
 
+import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.config.MMAP
-import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 class SegmentSerialiserSpec extends TestBase {

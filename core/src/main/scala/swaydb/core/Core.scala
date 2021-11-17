@@ -19,21 +19,21 @@ package swaydb.core
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb._
+import swaydb.config._
+import swaydb.config.accelerate.LevelZeroMeter
+import swaydb.config.compaction.{CompactionConfig, LevelMeter}
+import swaydb.config.sequencer.Sequencer
 import swaydb.core.build.BuildValidator
-import swaydb.core.segment.data.{Memory, SwayFunction, Value}
-import swaydb.core.segment.FunctionStore
 import swaydb.core.compaction.Compactor
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.log.LogEntry
 import swaydb.core.log.serialiser.LevelZeroLogEntryWriter
 import swaydb.core.log.timer.Timer
+import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.data.{Memory, SwayFunction, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.config.accelerate.LevelZeroMeter
-import swaydb.config.compaction.{CompactionConfig, LevelMeter}
-import swaydb.config._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.config.sequencer.Sequencer
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.TupleOrNone
 

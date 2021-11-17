@@ -18,12 +18,12 @@ package swaydb.core.file
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
+import swaydb.config.ForceSave
 import swaydb.core.cache.Cache
 import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.config.ForceSave
 import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper, FileSweeperItem}
-import swaydb.slice.{Slice, SliceRO}
 import swaydb.effect.{Effect, IOStrategy, Reserve}
+import swaydb.slice.{Slice, SliceRO}
 import swaydb.{Error, IO}
 
 import java.nio.file.Path
@@ -163,8 +163,8 @@ object DBFile extends LazyLogging {
                        deleteAfterClean: Boolean,
                        forceSave: ForceSave.MMAPFiles,
                        bytes: Array[Slice[Byte]])(implicit fileSweeper: FileSweeper,
-                                                     bufferCleaner: ByteBufferSweeperActor,
-                                                     forceSaveApplier: ForceSaveApplier): DBFile = {
+                                                  bufferCleaner: ByteBufferSweeperActor,
+                                                  forceSaveApplier: ForceSaveApplier): DBFile = {
     val totalWritten =
       bytes.foldLeft(0) { //do not write bytes if the Slice has empty bytes.
         case (written, bytes) =>

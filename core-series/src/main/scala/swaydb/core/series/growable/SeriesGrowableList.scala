@@ -55,7 +55,7 @@ private[swaydb] object SeriesGrowableList {
 }
 
 private[swaydb] class SeriesGrowableList[T >: Null : ClassTag] private(@volatile private var series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
-                                                                     lengthPerSeries: Int) { self =>
+                                                                       lengthPerSeries: Int) { self =>
 
   @volatile private var _written = 0
 

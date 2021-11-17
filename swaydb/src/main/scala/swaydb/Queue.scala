@@ -17,13 +17,12 @@
 package swaydb
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.util.Bytes
 import swaydb.config.accelerate.LevelZeroMeter
 import swaydb.config.compaction.LevelMeter
-import swaydb.OK
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
+import swaydb.core.util.Bytes
 import swaydb.serializers.Serializer
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.stream.StreamFree
 
 import java.nio.file.Path

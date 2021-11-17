@@ -25,7 +25,6 @@ import swaydb.{Expiration, Glass}
 
 import java.nio.file.Path
 import java.time.Duration
-import java.util
 import java.util.Optional
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._

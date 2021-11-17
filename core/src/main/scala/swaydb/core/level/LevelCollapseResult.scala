@@ -16,8 +16,8 @@
 
 package swaydb.core.level
 
-import swaydb.core.util.DefIO
 import swaydb.core.segment.{Segment, SegmentOption}
+import swaydb.core.util.DefIO
 
 sealed trait LevelCollapseResult
 

@@ -16,18 +16,18 @@
 
 package swaydb.core.segment.assigner
 
+import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne, Segment}
-import swaydb.utils.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.config.MMAP
-import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
+import swaydb.utils.PipeOps._
 
 import scala.collection.mutable.ListBuffer
 

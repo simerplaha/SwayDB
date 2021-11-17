@@ -16,9 +16,9 @@
 
 package swaydb.java
 
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.serializers.Serializer
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 
 protected object KeyOrderConverter {
 

@@ -16,10 +16,10 @@
 
 package swaydb.core.log
 
-import swaydb.core.segment.data.Memory
 import swaydb.core.log.LogEntry.{Put, Remove}
 import swaydb.core.log.serialiser.{LogEntrySerialiser, LogEntryWriter}
 import swaydb.core.segment.Segment
+import swaydb.core.segment.data.Memory
 import swaydb.core.skiplist.{SkipList, SkipListBatchable, SkipListConcurrent}
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.{Slice, SliceMut}

@@ -16,29 +16,29 @@
 
 package swaydb.core.segment
 
+import swaydb.Benchmark
+import swaydb.config.SegmentRefCacheLife
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.segment.data.Memory
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.level.PathsDistributor
-import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlockConfig}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
+import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.segment.data.Memory
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.entry.reader.PersistentReader
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestSweeper}
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.SegmentRefCacheLife
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.Slice
 import swaydb.effect.{Dir, IOAction, IOStrategy}
+import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis.FutureImplicits
 import swaydb.utils.StorageUnits._
 

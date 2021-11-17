@@ -16,8 +16,8 @@
 
 package swaydb.config.builder
 
-import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.config._
+import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.effect.Dir
 import swaydb.utils.Java.JavaFunction
 

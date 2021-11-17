@@ -19,9 +19,9 @@ package swaydb.core.build
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.config.DataType
-import swaydb.slice.Slice
 import swaydb.effect.Effect
 import swaydb.macros.VersionReader
+import swaydb.slice.Slice
 
 import java.nio.file.Path
 

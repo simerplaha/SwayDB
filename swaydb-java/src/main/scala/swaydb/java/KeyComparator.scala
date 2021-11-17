@@ -16,8 +16,8 @@
 
 package swaydb.java
 
-import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.utils.Java.JavaFunction
 
 import java.util.Comparator

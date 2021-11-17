@@ -17,7 +17,6 @@
 package swaydb.slice
 
 import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.utils.SomeOrNoneCovariant
 
 sealed trait MaxKeyOption[+T] extends SomeOrNoneCovariant[MaxKeyOption[T], MaxKey[T]] {

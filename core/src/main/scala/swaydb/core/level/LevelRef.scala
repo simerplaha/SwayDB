@@ -16,12 +16,12 @@
 
 package swaydb.core.level
 
-import swaydb.core.segment.data.KeyValue
-import swaydb.core.level.zero.LevelZero
-import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.config.compaction.LevelMeter
 import swaydb.config.{ForceSave, MMAP}
+import swaydb.core.level.zero.LevelZero
+import swaydb.core.segment.data.KeyValue
+import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.{Bag, IO}
 

@@ -18,8 +18,7 @@ package swaydb.core.segment.assigner
 
 import swaydb.core.segment.Segment
 import swaydb.core.segment.ref.SegmentRef
-import swaydb.slice.MaxKey
-import swaydb.slice.Slice
+import swaydb.slice.{MaxKey, Slice}
 
 import scala.annotation.implicitNotFound
 

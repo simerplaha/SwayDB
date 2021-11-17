@@ -21,9 +21,9 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.data.{Persistent, Time}
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 import swaydb.utils.TupleOrNone
 

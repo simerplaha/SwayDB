@@ -18,12 +18,12 @@ package swaydb.core.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.core.level.LevelRef
+import swaydb.config.compaction.CompactionConfig
 import swaydb.core.compaction.throttle.behaviour.BehaviorWakeUp
 import swaydb.core.compaction.{Compactor, CompactorCreator}
-import swaydb.core.level.zero.LevelZero
 import swaydb.core.file.sweeper.FileSweeper
-import swaydb.config.compaction.CompactionConfig
+import swaydb.core.level.LevelRef
+import swaydb.core.level.zero.LevelZero
 import swaydb.slice.Slice
 import swaydb.{Actor, DefActor, Error, IO}
 

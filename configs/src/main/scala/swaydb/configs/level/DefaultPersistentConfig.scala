@@ -20,7 +20,6 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.{LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.config._
-import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.effect.Dir
 
 import java.nio.file.Path

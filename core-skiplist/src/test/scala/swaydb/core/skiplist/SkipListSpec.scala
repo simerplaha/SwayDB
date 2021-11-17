@@ -18,20 +18,12 @@ package swaydb.core.skiplist
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.{Slice, SliceOption}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.testkit.RunThis._
-import swaydb.{Bag, Glass}
+import swaydb.slice.order.KeyOrder
+import swaydb.slice.{Slice, SliceOption}
 
-import java.util.concurrent.ConcurrentSkipListMap
-import java.util.concurrent.atomic.AtomicBoolean
-import scala.collection.parallel.CollectionConverters._
-import scala.concurrent.Future
-import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters._
-import scala.util.{Random, Try}
+import scala.util.Random
 
 class Concurrent_SkipListSpec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
@@ -237,78 +229,78 @@ sealed trait SkipListSpec extends AnyWordSpec with Matchers {
       assertThrows[IllegalArgumentException](skipList.subMap(from = 1, fromInclusive = false, to = 0, toInclusive = false))
     }
 
-//    "result same as ConcurrentSkipListMap" in {
-//      runThis(100.times, log = true) {
-//        val scalaSkipList = create()
-//        val javaSkipList = new ConcurrentSkipListMap[Slice[Byte], Value.Some](ordering)
-//
-//        val max = randomIntMax(100)
-//
-//        (1 to max) foreach {
-//          i =>
-//            scalaSkipList.put(i, Value.Some(i))
-//            javaSkipList.put(i, Value.Some(i))
-//        }
-//
-//        runThis(10.times) {
-//          val from = eitherOne(0, randomIntMax(max max 1))
-//          val to = eitherOne(from, from + 1, randomIntMax(max max 1) max from, from + randomIntMax(max max 1))
-//
-//          runThis(20.times) {
-//            val fromInclusive = randomBoolean()
-//            val toInclusive = randomBoolean()
-//
-//            val scalaResult: List[(Slice[Byte], Value.Some)] = scalaSkipList.subMap(from, fromInclusive, to, toInclusive).toList
-//            val javaResult: List[(Slice[Byte], Value.Some)] = javaSkipList.subMap(from, fromInclusive, to, toInclusive).asScala.toList
-//
-//            scalaResult shouldBe javaResult
-//          }
-//        }
-//      }
-//    }
+    //    "result same as ConcurrentSkipListMap" in {
+    //      runThis(100.times, log = true) {
+    //        val scalaSkipList = create()
+    //        val javaSkipList = new ConcurrentSkipListMap[Slice[Byte], Value.Some](ordering)
+    //
+    //        val max = randomIntMax(100)
+    //
+    //        (1 to max) foreach {
+    //          i =>
+    //            scalaSkipList.put(i, Value.Some(i))
+    //            javaSkipList.put(i, Value.Some(i))
+    //        }
+    //
+    //        runThis(10.times) {
+    //          val from = eitherOne(0, randomIntMax(max max 1))
+    //          val to = eitherOne(from, from + 1, randomIntMax(max max 1) max from, from + randomIntMax(max max 1))
+    //
+    //          runThis(20.times) {
+    //            val fromInclusive = randomBoolean()
+    //            val toInclusive = randomBoolean()
+    //
+    //            val scalaResult: List[(Slice[Byte], Value.Some)] = scalaSkipList.subMap(from, fromInclusive, to, toInclusive).toList
+    //            val javaResult: List[(Slice[Byte], Value.Some)] = javaSkipList.subMap(from, fromInclusive, to, toInclusive).asScala.toList
+    //
+    //            scalaResult shouldBe javaResult
+    //          }
+    //        }
+    //      }
+    //    }
   }
 
-//  "transaction" should {
-//
-//    def runTest[BAG[_]](await: BAG[Unit] => Unit)(implicit bag: Bag[BAG]) = {
-//      val skipList = create[Int, AtomicBoolean, Int, AtomicBoolean](Int.MinValue, null)(KeyOrder(Ordering.Int))
-//
-//      skipList.put(1, new AtomicBoolean(false))
-//
-//      (1 to 1000).par foreach {
-//        _ =>
-//          val result =
-//            skipList.atomicWrite(from = 1, to = 1, toInclusive = true) {
-//              val boolean = skipList.get(1)
-//
-//              //when this code block is executed boolean is always false!
-//              boolean.get() shouldBe false
-//              boolean.set(true)
-//
-//              //allow some time for threads to concurrently access this value
-//              eitherOne(sleep(randomIntMax(10).milliseconds), ())
-//
-//              boolean.set(false)
-//            }
-//
-//          await(result)
-//      }
-//    }
-//
-//    "not allow concurrent updated" when {
-//      //run for each bag
-//
-//      "glass" in {
-//        runTest[Glass](result => result)
-//      }
-//
-//      "try" in {
-//        runTest[Try](_.get)
-//      }
-//
-//      "future" in {
-//        runTest[Future](_.await(10.seconds))(Bag.future(TestExecutionContext.executionContext))
-//      }
-//    }
-//  }
+  //  "transaction" should {
+  //
+  //    def runTest[BAG[_]](await: BAG[Unit] => Unit)(implicit bag: Bag[BAG]) = {
+  //      val skipList = create[Int, AtomicBoolean, Int, AtomicBoolean](Int.MinValue, null)(KeyOrder(Ordering.Int))
+  //
+  //      skipList.put(1, new AtomicBoolean(false))
+  //
+  //      (1 to 1000).par foreach {
+  //        _ =>
+  //          val result =
+  //            skipList.atomicWrite(from = 1, to = 1, toInclusive = true) {
+  //              val boolean = skipList.get(1)
+  //
+  //              //when this code block is executed boolean is always false!
+  //              boolean.get() shouldBe false
+  //              boolean.set(true)
+  //
+  //              //allow some time for threads to concurrently access this value
+  //              eitherOne(sleep(randomIntMax(10).milliseconds), ())
+  //
+  //              boolean.set(false)
+  //            }
+  //
+  //          await(result)
+  //      }
+  //    }
+  //
+  //    "not allow concurrent updated" when {
+  //      //run for each bag
+  //
+  //      "glass" in {
+  //        runTest[Glass](result => result)
+  //      }
+  //
+  //      "try" in {
+  //        runTest[Try](_.get)
+  //      }
+  //
+  //      "future" in {
+  //        runTest[Future](_.await(10.seconds))(Bag.future(TestExecutionContext.executionContext))
+  //      }
+  //    }
+  //  }
 }

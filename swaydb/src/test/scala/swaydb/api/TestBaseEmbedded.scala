@@ -21,11 +21,11 @@ import org.scalatest.exceptions.TestFailedException
 import swaydb.IO.ApiIO
 import swaydb.IOValues._
 import swaydb._
+import swaydb.config.sequencer.Sequencer
 import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.{Core, TestBase, TestExecutionContext}
-import swaydb.config.sequencer.Sequencer
-import swaydb.slice.Slice
 import swaydb.multimap.{MultiKey, MultiValue}
+import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 
 import scala.annotation.tailrec

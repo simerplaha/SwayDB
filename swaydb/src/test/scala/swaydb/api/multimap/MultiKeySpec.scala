@@ -19,11 +19,11 @@ package swaydb.api.multimap
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestData._
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.multimap.MultiKey
 import swaydb.serializers.Default._
 import swaydb.serializers.Serializer
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 
 import scala.collection.SortedSet
 import scala.util.{Random, Try}

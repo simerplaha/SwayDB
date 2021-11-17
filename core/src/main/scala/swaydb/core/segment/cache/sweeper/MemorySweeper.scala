@@ -18,13 +18,12 @@ package swaydb.core.segment.cache.sweeper
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorConfig.QueueOrder
+import swaydb.config.MemoryCache
 import swaydb.core.cache.CacheNoIO
 import swaydb.core.segment.data.Persistent
-import swaydb.utils.HashedMap
 import swaydb.core.skiplist.SkipList
-import swaydb.config.MemoryCache
 import swaydb.slice.{Slice, SliceOption}
-import swaydb.utils.ByteSizeOf
+import swaydb.utils.{ByteSizeOf, HashedMap}
 import swaydb.{Actor, ActorConfig, ActorRef, Glass}
 
 import java.util.concurrent.ConcurrentSkipListMap

@@ -17,8 +17,7 @@
 package swaydb.core.util
 
 import swaydb.core.segment.data.{Memory, MemoryOption}
-import swaydb.slice.MaxKey
-import swaydb.slice.Slice
+import swaydb.slice.{MaxKey, Slice}
 
 
 private[core] object KeyCompressor {

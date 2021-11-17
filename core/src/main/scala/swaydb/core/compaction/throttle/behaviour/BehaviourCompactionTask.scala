@@ -17,14 +17,14 @@
 package swaydb.core.compaction.throttle.behaviour
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.util.DefIO
-import swaydb.core.level._
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.compaction.task.CompactionTask
+import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.level._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.core.file.sweeper.FileSweeper
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.core.util.DefIO
 import swaydb.slice.Slice
 import swaydb.utils.Futures
 import swaydb.utils.Futures.FutureImplicits

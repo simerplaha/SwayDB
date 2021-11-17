@@ -18,7 +18,7 @@ package swaydb.core.segment.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.segment.block.{BlockCache, BlockCacheSource, BlockCacheState, BlockOffset}
-import swaydb.slice.{Reader, ReaderBase, Slice, SliceOption, SliceRO}
+import swaydb.slice._
 
 /**
  * Defers [[ReaderBase]] related operations to [[BlockReader]].

@@ -17,18 +17,18 @@
 package swaydb.core.compaction.throttle.behaviour
 
 import swaydb.IO
+import swaydb.config.MMAP
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.util.DefIO
 import swaydb.core.compaction.throttle.LevelState
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig
+import swaydb.core.util.DefIO
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.MMAP
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._

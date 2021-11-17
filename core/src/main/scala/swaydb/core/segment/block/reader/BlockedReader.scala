@@ -18,9 +18,9 @@ package swaydb.core.segment.block.reader
 
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
-import swaydb.core.segment.block.{Block, BlockCache, BlockCacheState, BlockOffset, BlockOps}
-import swaydb.slice.{Reader, Slice}
+import swaydb.core.segment.block.{Block, BlockCacheState, BlockOffset, BlockOps}
 import swaydb.slice.utils.ByteOps
+import swaydb.slice.{Reader, Slice}
 
 private[core] object BlockedReader {
 

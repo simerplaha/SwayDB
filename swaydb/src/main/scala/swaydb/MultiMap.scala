@@ -16,16 +16,15 @@
 
 package swaydb
 
-import swaydb.core.file.ForceSaveApplier
-import swaydb.core.log.counter.CounterLog
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.util.Times._
 import swaydb.config.accelerate.LevelZeroMeter
 import swaydb.config.compaction.LevelMeter
-import swaydb.OK
-import swaydb.slice.Slice
+import swaydb.core.file.ForceSaveApplier
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.log.counter.CounterLog
+import swaydb.core.util.Times._
 import swaydb.multimap.{MultiKey, MultiPrepare, MultiValue, Schema}
 import swaydb.serializers.{Serializer, _}
+import swaydb.slice.Slice
 import swaydb.stream.{From, SourceFree, StreamFree}
 
 import java.nio.file.Path

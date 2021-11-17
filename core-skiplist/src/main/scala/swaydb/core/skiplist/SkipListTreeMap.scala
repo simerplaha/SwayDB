@@ -33,8 +33,8 @@ object SkipListTreeMap {
 }
 
 private[swaydb] class SkipListTreeMap[OK, OV, K <: OK, V <: OV] private(protected val skipList: util.TreeMap[K, V],
-                                                                      val nullKey: OK,
-                                                                      val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipListNavigable[OK, OV, K, V](skipList.size()) {
+                                                                        val nullKey: OK,
+                                                                        val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipListNavigable[OK, OV, K, V](skipList.size()) {
 
   override def remove(key: K): Unit =
     throw new IllegalAccessException("Operation not allowed - TreeMap SkipList")

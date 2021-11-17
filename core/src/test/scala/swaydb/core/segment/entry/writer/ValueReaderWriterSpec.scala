@@ -22,9 +22,9 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.data.{Memory, Time}
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 
 class ValueReaderWriterSpec extends AnyWordSpec with Matchers {

@@ -16,19 +16,17 @@
 
 package swaydb.core.segment
 
-import swaydb.core.segment.FunctionStore
+import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.log.serialiser.ValueSerialiser.MinMaxSerialiser
-import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.log.serialiser.ValueSerialiser.MinMaxSerialiser
 import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.util.Bytes
-import swaydb.slice.MaxKey
-import swaydb.config.{MMAP, SegmentRefCacheLife}
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.{ReaderBase, Slice, SliceMut}
 import swaydb.effect.{Effect, Extension}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.{MaxKey, ReaderBase, Slice, SliceMut}
 import swaydb.utils.ByteSizeOf
 import swaydb.utils.Options.OptionsImplicits
 

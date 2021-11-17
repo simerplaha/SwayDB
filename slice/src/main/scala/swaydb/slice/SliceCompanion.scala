@@ -16,9 +16,8 @@
 
 package swaydb.slice
 
-import swaydb.utils.Aggregator
 import swaydb.slice.utils.ByteOps
-import swaydb.utils.ByteSizeOf
+import swaydb.utils.{Aggregator, ByteSizeOf}
 
 import java.lang
 import java.nio.ByteBuffer

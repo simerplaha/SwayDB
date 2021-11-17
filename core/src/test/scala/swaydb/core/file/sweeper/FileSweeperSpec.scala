@@ -17,16 +17,15 @@
 package swaydb.core.file.sweeper
 
 import org.scalamock.scalatest.MockFactory
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.segment.data.Memory
-import swaydb.core.segment.block.segment.SegmentBlockConfig
-import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.file.sweeper.FileSweeper._
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.core.file.sweeper.{FileSweeper, FileSweeperItem}
+import swaydb.core.segment.block.segment.SegmentBlockConfig
+import swaydb.core.segment.data.Memory
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.testkit.RunThis._
@@ -35,7 +34,6 @@ import swaydb.{ActorConfig, _}
 import java.nio.file.{Path, Paths}
 import java.util.concurrent.ConcurrentSkipListSet
 import scala.collection.mutable.ListBuffer
-import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 
 class FileSweeperSpec extends TestBase with MockFactory {

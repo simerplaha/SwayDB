@@ -16,10 +16,10 @@
 
 package swaydb.core.segment.data.merge
 
-import swaydb.core.segment.data.{KeyValue, Memory, Value}
 import swaydb.core.segment.FunctionStore
-import swaydb.slice.order.TimeOrder
+import swaydb.core.segment.data.{KeyValue, Memory, Value}
 import swaydb.slice.Slice
+import swaydb.slice.order.TimeOrder
 
 private[core] object RemoveMerger {
 

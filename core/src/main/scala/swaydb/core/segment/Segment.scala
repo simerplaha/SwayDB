@@ -17,14 +17,13 @@
 package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.utils.Aggregator
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.core.segment.data._
-import swaydb.core.segment.FunctionStore
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
+import swaydb.config.{MMAP, SegmentRefCacheLife}
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.{FileSweeper, FileSweeperItem}
 import swaydb.core.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
-import swaydb.core.segment.data.merge.KeyValueGrouper
-import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.assigner.{Assignable, Assigner}
 import swaydb.core.segment.block.BlockCompressionInfo
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -34,24 +33,22 @@ import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
+import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.segment.data._
+import swaydb.core.segment.data.merge.KeyValueGrouper
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.{FileSweeper, FileSweeperItem}
-import swaydb.utils.Collections._
-import swaydb.core.util._
 import swaydb.core.skiplist.{SkipList, SkipListTreeMap}
-import swaydb.slice.MaxKey
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.config.{MMAP, SegmentRefCacheLife}
-import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.SliceIOImplicits._
-import swaydb.slice.{Slice, SliceOption}
+import swaydb.core.util._
 import swaydb.effect.Effect
+import swaydb.slice.SliceIOImplicits._
+import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.{MaxKey, Slice, SliceOption}
+import swaydb.utils.Collections._
 import swaydb.utils.Futures.FutureUnitImplicits
-import swaydb.utils.{FiniteDurations, SomeOrNone}
+import swaydb.utils.{Aggregator, FiniteDurations, SomeOrNone}
 
 import java.nio.file.Path
 import scala.annotation.tailrec

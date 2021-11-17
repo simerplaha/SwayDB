@@ -16,8 +16,8 @@
 
 package swaydb.java.table.domain.table.mapKey;
 
-import swaydb.slice.Slice;
 import swaydb.java.serializers.Serializer;
+import swaydb.slice.Slice;
 
 /**
  * Serializes MapKey.

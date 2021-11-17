@@ -16,9 +16,9 @@
 
 package swaydb.core.segment.data.merge.stats
 
-import swaydb.utils.Aggregator
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.data.merge.KeyValueGrouper
+import swaydb.utils.Aggregator
 
 import scala.collection.mutable.ListBuffer
 

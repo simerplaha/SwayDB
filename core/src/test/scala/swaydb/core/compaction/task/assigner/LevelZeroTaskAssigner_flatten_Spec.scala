@@ -20,12 +20,12 @@ import org.scalamock.scalatest.MockFactory
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
+import swaydb.core._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.data.{merge => _}
-import swaydb.core._
 import swaydb.serializers.Default._
-import swaydb.slice.{MaxKey, Slice}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.{MaxKey, Slice}
 import swaydb.testkit.RunThis._
 
 import scala.concurrent.duration.DurationInt

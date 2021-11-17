@@ -16,8 +16,6 @@
 
 package swaydb
 
-import swaydb.OK
-
 import scala.collection.compat.IterableOnce
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 

@@ -19,9 +19,9 @@ package swaydb.compression
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.compression.CompressionTestGen._
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
 import swaydb.utils.ByteSizeOf
 
 import scala.util.Random

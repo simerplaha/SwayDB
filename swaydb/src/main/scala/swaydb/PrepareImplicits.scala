@@ -16,8 +16,8 @@
 
 package swaydb
 
-import swaydb.slice.{Slice, SliceOption}
 import swaydb.serializers._
+import swaydb.slice.{Slice, SliceOption}
 
 import scala.collection.compat.IterableOnce
 

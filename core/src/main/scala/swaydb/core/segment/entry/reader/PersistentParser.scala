@@ -16,12 +16,12 @@
 
 package swaydb.core.segment.entry.reader
 
-import swaydb.core.segment.data.Persistent.Partial
-import swaydb.core.segment.data.{Persistent, PersistentOption}
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
+import swaydb.core.segment.data.Persistent.Partial
+import swaydb.core.segment.data.{Persistent, PersistentOption}
 import swaydb.core.segment.entry.id.{KeyValueId, PersistentToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.slice.Slice

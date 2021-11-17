@@ -16,11 +16,11 @@
 
 package swaydb.core.file
 
+import swaydb.Benchmark
+import swaydb.config.ForceSave
 import swaydb.core.TestData.randomBytesSlice
 import swaydb.core.file.sweeper.ByteBufferCleaner
-import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.config.ForceSave
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem

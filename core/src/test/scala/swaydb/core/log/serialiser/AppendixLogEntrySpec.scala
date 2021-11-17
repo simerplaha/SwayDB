@@ -18,6 +18,7 @@ package swaydb.core.log.serialiser
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
+import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.file.reader.Reader
@@ -26,11 +27,10 @@ import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
-import swaydb.config.MMAP
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.{Slice, SliceOption}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.OperatingSystem
 
 class AppendixLogEntrySpec extends TestBase {
@@ -170,6 +170,7 @@ class AppendixLogEntrySpec extends TestBase {
             scalaSkipList.get(segment4.minKey).value shouldBe segment4
             scalaSkipList.get(segment5.minKey).value shouldBe segment5
           }
+
           //write skip list to bytes should result in the same skip list as before
           val bytes = LogEntrySerialiser.write[Slice[Byte], Segment](skipList.iterator)
           val crcEntries = LogEntrySerialiser.read[Slice[Byte], Segment](bytes, false).value.item.value

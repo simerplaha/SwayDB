@@ -17,17 +17,16 @@
 package swaydb.core.segment
 
 import org.scalatest.OptionValues._
-import swaydb.ActorConfig
+import swaydb.{ActorConfig, Benchmark}
+import swaydb.config.MemoryCache
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
-import swaydb.config.MemoryCache
-import swaydb.slice.order.TimeOrder
 import swaydb.slice.Slice
+import swaydb.slice.order.TimeOrder
 import swaydb.testkit.RunThis._
 
 import scala.concurrent.duration._

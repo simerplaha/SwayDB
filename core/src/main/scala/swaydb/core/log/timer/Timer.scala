@@ -17,15 +17,15 @@
 package swaydb.core.log.timer
 
 import swaydb.IO
-import swaydb.core.segment.data.Time
+import swaydb.config.MMAP
 import swaydb.core.file.ForceSaveApplier
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.log.LogEntry
 import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}
 import swaydb.core.log.serialiser.{CounterLogEntryReader, CounterLogEntryWriter, LogEntryReader, LogEntryWriter}
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.config.MMAP
-import swaydb.slice.Slice
+import swaydb.core.segment.data.Time
 import swaydb.effect.Effect
+import swaydb.slice.Slice
 import swaydb.utils.StorageUnits._
 
 import java.nio.file.Path
@@ -77,7 +77,7 @@ private[core] object Timer {
                  mmap: MMAP.Log,
                  mod: Long = 100000,
                  fileSize: Int = 1.mb)(implicit bufferCleaner: ByteBufferSweeperActor,
-                                        forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Log, PersistentTimer] = {
+                                       forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Log, PersistentTimer] = {
     implicit val writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]] = CounterLogEntryWriter.CounterPutLogEntryWriter
     implicit val reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]] = CounterLogEntryReader.CounterPutLogEntryReader
 

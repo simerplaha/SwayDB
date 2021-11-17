@@ -21,15 +21,15 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
-import swaydb.core.segment.data.{Memory, Persistent}
 import swaydb.core.file.reader.Reader
+import swaydb.core.segment.data.{Memory, Persistent}
 import swaydb.core.segment.entry.id.MemoryToKeyValueIdBinder
 import swaydb.core.segment.entry.reader.PersistentParser
 import swaydb.core.segment.entry.writer._
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 
 import scala.util.Random

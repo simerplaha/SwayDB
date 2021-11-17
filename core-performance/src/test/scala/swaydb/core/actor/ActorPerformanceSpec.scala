@@ -20,11 +20,9 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.ActorConfig.QueueOrder
 import swaydb.core.TestExecutionContext
-import swaydb.Benchmark
-import swaydb.{Actor, ActorRef}
+import swaydb.{Actor, ActorRef, Benchmark}
 
 import java.util.concurrent.ConcurrentLinkedQueue
-import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 
 class ActorPerformanceSpec extends AnyWordSpec with Matchers {

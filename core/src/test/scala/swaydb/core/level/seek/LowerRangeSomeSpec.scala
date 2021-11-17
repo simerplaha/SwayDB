@@ -25,14 +25,14 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.segment.data.{Time, Value}
 import swaydb.core.level.LevelSeek
 import swaydb.core.segment.data.merge.FixedMerger
+import swaydb.core.segment.data.{Time, Value}
 import swaydb.core.{TestData, TestTimer}
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 class LowerRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {

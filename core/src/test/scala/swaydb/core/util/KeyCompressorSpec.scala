@@ -21,10 +21,10 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.segment.data.Memory
-import swaydb.slice.MaxKey
-import swaydb.slice.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.slice.MaxKey
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 
 class KeyCompressorSpec extends AnyWordSpec with Matchers {

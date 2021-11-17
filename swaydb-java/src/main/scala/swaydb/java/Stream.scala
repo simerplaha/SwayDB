@@ -19,9 +19,9 @@ package swaydb.java
 import swaydb.utils.Java._
 import swaydb.{Bag, Glass}
 
+import java.lang
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
-import java.{lang, util}
 import scala.compat.java8.FunctionConverters._
 import scala.jdk.CollectionConverters._
 

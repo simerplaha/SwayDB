@@ -16,14 +16,14 @@
 
 package swaydb.core.level.seek
 
-import swaydb.core.segment.data.Value.FromValueOption
-import swaydb.core.segment.data.{KeyValue, Memory, Value}
-import swaydb.core.segment.FunctionStore
 import swaydb.core.level.LevelSeek
+import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.data.Value.FromValueOption
 import swaydb.core.segment.data.merge._
+import swaydb.core.segment.data.{KeyValue, Memory, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 
 import scala.annotation.tailrec
 

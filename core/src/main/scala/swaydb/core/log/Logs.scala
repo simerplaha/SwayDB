@@ -18,20 +18,19 @@ package swaydb.core.log
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Log.ExceptionHandler
-import swaydb.core.log.BrakePedal
-import swaydb.core.file.ForceSaveApplier
-import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
-import swaydb.core.log.timer.Timer
-import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.FileSweeper
-import swaydb.utils.DropIterator
-import swaydb.core.queue.VolatileQueue
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.{MMAP, RecoveryMode}
-import swaydb.slice.order.KeyOrder
-import swaydb.slice.SliceIOImplicits._
+import swaydb.core.file.ForceSaveApplier
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
+import swaydb.core.log.timer.Timer
+import swaydb.core.queue.VolatileQueue
 import swaydb.effect.Effect
 import swaydb.effect.Effect._
+import swaydb.slice.SliceIOImplicits._
+import swaydb.slice.order.KeyOrder
+import swaydb.utils.DropIterator
 import swaydb.{Error, IO}
 
 import java.nio.file.Path

@@ -231,10 +231,10 @@ private[swaydb] object SkipListSeries {
  *
  */
 private[swaydb] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile private[skiplist] var series: SeriesGrowableList[KeyValue.Some[K, V]],
-                                                                     //maintain a count of number of removed items i.e. value is null.
-                                                                     @volatile private[skiplist] var _removed: Int,
-                                                                     val nullKey: OK,
-                                                                     val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipList[OK, OV, K, V] with LazyLogging { self =>
+                                                                       //maintain a count of number of removed items i.e. value is null.
+                                                                       @volatile private[skiplist] var _removed: Int,
+                                                                       val nullKey: OK,
+                                                                       val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipList[OK, OV, K, V] with LazyLogging { self =>
 
   private val randomWriteWarning = WhenOccurs(500)(times => logger.warn(SkipListSeries.randomWriteWarning(times)))
 

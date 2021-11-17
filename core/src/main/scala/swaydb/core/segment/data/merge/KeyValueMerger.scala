@@ -17,13 +17,13 @@
 package swaydb.core.segment.data.merge
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.segment.data.{KeyValue, Memory, Value}
 import swaydb.core.segment.FunctionStore
-import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
-import swaydb.utils.DropIterator
-import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.core.segment.data.merge.stats.MergeStats
+import swaydb.core.segment.data.{KeyValue, Memory, Value}
 import swaydb.slice.Slice
+import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.utils.DropIterator
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
