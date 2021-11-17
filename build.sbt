@@ -147,10 +147,10 @@ lazy val SwayDB =
       `core-interop`,
       actor,
       stream,
-      cache,
+      `core-cache`,
       swaydb,
       `swaydb-java`,
-      compression,
+      `core-compression`,
       configs,
       serializers,
       `x-interop-boopickle`,
@@ -196,13 +196,13 @@ lazy val core =
       utils,
       `core-queue`,
       slice,
-      cache,
+      `core-cache`,
       actor,
-      compression,
+      `core-compression`,
       `core-skiplist`,
       testkit % Test,
       macros % "test->test;compile-internal",
-      compression % Test,
+      `core-compression` % Test,
       configs % Test,
       serializers % Test
     )
@@ -266,7 +266,7 @@ lazy val actor =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(effect, cache)
+    .dependsOn(effect, `core-cache`)
 
 lazy val stream =
   project
@@ -275,7 +275,7 @@ lazy val stream =
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(effect, utils, testkit % Test)
 
-lazy val cache =
+lazy val `core-cache` =
   project
     .settings(commonSettings)
     .settings(publishSettings)
@@ -323,7 +323,7 @@ lazy val `core-performance` =
     .settings(libraryDependencies ++= testDependencies(scalaVersion.value))
     .dependsOn(core)
 
-lazy val compression =
+lazy val `core-compression` =
   project
     .settings(commonSettings)
     .settings(publishSettings)

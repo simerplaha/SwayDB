@@ -18,7 +18,7 @@ package swaydb
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO.ExceptionHandler
-import swaydb.cache.CacheNoIO
+import swaydb.core.cache.CacheNoIO
 
 import scala.concurrent.ExecutionContext
 

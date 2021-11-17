@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.cache
+package swaydb.core.cache
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO

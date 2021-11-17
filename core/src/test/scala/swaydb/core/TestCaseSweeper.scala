@@ -17,7 +17,7 @@
 package swaydb.core
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.cache.{Cache, CacheNoIO}
+import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.TestSweeper._
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}

@@ -16,7 +16,7 @@
 
 package swaydb.core.segment
 
-import swaydb.cache.Cache
+import swaydb.core.cache.Cache
 import swaydb.core.TestBase
 import swaydb.core.data.Persistent._
 import swaydb.core.data.Value.FromValueOption

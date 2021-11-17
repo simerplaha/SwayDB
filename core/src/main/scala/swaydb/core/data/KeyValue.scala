@@ -16,7 +16,7 @@
 
 package swaydb.core.data
 
-import swaydb.cache.{Cache, CacheNoIO}
+import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.log.serializer.RangeValueSerializer.OptionRangeValueSerializer
 import swaydb.core.log.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.segment.assigner.Assignable

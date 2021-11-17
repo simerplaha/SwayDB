@@ -21,7 +21,7 @@ import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IOValues._
-import swaydb.cache.Cache
+import swaydb.core.cache.Cache
 import swaydb.compression.CompressionInternal
 import swaydb.compression.CompressionTestGen._
 import swaydb.config.accelerate.Accelerator

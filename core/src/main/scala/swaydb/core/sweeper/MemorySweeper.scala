@@ -18,7 +18,7 @@ package swaydb.core.sweeper
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorConfig.QueueOrder
-import swaydb.cache.CacheNoIO
+import swaydb.core.cache.CacheNoIO
 import swaydb.core.data.Persistent
 import swaydb.utils.HashedMap
 import swaydb.core.skiplist.SkipList
@@ -37,7 +37,7 @@ private[core] object Command {
                                   val skipListRef: WeakReference[SkipList[_, _, Slice[Byte], _]]) extends Command
 
   private[sweeper] class Cache(val weight: Int,
-                               val cache: WeakReference[swaydb.cache.Cache[_, _, _]]) extends Command
+                               val cache: WeakReference[swaydb.core.cache.Cache[_, _, _]]) extends Command
 
   private[sweeper] class SkipListMap(val key: Slice[Byte],
                                      val weight: Int,
@@ -213,11 +213,11 @@ private[core] object MemorySweeper extends LazyLogging {
 
   sealed trait Cache extends On {
 
-    def add(weight: Int, cache: swaydb.cache.Cache[_, _, _]): Unit =
+    def add(weight: Int, cache: swaydb.core.cache.Cache[_, _, _]): Unit =
       if (actor.isDefined) {
         actor.get send new Command.Cache(
           weight = weight,
-          cache = new WeakReference[swaydb.cache.Cache[_, _, _]](cache)
+          cache = new WeakReference[swaydb.core.cache.Cache[_, _, _]](cache)
         )
       } else {
         val exception = new Exception("Cache is not enabled")
