@@ -16,9 +16,8 @@
 
 package swaydb.core.log.serialiser
 
-import swaydb.core.file.reader.Reader
 import swaydb.core.log.LogEntry
-import swaydb.slice.{ReaderBase, Slice}
+import swaydb.slice.{ReaderBase, Slice, SliceReader}
 
 import scala.annotation.implicitNotFound
 
@@ -30,7 +29,7 @@ trait LogEntryReader[T <: LogEntry[_, _]] {
 object LogEntryReader {
 
   def read[T <: LogEntry[_, _]](bytes: Slice[Byte])(implicit serialiser: LogEntryReader[T]): T =
-    serialiser.read(Reader(bytes))
+    serialiser.read(SliceReader(bytes))
 
   def read[T <: LogEntry[_, _]](reader: ReaderBase[Byte])(implicit serialiser: LogEntryReader[T]): T =
     serialiser.read(reader)
