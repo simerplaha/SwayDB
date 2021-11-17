@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package swaydb.core.io.reader
+package swaydb.core.file.reader
 
-import swaydb.core.io.file.DBFile
+import swaydb.core.file.DBFile
 import swaydb.slice.{Slice, SliceReader}
 
 private[swaydb] object Reader {

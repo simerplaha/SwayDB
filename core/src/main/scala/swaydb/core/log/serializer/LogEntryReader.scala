@@ -16,7 +16,7 @@
 
 package swaydb.core.log.serializer
 
-import swaydb.core.io.reader.Reader
+import swaydb.core.file.reader.Reader
 import swaydb.core.log.LogEntry
 import swaydb.slice.{ReaderBase, Slice}
 

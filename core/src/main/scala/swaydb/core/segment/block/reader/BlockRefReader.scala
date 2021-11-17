@@ -16,8 +16,8 @@
 
 package swaydb.core.segment.block.reader
 
-import swaydb.core.io.file.DBFile
-import swaydb.core.io.reader.{FileReader, Reader}
+import swaydb.core.file.DBFile
+import swaydb.core.file.reader.{FileReader, Reader}
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.segment.SegmentBlockOffset
 import swaydb.slice.{Reader, Slice, SliceReader}

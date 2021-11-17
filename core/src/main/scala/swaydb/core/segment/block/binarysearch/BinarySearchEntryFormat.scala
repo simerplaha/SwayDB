@@ -18,7 +18,7 @@ package swaydb.core.segment.block.binarysearch
 
 import swaydb.core.data.Persistent.Partial
 import swaydb.core.data.{Memory, Persistent}
-import swaydb.core.io.reader.Reader
+import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}

@@ -20,7 +20,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, MemoryOption, Value}
-import swaydb.core.io.reader.Reader
+import swaydb.core.file.reader.Reader
 import swaydb.core.log.serializer._
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{Segment, SegmentOption}

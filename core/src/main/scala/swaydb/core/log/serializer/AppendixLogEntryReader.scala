@@ -17,7 +17,7 @@
 package swaydb.core.log.serializer
 
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.ForceSaveApplier
+import swaydb.core.file.ForceSaveApplier
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{Segment, SegmentSerialiser}

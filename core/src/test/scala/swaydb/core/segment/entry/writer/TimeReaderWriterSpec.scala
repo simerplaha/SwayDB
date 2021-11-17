@@ -21,7 +21,7 @@
 //import swaydb.core.TestData._
 //import swaydb.core.TestTimer
 //import swaydb.core.data.{Memory, Persistent, Time}
-//import swaydb.core.io.reader.Reader
+//import swaydb.core.file.reader.Reader
 //import swaydb.core.segment.entry.id.BaseEntryId
 //import swaydb.core.segment.entry.reader.TimeReader
 //import swaydb.slice.Slice

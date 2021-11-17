@@ -17,7 +17,7 @@
 package swaydb.core.segment
 
 import swaydb.core.data.{DefIO, Memory}
-import swaydb.core.io.file.DBFile
+import swaydb.core.file.DBFile
 import swaydb.core.level.PathsDistributor
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats

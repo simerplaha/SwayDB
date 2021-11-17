@@ -21,7 +21,7 @@ import swaydb.utils.Aggregator
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{DBFile, ForceSaveApplier}
+import swaydb.core.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.KeyValueGrouper
 import swaydb.core.merge.stats.MergeStats

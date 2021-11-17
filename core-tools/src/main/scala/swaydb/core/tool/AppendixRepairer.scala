@@ -19,7 +19,7 @@ package swaydb.core.tool
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
-import swaydb.core.io.file.ForceSaveApplier
+import swaydb.core.file.ForceSaveApplier
 import swaydb.core.level.AppendixLogCache
 import swaydb.core.log.serializer.LogEntryWriter
 import swaydb.core.log.{Log, LogEntry}

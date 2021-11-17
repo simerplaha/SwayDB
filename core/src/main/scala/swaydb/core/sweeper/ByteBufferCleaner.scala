@@ -19,7 +19,7 @@ package swaydb.core.sweeper
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.IO.ExceptionHandler
-import swaydb.core.io.file.ForceSaveApplier
+import swaydb.core.file.ForceSaveApplier
 import swaydb.config.ForceSave
 
 import java.lang.invoke.{MethodHandle, MethodHandles, MethodType}

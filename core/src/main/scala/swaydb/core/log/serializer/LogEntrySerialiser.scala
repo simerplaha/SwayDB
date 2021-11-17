@@ -19,7 +19,7 @@ package swaydb.core.log.serializer
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Log.ExceptionHandler
 import swaydb.IO
-import swaydb.core.io.reader.Reader
+import swaydb.core.file.reader.Reader
 import swaydb.core.log.{LogEntry, RecoveryResult}
 import swaydb.core.util.CRC32
 import swaydb.slice.Slice

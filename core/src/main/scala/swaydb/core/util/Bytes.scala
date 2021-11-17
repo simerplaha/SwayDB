@@ -18,7 +18,7 @@ package swaydb.core.util
 
 import swaydb.OK
 import swaydb.core.data.KeyValue
-import swaydb.core.io.reader.Reader
+import swaydb.core.file.reader.Reader
 import swaydb.slice.Slice
 import swaydb.slice.utils.ScalaByteOps
 

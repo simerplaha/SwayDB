@@ -19,7 +19,7 @@
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.{TestBase, TestSweeper}
 //import swaydb.core.TestData._
-//import swaydb.core.io.file.BlockCache
+//import swaydb.core.file.BlockCache
 //import swaydb.Benchmark
 //import swaydb.config.IOStrategy
 //import swaydb.slice.order.KeyOrder

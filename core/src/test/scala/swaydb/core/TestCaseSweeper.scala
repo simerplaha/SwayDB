@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.TestSweeper._
-import swaydb.core.io.file.{DBFile, ForceSaveApplier}
+import swaydb.core.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.LevelRef
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.log.counter.CounterLog

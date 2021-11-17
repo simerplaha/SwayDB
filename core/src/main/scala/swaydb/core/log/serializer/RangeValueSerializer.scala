@@ -18,7 +18,7 @@ package swaydb.core.log.serializer
 
 import swaydb.core.data.Value
 import swaydb.core.data.Value.{Put, Remove, Update}
-import swaydb.core.io.reader.Reader
+import swaydb.core.file.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.slice.{ReaderBase, Slice, SliceMut}
 

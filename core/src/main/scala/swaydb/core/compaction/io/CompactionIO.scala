@@ -18,7 +18,7 @@ package swaydb.core.compaction.io
 
 import swaydb.core.data.KeyValue
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.ForceSaveApplier
+import swaydb.core.file.ForceSaveApplier
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.transient.TransientSegment

@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.entry.reader
 
-import swaydb.core.io.reader.Reader
+import swaydb.core.file.reader.Reader
 import swaydb.core.segment.entry.id.KeyValueId
 import swaydb.core.util.Bytes
 import swaydb.slice.{Slice, SliceOption}

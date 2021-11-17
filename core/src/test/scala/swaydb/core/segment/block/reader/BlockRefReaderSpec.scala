@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions.orNone
 import swaydb.core.TestData._
-import swaydb.core.io.reader.Reader
+import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.segment.SegmentBlockOffset
 import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.segment.block.values.ValuesBlockOffset.ValuesBlockOps

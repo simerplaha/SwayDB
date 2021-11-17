@@ -17,7 +17,7 @@
 package swaydb.core.log.serializer
 
 import swaydb.core.data.{Time, Value}
-import swaydb.core.io.reader.Reader
+import swaydb.core.file.reader.Reader
 import swaydb.core.util.Times._
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.slice.{ReaderBase, Slice, SliceMut, SliceOption}

@@ -22,8 +22,8 @@
 //import swaydb.core.TestData._
 //import swaydb.core.sweeper.FileSweeper
 //import swaydb.core.data.Memory
-//import swaydb.core.io.file.Effect
-//import swaydb.core.io.file.Effect._
+//import swaydb.core.file.Effect
+//import swaydb.core.file.Effect._
 //import swaydb.core.level.zero.LevelZeroSkipListMerger
 //import swaydb.core.{TestBase, TestSweeper, TestTimer}
 //import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}

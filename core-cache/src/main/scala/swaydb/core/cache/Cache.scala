@@ -171,7 +171,7 @@ private[swaydb] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] ext
    * before clearing.
    *
    * This currently is only implemented for [[IOStrategy.ThreadSafe]] io strategies
-   * and is being used when closing [[swaydb.core.io.file.DBFile]]s.
+   * and is being used when closing [[swaydb.core.file.DBFile]]s.
    */
   def clearApply[F >: E : IO.ExceptionHandler, T](f: Option[O] => IO[F, T]): IO[F, T]
 

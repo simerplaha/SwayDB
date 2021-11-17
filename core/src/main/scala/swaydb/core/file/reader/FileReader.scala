@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package swaydb.core.io.reader
+package swaydb.core.file.reader
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.io.file.DBFile
+import swaydb.core.file.DBFile
 import swaydb.slice.{Reader, Slice, SliceRO}
 import swaydb.slice.utils.ByteOps
 

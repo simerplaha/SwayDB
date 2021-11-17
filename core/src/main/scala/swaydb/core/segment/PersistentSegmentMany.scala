@@ -22,8 +22,8 @@ import swaydb.IO
 import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{DBFile, ForceSaveApplier}
-import swaydb.core.io.reader.Reader
+import swaydb.core.file.{DBFile, ForceSaveApplier}
+import swaydb.core.file.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats

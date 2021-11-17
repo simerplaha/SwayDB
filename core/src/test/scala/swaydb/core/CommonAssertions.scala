@@ -26,7 +26,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
-import swaydb.core.io.reader.{FileReader, Reader}
+import swaydb.core.file.reader.{FileReader, Reader}
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.log.serializer.{LogEntryWriter, RangeValueSerializer, ValueSerializer}

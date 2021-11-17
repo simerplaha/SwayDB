@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.io.file
+package swaydb.core.file
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.sweeper.ByteBufferSweeper

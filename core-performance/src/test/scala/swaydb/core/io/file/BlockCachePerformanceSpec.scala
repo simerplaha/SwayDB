@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.io.file
+package swaydb.core.file
 
 import swaydb.core.TestData._
 import swaydb.core.segment.block.BlockCache

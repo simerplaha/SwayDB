@@ -25,8 +25,8 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Time}
-import swaydb.core.io.file.DBFile
-import swaydb.core.io.reader.FileReader
+import swaydb.core.file.DBFile
+import swaydb.core.file.reader.FileReader
 import swaydb.core.compaction._
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.compaction.throttle.ThrottleCompactorCreator

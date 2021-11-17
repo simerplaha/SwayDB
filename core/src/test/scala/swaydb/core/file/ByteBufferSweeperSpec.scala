@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.io.file
+package swaydb.core.file
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._

@@ -20,7 +20,7 @@ import org.scalatest.matchers.should.Matchers._
 import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.io.file.ForceSaveApplier
+import swaydb.core.file.ForceSaveApplier
 import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}
 import swaydb.core.log.serializer.{LogEntryReader, LogEntryWriter}
 import swaydb.core.log.timer.Timer

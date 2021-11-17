@@ -17,7 +17,7 @@
 package swaydb.core.log.counter
 
 import swaydb.IO
-import swaydb.core.io.file.ForceSaveApplier
+import swaydb.core.file.ForceSaveApplier
 import swaydb.core.log.LogEntry
 import swaydb.core.log.serializer.{LogEntryReader, LogEntryWriter}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor

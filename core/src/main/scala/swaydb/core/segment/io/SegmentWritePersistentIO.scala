@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data.DefIO
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{DBFile, ForceSaveApplier}
+import swaydb.core.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment._
 import swaydb.core.segment.block.segment.transient.TransientSegment

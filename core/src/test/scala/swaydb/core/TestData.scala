@@ -35,7 +35,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.DBFile
+import swaydb.core.file.DBFile
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero

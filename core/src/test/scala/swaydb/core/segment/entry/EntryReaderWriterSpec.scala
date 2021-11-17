@@ -22,7 +22,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.{Memory, Persistent}
-import swaydb.core.io.reader.Reader
+import swaydb.core.file.reader.Reader
 import swaydb.core.segment.entry.id.MemoryToKeyValueIdBinder
 import swaydb.core.segment.entry.reader.PersistentParser
 import swaydb.core.segment.entry.writer._

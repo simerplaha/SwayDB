@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.io.file
+package swaydb.core.file
 
 import swaydb.core.sweeper.FileSweeperItem
 import swaydb.slice.{Slice, SliceRO}

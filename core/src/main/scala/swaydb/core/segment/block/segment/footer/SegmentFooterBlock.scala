@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.block.segment.footer
 
-import swaydb.core.io.reader.Reader
+import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockOffset
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockOffset
