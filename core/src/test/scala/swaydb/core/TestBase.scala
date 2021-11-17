@@ -34,7 +34,7 @@ import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
 import swaydb.core.log.{Log, LogEntry}
-import swaydb.core.merge.stats.MergeStats
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig

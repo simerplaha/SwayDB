@@ -21,7 +21,7 @@ import swaydb.core.TestData._
 import swaydb.core.segment.data.Memory
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.level.PathsDistributor
-import swaydb.core.merge.stats.MergeStats
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlockConfig}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig

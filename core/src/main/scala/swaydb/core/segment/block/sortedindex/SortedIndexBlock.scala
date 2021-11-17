@@ -18,7 +18,7 @@ package swaydb.core.segment.block.sortedindex
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.segment.data._
-import swaydb.core.merge.stats.MergeStats
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockOffset}

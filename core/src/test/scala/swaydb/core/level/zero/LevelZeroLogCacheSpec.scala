@@ -23,8 +23,8 @@ import swaydb.core.TestTimer
 import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.log.LogEntry
 import swaydb.core.log.serialiser.LevelZeroLogEntryWriter
-import swaydb.core.merge.KeyValueMerger
-import swaydb.core.merge.stats.MergeStats
+import swaydb.core.segment.data.merge.KeyValueMerger
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.skiplist.{SkipListConcurrent, SkipListSeries}
 import swaydb.slice.order.TimeOrder
 import swaydb.slice.Slice

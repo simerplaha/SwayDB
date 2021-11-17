@@ -23,8 +23,8 @@ import swaydb.core.compaction.task.CompactionTask
 import swaydb.core.compaction.task.CompactionTask.CompactLogs
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
-import swaydb.core.merge.KeyValueMerger
-import swaydb.core.merge.stats.MergeStats
+import swaydb.core.segment.data.merge.KeyValueMerger
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.slice.MaxKey
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism

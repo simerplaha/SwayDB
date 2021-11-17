@@ -17,15 +17,15 @@
 package swaydb.core.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
+import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.Segment
-import swaydb.core.{merge => _, _}
-import swaydb.slice.MaxKey
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.Slice
+import swaydb.core.segment.data.{merge => _}
+import swaydb.core._
 import swaydb.serializers.Default._
+import swaydb.slice.{MaxKey, Slice}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 import scala.concurrent.duration.DurationInt

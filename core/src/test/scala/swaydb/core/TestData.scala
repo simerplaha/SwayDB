@@ -21,28 +21,23 @@ import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IOValues._
-import swaydb.core.cache.Cache
 import swaydb.compression.CompressionInternal
 import swaydb.compression.CompressionTestGen._
 import swaydb.config.accelerate.Accelerator
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.compaction.{LevelMeter, LevelThrottle}
-import swaydb.config._
 import swaydb.config.storage.{Level0Storage, LevelStorage}
-import swaydb.config.{Atomic, OptimiseWrites}
+import swaydb.config._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.segment.data.Value.{FromValue, FromValueOption, RangeValue}
-import swaydb.core.segment.data._
-import swaydb.core.function.FunctionStore
-import swaydb.core.file.DBFile
+import swaydb.core.cache.Cache
 import swaydb.core.compaction.io.CompactionIO
+import swaydb.core.file.DBFile
+import swaydb.core.function.FunctionStore
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.level.{Level, NextLevel, PathsDistributor}
-import swaydb.core.merge.stats.MergeStats
-import swaydb.core.merge.{KeyValueGrouper, KeyValueMerger}
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block._
@@ -61,16 +56,20 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockOffset.SortedIndexBlockOps
 import swaydb.core.segment.block.values.ValuesBlockOffset.ValuesBlockOps
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockOffset}
+import swaydb.core.segment.data.Value.{FromValue, FromValueOption, RangeValue}
+import swaydb.core.segment.data._
+import swaydb.core.segment.data.merge.stats.MergeStats
+import swaydb.core.segment.data.merge.{KeyValueGrouper, KeyValueMerger}
 import swaydb.core.segment.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.core.skiplist.AtomicRanges
 import swaydb.core.util.{DefIO, IDGenerator}
 import swaydb.effect.{Dir, IOAction, IOStrategy}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.skiplist.AtomicRanges
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, Slice, SliceOption, SliceRO}
 import swaydb.testkit.RunThis.FutureImplicits

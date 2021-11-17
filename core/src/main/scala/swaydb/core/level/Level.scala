@@ -27,8 +27,8 @@ import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.log.serialiser._
 import swaydb.core.log.{Log, LogEntry}
-import swaydb.core.merge.stats.MergeStats
-import swaydb.core.merge.stats.MergeStats.{Memory, Persistent}
+import swaydb.core.segment.data.merge.stats.MergeStats
+import swaydb.core.segment.data.merge.stats.MergeStats.{Memory, Persistent}
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, GapAggregator}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig

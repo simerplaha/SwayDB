@@ -31,8 +31,8 @@ import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.log.serialiser.{LogEntryWriter, RangeValueSerialiser, ValueSerialiser}
 import swaydb.core.log.{LogEntry, Logs}
-import swaydb.core.merge._
-import swaydb.core.merge.stats.MergeStats
+import swaydb.core.segment.data.merge._
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig

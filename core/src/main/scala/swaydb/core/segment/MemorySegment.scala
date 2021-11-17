@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.segment.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
-import swaydb.core.merge.stats.MergeStats
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.defrag.DefragMemorySegment

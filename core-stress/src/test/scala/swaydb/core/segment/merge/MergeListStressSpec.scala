@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 //
-//package swaydb.core.merge
+//package swaydb.core.segment.data.merge
 //
 //import org.scalatest.matchers.should.Matchers
 //import swaydb.core.CommonAssertions._

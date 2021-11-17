@@ -18,8 +18,8 @@ package swaydb.core.segment.defrag
 
 import swaydb.core.segment.data.Memory
 import swaydb.core.function.FunctionStore
-import swaydb.core.merge.KeyValueMerger
-import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator}
+import swaydb.core.segment.data.merge.KeyValueMerger
+import swaydb.core.segment.data.merge.stats.{MergeStats, MergeStatsCreator}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.defrag.DefragSource._

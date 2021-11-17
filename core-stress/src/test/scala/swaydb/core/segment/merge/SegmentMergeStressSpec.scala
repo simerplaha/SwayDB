@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 //
-//package swaydb.core.merge
+//package swaydb.core.segment.data.merge
 //
 //import swaydb.core.TestBase
 //import swaydb.core.TestData._

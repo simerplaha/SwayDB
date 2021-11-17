@@ -20,7 +20,7 @@ import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.segment.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
-import swaydb.core.merge.stats.MergeStats
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlockConfig

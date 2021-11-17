@@ -24,7 +24,7 @@ import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.segment.data.{KeyValue, Memory}
 import swaydb.core.level.LevelSeek
-import swaydb.core.merge.FixedMerger
+import swaydb.core.segment.data.merge.FixedMerger
 import swaydb.core.{TestData, TestTimer}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice

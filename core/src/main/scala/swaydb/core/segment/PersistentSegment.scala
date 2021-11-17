@@ -22,7 +22,7 @@ import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.segment.data.Memory
 import swaydb.core.file.DBFile
 import swaydb.core.level.PathsDistributor
-import swaydb.core.merge.stats.MergeStats
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig

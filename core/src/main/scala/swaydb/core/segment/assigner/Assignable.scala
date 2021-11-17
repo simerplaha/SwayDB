@@ -20,7 +20,7 @@ import swaydb.utils.Aggregator
 import swaydb.core.segment.data.{KeyValue, Memory}
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.log.Log
-import swaydb.core.merge.stats.MergeStats
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.slice.MaxKey
 import swaydb.slice.Slice
 
