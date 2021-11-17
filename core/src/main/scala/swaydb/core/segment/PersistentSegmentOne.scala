@@ -23,7 +23,7 @@ import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand}
 import swaydb.core.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
@@ -285,7 +285,7 @@ protected case class PersistentSegmentOne(file: DBFile,
     if (deadline.isOverdue())
       this.delete
     else
-      fileSweeper send FileSweeper.Command.Delete(this, deadline)
+      fileSweeper send FileSweeperCommand.Delete(this, deadline)
   }
 
   def delete: Unit = {

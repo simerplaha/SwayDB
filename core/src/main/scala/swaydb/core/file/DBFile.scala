@@ -21,7 +21,7 @@ import swaydb.Error.IO.ExceptionHandler
 import swaydb.config.ForceSave
 import swaydb.core.cache.Cache
 import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper, FileSweeperItem}
+import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper, FileSweeperCommand, FileSweeperItem}
 import swaydb.effect.{Effect, IOStrategy, Reserve}
 import swaydb.slice.{Slice, SliceRO}
 import swaydb.{Error, IO}
@@ -94,7 +94,7 @@ object DBFile extends LazyLogging {
                 StandardFile.read(path = filePath)
 
             if (autoClose)
-              fileSweeper send FileSweeper.Command.CloseFileItem(closer)
+              fileSweeper send FileSweeperCommand.CloseFileItem(closer)
 
             file
           }
@@ -102,7 +102,7 @@ object DBFile extends LazyLogging {
 
     self = cache
 
-    if (autoClose && file.isDefined) fileSweeper send FileSweeper.Command.CloseFileItem(closer)
+    if (autoClose && file.isDefined) fileSweeper send FileSweeperCommand.CloseFileItem(closer)
     cache
   }
 

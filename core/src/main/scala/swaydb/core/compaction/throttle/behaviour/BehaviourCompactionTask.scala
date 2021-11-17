@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.compaction.task.CompactionTask
-import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand}
 import swaydb.core.level._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.{Segment, SegmentOption}
@@ -68,8 +68,8 @@ protected object BehaviourCompactionTask extends LazyLogging {
     //No need to wait for a response because FileSweeper's queue is ordered prioritising PauseResume messages.
     //Who not? Because the Actor is configurable which could be a cached timer with longer time interval
     //which means we might not get a response immediately.
-    fileSweeper.closer.send(FileSweeper.Command.Pause(levels))
-    compact.unitCallback(fileSweeper.send(FileSweeper.Command.Resume(levels)))
+    fileSweeper.closer.send(FileSweeperCommand.Pause(levels))
+    compact.unitCallback(fileSweeper.send(FileSweeperCommand.Resume(levels)))
   }
 
   private def runTasks[A <: Assignable.Collection](tasks: Iterable[CompactionTask.Task[A]],

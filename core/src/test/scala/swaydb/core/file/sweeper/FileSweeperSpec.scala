@@ -54,36 +54,36 @@ class FileSweeperSpec extends TestBase with MockFactory {
     "prioritise PauseResume messages" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val skipList = new ConcurrentSkipListSet[FileSweeper.Command.Close](actorQueueOrder)
+          val skipList = new ConcurrentSkipListSet[FileSweeperCommand.Close](FileCloserActor.actorQueueOrder())
 
           def addCloseFiles(path: String) = {
-            val closeFile1 = FileSweeper.Command.CloseFileItem(file(path))
+            val closeFile1 = FileSweeperCommand.CloseFileItem(file(path))
             skipList add closeFile1
 
-            val closeFiles2 = FileSweeper.Command.CloseFiles.of(Seq(file(path)))
+            val closeFiles2 = FileSweeperCommand.CloseFiles.of(Seq(file(path)))
             skipList add closeFiles2
             List(closeFile1, closeFiles2)
           }
 
-          val closeFileCommands = ListBuffer.empty[FileSweeper.Command.CloseFile]
+          val closeFileCommands = ListBuffer.empty[FileSweeperCommand.CloseFile]
           closeFileCommands ++= addCloseFiles("file1")
 
-          val pause1 = FileSweeper.Command.Pause(Seq(TestLevel()))
+          val pause1 = FileSweeperCommand.Pause(Seq(TestLevel()))
           skipList add pause1
 
           closeFileCommands ++= addCloseFiles("file2")
 
-          val resume1 = FileSweeper.Command.Resume(Seq(TestLevel()))
+          val resume1 = FileSweeperCommand.Resume(Seq(TestLevel()))
           skipList add resume1
 
           closeFileCommands ++= addCloseFiles("file3")
 
-          val pause2 = FileSweeper.Command.Pause(Seq(TestLevel()))
+          val pause2 = FileSweeperCommand.Pause(Seq(TestLevel()))
           skipList add pause2
 
           closeFileCommands ++= addCloseFiles("file4")
 
-          val resume2 = FileSweeper.Command.Resume(Seq(TestLevel()))
+          val resume2 = FileSweeperCommand.Resume(Seq(TestLevel()))
           skipList add resume2
 
           closeFileCommands ++= addCloseFiles("file5")
@@ -113,7 +113,7 @@ class FileSweeperSpec extends TestBase with MockFactory {
           implicit val fileSweeper = FileSweeper(0, ActorConfig.Timer("FileSweeper Test Timer", 0.second, TestExecutionContext.executionContext)).sweep()
 
           val level = TestLevel(segmentConfig = SegmentBlockConfig.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 1.byte, cacheBlocksOnCreate = false))
-          fileSweeper.send(FileSweeper.Command.Pause(Seq(level)))
+          fileSweeper.send(FileSweeperCommand.Pause(Seq(level)))
 
           level.put(Seq(Memory.put(1), Memory.put(2), Memory.put(3), Memory.put(4))) shouldBe IO.unit
 
@@ -125,7 +125,7 @@ class FileSweeperSpec extends TestBase with MockFactory {
           sleep(1.second)
           level.segments().foreach(_.isOpen shouldBe true)
 
-          fileSweeper.send(FileSweeper.Command.Resume(Seq(level)))
+          fileSweeper.send(FileSweeperCommand.Resume(Seq(level)))
 
           //after resume all files are eventually closed
           eventual(10.seconds) {
@@ -157,9 +157,9 @@ class FileSweeperSpec extends TestBase with MockFactory {
           //Level with 1.byte segmentSize so each key-values have it's own Segment
           val level = TestLevel(segmentConfig = SegmentBlockConfig.random2(deleteDelay = Duration.Zero, mmap = mmapSegments, minSegmentSize = 1.byte, cacheBlocksOnCreate = false))
 
-          fileSweeper.send(FileSweeper.Command.Pause(Seq(level))) //pause closing
+          fileSweeper.send(FileSweeperCommand.Pause(Seq(level))) //pause closing
           level.put(keyValues) shouldBe IO.unit //write the Segment
-          fileSweeper.send(FileSweeper.Command.Resume(Seq(level))) //resume closing
+          fileSweeper.send(FileSweeperCommand.Resume(Seq(level))) //resume closing
 
           //1 segment per key-value
           level.segmentsCount() shouldBe keyValues.size
@@ -169,7 +169,7 @@ class FileSweeperSpec extends TestBase with MockFactory {
           //open all files
           runThis(1000.times, log = true) {
             //invoke pause
-            fileSweeper.send(FileSweeper.Command.Pause(Seq(level)))
+            fileSweeper.send(FileSweeperCommand.Pause(Seq(level)))
 
             //concurrently read all Segments and none should fail due to FileClosedException
             //because the Level is paused. No randomIO is used so no retry required.
@@ -179,7 +179,7 @@ class FileSweeperSpec extends TestBase with MockFactory {
                 segment.get(keyValue.key, ThreadReadState.random).getUnsafe shouldBe keyValue
             }
             //resume
-            fileSweeper.send(FileSweeper.Command.Resume(Seq(level)))
+            fileSweeper.send(FileSweeperCommand.Resume(Seq(level)))
           }
 
           //eventually all files are closed

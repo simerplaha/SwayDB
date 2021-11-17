@@ -18,7 +18,7 @@ package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlockConfig
@@ -254,7 +254,7 @@ private[core] final case class MemorySegment(path: Path,
     if (deadline.isOverdue())
       this.delete
     else
-      fileSweeper send FileSweeper.Command.Delete(this, deadline)
+      fileSweeper send FileSweeperCommand.Delete(this, deadline)
   }
 
   override def clearCachedKeyValues(): Unit =
