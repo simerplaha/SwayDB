@@ -27,7 +27,7 @@ import swaydb.core.segment.defrag.DefragMemorySegment
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util._
-import swaydb.skiplist.SkipListTreeMap
+import swaydb.core.skiplist.SkipListTreeMap
 import swaydb.slice.MaxKey
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.slice.order.{KeyOrder, TimeOrder}

@@ -25,7 +25,7 @@ import swaydb.core.log.LogEntry
 import swaydb.core.log.serializer.LevelZeroLogEntryWriter
 import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.MergeStats
-import swaydb.skiplist.{SkipListConcurrent, SkipListSeries}
+import swaydb.core.skiplist.{SkipListConcurrent, SkipListSeries}
 import swaydb.slice.order.TimeOrder
 import swaydb.slice.Slice
 import swaydb.config.{Atomic, OptimiseWrites}

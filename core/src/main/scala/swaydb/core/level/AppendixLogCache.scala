@@ -19,7 +19,7 @@ package swaydb.core.level
 import swaydb.Glass
 import swaydb.core.log.{LogCache, LogCacheBuilder, LogEntry}
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.skiplist.SkipListConcurrent
+import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.{Slice, SliceOption}
 
@@ -41,7 +41,7 @@ object AppendixLogCache {
 
 /**
  * In history of this file's commit at revision "992965da26cba711c7b42a9a555d04de46b9fa37 - backup atomicSkipList for AppendixMapCache"
- * uses [[swaydb.skiplist.SkipList.atomicRead]] and [[swaydb.skiplist.SkipList.atomicRead]] but
+ * uses [[swaydb.core.skiplist.SkipList.atomicRead]] and [[swaydb.core.skiplist.SkipList.atomicRead]] but
  * for Appendix file batch is more efficient because millions of concurrent reads will require concurrent writes to the atomic SkipList
  * whereas batch only requires a single copy of the SkipList which is more efficient.
  */

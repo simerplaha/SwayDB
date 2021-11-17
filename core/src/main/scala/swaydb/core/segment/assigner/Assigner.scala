@@ -22,7 +22,7 @@ import swaydb.core.segment.assigner.AssignmentTarget._
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.{PersistentSegmentMany, Segment}
 import swaydb.utils.DropIterator
-import swaydb.skiplist.SkipList
+import swaydb.core.skiplist.SkipList
 import swaydb.slice.MaxKey
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.{Slice, SliceOption}

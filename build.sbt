@@ -194,12 +194,12 @@ lazy val core =
       `core-interop`,
       effect,
       utils,
-      queue,
+      `core-queue`,
       slice,
       cache,
       actor,
       compression,
-      skiplist,
+      `core-skiplist`,
       testkit % Test,
       macros % "test->test;compile-internal",
       compression % Test,
@@ -221,20 +221,20 @@ lazy val `core-interop` =
       testkit % Test
     )
 
-lazy val skiplist =
+lazy val `core-skiplist` =
   project
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(
-      series,
+      `core-series`,
       effect,
       slice,
       testkit % Test,
       serializers % Test
     )
 
-lazy val series =
+lazy val `core-series` =
   project
     .settings(commonSettings)
     .settings(publishSettings)
@@ -244,7 +244,7 @@ lazy val series =
       serializers % Test
     )
 
-lazy val queue =
+lazy val `core-queue` =
   project
     .settings(commonSettings)
     .settings(publishSettings)

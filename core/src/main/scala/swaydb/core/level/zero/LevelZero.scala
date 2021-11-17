@@ -44,7 +44,7 @@ import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util.MinMax
 import swaydb.core.{CoreState, MemoryPathGenerator}
 import swaydb.effect.{Effect, FileLocker}
-import swaydb.skiplist.SkipList
+import swaydb.core.skiplist.SkipList
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.{DropIterator, Options}

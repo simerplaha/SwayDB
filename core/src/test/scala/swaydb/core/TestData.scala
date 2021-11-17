@@ -70,7 +70,7 @@ import swaydb.core.util.IDGenerator
 import swaydb.effect.{Dir, IOAction, IOStrategy}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.skiplist.AtomicRanges
+import swaydb.core.skiplist.AtomicRanges
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, Slice, SliceOption, SliceRO}
 import swaydb.testkit.RunThis.FutureImplicits

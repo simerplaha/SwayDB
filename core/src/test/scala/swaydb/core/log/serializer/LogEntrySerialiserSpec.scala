@@ -24,7 +24,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.skiplist.SkipListConcurrent
+import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}

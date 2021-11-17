@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.ref.search
 
-import swaydb.series.map.LimitHashMap
+import swaydb.core.series.map.LimitHashMap
 
 import java.nio.file.Path
 import scala.util.Random

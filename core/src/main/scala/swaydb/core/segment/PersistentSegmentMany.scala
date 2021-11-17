@@ -44,7 +44,7 @@ import swaydb.core.segment.ref.{SegmentRef, SegmentRefOption, SegmentRefReader}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util._
-import swaydb.skiplist.SkipListTreeMap
+import swaydb.core.skiplist.SkipListTreeMap
 import swaydb.slice.MaxKey
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.{MMAP, SegmentRefCacheLife}

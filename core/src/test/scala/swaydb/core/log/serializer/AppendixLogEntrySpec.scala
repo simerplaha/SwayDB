@@ -24,7 +24,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.skiplist.SkipListConcurrent
+import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.config.MMAP
 import swaydb.slice.order.{KeyOrder, TimeOrder}

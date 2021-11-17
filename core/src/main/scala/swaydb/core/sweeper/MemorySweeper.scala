@@ -21,7 +21,7 @@ import swaydb.ActorConfig.QueueOrder
 import swaydb.cache.CacheNoIO
 import swaydb.core.data.Persistent
 import swaydb.utils.HashedMap
-import swaydb.skiplist.SkipList
+import swaydb.core.skiplist.SkipList
 import swaydb.config.MemoryCache
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.ByteSizeOf

@@ -30,7 +30,7 @@ import swaydb.core.log.MapTestUtil._
 import swaydb.core.log.serializer._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.skiplist.SkipListConcurrent
+import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.config.MMAP
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}

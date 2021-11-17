@@ -25,7 +25,7 @@ import swaydb.core.log.timer.Timer
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.FileSweeper
 import swaydb.utils.DropIterator
-import swaydb.queue.VolatileQueue
+import swaydb.core.queue.VolatileQueue
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.{MMAP, RecoveryMode}
 import swaydb.slice.order.KeyOrder
