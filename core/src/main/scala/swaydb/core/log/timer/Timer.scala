@@ -21,7 +21,7 @@ import swaydb.core.data.Time
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.log.LogEntry
 import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}
-import swaydb.core.log.serializer.{CounterLogEntryReader, CounterLogEntryWriter, LogEntryReader, LogEntryWriter}
+import swaydb.core.log.serialiser.{CounterLogEntryReader, CounterLogEntryWriter, LogEntryReader, LogEntryWriter}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.config.MMAP
 import swaydb.slice.Slice

@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Log.ExceptionHandler
 import swaydb.core.brake.BrakePedal
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.log.serializer.{LogEntryReader, LogEntryWriter}
+import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
 import swaydb.core.log.timer.Timer
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.FileSweeper

@@ -14,48 +14,47 @@
  * limitations under the License.
  */
 
-package swaydb.core.log.serializer
+package swaydb.core.log.serialiser
 
 import swaydb.core.log.LogEntry
+import swaydb.core.segment.{Segment, SegmentSerialiser}
 import swaydb.core.util.Bytes
 import swaydb.slice.{Slice, SliceMut}
-import swaydb.utils.ByteSizeOf
 
-private[swaydb] object AppliedFunctionsLogEntryWriter {
+private[core] object AppendixLogEntryWriter {
 
-  implicit object FunctionsPutLogEntryWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Slice.Null.type]] {
-    val id: Byte = 0
-
-    override val isRange: Boolean = false
-    override val isUpdate: Boolean = false
-
-    override def write(entry: LogEntry.Put[Slice[Byte], Slice.Null.type], bytes: SliceMut[Byte]): Unit =
-      bytes
-        .add(id)
-        .addUnsignedInt(entry.key.size)
-        .addAll(entry.key)
-
-    override def bytesRequired(entry: LogEntry.Put[Slice[Byte], Slice.Null.type]): Int =
-      ByteSizeOf.byte +
-        Bytes.sizeOfUnsignedInt(entry.key.size) +
-        entry.key.size
-  }
-
-  implicit object FunctionsRemoveLogEntryWriter extends LogEntryWriter[LogEntry.Remove[Slice[Byte]]] {
-    val id: Byte = 1
+  implicit object AppendixRemoveWriter extends LogEntryWriter[LogEntry.Remove[Slice[Byte]]] {
+    val id: Int = 0
 
     override val isRange: Boolean = false
     override val isUpdate: Boolean = false
 
     override def write(entry: LogEntry.Remove[Slice[Byte]], bytes: SliceMut[Byte]): Unit =
       bytes
-        .add(id)
+        .addUnsignedInt(this.id)
         .addUnsignedInt(entry.key.size)
         .addAll(entry.key)
 
     override def bytesRequired(entry: LogEntry.Remove[Slice[Byte]]): Int =
-      ByteSizeOf.byte +
+      Bytes.sizeOfUnsignedInt(this.id) +
         Bytes.sizeOfUnsignedInt(entry.key.size) +
         entry.key.size
+  }
+
+  implicit object AppendixPutWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Segment]] {
+    val id: Int = 1
+
+    override val isRange: Boolean = false
+    override val isUpdate: Boolean = false
+
+    override def write(entry: LogEntry.Put[Slice[Byte], Segment], bytes: SliceMut[Byte]): Unit =
+      SegmentSerialiser.FormatA.write(
+        segment = entry.value,
+        bytes = bytes.addUnsignedInt(this.id)
+      )
+
+    override def bytesRequired(entry: LogEntry.Put[Slice[Byte], Segment]): Int =
+      Bytes.sizeOfUnsignedInt(this.id) +
+        SegmentSerialiser.FormatA.bytesRequired(entry.value)
   }
 }

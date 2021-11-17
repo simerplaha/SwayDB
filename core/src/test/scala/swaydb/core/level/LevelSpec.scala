@@ -242,7 +242,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
   }
 
   "buildNewLogEntry" should {
-    import swaydb.core.log.serializer.AppendixLogEntryWriter._
+    import swaydb.core.log.serialiser.AppendixLogEntryWriter._
 
     "build LogEntry.Put map for the first created Segment" in {
       TestCaseSweeper {

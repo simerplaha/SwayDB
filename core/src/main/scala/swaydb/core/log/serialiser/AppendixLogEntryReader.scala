@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.log.serializer
+package swaydb.core.log.serialiser
 
 import swaydb.core.function.FunctionStore
 import swaydb.core.file.ForceSaveApplier

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.log.serializer
+package swaydb.core.log.serialiser
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -25,28 +25,28 @@ import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 
-class RangeValueSerializerSpec extends AnyWordSpec with Matchers {
+class RangeValueSerialiserSpec extends AnyWordSpec with Matchers {
 
-  def doAssert[R <: RangeValue](rangeValue: R)(implicit serializer: RangeValueSerializer[Unit, R]) = {
-    val bytesRequired = RangeValueSerializer.bytesRequired((), rangeValue)
+  def doAssert[R <: RangeValue](rangeValue: R)(implicit serialiser: RangeValueSerialiser[Unit, R]) = {
+    val bytesRequired = RangeValueSerialiser.bytesRequired((), rangeValue)
     //    rangeId shouldBe expectedId.id
     val bytes = Slice.of[Byte](bytesRequired)
 
-    RangeValueSerializer.write((), rangeValue)(bytes)
+    RangeValueSerialiser.write((), rangeValue)(bytes)
     bytes.isFull shouldBe true
 
-    RangeValueSerializer.read(bytes) shouldBe ((FromValue.Null, rangeValue))
+    RangeValueSerialiser.read(bytes) shouldBe ((FromValue.Null, rangeValue))
 
-    //also assert option Serializer
+    //also assert option Serialiser
     def doAssertOption(rangeValue: RangeValue) = {
-      val bytesRequired = RangeValueSerializer.bytesRequired(Value.FromValue.Null: FromValueOption, rangeValue)(RangeValueSerializer.OptionRangeValueSerializer)
+      val bytesRequired = RangeValueSerialiser.bytesRequired(Value.FromValue.Null: FromValueOption, rangeValue)(RangeValueSerialiser.OptionRangeValueSerialiser)
       //    rangeId shouldBe expectedId.id
       val bytes = Slice.of[Byte](bytesRequired)
 
-      RangeValueSerializer.write(Value.FromValue.Null: FromValueOption, rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
+      RangeValueSerialiser.write(Value.FromValue.Null: FromValueOption, rangeValue)(bytes)(RangeValueSerialiser.OptionRangeValueSerialiser)
       bytes.isFull shouldBe true
 
-      RangeValueSerializer.read(bytes) shouldBe ((FromValue.Null, rangeValue))
+      RangeValueSerialiser.read(bytes) shouldBe ((FromValue.Null, rangeValue))
     }
 
     doAssertOption(rangeValue)
@@ -73,24 +73,24 @@ class RangeValueSerializerSpec extends AnyWordSpec with Matchers {
     }
   }
 
-  def doAssert[F <: FromValue, R <: RangeValue](fromValue: F, rangeValue: R)(implicit serializer: RangeValueSerializer[F, R]) = {
-    val bytesRequired = RangeValueSerializer.bytesRequired(fromValue, rangeValue)
+  def doAssert[F <: FromValue, R <: RangeValue](fromValue: F, rangeValue: R)(implicit serialiser: RangeValueSerialiser[F, R]) = {
+    val bytesRequired = RangeValueSerialiser.bytesRequired(fromValue, rangeValue)
     //    rangeId shouldBe expectedId.id
     val bytes = Slice.of[Byte](bytesRequired)
-    RangeValueSerializer.write(fromValue, rangeValue)(bytes)
+    RangeValueSerialiser.write(fromValue, rangeValue)(bytes)
     bytes.isFull shouldBe true
 
-    RangeValueSerializer.read(bytes) shouldBe ((fromValue, rangeValue))
+    RangeValueSerialiser.read(bytes) shouldBe ((fromValue, rangeValue))
 
-    //also assert option Serializer
+    //also assert option Serialiser
     def doAssertOption(fromValue: FromValue, rangeValue: RangeValue) = {
-      val bytesRequired = RangeValueSerializer.bytesRequired(fromValue: FromValueOption, rangeValue)(RangeValueSerializer.OptionRangeValueSerializer)
+      val bytesRequired = RangeValueSerialiser.bytesRequired(fromValue: FromValueOption, rangeValue)(RangeValueSerialiser.OptionRangeValueSerialiser)
       //    rangeId shouldBe expectedId.id
       val bytes = Slice.of[Byte](bytesRequired)
-      RangeValueSerializer.write(fromValue: FromValueOption, rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
+      RangeValueSerialiser.write(fromValue: FromValueOption, rangeValue)(bytes)(RangeValueSerialiser.OptionRangeValueSerialiser)
       bytes.isFull shouldBe true
 
-      RangeValueSerializer.read(bytes) shouldBe ((fromValue, rangeValue))
+      RangeValueSerialiser.read(bytes) shouldBe ((fromValue, rangeValue))
     }
 
     doAssertOption(fromValue, rangeValue)

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.log.serializer
+package swaydb.core.log.serialiser
 
 import swaydb.core.log.LogEntry
 import swaydb.slice.SliceMut
@@ -34,9 +34,9 @@ trait LogEntryWriter[T <: LogEntry[_, _]] {
 
 object LogEntryWriter {
 
-  def write[T <: LogEntry[_, _]](entry: T, bytes: SliceMut[Byte])(implicit serializer: LogEntryWriter[T]): Unit =
-    serializer.write(entry, bytes)
+  def write[T <: LogEntry[_, _]](entry: T, bytes: SliceMut[Byte])(implicit serialiser: LogEntryWriter[T]): Unit =
+    serialiser.write(entry, bytes)
 
-  def bytesRequired[T <: LogEntry[_, _]](entry: T)(implicit serializer: LogEntryWriter[T]): Int =
-    serializer.bytesRequired(entry)
+  def bytesRequired[T <: LogEntry[_, _]](entry: T)(implicit serialiser: LogEntryWriter[T]): Int =
+    serialiser.bytesRequired(entry)
 }

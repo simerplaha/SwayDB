@@ -22,7 +22,7 @@ import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.log.LogEntry
-import swaydb.core.log.serializer.LevelZeroLogEntryWriter
+import swaydb.core.log.serialiser.LevelZeroLogEntryWriter
 import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.skiplist.{SkipListConcurrent, SkipListSeries}

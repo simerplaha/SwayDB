@@ -340,7 +340,7 @@ object TestData {
 
   implicit class ReopenLevelZero(level: LevelZero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) {
 
-    import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
+    import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
 
     def reopen(implicit sweeper: TestCaseSweeper): LevelZero =
       reopen()

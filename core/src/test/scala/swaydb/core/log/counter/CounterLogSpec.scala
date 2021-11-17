@@ -20,7 +20,7 @@ import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.log.MapTestUtil._
-import swaydb.core.log.serializer._
+import swaydb.core.log.serialiser._
 import swaydb.core._
 import swaydb.config.MMAP
 import swaydb.slice.order.KeyOrder

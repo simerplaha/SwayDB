@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.log.serializer
+package swaydb.core.log.serialiser
 
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.log.LogEntry
@@ -93,7 +93,7 @@ private[core] object LevelZeroLogEntryReader {
       val toKey = reader.read(toKeyLength).cut()
       val valueLength = reader.readUnsignedInt()
       val valueBytes = if (valueLength == 0) Slice.emptyBytes else reader.read(valueLength)
-      val (fromValue, rangeValue) = RangeValueSerializer.read(valueBytes)
+      val (fromValue, rangeValue) = RangeValueSerialiser.read(valueBytes)
 
       LogEntry.Put(fromKey, Memory.Range(fromKey, toKey, fromValue, rangeValue))(LevelZeroLogEntryWriter.Level0RangeWriter)
     }
@@ -106,7 +106,7 @@ private[core] object LevelZeroLogEntryReader {
       val key: Slice[Byte] = reader.read(keyLength).cut()
       val valueLength = reader.readUnsignedInt()
       val valueBytes = reader.read(valueLength)
-      val applies = ValueSerializer.read[Slice[Value.Apply]](valueBytes)
+      val applies = ValueSerialiser.read[Slice[Value.Apply]](valueBytes)
 
       LogEntry.Put(key, Memory.PendingApply(key, applies))(LevelZeroLogEntryWriter.Level0PendingApplyWriter)
     }

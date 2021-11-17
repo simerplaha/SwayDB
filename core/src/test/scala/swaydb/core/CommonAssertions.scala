@@ -29,7 +29,7 @@ import swaydb.core.data._
 import swaydb.core.file.reader.{FileReader, Reader}
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
-import swaydb.core.log.serializer.{LogEntryWriter, RangeValueSerializer, ValueSerializer}
+import swaydb.core.log.serialiser.{LogEntryWriter, RangeValueSerialiser, ValueSerialiser}
 import swaydb.core.log.{LogEntry, Logs}
 import swaydb.core.merge._
 import swaydb.core.merge.stats.MergeStats
@@ -121,14 +121,14 @@ object CommonAssertions {
             case keyValue: Memory.Function =>
               Some(keyValue.getOrFetchFunction)
             case keyValue: Memory.PendingApply =>
-              val bytes = Slice.of[Byte](ValueSerializer.bytesRequired(keyValue.getOrFetchApplies.runRandomIO.right.value))
-              ValueSerializer.write(keyValue.getOrFetchApplies.runRandomIO.right.value)(bytes)
+              val bytes = Slice.of[Byte](ValueSerialiser.bytesRequired(keyValue.getOrFetchApplies.runRandomIO.right.value))
+              ValueSerialiser.write(keyValue.getOrFetchApplies.runRandomIO.right.value)(bytes)
               Some(bytes)
             case keyValue: Memory.Remove =>
               None
             case keyValue: Memory.Range =>
-              val bytes = Slice.of[Byte](RangeValueSerializer.bytesRequired(keyValue.fromValue, keyValue.rangeValue))
-              RangeValueSerializer.write(keyValue.fromValue, keyValue.rangeValue)(bytes)
+              val bytes = Slice.of[Byte](RangeValueSerialiser.bytesRequired(keyValue.fromValue, keyValue.rangeValue))
+              RangeValueSerialiser.write(keyValue.fromValue, keyValue.rangeValue)(bytes)
               Some(bytes)
 
           }
@@ -148,8 +148,8 @@ object CommonAssertions {
 
               applies.forall(_.isCut) shouldBe true
 
-              val bytes = Slice.of[Byte](ValueSerializer.bytesRequired(applies))
-              ValueSerializer.write(applies)(bytes)
+              val bytes = Slice.of[Byte](ValueSerialiser.bytesRequired(applies))
+              ValueSerialiser.write(applies)(bytes)
               Some(bytes)
 
             case keyValue: Persistent.Remove =>
@@ -160,8 +160,8 @@ object CommonAssertions {
               fromValue.forallS(_.isCut) shouldBe true
               rangeValue.isCut shouldBe true
 
-              val bytes = Slice.of[Byte](RangeValueSerializer.bytesRequired(fromValue, rangeValue))
-              RangeValueSerializer.write(fromValue, rangeValue)(bytes)
+              val bytes = Slice.of[Byte](RangeValueSerialiser.bytesRequired(fromValue, rangeValue))
+              RangeValueSerialiser.write(fromValue, rangeValue)(bytes)
               Some(bytes)
           }
       }
@@ -301,7 +301,7 @@ object CommonAssertions {
                           oldKeyValues: Iterable[KeyValue],
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): Iterable[Memory] = {
-    import swaydb.core.log.serializer.LevelZeroLogEntryWriter.Level0LogEntryPutWriter
+    import swaydb.core.log.serialiser.LevelZeroLogEntryWriter.Level0LogEntryPutWriter
     implicit val optimiseWrites: OptimiseWrites = OptimiseWrites.random
     implicit val atomic: Atomic = Atomic.random
     val cache = LevelZeroLogCache.builder.create()
@@ -492,7 +492,7 @@ object CommonAssertions {
     def shouldBe(expected: Iterator[KeyValue]): Unit =
       actual shouldBe expected.toList
 
-    def toLogEntry(implicit serializer: LogEntryWriter[LogEntry.Put[Slice[Byte], Memory]]) =
+    def toLogEntry(implicit serialiser: LogEntryWriter[LogEntry.Put[Slice[Byte], Memory]]) =
     //LevelZero does not write Groups therefore this unzip is required.
       actual.foldLeft(Option.empty[LogEntry[Slice[Byte], Memory]]) {
         case (logEntry, keyValue) =>
@@ -502,7 +502,7 @@ object CommonAssertions {
   }
 
   implicit class MemoryImplicits(actual: Iterable[Memory]) {
-    def toLogEntry(implicit serializer: LogEntryWriter[LogEntry.Put[Slice[Byte], Memory]]) =
+    def toLogEntry(implicit serialiser: LogEntryWriter[LogEntry.Put[Slice[Byte], Memory]]) =
       actual.foldLeft(Option.empty[LogEntry[Slice[Byte], Memory]]) {
         case (logEntry, keyValue) =>
           val newEntry = LogEntry.Put[Slice[Byte], Memory](keyValue.key, keyValue)

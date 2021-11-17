@@ -48,8 +48,8 @@ class LogsSpec extends TestBase {
   implicit def optimiseWrites: OptimiseWrites = OptimiseWrites.random
   implicit def atomic = Atomic.random
 
-  import swaydb.core.log.serializer.LevelZeroLogEntryReader._
-  import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
+  import swaydb.core.log.serialiser.LevelZeroLogEntryReader._
+  import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
 
   "Logs.persistent" should {
     "initialise and recover on reopen" in {

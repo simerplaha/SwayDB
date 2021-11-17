@@ -197,7 +197,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               mmap: MMAP.Log = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                          timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                          sweeper: TestCaseSweeper): LevelZeroLog = {
-      import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
+      import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
       import sweeper._
 
       implicit val optimiseWrites = OptimiseWrites.random

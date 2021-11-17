@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.log.serializer
+package swaydb.core.log.serialiser
 
 import swaydb.core.data.Memory
 import swaydb.core.log.LogEntry
@@ -149,8 +149,8 @@ private[core] object LevelZeroLogEntryWriter {
     override val isUpdate: Boolean = false
 
     override def write(entry: LogEntry.Put[Slice[Byte], Memory.Range], bytes: SliceMut[Byte]): Unit = {
-      val valueBytesRequired = RangeValueSerializer.bytesRequired(entry.value.fromValue, entry.value.rangeValue)
-      RangeValueSerializer.write(entry.value.fromValue, entry.value.rangeValue) {
+      val valueBytesRequired = RangeValueSerialiser.bytesRequired(entry.value.fromValue, entry.value.rangeValue)
+      RangeValueSerialiser.write(entry.value.fromValue, entry.value.rangeValue) {
         bytes
           .add(id)
           .addUnsignedInt(entry.value.fromKey.size)
@@ -165,7 +165,7 @@ private[core] object LevelZeroLogEntryWriter {
       if (entry.value.key.isEmpty) {
         0
       } else {
-        val bytesRequired = RangeValueSerializer.bytesRequired(entry.value.fromValue, entry.value.rangeValue)
+        val bytesRequired = RangeValueSerialiser.bytesRequired(entry.value.fromValue, entry.value.rangeValue)
         ByteSizeOf.byte +
           Bytes.sizeOfUnsignedInt(entry.value.fromKey.size) +
           entry.value.key.size +
@@ -186,8 +186,8 @@ private[core] object LevelZeroLogEntryWriter {
      * No need to write time since it can be computed from applies.
      */
     override def write(entry: LogEntry.Put[Slice[Byte], Memory.PendingApply], bytes: SliceMut[Byte]): Unit = {
-      val appliesBytesRequired = ValueSerializer.bytesRequired(entry.value.applies)
-      ValueSerializer.write(entry.value.applies) {
+      val appliesBytesRequired = ValueSerialiser.bytesRequired(entry.value.applies)
+      ValueSerialiser.write(entry.value.applies) {
         bytes
           .add(id)
           .addUnsignedInt(entry.value.key.size)
@@ -200,7 +200,7 @@ private[core] object LevelZeroLogEntryWriter {
       if (entry.value.key.isEmpty) {
         0
       } else {
-        val bytesRequired = ValueSerializer.bytesRequired(entry.value.applies)
+        val bytesRequired = ValueSerialiser.bytesRequired(entry.value.applies)
         ByteSizeOf.byte +
           Bytes.sizeOfUnsignedInt(entry.value.key.size) +
           entry.value.key.size +

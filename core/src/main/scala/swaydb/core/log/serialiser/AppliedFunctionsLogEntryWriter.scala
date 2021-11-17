@@ -14,34 +14,48 @@
  * limitations under the License.
  */
 
-package swaydb.core.log.serializer
+package swaydb.core.log.serialiser
 
 import swaydb.core.log.LogEntry
 import swaydb.core.util.Bytes
 import swaydb.slice.{Slice, SliceMut}
 import swaydb.utils.ByteSizeOf
 
-private[swaydb] object CounterLogEntryWriter {
+private[swaydb] object AppliedFunctionsLogEntryWriter {
 
-  implicit object CounterPutLogEntryWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]] {
+  implicit object FunctionsPutLogEntryWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Slice.Null.type]] {
     val id: Byte = 0
 
     override val isRange: Boolean = false
     override val isUpdate: Boolean = false
 
-    override def write(entry: LogEntry.Put[Slice[Byte], Slice[Byte]], bytes: SliceMut[Byte]): Unit =
+    override def write(entry: LogEntry.Put[Slice[Byte], Slice.Null.type], bytes: SliceMut[Byte]): Unit =
       bytes
         .add(id)
         .addUnsignedInt(entry.key.size)
         .addAll(entry.key)
-        .addUnsignedInt(entry.value.size)
-        .addAll(entry.value)
 
-    override def bytesRequired(entry: LogEntry.Put[Slice[Byte], Slice[Byte]]): Int =
+    override def bytesRequired(entry: LogEntry.Put[Slice[Byte], Slice.Null.type]): Int =
       ByteSizeOf.byte +
         Bytes.sizeOfUnsignedInt(entry.key.size) +
-        entry.key.size +
-        Bytes.sizeOfUnsignedInt(entry.value.size) +
-        entry.value.size
+        entry.key.size
+  }
+
+  implicit object FunctionsRemoveLogEntryWriter extends LogEntryWriter[LogEntry.Remove[Slice[Byte]]] {
+    val id: Byte = 1
+
+    override val isRange: Boolean = false
+    override val isUpdate: Boolean = false
+
+    override def write(entry: LogEntry.Remove[Slice[Byte]], bytes: SliceMut[Byte]): Unit =
+      bytes
+        .add(id)
+        .addUnsignedInt(entry.key.size)
+        .addAll(entry.key)
+
+    override def bytesRequired(entry: LogEntry.Remove[Slice[Byte]]): Int =
+      ByteSizeOf.byte +
+        Bytes.sizeOfUnsignedInt(entry.key.size) +
+        entry.key.size
   }
 }

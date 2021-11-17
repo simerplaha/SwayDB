@@ -33,7 +33,7 @@ import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
 import swaydb.core.log.applied.{AppliedFunctionsLog, AppliedFunctionsLogCache}
-import swaydb.core.log.serializer.AppliedFunctionsLogEntryWriter
+import swaydb.core.log.serialiser.AppliedFunctionsLogEntryWriter
 import swaydb.core.log.timer.Timer
 import swaydb.core.log.{Log, LogEntry, Logs}
 import swaydb.core.segment.entry.reader.PersistentReader
@@ -75,8 +75,8 @@ private[core] case object LevelZero extends LazyLogging {
                                                            forceSaveApplier: ForceSaveApplier,
                                                            optimiseWrites: OptimiseWrites,
                                                            atomic: Atomic): IO[swaydb.Error.Level, LevelZero] = {
-    import swaydb.core.log.serializer.LevelZeroLogEntryReader.Level0Reader
-    import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
+    import swaydb.core.log.serialiser.LevelZeroLogEntryReader.Level0Reader
+    import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
 
     if (cacheKeyValueIds)
       PersistentReader.populateBaseEntryIds()
@@ -269,7 +269,7 @@ private[swaydb] case class LevelZero(path: Path,
   logger.info("{}: Level0 started.", path)
 
   import keyOrder._
-  import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
+  import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
 
   val levelZeroMeter: LevelZeroMeter =
     logs.meter

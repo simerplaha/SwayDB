@@ -32,7 +32,7 @@ object Default {
 
   implicit val scalaByteOps = ScalaByteOps
 
-  implicit object IntSerializer extends Serializer[Int] {
+  implicit object IntSerialiser extends Serializer[Int] {
     override def write(data: Int): Slice[Byte] =
       Slice.writeInt[Byte](data)
 

@@ -14,37 +14,37 @@
  * limitations under the License.
  */
 
-package swaydb.core.log.serializer
+package swaydb.core.log.serialiser
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.compression.CompressionInternal
 import swaydb.compression.CompressionTestGen._
 import swaydb.core.TestData._
-import swaydb.core.log.serializer.ValueSerializer.IntMapListBufferSerializer
+import swaydb.core.log.serialiser.ValueSerialiser.IntMapListBufferSerialiser
 import swaydb.slice.Slice
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-class ValueSerializerSpec extends AnyWordSpec with Matchers {
+class ValueSerialiserSpec extends AnyWordSpec with Matchers {
 
-  "IntMapListBufferSerializer" in {
+  "IntMapListBufferSerialiser" in {
 
     val map = mutable.Map.empty[Int, Iterable[(Slice[Byte], Slice[Byte])]]
     map.put(1, Slice((Slice(1.toByte), Slice(2.toByte)), (Slice(3.toByte), Slice(4.toByte))))
 
-    val bytes = Slice.of[Byte](IntMapListBufferSerializer.bytesRequired(map))
+    val bytes = Slice.of[Byte](IntMapListBufferSerialiser.bytesRequired(map))
 
-    //    IntMapListBufferSerializer.optimalBytesRequired(2, ???) should be >= bytes.size
+    //    IntMapListBufferSerialiser.optimalBytesRequired(2, ???) should be >= bytes.size
 
-    IntMapListBufferSerializer.write(map, bytes)
+    IntMapListBufferSerialiser.write(map, bytes)
     bytes.isFull shouldBe true
 
-    IntMapListBufferSerializer.read(bytes) shouldBe map
+    IntMapListBufferSerialiser.read(bytes) shouldBe map
   }
 
-  "IntMapListBufferSerializer on 100 ranges" in {
+  "IntMapListBufferSerialiser on 100 ranges" in {
     //this test shows approximately 127,000 ranges key-values are required for a bloomFilter to cost 1.mb.
 
     val maxUncommonBytesToStore = randomIntMax(5)
@@ -60,9 +60,9 @@ class ValueSerializerSpec extends AnyWordSpec with Matchers {
           ).asInstanceOf[ListBuffer[(Slice[Byte], Slice[Byte])]] += bytesToAdd
     }
 
-    val bytes = Slice.of[Byte](IntMapListBufferSerializer.bytesRequired(map))
+    val bytes = Slice.of[Byte](IntMapListBufferSerialiser.bytesRequired(map))
     val optimalBytes =
-      IntMapListBufferSerializer.optimalBytesRequired(
+      IntMapListBufferSerialiser.optimalBytesRequired(
         rangeCount = map.foldLeft(0)(_ + _._2.size),
         maxUncommonBytesToStore = maxUncommonBytesToStore,
         rangeFilterCommonPrefixes = map.keys
@@ -71,14 +71,14 @@ class ValueSerializerSpec extends AnyWordSpec with Matchers {
     println(s"Optimal bytes: $optimalBytes")
     println(s"Actual bytes : ${bytes.size}")
 
-    IntMapListBufferSerializer.write(map, bytes)
+    IntMapListBufferSerialiser.write(map, bytes)
     bytes.isFull shouldBe true
 
     optimalBytes should be >= bytes.size //calculated bytes should always return enough space for range filter bytes to be written.
 
     println("Compressed size: " + CompressionInternal.randomLZ4().compressor.compress(bytes).get.size)
 
-    IntMapListBufferSerializer.read(bytes) shouldBe map.map {
+    IntMapListBufferSerialiser.read(bytes) shouldBe map.map {
       case (key, value) =>
         (key, value.toSlice)
     }.toMap

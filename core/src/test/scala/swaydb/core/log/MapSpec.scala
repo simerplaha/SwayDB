@@ -27,7 +27,7 @@ import swaydb.core.file.DBFile
 import swaydb.core.level.AppendixLogCache
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.log.MapTestUtil._
-import swaydb.core.log.serializer._
+import swaydb.core.log.serialiser._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.skiplist.SkipListConcurrent

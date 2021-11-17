@@ -71,7 +71,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
   implicit val timeOrder = TimeOrder.long
   implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
-  import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
+  import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
 
   val keyValuesCount = 10
 

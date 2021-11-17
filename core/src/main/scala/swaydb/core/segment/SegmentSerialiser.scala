@@ -18,7 +18,7 @@ package swaydb.core.segment
 
 import swaydb.core.function.FunctionStore
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.log.serializer.ValueSerializer.MinMaxSerialiser
+import swaydb.core.log.serialiser.ValueSerialiser.MinMaxSerialiser
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.{FileSweeper, MemorySweeper}

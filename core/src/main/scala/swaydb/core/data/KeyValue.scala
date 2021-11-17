@@ -17,8 +17,8 @@
 package swaydb.core.data
 
 import swaydb.core.cache.{Cache, CacheNoIO}
-import swaydb.core.log.serializer.RangeValueSerializer.OptionRangeValueSerializer
-import swaydb.core.log.serializer.{RangeValueSerializer, ValueSerializer}
+import swaydb.core.log.serialiser.RangeValueSerialiser.OptionRangeValueSerialiser
+import swaydb.core.log.serialiser.{RangeValueSerialiser, ValueSerialiser}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
@@ -591,7 +591,7 @@ private[swaydb] object Memory {
 
     override def mightContainRemoveRange = false
 
-    override lazy val value: SliceOption[Byte] = ValueSerializer.writeBytes(applies)
+    override lazy val value: SliceOption[Byte] = ValueSerialiser.writeBytes(applies)
 
     def cut(): Memory.PendingApply =
       if (key.isOriginalFullSlice && applies.forall(_.isCut))
@@ -732,9 +732,9 @@ private[swaydb] object Memory {
     override lazy val mergedKey: Slice[Byte] = Bytes.compressJoin(fromKey, toKey)
 
     override lazy val value: SliceOption[Byte] = {
-      val bytesRequired = OptionRangeValueSerializer.bytesRequired(fromValue, rangeValue)
+      val bytesRequired = OptionRangeValueSerialiser.bytesRequired(fromValue, rangeValue)
       val bytes = if (bytesRequired == 0) Slice.Null else Slice.of[Byte](bytesRequired)
-      bytes.foreachC(slice => OptionRangeValueSerializer.write(fromValue, rangeValue, slice.asMut()))
+      bytes.foreachC(slice => OptionRangeValueSerialiser.write(fromValue, rangeValue, slice.asMut()))
       bytes
     }
 
@@ -1393,7 +1393,7 @@ private[core] object Persistent {
                     .copy()
                     .readFullBlock()
 
-                ValueSerializer
+                ValueSerialiser
                   .read[Slice[Value.Apply]](bytes)
                   .mapToSlice(_.cut())
               }
@@ -1529,7 +1529,7 @@ private[core] object Persistent {
                     .readFullBlock()
 
                 val (from, range) =
-                  RangeValueSerializer.read(bytes)
+                  RangeValueSerialiser.read(bytes)
 
                 (from.flatMapS(_.cut()), range.cut())
               }

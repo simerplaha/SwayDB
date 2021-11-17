@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.log.serializer
+package swaydb.core.log.serialiser
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Log.ExceptionHandler

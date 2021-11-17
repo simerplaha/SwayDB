@@ -19,7 +19,7 @@ package swaydb.core.log
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.log.serializer.{LogEntryReader, LogEntryWriter}
+import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util.IDGenerator

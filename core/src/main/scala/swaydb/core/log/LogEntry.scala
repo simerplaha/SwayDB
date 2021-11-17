@@ -18,7 +18,7 @@ package swaydb.core.log
 
 import swaydb.core.data.Memory
 import swaydb.core.log.LogEntry.{Put, Remove}
-import swaydb.core.log.serializer.{LogEntrySerialiser, LogEntryWriter}
+import swaydb.core.log.serialiser.{LogEntrySerialiser, LogEntryWriter}
 import swaydb.core.segment.Segment
 import swaydb.core.skiplist.{SkipList, SkipListBatchable, SkipListConcurrent}
 import swaydb.slice.order.KeyOrder
@@ -196,11 +196,11 @@ private[swaydb] case object LogEntry {
   }
 
   case class Put[K, V](key: K,
-                       value: V)(implicit serializer: LogEntryWriter[LogEntry.Put[K, V]]) extends LogEntry.Point[K, V] {
+                       value: V)(implicit serialiser: LogEntryWriter[LogEntry.Put[K, V]]) extends LogEntry.Point[K, V] {
 
     private var calculatedEntriesByteSize: Int = -1
-    def hasRange: Boolean = serializer.isRange
-    def hasUpdate: Boolean = serializer.isUpdate
+    def hasRange: Boolean = serialiser.isRange
+    def hasUpdate: Boolean = serialiser.isUpdate
     def hasRemoveDeadline: Boolean =
       value match {
         case Memory.Remove(_, Some(_), _) => true
@@ -212,13 +212,13 @@ private[swaydb] case object LogEntry {
      */
     override def entryBytesSize: Int = {
       if (calculatedEntriesByteSize == -1)
-        calculatedEntriesByteSize = serializer bytesRequired this
+        calculatedEntriesByteSize = serialiser bytesRequired this
 
       calculatedEntriesByteSize
     }
 
     override def writeTo(slice: SliceMut[Byte]): Unit =
-      serializer.write(this, slice)
+      serialiser.write(this, slice)
 
     override def applyBatch[T >: V](skipList: SkipListBatchable[_, _, K, T]): Unit =
       skipList.put(key, value)
@@ -238,11 +238,11 @@ private[swaydb] case object LogEntry {
 
   }
 
-  case class Remove[K](key: K)(implicit serializer: LogEntryWriter[LogEntry.Remove[K]]) extends LogEntry.Point[K, Nothing] {
+  case class Remove[K](key: K)(implicit serialiser: LogEntryWriter[LogEntry.Remove[K]]) extends LogEntry.Point[K, Nothing] {
 
     private var calculatedEntriesByteSize: Int = -1
-    def hasRange: Boolean = serializer.isRange
-    def hasUpdate: Boolean = serializer.isUpdate
+    def hasRange: Boolean = serialiser.isRange
+    def hasUpdate: Boolean = serialiser.isUpdate
     def hasRemoveDeadline: Boolean = false
 
     /**
@@ -250,13 +250,13 @@ private[swaydb] case object LogEntry {
      */
     override def entryBytesSize: Int = {
       if (calculatedEntriesByteSize == -1)
-        calculatedEntriesByteSize = serializer bytesRequired this
+        calculatedEntriesByteSize = serialiser bytesRequired this
 
       calculatedEntriesByteSize
     }
 
     override def writeTo(slice: SliceMut[Byte]): Unit =
-      serializer.write(this, slice)
+      serialiser.write(this, slice)
 
     override def applyBatch[T >: Nothing](skipList: SkipListBatchable[_, _, K, T]): Unit =
       skipList.remove(key)

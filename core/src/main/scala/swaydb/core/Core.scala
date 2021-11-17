@@ -25,7 +25,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.compaction.Compactor
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.log.LogEntry
-import swaydb.core.log.serializer.LevelZeroLogEntryWriter
+import swaydb.core.log.serialiser.LevelZeroLogEntryWriter
 import swaydb.core.log.timer.Timer
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor

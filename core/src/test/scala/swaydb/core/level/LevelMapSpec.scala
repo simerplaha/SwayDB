@@ -70,8 +70,8 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   //    false
 
   "putMap on a single Level" should {
-    import swaydb.core.log.serializer.LevelZeroLogEntryReader._
-    import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
+    import swaydb.core.log.serialiser.LevelZeroLogEntryReader._
+    import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
 
     def createTestMap()(implicit sweeper: TestCaseSweeper) = {
       import sweeper._

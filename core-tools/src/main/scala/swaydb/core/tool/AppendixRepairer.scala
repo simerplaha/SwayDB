@@ -21,7 +21,7 @@ import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.level.AppendixLogCache
-import swaydb.core.log.serializer.LogEntryWriter
+import swaydb.core.log.serialiser.LogEntryWriter
 import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.segment.Segment
 import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
@@ -43,7 +43,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
             strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               fileSweeper: FileSweeper): IO[swaydb.Error.Level, Unit] = {
 
-    import swaydb.core.log.serializer.AppendixLogEntryWriter._
+    import swaydb.core.log.serialiser.AppendixLogEntryWriter._
     implicit val memorySweeper: Option[MemorySweeper.KeyValue] = Option.empty
     //mmap is false. FIXME - use ByteBufferCleaner.Disabled instead
     implicit val bufferCleaner: ByteBufferSweeperActor = null

@@ -19,7 +19,7 @@ package swaydb.core.segment.block.segment.transient
 import swaydb.core.data.{Memory, Persistent, Time, Value}
 import swaydb.core.file.DBFile
 import swaydb.core.file.reader.Reader
-import swaydb.core.log.serializer.ValueSerializer.MinMaxSerialiser
+import swaydb.core.log.serialiser.ValueSerialiser.MinMaxSerialiser
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset}

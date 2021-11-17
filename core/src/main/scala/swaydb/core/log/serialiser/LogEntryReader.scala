@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.log.serializer
+package swaydb.core.log.serialiser
 
 import swaydb.core.file.reader.Reader
 import swaydb.core.log.LogEntry
@@ -29,9 +29,9 @@ trait LogEntryReader[T <: LogEntry[_, _]] {
 
 object LogEntryReader {
 
-  def read[T <: LogEntry[_, _]](bytes: Slice[Byte])(implicit serializer: LogEntryReader[T]): T =
-    serializer.read(Reader(bytes))
+  def read[T <: LogEntry[_, _]](bytes: Slice[Byte])(implicit serialiser: LogEntryReader[T]): T =
+    serialiser.read(Reader(bytes))
 
-  def read[T <: LogEntry[_, _]](reader: ReaderBase[Byte])(implicit serializer: LogEntryReader[T]): T =
-    serializer.read(reader)
+  def read[T <: LogEntry[_, _]](reader: ReaderBase[Byte])(implicit serialiser: LogEntryReader[T]): T =
+    serialiser.read(reader)
 }

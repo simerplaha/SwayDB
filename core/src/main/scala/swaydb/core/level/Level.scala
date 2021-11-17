@@ -25,7 +25,7 @@ import swaydb.core.file.ForceSaveApplier
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
-import swaydb.core.log.serializer._
+import swaydb.core.log.serialiser._
 import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.merge.stats.MergeStats.{Memory, Persistent}
