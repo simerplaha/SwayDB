@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.data
+package swaydb.core.segment.data
 
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.SomeOrNone

@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.ref.search
 
-import swaydb.core.data.{Persistent, PersistentOption}
+import swaydb.core.segment.data.{Persistent, PersistentOption}
 import swaydb.slice.Slice
 import swaydb.utils.{SomeOrNone, TupleOrNone}
 

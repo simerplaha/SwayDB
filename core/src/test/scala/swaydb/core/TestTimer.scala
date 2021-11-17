@@ -16,7 +16,7 @@
 
 package swaydb.core
 
-import swaydb.core.data.Time
+import swaydb.core.segment.data.Time
 import swaydb.core.log.timer.Timer
 import swaydb.slice.Slice
 import swaydb.macros.Sealed

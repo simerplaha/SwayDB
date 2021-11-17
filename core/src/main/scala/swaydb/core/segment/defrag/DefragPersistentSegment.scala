@@ -19,7 +19,7 @@ package swaydb.core.segment.defrag
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.compaction.io.CompactionIO
-import swaydb.core.data.Memory
+import swaydb.core.segment.data.Memory
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor

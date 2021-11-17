@@ -18,7 +18,7 @@ package swaydb.core.segment.block.hashindex
 
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.Persistent
+import swaydb.core.segment.data.Persistent
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}

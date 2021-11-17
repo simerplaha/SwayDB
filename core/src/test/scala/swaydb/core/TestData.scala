@@ -32,8 +32,8 @@ import swaydb.config.storage.{Level0Storage, LevelStorage}
 import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
-import swaydb.core.data._
+import swaydb.core.segment.data.Value.{FromValue, FromValueOption, RangeValue}
+import swaydb.core.segment.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.file.DBFile
 import swaydb.core.compaction.io.CompactionIO

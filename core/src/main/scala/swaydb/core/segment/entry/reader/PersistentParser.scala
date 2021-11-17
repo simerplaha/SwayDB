@@ -16,8 +16,8 @@
 
 package swaydb.core.segment.entry.reader
 
-import swaydb.core.data.Persistent.Partial
-import swaydb.core.data.{Persistent, PersistentOption}
+import swaydb.core.segment.data.Persistent.Partial
+import swaydb.core.segment.data.{Persistent, PersistentOption}
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}

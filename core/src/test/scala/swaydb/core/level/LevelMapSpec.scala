@@ -23,7 +23,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.data._
+import swaydb.core.segment.data._
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.segment.ref.search.ThreadReadState

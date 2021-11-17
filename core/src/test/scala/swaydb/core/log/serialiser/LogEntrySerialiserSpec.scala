@@ -22,7 +22,7 @@ import swaydb.Error.Log.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data._
+import swaydb.core.segment.data._
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.core.{TestBase, TestTimer}

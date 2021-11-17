@@ -23,7 +23,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestData._
-import swaydb.core.data.Memory
+import swaydb.core.segment.data.Memory
 import swaydb.core.log.applied.AppliedFunctionsLog
 import swaydb.core.log.timer.Timer
 import swaydb.core.segment.ref.search.ThreadReadState

@@ -19,7 +19,7 @@ package swaydb.core.segment.assigner
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.{Memory, Value}
+import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.utils.PipeOps._

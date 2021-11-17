@@ -16,7 +16,7 @@
 
 package swaydb.core.merge
 
-import swaydb.core.data.{Memory, Time}
+import swaydb.core.segment.data.{Memory, Time}
 import swaydb.Benchmark
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.slice.order.{KeyOrder, TimeOrder}

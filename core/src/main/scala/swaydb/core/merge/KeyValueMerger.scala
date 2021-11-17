@@ -17,7 +17,7 @@
 package swaydb.core.merge
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{KeyValue, Memory, Value}
+import swaydb.core.segment.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable

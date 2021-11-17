@@ -17,7 +17,7 @@
 package swaydb.core.segment.block.hashindex
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.Persistent
+import swaydb.core.segment.data.Persistent
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset, SortedIndexBlockSecondaryIndexEntry, SortedIndexBlockState}

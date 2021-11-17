@@ -20,7 +20,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.Value
+import swaydb.core.segment.data.Value
 import swaydb.core.{TestData, TestTimer}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.serializers.Default._

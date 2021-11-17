@@ -23,9 +23,9 @@ import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.core.TestData._
-import swaydb.core.data.Memory.PendingApply
-import swaydb.core.data.Value.FromValue
-import swaydb.core.data._
+import swaydb.core.segment.data.Memory.PendingApply
+import swaydb.core.segment.data.Value.FromValue
+import swaydb.core.segment.data._
 import swaydb.core.file.reader.{FileReader, Reader}
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}

@@ -17,7 +17,7 @@
 package swaydb.core.segment.assigner
 
 import swaydb.utils.Aggregator
-import swaydb.core.data.{KeyValue, Memory}
+import swaydb.core.segment.data.{KeyValue, Memory}
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.log.Log
 import swaydb.core.merge.stats.MergeStats
@@ -32,7 +32,7 @@ import scala.collection.mutable.ListBuffer
  * Current types
  * - [[swaydb.core.segment.Segment]]
  * - [[Log[Slice[Byte], Memory, LevelZeroMapCache]]
- * - [[swaydb.core.data.KeyValue]]
+ * - [[swaydb.core.segment.data.KeyValue]]
  */
 sealed trait Assignable {
   def key: Slice[Byte]

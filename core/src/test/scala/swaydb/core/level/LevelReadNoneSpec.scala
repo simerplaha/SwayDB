@@ -19,7 +19,7 @@ package swaydb.core.level
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.{Memory, Value}
+import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestForceSave}
 import swaydb.config.MMAP

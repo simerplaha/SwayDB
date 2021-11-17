@@ -16,7 +16,7 @@
 
 package swaydb.core.level.seek
 
-import swaydb.core.data.{KeyValue, Value}
+import swaydb.core.segment.data.{KeyValue, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
 import swaydb.core.segment.ref.search.ThreadReadState

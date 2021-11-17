@@ -24,8 +24,8 @@ import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.data.Value.FromValue
-import swaydb.core.data._
+import swaydb.core.segment.data.Value.FromValue
+import swaydb.core.segment.data._
 import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.MergeStats

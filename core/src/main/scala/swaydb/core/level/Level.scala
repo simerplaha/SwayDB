@@ -19,7 +19,7 @@ package swaydb.core.level
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.core.data._
+import swaydb.core.segment.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.compaction.io.CompactionIO
@@ -946,7 +946,7 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix
       .cache
       .floor(key)
-      .flatMapSomeS(swaydb.core.data.Memory.Null: KeyValueOption)(_.get(key, readState))
+      .flatMapSomeS(swaydb.core.segment.data.Memory.Null: KeyValueOption)(_.get(key, readState))
 
   def getFromNextLevel(key: Slice[Byte],
                        readState: ThreadReadState): KeyValue.PutOption =

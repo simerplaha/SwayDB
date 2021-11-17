@@ -19,7 +19,7 @@ package swaydb.core.segment.block.segment
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data._
+import swaydb.core.segment.data._
 import swaydb.core.file.reader.Reader
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig

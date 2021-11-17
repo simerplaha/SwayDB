@@ -17,7 +17,7 @@
 package swaydb.core.function
 
 import swaydb.OK
-import swaydb.core.data.{SwayFunction, Value}
+import swaydb.core.segment.data.{SwayFunction, Value}
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.Slice
 

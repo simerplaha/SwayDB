@@ -19,7 +19,7 @@ package swaydb.core.compaction.task.assigner
 import org.scalamock.scalatest.MockFactory
 import swaydb.EitherValues._
 import swaydb.core.TestData._
-import swaydb.core.data.{Memory, Time, Value}
+import swaydb.core.segment.data.{Memory, Time, Value}
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.slice.MaxKey

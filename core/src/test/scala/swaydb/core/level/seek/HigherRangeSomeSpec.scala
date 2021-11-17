@@ -23,7 +23,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data._
+import swaydb.core.segment.data._
 import swaydb.core.level.LevelSeek
 import swaydb.core.{TestData, TestTimer}
 import swaydb.slice.order.{KeyOrder, TimeOrder}

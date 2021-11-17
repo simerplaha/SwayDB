@@ -21,7 +21,7 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.{Memory, MemoryOption}
+import swaydb.core.segment.data.{Memory, MemoryOption}
 import swaydb.core.file.reader.Reader
 import swaydb.core.log.LogEntry
 import swaydb.core.skiplist.SkipListConcurrent

@@ -20,7 +20,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
-import swaydb.core.data.{Memory, Value}
+import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.log.LogEntry
 import swaydb.core.log.serialiser.LevelZeroLogEntryWriter
 import swaydb.core.merge.KeyValueMerger

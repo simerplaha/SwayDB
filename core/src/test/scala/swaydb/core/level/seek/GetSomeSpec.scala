@@ -23,7 +23,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.{SwayFunctionOutput, Value}
+import swaydb.core.segment.data.{SwayFunctionOutput, Value}
 import swaydb.core.merge.{FixedMerger, FunctionMerger, PendingApplyMerger}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestData, TestTimer}

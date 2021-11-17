@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb._
 import swaydb.core.build.BuildValidator
-import swaydb.core.data.{Memory, SwayFunction, Value}
+import swaydb.core.segment.data.{Memory, SwayFunction, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.compaction.Compactor
 import swaydb.core.level.zero.LevelZero
@@ -189,7 +189,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
     assertTerminated(sequencer.execute(zero.put(key, value, removeAt)))
 
   /**
-   * Each [[Prepare]] requires a new next [[swaydb.core.data.Time]] for cases where a batch contains overriding keys.
+   * Each [[Prepare]] requires a new next [[swaydb.core.segment.data.Time]] for cases where a batch contains overriding keys.
    *
    * Same time indicates that the later Prepare in this batch with the same time as newer Prepare has already applied
    * to the newer prepare therefore ignoring the newer prepare.

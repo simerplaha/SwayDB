@@ -16,7 +16,7 @@
 
 package swaydb.core.compaction.io
 
-import swaydb.core.data.KeyValue
+import swaydb.core.segment.data.KeyValue
 import swaydb.core.function.FunctionStore
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.level.PathsDistributor

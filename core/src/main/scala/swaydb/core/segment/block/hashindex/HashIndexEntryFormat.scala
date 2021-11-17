@@ -16,8 +16,8 @@
 
 package swaydb.core.segment.block.hashindex
 
-import swaydb.core.data.Persistent.Partial
-import swaydb.core.data.{Memory, Persistent}
+import swaydb.core.segment.data.Persistent.Partial
+import swaydb.core.segment.data.{Memory, Persistent}
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}

@@ -24,7 +24,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.data.{Memory, Time}
+import swaydb.core.segment.data.{Memory, Time}
 import swaydb.core.file.DBFile
 import swaydb.core.file.reader.FileReader
 import swaydb.core.compaction._

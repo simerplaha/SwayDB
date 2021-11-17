@@ -17,7 +17,7 @@
 package swaydb.core.segment.ref
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data._
+import swaydb.core.segment.data._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}

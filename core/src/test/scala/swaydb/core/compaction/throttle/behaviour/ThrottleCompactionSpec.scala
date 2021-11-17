@@ -22,7 +22,7 @@
 //import swaydb.IOValues._
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.TestData._
-//import swaydb.core.data.Memory
+//import swaydb.core.segment.data.Memory
 //import swaydb.core.level.NextLevel
 //import swaydb.core.segment.Segment
 //import swaydb.core.segment.block.segment.SegmentBlock

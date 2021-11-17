@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.data
+package swaydb.core.segment.data
 
 import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.log.serialiser.RangeValueSerialiser.OptionRangeValueSerialiser

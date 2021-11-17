@@ -24,9 +24,9 @@ import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.{LevelMeter, LevelZeroThrottle}
 import swaydb.config.storage.Level0Storage
 import swaydb.config.{Atomic, MMAP, OptimiseWrites}
-import swaydb.core.data.KeyValue.{Put, PutOption}
-import swaydb.core.data.Value.FromValue
-import swaydb.core.data._
+import swaydb.core.segment.data.KeyValue.{Put, PutOption}
+import swaydb.core.segment.data.Value.FromValue
+import swaydb.core.segment.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.level.seek._

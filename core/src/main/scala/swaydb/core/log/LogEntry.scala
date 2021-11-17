@@ -16,7 +16,7 @@
 
 package swaydb.core.log
 
-import swaydb.core.data.Memory
+import swaydb.core.segment.data.Memory
 import swaydb.core.log.LogEntry.{Put, Remove}
 import swaydb.core.log.serialiser.{LogEntrySerialiser, LogEntryWriter}
 import swaydb.core.segment.Segment

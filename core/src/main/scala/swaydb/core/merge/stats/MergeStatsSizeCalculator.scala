@@ -16,7 +16,7 @@
 
 package swaydb.core.merge.stats
 
-import swaydb.core.data.Memory
+import swaydb.core.segment.data.Memory
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 

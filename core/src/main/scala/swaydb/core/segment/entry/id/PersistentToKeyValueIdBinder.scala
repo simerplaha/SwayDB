@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.entry.id
 
-import swaydb.core.data.Persistent
+import swaydb.core.segment.data.Persistent
 import swaydb.macros.Sealed
 
 import scala.annotation.implicitNotFound

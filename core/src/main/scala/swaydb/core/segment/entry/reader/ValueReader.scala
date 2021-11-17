@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.entry.reader
 
-import swaydb.core.data.PersistentOption
+import swaydb.core.segment.data.PersistentOption
 import swaydb.core.segment.entry.id.BaseEntryId
 import swaydb.slice.ReaderBase
 import swaydb.utils.TupleOrNone

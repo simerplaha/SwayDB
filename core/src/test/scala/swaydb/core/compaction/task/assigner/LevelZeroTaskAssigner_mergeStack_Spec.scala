@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.Memory
+import swaydb.core.segment.data.Memory
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}

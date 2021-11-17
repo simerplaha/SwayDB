@@ -19,7 +19,7 @@ package swaydb.core.merge.stats
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.EitherValues
 import swaydb.core.TestData._
-import swaydb.core.data.Memory
+import swaydb.core.segment.data.Memory
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.{TestBase, TestExecutionContext, TestTimer}

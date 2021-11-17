@@ -22,7 +22,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.data.{Memory, MemoryOption, Value}
+import swaydb.core.segment.data.{Memory, MemoryOption, Value}
 import swaydb.core.file.DBFile
 import swaydb.core.level.AppendixLogCache
 import swaydb.core.level.zero.LevelZeroLogCache

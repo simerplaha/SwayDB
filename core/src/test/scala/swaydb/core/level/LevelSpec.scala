@@ -22,7 +22,7 @@ import swaydb.Glass
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.data._
+import swaydb.core.segment.data._
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig

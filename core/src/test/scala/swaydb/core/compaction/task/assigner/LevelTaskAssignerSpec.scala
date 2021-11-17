@@ -21,7 +21,7 @@ import org.scalatest.OptionValues._
 import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.Memory
+import swaydb.core.segment.data.Memory
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}

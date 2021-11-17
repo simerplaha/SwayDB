@@ -22,7 +22,7 @@ import org.scalatest.concurrent.ScalaFutures
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.data._
+import swaydb.core.segment.data._
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestSweeper}
 import swaydb.config.MMAP

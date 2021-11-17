@@ -297,9 +297,9 @@ protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
    * Before writing the Entry, check to ensure if the current [[LogEntry]] requires a merge write or direct write.
    *
    * Merge write should be used when
-   * - The entry contains a [[swaydb.core.data.Memory.Range]] key-value.
-   * - The entry contains a [[swaydb.core.data.Memory.Update]] Update key-value.
-   * - The entry contains a [[swaydb.core.data.Memory.Remove]] with deadline key-value. Removes without deadlines do not require merging.
+   * - The entry contains a [[swaydb.core.segment.data.Memory.Range]] key-value.
+   * - The entry contains a [[swaydb.core.segment.data.Memory.Update]] Update key-value.
+   * - The entry contains a [[swaydb.core.segment.data.Memory.Remove]] with deadline key-value. Removes without deadlines do not require merging.
    *
    * Note: These check are not required for Appendix writes because Appendix entries current do not use
    * Range, Update or key-values with deadline.

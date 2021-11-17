@@ -16,8 +16,8 @@
 
 package swaydb.core.compaction.task.assigner
 
-import swaydb.core.data.Value.FromValue
-import swaydb.core.data.{Memory, Time, Value}
+import swaydb.core.segment.data.Value.FromValue
+import swaydb.core.segment.data.{Memory, Time, Value}
 import swaydb.core.level.Level
 import swaydb.core.compaction.task.CompactionDataType._
 import swaydb.core.compaction.task.{CompactionDataType, CompactionTask}

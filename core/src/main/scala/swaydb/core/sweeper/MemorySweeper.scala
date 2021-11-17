@@ -19,7 +19,7 @@ package swaydb.core.sweeper
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorConfig.QueueOrder
 import swaydb.core.cache.CacheNoIO
-import swaydb.core.data.Persistent
+import swaydb.core.segment.data.Persistent
 import swaydb.utils.HashedMap
 import swaydb.core.skiplist.SkipList
 import swaydb.config.MemoryCache

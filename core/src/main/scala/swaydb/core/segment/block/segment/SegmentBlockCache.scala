@@ -18,7 +18,7 @@ package swaydb.core.segment.block.segment
 
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.cache.{Cache, Lazy}
-import swaydb.core.data.Persistent
+import swaydb.core.segment.data.Persistent
 import swaydb.core.file.DBFile
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset}

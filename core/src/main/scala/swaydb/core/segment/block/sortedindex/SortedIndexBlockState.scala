@@ -1,7 +1,7 @@
 package swaydb.core.segment.block.sortedindex
 
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.Memory
+import swaydb.core.segment.data.Memory
 import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.core.util.MinMax
 import swaydb.slice.MaxKey

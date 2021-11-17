@@ -18,7 +18,7 @@ package swaydb.core.function
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import swaydb.core.data.{SwayFunction, SwayFunctionOutput}
+import swaydb.core.segment.data.{SwayFunction, SwayFunctionOutput}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

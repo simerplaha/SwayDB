@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.cache.{Cache, CacheNoIO}
-import swaydb.core.data._
+import swaydb.core.segment.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.file.{DBFile, ForceSaveApplier}
 import swaydb.core.file.reader.Reader

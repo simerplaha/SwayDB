@@ -23,7 +23,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.data.Value.FromValue
+import swaydb.core.segment.data.Value.FromValue
 import swaydb.core.compaction.io.CompactionIO
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.MMAP

@@ -20,8 +20,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
-import swaydb.core.data.Value
-import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
+import swaydb.core.segment.data.Value
+import swaydb.core.segment.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 

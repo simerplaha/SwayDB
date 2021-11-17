@@ -16,7 +16,7 @@
 
 package swaydb.core.segment
 
-import swaydb.core.data.{KeyValue, Value}
+import swaydb.core.segment.data.{KeyValue, Value}
 import swaydb.core.segment.Segment.getNearestPutDeadline
 import swaydb.core.util.MinMax
 import swaydb.slice.Slice

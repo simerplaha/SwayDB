@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.block.segment.transient
 
-import swaydb.core.data.KeyValue
+import swaydb.core.segment.data.KeyValue
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
@@ -103,7 +103,7 @@ object TransientSegment {
     def bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]]
     def footerUnblocked: Option[SegmentFooterBlock]
 
-    def toKeyValue(offset: Int, size: Int): Slice[swaydb.core.data.Memory] =
+    def toKeyValue(offset: Int, size: Int): Slice[swaydb.core.segment.data.Memory] =
       TransientSegmentSerialiser.toKeyValue(
         singleton = this,
         offset = offset,

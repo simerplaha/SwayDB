@@ -18,7 +18,7 @@ package swaydb.core.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestData._
-import swaydb.core.data.Memory
+import swaydb.core.segment.data.Memory
 import swaydb.core.level.Level
 import swaydb.core.compaction.task.CompactionTask
 import swaydb.core.segment.Segment

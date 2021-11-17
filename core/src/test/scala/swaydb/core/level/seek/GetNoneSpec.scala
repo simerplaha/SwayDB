@@ -22,7 +22,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.{KeyValue, SwayFunctionOutput, Value}
+import swaydb.core.segment.data.{KeyValue, SwayFunctionOutput, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestData, TestTimer}
 import swaydb.slice.order.{KeyOrder, TimeOrder}

@@ -16,7 +16,7 @@
 
 package swaydb.core.log.serialiser
 
-import swaydb.core.data.{Memory, Time, Value}
+import swaydb.core.segment.data.{Memory, Time, Value}
 import swaydb.core.log.LogEntry
 import swaydb.slice.{ReaderBase, Slice}
 

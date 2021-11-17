@@ -21,7 +21,7 @@
 //import swaydb.testkit.RunThis._
 //import swaydb.core.TestData._
 //import swaydb.core.TestTimer
-//import swaydb.core.data.{KeyValue, Memory, Value}
+//import swaydb.core.segment.data.{KeyValue, Memory, Value}
 //import swaydb.slice.Slice
 //import swaydb.serializers.Default._
 //import swaydb.serializers._

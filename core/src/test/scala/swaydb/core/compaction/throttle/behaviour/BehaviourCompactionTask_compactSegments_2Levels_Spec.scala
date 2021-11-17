@@ -20,7 +20,7 @@ import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.data.Memory
+import swaydb.core.segment.data.Memory
 import swaydb.core.level.Level
 import swaydb.core.compaction.task.CompactionTask
 import swaydb.core.segment.Segment

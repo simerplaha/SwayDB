@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.entry.writer
 
-import swaydb.core.data.{Memory, Time}
+import swaydb.core.segment.data.{Memory, Time}
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes._
 import swaydb.utils.Options.when

@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.block.segment.transient
 
-import swaydb.core.data.{Memory, Persistent, Time, Value}
+import swaydb.core.segment.data.{Memory, Persistent, Time, Value}
 import swaydb.core.file.DBFile
 import swaydb.core.file.reader.Reader
 import swaydb.core.log.serialiser.ValueSerialiser.MinMaxSerialiser

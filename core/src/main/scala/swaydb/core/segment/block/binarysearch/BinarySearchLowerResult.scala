@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.block.binarysearch
 
-import swaydb.core.data.Persistent
+import swaydb.core.segment.data.Persistent
 
 class BinarySearchLowerResult(val lower: Persistent.PartialOption,
                               val matched: Persistent.PartialOption)

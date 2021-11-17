@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.EitherValues
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.{KeyValue, Memory}
+import swaydb.core.segment.data.{KeyValue, Memory}
 import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig

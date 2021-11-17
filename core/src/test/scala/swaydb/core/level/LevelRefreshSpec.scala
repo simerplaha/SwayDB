@@ -22,7 +22,7 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.data._
+import swaydb.core.segment.data._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.MMAP

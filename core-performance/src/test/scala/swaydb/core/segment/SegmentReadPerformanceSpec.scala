@@ -18,7 +18,7 @@ package swaydb.core.segment
 
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.data.Memory
+import swaydb.core.segment.data.Memory
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.stats.MergeStats

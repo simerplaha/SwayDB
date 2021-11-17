@@ -16,7 +16,7 @@
 
 package swaydb.core.level
 
-import swaydb.core.data.KeyValue
+import swaydb.core.segment.data.KeyValue
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.{Segment, SegmentOption}

@@ -17,7 +17,7 @@
 package swaydb.core.log.timer
 
 import swaydb.IO
-import swaydb.core.data.Time
+import swaydb.core.segment.data.Time
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.log.LogEntry
 import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}

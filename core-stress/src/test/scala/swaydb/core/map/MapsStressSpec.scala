@@ -21,7 +21,7 @@
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.TestData._
 //import swaydb.core.sweeper.FileSweeper
-//import swaydb.core.data.Memory
+//import swaydb.core.segment.data.Memory
 //import swaydb.core.file.Effect
 //import swaydb.core.file.Effect._
 //import swaydb.core.level.zero.LevelZeroSkipListMerger

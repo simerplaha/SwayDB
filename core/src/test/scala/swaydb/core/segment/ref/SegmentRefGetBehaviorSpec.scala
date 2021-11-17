@@ -19,7 +19,7 @@ package swaydb.core.segment.ref
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.{Persistent, PersistentOption, Time}
+import swaydb.core.segment.data.{Persistent, PersistentOption, Time}
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}

@@ -17,7 +17,7 @@
 package swaydb.core.segment.assigner
 
 import swaydb.utils.Aggregator
-import swaydb.core.data.{KeyValue, Memory, MemoryOption, Value}
+import swaydb.core.segment.data.{KeyValue, Memory, MemoryOption, Value}
 import swaydb.core.segment.assigner.AssignmentTarget._
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.{PersistentSegmentMany, Segment}

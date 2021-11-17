@@ -19,7 +19,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.{Memory, Persistent, PersistentOption}
+import swaydb.core.segment.data.{Memory, Persistent, PersistentOption}
 import swaydb.core.segment.block.BlockCompressionInfo
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.SegmentBlockConfig
