@@ -22,8 +22,8 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.file.sweeper.ByteBufferSweeper.{ByteBufferSweeperActor, Command}
-import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper}
+import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.{ByteBufferCommand, ByteBufferSweeper, FileSweeper}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._
@@ -137,11 +137,11 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
   "recordCleanRequest & recordCleanSuccessful" should {
     "create a record on empty and remove on all clean" in {
       val path = Paths.get("test")
-      val map = mutable.HashMap.empty[Path, mutable.HashMap[Long, ByteBufferSweeper.Command.Clean]]
+      val map = mutable.HashMap.empty[Path, mutable.HashMap[Long, ByteBufferCommand.Clean]]
 
       implicit val forceSaveApplier = ForceSaveApplier.Off
 
-      val command = Command.Clean(null, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
+      val command = ByteBufferCommand.Clean(null, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
 
       ByteBufferSweeper.recordCleanRequest(command, map)
       map should have size 1
@@ -161,11 +161,11 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
         implicit sweeper =>
 
           val path = Paths.get("test")
-          val map = mutable.HashMap.empty[Path, mutable.HashMap[Long, Command.Clean]]
+          val map = mutable.HashMap.empty[Path, mutable.HashMap[Long, ByteBufferCommand.Clean]]
 
           implicit val forceSaveApplier = ForceSaveApplier.Off
 
-          val command = Command.Clean(null, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
+          val command = ByteBufferCommand.Clean(null, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
 
           ByteBufferSweeper.recordCleanRequest(command, map)
           map should have size 1
@@ -176,7 +176,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
           val commands =
             (1 to 100) map {
               i =>
-                val command = Command.Clean(null, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
+                val command = ByteBufferCommand.Clean(null, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
                 ByteBufferSweeper.recordCleanRequest(command, map)
                 map.get(path).value.size shouldBe i
                 command
@@ -223,7 +223,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
             else
               ForceSaveApplier.On
 
-          val command = Command.Clean(buffer, () => false, forced, path, forceSave)
+          val command = ByteBufferCommand.Clean(buffer, () => false, forced, path, forceSave)
 
           val cleanResult = ByteBufferSweeper.initCleanerAndPerformClean(ByteBufferSweeper.State.init, buffer, command)
           cleanResult shouldBe a[IO.Right[_, _]]
@@ -272,9 +272,9 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
                 ForceSaveApplier.On
 
             //clean first
-            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
+            cleaner.actor send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
             //and then delete
-            cleaner.actor send Command.DeleteFile(filePath)
+            cleaner.actor send ByteBufferCommand.DeleteFile(filePath)
 
             //file is eventually deleted but the folder is not deleted
             eventual(2.minutes) {
@@ -290,7 +290,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               forced.get() shouldBe false
 
             //state should be cleared
-            cleaner.actor.ask(Command.IsAllClean[Unit]).await(1.minute)
+            cleaner.actor.ask(ByteBufferCommand.IsAllClean[Unit]).await(1.minute)
         }
       }
 
@@ -316,8 +316,8 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
                 ForceSaveApplier.On
 
             //delete first this will result is delete reschedule on windows.
-            cleaner.actor send Command.DeleteFile(filePath)
-            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
+            cleaner.actor send ByteBufferCommand.DeleteFile(filePath)
+            cleaner.actor send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
 
             //file is eventually deleted but the folder is not deleted
             eventual(2.minutes) {
@@ -333,7 +333,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               forced.get() shouldBe false
 
             //state should be cleared
-            cleaner.actor.ask(Command.IsAllClean[Unit]).await(1.minute)
+            cleaner.actor.ask(ByteBufferCommand.IsAllClean[Unit]).await(1.minute)
         }
       }
     }
@@ -361,9 +361,9 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
                 ForceSaveApplier.On
 
             //clean first
-            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
+            cleaner.actor send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
             //and then delete
-            cleaner.actor send Command.DeleteFolder(folderPath, filePath)
+            cleaner.actor send ByteBufferCommand.DeleteFolder(folderPath, filePath)
 
             eventual(2.minutes) {
               Effect.exists(folderPath) shouldBe false
@@ -378,7 +378,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               forced.get() shouldBe false
 
             //state should be cleared
-            cleaner.actor.ask(Command.IsAllClean[Unit]).await(1.minute)
+            cleaner.actor.ask(ByteBufferCommand.IsAllClean[Unit]).await(1.minute)
         }
       }
 
@@ -404,8 +404,8 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
                 ForceSaveApplier.On
 
             //delete first this will result is delete reschedule on windows.
-            cleaner.actor send Command.DeleteFolder(folderPath, filePath)
-            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
+            cleaner.actor send ByteBufferCommand.DeleteFolder(folderPath, filePath)
+            cleaner.actor send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
 
             eventual(2.minutes) {
               Effect.exists(folderPath) shouldBe false
@@ -420,7 +420,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               forced.get() shouldBe false
 
             //state should be cleared
-            cleaner.actor.ask(Command.IsAllClean[Unit]).await(1.minute)
+            cleaner.actor.ask(ByteBufferCommand.IsAllClean[Unit]).await(1.minute)
         }
       }
     }
@@ -432,7 +432,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
 
             implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(0, 1.seconds).sweep()
 
-            (cleaner.actor ask Command.IsClean(Paths.get("somePath"))).await(1.minute) shouldBe true
+            (cleaner.actor ask ByteBufferCommand.IsClean(Paths.get("somePath"))).await(1.minute) shouldBe true
 
             cleaner.actor.terminate[Glass]()
         }
@@ -462,14 +462,14 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
 
             val hasReference = new AtomicBoolean(true)
             //clean will get rescheduled first.
-            cleaner.actor send Command.Clean(buffer, hasReference.get, forced, filePath, forceSave)
+            cleaner.actor send ByteBufferCommand.Clean(buffer, hasReference.get, forced, filePath, forceSave)
             //since this is the second message and clean is rescheduled this will get processed.
-            (cleaner.actor ask Command.IsClean(filePath)).await(10.seconds) shouldBe false
+            (cleaner.actor ask ByteBufferCommand.IsClean(filePath)).await(10.seconds) shouldBe false
 
             hasReference.set(false)
             //eventually clean is executed
             eventual(5.seconds) {
-              (cleaner.actor ask Command.IsClean(filePath)).await(10.seconds) shouldBe true
+              (cleaner.actor ask ByteBufferCommand.IsClean(filePath)).await(10.seconds) shouldBe true
             }
 
             if (alreadyForced)
@@ -501,8 +501,8 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
 
               runThis(randomIntMax(10) max 1) {
                 Seq(
-                  () => cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(applier),
-                  () => cleaner.actor send Command.DeleteFolder(filePath, filePath)
+                  () => cleaner.actor send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier),
+                  () => cleaner.actor send ByteBufferCommand.DeleteFolder(filePath, filePath)
                 ).runThisRandomly
               }
 
@@ -529,7 +529,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
             eventual(2.minutes) {
               //ByteBufferCleaner is a timer Actor with 5.seconds interval so await enough
               //seconds for the Actor to process stashed request/command.
-              (cleaner.actor ask Command.IsAllClean[Unit]).await(30.seconds) shouldBe true
+              (cleaner.actor ask ByteBufferCommand.IsAllClean[Unit]).await(30.seconds) shouldBe true
             }
 
             //execute all pending Delete commands.
@@ -554,7 +554,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
             cleaner.actor.isTerminated shouldBe true
 
             //its terminates and there are no clean commands so this returns true.
-            (cleaner.actor ask Command.IsTerminated[Unit]).await(2.seconds) shouldBe true
+            (cleaner.actor ask ByteBufferCommand.IsTerminated[Unit]).await(2.seconds) shouldBe true
         }
       }
 
@@ -581,8 +581,8 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               //randomly submit clean and delete in any order and random number of times.
               runThis(randomIntMax(100) max 1) {
                 Seq(
-                  () => runThis(randomIntMax(10) max 1)(cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(forceSaveApplier)),
-                  () => runThis(randomIntMax(10) max 1)(cleaner.actor send Command.DeleteFolder(filePath, filePath))
+                  () => runThis(randomIntMax(10) max 1)(cleaner.actor send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(forceSaveApplier)),
+                  () => runThis(randomIntMax(10) max 1)(cleaner.actor send ByteBufferCommand.DeleteFolder(filePath, filePath))
                 ).runThisRandomly
               }
 
@@ -608,7 +608,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
             }
 
             eventual(1.minute) {
-              (cleaner.actor ask Command.IsTerminated[Unit]).await(2.seconds) shouldBe true
+              (cleaner.actor ask ByteBufferCommand.IsTerminated[Unit]).await(2.seconds) shouldBe true
             }
 
             //there might be some delete messages waiting to be scheduled.

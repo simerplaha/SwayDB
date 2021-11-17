@@ -18,7 +18,7 @@ package swaydb.core.file
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.config.ForceSave
-import swaydb.core.file.sweeper.ByteBufferSweeper
+import swaydb.core.file.sweeper.ByteBufferCommand
 import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.effect.{Effect, Reserve}
 import swaydb.slice.{Slice, SliceRO, Slices}
@@ -161,7 +161,7 @@ private[file] class MMAPFile(val path: Path,
       buffer = null
 
       cleaner.actor send
-        ByteBufferSweeper.Command.Clean(
+        ByteBufferCommand.Clean(
           buffer = swapBuffer,
           hasReference = hasReference _,
           forced = forced,
@@ -352,7 +352,7 @@ private[file] class MMAPFile(val path: Path,
     watchNullPointer {
       close()
       if (deleteAfterClean)
-        cleaner.actor send ByteBufferSweeper.Command.DeleteFile(path)
+        cleaner.actor send ByteBufferCommand.DeleteFile(path)
       else
         Effect.delete(path)
     }

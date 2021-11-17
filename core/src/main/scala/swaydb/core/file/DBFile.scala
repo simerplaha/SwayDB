@@ -21,7 +21,7 @@ import swaydb.Error.IO.ExceptionHandler
 import swaydb.config.ForceSave
 import swaydb.core.cache.Cache
 import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper, FileSweeperCommand, FileSweeperItem}
+import swaydb.core.file.sweeper.{ByteBufferCommand, FileSweeper, FileSweeperCommand, FileSweeperItem}
 import swaydb.effect.{Effect, IOStrategy, Reserve}
 import swaydb.slice.{Slice, SliceRO}
 import swaydb.{Error, IO}
@@ -335,7 +335,7 @@ class DBFile(val path: Path,
           //If the file is already closed, then delete it from disk.
           //memory files are never closed so the first statement will always be executed for memory files.
           if (deleteAfterClean)
-            bufferCleaner.actor send ByteBufferSweeper.Command.DeleteFile(path)
+            bufferCleaner.actor send ByteBufferCommand.DeleteFile(path)
           else
             file.delete()
         }
@@ -343,7 +343,7 @@ class DBFile(val path: Path,
       case None =>
         IO {
           if (deleteAfterClean)
-            bufferCleaner.actor send ByteBufferSweeper.Command.DeleteFile(path)
+            bufferCleaner.actor send ByteBufferCommand.DeleteFile(path)
           else
             Effect.deleteIfExists(path)
         }

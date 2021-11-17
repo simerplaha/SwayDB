@@ -21,7 +21,7 @@ import swaydb.Error.Log.ExceptionHandler
 import swaydb.IO
 import swaydb.config.MMAP
 import swaydb.core.file.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.{ByteBufferSweeper, FileSweeper}
+import swaydb.core.file.sweeper.{ByteBufferCommand, ByteBufferSweeper, FileSweeper}
 import swaydb.core.file.{DBFile, ForceSaveApplier}
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntrySerialiser, LogEntryWriter}
 import swaydb.effect.Effect._
@@ -362,7 +362,7 @@ protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
       //instead invoke close (which will also call ByteBufferCleaner for closing)
       // and then submit delete to ByteBufferCleaner actor.
       currentFile.close()
-      bufferCleaner.actor send ByteBufferSweeper.Command.DeleteFolder(path, currentFile.path)
+      bufferCleaner.actor send ByteBufferCommand.DeleteFolder(path, currentFile.path)
     } else {
       //else delete immediately.
       currentFile.delete()

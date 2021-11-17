@@ -27,7 +27,7 @@ import swaydb.config.compaction.PushStrategy
 import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.core.TestData._
 import swaydb.core.file.reader.{FileReader, Reader}
-import swaydb.core.file.sweeper.ByteBufferSweeper
+import swaydb.core.file.sweeper.{ByteBufferCommand, ByteBufferSweeper}
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.log.serialiser.{LogEntryWriter, RangeValueSerialiser, ValueSerialiser}
@@ -1902,7 +1902,7 @@ object CommonAssertions {
       implicit val bag = Bag.future
       logs.close().value
       logs.bufferCleaner.actor.receiveAllForce[Glass, Unit](_ => ())
-      (logs.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)
+      (logs.bufferCleaner.actor ask ByteBufferCommand.IsTerminated[Unit]).await(10.seconds)
     }
   }
 

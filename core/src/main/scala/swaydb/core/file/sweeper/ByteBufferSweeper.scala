@@ -21,9 +21,7 @@ import swaydb.ActorConfig.QueueOrder
 import swaydb.Bag.Implicits._
 import swaydb.Error.IO.ExceptionHandler
 import swaydb._
-import swaydb.config.ForceSave
 import swaydb.core.cache.{Cache, CacheNoIO}
-import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.ByteBufferCleaner.Cleaner
 import swaydb.effect.Effect
 import swaydb.utils.English
@@ -32,7 +30,6 @@ import swaydb.utils.FiniteDurations.FiniteDurationImplicits
 import java.io.FileNotFoundException
 import java.nio.file.{AccessDeniedException, NoSuchFileException, Path}
 import java.nio.{ByteBuffer, MappedByteBuffer}
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -42,130 +39,11 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
 
   val className = this.productPrefix
 
-  type ByteBufferSweeperActor = CacheNoIO[Unit, ActorRef[Command, State]]
+  type ByteBufferSweeperActor = CacheNoIO[Unit, ActorRef[ByteBufferCommand, State]]
 
   implicit class ByteBufferSweeperActorImplicits(cache: ByteBufferSweeperActor) {
-    @inline def actor: ActorRef[Command, State] =
+    @inline def actor: ActorRef[ByteBufferCommand, State] =
       this.cache.value(())
-  }
-
-  /**
-   * Actor commands.
-   */
-  sealed trait Command {
-    def name: String
-  }
-
-  object Command {
-    sealed trait FileCommand extends Command {
-      def filePath: Path
-    }
-
-    object Clean {
-      private val idGenerator = new AtomicLong(0)
-
-      def apply(buffer: MappedByteBuffer,
-                hasReference: () => Boolean,
-                forced: AtomicBoolean,
-                filePath: Path,
-                forceSave: ForceSave.MMAPFiles)(implicit forceSaveApplier: ForceSaveApplier): Clean =
-        new Clean(
-          buffer = buffer,
-          filePath = filePath,
-          isRecorded = false,
-          hasReference = hasReference,
-          forced = forced,
-          forceSave = forceSave,
-          forceSaveApplier = forceSaveApplier,
-          //this id is being used instead of HashCode because nio.FileChannel returns
-          //the same MappedByteBuffer even after the FileChannel is closed.
-          id = idGenerator.incrementAndGet()
-        )
-    }
-
-    /**
-     * Cleans memory-mapped byte buffer.
-     *
-     * @param buffer       The memory-mapped ByteBuffer to clean.
-     * @param filePath     ByteBuffer's file path
-     * @param isRecorded   Indicates if the [[State]] has recorded this request.
-     * @param hasReference Indicates if the ByteBuffer is currently being read by another thread.
-     * @param id           Unique ID of this command.
-     */
-    case class Clean private(buffer: MappedByteBuffer,
-                             filePath: Path,
-                             isRecorded: Boolean,
-                             hasReference: () => Boolean,
-                             forced: AtomicBoolean,
-                             forceSave: ForceSave.MMAPFiles,
-                             forceSaveApplier: ForceSaveApplier,
-                             id: Long) extends FileCommand {
-      override def name: String = s"Clean: $filePath"
-    }
-
-    sealed trait DeleteCommand extends FileCommand {
-      def deleteTries: Int
-
-      def copyWithDeleteTries(deleteTries: Int): Command
-    }
-
-    /**
-     * Deletes a file.
-     */
-    case class DeleteFile(filePath: Path,
-                          deleteTries: Int = 0) extends DeleteCommand {
-      override def name: String = s"DeleteFile: $filePath"
-
-      override def copyWithDeleteTries(deleteTries: Int): Command =
-        copy(deleteTries = deleteTries)
-    }
-
-    /**
-     * Deletes the folder ensuring that file is cleaned first.
-     */
-    case class DeleteFolder(folderPath: Path, filePath: Path, deleteTries: Int = 0) extends DeleteCommand {
-      override def name: String = s"DeleteFolder. Folder: $folderPath. File: $filePath"
-
-      override def copyWithDeleteTries(deleteTries: Int): Command =
-        copy(deleteTries = deleteTries)
-    }
-
-    /**
-     * Checks if the file is cleaned.
-     *
-     * [[ByteBufferSweeperActor]] is a timer actor so [[IsClean]] will also get
-     * executed based on the [[Actor.interval]]. But terminating the Actor and then
-     * requesting this will return immediate response.
-     */
-    case class IsClean[T](filePath: Path)(val replyTo: ActorRef[Boolean, T]) extends Command {
-      override def name: String = s"IsClean: $filePath"
-    }
-
-    /**
-     * Checks if all files are cleaned.
-     *
-     * [[ByteBufferSweeperActor]] is a timer actor so [[IsAllClean]] will also get
-     * executed based on the [[Actor.interval]]. But terminating the Actor and then
-     * requesting this will return immediate response.
-     */
-    case class IsAllClean[T](replyTo: ActorRef[Boolean, T]) extends Command {
-      override def name: String = s"IsAllClean"
-    }
-
-
-    object IsTerminated {
-      def apply[T](replyTo: ActorRef[Boolean, T]): IsTerminated[T] = new IsTerminated(resubmitted = false)(replyTo)
-    }
-
-    /**
-     * Checks if the actor is terminated and has executed all [[Command.Clean]] requests.
-     *
-     * @note The Actor should be terminated and [[Actor.receiveAllForce()]] should be
-     *       invoked for this to return true otherwise the response is always false.
-     */
-    case class IsTerminated[T] private(resubmitted: Boolean)(val replyTo: ActorRef[Boolean, T]) extends Command {
-      override def name: String = s"IsTerminated. resubmitted = $resubmitted"
-    }
   }
 
   object State {
@@ -181,15 +59,14 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
    * Actors internal state.
    *
    * @param cleaner      memory-map file cleaner.
-   * @param pendingClean pending [[Command.Clean]] requests.
+   * @param pendingClean pending [[ByteBufferCommand.Clean]] requests.
    */
   case class State(var cleaner: Option[Cleaner],
-                   pendingClean: mutable.HashMap[Path, mutable.HashMap[Long, Command.Clean]],
-                   pendingDeletes: mutable.HashMap[Path, Command.DeleteCommand]) {
+                   pendingClean: mutable.HashMap[Path, mutable.HashMap[Long, ByteBufferCommand.Clean]],
+                   pendingDeletes: mutable.HashMap[Path, ByteBufferCommand.DeleteCommand]) {
 
     def isAllClean: Boolean =
       pendingClean.isEmpty && pendingDeletes.isEmpty
-
   }
 
   def close[BAG[_]]()(implicit sweeper: ByteBufferSweeperActor,
@@ -216,13 +93,13 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
               case _: Bag.Sync[BAG] =>
                 //The bag is blocking. Check for termination using Await.
                 implicit val ec: ExecutionContext = sweeper.actor.executionContext
-                val future = actor ask Command.IsTerminated(resubmitted = false)
+                val future = actor ask ByteBufferCommand.IsTerminated(resubmitted = false)
                 val isCleaned = Await.result(future, 30.seconds)
                 prepareResponse(isCleaned)
 
               case bag: Bag.Async[BAG] =>
                 implicit val asyncBag: Bag.Async[BAG] = bag
-                val response = actor ask Command.IsTerminated(resubmitted = false)
+                val response = actor ask ByteBufferCommand.IsTerminated(resubmitted = false)
                 response flatMap prepareResponse
             }
         }
@@ -234,7 +111,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
   /**
    * Maintains the count of all delete request for each memory-mapped file.
    */
-  def recordCleanRequest(command: Command.Clean, pendingClean: mutable.HashMap[Path, mutable.HashMap[Long, Command.Clean]]): Unit =
+  def recordCleanRequest(command: ByteBufferCommand.Clean, pendingClean: mutable.HashMap[Path, mutable.HashMap[Long, ByteBufferCommand.Clean]]): Unit =
     pendingClean.get(command.filePath) match {
       case Some(requests) =>
         requests.put(command.id, command)
@@ -246,7 +123,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
   /**
    * Updates current clean count for the file.
    */
-  def recordCleanSuccessful(command: Command.Clean, pendingClean: mutable.HashMap[Path, mutable.HashMap[Long, Command.Clean]]): Unit =
+  def recordCleanSuccessful(command: ByteBufferCommand.Clean, pendingClean: mutable.HashMap[Path, mutable.HashMap[Long, ByteBufferCommand.Clean]]): Unit =
     pendingClean.get(command.filePath) foreach {
       requests =>
         requests.remove(command.id)
@@ -269,7 +146,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
    */
   def initCleanerAndPerformClean(state: State,
                                  buffer: MappedByteBuffer,
-                                 command: Command.Clean): IO[swaydb.Error.IO, State] = {
+                                 command: ByteBufferCommand.Clean): IO[swaydb.Error.IO, State] = {
     implicit val applier = command.forceSaveApplier
 
     state.cleaner match {
@@ -322,8 +199,8 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
    * @param messageReschedule reschedule if clean is not overdue.
    */
   @tailrec
-  private def performClean(command: Command.Clean,
-                           self: Actor[Command, State],
+  private def performClean(command: ByteBufferCommand.Clean,
+                           self: Actor[ByteBufferCommand, State],
                            messageReschedule: Option[FiniteDuration]): Unit =
     if (command.hasReference()) {
       val rescheduleCommand =
@@ -379,18 +256,18 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
    * If there are pending cleans then the delete is postponed until the clean is successful.
    */
   @tailrec
-  private def performDelete(command: Command.DeleteCommand,
-                            self: Actor[Command, State],
+  private def performDelete(command: ByteBufferCommand.DeleteCommand,
+                            self: Actor[ByteBufferCommand, State],
                             maxDeleteRetries: Int,
                             messageReschedule: Option[FiniteDuration]): Unit =
     if (isReadyToDelete(command.filePath, self.state))
       try
         command match {
-          case command: Command.DeleteFile =>
+          case command: ByteBufferCommand.DeleteFile =>
             Effect.walkDelete(command.filePath) //try delete the file or folder.
             self.state.pendingDeletes.remove(command.filePath)
 
-          case command: Command.DeleteFolder =>
+          case command: ByteBufferCommand.DeleteFolder =>
             Effect.walkDelete(command.folderPath) //try delete the file or folder.
             self.state.pendingDeletes.remove(command.filePath)
         }
@@ -448,11 +325,11 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
       }
 
   /**
-   * Checks if the actor is terminated and has executed all [[Command.Clean]] requests. This is does not check if the
-   * files are deleted because [[Command.DeleteCommand]]s are just executed and not monitored.
+   * Checks if the actor is terminated and has executed all [[ByteBufferCommand.Clean]] requests. This is does not check if the
+   * files are deleted because [[ByteBufferCommand.DeleteCommand]]s are just executed and not monitored.
    */
-  private def performIsTerminatedAndCleaned(command: Command.IsTerminated[_],
-                                            self: Actor[Command, State]): Unit =
+  private def performIsTerminatedAndCleaned(command: ByteBufferCommand.IsTerminated[_],
+                                            self: Actor[ByteBufferCommand, State]): Unit =
     if (self.isTerminated && self.state.isAllClean)
       command.replyTo send true
     else if (command.resubmitted) //already double checked.
@@ -460,7 +337,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
     else
       self send command.copy(resubmitted = true)(command.replyTo) //resubmit so that if Actor's receiveAll is in progress then this message goes last.
 
-  def runPostTerminate(self: Actor[Command, State],
+  def runPostTerminate(self: Actor[ByteBufferCommand, State],
                        maxDeleteRetries: Int) = {
     if (self.state.pendingClean.nonEmpty)
       logger.info(s"Cleaning ${self.state.pendingClean.size} memory-mapped ${English.plural(self.state.pendingClean.size, "file")}")
@@ -507,7 +384,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
   def apply(maxDeleteRetries: Int = 5,
             messageReschedule: FiniteDuration = 5.seconds)(implicit executionContext: ExecutionContext,
                                                            actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ByteBufferSweeperActor =
-    Cache.noIO[Unit, ActorRef[Command, State]](synchronised = true, stored = true, initial = None) {
+    Cache.noIO[Unit, ActorRef[ByteBufferCommand, State]](synchronised = true, stored = true, initial = None) {
       (_, _) =>
         logger.info(s"Starting ${this.productPrefix} for memory-mapped files.")
         createActor(
@@ -519,19 +396,19 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
   /**
    * Actor function
    */
-  private def process(command: Command,
-                      self: Actor[Command, State],
+  private def process(command: ByteBufferCommand,
+                      self: Actor[ByteBufferCommand, State],
                       maxDeleteRetries: Int,
                       messageReschedule: Option[FiniteDuration]): Unit =
     command match {
-      case command: Command.Clean =>
+      case command: ByteBufferCommand.Clean =>
         ByteBufferSweeper.performClean(
           command = command,
           self = self,
           messageReschedule = messageReschedule
         )
 
-      case command: Command.DeleteCommand =>
+      case command: ByteBufferCommand.DeleteCommand =>
         self.state.pendingDeletes.put(command.filePath, command)
 
         ByteBufferSweeper.performDelete(
@@ -541,13 +418,13 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
           messageReschedule = messageReschedule
         )
 
-      case command: Command.IsClean[_] =>
+      case command: ByteBufferCommand.IsClean[_] =>
         command.replyTo send isReadyToDelete(command.filePath, self.state)
 
-      case command: Command.IsAllClean[_] =>
+      case command: ByteBufferCommand.IsAllClean[_] =>
         command.replyTo send self.state.pendingClean.isEmpty
 
-      case command: Command.IsTerminated[_] =>
+      case command: ByteBufferCommand.IsTerminated[_] =>
         ByteBufferSweeper.performIsTerminatedAndCleaned(command, self)
     }
 
@@ -556,15 +433,15 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
    *
    * This [[Actor]] is optionally started if the database instances is booted with memory-mapped enabled.
    *
-   * @param maxDeleteRetries  If a [[Command.DeleteFile]] command is submitting but the file is not cleaned
+   * @param maxDeleteRetries  If a [[ByteBufferCommand.DeleteFile]] command is submitting but the file is not cleaned
    *                          yet [[maxDeleteRetries]] defines the max number of retries before the file
    *                          is un-deletable.
    * @param messageReschedule reschedule delay for [[maxDeleteRetries]]
    */
   private def createActor(maxDeleteRetries: Int,
                           messageReschedule: FiniteDuration)(implicit ec: ExecutionContext,
-                                                             actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ActorRef[Command, State] =
-    Actor[Command, State](
+                                                             actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ActorRef[ByteBufferCommand, State] =
+    Actor[ByteBufferCommand, State](
       name = ByteBufferSweeper.className,
       state = State.init
     ) {
@@ -576,7 +453,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
           messageReschedule = Some(messageReschedule)
         )
 
-    }.recoverException[Command] {
+    }.recoverException[ByteBufferCommand] {
       case (command, IO.Right(Actor.Error.TerminatedActor), self) =>
         process(
           command = command,
@@ -588,7 +465,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
       case (message, IO.Left(exception), _) =>
         val pathInfo =
           message match {
-            case command: Command.FileCommand =>
+            case command: ByteBufferCommand.FileCommand =>
               s"""Path: ${command.filePath}."""
 
             case _ =>

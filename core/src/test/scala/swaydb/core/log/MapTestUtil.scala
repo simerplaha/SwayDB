@@ -22,7 +22,7 @@ import swaydb.config.MMAP
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.ByteBufferSweeper
+import swaydb.core.file.sweeper.ByteBufferCommand
 import swaydb.core.file.sweeper.ByteBufferSweeper.{ByteBufferSweeperActor, State}
 import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
@@ -86,7 +86,7 @@ object MapTestUtil {
 
       implicit val ec = TestExecutionContext.executionContext
       implicit val bag = Bag.future
-      val isShut = (log.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)
+      val isShut = (log.bufferCleaner.actor ask ByteBufferCommand.IsTerminated[Unit]).await(10.seconds)
       assert(isShut, "Is not shut")
     }
   }
