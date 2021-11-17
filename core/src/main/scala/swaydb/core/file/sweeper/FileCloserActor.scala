@@ -38,20 +38,23 @@ private object FileCloserActor extends LazyLogging {
 
   private def closeFile(command: FileSweeperCommand.CloseFileItem,
                         file: WeakReference[FileSweeperItem],
-                        self: Actor[FileSweeperCommand.Close, State]): Unit =
-    file.get foreach {
-      file =>
-        val fileParentPath = file.path.getParent
-        if (self.state.pausedFolders.exists(pausedFolder => fileParentPath.startsWith(pausedFolder)))
-          self.send(command, delayPausedClosing)
-        else
-          try
-            file.close()
-          catch {
-            case exception: Exception =>
-              logger.error(s"Failed to close file. ${file.path}", exception)
-          }
+                        self: Actor[FileSweeperCommand.Close, State]): Unit = {
+    //using underlying to avoid creating Option
+    val fileOrNull = file.underlying.get()
+
+    if (fileOrNull != null) {
+      val fileParentPath = fileOrNull.path.getParent
+      if (self.state.pausedFolders.exists(pausedFolder => fileParentPath.startsWith(pausedFolder)))
+        self.send(command, delayPausedClosing)
+      else
+        try
+          fileOrNull.close()
+        catch {
+          case exception: Exception =>
+            logger.error(s"Failed to close file. ${fileOrNull.path}", exception)
+        }
     }
+  }
 
   private def processCommand(command: FileSweeperCommand.Close, self: Actor[FileSweeperCommand.Close, State]): Unit =
     command match {
