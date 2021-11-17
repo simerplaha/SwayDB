@@ -18,9 +18,8 @@ package swaydb.core.util
 
 import swaydb.OK
 import swaydb.core.segment.data.KeyValue
-import swaydb.core.file.reader.Reader
-import swaydb.slice.Slice
 import swaydb.slice.utils.ScalaByteOps
+import swaydb.slice.{Slice, SliceReader}
 
 private[swaydb] object Bytes extends ScalaByteOps {
 
@@ -173,7 +172,7 @@ private[swaydb] object Bytes extends ScalaByteOps {
 
   def decompressJoin(bytes: Slice[Byte]): (Slice[Byte], Slice[Byte]) = {
 
-    val reader = Reader(bytes)
+    val reader = SliceReader(bytes)
     val (leftBytesSize, lastBytesRead) = ScalaByteOps.readLastUnsignedInt(bytes)
     val left = reader.read(leftBytesSize)
     val commonBytes = reader.readUnsignedInt()
