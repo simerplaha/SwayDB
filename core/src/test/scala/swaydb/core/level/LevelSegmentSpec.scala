@@ -23,7 +23,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data._
-import swaydb.core.level.compaction.io.CompactionIO
+import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.util.IDGenerator
 import swaydb.utils.PipeOps._

@@ -18,13 +18,12 @@ package swaydb.queue
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.TestData._
-import swaydb.core.TestExecutionContext
 import swaydb.testkit.RunThis._
 
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
+import scala.util.Random
 
 class VolatileQueueSpec extends AnyWordSpec with Matchers {
 
@@ -294,7 +293,7 @@ class VolatileQueueSpec extends AnyWordSpec with Matchers {
   }
 
   "concurrent" in {
-    implicit val ec = TestExecutionContext.executionContext
+    implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
 
     val queue = VolatileQueue[Integer]()
 
@@ -303,7 +302,7 @@ class VolatileQueueSpec extends AnyWordSpec with Matchers {
         (1 to 100000).par foreach {
           i =>
             if (i % 1000 == 0) println(s"Write: $i")
-            if (randomBoolean())
+            if (Random.nextBoolean())
               queue.addHead(i)
             else
               queue.addLast(i)

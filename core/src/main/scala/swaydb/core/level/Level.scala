@@ -22,7 +22,7 @@ import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
-import swaydb.core.level.compaction.io.CompactionIO
+import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.log.serializer._

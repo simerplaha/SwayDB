@@ -21,8 +21,8 @@ import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.build.{Build, BuildValidator}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
-import swaydb.core.level.compaction._
-import swaydb.core.level.compaction.throttle.ThrottleCompactorCreator
+import swaydb.core.compaction._
+import swaydb.core.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelCloser, NextLevel}
 import swaydb.core.segment.block

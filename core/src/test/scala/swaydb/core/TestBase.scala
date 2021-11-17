@@ -27,9 +27,9 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Time}
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.FileReader
-import swaydb.core.level.compaction._
-import swaydb.core.level.compaction.io.CompactionIO
-import swaydb.core.level.compaction.throttle.ThrottleCompactorCreator
+import swaydb.core.compaction._
+import swaydb.core.compaction.io.CompactionIO
+import swaydb.core.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}

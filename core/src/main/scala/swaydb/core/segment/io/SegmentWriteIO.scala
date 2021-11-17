@@ -34,7 +34,7 @@ import swaydb.{Error, IO}
  * Provides implementation on how [[TransientSegment]]
  * should be persisted.
  *
- * Used by [[swaydb.core.level.compaction.Compaction]] to delay persisting
+ * Used by [[swaydb.core.compaction.Compaction]] to delay persisting
  * [[TransientSegment]] on dedicated IO ExecutionContext.
  *
  */

@@ -19,7 +19,7 @@ package swaydb.core.segment
 import swaydb.core.data.{DefIO, Memory}
 import swaydb.core.io.file.DBFile
 import swaydb.core.level.PathsDistributor
-import swaydb.core.level.compaction.io.CompactionIO
+import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig

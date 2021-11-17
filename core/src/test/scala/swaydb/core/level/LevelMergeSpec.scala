@@ -24,7 +24,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.data.Value.FromValue
-import swaydb.core.level.compaction.io.CompactionIO
+import swaydb.core.compaction.io.CompactionIO
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.MMAP
 import swaydb.slice.order.{KeyOrder, TimeOrder}

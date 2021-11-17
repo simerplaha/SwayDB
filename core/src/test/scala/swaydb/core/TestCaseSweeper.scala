@@ -22,7 +22,7 @@ import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.TestSweeper._
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.LevelRef
-import swaydb.core.level.compaction.io.CompactionIO
+import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.log.counter.CounterLog
 import swaydb.core.log.{Log, Logs}
 import swaydb.core.segment.Segment

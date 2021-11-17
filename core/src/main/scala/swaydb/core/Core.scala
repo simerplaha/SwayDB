@@ -22,7 +22,7 @@ import swaydb._
 import swaydb.core.build.BuildValidator
 import swaydb.core.data.{Memory, SwayFunction, Value}
 import swaydb.core.function.FunctionStore
-import swaydb.core.level.compaction.Compactor
+import swaydb.core.compaction.Compactor
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.log.LogEntry
 import swaydb.core.log.serializer.LevelZeroLogEntryWriter

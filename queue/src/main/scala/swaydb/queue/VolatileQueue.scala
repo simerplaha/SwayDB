@@ -18,7 +18,7 @@ package swaydb.queue
 
 import swaydb.utils.DropIterator
 
-private[core] object VolatileQueue {
+private[swaydb] object VolatileQueue {
 
   @inline def apply[A >: Null](): VolatileQueue[A] =
     apply[A](Node.Empty)
@@ -50,9 +50,9 @@ private[core] object VolatileQueue {
  * iteration performance in [[swaydb.core.level.zero.LevelZero]] with [[Walker]] and [[iterator]]
  * should reduce GC allocations when performing reads.
  */
-private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A],
-                                             @volatile private var _last: Node[A],
-                                             @volatile private var _size: Int) { self =>
+private[swaydb] class VolatileQueue[A >: Null](@volatile private var _head: Node[A],
+                                               @volatile private var _last: Node[A],
+                                               @volatile private var _size: Int) { self =>
 
   def size: Int =
     _size

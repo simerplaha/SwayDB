@@ -17,7 +17,7 @@
 package swaydb.core.level
 
 import swaydb.core.data.{DefIO, Memory}
-import swaydb.core.level.compaction.io.CompactionIO
+import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.{Assignable, Assignment}

@@ -21,7 +21,7 @@ import swaydb.core.data.{DefIO, Memory}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.PathsDistributor
-import swaydb.core.level.compaction.io.CompactionIO
+import swaydb.core.compaction.io.CompactionIO
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.assigner._
