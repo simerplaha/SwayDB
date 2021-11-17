@@ -438,7 +438,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
         appliedFunctionsLogSize = appliedFunctionsLogSize,
         clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
         storage = level0Storage,
-        coreState = CoreState(),
         nextLevel = nextLevel,
         enableTimer = enableTimer,
         cacheKeyValueIds = randomBoolean(),

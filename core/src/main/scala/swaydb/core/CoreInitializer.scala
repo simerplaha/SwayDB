@@ -241,8 +241,6 @@ private[core] object CoreInitializer extends LazyLogging {
                   config = config.level1
                 ) flatMap {
                   level1 =>
-                    val coreState = CoreState()
-
                     implicit val optimiseWrites: OptimiseWrites = config.level0.optimiseWrites
                     implicit val atomic: Atomic = config.level0.atomic
 
@@ -253,7 +251,6 @@ private[core] object CoreInitializer extends LazyLogging {
                       storage = config.level0.storage,
                       enableTimer = enableTimer,
                       cacheKeyValueIds = cacheKeyValueIds,
-                      coreState = coreState,
                       nextLevel = Some(level1),
                       acceleration = config.level0.acceleration,
                       throttle = config.level0.throttle
@@ -294,7 +291,7 @@ private[core] object CoreInitializer extends LazyLogging {
                             val core =
                               new Core[Glass](
                                 zero = zero,
-                                coreState = coreState,
+                                coreState = CoreState(),
                                 threadStateCache = threadStateCache,
                                 sequencer = Sequencer.synchronised(Bag.glass),
                                 readStates = readStates

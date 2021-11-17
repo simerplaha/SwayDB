@@ -373,7 +373,6 @@ object TestData {
                     ),
                   enableTimer = true,
                   cacheKeyValueIds = randomBoolean(),
-                  coreState = level.coreState,
                   nextLevel = level.nextLevel,
                   acceleration = Accelerator.brake(),
                   throttle = level.throttle

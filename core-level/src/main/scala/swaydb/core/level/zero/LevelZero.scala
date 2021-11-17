@@ -43,7 +43,7 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.{FunctionStore, Segment, SegmentOption}
 import swaydb.core.skiplist.SkipList
 import swaydb.core.util.MinMax
-import swaydb.core.{CoreState, MemoryPathGenerator}
+import swaydb.core.MemoryPathGenerator
 import swaydb.effect.{Effect, FileLocker}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, Slice, SliceOption}
@@ -80,7 +80,6 @@ private[core] case object LevelZero extends LazyLogging {
             storage: Level0Storage,
             enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
-            coreState: CoreState,
             nextLevel: Option[NextLevel],
             acceleration: LevelZeroMeter => Accelerator,
             throttle: LevelZeroMeter => LevelZeroThrottle)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -245,7 +244,6 @@ private[core] case object LevelZero extends LazyLogging {
               inMemory = storage.memory,
               throttle = throttle,
               appliedFunctionsLog = appliedFunctions,
-              coreState = coreState,
               lock = lock
             )
 
@@ -276,7 +274,6 @@ private[swaydb] case class LevelZero(path: Path,
                                      inMemory: Boolean,
                                      throttle: LevelZeroMeter => LevelZeroThrottle,
                                      appliedFunctionsLog: Option[Log[Slice[Byte], Slice.Null.type, AppliedFunctionsLogCache]],
-                                     coreState: CoreState,
                                      private val lock: Option[FileLocker])(implicit val keyOrder: KeyOrder[Slice[Byte]],
                                                                            val timeOrder: TimeOrder[Slice[Byte]],
                                                                            val functionStore: FunctionStore) extends LevelRef with LazyLogging {
