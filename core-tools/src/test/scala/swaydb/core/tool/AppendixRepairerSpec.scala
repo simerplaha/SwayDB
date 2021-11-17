@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.level.tool
+package swaydb.core.tool
 
 import swaydb.Glass
 import swaydb.IOValues._

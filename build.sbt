@@ -357,6 +357,13 @@ lazy val `swaydb-java` =
     .settings(libraryDependencies ++= commonJavaDependencies)
     .dependsOn(swaydb)
 
+lazy val `core-tools` =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(core)
+
 /**
  * Support modules - Effect
  */
@@ -394,3 +401,14 @@ lazy val `x-interop-boopickle` =
     .settings(publishSettings)
     .settings(libraryDependencies += "io.suzaku" %% "boopickle" % boopickleVersion)
     .dependsOn(serializers, slice)
+
+/**
+ * TOOLS
+ */
+lazy val `swaydb-tools` =
+  project
+    .settings(name := "tools")
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(swaydb, `core-tools`)

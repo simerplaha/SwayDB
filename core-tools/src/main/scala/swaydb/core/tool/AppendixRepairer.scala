@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.level.tool
+package swaydb.core.tool
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
