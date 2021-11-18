@@ -30,13 +30,13 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.compaction._
-import swaydb.core.compaction.io.CompactionIO
+import swaydb.core.segment.{CompactionIO, PathsDistributor, PersistentSegment, Segment}
 import swaydb.core.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.file.DBFile
 import swaydb.core.file.reader.FileReader
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
-import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
+import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
@@ -47,7 +47,6 @@ import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.{Memory, Time}
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.IDGenerator
 import swaydb.effect.{Dir, Effect}
 import swaydb.slice.Slice

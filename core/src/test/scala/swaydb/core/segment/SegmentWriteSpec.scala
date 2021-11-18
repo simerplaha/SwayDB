@@ -28,7 +28,7 @@ import swaydb.core.TestData._
 import swaydb.core._
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
-import swaydb.core.level.PathsDistributor
+import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment.block.BlockCacheState
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig

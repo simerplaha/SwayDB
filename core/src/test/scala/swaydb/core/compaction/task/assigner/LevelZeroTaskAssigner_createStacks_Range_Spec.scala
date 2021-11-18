@@ -17,7 +17,7 @@
 package swaydb.core.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.EitherValues._
+import swaydb.testkit.EitherValues._
 import swaydb.core.TestData._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.segment.data.{Memory, Time, Value}

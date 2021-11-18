@@ -22,7 +22,7 @@ import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.level.PathsDistributor
+import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlockConfig}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig

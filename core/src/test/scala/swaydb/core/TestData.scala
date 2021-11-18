@@ -31,12 +31,12 @@ import swaydb.config.storage.{Level0Storage, LevelStorage}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.cache.Cache
-import swaydb.core.compaction.io.CompactionIO
+import swaydb.core.segment.CompactionIO
 import swaydb.core.file.DBFile
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
-import swaydb.core.level.{Level, NextLevel, PathsDistributor}
+import swaydb.core.level.{Level, NextLevel}
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block._

@@ -18,7 +18,7 @@ package swaydb.core.util
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.EitherValues.EitherTestUtils
+import swaydb.testkit.EitherValues.EitherTestUtils
 import swaydb.IO.ApiIO
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._

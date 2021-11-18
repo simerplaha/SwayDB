@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.EitherValues
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.level.PathsDistributor
+import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.segment.transient.TransientSegment

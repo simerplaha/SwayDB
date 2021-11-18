@@ -22,7 +22,7 @@ import swaydb.config.MMAP
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.level.PathsDistributor
+import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
