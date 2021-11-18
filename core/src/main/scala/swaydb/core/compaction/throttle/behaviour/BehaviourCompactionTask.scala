@@ -18,7 +18,7 @@ package swaydb.core.compaction.throttle.behaviour
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-import swaydb.core.segment.CompactionIO
+import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.compaction.task.CompactionTask
 import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand}
 import swaydb.core.level._
@@ -90,7 +90,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
                                                    lastLevel: Level)(implicit ec: ExecutionContext,
                                                                      fileSweeper: FileSweeper.On,
                                                                      parallelism: CompactionParallelism): Future[Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]]] = {
-    implicit val compactionIO: CompactionIO.Actor = CompactionIO.create()
+    implicit val compactionIO: SegmentCompactionIO.Actor = SegmentCompactionIO.create()
 
     Futures.traverseBounded(parallelism.multiLevelTaskParallelism, tasks) {
       task =>
@@ -168,7 +168,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
       Future.unit
     else
       ensurePauseSweeper(task.compactingLevels) {
-        implicit val compactionIO: CompactionIO.Actor = CompactionIO.create()
+        implicit val compactionIO: SegmentCompactionIO.Actor = SegmentCompactionIO.create()
 
         task
           .source

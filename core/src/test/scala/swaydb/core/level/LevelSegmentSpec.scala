@@ -25,7 +25,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.segment.CompactionIO
+import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data._
 import swaydb.core.util.IDGenerator
@@ -279,8 +279,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 150.bytes, deleteDelay = Duration.Zero, mmap = mmapSegments))
 
                 {
-                  implicit val compactionIO: CompactionIO.Actor =
-                    CompactionIO.create().sweep()
+                  implicit val compactionIO: SegmentCompactionIO.Actor =
+                    SegmentCompactionIO.create().sweep()
 
                   level.putSegments(segmentToMerge) shouldBe IO.unit
                 }
@@ -296,8 +296,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 val levelFilesBeforePut = level.segmentFilesOnDisk
 
                 {
-                  implicit val compactionIO: CompactionIO.Actor =
-                    CompactionIO.create()
+                  implicit val compactionIO: SegmentCompactionIO.Actor =
+                    SegmentCompactionIO.create()
 
                   level.putSegments(segmentToMerge).left.get.exception shouldBe a[FileAlreadyExistsException]
 

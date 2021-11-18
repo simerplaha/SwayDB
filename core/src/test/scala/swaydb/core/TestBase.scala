@@ -30,7 +30,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.compaction._
-import swaydb.core.segment.{CompactionIO, PathsDistributor, PersistentSegment, Segment}
+import swaydb.core.segment.{PathsDistributor, PersistentSegment, Segment}
 import swaydb.core.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.file.DBFile
 import swaydb.core.file.reader.FileReader
@@ -46,7 +46,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.{Memory, Time}
-import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.io.{SegmentCompactionIO, SegmentReadIO}
 import swaydb.core.util.IDGenerator
 import swaydb.effect.{Dir, Effect}
 import swaydb.slice.Slice
@@ -792,8 +792,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     implicit val ec: ExecutionContext =
       TestExecutionContext.executionContext
 
-    implicit val compactionIOActor: CompactionIO.Actor =
-      CompactionIO.create().sweep()
+    implicit val compactionIOActor: SegmentCompactionIO.Actor =
+      SegmentCompactionIO.create().sweep()
 
     println("level3.putKeyValues")
     if (level3KeyValues.nonEmpty) level3.put(level3KeyValues).runRandomIO.right.value

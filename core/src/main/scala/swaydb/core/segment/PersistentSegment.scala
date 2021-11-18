@@ -18,7 +18,7 @@ package swaydb.core.segment
 
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.{MMAP, SegmentRefCacheLife}
-import swaydb.core.segment.CompactionIO
+import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.file.DBFile
 import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
@@ -71,7 +71,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
           segmentRefCacheLife: SegmentRefCacheLife,
           mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
                               executionContext: ExecutionContext,
-                              compactionIO: CompactionIO.Actor,
+                              compactionIO: SegmentCompactionIO.Actor,
                               compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]]
 
   def refresh(removeDeletes: Boolean,

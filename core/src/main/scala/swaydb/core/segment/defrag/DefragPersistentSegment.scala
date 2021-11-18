@@ -18,7 +18,7 @@ package swaydb.core.segment.defrag
 
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.{MMAP, SegmentRefCacheLife}
-import swaydb.core.segment.CompactionIO
+import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
@@ -87,7 +87,7 @@ object DefragPersistentSegment {
                                                              segmentReadIO: SegmentReadIO,
                                                              idGenerator: IDGenerator,
                                                              forceSaveApplier: ForceSaveApplier,
-                                                             compactionIO: CompactionIO.Actor,
+                                                             compactionIO: SegmentCompactionIO.Actor,
                                                              segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment],
                                                              compactionParallelism: CompactionParallelism): Future[DefIO[NULL_SEG, scala.collection.SortedSet[PersistentSegment]]] =
     Future {
@@ -143,7 +143,7 @@ object DefragPersistentSegment {
                                                           segmentReadIO: SegmentReadIO,
                                                           idGenerator: IDGenerator,
                                                           forceSaveApplier: ForceSaveApplier,
-                                                          compactionIO: CompactionIO.Actor,
+                                                          compactionIO: SegmentCompactionIO.Actor,
                                                           segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment],
                                                           compactionParallelism: CompactionParallelism): Future[DefIO[NULL_SEG, scala.collection.SortedSet[PersistentSegment]]] =
     Defrag.runOnGaps(
@@ -202,7 +202,7 @@ object DefragPersistentSegment {
                                   segmentReadIO: SegmentReadIO,
                                   idGenerator: IDGenerator,
                                   forceSaveApplier: ForceSaveApplier,
-                                  compactionIO: CompactionIO.Actor,
+                                  compactionIO: SegmentCompactionIO.Actor,
                                   segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment],
                                   compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentOption, scala.collection.SortedSet[PersistentSegment]]] =
     if (newKeyValues.isEmpty)
@@ -447,7 +447,7 @@ object DefragPersistentSegment {
                                           segmentReadIO: SegmentReadIO,
                                           idGenerator: IDGenerator,
                                           forceSaveApplier: ForceSaveApplier,
-                                          compactionIO: CompactionIO.Actor,
+                                          compactionIO: SegmentCompactionIO.Actor,
                                           segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment],
                                           compactionParallelism: CompactionParallelism): Future[scala.collection.SortedSet[PersistentSegment]] = {
     val groups = ListBuffer.empty[ListBuffer[TransientSegment.RemoteRefOrStats[MergeStats.Persistent.Builder[Memory, ListBuffer]]]]
@@ -558,7 +558,7 @@ object DefragPersistentSegment {
                                               segmentReadIO: SegmentReadIO,
                                               idGenerator: IDGenerator,
                                               forceSaveApplier: ForceSaveApplier,
-                                              compactionIO: CompactionIO.Actor,
+                                              compactionIO: SegmentCompactionIO.Actor,
                                               segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment],
                                               compactionParallelism: CompactionParallelism): Future[Iterable[PersistentSegment]] =
     if (group.isEmpty)

@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.TestSweeper._
 import swaydb.core.cache.{Cache, CacheNoIO}
-import swaydb.core.segment.CompactionIO
+import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
@@ -59,7 +59,7 @@ object TestCaseSweeper extends LazyLogging {
     new TestCaseSweeper(
       fileSweepers = ListBuffer(Cache.noIO[Unit, FileSweeper.On](true, true, None)((_, _) => createFileSweeper())),
       cleaners = ListBuffer(Cache.noIO[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner())),
-      compactionIOActors = ListBuffer(Cache.noIO[Unit, CompactionIO.Actor](true, true, None)((_, _) => CompactionIO.create()(TestExecutionContext.executionContext))),
+      compactionIOActors = ListBuffer(Cache.noIO[Unit, SegmentCompactionIO.Actor](true, true, None)((_, _) => SegmentCompactionIO.create()(TestExecutionContext.executionContext))),
       blockCaches = ListBuffer(Cache.noIO[Unit, Option[BlockCacheState]](true, true, None)((_, _) => createBlockCacheRandom())),
       allMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.All]](true, true, None)((_, _) => createMemorySweeperMax())),
       keyValueMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.KeyValue]](true, true, None)((_, _) => createMemorySweeperRandom())),
@@ -217,8 +217,8 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepBufferCleaner actor
   }
 
-  implicit class CompactionIOActorImplicits(actor: CompactionIO.Actor) {
-    def sweep()(implicit sweeper: TestCaseSweeper): CompactionIO.Actor =
+  implicit class CompactionIOActorImplicits(actor: SegmentCompactionIO.Actor) {
+    def sweep()(implicit sweeper: TestCaseSweeper): SegmentCompactionIO.Actor =
       sweeper sweepCompactionIOActors actor
   }
 
@@ -269,7 +269,7 @@ object TestCaseSweeper extends LazyLogging {
 
 class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeper.On]],
                       private val cleaners: ListBuffer[CacheNoIO[Unit, ByteBufferSweeperActor]],
-                      private val compactionIOActors: ListBuffer[CacheNoIO[Unit, CompactionIO.Actor]],
+                      private val compactionIOActors: ListBuffer[CacheNoIO[Unit, SegmentCompactionIO.Actor]],
                       private val blockCaches: ListBuffer[CacheNoIO[Unit, Option[BlockCacheState]]],
                       private val allMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.All]]],
                       private val keyValueMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.KeyValue]]],
@@ -292,7 +292,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
   implicit lazy val fileSweeper: FileSweeper.On = fileSweepers.head.value(())
   implicit lazy val cleaner: ByteBufferSweeperActor = cleaners.head.value(())
   implicit lazy val blockCache: Option[BlockCacheState] = blockCaches.head.value(())
-  implicit lazy val compactionIOActor: CompactionIO.Actor = compactionIOActors.head.value(())
+  implicit lazy val compactionIOActor: SegmentCompactionIO.Actor = compactionIOActors.head.value(())
 
   //MemorySweeper.All can also be set which means other sweepers will search for dedicated sweepers first and
   //if not found then the head from allMemorySweeper is fetched.
@@ -376,7 +376,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
   def sweepScheduler(schedule: Scheduler): Scheduler =
     removeReplaceCache(schedulers, schedule)
 
-  def sweepCompactionIOActors(actor: CompactionIO.Actor): CompactionIO.Actor =
+  def sweepCompactionIOActors(actor: SegmentCompactionIO.Actor): SegmentCompactionIO.Actor =
     removeReplaceCache(compactionIOActors, actor)
 
   def sweepActor[T, S](actor: ActorRef[T, S]): ActorRef[T, S] = {

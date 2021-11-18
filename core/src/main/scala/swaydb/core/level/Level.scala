@@ -22,7 +22,7 @@ import swaydb.Error.Level.ExceptionHandler
 import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.config.storage.LevelStorage
-import swaydb.core.segment.CompactionIO
+import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
@@ -450,7 +450,7 @@ private[core] case class Level(dirs: Seq[Dir],
    */
   def collapse(segments: Iterable[Segment],
                removeDeletedRecords: Boolean)(implicit ec: ExecutionContext,
-                                              compactionIO: CompactionIO.Actor,
+                                              compactionIO: SegmentCompactionIO.Actor,
                                               parallelism: CompactionParallelism): Future[LevelCollapseResult] = {
     logger.trace(s"{}: Collapsing '{}' segments", pathDistributor.head, segments.size)
     if (segments.isEmpty || appendix.cache.size == 1) //if there is only one Segment in this Level which is a small segment. No collapse required
@@ -573,7 +573,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def merge(assigment: DefIO[Iterable[Assignable], Iterable[Assignment[Iterable[Assignable.Gap[MergeStats.Segment[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]]],
             removeDeletedRecords: Boolean)(implicit ec: ExecutionContext,
-                                           compactionIO: CompactionIO.Actor,
+                                           compactionIO: SegmentCompactionIO.Actor,
                                            parallelism: CompactionParallelism): Future[Iterable[DefIO[SegmentOption, Iterable[Segment]]]] = {
     logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assigment.input.size)
     if (inMemory)
@@ -679,7 +679,7 @@ private[core] case class Level(dirs: Seq[Dir],
   @inline private def mergePersistent(newKeyValues: Iterable[Assignable],
                                       removeDeletedRecords: Boolean,
                                       assignments: Iterable[Assignment[Iterable[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], Segment]])(implicit ec: ExecutionContext,
-                                                                                                                                                                            compactionIO: CompactionIO.Actor,
+                                                                                                                                                                            compactionIO: SegmentCompactionIO.Actor,
                                                                                                                                                                             parallelism: CompactionParallelism): Future[Iterable[DefIO[SegmentOption, Iterable[PersistentSegment]]]] =
     if (assignments.isEmpty) {
       //if there were not assignments then write new key-values are gap and run Defrag to avoid creating small Segments.

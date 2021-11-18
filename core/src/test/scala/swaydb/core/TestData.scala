@@ -31,7 +31,7 @@ import swaydb.config.storage.{Level0Storage, LevelStorage}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.cache.Cache
-import swaydb.core.segment.CompactionIO
+import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.file.DBFile
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
@@ -185,7 +185,7 @@ object TestData {
     //key-values in a Level without that level copying it forward to lower Levels.
     def put(keyValues: Iterable[Memory], removeDeletes: Boolean = false)(implicit sweeper: TestCaseSweeper,
                                                                          compactionParallelism: CompactionParallelism,
-                                                                         compactionActor: CompactionIO.Actor): IO[Error.Level, Unit] = {
+                                                                         compactionActor: SegmentCompactionIO.Actor): IO[Error.Level, Unit] = {
 
       implicit val idGenerator = level.segmentIDGenerator
 
@@ -242,12 +242,12 @@ object TestData {
 
     def put(segment: Segment)(implicit sweeper: TestCaseSweeper,
                               compactionParallelism: CompactionParallelism,
-                              compactionActor: CompactionIO.Actor): IO[Error.Level, Unit] =
+                              compactionActor: SegmentCompactionIO.Actor): IO[Error.Level, Unit] =
       putSegments(Seq(segment))
 
     def putSegments(segments: Iterable[Segment], removeDeletes: Boolean = false)(implicit sweeper: TestCaseSweeper,
                                                                                  parallelism: CompactionParallelism,
-                                                                                 compactionActor: CompactionIO.Actor): IO[Error.Level, Unit] = {
+                                                                                 compactionActor: SegmentCompactionIO.Actor): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
       if (segments.isEmpty) {
@@ -267,7 +267,7 @@ object TestData {
 
     def putMap(map: LevelZeroLog)(implicit sweeper: TestCaseSweeper,
                                   compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors(),
-                                  compactionActor: CompactionIO.Actor): IO[Error.Level, Unit] = {
+                                  compactionActor: SegmentCompactionIO.Actor): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
       if (map.cache.isEmpty) {
@@ -2171,7 +2171,7 @@ object TestData {
                                        timeOrder: TimeOrder[Slice[Byte]],
                                        testCaseSweeper: TestCaseSweeper,
                                        compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors(),
-                                       compactionActor: CompactionIO.Actor): DefIO[SegmentOption, Slice[Segment]] = {
+                                       compactionActor: SegmentCompactionIO.Actor): DefIO[SegmentOption, Slice[Segment]] = {
       def toMemory(keyValue: KeyValue) = if (removeDeletes) KeyValueGrouper.toLastLevelOrNull(keyValue) else keyValue.toMemory()
 
       segment match {
