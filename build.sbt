@@ -233,6 +233,7 @@ lazy val `core-build` =
       macros % "compile-internal",
       effect,
       slice,
+      `core-util`,
       `core-interop`,
       testkit % Test
     )
@@ -246,6 +247,7 @@ lazy val `core-util` =
       macros % "compile-internal",
       effect,
       slice,
+      utils,
       testkit % Test
     )
 
