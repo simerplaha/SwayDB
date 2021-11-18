@@ -190,20 +190,8 @@ lazy val core =
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(
-      actor,
-      slice,
-      effect,
-      utils,
-      `core-build`,
       `core-compaction`,
-      `core-level`,
-      `core-log`,
-      `core-segment`,
-      `core-file`,
-      `core-interop`,
-      `core-queue`,
-      `core-cache`,
-      `core-compression`,
+      `core-build`,
       testkit % Test,
       macros % "test->test;compile-internal",
       configs % Test,
