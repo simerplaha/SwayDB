@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.segment
+package swaydb.core.segment.io
 
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.file.ForceSaveApplier
@@ -23,7 +23,7 @@ import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperAc
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data.KeyValue
-import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
+import swaydb.core.segment.{FunctionStore, PathsDistributor, Segment}
 import swaydb.core.util.IDGenerator
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -39,9 +39,9 @@ import scala.jdk.CollectionConverters._
  * This actor is created per compaction cycle and accumulates Segments created.
  * On error those segments are deleted when the Actor is terminated.
  */
-case object CompactionIO {
+case object SegmentCompactionIO {
 
-  type Actor = DefActor[CompactionIO]
+  type Actor = DefActor[SegmentCompactionIO]
 
   sealed trait State {
     def segments: ConcurrentHashMap[Segment, Unit]
@@ -57,10 +57,10 @@ case object CompactionIO {
     case class Failed(cause: Throwable, segments: ConcurrentHashMap[Segment, Unit]) extends State
   }
 
-  def create()(implicit ec: ExecutionContext): CompactionIO.Actor =
-    Actor.define[CompactionIO](
-      name = CompactionIO.productPrefix,
-      init = _ => new CompactionIO(State.Success(new ConcurrentHashMap()))
+  def create()(implicit ec: ExecutionContext): SegmentCompactionIO.Actor =
+    Actor.define[SegmentCompactionIO](
+      name = SegmentCompactionIO.productPrefix,
+      init = _ => new SegmentCompactionIO(State.Success(new ConcurrentHashMap()))
     ).onPreTerminate {
       (instance, _) =>
         instance.state match {
@@ -75,7 +75,7 @@ case object CompactionIO {
     }.start()
 }
 
-class CompactionIO(@volatile private var state: CompactionIO.State) {
+class SegmentCompactionIO(@volatile private var state: SegmentCompactionIO.State) {
 
   def iterator[S <: Segment](segment: S, inOneSeek: Boolean): Future[Iterator[KeyValue]] =
     Future.successful(segment.iterator(inOneSeek))
@@ -85,10 +85,10 @@ class CompactionIO(@volatile private var state: CompactionIO.State) {
 
   def isSuccess(): Boolean =
     this.state match {
-      case CompactionIO.State.Success(_) =>
+      case SegmentCompactionIO.State.Success(_) =>
         true
 
-      case CompactionIO.State.Failed(_, _) =>
+      case SegmentCompactionIO.State.Failed(_, _) =>
         false
     }
 
@@ -110,7 +110,7 @@ class CompactionIO(@volatile private var state: CompactionIO.State) {
                                                                            forceSaveApplier: ForceSaveApplier,
                                                                            segmentWriteIO: SegmentWriteIO[T, S]): Future[Iterable[S]] =
     state match {
-      case CompactionIO.State.Success(segments) =>
+      case SegmentCompactionIO.State.Success(segments) =>
         //if the state is then persist the segment
         segmentWriteIO.persistTransient(
           pathsDistributor = pathsDistributor,
@@ -125,10 +125,10 @@ class CompactionIO(@volatile private var state: CompactionIO.State) {
             }
         } onLeftSideEffect {
           error =>
-            state = CompactionIO.State.Failed(error.exception, segments)
+            state = SegmentCompactionIO.State.Failed(error.exception, segments)
         } toFuture
 
-      case CompactionIO.State.Failed(cause, _) =>
+      case SegmentCompactionIO.State.Failed(cause, _) =>
         //if the state is failure then ignore creating new Segments
         //and return existing failure
         Future.failed(cause)
