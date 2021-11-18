@@ -191,7 +191,6 @@ lazy val core =
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(
       `core-compaction`,
-      `core-build`,
       testkit % Test,
       macros % "test->test;compile-internal",
       configs % Test,
@@ -209,20 +208,6 @@ lazy val `core-interop` =
       actor,
       utils,
       slice,
-      testkit % Test
-    )
-
-lazy val `core-build` =
-  project
-    .settings(commonSettings)
-    .settings(publishSettings)
-    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(
-      macros % "compile-internal",
-      effect,
-      slice,
-      `core-util`,
-      `core-interop`,
       testkit % Test
     )
 
