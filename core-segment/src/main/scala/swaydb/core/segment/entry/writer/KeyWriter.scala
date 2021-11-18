@@ -58,7 +58,7 @@ private[segment] object KeyWriter extends KeyWriter {
                                            builder: EntryWriter.Builder,
                                            deadlineId: BaseEntryId.Deadline,
                                            previous: Memory)(implicit binder: MemoryToKeyValueIdBinder[T]): Option[Unit] =
-    Bytes.compress(key = current.mergedKey, previous = previous, minimumCommonBytes = 3) map {
+    Bytes.compress(previous = previous.key, next = current.mergedKey, minimumCommonBytes = 3) map {
       case (commonBytes, remainingBytes) =>
         write(
           current = current,

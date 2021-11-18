@@ -17,7 +17,6 @@
 package swaydb.core.util
 
 import swaydb.OK
-import swaydb.core.segment.data.KeyValue
 import swaydb.slice.utils.ScalaByteOps
 import swaydb.slice.{Slice, SliceReader}
 
@@ -43,15 +42,6 @@ private[swaydb] object Bytes extends ScalaByteOps {
     else
       previous take commonBytes
   }
-
-  def compress(key: Slice[Byte],
-               previous: KeyValue,
-               minimumCommonBytes: Int): Option[(Int, Slice[Byte])] =
-    compress(
-      previous = previous.key,
-      next = key,
-      minimumCommonBytes = minimumCommonBytes
-    )
 
   def compress(previous: Slice[Byte],
                next: Slice[Byte],
