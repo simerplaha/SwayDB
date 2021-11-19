@@ -16,130 +16,124 @@
 
 package swaydb.core.segment.serialiser
 
-import swaydb.IO
 import swaydb.macros.Sealed
 
 sealed trait RangeValueId {
   val id: Int
 }
 
-//Single
-case object RemoveRange extends RangeValueId {
-  override val id: Int = 0
-}
-
-case object PutRange extends RangeValueId {
-  override val id: Int = 1
-}
-
-case object UpdateRange extends RangeValueId {
-  override val id: Int = 2
-}
-
-case object FunctionRange extends RangeValueId {
-  override val id: Int = 3
-}
-
-case object PendingApplyRange extends RangeValueId {
-  override val id: Int = 4
-}
-
-//Remove
-case object RemoveRemoveRange extends RangeValueId {
-  override val id: Int = 5
-}
-
-case object RemoveUpdateRange extends RangeValueId {
-  override val id: Int = 6
-}
-
-case object RemoveFunctionRange extends RangeValueId {
-  override val id: Int = 7
-}
-
-case object RemovePendingApplyRange extends RangeValueId {
-  override val id: Int = 8
-}
-
-//Function
-case object FunctionRemoveRange extends RangeValueId {
-  override val id: Int = 9
-}
-
-case object FunctionUpdateRange extends RangeValueId {
-  override val id: Int = 10
-}
-
-case object FunctionFunctionRange extends RangeValueId {
-  override val id: Int = 11
-}
-
-case object FunctionPendingApplyRange extends RangeValueId {
-  override val id: Int = 12
-}
-
-//Put
-case object PutUpdateRange extends RangeValueId {
-  override val id: Int = 13
-}
-
-case object PutRemoveRange extends RangeValueId {
-  override val id: Int = 14
-}
-
-case object PutFunctionRange extends RangeValueId {
-  override val id: Int = 15
-}
-
-case object PutPendingApplyRange extends RangeValueId {
-  override val id: Int = 16
-}
-
-//Update
-case object UpdateRemoveRange extends RangeValueId {
-  override val id: Int = 17
-}
-
-case object UpdateUpdateRange extends RangeValueId {
-  override val id: Int = 18
-}
-
-case object UpdateFunctionRange extends RangeValueId {
-  override val id: Int = 19
-}
-
-case object UpdatePendingApplyRange extends RangeValueId {
-  override val id: Int = 20
-}
-
-//Apply
-case object PendingApplyPendingApplyRange extends RangeValueId {
-  override val id: Int = 21
-}
-
-case object PendingApplyRemoveRange extends RangeValueId {
-  override val id: Int = 22
-}
-
-case object PendingApplyFunctionRange extends RangeValueId {
-  override val id: Int = 23
-}
-
-case object PendingApplyUpdateRange extends RangeValueId {
-  override val id: Int = 24
-}
-
 case object RangeValueId {
 
-  val ids: Map[Int, RangeValueId] =
-    Sealed.list[RangeValueId].map {
-      rangeId =>
-        rangeId.id -> rangeId
-    }.toMap
+  //Single
+  case object Remove extends RangeValueId {
+    override val id: Int = 0
+  }
 
-  def apply(id: Int): IO[swaydb.Error.Fatal, RangeValueId] =
-    ids.get(id)
-      .map(IO.Right[swaydb.Error.Fatal, RangeValueId](_))
-      .getOrElse(IO.failed[swaydb.Error.Fatal, RangeValueId](s"Invalid ${this.productPrefix}: $id"))
+  case object Put extends RangeValueId {
+    override val id: Int = 1
+  }
+
+  case object Update extends RangeValueId {
+    override val id: Int = 2
+  }
+
+  case object Function extends RangeValueId {
+    override val id: Int = 3
+  }
+
+  case object PendingApply extends RangeValueId {
+    override val id: Int = 4
+  }
+
+  //Remove
+  case object RemoveRemove extends RangeValueId {
+    override val id: Int = 5
+  }
+
+  case object RemoveUpdate extends RangeValueId {
+    override val id: Int = 6
+  }
+
+  case object RemoveFunction extends RangeValueId {
+    override val id: Int = 7
+  }
+
+  case object RemovePendingApply extends RangeValueId {
+    override val id: Int = 8
+  }
+
+  //Function
+  case object FunctionRemove extends RangeValueId {
+    override val id: Int = 9
+  }
+
+  case object FunctionUpdate extends RangeValueId {
+    override val id: Int = 10
+  }
+
+  case object FunctionFunction extends RangeValueId {
+    override val id: Int = 11
+  }
+
+  case object FunctionPendingApply extends RangeValueId {
+    override val id: Int = 12
+  }
+
+  //Put
+  case object PutUpdate extends RangeValueId {
+    override val id: Int = 13
+  }
+
+  case object PutRemove extends RangeValueId {
+    override val id: Int = 14
+  }
+
+  case object PutFunction extends RangeValueId {
+    override val id: Int = 15
+  }
+
+  case object PutPendingApply extends RangeValueId {
+    override val id: Int = 16
+  }
+
+  //Update
+  case object UpdateRemove extends RangeValueId {
+    override val id: Int = 17
+  }
+
+  case object UpdateUpdate extends RangeValueId {
+    override val id: Int = 18
+  }
+
+  case object UpdateFunction extends RangeValueId {
+    override val id: Int = 19
+  }
+
+  case object UpdatePendingApply extends RangeValueId {
+    override val id: Int = 20
+  }
+
+  //Apply
+  case object PendingApplyPendingApply extends RangeValueId {
+    override val id: Int = 21
+  }
+
+  case object PendingApplyRemove extends RangeValueId {
+    override val id: Int = 22
+  }
+
+  case object PendingApplyFunction extends RangeValueId {
+    override val id: Int = 23
+  }
+
+  case object PendingApplyUpdate extends RangeValueId {
+    override val id: Int = 24
+  }
+
+  val ids: Array[RangeValueId] =
+    Sealed.array[RangeValueId].sortBy(_.id)
+
+  def apply(id: Int): RangeValueId =
+    ids(id)
 
 }

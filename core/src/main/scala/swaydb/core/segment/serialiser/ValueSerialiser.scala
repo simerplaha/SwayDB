@@ -286,6 +286,7 @@ private[core] object ValueSerialiser {
         case second: Slice[Byte] =>
           bytes.addSignedInt(1)
           ValueSerialiser.write[(Slice[Byte], Slice[Byte])]((value._1, second))(bytes)
+
         case Slice.Null =>
           bytes.addSignedInt(0)
           bytes.addAll(value._1)
@@ -296,6 +297,7 @@ private[core] object ValueSerialiser {
         case second: Slice[Byte] =>
           1 +
             ValueSerialiser.bytesRequired[(Slice[Byte], Slice[Byte])]((value._1, second))
+
         case Slice.Null =>
           1 +
             value._1.size

@@ -40,7 +40,7 @@ private[core] object RangeValueSerialiser {
 
   implicit object UnitRemoveSerialiser extends RangeValueSerialiser[Unit, Value.Remove] {
 
-    val id = swaydb.core.segment.serialiser.RemoveRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.Remove.id
 
     override def write(fromValue: Unit, rangeValue: Value.Remove, bytes: SliceMut[Byte]): Unit =
       ValueSerialiser.write[Value.Remove](rangeValue)(bytes.addUnsignedInt(id))
@@ -54,7 +54,7 @@ private[core] object RangeValueSerialiser {
 
   implicit object UnitUpdateSerialiser extends RangeValueSerialiser[Unit, Value.Update] {
 
-    val id = swaydb.core.segment.serialiser.UpdateRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.Update.id
 
     override def write(fromValue: Unit, rangeValue: Value.Update, bytes: SliceMut[Byte]): Unit =
       ValueSerialiser.write[Value.Update](rangeValue)(bytes.addUnsignedInt(id))
@@ -68,7 +68,7 @@ private[core] object RangeValueSerialiser {
 
   implicit object UnitFunctionSerialiser extends RangeValueSerialiser[Unit, Value.Function] {
 
-    val id = swaydb.core.segment.serialiser.FunctionRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.Function.id
 
     override def write(fromValue: Unit, rangeValue: Value.Function, bytes: SliceMut[Byte]): Unit =
       ValueSerialiser.write[Value.Function](rangeValue)(bytes.addUnsignedInt(id))
@@ -82,7 +82,7 @@ private[core] object RangeValueSerialiser {
 
   implicit object UnitPendingApplySerialiser extends RangeValueSerialiser[Unit, Value.PendingApply] {
 
-    val id = swaydb.core.segment.serialiser.PendingApplyRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.PendingApply.id
 
     override def write(fromValue: Unit, rangeValue: Value.PendingApply, bytes: SliceMut[Byte]): Unit =
       ValueSerialiser.write[Value.PendingApply](rangeValue)(bytes.addUnsignedInt(id))
@@ -99,7 +99,7 @@ private[core] object RangeValueSerialiser {
    */
   implicit object RemoveRemoveSerialiser extends RangeValueSerialiser[Value.Remove, Value.Remove] {
 
-    val id = swaydb.core.segment.serialiser.RemoveRemoveRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.RemoveRemove.id
 
     override def write(fromValue: Value.Remove, rangeValue: Value.Remove, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -128,7 +128,7 @@ private[core] object RangeValueSerialiser {
 
   implicit object RemoveUpdateSerialiser extends RangeValueSerialiser[Value.Remove, Value.Update] {
 
-    val id = swaydb.core.segment.serialiser.RemoveUpdateRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.RemoveUpdate.id
 
     override def write(fromValue: Value.Remove, rangeValue: Value.Update, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -157,7 +157,7 @@ private[core] object RangeValueSerialiser {
 
   implicit object RemoveFunctionSerialiser extends RangeValueSerialiser[Value.Remove, Value.Function] {
 
-    val id = swaydb.core.segment.serialiser.RemoveFunctionRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.RemoveFunction.id
 
     override def write(fromValue: Value.Remove, rangeValue: Value.Function, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -186,7 +186,7 @@ private[core] object RangeValueSerialiser {
 
   implicit object RemovePendingApplySerialiser extends RangeValueSerialiser[Value.Remove, Value.PendingApply] {
 
-    val id = swaydb.core.segment.serialiser.RemovePendingApplyRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.RemovePendingApply.id
 
     override def write(fromValue: Value.Remove, rangeValue: Value.PendingApply, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -219,7 +219,7 @@ private[core] object RangeValueSerialiser {
 
   implicit object PutRemoveSerialiser extends RangeValueSerialiser[Value.Put, Value.Remove] {
 
-    val id = swaydb.core.segment.serialiser.PutRemoveRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.PutRemove.id
 
     override def write(fromValue: Value.Put, rangeValue: Value.Remove, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -248,7 +248,7 @@ private[core] object RangeValueSerialiser {
 
   implicit object PutUpdateSerialiser extends RangeValueSerialiser[Value.Put, Value.Update] {
 
-    val id = swaydb.core.segment.serialiser.PutUpdateRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.PutUpdate.id
 
     override def write(fromValue: Value.Put, rangeValue: Value.Update, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -277,7 +277,7 @@ private[core] object RangeValueSerialiser {
 
   implicit object PutFunctionSerialiser extends RangeValueSerialiser[Value.Put, Value.Function] {
 
-    val id = swaydb.core.segment.serialiser.PutFunctionRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.PutFunction.id
 
     override def write(fromValue: Value.Put, rangeValue: Value.Function, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -306,7 +306,7 @@ private[core] object RangeValueSerialiser {
 
   implicit object PutPendingApplySerialiser extends RangeValueSerialiser[Value.Put, Value.PendingApply] {
 
-    val id = swaydb.core.segment.serialiser.PutPendingApplyRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.PutPendingApply.id
 
     override def write(fromValue: Value.Put, rangeValue: Value.PendingApply, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -337,7 +337,7 @@ private[core] object RangeValueSerialiser {
    * Update
    */
   implicit object UpdateRemoveSerialiser extends RangeValueSerialiser[Value.Update, Value.Remove] {
-    val id = swaydb.core.segment.serialiser.UpdateRemoveRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.UpdateRemove.id
 
     override def write(fromValue: Value.Update, rangeValue: Value.Remove, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -366,7 +366,7 @@ private[core] object RangeValueSerialiser {
 
   implicit object UpdateUpdateSerialiser extends RangeValueSerialiser[Value.Update, Value.Update] {
 
-    val id = swaydb.core.segment.serialiser.UpdateUpdateRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.UpdateUpdate.id
 
     override def write(fromValue: Value.Update, rangeValue: Value.Update, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -394,7 +394,7 @@ private[core] object RangeValueSerialiser {
   }
 
   implicit object UpdateFunctionSerialiser extends RangeValueSerialiser[Value.Update, Value.Function] {
-    val id = swaydb.core.segment.serialiser.UpdateFunctionRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.UpdateFunction.id
 
     override def write(fromValue: Value.Update, rangeValue: Value.Function, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -422,7 +422,7 @@ private[core] object RangeValueSerialiser {
   }
 
   implicit object UpdatePendingApplySerialiser extends RangeValueSerialiser[Value.Update, Value.PendingApply] {
-    val id = swaydb.core.segment.serialiser.UpdatePendingApplyRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.UpdatePendingApply.id
 
     override def write(fromValue: Value.Update, rangeValue: Value.PendingApply, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -453,7 +453,7 @@ private[core] object RangeValueSerialiser {
    * Function
    */
   implicit object FunctionRemoveSerialiser extends RangeValueSerialiser[Value.Function, Value.Remove] {
-    val id = swaydb.core.segment.serialiser.FunctionRemoveRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.FunctionRemove.id
 
     override def write(fromValue: Value.Function, rangeValue: Value.Remove, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -481,7 +481,7 @@ private[core] object RangeValueSerialiser {
   }
 
   implicit object FunctionUpdateSerialiser extends RangeValueSerialiser[Value.Function, Value.Update] {
-    val id = swaydb.core.segment.serialiser.FunctionUpdateRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.FunctionUpdate.id
 
     override def write(fromValue: Value.Function, rangeValue: Value.Update, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -509,7 +509,7 @@ private[core] object RangeValueSerialiser {
   }
 
   implicit object FunctionFunctionSerialiser extends RangeValueSerialiser[Value.Function, Value.Function] {
-    val id = swaydb.core.segment.serialiser.FunctionFunctionRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.FunctionFunction.id
 
     override def write(fromValue: Value.Function, rangeValue: Value.Function, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -537,7 +537,7 @@ private[core] object RangeValueSerialiser {
   }
 
   implicit object FunctionPendingApplySerialiser extends RangeValueSerialiser[Value.Function, Value.PendingApply] {
-    val id = swaydb.core.segment.serialiser.FunctionPendingApplyRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.FunctionPendingApply.id
 
     override def write(fromValue: Value.Function, rangeValue: Value.PendingApply, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -567,7 +567,7 @@ private[core] object RangeValueSerialiser {
    * Function
    */
   implicit object PendingApplyRemoveSerialiser extends RangeValueSerialiser[Value.PendingApply, Value.Remove] {
-    val id = swaydb.core.segment.serialiser.PendingApplyRemoveRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.PendingApplyRemove.id
 
     override def write(fromValue: Value.PendingApply, rangeValue: Value.Remove, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -595,7 +595,7 @@ private[core] object RangeValueSerialiser {
   }
 
   implicit object PendingApplyUpdateSerialiser extends RangeValueSerialiser[Value.PendingApply, Value.Update] {
-    val id = swaydb.core.segment.serialiser.PendingApplyUpdateRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.PendingApplyUpdate.id
 
     override def write(fromValue: Value.PendingApply, rangeValue: Value.Update, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -623,7 +623,7 @@ private[core] object RangeValueSerialiser {
   }
 
   implicit object PendingApplyFunctionSerialiser extends RangeValueSerialiser[Value.PendingApply, Value.Function] {
-    val id = swaydb.core.segment.serialiser.PendingApplyFunctionRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.PendingApplyFunction.id
 
     override def write(fromValue: Value.PendingApply, rangeValue: Value.Function, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
@@ -651,7 +651,7 @@ private[core] object RangeValueSerialiser {
   }
 
   implicit object PendingApplyPendingApplySerialiser extends RangeValueSerialiser[Value.PendingApply, Value.PendingApply] {
-    val id = swaydb.core.segment.serialiser.PendingApplyPendingApplyRange.id
+    val id = swaydb.core.segment.serialiser.RangeValueId.PendingApplyPendingApply.id
 
     override def write(fromValue: Value.PendingApply, rangeValue: Value.PendingApply, bytes: SliceMut[Byte]): Unit = {
       ValueSerialiser.write(fromValue) {
