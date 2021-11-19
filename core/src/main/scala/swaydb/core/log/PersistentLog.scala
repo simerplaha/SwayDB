@@ -28,7 +28,7 @@ import swaydb.core.log.serialiser.{LogEntryReader, LogEntrySerialiser, LogEntryW
 import swaydb.effect.Effect._
 import swaydb.effect.{Effect, IOStrategy}
 import swaydb.slice.Slice
-import swaydb.slice.SliceIOImplicits._
+import swaydb.SliceIOImplicits._
 import swaydb.slice.order.KeyOrder
 import swaydb.utils.Extension
 

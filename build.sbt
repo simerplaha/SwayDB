@@ -182,7 +182,7 @@ lazy val effect =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(utils, testkit % Test)
+    .dependsOn(slice, utils, testkit % Test)
 
 lazy val core =
   project
@@ -239,6 +239,7 @@ lazy val `core-series` =
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(
+      effect % Test,
       testkit % Test,
       serializers % Test
     )
@@ -255,10 +256,7 @@ lazy val slice =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(
-      effect,
-      testkit % Test,
-    )
+    .dependsOn(utils, testkit % Test)
 
 lazy val actor =
   project

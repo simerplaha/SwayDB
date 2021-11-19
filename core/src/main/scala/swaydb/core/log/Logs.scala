@@ -28,7 +28,7 @@ import swaydb.core.log.timer.Timer
 import swaydb.core.queue.VolatileQueue
 import swaydb.effect.Effect
 import swaydb.effect.Effect._
-import swaydb.slice.SliceIOImplicits._
+import swaydb.SliceIOImplicits._
 import swaydb.slice.order.KeyOrder
 import swaydb.utils.DropIterator
 import swaydb.{Error, IO}

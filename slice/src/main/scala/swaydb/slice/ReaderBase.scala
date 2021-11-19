@@ -16,7 +16,6 @@
 
 package swaydb.slice
 
-import swaydb.IO
 import swaydb.slice.utils.ByteOps
 import swaydb.utils.Maybe.Maybe
 
@@ -117,25 +116,6 @@ trait ReaderBase[B] { self =>
 
   @inline def reset(): ReaderBase[B] =
     this moveTo 0
-
-  @tailrec
-  final def foldLeftIO[E: IO.ExceptionHandler, R](result: R)(f: (R, ReaderBase[B]) => IO[E, R]): IO[E, R] =
-    IO(hasMore) match {
-      case IO.Left(error) =>
-        IO.Left(error)
-
-      case IO.Right(yes) if yes =>
-        f(result, self) match {
-          case IO.Right(newResult) =>
-            foldLeftIO(newResult)(f)
-
-          case IO.Left(error) =>
-            IO.Left(error)
-        }
-
-      case _ =>
-        IO.Right(result)
-    }
 
   @tailrec
   final def foldLeft[R](result: R)(f: (R, ReaderBase[B]) => R): R =

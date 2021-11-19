@@ -32,7 +32,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.effect.Effect
 import swaydb.slice.Slice
-import swaydb.slice.SliceIOImplicits._
+import swaydb.SliceIOImplicits._
 import swaydb.slice.order.KeyOrder
 import swaydb.utils.Extension
 import swaydb.utils.StorageUnits._

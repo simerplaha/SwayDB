@@ -50,7 +50,7 @@ import swaydb.core.util.Exceptions._
 import swaydb.core.util._
 import swaydb.effect.Effect._
 import swaydb.effect.{Dir, Effect, FileLocker}
-import swaydb.slice.SliceIOImplicits._
+import swaydb.SliceIOImplicits._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.{Aggregator, Extension, Futures, IDGenerator}

@@ -56,7 +56,7 @@ import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.effect.{Effect, IOStrategy}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.slice.SliceIOImplicits._
+import swaydb.SliceIOImplicits._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Reader, Slice, SliceOption, SliceReader}
 import swaydb.testkit.RunThis._

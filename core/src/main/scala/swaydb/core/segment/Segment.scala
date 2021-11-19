@@ -41,7 +41,7 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.core.util._
 import swaydb.effect.Effect
-import swaydb.slice.SliceIOImplicits._
+import swaydb.SliceIOImplicits._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, Slice, SliceOption}
 import swaydb.utils.Collections._

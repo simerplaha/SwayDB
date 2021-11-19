@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package swaydb.slice
+package swaydb
 
-import swaydb.IO
+import swaydb.slice.Slice
 
 import scala.collection.Iterable
 import scala.collection.mutable.ListBuffer
@@ -243,5 +243,4 @@ object SliceIOImplicits {
       }
     }
   }
-
 }
