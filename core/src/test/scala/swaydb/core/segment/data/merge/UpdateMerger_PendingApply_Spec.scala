@@ -27,6 +27,7 @@ import swaydb.serializers._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 class UpdateMerger_PendingApply_Spec extends AnyWordSpec with Matchers {
 

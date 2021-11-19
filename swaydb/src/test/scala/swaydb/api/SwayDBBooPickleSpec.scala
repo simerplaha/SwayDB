@@ -25,6 +25,7 @@ import swaydb.core.TestData._
 import swaydb.testkit.RunThis.runThis
 
 import scala.util.Random
+import swaydb.testkit.TestKit._
 
 class SwayDBBooPickleSpec extends TestBaseEmbedded {
 

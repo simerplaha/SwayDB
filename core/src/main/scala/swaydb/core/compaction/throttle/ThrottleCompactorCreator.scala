@@ -58,8 +58,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
           self = self,
           behaviorWakeUp = BehaviorWakeUp,
           fileSweeper = fileSweeper,
-          ec = config.compactionExecutionContext,
-          parallelism = config
+          ec = config.compactionExecutionContext
         )
     ).onPreTerminate {
       case (impl, _) =>

@@ -18,7 +18,6 @@ package swaydb.core.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.DefActor
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.compaction.Compactor
 import swaydb.core.compaction.throttle.behaviour._
 import swaydb.core.file.sweeper.FileSweeper
@@ -37,8 +36,7 @@ object ThrottleCompactor {
   def apply(context: ThrottleCompactorContext)(implicit self: DefActor[ThrottleCompactor],
                                                behaviorWakeUp: BehaviorWakeUp,
                                                fileSweeper: FileSweeper.On,
-                                               ec: ExecutionContext,
-                                               parallelism: CompactionParallelism): ThrottleCompactor =
+                                               ec: ExecutionContext): ThrottleCompactor =
     new ThrottleCompactor(
       context = context,
       currentFuture = Future.unit,
@@ -51,8 +49,7 @@ private[core] class ThrottleCompactor private(@volatile private var context: Thr
                                               @volatile private var currentFutureExecuted: Boolean)(implicit self: DefActor[ThrottleCompactor],
                                                                                                     behaviour: BehaviorWakeUp,
                                                                                                     fileSweeper: FileSweeper.On,
-                                                                                                    executionContext: ExecutionContext,
-                                                                                                    parallelism: CompactionParallelism) extends Compactor with LazyLogging {
+                                                                                                    executionContext: ExecutionContext) extends Compactor with LazyLogging {
   @inline private def tailWakeUpCall(nextFuture: => Future[ThrottleCompactorContext]): Unit =
   //tail Future only if current future (wakeUp) was ignore else ignore. Not point tailing the same message.
     if (currentFutureExecuted) {

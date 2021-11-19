@@ -33,16 +33,18 @@ import swaydb.core.segment.data.{Memory, MemoryOption, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.effect.Effect._
-import swaydb.effect.{Effect, Extension}
+import swaydb.effect.Effect
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.testkit.RunThis._
-import swaydb.utils.OperatingSystem
+import swaydb.utils.{Extension, OperatingSystem}
 import swaydb.utils.StorageUnits._
+import swaydb.testkit.TestKit._
 
 import java.nio.file.{FileAlreadyExistsException, Path}
+import swaydb.testkit.TestKit._
 
 class MapSpec extends TestBase {
 

@@ -10,6 +10,7 @@ import swaydb.utils.ByteSizeOf
 
 import java.nio.charset.StandardCharsets
 import scala.util.Random
+import swaydb.testkit.TestKit._
 
 class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
 

@@ -18,7 +18,6 @@ package swaydb.core.compaction.throttle.behaviour
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.DefActor
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.compaction.PushStrategy
 import swaydb.core.compaction.task.CompactionTask
 import swaydb.core.compaction.task.assigner.{LevelTaskAssigner, LevelZeroTaskAssigner}
@@ -38,8 +37,7 @@ private[throttle] trait BehaviorWakeUp {
 
   def wakeUp(context: ThrottleCompactorContext)(implicit ec: ExecutionContext,
                                                 self: DefActor[ThrottleCompactor],
-                                                fileSweeper: FileSweeper.On,
-                                                parallelism: CompactionParallelism): Future[ThrottleCompactorContext]
+                                                fileSweeper: FileSweeper.On): Future[ThrottleCompactorContext]
 
 }
 
@@ -50,8 +48,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
 
   def wakeUp(context: ThrottleCompactorContext)(implicit ec: ExecutionContext,
                                                 self: DefActor[ThrottleCompactor],
-                                                fileSweeper: FileSweeper.On,
-                                                parallelism: CompactionParallelism): Future[ThrottleCompactorContext] = {
+                                                fileSweeper: FileSweeper.On): Future[ThrottleCompactorContext] = {
     logger.debug(s"\n\n\n\n\n\n${context.name}: Wakeup - Running compaction!")
 
     runWakeUp(context)
@@ -96,8 +93,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
   }
 
   private def runWakeUp(context: ThrottleCompactorContext)(implicit ec: ExecutionContext,
-                                                           fileSweeper: FileSweeper.On,
-                                                           parallelism: CompactionParallelism): Future[ThrottleCompactorContext] =
+                                                           fileSweeper: FileSweeper.On): Future[ThrottleCompactorContext] =
     Future
       .unit
       .mapUnit {
@@ -188,8 +184,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
   def runCompactions(context: ThrottleCompactorContext,
                      compactionsOrder: Slice[LevelRef],
                      lastLevel: Level)(implicit ec: ExecutionContext,
-                                       fileSweeper: FileSweeper.On,
-                                       parallelism: CompactionParallelism): Future[ThrottleCompactorContext] =
+                                       fileSweeper: FileSweeper.On): Future[ThrottleCompactorContext] =
     if (context.terminateASAP()) {
       logger.warn(s"${context.name}: Cannot run jobs. Compaction is terminated.")
       Future.successful(context)
@@ -252,8 +247,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
                     stateId: Long,
                     lastLevel: Level,
                     pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                                fileSweeper: FileSweeper.On,
-                                                parallelism: CompactionParallelism): Future[LevelState.Sleeping] =
+                                                fileSweeper: FileSweeper.On): Future[LevelState.Sleeping] =
     level match {
       case zero: LevelZero =>
         compactLevelZero(
@@ -287,8 +281,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
                        stateId: Long,
                        lastLevel: Level,
                        pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                                   fileSweeper: FileSweeper.On,
-                                                   parallelism: CompactionParallelism): Future[LevelState.Sleeping] =
+                                                   fileSweeper: FileSweeper.On): Future[LevelState.Sleeping] =
     if (zero.isEmpty)
       LevelSleepStates.success(
         zero = zero,
@@ -320,8 +313,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
                    stateId: Long,
                    lastLevel: Level,
                    pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                               fileSweeper: FileSweeper.On,
-                                               parallelism: CompactionParallelism): Future[LevelState.Sleeping] =
+                                               fileSweeper: FileSweeper.On): Future[LevelState.Sleeping] =
     if (level.isEmpty)
       LevelSleepStates.success(
         level = level,
@@ -345,8 +337,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
                         stateId: Long,
                         lastLevel: Level,
                         pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                                    fileSweeper: FileSweeper.On,
-                                                    parallelism: CompactionParallelism): Future[LevelState.Sleeping] = {
+                                                    fileSweeper: FileSweeper.On): Future[LevelState.Sleeping] = {
     val task =
       LevelTaskAssigner.assign(
         source = level,
@@ -384,8 +375,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
   def compactLastLevel(level: Level,
                        stateId: Long,
                        pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                                   fileSweeper: FileSweeper.On,
-                                                   parallelism: CompactionParallelism): Future[LevelState.Sleeping] =
+                                                   fileSweeper: FileSweeper.On): Future[LevelState.Sleeping] =
     LevelTaskAssigner.refresh(level = level) match {
       case Some(task) =>
         //ignore extendLastLevelMayBe if only refresh was executed
@@ -450,8 +440,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
                            stateId: Long,
                            level: Level,
                            pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                                       fileSweeper: FileSweeper.On,
-                                                       parallelism: CompactionParallelism): Future[LevelState.Sleeping] =
+                                                       fileSweeper: FileSweeper.On): Future[LevelState.Sleeping] =
     if (level.nextLevel.isDefined && newState.sleepDeadline.isOverdue() && LevelTaskAssigner.cleanup(level).isEmpty) {
       val task =
         LevelTaskAssigner.assign(
@@ -477,8 +466,7 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
                      stateId: Long,
                      lastLevel: Level,
                      pushStrategy: PushStrategy)(implicit ec: ExecutionContext,
-                                                 fileSweeper: FileSweeper.On,
-                                                 parallelism: CompactionParallelism): Future[LevelState.Sleeping] =
+                                                 fileSweeper: FileSweeper.On): Future[LevelState.Sleeping] =
     BehaviourCompactionTask.runSegmentTask(
       task = task,
       lastLevel = lastLevel

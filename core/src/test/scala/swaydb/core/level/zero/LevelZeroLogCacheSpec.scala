@@ -31,6 +31,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
 import swaydb.slice.order.TimeOrder
+import swaydb.testkit.TestKit._
 
 class LevelZeroLogCacheSpec extends AnyWordSpec with Matchers {
 

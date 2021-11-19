@@ -31,6 +31,7 @@ import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 
 import scala.util.Try
+import swaydb.testkit.TestKit._
 
 class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with MockFactory {
 

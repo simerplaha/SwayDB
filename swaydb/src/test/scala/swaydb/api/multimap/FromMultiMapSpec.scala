@@ -27,6 +27,7 @@ import swaydb.utils.StorageUnits._
 import swaydb.{Bag, Glass, MultiMap}
 
 import scala.util.Random
+import swaydb.testkit.TestKit._
 
 class FromMultiMapSpec0 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000

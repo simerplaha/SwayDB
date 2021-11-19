@@ -26,6 +26,7 @@ import swaydb.serializers.Default._
 import swaydb.testkit.RunThis._
 
 import scala.concurrent.duration._
+import swaydb.testkit.TestKit._
 
 class SwayDBExpireSpec0 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000

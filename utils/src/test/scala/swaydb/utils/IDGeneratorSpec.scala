@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package swaydb.core.util
+package swaydb.utils
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import swaydb.utils.IDGenerator
 
 import scala.collection.parallel.CollectionConverters._
 

@@ -29,6 +29,7 @@ import swaydb.testkit.RunThis._
 import swaydb.utils.ByteSizeOf
 
 import scala.util.Random
+import swaydb.testkit.TestKit._
 
 class MinMaxSpec extends AnyWordSpec with Matchers {
 

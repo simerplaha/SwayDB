@@ -23,17 +23,18 @@ import swaydb.config.repairAppendix.AppendixRepairStrategy._
 import swaydb.config.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
 import swaydb.config.{ForceSave, MMAP}
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.level.AppendixLogCache
 import swaydb.core.log.serialiser.LogEntryWriter
 import swaydb.core.log.{Log, LogEntry}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.effect.{Effect, Extension}
+import swaydb.effect.Effect
 import swaydb.slice.Slice
 import swaydb.slice.SliceIOImplicits._
 import swaydb.slice.order.KeyOrder
+import swaydb.utils.Extension
 import swaydb.utils.StorageUnits._
 
 import java.nio.file.Path

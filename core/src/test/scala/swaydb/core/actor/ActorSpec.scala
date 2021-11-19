@@ -24,6 +24,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 import java.util.concurrent.{ConcurrentLinkedDeque, ConcurrentSkipListSet}
 import scala.collection.mutable.ListBuffer
@@ -34,8 +35,6 @@ import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 class ActorSpec extends AnyWordSpec with Matchers {
-
-  import swaydb.core.TestData._
 
   implicit val ordering = QueueOrder.FIFO
 

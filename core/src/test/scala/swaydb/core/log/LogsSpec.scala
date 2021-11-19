@@ -28,16 +28,17 @@ import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.segment.data.{Memory, MemoryOption, Value}
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.effect.Effect._
-import swaydb.effect.{Effect, Extension}
+import swaydb.effect.Effect
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
-import swaydb.utils.OperatingSystem
+import swaydb.utils.{Extension, OperatingSystem}
 import swaydb.utils.StorageUnits._
 
 import java.nio.file.NoSuchFileException
+import swaydb.testkit.TestKit._
 
 class LogsSpec extends TestBase {
 

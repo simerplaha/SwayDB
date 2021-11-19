@@ -34,6 +34,7 @@ import swaydb.serializers._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 class LowerRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {
 

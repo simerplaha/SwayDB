@@ -27,6 +27,7 @@ import swaydb.{Bag, IO, OK}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import swaydb.testkit.TestKit._
 
 trait WeatherDataSpec extends TestBase with LazyLogging {
 

@@ -19,7 +19,6 @@ package swaydb.core.segment
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.segment.io.SegmentCompactionIO
@@ -47,9 +46,10 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.ref.{SegmentRef, SegmentRefOption, SegmentRefReader}
 import swaydb.core.skiplist.SkipListTreeMap
 import swaydb.core.util._
-import swaydb.effect.{Effect, Extension}
+import swaydb.effect.Effect
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, Slice, SliceOption}
+import swaydb.utils.{Extension, IDGenerator}
 
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
@@ -840,8 +840,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           segmentRefCacheLife: SegmentRefCacheLife,
           mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
                               executionContext: ExecutionContext,
-                              compactionIO: SegmentCompactionIO.Actor,
-                              compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]] = {
+                              compactionIO: SegmentCompactionIO.Actor): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]] = {
     implicit val valuesConfigImplicit: ValuesBlockConfig = valuesConfig
     implicit val sortedIndexConfigImplicit: SortedIndexBlockConfig = sortedIndexConfig
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexBlockConfig = binarySearchIndexConfig
@@ -870,8 +869,7 @@ protected case class PersistentSegmentMany(file: DBFile,
               hashIndexConfig: HashIndexBlockConfig,
               bloomFilterConfig: BloomFilterBlockConfig,
               segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
-                                                 ec: ExecutionContext,
-                                                 compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]]] =
+                                                 ec: ExecutionContext): Future[DefIO[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]]] =
     Segment.refreshForNewLevel(
       keyValues = iterator(segmentConfig.initialiseIteratorsInOneSeek),
       removeDeletes = removeDeletes,

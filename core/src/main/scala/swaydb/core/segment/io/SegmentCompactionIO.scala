@@ -24,7 +24,7 @@ import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data.KeyValue
 import swaydb.core.segment.{FunctionStore, PathsDistributor, Segment}
-import swaydb.core.util.IDGenerator
+import swaydb.utils.IDGenerator
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.{Actor, DefActor}

@@ -28,6 +28,7 @@ import swaydb.serializers._
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
+import swaydb.testkit.TestKit._
 
 class BytesSpec extends AnyWordSpec with Matchers {
 

@@ -18,7 +18,6 @@ package swaydb.core.compaction.throttle.behaviour
 
 import swaydb.IO
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.compaction.LevelThrottle
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
@@ -35,7 +34,7 @@ import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
-
+import swaydb.testkit.TestKit._
 
 class BehaviourWakeUp_compactLastLevel_multiLevel_Spec0 extends BehaviourWakeUp_compactLastLevel_multiLevel_Spec
 
@@ -60,7 +59,6 @@ class BehaviourWakeUp_compactLastLevel_multiLevel_Spec3 extends BehaviourWakeUp_
 sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends TestBase {
 
   implicit val ec = TestExecutionContext.executionContext
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "ignore compaction" when {
     "empty" in {

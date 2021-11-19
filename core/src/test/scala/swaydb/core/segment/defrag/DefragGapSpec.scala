@@ -36,6 +36,7 @@ import swaydb.utils.StorageUnits._
 
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
+import swaydb.testkit.TestKit._
 
 /**
  * Test setup for when input types are [[PersistentSegment]]

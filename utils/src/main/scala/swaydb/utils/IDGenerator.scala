@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-package swaydb.core.util
-
-import swaydb.effect.Extension
+package swaydb.utils
 
 import java.util.concurrent.atomic.AtomicLong
 
-private[core] object IDGenerator {
+private[swaydb] object IDGenerator {
 
   @inline final def apply(initial: Long = 0) = new IDGenerator(initial)
 
@@ -28,7 +26,7 @@ private[core] object IDGenerator {
     s"$id.${Extension.Seg.toString}"
 }
 
-private[core] class IDGenerator(initial: Long) {
+private[swaydb] class IDGenerator(initial: Long) {
   private val atomicID = new AtomicLong(initial)
 
   def next: Long =

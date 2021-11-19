@@ -19,7 +19,6 @@ package swaydb.core.segment.defrag
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.EitherValues
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.assigner.Assignable
@@ -42,6 +41,7 @@ import swaydb.testkit.RunThis._
 
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
+import swaydb.testkit.TestKit._
 
 class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherValues {
 
@@ -51,7 +51,6 @@ class DefragSegment_RunOne_Spec extends TestBase with MockFactory with EitherVal
   implicit val keyOrder = KeyOrder.default
   implicit val timerOrder = TimeOrder.long
   implicit def segmentReadIO = SegmentReadIO.random
-  implicit val compactionParallelism = CompactionParallelism.availableProcessors()
   implicit val keyValueKeyOrder = keyOrder.on[KeyValue](_.key)
 
   "NO GAPS - no key-values to merge" should {

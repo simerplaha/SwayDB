@@ -30,6 +30,7 @@ import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
+import swaydb.testkit.TestKit._
 
 class AppliedFunctionsLogSpec extends TestBase {
 

@@ -18,7 +18,6 @@ package swaydb.core.compaction.throttle.behaviour
 
 import swaydb.IO
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core._
@@ -36,6 +35,7 @@ import swaydb.utils.StorageUnits._
 
 import java.nio.file.FileAlreadyExistsException
 import scala.concurrent.duration.Duration
+import swaydb.testkit.TestKit._
 
 class BehaviourCompactionTask_collapse_Spec0 extends BehaviourCompactionTask_collapse_Spec
 
@@ -63,7 +63,6 @@ sealed trait BehaviourCompactionTask_collapse_Spec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val segmentOrdering = keyOrder.on[Segment](_.minKey)
   implicit val ec = TestExecutionContext.executionContext
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "succeed" in {
     runThis(10.times, log = true) {

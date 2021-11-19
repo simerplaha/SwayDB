@@ -39,6 +39,7 @@ import scala.collection.mutable
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
+import swaydb.testkit.TestKit._
 
 class ByteBufferSweeperSpec extends TestBase with MockFactory {
 

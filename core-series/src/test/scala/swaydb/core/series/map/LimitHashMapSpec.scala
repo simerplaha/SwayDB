@@ -2,7 +2,7 @@ package swaydb.core.series.map
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import swaydb.effect.Base._
+import swaydb.testkit.TestKit._
 
 class ProbeLimitHashMap extends LimitHashMapSpec {
   def createMap[K, V >: Null](limit: Integer) = LimitHashMap[K, V](limit, 10)

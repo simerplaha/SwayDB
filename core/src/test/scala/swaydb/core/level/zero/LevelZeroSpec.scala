@@ -21,7 +21,6 @@ import org.scalatest.OptionValues._
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.compaction.LevelThrottle
 import swaydb.config.storage.LevelStorage
 import swaydb.core.CommonAssertions._
@@ -43,6 +42,7 @@ import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
 import scala.util.Random
+import swaydb.testkit.TestKit._
 
 class LevelZeroSpec0 extends LevelZeroSpec
 
@@ -69,7 +69,6 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder = TimeOrder.long
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
 

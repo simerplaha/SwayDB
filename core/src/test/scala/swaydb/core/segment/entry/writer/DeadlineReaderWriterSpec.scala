@@ -29,6 +29,7 @@ import swaydb.testkit.RunThis._
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{FiniteDuration, _}
+import swaydb.testkit.TestKit._
 
 class DeadlineReaderWriterSpec extends AnyWordSpec with Matchers {
 

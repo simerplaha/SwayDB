@@ -34,6 +34,7 @@ import swaydb.{Benchmark, Compression}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
+import swaydb.testkit.TestKit._
 
 class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 

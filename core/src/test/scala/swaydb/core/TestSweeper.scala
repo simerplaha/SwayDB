@@ -28,6 +28,7 @@ import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
+import swaydb.testkit.TestKit._
 
 private[swaydb] object TestSweeper {
 

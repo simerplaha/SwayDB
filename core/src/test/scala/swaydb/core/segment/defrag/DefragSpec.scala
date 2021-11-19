@@ -38,6 +38,7 @@ import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 import scala.collection.mutable.ListBuffer
+import swaydb.testkit.TestKit._
 
 /**
  * Test setup for when input types are [[PersistentSegment]]

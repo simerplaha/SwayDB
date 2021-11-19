@@ -18,15 +18,15 @@ package swaydb.core.segment.io
 
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
-import swaydb.core.segment.PathsDistributor
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.segment._
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.util.{DefIO, IDGenerator}
+import swaydb.core.util.DefIO
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.utils.IDGenerator
 import swaydb.{Error, IO}
 
 /**

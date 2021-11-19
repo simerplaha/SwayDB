@@ -20,7 +20,6 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IO
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
@@ -60,7 +59,6 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
   val keyValuesCount = 100
 
   "level is empty" should {

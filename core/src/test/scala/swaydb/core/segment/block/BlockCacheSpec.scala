@@ -28,6 +28,7 @@ import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 
 import scala.jdk.CollectionConverters._
+import swaydb.testkit.TestKit._
 
 class BlockCacheSpec extends TestBase with MockFactory {
 

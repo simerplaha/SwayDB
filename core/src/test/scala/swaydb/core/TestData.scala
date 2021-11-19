@@ -25,13 +25,11 @@ import swaydb.compression.CompressionInternal
 import swaydb.compression.CompressionTestGen._
 import swaydb.config._
 import swaydb.config.accelerate.Accelerator
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.config.storage.{Level0Storage, LevelStorage}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.cache.Cache
-import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.file.DBFile
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
@@ -61,23 +59,23 @@ import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.merge.{KeyValueGrouper, KeyValueMerger}
 import swaydb.core.segment.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.entry.writer.EntryWriter
-import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
+import swaydb.core.segment.io.{SegmentCompactionIO, SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.skiplist.AtomicRanges
-import swaydb.core.util.{DefIO, IDGenerator}
+import swaydb.core.util.DefIO
 import swaydb.effect.{Dir, IOAction, IOStrategy}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, Slice, SliceOption, SliceRO}
 import swaydb.testkit.RunThis.FutureImplicits
+import swaydb.testkit.TestKit._
 import swaydb.utils.StorageUnits._
-import swaydb.utils.{Aggregator, FiniteDurations, OperatingSystem}
+import swaydb.utils.{Aggregator, FiniteDurations, IDGenerator, OperatingSystem}
 import swaydb.{ActorConfig, Error, Glass, IO}
 
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
@@ -105,15 +103,6 @@ object TestData {
       SegmentRefCacheLife.Permanent
     else
       SegmentRefCacheLife.Temporary
-
-  def randomNextInt(max: Int): Int =
-    Math.abs(Random.nextInt(max))
-
-  def randomBoolean(): Boolean =
-    Random.nextBoolean()
-
-  def randomFiniteDuration(maxSeconds: Int = 10): FiniteDuration =
-    new FiniteDuration(randomIntMax(maxSeconds), TimeUnit.SECONDS)
 
   implicit class ReopenSegment(segment: PersistentSegment)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
@@ -184,7 +173,6 @@ object TestData {
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
     def put(keyValues: Iterable[Memory], removeDeletes: Boolean = false)(implicit sweeper: TestCaseSweeper,
-                                                                         compactionParallelism: CompactionParallelism,
                                                                          compactionActor: SegmentCompactionIO.Actor): IO[Error.Level, Unit] = {
 
       implicit val idGenerator = level.segmentIDGenerator
@@ -241,12 +229,10 @@ object TestData {
     }
 
     def put(segment: Segment)(implicit sweeper: TestCaseSweeper,
-                              compactionParallelism: CompactionParallelism,
                               compactionActor: SegmentCompactionIO.Actor): IO[Error.Level, Unit] =
       putSegments(Seq(segment))
 
     def putSegments(segments: Iterable[Segment], removeDeletes: Boolean = false)(implicit sweeper: TestCaseSweeper,
-                                                                                 parallelism: CompactionParallelism,
                                                                                  compactionActor: SegmentCompactionIO.Actor): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
@@ -266,7 +252,6 @@ object TestData {
     }
 
     def putMap(map: LevelZeroLog)(implicit sweeper: TestCaseSweeper,
-                                  compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors(),
                                   compactionActor: SegmentCompactionIO.Actor): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
@@ -580,24 +565,6 @@ object TestData {
       randomString
     else
       Slice.Null
-
-  def randomString =
-    randomCharacters()
-
-  def randomDeadlineOption: Option[Deadline] =
-    randomDeadlineOption()
-
-  def randomDeadlineOption(expired: Boolean = randomBoolean()): Option[Deadline] =
-    if (randomBoolean())
-      Some(randomDeadline(expired))
-    else
-      None
-
-  def randomDeadline(expired: Boolean = randomBoolean()): Deadline =
-    if (expired && randomBoolean())
-      0.seconds.fromNow - (randomIntMax(30) + 10).seconds
-    else
-      (randomIntMax(60) max 30).seconds.fromNow
 
   def randomDeadUpdateOrExpiredPut(key: Slice[Byte]): Memory.Fixed =
     eitherOne(
@@ -1222,10 +1189,6 @@ object TestData {
   def randomBlockOps(): BlockOps[_, _] =
     Random.shuffle(allBlockOps().to(List)).head
 
-  def randomCharacters(size: Int = 10) = Random.alphanumeric.take(size max 1).mkString
-
-  def randomBytes(size: Int = 10) = Array.fill(size)(randomByte())
-
   def randomByteChunks(size: Int = 10, sizePerChunk: Int = 10): Slice[Slice[Byte]] = {
     val slice = Slice.of[Slice[Byte]](size)
     (1 to size) foreach {
@@ -1251,28 +1214,6 @@ object TestData {
       None
     else
       Some(randomBytesSlice(size))
-
-  def randomByte() = (Random.nextInt(256) - 128).toByte
-
-  def ints(numbers: Int): Int =
-    (1 to numbers).foldLeft("") {
-      case (concat, _) =>
-        concat + Math.abs(Random.nextInt(9)).toString
-    }.toInt
-
-  def randomInt(minus: Int = 0) = Math.abs(Random.nextInt(Int.MaxValue)) - minus - 1
-
-  def randomIntMax(max: Int = Int.MaxValue) =
-    Math.abs(Random.nextInt(max))
-
-  def randomIntMin(min: Int) =
-    Math.abs(randomIntMax()) max min
-
-  def randomIntMaxOption(max: Int = Int.MaxValue) =
-    if (randomBoolean())
-      Some(randomIntMax(max))
-    else
-      None
 
   def randomIntKeyStringValues(count: Int = 5,
                                startId: Option[Int] = None,
@@ -1882,8 +1823,7 @@ object TestData {
                        sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
                        valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
                        segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                      ec: ExecutionContext,
-                                                                                      compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): TransientSegment.One = {
+                                                                                      ec: ExecutionContext): TransientSegment.One = {
       val segments =
         SegmentBlock.writeOnes(
           mergeStats =
@@ -2170,7 +2110,6 @@ object TestData {
                                        segmentReadIO: SegmentReadIO,
                                        timeOrder: TimeOrder[Slice[Byte]],
                                        testCaseSweeper: TestCaseSweeper,
-                                       compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors(),
                                        compactionActor: SegmentCompactionIO.Actor): DefIO[SegmentOption, Slice[Segment]] = {
       def toMemory(keyValue: KeyValue) = if (removeDeletes) KeyValueGrouper.toLastLevelOrNull(keyValue) else keyValue.toMemory()
 
@@ -2251,8 +2190,7 @@ object TestData {
                                                    keyOrder: KeyOrder[Slice[Byte]],
                                                    segmentReadIO: SegmentReadIO,
                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                   testCaseSweeper: TestCaseSweeper,
-                                                   compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Slice[Segment] =
+                                                   testCaseSweeper: TestCaseSweeper): Slice[Segment] =
       segment match {
         case segment: MemorySegment =>
           segment.refresh(

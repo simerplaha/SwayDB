@@ -26,6 +26,7 @@ import swaydb.core.{TestBase, TestExecutionContext, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 class MergeStatsSizeCalculatorSpec extends TestBase with MockFactory with EitherValues {
 

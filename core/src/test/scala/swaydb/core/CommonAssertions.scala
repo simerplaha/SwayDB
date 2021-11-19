@@ -22,7 +22,6 @@ import org.scalatest.exceptions.TestFailedException
 import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.compaction.PushStrategy
 import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.core.TestData._
@@ -60,6 +59,7 @@ import swaydb.slice.SliceIOImplicits._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Reader, Slice, SliceOption, SliceReader}
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 import swaydb.utils.Aggregator
 import swaydb.{Bag, Error, Glass, IO}
 
@@ -167,51 +167,6 @@ object CommonAssertions {
           }
       }
   }
-
-  def randomly[T](f: => T): Option[T] =
-    if (Random.nextBoolean())
-      Some(f)
-    else
-      None
-
-  def eitherOne[T](left: => T, right: => T): T =
-    if (Random.nextBoolean())
-      left
-    else
-      right
-
-  def someOrNone[T](some: => T): Option[T] =
-    if (Random.nextBoolean())
-      None
-    else
-      Some(some)
-
-  def orNone[T](option: => Option[T]): Option[T] =
-    if (Random.nextBoolean())
-      None
-    else
-      option
-
-  def anyOrder[T](left: => T, right: => T): Unit =
-    if (Random.nextBoolean()) {
-      left
-      right
-    } else {
-      right
-      left
-    }
-
-  def eitherOne[T](left: => T, mid: => T, right: => T): T =
-    Random.shuffle(Seq(() => left, () => mid, () => right)).head()
-
-  def eitherOne[T](one: => T, two: => T, three: => T, four: => T): T =
-    Random.shuffle(Seq(() => one, () => two, () => three, () => four)).head()
-
-  def eitherOne[T](one: => T, two: => T, three: => T, four: => T, five: => T): T =
-    Random.shuffle(Seq(() => one, () => two, () => three, () => four, () => five)).head()
-
-  def eitherOne[T](one: => T, two: => T, three: => T, four: => T, five: => T, six: => T): T =
-    Random.shuffle(Seq(() => one, () => two, () => three, () => four, () => five, () => six)).head()
 
   implicit class ValueImplicits(value: Value) {
 
@@ -1366,25 +1321,12 @@ object CommonAssertions {
     }
   }
 
-  def expiredDeadline(): Deadline = {
-    val deadline = 0.nanosecond.fromNow - 100.millisecond
-    deadline.hasTimeLeft() shouldBe false
-    deadline
-  }
-
-  def randomExpiredDeadlineOption(): Option[Deadline] =
-    if (randomBoolean())
-      None
-    else
-      Some(expiredDeadline())
-
   def readAll(segment: TransientSegment.One)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Slice[KeyValue]] =
     readAll(segment.flattenSegmentBytes)
 
   def writeAndRead(keyValues: Iterable[Memory])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                 keyOrder: KeyOrder[Slice[Byte]],
-                                                ec: ExecutionContext,
-                                                compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): IO[swaydb.Error.Segment, Slice[KeyValue]] = {
+                                                ec: ExecutionContext): IO[swaydb.Error.Segment, Slice[KeyValue]] = {
     val sortedIndexBlock = SortedIndexBlockConfig.random
 
     val segment =
@@ -1442,8 +1384,7 @@ object CommonAssertions {
                 bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
                 segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                keyOrder: KeyOrder[Slice[Byte]],
-                                                                               ec: ExecutionContext = TestExecutionContext.executionContext,
-                                                                               compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): IO[Error.Segment, Slice[SegmentBlocks]] = {
+                                                                               ec: ExecutionContext = TestExecutionContext.executionContext): IO[Error.Segment, Slice[SegmentBlocks]] = {
     val closedSegments =
       SegmentBlock.writeOnes(
         mergeStats =
@@ -1522,8 +1463,7 @@ object CommonAssertions {
                            bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
                            segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                           keyOrder: KeyOrder[Slice[Byte]],
-                                                                                          ec: ExecutionContext,
-                                                                                          compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Slice[SegmentBlockCache] =
+                                                                                          ec: ExecutionContext): Slice[SegmentBlockCache] =
     SegmentBlock.writeOnes(
       mergeStats =
         MergeStats
@@ -1577,9 +1517,6 @@ object CommonAssertions {
     blockCaches should have size 1
     blockCaches.head
   }
-
-  def randomBlockSize(): Option[Int] =
-    someOrNone(4096)
 
   def randomIOStrategy(cacheOnAccess: Boolean = randomBoolean(),
                        includeReserved: Boolean = true): IOStrategy =
@@ -1812,10 +1749,6 @@ object CommonAssertions {
         }
     }
 
-  implicit class BooleanImplicit(bool: Boolean) {
-    def toInt =
-      if (bool) 1 else 0
-  }
 
   implicit class SegmentIOImplicits(io: SegmentReadIO.type) {
     def random: SegmentReadIO =

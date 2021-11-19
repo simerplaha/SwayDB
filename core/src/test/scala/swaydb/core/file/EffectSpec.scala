@@ -20,9 +20,10 @@ import swaydb.{Benchmark, IO}
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.effect.{Effect, Extension}
+import swaydb.effect.Effect
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
+import swaydb.utils.Extension
 import swaydb.utils.StorageUnits._
 
 import java.nio.file.Paths

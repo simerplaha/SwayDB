@@ -17,7 +17,6 @@
 package swaydb.core.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core._
@@ -29,6 +28,7 @@ import swaydb.slice.{MaxKey, Slice}
 import swaydb.testkit.RunThis._
 
 import scala.concurrent.duration.DurationInt
+import swaydb.testkit.TestKit._
 
 class LevelZeroTaskAssigner_flatten_Spec extends TestBase with MockFactory {
 
@@ -37,7 +37,6 @@ class LevelZeroTaskAssigner_flatten_Spec extends TestBase with MockFactory {
   implicit val timeOrder = TimeOrder.long
   implicit val segmentOrdering = keyOrder.on[Segment](_.minKey)
   implicit val ec = TestExecutionContext.executionContext
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   /**
    * TEST STEPS

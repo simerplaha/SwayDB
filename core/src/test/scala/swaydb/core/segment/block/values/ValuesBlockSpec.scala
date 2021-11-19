@@ -32,6 +32,7 @@ import swaydb.testkit.RunThis._
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
+import swaydb.testkit.TestKit._
 
 class ValuesBlockSpec extends TestBase {
 

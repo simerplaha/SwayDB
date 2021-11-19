@@ -18,11 +18,11 @@ package swaydb.api
 
 import swaydb.IOValues._
 import swaydb._
-import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 import scala.concurrent.duration._
 

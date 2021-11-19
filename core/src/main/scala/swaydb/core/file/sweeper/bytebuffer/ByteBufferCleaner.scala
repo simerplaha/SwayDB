@@ -27,7 +27,7 @@ import java.nio.file.Path
 import java.nio.{ByteBuffer, MappedByteBuffer}
 import java.util.concurrent.atomic.AtomicBoolean
 
-private[core] case object ByteBufferCleaner extends LazyLogging {
+private[file] case object ByteBufferCleaner extends LazyLogging {
 
   object Cleaner {
     def apply(handle: MethodHandle): Cleaner =

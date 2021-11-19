@@ -18,7 +18,6 @@ package swaydb.core.segment
 
 import swaydb.Benchmark
 import swaydb.config.SegmentRefCacheLife
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.file.ForceSaveApplier
@@ -51,7 +50,6 @@ class SegmentReadPerformanceSpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   val keyValuesCount = 1000000
 

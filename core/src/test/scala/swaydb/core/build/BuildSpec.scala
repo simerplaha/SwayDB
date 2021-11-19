@@ -22,12 +22,13 @@ import swaydb.IOValues._
 import swaydb.config.DataType
 import swaydb.core.TestData._
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.effect.{Effect, Extension}
+import swaydb.effect.Effect
 import swaydb.slice.Slice
-import swaydb.utils.ByteSizeOf
+import swaydb.utils.{ByteSizeOf, Extension}
 
 import java.nio.file.FileAlreadyExistsException
 import scala.util.Random
+import swaydb.testkit.TestKit._
 
 class BuildSpec extends TestBase {
 

@@ -17,9 +17,7 @@
 package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand}
-import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data._
@@ -30,6 +28,7 @@ import swaydb.core.skiplist.SkipListTreeMap
 import swaydb.core.util._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, Slice, SliceOption}
+import swaydb.utils.IDGenerator
 
 import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
@@ -79,8 +78,7 @@ private[core] final case class MemorySegment(path: Path,
           removeDeletes: Boolean,
           createdInLevel: Int,
           segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
-                                             executionContext: ExecutionContext,
-                                             compactionParallelism: CompactionParallelism): Future[DefIO[MemorySegmentOption, Iterable[MemorySegment]]] =
+                                             executionContext: ExecutionContext): Future[DefIO[MemorySegmentOption, Iterable[MemorySegment]]] =
     if (deleted)
       Future.failed(swaydb.Exception.NoSuchFile(path))
     else {

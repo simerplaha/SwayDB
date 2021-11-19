@@ -32,6 +32,7 @@ import swaydb.utils.PipeOps._
 import java.nio.ReadOnlyBufferException
 import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
 import java.nio.file.FileAlreadyExistsException
+import swaydb.testkit.TestKit._
 
 class DBFileSpec extends TestBase with MockFactory {
 

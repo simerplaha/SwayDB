@@ -31,6 +31,7 @@ import swaydb.{Apply, IO, Prepare, PureFunction, StorageIntImplicits}
 
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.DurationInt
+import swaydb.testkit.TestKit._
 
 sealed trait Key
 object Key {

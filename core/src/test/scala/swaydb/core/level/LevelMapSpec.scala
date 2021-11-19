@@ -19,7 +19,6 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IOValues._
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
@@ -35,6 +34,7 @@ import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._
+import swaydb.testkit.TestKit._
 
 class LevelMapSpec0 extends LevelMapSpec
 
@@ -62,7 +62,6 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean =

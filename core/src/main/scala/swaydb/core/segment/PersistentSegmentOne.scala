@@ -19,7 +19,6 @@ package swaydb.core.segment
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
@@ -47,6 +46,7 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util._
 import swaydb.slice.{MaxKey, Slice}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.utils.IDGenerator
 
 import java.nio.file.{Path, Paths}
 import scala.collection.mutable.ListBuffer
@@ -320,8 +320,7 @@ protected case class PersistentSegmentOne(file: DBFile,
           segmentRefCacheLife: SegmentRefCacheLife,
           mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
                               executionContext: ExecutionContext,
-                              compactionIO: SegmentCompactionIO.Actor,
-                              compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]] = {
+                              compactionIO: SegmentCompactionIO.Actor): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]] = {
     implicit val valuesConfigImplicit: ValuesBlockConfig = valuesConfig
     implicit val sortedIndexConfigImplicit: SortedIndexBlockConfig = sortedIndexConfig
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexBlockConfig = binarySearchIndexConfig
@@ -351,8 +350,7 @@ protected case class PersistentSegmentOne(file: DBFile,
               hashIndexConfig: HashIndexBlockConfig,
               bloomFilterConfig: BloomFilterBlockConfig,
               segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
-                                                 ec: ExecutionContext,
-                                                 compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]] = {
+                                                 ec: ExecutionContext): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]] = {
     //    val footer = ref.getFooter()
     //if it's created in the same level the required spaces for sortedIndex and values
     //will be the same as existing or less than the current sizes so there is no need to create a

@@ -21,7 +21,6 @@ import org.scalatest.PrivateMethodTester
 import swaydb.Glass
 import swaydb.IOValues._
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.storage.LevelStorage
 import swaydb.core.TestData._
 import swaydb.core._
@@ -30,15 +29,17 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data._
 import swaydb.effect.Effect._
-import swaydb.effect.{Dir, Effect, Extension}
+import swaydb.effect.{Dir, Effect}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.utils.OperatingSystem
+import swaydb.utils.{Extension, OperatingSystem}
 import swaydb.utils.StorageUnits._
+import swaydb.testkit.TestKit._
 
 import java.nio.channels.OverlappingFileLockException
+import swaydb.testkit.TestKit._
 
 class LevelSpec0 extends LevelSpec
 
@@ -66,7 +67,6 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
   val keyValuesCount = 100
 
   //    override def deleteFiles: Boolean =

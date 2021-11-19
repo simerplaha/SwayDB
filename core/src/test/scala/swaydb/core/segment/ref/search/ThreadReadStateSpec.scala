@@ -21,6 +21,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestData._
 
 import java.nio.file.Paths
+import swaydb.testkit.TestKit._
 
 class ThreadReadStateSpec extends AnyWordSpec with Matchers {
 

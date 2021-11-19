@@ -26,6 +26,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 class ValueReaderWriterSpec extends AnyWordSpec with Matchers {
 

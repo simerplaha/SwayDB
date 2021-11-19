@@ -19,7 +19,6 @@ package swaydb.core.segment.defrag
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.EitherValues
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.PathsDistributor
@@ -40,6 +39,7 @@ import swaydb.testkit.RunThis._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 import scala.util.Random
+import swaydb.testkit.TestKit._
 
 class DefragSegment_RunMany_Spec extends TestBase with MockFactory with EitherValues {
 
@@ -49,7 +49,6 @@ class DefragSegment_RunMany_Spec extends TestBase with MockFactory with EitherVa
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timerOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentReadIO: SegmentReadIO = SegmentReadIO.random
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "NO GAP - empty should result in empty" in {
     runThis(20.times, log = true) {

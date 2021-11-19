@@ -23,6 +23,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.serializers.Default._
 import swaydb.{Glass, MultiMap}
+import swaydb.testkit.TestKit._
 
 class MultiMapPutSpec0 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000

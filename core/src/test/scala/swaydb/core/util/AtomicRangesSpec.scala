@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Random, Try}
+import swaydb.testkit.TestKit._
 
 class AtomicRanges_FutureSpec extends AtomicRangesSpec[Future]()(Bag.future(TestExecutionContext.executionContext)) {
 

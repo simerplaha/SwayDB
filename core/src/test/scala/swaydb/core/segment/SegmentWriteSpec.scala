@@ -20,7 +20,6 @@ import org.scalatest.OptionValues.convertOptionToValuable
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestCaseSweeper._
@@ -43,16 +42,15 @@ import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.util.IDGenerator
+import swaydb.utils.{ByteSizeOf, Extension, IDGenerator, OperatingSystem}
 import swaydb.effect.Effect._
-import swaydb.effect.{Dir, Effect, Extension}
+import swaydb.effect.{Dir, Effect}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, Slice}
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
-import swaydb.utils.{ByteSizeOf, OperatingSystem}
 import swaydb.{ActorConfig, Benchmark, IO}
 
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
@@ -60,6 +58,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.Random
+import swaydb.testkit.TestKit._
 
 class SegmentWriteSpec0 extends SegmentWriteSpec
 
@@ -90,7 +89,6 @@ sealed trait SegmentWriteSpec extends TestBase {
   implicit val ec = TestExecutionContext.executionContext
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
   implicit def segmentIO = SegmentReadIO.random
 
   "Segment" should {
@@ -985,8 +983,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               forceSaveApplier = forceSaveApplier,
               segmentIO = segmentIO,
               idGenerator = segmentIDGenerator,
-              ec = TestExecutionContext.executionContext,
-              compactionParallelism = CompactionParallelism.availableProcessors()
+              ec = TestExecutionContext.executionContext
             ).awaitInf.map(_.sweep())
           }
 

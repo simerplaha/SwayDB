@@ -19,7 +19,6 @@ package swaydb.core.tool
 import swaydb.Glass
 import swaydb.IOValues._
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.compaction.LevelThrottle
 import swaydb.config.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
 import swaydb.core.CommonAssertions._
@@ -31,6 +30,7 @@ import swaydb.effect.Effect._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._
 
@@ -38,13 +38,11 @@ import java.nio.file.NoSuchFileException
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.Random
 
-
 class AppendixRepairerSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "AppendixRepair" should {
     "fail if the input path does not exist" in {

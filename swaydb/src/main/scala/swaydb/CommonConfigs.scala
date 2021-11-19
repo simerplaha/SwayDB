@@ -33,19 +33,12 @@ case object CommonConfigs {
     val actorExecutionContext = DefaultExecutionContext.compactionEC(maxThreads = 1)
 
     //Remaining threads are the maximum threads minus the one reserved above.
-    val availableCompactionThreads = maxThreads - 1
-    val compactionExecutionContext = DefaultExecutionContext.compactionEC(maxThreads = availableCompactionThreads)
+    val compactionExecutionContext = DefaultExecutionContext.compactionEC(maxThreads = maxThreads - 1)
 
     CompactionConfig(
       resetCompactionPriorityAtInterval = 3,
       actorExecutionContext = actorExecutionContext,
       compactionExecutionContext = compactionExecutionContext,
-      levelZeroFlattenParallelism = availableCompactionThreads,
-      levelZeroMergeParallelism = availableCompactionThreads,
-      multiLevelTaskParallelism = availableCompactionThreads,
-      levelSegmentAssignmentParallelism = availableCompactionThreads,
-      groupedSegmentDefragParallelism = availableCompactionThreads,
-      defragmentedSegmentParallelism = availableCompactionThreads,
       pushStrategy = PushStrategy.OnOverflow
     )
   }

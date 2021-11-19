@@ -20,7 +20,6 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import swaydb.IO
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.Segment
@@ -35,6 +34,7 @@ import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
+import swaydb.testkit.TestKit._
 
 class LevelTaskAssignerSpec0 extends LevelTaskAssignerSpec
 
@@ -61,7 +61,6 @@ sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
   implicit val segmentOrdering = keyOrder.on[Segment](_.minKey)
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "refresh" when {
     "Level is empty" in {

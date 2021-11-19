@@ -31,6 +31,7 @@ import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.Random
+import swaydb.testkit.TestKit._
 
 class SegmentBlockCacheSpec extends TestBase {
   implicit val order = KeyOrder.default

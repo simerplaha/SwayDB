@@ -38,6 +38,7 @@ import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 
 import scala.util.Random
+import swaydb.testkit.TestKit._
 
 class SegmentBlockInitialisationSpec extends TestBase {
 

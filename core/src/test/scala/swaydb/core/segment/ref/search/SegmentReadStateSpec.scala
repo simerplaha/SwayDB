@@ -28,6 +28,7 @@ import swaydb.testkit.RunThis._
 import swaydb.utils.TupleOrNone
 
 import java.nio.file.Paths
+import swaydb.testkit.TestKit._
 
 class SegmentReadStateSpec extends AnyWordSpec with Matchers {
 

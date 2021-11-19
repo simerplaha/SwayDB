@@ -37,6 +37,7 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Random, Try}
+import swaydb.testkit.TestKit._
 
 sealed trait RemoveAsserted
 object RemoveAsserted {

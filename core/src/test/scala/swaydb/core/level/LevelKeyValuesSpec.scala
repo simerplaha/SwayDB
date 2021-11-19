@@ -21,7 +21,6 @@ import org.scalatest.PrivateMethodTester
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core._
@@ -37,6 +36,7 @@ import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
+import swaydb.testkit.TestKit._
 
 class LevelKeyValuesSpec0 extends LevelKeyValuesSpec
 
@@ -65,7 +65,6 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   val keyValuesCount = 100
   implicit val ec = TestExecutionContext.executionContext
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   //  override def deleteFiles: Boolean =
   //    false

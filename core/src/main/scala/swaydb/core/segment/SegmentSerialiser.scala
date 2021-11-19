@@ -24,10 +24,10 @@ import swaydb.core.log.serialiser.ValueSerialiser.MinMaxSerialiser
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.util.Bytes
-import swaydb.effect.{Effect, Extension}
+import swaydb.effect.Effect
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, ReaderBase, Slice, SliceMut}
-import swaydb.utils.ByteSizeOf
+import swaydb.utils.{ByteSizeOf, Extension}
 import swaydb.utils.Options.OptionsImplicits
 
 import java.nio.charset.StandardCharsets

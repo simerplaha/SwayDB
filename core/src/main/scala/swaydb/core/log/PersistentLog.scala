@@ -26,10 +26,11 @@ import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperAc
 import swaydb.core.file.{DBFile, ForceSaveApplier}
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntrySerialiser, LogEntryWriter}
 import swaydb.effect.Effect._
-import swaydb.effect.{Effect, Extension, IOStrategy}
+import swaydb.effect.{Effect, IOStrategy}
 import swaydb.slice.Slice
 import swaydb.slice.SliceIOImplicits._
 import swaydb.slice.order.KeyOrder
+import swaydb.utils.Extension
 
 import java.nio.file.Path
 import scala.annotation.tailrec

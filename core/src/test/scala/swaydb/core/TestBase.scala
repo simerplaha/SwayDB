@@ -22,7 +22,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import swaydb.IOValues._
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.config.storage.{Level0Storage, LevelStorage}
 import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
@@ -30,7 +29,6 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.compaction._
-import swaydb.core.segment.{PathsDistributor, PersistentSegment, Segment}
 import swaydb.core.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.file.DBFile
 import swaydb.core.file.reader.FileReader
@@ -47,13 +45,14 @@ import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.{Memory, Time}
 import swaydb.core.segment.io.{SegmentCompactionIO, SegmentReadIO}
-import swaydb.core.util.IDGenerator
+import swaydb.core.segment.{PathsDistributor, PersistentSegment, Segment}
 import swaydb.effect.{Dir, Effect}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis.FutureImplicits
-import swaydb.utils.OperatingSystem
+import swaydb.testkit.TestKit._
 import swaydb.utils.StorageUnits._
+import swaydb.utils.{IDGenerator, OperatingSystem}
 import swaydb.{DefActor, Glass, IO}
 
 import java.nio.file._
@@ -313,8 +312,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                                                                                                       pathsDistributor: PathsDistributor,
                                                                                                       idGenerator: IDGenerator,
                                                                                                       sweeper: TestCaseSweeper,
-                                                                                                      ec: ExecutionContext = TestExecutionContext.executionContext,
-                                                                                                      compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Slice[Segment] = {
+                                                                                                      ec: ExecutionContext = TestExecutionContext.executionContext): Slice[Segment] = {
       import sweeper._
 
       implicit val segmentIO: SegmentReadIO =
@@ -387,8 +385,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random2(deleteDelay = Duration.Zero, mmap = mmapSegments),
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                      sweeper: TestCaseSweeper,
-                                                      compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Level = {
+                                                      sweeper: TestCaseSweeper): Level = {
       import sweeper._
 
       val level =
@@ -633,12 +630,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                 resetCompactionPriorityAtInterval = randomIntMax(10).max(1),
                 actorExecutionContext = TestExecutionContext.executionContext,
                 compactionExecutionContext = TestExecutionContext.executionContext,
-                levelZeroFlattenParallelism = randomIntMax(10).max(1),
-                levelZeroMergeParallelism = randomIntMax(10).max(1),
-                multiLevelTaskParallelism = randomIntMax(10).max(1),
-                levelSegmentAssignmentParallelism = randomIntMax(10).max(1),
-                groupedSegmentDefragParallelism = randomIntMax(10).max(1),
-                defragmentedSegmentParallelism = randomIntMax(10).max(1),
                 pushStrategy = randomPushStrategy()
               ),
           ).value
@@ -787,8 +778,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                               level3: Level,
                               assertAllLevels: LevelRef => Unit,
                               assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                 levelSweeper: TestCaseSweeper,
-                                                                 compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()): Unit = {
+                                                                 levelSweeper: TestCaseSweeper): Unit = {
     implicit val ec: ExecutionContext =
       TestExecutionContext.executionContext
 

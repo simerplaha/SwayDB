@@ -18,7 +18,6 @@ package swaydb.core.compaction.throttle.behaviour
 
 import swaydb.IO
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core._
@@ -34,6 +33,7 @@ import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
 
 import scala.collection.SortedSet
+import swaydb.testkit.TestKit._
 
 class BehaviourCompactionTask_compactSegments_2Levels_Spec0 extends BehaviourCompactionTask_compactSegments_2Levels_Spec
 
@@ -61,7 +61,6 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends TestBa
   implicit val keyOrder = KeyOrder.default
   implicit val segmentOrdering = keyOrder.on[Segment](_.minKey)
   implicit val ec = TestExecutionContext.executionContext
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "compactSegments" when {
     "there are 2 levels" should {

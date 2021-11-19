@@ -20,9 +20,9 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.effect.Base._
 import swaydb.effect.{IOStrategy, Reserve}
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 import swaydb.{Error, IO}
 
 import scala.annotation.tailrec

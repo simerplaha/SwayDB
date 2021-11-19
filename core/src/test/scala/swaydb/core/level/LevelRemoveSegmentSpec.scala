@@ -20,7 +20,6 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IO
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.TestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
@@ -57,7 +56,6 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean =

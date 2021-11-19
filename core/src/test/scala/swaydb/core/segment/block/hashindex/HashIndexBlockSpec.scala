@@ -27,6 +27,7 @@ import swaydb.serializers._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 class HashIndexBlockSpec extends TestBase {
 

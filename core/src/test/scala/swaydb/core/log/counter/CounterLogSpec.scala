@@ -29,6 +29,7 @@ import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 
 import scala.collection.mutable.ListBuffer
+import swaydb.testkit.TestKit._
 
 class CounterLogSpec extends TestBase {
 

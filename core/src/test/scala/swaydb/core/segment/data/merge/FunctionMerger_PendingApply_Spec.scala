@@ -26,6 +26,7 @@ import swaydb.core.segment.data.Memory
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 class FunctionMerger_PendingApply_Spec extends AnyWordSpec with Matchers {
 

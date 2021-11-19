@@ -39,6 +39,7 @@ import swaydb.utils.OperatingSystem
 import java.nio.file.NoSuchFileException
 import scala.concurrent.duration._
 import scala.util.Random
+import swaydb.testkit.TestKit._
 
 class SegmentReadSpec0 extends SegmentReadSpec {
   val keyValuesCount = 100

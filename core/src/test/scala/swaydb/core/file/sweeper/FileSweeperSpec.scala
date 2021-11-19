@@ -17,8 +17,7 @@
 //package swaydb.core.file.sweeper
 //
 //import org.scalamock.scalatest.MockFactory
-//import swaydb.config.compaction.CompactionConfig.CompactionParallelism
-//import swaydb.core.CommonAssertions._
+////import swaydb.core.CommonAssertions._
 //import swaydb.core.TestCaseSweeper._
 //import swaydb.core.TestData._
 //import swaydb.core._
@@ -40,7 +39,6 @@
 //class FileSweeperSpec extends TestBase with MockFactory {
 //
 //  implicit val timer = TestTimer.Empty
-//  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 //
 //  private def file(filePath: String): FileSweeperItem =
 //    new FileSweeperItem {

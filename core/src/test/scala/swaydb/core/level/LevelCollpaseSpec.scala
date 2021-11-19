@@ -20,7 +20,6 @@ import org.scalatest.OptionValues._
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core._
@@ -62,7 +61,6 @@ sealed trait LevelCollapseSpec extends TestBase {
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean =

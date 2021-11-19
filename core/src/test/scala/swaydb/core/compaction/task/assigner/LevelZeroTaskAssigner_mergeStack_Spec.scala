@@ -18,7 +18,6 @@ package swaydb.core.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
@@ -30,6 +29,7 @@ import swaydb.serializers._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 class LevelZeroTaskAssigner_mergeStack_Spec extends TestBase with MockFactory {
 
@@ -38,7 +38,6 @@ class LevelZeroTaskAssigner_mergeStack_Spec extends TestBase with MockFactory {
   implicit val timeOrder = TimeOrder.long
   implicit val segmentOrdering = keyOrder.on[Segment](_.minKey)
   implicit val ec = TestExecutionContext.executionContext
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "stack is empty" in {
     TestCaseSweeper {

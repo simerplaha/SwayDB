@@ -37,6 +37,7 @@ import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 import java.nio.file.Paths
+import swaydb.testkit.TestKit._
 
 class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
 

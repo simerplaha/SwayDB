@@ -27,6 +27,7 @@ import swaydb.slice.order.KeyOrder
 
 import scala.collection.SortedSet
 import scala.util.{Random, Try}
+import swaydb.testkit.TestKit._
 
 class MultiKeySpec extends AnyWordSpec with Matchers {
 

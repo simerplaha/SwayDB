@@ -33,6 +33,7 @@ import swaydb.slice.order.KeyOrder
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.testkit.RunThis._
 import swaydb.utils.ByteSizeOf
+import swaydb.testkit.TestKit._
 
 class LevelZeroLogEntrySpec extends TestBase {
 

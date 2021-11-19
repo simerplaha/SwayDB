@@ -32,6 +32,7 @@ import swaydb.{Bag, Glass, IO, MultiMap, Prepare}
 
 import scala.concurrent.duration._
 import scala.util.Random
+import swaydb.testkit.TestKit._
 
 class MultiMapSpec0 extends MultiMapSpec {
   val keyValueCount: Int = 1000

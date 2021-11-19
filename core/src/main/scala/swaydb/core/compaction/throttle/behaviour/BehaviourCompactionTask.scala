@@ -17,7 +17,6 @@
 package swaydb.core.compaction.throttle.behaviour
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.compaction.task.CompactionTask
 import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand}
@@ -41,8 +40,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
 
   def runSegmentTask(task: CompactionTask.Segments,
                      lastLevel: Level)(implicit ec: ExecutionContext,
-                                       fileSweeper: FileSweeper.On,
-                                       parallelism: CompactionParallelism): Future[Unit] =
+                                       fileSweeper: FileSweeper.On): Future[Unit] =
     task match {
       case task: CompactionTask.CompactSegments =>
         compactSegments(task = task, lastLevel = lastLevel)
@@ -53,8 +51,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
 
   def runCleanupTask(task: CompactionTask.Cleanup,
                      lastLevel: Level)(implicit ec: ExecutionContext,
-                                       fileSweeper: FileSweeper.On,
-                                       parallelism: CompactionParallelism): Future[Unit] =
+                                       fileSweeper: FileSweeper.On): Future[Unit] =
     task match {
       case task: CompactionTask.CollapseSegments =>
         collapse(task = task, lastLevel = lastLevel)
@@ -88,11 +85,10 @@ protected object BehaviourCompactionTask extends LazyLogging {
 
   private def runTasks[A <: Assignable.Collection](tasks: Iterable[CompactionTask.Task[A]],
                                                    lastLevel: Level)(implicit ec: ExecutionContext,
-                                                                     fileSweeper: FileSweeper.On,
-                                                                     parallelism: CompactionParallelism): Future[Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]]] = {
+                                                                     fileSweeper: FileSweeper.On): Future[Iterable[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]]] = {
     implicit val compactionIO: SegmentCompactionIO.Actor = SegmentCompactionIO.create()
 
-    Futures.traverseBounded(parallelism.multiLevelTaskParallelism, tasks) {
+    Future.traverse(tasks) {
       task =>
         val removeDeletedRecords = task.target.levelNumber == lastLevel.levelNumber
 
@@ -120,8 +116,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
 
   def compactSegments(task: CompactionTask.CompactSegments,
                       lastLevel: Level)(implicit ec: ExecutionContext,
-                                        fileSweeper: FileSweeper.On,
-                                        parallelism: CompactionParallelism): Future[Unit] =
+                                        fileSweeper: FileSweeper.On): Future[Unit] =
     if (task.tasks.isEmpty)
       Future.unit
     else
@@ -141,8 +136,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
 
   def compactLogs(task: CompactionTask.CompactLogs,
                   lastLevel: Level)(implicit ec: ExecutionContext,
-                                    fileSweeper: FileSweeper.On,
-                                    parallelism: CompactionParallelism): Future[Unit] =
+                                    fileSweeper: FileSweeper.On): Future[Unit] =
     if (task.logs.isEmpty)
       Future.unit
     else
@@ -162,8 +156,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
 
   def collapse(task: CompactionTask.CollapseSegments,
                lastLevel: Level)(implicit ec: ExecutionContext,
-                                 fileSweeper: FileSweeper.On,
-                                 parallelism: CompactionParallelism): Future[Unit] =
+                                 fileSweeper: FileSweeper.On): Future[Unit] =
     if (task.segments.isEmpty)
       Future.unit
     else
@@ -192,8 +185,7 @@ protected object BehaviourCompactionTask extends LazyLogging {
 
   def refresh(task: CompactionTask.RefreshSegments,
               lastLevel: Level)(implicit fileSweeper: FileSweeper.On,
-                                ec: ExecutionContext,
-                                parallelism: CompactionParallelism): Future[Unit] =
+                                ec: ExecutionContext): Future[Unit] =
     if (task.segments.isEmpty)
       Future.unit
     else

@@ -31,6 +31,7 @@ import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.StandardOpenOption
 import java.util.concurrent.atomic.AtomicBoolean
+import swaydb.testkit.TestKit._
 
 class MMAPFileSpec extends TestBase with MockFactory {
 

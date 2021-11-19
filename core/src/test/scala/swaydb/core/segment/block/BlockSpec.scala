@@ -10,6 +10,7 @@ import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.effect.IOAction
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 class BlockSpec extends TestBase {
 

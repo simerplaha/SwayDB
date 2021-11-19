@@ -16,19 +16,17 @@
 
 package swaydb.core.segment.defrag
 
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.file.sweeper.FileSweeper
-import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.data.merge.stats.MergeStats
-import swaydb.core.util.{DefIO, IDGenerator}
+import swaydb.core.util.DefIO
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.utils.Futures
+import swaydb.utils.IDGenerator
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
@@ -52,8 +50,7 @@ object DefragMemorySegment {
                                                                              defragSource: DefragSource[SEG],
                                                                              segmentConfig: SegmentBlockConfig,
                                                                              fileSweeper: FileSweeper,
-                                                                             idGenerator: IDGenerator,
-                                                                             compactionParallelism: CompactionParallelism): Future[DefIO[NULL_SEG, Iterable[MemorySegment]]] =
+                                                                             idGenerator: IDGenerator): Future[DefIO[NULL_SEG, Iterable[MemorySegment]]] =
     Future {
       Defrag.runOnSegment(
         segment = segment,
@@ -94,8 +91,7 @@ object DefragMemorySegment {
                                                                           defragSource: DefragSource[SEG],
                                                                           segmentConfig: SegmentBlockConfig,
                                                                           fileSweeper: FileSweeper,
-                                                                          idGenerator: IDGenerator,
-                                                                          compactionParallelism: CompactionParallelism): Future[DefIO[NULL_SEG, Iterable[MemorySegment]]] =
+                                                                          idGenerator: IDGenerator): Future[DefIO[NULL_SEG, Iterable[MemorySegment]]] =
     Defrag.runOnGaps(
       fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Memory.Builder[Memory, ListBuffer]]],
       headGap = headGap,
@@ -137,9 +133,8 @@ object DefragMemorySegment {
                                                                                        functionStore: FunctionStore,
                                                                                        segmentConfig: SegmentBlockConfig,
                                                                                        fileSweeper: FileSweeper,
-                                                                                       idGenerator: IDGenerator,
-                                                                                       compactionParallelism: CompactionParallelism): Future[ListBuffer[Slice[MemorySegment]]] =
-    Futures.traverseBounded(compactionParallelism.defragmentedSegmentParallelism, mergeResult) {
+                                                                                       idGenerator: IDGenerator): Future[ListBuffer[Slice[MemorySegment]]] =
+    Future.traverse(mergeResult) {
       case remote: TransientSegment.Remote =>
         Future {
           remote match {

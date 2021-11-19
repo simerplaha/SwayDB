@@ -19,7 +19,6 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
 import swaydb.config.MMAP
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.compaction.LevelThrottle
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
@@ -41,6 +40,7 @@ import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
+import swaydb.testkit.TestKit._
 
 class LevelReadSpec0 extends LevelReadSpec
 
@@ -69,7 +69,6 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
   implicit val ec = TestExecutionContext.executionContext
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   val keyValuesCount = 100
 

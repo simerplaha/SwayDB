@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.effect
+package swaydb.utils
 
 private[swaydb] sealed trait Extension
 private[swaydb] object Extension {

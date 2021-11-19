@@ -25,6 +25,7 @@ import swaydb.core.segment.assigner.AssignmentResult
 import swaydb.testkit.RunThis._
 
 import scala.collection.mutable.ListBuffer
+import swaydb.testkit.TestKit._
 
 class TaskAssigner_finaliseSegmentsToCompact_Spec extends AnyWordSpec with Matchers with MockFactory {
 

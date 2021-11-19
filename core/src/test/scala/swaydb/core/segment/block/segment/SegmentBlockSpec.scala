@@ -17,7 +17,6 @@
 package swaydb.core.segment.block.segment
 
 import org.scalatest.OptionValues._
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.file.reader.Reader
@@ -37,6 +36,7 @@ import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 
 import scala.collection.mutable.ListBuffer
+import swaydb.testkit.TestKit._
 
 class SegmentBlockSpec extends TestBase {
 
@@ -47,7 +47,6 @@ class SegmentBlockSpec extends TestBase {
   implicit def testTimer: TestTimer = TestTimer.random
   implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
   implicit val ec = TestExecutionContext.executionContext
-  implicit val compactionParallelism: CompactionParallelism = CompactionParallelism.availableProcessors()
 
   "SegmentBlock" should {
     "convert empty KeyValues and not throw exception but return empty bytes" in {

@@ -16,13 +16,10 @@
 
 package swaydb.core.segment.defrag
 
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.{MMAP, SegmentRefCacheLife}
-import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
-import swaydb.core.segment.PathsDistributor
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.segment._
 import swaydb.core.segment.assigner._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -36,13 +33,13 @@ import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.defrag.DefragSource._
-import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
+import swaydb.core.segment.io.{SegmentCompactionIO, SegmentReadIO, SegmentWriteIO}
 import swaydb.core.segment.ref.{SegmentRef, SegmentRefOption}
-import swaydb.core.util.{DefIO, IDGenerator}
+import swaydb.core.util.DefIO
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.Futures.FutureUnitImplicits
-import swaydb.utils.{Aggregator, Futures}
+import swaydb.utils.{Aggregator, Futures, IDGenerator}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -88,8 +85,7 @@ object DefragPersistentSegment {
                                                              idGenerator: IDGenerator,
                                                              forceSaveApplier: ForceSaveApplier,
                                                              compactionIO: SegmentCompactionIO.Actor,
-                                                             segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment],
-                                                             compactionParallelism: CompactionParallelism): Future[DefIO[NULL_SEG, scala.collection.SortedSet[PersistentSegment]]] =
+                                                             segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment]): Future[DefIO[NULL_SEG, scala.collection.SortedSet[PersistentSegment]]] =
     Future {
       Defrag.runOnSegment(
         segment = segment,
@@ -144,8 +140,7 @@ object DefragPersistentSegment {
                                                           idGenerator: IDGenerator,
                                                           forceSaveApplier: ForceSaveApplier,
                                                           compactionIO: SegmentCompactionIO.Actor,
-                                                          segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment],
-                                                          compactionParallelism: CompactionParallelism): Future[DefIO[NULL_SEG, scala.collection.SortedSet[PersistentSegment]]] =
+                                                          segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment]): Future[DefIO[NULL_SEG, scala.collection.SortedSet[PersistentSegment]]] =
     Defrag.runOnGaps(
       fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
       headGap = headGap,
@@ -203,8 +198,7 @@ object DefragPersistentSegment {
                                   idGenerator: IDGenerator,
                                   forceSaveApplier: ForceSaveApplier,
                                   compactionIO: SegmentCompactionIO.Actor,
-                                  segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment],
-                                  compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentOption, scala.collection.SortedSet[PersistentSegment]]] =
+                                  segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment]): Future[DefIO[PersistentSegmentOption, scala.collection.SortedSet[PersistentSegment]]] =
     if (newKeyValues.isEmpty)
       DefragPersistentSegment.runOnGaps[PersistentSegmentMany, PersistentSegmentOption](
         nullSegment = PersistentSegment.Null,
@@ -326,9 +320,8 @@ object DefragPersistentSegment {
                                                                                                                                                                          functionStore: FunctionStore,
                                                                                                                                                                          executionContext: ExecutionContext,
                                                                                                                                                                          sortedIndexConfig: SortedIndexBlockConfig,
-                                                                                                                                                                         segmentConfig: SegmentBlockConfig,
-                                                                                                                                                                         compactionParallelism: CompactionParallelism): Future[ListBuffer[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
-    Futures.traverseBounded(compactionParallelism.groupedSegmentDefragParallelism, headFragmentsAndAssignments.assignments) {
+                                                                                                                                                                         segmentConfig: SegmentBlockConfig): Future[ListBuffer[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
+    Future.traverse(headFragmentsAndAssignments.assignments) {
       assignment =>
         //Segments that did not get assign a key-value should be converted to Fragment straight away.
         //but if the segment is required for cleanup feed it to defrag so that expired key-values get cleared.
@@ -448,8 +441,7 @@ object DefragPersistentSegment {
                                           idGenerator: IDGenerator,
                                           forceSaveApplier: ForceSaveApplier,
                                           compactionIO: SegmentCompactionIO.Actor,
-                                          segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment],
-                                          compactionParallelism: CompactionParallelism): Future[scala.collection.SortedSet[PersistentSegment]] = {
+                                          segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment]): Future[scala.collection.SortedSet[PersistentSegment]] = {
     val groups = ListBuffer.empty[ListBuffer[TransientSegment.RemoteRefOrStats[MergeStats.Persistent.Builder[Memory, ListBuffer]]]]
 
     val remoteSegments = ListBuffer.empty[TransientSegment.RemotePersistentSegment]
@@ -497,7 +489,7 @@ object DefragPersistentSegment {
       if (groups.isEmpty)
         Future.successful(buffer)
       else
-        Futures.traverseBounded(compactionParallelism.defragmentedSegmentParallelism, groups) {
+        Future.traverse(groups) {
           group =>
             commitGroup(
               group = group,
@@ -559,12 +551,11 @@ object DefragPersistentSegment {
                                               idGenerator: IDGenerator,
                                               forceSaveApplier: ForceSaveApplier,
                                               compactionIO: SegmentCompactionIO.Actor,
-                                              segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment],
-                                              compactionParallelism: CompactionParallelism): Future[Iterable[PersistentSegment]] =
+                                              segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment]): Future[Iterable[PersistentSegment]] =
     if (group.isEmpty)
       Futures.emptyIterable
     else
-      Futures.traverseBounded(compactionParallelism.defragmentedSegmentParallelism, group) {
+      Future.traverse(group) {
         case ref: TransientSegment.RemoteRef =>
           Future.successful(Slice(ref))
 

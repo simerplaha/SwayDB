@@ -26,6 +26,7 @@ import swaydb.slice.Slice
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import swaydb.testkit.TestKit._
 
 class ValueSerialiserSpec extends AnyWordSpec with Matchers {
 

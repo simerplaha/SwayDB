@@ -16,11 +16,8 @@
 
 package swaydb.core.segment
 
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.{MMAP, SegmentRefCacheLife}
-import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.file.DBFile
-import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
@@ -31,8 +28,10 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.data.merge.stats.MergeStats
-import swaydb.core.util.{DefIO, IDGenerator}
+import swaydb.core.segment.io.SegmentCompactionIO
+import swaydb.core.util.DefIO
 import swaydb.slice.Slice
+import swaydb.utils.IDGenerator
 
 import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
@@ -71,8 +70,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
           segmentRefCacheLife: SegmentRefCacheLife,
           mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
                               executionContext: ExecutionContext,
-                              compactionIO: SegmentCompactionIO.Actor,
-                              compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]]
+                              compactionIO: SegmentCompactionIO.Actor): Future[DefIO[PersistentSegmentOption, Iterable[PersistentSegment]]]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -82,8 +80,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
               hashIndexConfig: HashIndexBlockConfig,
               bloomFilterConfig: BloomFilterBlockConfig,
               segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
-                                                 ec: ExecutionContext,
-                                                 compactionParallelism: CompactionParallelism): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]]
+                                                 ec: ExecutionContext): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]]
 
 
 }

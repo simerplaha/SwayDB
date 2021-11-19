@@ -18,7 +18,6 @@ package swaydb.core.segment.block.reader
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.compression.CompressionInternal
-import swaydb.core.CommonAssertions.orNone
 import swaydb.core.TestData._
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.segment.SegmentBlockOffset
@@ -27,6 +26,7 @@ import swaydb.core.segment.block.values.ValuesBlockOffset.ValuesBlockOps
 import swaydb.core.segment.block.{Block, BlockCache}
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.slice.{Reader, Slice}
+import swaydb.testkit.TestKit._
 
 class BlockRefReaderSpec extends TestBase with MockFactory {
 

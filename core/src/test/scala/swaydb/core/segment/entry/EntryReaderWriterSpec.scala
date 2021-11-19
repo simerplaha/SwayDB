@@ -33,6 +33,7 @@ import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 
 import scala.util.Random
+import swaydb.testkit.TestKit._
 
 class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
 

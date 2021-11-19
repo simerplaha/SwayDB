@@ -20,8 +20,8 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IO
-import swaydb.effect.Base._
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._

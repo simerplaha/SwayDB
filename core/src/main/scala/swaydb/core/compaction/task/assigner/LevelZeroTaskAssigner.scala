@@ -16,7 +16,6 @@
 
 package swaydb.core.compaction.task.assigner
 
-import swaydb.config.compaction.CompactionConfig.CompactionParallelism
 import swaydb.config.compaction.PushStrategy
 import swaydb.core.compaction.task.CompactionTask
 import swaydb.core.compaction.task.CompactionTask.CompactLogs
@@ -28,8 +27,8 @@ import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.data.merge.KeyValueMerger
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.{KeyValue, Memory}
-import swaydb.slice.{MaxKey, Slice}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.{MaxKey, Slice}
 import swaydb.utils.{Aggregator, Futures, NonEmptyList}
 
 import java.util
@@ -53,8 +52,7 @@ case object LevelZeroTaskAssigner {
 
   def run(source: LevelZero,
           pushStrategy: PushStrategy,
-          lowerLevels: NonEmptyList[Level])(implicit ec: ExecutionContext,
-                                            parallelism: CompactionParallelism): Future[CompactLogs] = {
+          lowerLevels: NonEmptyList[Level])(implicit ec: ExecutionContext): Future[CompactLogs] = {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
     implicit val timeOrder: TimeOrder[Slice[Byte]] = source.timeOrder
     implicit val functionStore: FunctionStore = source.functionStore
@@ -91,11 +89,10 @@ case object LevelZeroTaskAssigner {
   def flatten(input: IterableOnce[LevelZeroLog])(implicit ec: ExecutionContext,
                                                  keyOrder: KeyOrder[Slice[Byte]],
                                                  timerOrder: TimeOrder[Slice[Byte]],
-                                                 functionStore: FunctionStore,
-                                                 parallelism: CompactionParallelism): Future[Iterable[Assignable.Collection]] =
+                                                 functionStore: FunctionStore): Future[Iterable[Assignable.Collection]] =
     Future(createStacks(input)) flatMap {
       stacks =>
-        Futures.traverseBounded(parallelism.levelZeroFlattenParallelism, stacks.values().asScala.map(_.stack))(mergeStack) map {
+        Future.traverse(stacks.values().asScala.map(_.stack))(mergeStack) map {
           collection =>
             collection map {
               keyValues =>
@@ -319,8 +316,7 @@ case object LevelZeroTaskAssigner {
   def mergeStack(stack: Iterable[Either[LevelZeroLog, Iterable[Memory]]])(implicit ec: ExecutionContext,
                                                                           keyOrder: KeyOrder[Slice[Byte]],
                                                                           timerOrder: TimeOrder[Slice[Byte]],
-                                                                          functionStore: FunctionStore,
-                                                                          parallelism: CompactionParallelism): Future[Iterable[Memory]] =
+                                                                          functionStore: FunctionStore): Future[Iterable[Memory]] =
     if (stack.isEmpty)
       Futures.emptyIterable
     else if (stack.size == 1)
@@ -332,7 +328,7 @@ case object LevelZeroTaskAssigner {
           Future.successful(keyValues)
       }
     else
-      Futures.traverseBounded(parallelism.levelZeroMergeParallelism, stack.grouped(2).toList) {
+      Future.traverse(stack.grouped(2).toList) {
         group =>
           if (group.size == 1)
             Future.successful(group.head)

@@ -18,6 +18,7 @@ package swaydb.effect
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
+import swaydb.utils.Extension
 
 import java.io.IOException
 import java.nio.ByteBuffer

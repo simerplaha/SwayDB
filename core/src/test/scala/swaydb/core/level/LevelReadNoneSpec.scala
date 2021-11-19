@@ -29,6 +29,7 @@ import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
+import swaydb.testkit.TestKit._
 
 class LevelReadNoneSpec0 extends LevelReadNoneSpec
 

@@ -35,6 +35,7 @@ import swaydb.utils.PipeOps._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
+import swaydb.testkit.TestKit._
 
 class Segment_AssignerAssignKeyValues_Spec0 extends Assigner_AssignKeyValues_Spec {
   val keyValueCount = 100

@@ -17,7 +17,6 @@
 package swaydb.core.segment.block.bloomfilter
 
 import org.scalatest.OptionValues._
-import swaydb.core.CommonAssertions.{eitherOne, orNone}
 import swaydb.core.TestData._
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.{Block, BlockCache}
@@ -26,6 +25,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 import scala.util.Random
 
