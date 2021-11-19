@@ -29,7 +29,8 @@ import swaydb.core.file.reader.{FileReader, Reader}
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
-import swaydb.core.log.serialiser.{LogEntryWriter, RangeValueSerialiser, ValueSerialiser}
+import swaydb.core.log.serialiser.LogEntryWriter
+import swaydb.core.segment.serialiser.{RangeValueSerialiser, ValueSerialiser}
 import swaydb.core.log.{LogEntry, Logs}
 import swaydb.core.segment._
 import swaydb.core.segment.block._

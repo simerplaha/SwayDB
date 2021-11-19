@@ -18,6 +18,7 @@ package swaydb.core.log.serialiser
 
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.data.Memory
+import swaydb.core.segment.serialiser.{RangeValueSerialiser, ValueSerialiser}
 import swaydb.core.util.Bytes
 import swaydb.slice.{Slice, SliceMut}
 import swaydb.utils.ByteSizeOf

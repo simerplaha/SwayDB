@@ -30,8 +30,8 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.{Slice, SliceOption}
-import swaydb.utils.ByteSizeOf
 import swaydb.testkit.TestKit._
+import swaydb.utils.ByteSizeOf
 
 class Level0LogEntrySpec extends TestBase {
 

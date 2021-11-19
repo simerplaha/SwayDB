@@ -18,8 +18,8 @@ package swaydb.core.log.serialiser
 
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.io.SegmentReadIO

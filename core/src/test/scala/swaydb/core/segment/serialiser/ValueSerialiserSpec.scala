@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package swaydb.core.log.serialiser
+package swaydb.core.segment.serialiser
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.compression.CompressionInternal
 import swaydb.compression.CompressionTestGen._
 import swaydb.core.TestData._
-import swaydb.core.log.serialiser.ValueSerialiser.IntMapListBufferSerialiser
+import swaydb.core.segment.serialiser.ValueSerialiser.IntMapListBufferSerialiser
 import swaydb.slice.Slice
+import swaydb.testkit.TestKit._
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import swaydb.testkit.TestKit._
 
 class ValueSerialiserSpec extends AnyWordSpec with Matchers {
 

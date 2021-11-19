@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.log.serialiser
+package swaydb.core.segment.serialiser
 
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.data.{Time, Value}

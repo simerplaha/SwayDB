@@ -18,6 +18,7 @@ package swaydb.core.log.serialiser
 
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.data.{Memory, Time, Value}
+import swaydb.core.segment.serialiser.{RangeValueSerialiser, ValueSerialiser}
 import swaydb.slice.{ReaderBase, Slice}
 
 import java.util.concurrent.TimeUnit

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.log.serialiser
+package swaydb.core.segment.serialiser
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

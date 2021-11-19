@@ -17,12 +17,12 @@
 package swaydb.core.segment.data
 
 import swaydb.core.cache.{Cache, CacheNoIO}
-import swaydb.core.log.serialiser.RangeValueSerialiser.OptionRangeValueSerialiser
-import swaydb.core.log.serialiser.{RangeValueSerialiser, ValueSerialiser}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.ref.search.KeyMatcher
+import swaydb.core.segment.serialiser.RangeValueSerialiser.OptionRangeValueSerialiser
+import swaydb.core.segment.serialiser.{RangeValueSerialiser, ValueSerialiser}
 import swaydb.core.util.Bytes
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.{MaxKey, Slice, SliceOption}
