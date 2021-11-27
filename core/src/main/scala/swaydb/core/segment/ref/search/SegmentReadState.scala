@@ -62,7 +62,7 @@ private[ref] object SegmentReadState {
                                     forKey: Slice[Byte],
                                     readState: ThreadReadState,
                                     found: Persistent): Unit = {
-    found.cutMutKeys
+    found.cutKeys()
 
     val segmentState =
       new SegmentReadState(
@@ -79,7 +79,7 @@ private[ref] object SegmentReadState {
                                     readState: ThreadReadState,
                                     segmentState: SegmentReadState,
                                     found: Persistent): Unit = {
-    found.cutMutKeys
+    found.cutKeys()
     val state = segmentState.getS
     //mutate segmentState for next sequential read
     state.keyValue = (forKey.cut(), found)
@@ -121,7 +121,7 @@ private[ref] object SegmentReadState {
     if (foundOption.isSomeS) {
       val foundKeyValue = foundOption.getS
 
-      foundKeyValue.cutMutKeys
+      foundKeyValue.cutKeys()
 
       val segmentState =
         new SegmentReadState(
@@ -143,7 +143,7 @@ private[ref] object SegmentReadState {
                             foundOption: PersistentOption): Unit =
     if (foundOption.isSomeS) {
       val foundKeyValue = foundOption.getS
-      foundKeyValue.cutMutKeys
+      foundKeyValue.cutKeys()
       segmentState.isSequential = foundKeyValue.indexOffset == segmentState.keyValue._2.nextIndexOffset
       segmentState.keyValue = (forKey.cut(), foundKeyValue)
     } else {

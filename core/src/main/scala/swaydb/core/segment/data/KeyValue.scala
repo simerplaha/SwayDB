@@ -810,7 +810,7 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
    * This function is NOT thread-safe and is mutable. It should always be invoke at the time of creation
    * and before inserting into the Segment's cache.
    */
-  def cutMutKeys: Unit
+  def cutKeys(): Unit
 }
 
 private[core] object Persistent {
@@ -974,7 +974,7 @@ private[core] object Persistent {
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
-    override def cutMutKeys(): Unit = {
+    override def cutKeys(): Unit = {
       _key = _key.cut()
       _time = _time.cut()
     }
@@ -1058,7 +1058,7 @@ private[core] object Persistent {
                  valueLength: Int,
                  sortedIndexAccessPosition: Int,
                  previousIndexOffset: Int) extends Persistent.Fixed with KeyValue.Put {
-    override def cutMutKeys: Unit = {
+    override def cutKeys(): Unit = {
       _key = _key.cut()
       _time = _time.cut()
     }
@@ -1165,7 +1165,7 @@ private[core] object Persistent {
                     valueLength: Int,
                     sortedIndexAccessPosition: Int,
                     previousIndexOffset: Int) extends Persistent.Fixed with KeyValue.Update {
-    override def cutMutKeys: Unit = {
+    override def cutKeys(): Unit = {
       _key = _key.cut()
       _time = _time.cut()
     }
@@ -1322,7 +1322,7 @@ private[core] object Persistent {
                       valueLength: Int,
                       sortedIndexAccessPosition: Int,
                       previousIndexOffset: Int) extends Persistent.Fixed with KeyValue.Function {
-    override def cutMutKeys: Unit = {
+    override def cutKeys(): Unit = {
       _key = _key.cut()
       _time = _time.cut()
     }
@@ -1418,7 +1418,7 @@ private[core] object Persistent {
                           valueLength: Int,
                           sortedIndexAccessPosition: Int,
                           previousIndexOffset: Int) extends Persistent.Fixed with KeyValue.PendingApply {
-    override def cutMutKeys: Unit = {
+    override def cutKeys(): Unit = {
       _key = _key.cut()
       _time = _time.cut()
     }
@@ -1561,7 +1561,7 @@ private[core] object Persistent {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def cutMutKeys: Unit = {
+    override def cutKeys(): Unit = {
       this._fromKey = _fromKey.cut()
       this._toKey = _toKey.cut()
     }

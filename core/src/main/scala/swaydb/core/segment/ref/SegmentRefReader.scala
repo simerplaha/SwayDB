@@ -377,7 +377,7 @@ object SegmentRefReader {
       optional =>
         optional foreachS {
           found =>
-            found.cutMutKeys
+            found.cutKeys()
             val cutKey = key.cut()
 
             segmentStateOptional match {
