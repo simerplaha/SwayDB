@@ -1,6 +1,6 @@
 package swaydb.core.segment.block.values
 
-import swaydb.compression.CompressionInternal
+import swaydb.core.compression.CompressionInternal
 import swaydb.config.UncompressedBlockInfo
 import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.slice.{Slice, SliceMut}

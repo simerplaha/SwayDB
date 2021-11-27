@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.compression
+package swaydb.core.compression
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Compression

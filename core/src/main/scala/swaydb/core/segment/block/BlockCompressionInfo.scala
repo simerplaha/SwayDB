@@ -1,6 +1,6 @@
 package swaydb.core.segment.block
 
-import swaydb.compression.DecompressorInternal
+import swaydb.core.compression.DecompressorInternal
 import swaydb.utils.SomeOrNone
 
 /**

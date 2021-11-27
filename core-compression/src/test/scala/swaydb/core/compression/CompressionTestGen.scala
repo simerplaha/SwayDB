@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package swaydb.compression
+package swaydb.core.compression
 
-import swaydb.compression.CompressionInternal.{LZ4, Snappy, UnCompressed}
+import swaydb.core.compression.CompressionInternal.{LZ4, Snappy, UnCompressed}
 import swaydb.config.compression.{DecompressorId, LZ4Instance}
 
 import scala.util.Random

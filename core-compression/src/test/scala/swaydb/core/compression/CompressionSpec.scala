@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package swaydb.compression
+package swaydb.core.compression
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.compression.CompressionTestGen._
+import swaydb.core.compression.CompressionTestGen._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice

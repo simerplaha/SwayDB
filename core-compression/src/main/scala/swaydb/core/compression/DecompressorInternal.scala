@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.compression
+package swaydb.core.compression
 
 import net.jpountz.lz4.{LZ4Factory, LZ4FastDecompressor, LZ4SafeDecompressor}
 import org.xerial.snappy

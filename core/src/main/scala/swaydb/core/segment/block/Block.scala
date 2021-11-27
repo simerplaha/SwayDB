@@ -17,7 +17,7 @@
 package swaydb.core.segment.block
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.compression.{CompressionInternal, DecompressorInternal}
+import swaydb.core.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.segment.block.segment.transient.{TransientSegment, TransientSegmentRef}

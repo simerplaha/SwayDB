@@ -1,7 +1,7 @@
 package swaydb.core.segment.block.segment
 
 import swaydb.Compression
-import swaydb.compression.CompressionInternal
+import swaydb.core.compression.CompressionInternal
 import swaydb.config.{MMAP, SegmentConfig, SegmentRefCacheLife, UncompressedBlockInfo}
 import swaydb.effect.{IOAction, IOStrategy}
 

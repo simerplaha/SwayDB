@@ -18,8 +18,8 @@ package swaydb.core.segment.serialiser
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.compression.CompressionInternal
-import swaydb.compression.CompressionTestGen._
+import swaydb.core.compression.CompressionInternal
+import swaydb.core.compression.CompressionTestGen._
 import swaydb.core.TestData._
 import swaydb.core.segment.serialiser.ValueSerialiser.IntMapListBufferSerialiser
 import swaydb.slice.Slice

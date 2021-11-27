@@ -17,7 +17,7 @@
 package swaydb.core.segment.block.reader
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.compression.CompressionInternal
+import swaydb.core.compression.CompressionInternal
 import swaydb.core.TestData._
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.segment.SegmentBlockOffset

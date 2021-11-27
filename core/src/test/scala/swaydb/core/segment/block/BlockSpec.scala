@@ -1,6 +1,6 @@
 package swaydb.core.segment.block
 
-import swaydb.compression.CompressionInternal
+import swaydb.core.compression.CompressionInternal
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.segment.block.reader.BlockRefReader
