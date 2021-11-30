@@ -808,61 +808,61 @@ private[core] object RangeValueSerialiser {
 
   private def read(rangeId: Int,
                    reader: ReaderBase[Byte]): (Value.FromValueOption, Value.RangeValue) =
-    rangeId match {
-      case RemoveRemoveSerialiser.id =>
-        RemoveRemoveSerialiser.read(reader)
-      case RemoveUpdateSerialiser.id =>
-        RemoveUpdateSerialiser.read(reader)
-      case RemoveFunctionSerialiser.id =>
-        RemoveFunctionSerialiser.read(reader)
-      case RemovePendingApplySerialiser.id =>
-        RemovePendingApplySerialiser.read(reader)
+    if (rangeId == RemoveRemoveSerialiser.id)
+      RemoveRemoveSerialiser.read(reader)
+    else if (rangeId == RemoveUpdateSerialiser.id)
+      RemoveUpdateSerialiser.read(reader)
+    else if (rangeId == RemoveFunctionSerialiser.id)
+      RemoveFunctionSerialiser.read(reader)
+    else if (rangeId == RemovePendingApplySerialiser.id)
+      RemovePendingApplySerialiser.read(reader)
 
-      case PutRemoveSerialiser.id =>
-        PutRemoveSerialiser.read(reader)
-      case PutUpdateSerialiser.id =>
-        PutUpdateSerialiser.read(reader)
-      case PutFunctionSerialiser.id =>
-        PutFunctionSerialiser.read(reader)
-      case PutPendingApplySerialiser.id =>
-        PutPendingApplySerialiser.read(reader)
+    else if (rangeId == PutRemoveSerialiser.id)
+      PutRemoveSerialiser.read(reader)
+    else if (rangeId == PutUpdateSerialiser.id)
+      PutUpdateSerialiser.read(reader)
+    else if (rangeId == PutFunctionSerialiser.id)
+      PutFunctionSerialiser.read(reader)
+    else if (rangeId == PutPendingApplySerialiser.id)
+      PutPendingApplySerialiser.read(reader)
 
-      case UpdateRemoveSerialiser.id =>
-        UpdateRemoveSerialiser.read(reader)
-      case UpdateUpdateSerialiser.id =>
-        UpdateUpdateSerialiser.read(reader)
-      case UpdateFunctionSerialiser.id =>
-        UpdateFunctionSerialiser.read(reader)
-      case UpdatePendingApplySerialiser.id =>
-        UpdatePendingApplySerialiser.read(reader)
+    else if (rangeId == UpdateRemoveSerialiser.id)
+      UpdateRemoveSerialiser.read(reader)
+    else if (rangeId == UpdateUpdateSerialiser.id)
+      UpdateUpdateSerialiser.read(reader)
+    else if (rangeId == UpdateFunctionSerialiser.id)
+      UpdateFunctionSerialiser.read(reader)
+    else if (rangeId == UpdatePendingApplySerialiser.id)
+      UpdatePendingApplySerialiser.read(reader)
 
-      case FunctionRemoveSerialiser.id =>
-        FunctionRemoveSerialiser.read(reader)
-      case FunctionUpdateSerialiser.id =>
-        FunctionUpdateSerialiser.read(reader)
-      case FunctionFunctionSerialiser.id =>
-        FunctionFunctionSerialiser.read(reader)
-      case FunctionPendingApplySerialiser.id =>
-        FunctionPendingApplySerialiser.read(reader)
+    else if (rangeId == FunctionRemoveSerialiser.id)
+      FunctionRemoveSerialiser.read(reader)
+    else if (rangeId == FunctionUpdateSerialiser.id)
+      FunctionUpdateSerialiser.read(reader)
+    else if (rangeId == FunctionFunctionSerialiser.id)
+      FunctionFunctionSerialiser.read(reader)
+    else if (rangeId == FunctionPendingApplySerialiser.id)
+      FunctionPendingApplySerialiser.read(reader)
 
-      case PendingApplyRemoveSerialiser.id =>
-        PendingApplyRemoveSerialiser.read(reader)
-      case PendingApplyUpdateSerialiser.id =>
-        PendingApplyUpdateSerialiser.read(reader)
-      case PendingApplyFunctionSerialiser.id =>
-        PendingApplyFunctionSerialiser.read(reader)
-      case PendingApplyPendingApplySerialiser.id =>
-        PendingApplyPendingApplySerialiser.read(reader)
+    else if (rangeId == PendingApplyRemoveSerialiser.id)
+      PendingApplyRemoveSerialiser.read(reader)
+    else if (rangeId == PendingApplyUpdateSerialiser.id)
+      PendingApplyUpdateSerialiser.read(reader)
+    else if (rangeId == PendingApplyFunctionSerialiser.id)
+      PendingApplyFunctionSerialiser.read(reader)
+    else if (rangeId == PendingApplyPendingApplySerialiser.id)
+      PendingApplyPendingApplySerialiser.read(reader)
 
-      case UnitRemoveSerialiser.id =>
-        UnitRemoveSerialiser.read(reader)
-      case UnitUpdateSerialiser.id =>
-        UnitUpdateSerialiser.read(reader)
-      case UnitFunctionSerialiser.id =>
-        UnitFunctionSerialiser.read(reader)
-      case UnitPendingApplySerialiser.id =>
-        UnitPendingApplySerialiser.read(reader)
-    }
+    else if (rangeId == UnitRemoveSerialiser.id)
+      UnitRemoveSerialiser.read(reader)
+    else if (rangeId == UnitUpdateSerialiser.id)
+      UnitUpdateSerialiser.read(reader)
+    else if (rangeId == UnitFunctionSerialiser.id)
+      UnitFunctionSerialiser.read(reader)
+    else if (rangeId == UnitPendingApplySerialiser.id)
+      UnitPendingApplySerialiser.read(reader)
+    else
+      throw new Exception(s"Invalid ${RangeValueId.productPrefix}: $rangeId")
 
   def read(bytes: Slice[Byte]): (Value.FromValueOption, Value.RangeValue) = {
     val reader = Reader(bytes)
