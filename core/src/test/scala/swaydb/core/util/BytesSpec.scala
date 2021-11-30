@@ -37,7 +37,7 @@ class BytesSpec extends AnyWordSpec with Matchers {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte, 5.toByte, 6.toByte))
 
-      val (commonBytes, compressed) = Bytes.compress(previous, next, 1).value
+      val (commonBytes, compressed) = Bytes.compress(previous, next, 1).toOption().value
 
       compressed shouldBe Slice(5, 6)
       commonBytes shouldBe 4
@@ -47,7 +47,7 @@ class BytesSpec extends AnyWordSpec with Matchers {
       decompress.isFull shouldBe true
       decompress shouldBe next
       //return empty if minimum compressed bytes is not reached
-      Bytes.compress(previous, next, 5) shouldBe empty
+      Bytes.compress(previous, next, 5).toOption() shouldBe empty
 
       Bytes.commonPrefixBytes(previous, next) shouldBe previous
     }
@@ -56,7 +56,7 @@ class BytesSpec extends AnyWordSpec with Matchers {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte))
 
-      val (commonBytes, compressed) = Bytes.compress(previous, next, 1).value
+      val (commonBytes, compressed) = Bytes.compress(previous, next, 1).toOption().value
 
       compressed shouldBe Slice.emptyBytes
       commonBytes shouldBe 3
@@ -66,7 +66,7 @@ class BytesSpec extends AnyWordSpec with Matchers {
       decompress.isFull shouldBe true
       decompress shouldBe next
       //return empty if minimum compressed bytes is not reached
-      Bytes.compress(previous, next, 4) shouldBe empty
+      Bytes.compress(previous, next, 4).toOption() shouldBe empty
 
       Bytes.commonPrefixBytes(previous, next) shouldBe next
     }
@@ -75,7 +75,7 @@ class BytesSpec extends AnyWordSpec with Matchers {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(5.toByte, 6.toByte, 7.toByte, 8.toByte, 9.toByte, 10.toByte))
 
-      Bytes.compress(previous, next, 1) shouldBe empty
+      Bytes.compress(previous, next, 1).toOption() shouldBe empty
 
       Bytes.commonPrefixBytes(previous, next) shouldBe Slice.emptyBytes
     }

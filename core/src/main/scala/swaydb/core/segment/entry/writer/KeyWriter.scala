@@ -20,6 +20,7 @@ import swaydb.core.segment.data.Memory
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.slice.Slice
+import swaydb.utils.{Options, TupleOrNone}
 
 trait KeyWriter {
   def write[T <: Memory](current: T,
@@ -58,8 +59,11 @@ private[segment] object KeyWriter extends KeyWriter {
                                            builder: EntryWriter.Builder,
                                            deadlineId: BaseEntryId.Deadline,
                                            previous: Memory)(implicit binder: MemoryToKeyValueIdBinder[T]): Option[Unit] =
-    Bytes.compress(previous = previous.key, next = current.mergedKey, minimumCommonBytes = 3) map {
-      case (commonBytes, remainingBytes) =>
+    Bytes.compress(previous = previous.key, next = current.mergedKey, minimumCommonBytes = 3) match {
+      case TupleOrNone.None =>
+        None
+
+      case TupleOrNone.Some(commonBytes, remainingBytes) =>
         write(
           current = current,
           builder = builder,
@@ -68,6 +72,8 @@ private[segment] object KeyWriter extends KeyWriter {
           deadlineId = deadlineId,
           isKeyCompressed = true
         )
+
+        Options.unit
     }
 
   private def writeUncompressed[T <: Memory](current: T,

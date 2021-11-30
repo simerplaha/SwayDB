@@ -20,7 +20,7 @@ import swaydb.core.segment.data.Memory
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.slice.{Slice, SliceOption}
-import swaydb.utils.Options
+import swaydb.utils.{Options, TupleOrNone}
 
 private[segment] trait ValueWriter {
   def write[T <: Memory](current: T,
@@ -237,8 +237,11 @@ private[segment] object ValueWriter extends ValueWriter {
                                                                            keyWriter: KeyWriter,
                                                                            deadlineWriter: DeadlineWriter): Option[Unit] = {
     val currentValueOffset = builder.nextStartValueOffset
-    Bytes.compress(Slice.writeInt[Byte](builder.startValueOffset), Slice.writeInt[Byte](currentValueOffset), 1) map {
-      case (valueOffsetCommonBytes, valueOffsetRemainingBytes) =>
+    Bytes.compress(Slice.writeInt[Byte](builder.startValueOffset), Slice.writeInt[Byte](currentValueOffset), 1) match {
+      case TupleOrNone.None =>
+        None
+
+      case TupleOrNone.Some(valueOffsetCommonBytes, valueOffsetRemainingBytes) =>
         val valueOffsetId =
           if (valueOffsetCommonBytes == 1)
             entryId.valueUncompressed.valueOffsetOneCompressed
@@ -250,7 +253,7 @@ private[segment] object ValueWriter extends ValueWriter {
             throw new Exception(s"Fatal exception: valueOffsetCommonBytes = $valueOffsetCommonBytes")
 
         Bytes.compress(Slice.writeInt[Byte](previousValue.size), Slice.writeInt[Byte](currentValue.size), 1) match {
-          case Some((valueLengthCommonBytes, valueLengthRemainingBytes)) =>
+          case TupleOrNone.Some(valueLengthCommonBytes, valueLengthRemainingBytes) =>
             val valueLengthId =
               if (valueLengthCommonBytes == 1)
                 valueOffsetId.valueLengthOneCompressed
@@ -278,7 +281,9 @@ private[segment] object ValueWriter extends ValueWriter {
               .addAll(valueOffsetRemainingBytes)
               .addAll(valueLengthRemainingBytes)
 
-          case None =>
+            Options.unit
+
+          case TupleOrNone.None =>
             //if unable to compress valueLengthBytes then write compressed valueOffset with fully valueLength bytes.
             val currentUnsignedValueLengthBytes = Slice.writeUnsignedInt[Byte](currentValue.size)
 
@@ -296,6 +301,8 @@ private[segment] object ValueWriter extends ValueWriter {
               .bytes
               .addAll(valueOffsetRemainingBytes)
               .addAll(currentUnsignedValueLengthBytes)
+
+            Options.unit
         }
     }
   }
@@ -309,7 +316,7 @@ private[segment] object ValueWriter extends ValueWriter {
                                                                              keyWriter: KeyWriter,
                                                                              deadlineWriter: DeadlineWriter): Unit =
     Bytes.compress(previous = Slice.writeInt[Byte](previousValue.size), next = Slice.writeInt[Byte](currentValue.size), minimumCommonBytes = 1) match {
-      case Some((valueLengthCommonBytes, valueLengthRemainingBytes)) =>
+      case TupleOrNone.Some(valueLengthCommonBytes, valueLengthRemainingBytes) =>
         val valueLengthId =
           if (valueLengthCommonBytes == 1)
             entryId.valueUncompressed.valueOffsetUncompressed.valueLengthOneCompressed
@@ -339,7 +346,7 @@ private[segment] object ValueWriter extends ValueWriter {
           .addUnsignedInt(currentValueOffset)
           .addAll(valueLengthRemainingBytes)
 
-      case None =>
+      case TupleOrNone.None =>
         //unable to compress valueOffset and valueLength bytes, write them as full bytes.
         val currentValueOffset = builder.nextStartValueOffset
 

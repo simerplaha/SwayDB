@@ -17,11 +17,12 @@
 package swaydb.core.segment.entry.writer
 
 import swaydb.core.segment.data.Memory
-import swaydb.core.segment.entry.id.BaseEntryId.DeadlineId
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
+import swaydb.core.segment.entry.id.BaseEntryId.DeadlineId
 import swaydb.core.util.Bytes
 import swaydb.core.util.Times._
 import swaydb.utils.Options.when
+import swaydb.utils.{Options, TupleOrNone}
 
 import scala.concurrent.duration.Deadline
 
@@ -116,8 +117,11 @@ private[segment] object DeadlineWriter extends DeadlineWriter {
       previous = previousDeadline.toBytes,
       next = currentDeadline.toBytes,
       minimumCommonBytes = 1
-    ) map {
-      case (deadlineCommonBytes, deadlineCompressedBytes) =>
+    ) match {
+      case TupleOrNone.None =>
+        None
+
+      case TupleOrNone.Some(deadlineCommonBytes, deadlineCompressedBytes) =>
         val deadline = applyDeadlineId(deadlineCommonBytes, deadlineId)
 
         builder.setSegmentHasPrefixCompression()
@@ -129,6 +133,7 @@ private[segment] object DeadlineWriter extends DeadlineWriter {
         )
 
         builder.bytes addAll deadlineCompressedBytes
+        Options.unit
     }
 
   private[segment] def noDeadline[T <: Memory](current: T,

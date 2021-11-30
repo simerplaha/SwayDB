@@ -17,8 +17,9 @@
 package swaydb.core.util
 
 import swaydb.OK
-import swaydb.slice.utils.ScalaByteOps
 import swaydb.slice.{Slice, SliceReader}
+import swaydb.slice.utils.ScalaByteOps
+import swaydb.utils.TupleOrNone
 
 private[swaydb] object Bytes extends ScalaByteOps {
 
@@ -45,22 +46,25 @@ private[swaydb] object Bytes extends ScalaByteOps {
 
   def compress(previous: Slice[Byte],
                next: Slice[Byte],
-               minimumCommonBytes: Int): Option[(Int, Slice[Byte])] = {
+               minimumCommonBytes: Int): TupleOrNone[Int, Slice[Byte]] = {
     val commonBytes = Bytes.commonPrefixBytesCount(previous, next)
     if (commonBytes < minimumCommonBytes)
-      None
+      TupleOrNone.None
     else
-      Some(commonBytes, next.drop(commonBytes))
+      TupleOrNone.Some(commonBytes, next.drop(commonBytes))
   }
 
   def compressFull(previous: Option[Slice[Byte]],
                    next: Slice[Byte]): Option[OK] =
-    previous flatMap {
-      previous =>
+    previous match {
+      case Some(previous) =>
         compressFull(
           previous = previous,
           next = next
         )
+
+      case None =>
+        None
     }
 
   def compressFull(previous: Slice[Byte],
@@ -68,9 +72,12 @@ private[swaydb] object Bytes extends ScalaByteOps {
     if (previous.size < next.size)
       None
     else
-      compress(previous, next, next.size) map {
-        _ =>
-          OK.instance
+      compress(previous, next, next.size) match {
+        case TupleOrNone.None =>
+          None
+
+        case TupleOrNone.Some(_, _) =>
+          OK.someOK
       }
 
   def compressExact(previous: Slice[Byte],

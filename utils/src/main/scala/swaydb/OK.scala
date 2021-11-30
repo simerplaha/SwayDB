@@ -19,4 +19,5 @@ package swaydb
 sealed trait OK
 object OK {
   final val instance: OK = new OK {}
+  final val someOK = Some(instance)
 }

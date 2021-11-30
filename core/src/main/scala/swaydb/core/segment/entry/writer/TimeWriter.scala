@@ -20,6 +20,7 @@ import swaydb.core.segment.data.{Memory, Time}
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes._
 import swaydb.utils.Options.when
+import swaydb.utils.{Options, TupleOrNone}
 
 private[segment] trait TimeWriter {
   private[segment] def write[T <: Memory](current: T,
@@ -97,9 +98,11 @@ private[segment] object TimeWriter extends TimeWriter {
       previous = previousTime.time,
       next = current.persistentTime.time,
       minimumCommonBytes = 3 //minimum 3 required because commonBytes & uncompressedByteSize requires 2 bytes.
-    ) map {
-      case (commonBytes, remainingBytes) =>
+    ) match {
+      case TupleOrNone.None =>
+        None
 
+      case TupleOrNone.Some(commonBytes, remainingBytes) =>
         builder.setSegmentHasPrefixCompression()
 
         valueWriter.write(
@@ -113,6 +116,8 @@ private[segment] object TimeWriter extends TimeWriter {
           .addUnsignedInt(commonBytes)
           .addUnsignedInt(remainingBytes.size)
           .addAll(remainingBytes)
+
+        Options.unit
     }
 
   private def writeUncompressed[T <: Memory](current: T,
