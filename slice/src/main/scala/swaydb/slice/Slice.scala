@@ -254,6 +254,8 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
  */
 sealed trait SliceRO[+A] extends Iterable[A] {
 
+  implicit def classTag: ClassTag[A]@uncheckedVariance
+
   /**
    * Get element at index after doing bound checks.
    */
@@ -302,8 +304,6 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
    * for older versions of Scala.
    */
   def written: Int
-
-  implicit def classTag: ClassTag[T]@uncheckedVariance
 
   protected[this] def array: Array[T]
 
@@ -1165,7 +1165,7 @@ object Slices {
  *    - [[slices]] cannot be empty.
  *
  */
-class Slices[A: ClassTag](val slices: Array[Slice[A]]) extends SliceRO[A] {
+class Slices[A](val slices: Array[Slice[A]])(override implicit val classTag: ClassTag[A]@uncheckedVariance) extends SliceRO[A] {
 
   val blockSize: Int =
     slices.head.size
