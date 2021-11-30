@@ -1136,6 +1136,16 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
 
 }
 
+object Slices {
+
+  @inline def apply[A: ClassTag](data: A*): Slices[A] =
+    new Slices(Array(Slice[A](data: _*)))
+
+  @inline def apply[A: ClassTag](slices: Array[Slice[A]]): Slices[A] =
+    new Slices(slices)
+
+}
+
 /**
  *
  * Stores multiple slices and implements some functions to
@@ -1155,7 +1165,7 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
  *    - [[slices]] cannot be empty.
  *
  */
-case class Slices[A: ClassTag](slices: Array[Slice[A]]) extends SliceRO[A] {
+class Slices[A: ClassTag](val slices: Array[Slice[A]]) extends SliceRO[A] {
 
   val blockSize: Int =
     slices.head.size
@@ -1205,6 +1215,27 @@ case class Slices[A: ClassTag](slices: Array[Slice[A]]) extends SliceRO[A] {
       Slices(buffer.toArray)
   }
 
+  def append(right: SliceRO[A]): Slices[A] =
+    right match {
+      case right: Slice[A] => append(right)
+      case right: Slices[A] => append(right)
+    }
+
+  @inline def append(right: Slice[A]): Slices[A] =
+    if (right.isEmpty)
+      this
+    else
+      new Slices(slices :+ right)
+
+  @inline def append(right: Slices[A]): Slices[A] =
+  //    if (right.isEmpty) //Slices can never be empty so this is not possible.
+  //      this
+  //    else
+    new Slices(slices ++ right.slices)
+
+  def append(right: IterableOnce[Slice[A]]): Slices[A] =
+    new Slices(slices ++ right)
+
   override def cut(): Slice[A] =
     if (slices.length == 1)
       slices.head
@@ -1223,7 +1254,10 @@ case class Slices[A: ClassTag](slices: Array[Slice[A]]) extends SliceRO[A] {
   override def iterator: Iterator[A] =
     slices.iterator.flatMap(_.iterator)
 
-  def toArray: Array[A] =
+  /**
+   * Flattens all [[slices]] into a single Array.
+   */
+  override def toArray: Array[A] =
     if (slices.length == 1) {
       slices.head.toArray
     } else {
@@ -1239,5 +1273,18 @@ case class Slices[A: ClassTag](slices: Array[Slice[A]]) extends SliceRO[A] {
       }
       array
     }
+
+  override def equals(that: Any): Boolean =
+    that match {
+      case other: Slices[A] =>
+        this.size == other.size &&
+          this.iterator.sameElements(other.iterator)
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    slices.hashCode()
 
 }

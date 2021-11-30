@@ -149,8 +149,8 @@ private[core] object BlockCache extends LazyLogging {
               case headBytes: Slice[Byte] =>
                 Slices(Array(headBytes, gotFromCache))
 
-              case Slices(headBytes) =>
-                Slices(headBytes :+ gotFromCache)
+              case headBytes: Slices[Byte] =>
+                headBytes append gotFromCache
             }
 
         if (gotFromCache.isEmpty || gotFromCache.size == size)
@@ -187,18 +187,12 @@ private[core] object BlockCache extends LazyLogging {
                 case tailBytes: Slice[Byte] =>
                   Slices(Array(headBytes, tailBytes))
 
-                case Slices(tailBytes) =>
-                  Slices(headBytes +: tailBytes)
+                case tailBytes: Slices[Byte] =>
+                  Slices(headBytes +: tailBytes.slices)
               }
 
-            case Slices(headBytes) =>
-              gotFromDisk match {
-                case tailBytes: Slice[Byte] =>
-                  Slices(headBytes :+ tailBytes)
-
-                case Slices(tailBytes) =>
-                  Slices(headBytes ++ tailBytes)
-              }
+            case headBytes: Slices[Byte] =>
+              headBytes append gotFromDisk
           }
     }
   }

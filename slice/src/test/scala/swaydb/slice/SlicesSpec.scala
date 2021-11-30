@@ -7,7 +7,7 @@ class SlicesSpec extends AnyWordSpec with Matchers {
 
   "get" when {
     "empty" in {
-      assertThrows[NoSuchElementException](Slices[Int](Array.empty))
+      assertThrows[NoSuchElementException](Slices[Int](Array.empty[Slice[Int]]))
     }
 
     "all slices are equal" in {
@@ -62,6 +62,36 @@ class SlicesSpec extends AnyWordSpec with Matchers {
       slices.take(14).asInstanceOf[Slices[Int]].slices shouldBe Array(Slice.range(0, 4), Slice.range(5, 9), Slice(10, 11, 12, 13))
       slices.take(15).asInstanceOf[Slices[Int]].slices shouldBe Array(Slice.range(0, 4), Slice.range(5, 9), Slice(10, 11, 12, 13, 14))
       slices.take(20).asInstanceOf[Slices[Int]].slices shouldBe Array(Slice.range(0, 4), Slice.range(5, 9), Slice(10, 11, 12, 13, 14))
+    }
+  }
+
+  "append" when {
+    "slice" when {
+      "empty" in {
+        val leftSlices = Slices(1, 2, 3)
+        val slices = leftSlices append Slice.empty[Int]
+        slices shouldBe leftSlices
+        //no new instance is created
+        slices.hashCode() shouldBe leftSlices.hashCode()
+      }
+
+      "nonempty" in {
+        val slices = Slices(1, 2, 3) append Slice(4)
+        slices shouldBe Slices(1, 2, 3, 4)
+        slices.slices shouldBe Array(Slice(1, 2, 3), Slice(4))
+        slices.blockSize shouldBe 3
+      }
+    }
+
+    "slices" when {
+      //No test for "empty" because empty Slices are not possible
+
+      "nonempty" in {
+        val slices = Slices(1, 2, 3) append Slices(4)
+        slices shouldBe Slices(1, 2, 3, 4)
+        slices.slices shouldBe Array(Slice(1, 2, 3), Slice(4))
+        slices.blockSize shouldBe 3
+      }
     }
   }
 }
