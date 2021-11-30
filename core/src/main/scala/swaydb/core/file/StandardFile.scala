@@ -137,7 +137,7 @@ private[file] class StandardFile(val path: Path,
         channel.read(buffers) //read data
       }
 
-      Slices(buffers.map(buffer => Slice.ofScala(buffer))) //create slices
+      Slices(buffers.map(buffer => Slice.of(buffer))) //create slices
     }
 
   def get(position: Int): Byte =

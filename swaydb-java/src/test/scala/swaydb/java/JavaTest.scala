@@ -40,6 +40,9 @@ object JavaTest {
   def shouldBeEmpty[T](stream: swaydb.java.Stream[T]): Unit =
     stream.count shouldBe 0
 
+  def shouldBeEmpty[T](stream: swaydb.slice.Slice[T]): Unit =
+    stream shouldBe empty
+
   def shouldBeEmpty[T](items: java.lang.Iterable[T]): Unit =
     items.iterator().hasNext shouldBe false
 

@@ -27,7 +27,7 @@ object BooPickle {
       override def write(data: A): Slice[Byte] = {
         implicit val state: PickleState = PickleState.pickleStateSpeed
         val buffer = Pickle.intoBytes(data)
-        Slice.ofScala(buffer, 0, buffer.limit() - 1)
+        Slice.of(buffer, 0, buffer.limit() - 1)
       }
 
       override def read(slice: Slice[Byte]): A =

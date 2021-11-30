@@ -102,7 +102,7 @@ object Default {
       if (data.isPresent)
         Slice.writeString[java.lang.Byte](data.get(), StandardCharsets.UTF_8)
       else
-        Slice.emptyJavaBytes
+        Slice.jEmptyBytes
 
     override def read(slice: Slice[java.lang.Byte]): Optional[java.lang.String] =
       if (slice.isEmpty)
@@ -128,7 +128,7 @@ object Default {
       if (data.isPresent)
         data.get()
       else
-        Slice.emptyJavaBytes
+        Slice.jEmptyBytes
 
     override def read(slice: Slice[java.lang.Byte]): Optional[Slice[java.lang.Byte]] =
       if (slice.isEmpty)

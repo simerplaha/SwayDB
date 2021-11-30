@@ -25,23 +25,42 @@ import java.nio.charset.{Charset, StandardCharsets}
 import scala.collection.{Iterable, Iterator, Seq}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
+import java.lang.{Byte => ByteJ}
+import java.util.function.Supplier
 
 /**
  * Companion implementation for [[Slice]].
  *
  * This is a trait because the [[Slice]] class itself is getting too
  * long even though inheritance such as like this is discouraged.
+ *
+ * @note All functions prefixed with j are for better Java access.
  */
 trait SliceCompanion extends SliceBuildFrom {
+
+  val jEmptyBytes: Slice[ByteJ] =
+    Slice.of[ByteJ](0)
 
   val emptyBytes: Slice[Byte] =
     of[Byte](0)
 
-  val emptyJavaBytes: Slice[lang.Byte] =
-    of[java.lang.Byte](0)
+  val jEmptyInt: Slice[Integer] =
+    Slice.of[Integer](0)
+
+  val jEmptyLong: Slice[java.lang.Long] =
+    Slice.of[java.lang.Long](0)
+
+  val jEmptyDouble: Slice[java.lang.Double] =
+    Slice.of[java.lang.Double](0)
+
+  @inline final def jEmpty[T](runtimeClass: Class[T]): Slice[T] =
+    Slice.of[T](0)(ClassTag(runtimeClass))
 
   @inline final def empty[T: ClassTag]: Slice[T] =
     of[T](0)
+
+  final def jRange(from: Int, to: Int): Slice[java.lang.Integer] =
+    Slice.range(from, to).asInstanceOf[Slice[java.lang.Integer]]
 
   final def range(from: Int, to: Int): Slice[Int] = {
     val slice = of[Int](to - from + 1)
@@ -49,11 +68,17 @@ trait SliceCompanion extends SliceBuildFrom {
     slice
   }
 
+  final def jRange(from: Char, to: Char): Slice[Character] =
+    Slice.range(from, to).asInstanceOf[Slice[java.lang.Character]]
+
   final def range(from: Char, to: Char): Slice[Char] = {
     val slice = of[Char](26)
     (from to to) foreach slice.add
     slice.close()
   }
+
+  final def jRange(from: ByteJ, to: ByteJ): Slice[ByteJ] =
+    Slice.range(from, to).asInstanceOf[Slice[ByteJ]]
 
   final def range(from: Byte, to: Byte): Slice[Byte] = {
     val slice = of[Byte](to - from + 1)
@@ -66,6 +91,12 @@ trait SliceCompanion extends SliceBuildFrom {
     slice.close()
   }
 
+  def jFill[T](runtimeClass: Class[T], length: Int, elem: Supplier[T]): Slice[T] =
+    Slice.fill(length)(elem.get())(ClassTag(runtimeClass))
+
+  def jFillBytes(length: Int, elem: Supplier[ByteJ]): Slice[ByteJ] =
+    Slice.fill(length)(elem.get())
+
   def fill[T: ClassTag](length: Int)(elem: => T): Slice[T] =
     new SliceMut[T](
       array = Array.fill(length)(elem),
@@ -74,11 +105,20 @@ trait SliceCompanion extends SliceBuildFrom {
       _written = length
     )
 
-  def ofBytesScala(length: Int): SliceMut[Byte] =
+  @inline final def jOfBytes(length: Int): SliceMut[java.lang.Byte] =
+    Slice.of[java.lang.Byte](length = length)
+
+  @inline final def jOfBytes(length: Int, isFull: Boolean): SliceMut[java.lang.Byte] =
+    Slice.of[java.lang.Byte](length = length, isFull = isFull)
+
+  def ofBytes(length: Int): SliceMut[Byte] =
     of[Byte](length)
 
-  def ofBytesJava(length: Int): SliceMut[java.lang.Byte] =
-    of[java.lang.Byte](length)
+  @inline final def jOf[T](runtimeClass: Class[T], length: Int): SliceMut[T] =
+    Slice.of[T](length)(ClassTag(runtimeClass))
+
+  @inline final def jOf[T](runtimeClass: Class[T], length: Int, isFull: Boolean): SliceMut[T] =
+    Slice.of[T](length, isFull)(ClassTag(runtimeClass))
 
   @inline final def of[T: ClassTag](length: Int, isFull: Boolean = false): SliceMut[T] =
     new SliceMut(
@@ -88,14 +128,14 @@ trait SliceCompanion extends SliceBuildFrom {
       _written = if (isFull) length else 0
     )
 
-  def ofJava(array: Array[java.lang.Byte]): Slice[lang.Byte] =
+  def jOf(array: Array[java.lang.Byte]): Slice[lang.Byte] =
     apply(array)
 
   @throws[ClassCastException]
-  def ofJava(array: Array[Byte]): SliceMut[java.lang.Byte] =
+  def jOf(array: Array[Byte]): SliceMut[java.lang.Byte] =
     apply(array).asInstanceOf[SliceMut[java.lang.Byte]]
 
-  def ofScala(array: Array[Byte]): Slice[Byte] =
+  def of(array: Array[Byte]): Slice[Byte] =
     apply(array)
 
   def apply[T: ClassTag](data: Array[T]): Slice[T] =
@@ -127,7 +167,7 @@ trait SliceCompanion extends SliceBuildFrom {
     slice
   }
 
-  def ofJava(byteBuffer: ByteBuffer): Slice[java.lang.Byte] =
+  def jOf(byteBuffer: ByteBuffer): Slice[java.lang.Byte] =
     new SliceMut[java.lang.Byte](
       array = byteBuffer.array().asInstanceOf[Array[java.lang.Byte]],
       fromOffset = byteBuffer.arrayOffset(),
@@ -135,7 +175,7 @@ trait SliceCompanion extends SliceBuildFrom {
       _written = byteBuffer.position()
     )
 
-  def ofJava(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[java.lang.Byte] =
+  def jOf(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[java.lang.Byte] =
     new SliceMut[java.lang.Byte](
       array = byteBuffer.array().asInstanceOf[Array[java.lang.Byte]],
       fromOffset = from,
@@ -143,7 +183,7 @@ trait SliceCompanion extends SliceBuildFrom {
       _written = to - from + 1
     )
 
-  def ofScala(byteBuffer: ByteBuffer): Slice[Byte] =
+  def of(byteBuffer: ByteBuffer): Slice[Byte] =
     new SliceMut[Byte](
       array = byteBuffer.array(),
       fromOffset = byteBuffer.arrayOffset(),
@@ -151,7 +191,7 @@ trait SliceCompanion extends SliceBuildFrom {
       _written = byteBuffer.position()
     )
 
-  def ofScala(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[Byte] =
+  def of(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[Byte] =
     new SliceMut[Byte](
       array = byteBuffer.array(),
       fromOffset = from,
@@ -161,6 +201,9 @@ trait SliceCompanion extends SliceBuildFrom {
 
   @inline final def apply[T: ClassTag](data: T*): Slice[T] =
     Slice(data.toArray)
+
+  @inline final def jWriteInt(integer: Int): Slice[ByteJ] =
+    writeInt[Byte](integer).asInstanceOf[Slice[ByteJ]]
 
   @inline final def writeInt[B](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
     of[B](ByteSizeOf.int)(byteOps.classTag).addInt(integer)

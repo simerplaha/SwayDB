@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import scala.Int;
 import scala.reflect.ClassTag;
 import swaydb.slice.Slice;
+import swaydb.slice.SliceMut;
 import swaydb.slice.SliceReader;
 import swaydb.slice.utils.ByteOps;
 
@@ -30,15 +31,55 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static swaydb.java.JavaTest.*;
 
 public class SliceTest {
+  @Test
+  void empty() {
+    shouldBeEmpty(Slice.jEmptyBytes()); //Bytes
+    shouldBeEmpty(Slice.jEmpty(Integer.class)); //dynamic class
+
+    class MyClass {
+    }
+    shouldBeEmpty(Slice.jEmpty(MyClass.class)); //dynamic class
+  }
+
+  @Test
+  void forEach() {
+    Slice.jFillBytes(10, () -> Byte.MAX_VALUE).jForEach(System.out::println);
+  }
+
+  @Test
+  void filterWhenAllRemoved() {
+    Slice<Byte> byteSlice =
+      Slice
+        .jFillBytes(10, () -> Byte.MAX_VALUE)
+        .jFilter(b -> false);
+
+    shouldBeEmpty(byteSlice);
+  }
+
+  @Test
+  void filterWhenAllKept() {
+    Slice<Byte> byteSlice =
+      Slice
+        .jFillBytes(10, () -> Byte.MAX_VALUE)
+        .jFilter(b -> true);
+
+    shouldBe(byteSlice, Slice.jFillBytes(10, () -> Byte.MAX_VALUE));
+  }
+
+  @Test
+  void addIntToByteSlice() {
+    SliceMut<Byte> slice = Slice.jOfBytes(10).jAddInt(1);
+    shouldBe(slice, Slice.jWriteInt(1));
+  }
 
   @Test
   void serialising() {
     final Slice<Byte> bytes =
       Slice
-        .ofBytesJava(100)
+        .jOfBytes(100)
         .add(Byte.MIN_VALUE)
         .add(Byte.MAX_VALUE)
-        .addAll(Slice.ofBytesJava(0))
+        .addAll(Slice.jOfBytes(0))
         .addUnsignedInt(Int.MaxValue(), ByteOps.Java())
         .addUnsignedLong(Long.MIN_VALUE, ByteOps.Java())
         .addSignedInt(Int.MinValue(), ByteOps.Java())
@@ -64,7 +105,7 @@ public class SliceTest {
   @Test
   void createFromArray() {
     Byte[] array = {1, 2, 3, 4, 5, 127};
-    Slice<Byte> bytes = Slice.ofJava(array);
+    Slice<Byte> bytes = Slice.jOf(array);
 
     final ArrayList<Byte> actual = new ArrayList<>();
     bytes.asJava().forEach(actual::add);
@@ -97,7 +138,7 @@ public class SliceTest {
   @Test
   void createSliceFromPrimitiveByteArray() {
     byte[] array = {1, 2, 3, 4, 5, 127};
-    Slice<Byte> slice = Slice.ofJava(array);
+    Slice<Byte> slice = Slice.jOf(array);
     shouldBe(slice.head(), array[0]);
     shouldBe(slice.get(1), array[1]);
     shouldBe(slice.get(2), array[2]);
@@ -109,7 +150,7 @@ public class SliceTest {
   @Test
   void toByteArray() {
     byte[] writeBytes = {1, 2, 3, 4, 5, 127};
-    Slice<Byte> slice = Slice.ofJava(writeBytes);
+    Slice<Byte> slice = Slice.jOf(writeBytes);
 
     byte[] readBytes = slice.toByteArray();
     shouldBe(writeBytes, readBytes);

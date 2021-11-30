@@ -801,7 +801,7 @@ abstract class MapFunctionsOffTest extends TestBase {
     Serializer<byte[]> keySerializer = new Serializer<byte[]>() {
       @Override
       public Slice<Byte> write(byte[] data) {
-        return Slice.ofJava(data);
+        return Slice.jOf(data);
       }
 
       @Override
@@ -813,7 +813,7 @@ abstract class MapFunctionsOffTest extends TestBase {
     Serializer<byte[]> valueSerializer = new Serializer<byte[]>() {
       @Override
       public Slice<Byte> write(byte[] data) {
-        return Slice.ofJava(data);
+        return Slice.jOf(data);
       }
 
       @Override

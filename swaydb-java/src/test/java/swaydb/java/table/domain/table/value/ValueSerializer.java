@@ -31,7 +31,7 @@ public class ValueSerializer implements Serializer<Value> {
       UserValue userValue = (UserValue) data;
 
       return Slice
-        .ofBytesJava(100)
+        .jOfBytes(100)
         .add(UserValue.dataTypeId)
         .addStringUTF8WithSize(userValue.getFirstName(), ByteOps.Java())
         .addStringUTF8(userValue.getLastName(), ByteOps.Java())
@@ -40,7 +40,7 @@ public class ValueSerializer implements Serializer<Value> {
       ProductValue productValue = (ProductValue) data;
 
       return Slice
-        .ofBytesJava(100)
+        .jOfBytes(100)
         .add(UserValue.dataTypeId)
         .addUnsignedInt(productValue.getPrice(), ByteOps.Java())
         .close();

@@ -31,7 +31,7 @@ public class KeySerializer implements Serializer<Key> {
       UserKey userRow = (UserKey) data;
 
       return Slice
-        .ofBytesJava(100)
+        .jOfBytes(100)
         .add(UserKey.dataTypeId)
         .addStringUTF8(userRow.getEmail(), ByteOps.Java())
         .close();
@@ -39,7 +39,7 @@ public class KeySerializer implements Serializer<Key> {
       ProductKey productRow = (ProductKey) data;
 
       return Slice
-        .ofBytesJava(100)
+        .jOfBytes(100)
         .add(ProductKey.dataTypeId)
         .addUnsignedInt(productRow.getId(), ByteOps.Java())
         .close();
