@@ -3,7 +3,7 @@ package swaydb.core.segment.cache.sweeper
 import swaydb.ActorConfig.QueueOrder
 import swaydb.{Actor, ActorConfig, ActorRef, Glass}
 
-object MemorySweeperActor {
+protected object MemorySweeperActor {
 
   @inline def processCommand(command: MemorySweeperCommand): Unit =
     command match {
