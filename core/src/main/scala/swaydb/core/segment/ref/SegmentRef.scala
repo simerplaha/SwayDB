@@ -163,8 +163,8 @@ private[core] class SegmentRef(val path: Path,
   private[segment] def addToSkipList(keyValue: Persistent): Unit =
     skipList foreach {
       skipList =>
-        //cut not required anymore since SegmentSearch always cutd.
-        //keyValue.cutKeys
+        //cut not required anymore since SegmentSearch always cut.
+        //keyValue.cutKeys()
         if (skipList.putIfAbsent(keyValue.key, keyValue))
           keyValueMemorySweeper.foreach(_.add(keyValue, skipList))
     }
@@ -217,13 +217,13 @@ private[core] class SegmentRef(val path: Path,
   def cachedKeyValueSize: Int =
     skipList.foldLeft(0)(_ + _.size)
 
-  def clearCachedKeyValues() =
+  def clearCachedKeyValues(): Unit =
     skipList.foreach(_.clear())
 
-  def clearAllCaches() =
+  def clearAllCaches(): Unit =
     segmentBlockCache.clear()
 
-  def areAllCachesEmpty =
+  def areAllCachesEmpty: Boolean =
     isKeyValueCacheEmpty && !segmentBlockCache.isCached
 
   def readAllBytes(): Slice[Byte] =
