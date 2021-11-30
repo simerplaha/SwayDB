@@ -20,7 +20,7 @@ import swaydb.core.compaction.throttle.LevelState
 import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
 
-protected object LevelSleepStates {
+private object LevelSleepStates {
 
   def success(zero: LevelZero,
               stateId: Long): LevelState.Sleeping =

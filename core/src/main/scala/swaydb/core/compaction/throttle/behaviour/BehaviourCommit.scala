@@ -28,7 +28,7 @@ import swaydb.slice.Slice
 import swaydb.SliceIOImplicits._
 import swaydb.{Error, IO}
 
-protected case object BehaviourCommit extends LazyLogging {
+private case object BehaviourCommit extends LazyLogging {
 
   private val levelCommitOrder =
     Ordering.Int.reverse.on[DefIO[Level, Iterable[DefIO[SegmentOption, Iterable[Segment]]]]](_.input.levelNumber)

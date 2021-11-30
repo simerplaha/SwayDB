@@ -46,7 +46,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
 
   def copyTo(toPath: Path): Path
 
-  def isMMAP =
+  final def isMMAP: Boolean =
     file.isMemoryMapped
 
   override def asSegmentOption: SegmentOption =
@@ -86,9 +86,6 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
 }
 
 object PersistentSegment {
-  val emptySlice: Slice[PersistentSegment] = Slice.empty[PersistentSegment]
-
-  val emptyFutureSlice = Slice.empty[scala.concurrent.Future[PersistentSegment]]
 
   case object Null extends PersistentSegmentOption {
     override val asSegmentOption: SegmentOption = Segment.Null

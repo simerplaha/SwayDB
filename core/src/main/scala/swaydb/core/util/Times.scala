@@ -53,8 +53,6 @@ private[swaydb] object Times {
         case (None, None) =>
           None
       }
-
-
   }
 
   implicit class DeadlineImplicits(deadline: Deadline) {
@@ -91,5 +89,4 @@ private[swaydb] object Times {
       else
         Some(Deadline((deadline, TimeUnit.NANOSECONDS)))
   }
-
 }

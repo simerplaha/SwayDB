@@ -36,7 +36,7 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
  * Implements compaction functions.
  */
-protected object BehaviourCompactionTask extends LazyLogging {
+private object BehaviourCompactionTask extends LazyLogging {
 
   def runSegmentTask(task: CompactionTask.Segments,
                      lastLevel: Level)(implicit ec: ExecutionContext,

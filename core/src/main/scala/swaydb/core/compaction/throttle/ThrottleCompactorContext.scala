@@ -24,11 +24,11 @@ import swaydb.slice.Slice
 import java.util.TimerTask
 import scala.concurrent.duration.Deadline
 
-protected case class ThrottleCompactorContext(levels: Slice[LevelRef],
-                                              compactionConfig: CompactionConfig,
-                                              compactionStates: Map[LevelRef, LevelState.Sleeping],
-                                              sleepTask: Option[(TimerTask, Deadline)] = None,
-                                              @volatile private var _terminateASAP: Boolean = false) extends LazyLogging {
+private case class ThrottleCompactorContext(levels: Slice[LevelRef],
+                                            compactionConfig: CompactionConfig,
+                                            compactionStates: Map[LevelRef, LevelState.Sleeping],
+                                            sleepTask: Option[(TimerTask, Deadline)] = None,
+                                            @volatile private var _terminateASAP: Boolean = false) extends LazyLogging {
 
   final def name = {
     val info = levels.mapToSlice(_.levelNumber).mkString(", ")

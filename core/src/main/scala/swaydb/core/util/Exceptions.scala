@@ -21,10 +21,10 @@ import swaydb.IO
 
 private[core] object Exceptions extends LazyLogging {
 
-  def logFailure(message: => String, failure: IO.Left[swaydb.Error, _]): Unit =
+  @inline def logFailure(message: => String, failure: IO.Left[swaydb.Error, _]): Unit =
     logFailure(message, failure.value)
 
-  def logFailure(message: => String, error: swaydb.Error): Unit =
+  @inline def logFailure(message: => String, error: swaydb.Error): Unit =
     error match {
       case swaydb.Error.Fatal(exception) =>
         logger.error(message, exception)
