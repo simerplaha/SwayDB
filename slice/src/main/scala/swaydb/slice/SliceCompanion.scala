@@ -38,29 +38,11 @@ import java.util.function.Supplier
  */
 trait SliceCompanion extends SliceBuildFrom {
 
-  val jEmptyBytes: Slice[ByteJ] =
-    Slice.of[ByteJ](0)
-
   val emptyBytes: Slice[Byte] =
     of[Byte](0)
 
-  val jEmptyInt: Slice[Integer] =
-    Slice.of[Integer](0)
-
-  val jEmptyLong: Slice[java.lang.Long] =
-    Slice.of[java.lang.Long](0)
-
-  val jEmptyDouble: Slice[java.lang.Double] =
-    Slice.of[java.lang.Double](0)
-
-  @inline final def jEmpty[T](runtimeClass: Class[T]): Slice[T] =
-    Slice.of[T](0)(ClassTag(runtimeClass))
-
   @inline final def empty[T: ClassTag]: Slice[T] =
     of[T](0)
-
-  final def jRange(from: Int, to: Int): Slice[java.lang.Integer] =
-    Slice.range(from, to).asInstanceOf[Slice[java.lang.Integer]]
 
   final def range(from: Int, to: Int): Slice[Int] = {
     val slice = of[Int](to - from + 1)
@@ -68,17 +50,11 @@ trait SliceCompanion extends SliceBuildFrom {
     slice
   }
 
-  final def jRange(from: Char, to: Char): Slice[Character] =
-    Slice.range(from, to).asInstanceOf[Slice[java.lang.Character]]
-
   final def range(from: Char, to: Char): Slice[Char] = {
     val slice = of[Char](26)
     (from to to) foreach slice.add
     slice.close()
   }
-
-  final def jRange(from: ByteJ, to: ByteJ): Slice[ByteJ] =
-    Slice.range(from, to).asInstanceOf[Slice[ByteJ]]
 
   final def range(from: Byte, to: Byte): Slice[Byte] = {
     val slice = of[Byte](to - from + 1)
@@ -91,12 +67,6 @@ trait SliceCompanion extends SliceBuildFrom {
     slice.close()
   }
 
-  def jFill[T](runtimeClass: Class[T], length: Int, elem: Supplier[T]): Slice[T] =
-    Slice.fill(length)(elem.get())(ClassTag(runtimeClass))
-
-  def jFillBytes(length: Int, elem: Supplier[ByteJ]): Slice[ByteJ] =
-    Slice.fill(length)(elem.get())
-
   def fill[T: ClassTag](length: Int)(elem: => T): Slice[T] =
     new SliceMut[T](
       array = Array.fill(length)(elem),
@@ -105,20 +75,8 @@ trait SliceCompanion extends SliceBuildFrom {
       _written = length
     )
 
-  @inline final def jOfBytes(length: Int): SliceMut[java.lang.Byte] =
-    Slice.of[java.lang.Byte](length = length)
-
-  @inline final def jOfBytes(length: Int, isFull: Boolean): SliceMut[java.lang.Byte] =
-    Slice.of[java.lang.Byte](length = length, isFull = isFull)
-
   def ofBytes(length: Int): SliceMut[Byte] =
     of[Byte](length)
-
-  @inline final def jOf[T](runtimeClass: Class[T], length: Int): SliceMut[T] =
-    Slice.of[T](length)(ClassTag(runtimeClass))
-
-  @inline final def jOf[T](runtimeClass: Class[T], length: Int, isFull: Boolean): SliceMut[T] =
-    Slice.of[T](length, isFull)(ClassTag(runtimeClass))
 
   @inline final def of[T: ClassTag](length: Int, isFull: Boolean = false): SliceMut[T] =
     new SliceMut(
@@ -127,13 +85,6 @@ trait SliceCompanion extends SliceBuildFrom {
       toOffset = if (length == 0) -1 else length - 1,
       _written = if (isFull) length else 0
     )
-
-  def jOf(array: Array[java.lang.Byte]): Slice[lang.Byte] =
-    apply(array)
-
-  @throws[ClassCastException]
-  def jOf(array: Array[Byte]): SliceMut[java.lang.Byte] =
-    apply(array).asInstanceOf[SliceMut[java.lang.Byte]]
 
   def of(array: Array[Byte]): Slice[Byte] =
     apply(array)
@@ -167,22 +118,6 @@ trait SliceCompanion extends SliceBuildFrom {
     slice
   }
 
-  def jOf(byteBuffer: ByteBuffer): Slice[java.lang.Byte] =
-    new SliceMut[java.lang.Byte](
-      array = byteBuffer.array().asInstanceOf[Array[java.lang.Byte]],
-      fromOffset = byteBuffer.arrayOffset(),
-      toOffset = byteBuffer.position() - 1,
-      _written = byteBuffer.position()
-    )
-
-  def jOf(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[java.lang.Byte] =
-    new SliceMut[java.lang.Byte](
-      array = byteBuffer.array().asInstanceOf[Array[java.lang.Byte]],
-      fromOffset = from,
-      toOffset = to,
-      _written = to - from + 1
-    )
-
   def of(byteBuffer: ByteBuffer): Slice[Byte] =
     new SliceMut[Byte](
       array = byteBuffer.array(),
@@ -201,9 +136,6 @@ trait SliceCompanion extends SliceBuildFrom {
 
   @inline final def apply[T: ClassTag](data: T*): Slice[T] =
     Slice(data.toArray)
-
-  @inline final def jWriteInt(integer: Int): Slice[ByteJ] =
-    writeInt[Byte](integer).asInstanceOf[Slice[ByteJ]]
 
   @inline final def writeInt[B](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
     of[B](ByteSizeOf.int)(byteOps.classTag).addInt(integer)

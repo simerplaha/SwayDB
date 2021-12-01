@@ -16,19 +16,18 @@
 
 package swaydb.slice
 
-import swaydb.slice.utils.{ByteOps, ScalaByteOps}
+import swaydb.slice.utils.ByteOps
 import swaydb.utils.SomeOrNoneCovariant
 
 import java.io.ByteArrayInputStream
 import java.lang
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
-import java.util.function.{Consumer, Predicate}
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
+import scala.collection.{mutable, Iterable, Iterator}
 import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer
-import scala.collection.{mutable, Iterable, Iterator}
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
@@ -193,13 +192,6 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
 
   @inline def addBoolean[B >: T](bool: Boolean)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
     byteOps.writeBoolean(bool, self)
-    self
-  }
-
-  //Java
-  def jAddInt(integer: Int): SliceMut[T] = {
-    require(classTag.runtimeClass == classOf[java.lang.Byte], "This function can be invoked only on Slice<Byte>")
-    ScalaByteOps.writeInt(integer, self.asInstanceOf[SliceMut[Byte]])
     self
   }
 
@@ -840,12 +832,6 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
     target.close()
   }
 
-  def jForEach(consumer: Consumer[T]@uncheckedVariance): Unit =
-    this.foreach(consumer.accept)
-
-  def jFilterNot(function: Predicate[T]@uncheckedVariance): This =
-    this.filterNot(p = function.test)
-
   override def filterNot(p: T => Boolean): This = {
     val filtered = Slice.of[T](self.size)
     val iterator = self.iterator
@@ -857,9 +843,6 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
 
     filtered.close().asInstanceOf[This]
   }
-
-  def jFilter(function: Predicate[T]@uncheckedVariance): This =
-    this.filter(p = function.test)
 
   override def filter(p: T => Boolean): This = {
     val filtered = Slice.of[T](self.size)
