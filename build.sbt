@@ -150,7 +150,7 @@ lazy val SwayDB =
       `core-compression`,
       stream,
       swaydb,
-      `swaydb-java`,
+      //      `swaydb-java`,
       configs,
       serializers,
       `x-interop-boopickle`,
@@ -346,13 +346,13 @@ lazy val stress =
     .dependsOn(core, configs)
     .dependsOn(swaydb, core % Test)
 
-lazy val `swaydb-java` =
-  project
-    .settings(name := "java")
-    .settings(commonSettings)
-    .settings(publishSettings)
-    .settings(libraryDependencies ++= commonJavaDependencies)
-    .dependsOn(swaydb)
+//lazy val `swaydb-java` =
+//  project
+//    .settings(name := "java")
+//    .settings(commonSettings)
+//    .settings(publishSettings)
+//    .settings(libraryDependencies ++= commonJavaDependencies)
+//    .dependsOn(swaydb)
 
 lazy val `core-tools` =
   project
