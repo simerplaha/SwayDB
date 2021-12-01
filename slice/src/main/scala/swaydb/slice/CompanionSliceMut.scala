@@ -10,7 +10,7 @@ import java.nio.charset.{Charset, StandardCharsets}
  * This is a trait because the [[SliceMut]] class itself is getting too
  * long even though inheritance such as like this is discouraged.
  */
-trait SliceMutCompanion {
+trait CompanionSliceMut {
   implicit class SliceMutByteImplicits(self: SliceMut[Byte]) {
 
     @inline def addBoolean(bool: Boolean): SliceMut[Byte] =

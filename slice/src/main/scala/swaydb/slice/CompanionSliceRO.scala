@@ -1,6 +1,6 @@
 package swaydb.slice
 
-trait SliceROCompanion {
+trait CompanionSliceRO {
 
   implicit class ByteSliceROReader(self: SliceRO[Byte]) {
     @inline def createReader(): SliceReader =

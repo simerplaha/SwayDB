@@ -50,7 +50,7 @@ sealed trait SliceOption[+T] extends SomeOrNoneCovariant[SliceOption[T], Slice[T
       this.getC.cut()
 }
 
-case object Slice extends SliceCompanion {
+case object Slice extends CompanionSlice {
 
   final case object Null extends SliceOption[Nothing] {
     override val isNoneC: Boolean = true
@@ -61,9 +61,9 @@ case object Slice extends SliceCompanion {
 
 }
 
-object SliceRO extends SliceROCompanion
-object SliceMut extends SliceMutCompanion
-object Slices extends SlicesCompanion
+object SliceRO extends CompanionSliceRO
+object SliceMut extends CompanionSliceMut
+object Slices extends CompanionSlices
 
 /**
  * Read-only [[Slice]] type.

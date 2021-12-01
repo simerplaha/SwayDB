@@ -8,7 +8,7 @@ import scala.reflect.ClassTag
  * This is a trait because the [[Slices]] class itself is getting too
  * long even though inheritance such as like this is discouraged.
  */
-trait SlicesCompanion {
+trait CompanionSlices {
 
   @inline def apply[A: ClassTag](data: A*): Slices[A] =
     new Slices(Array(Slice[A](data: _*)))

@@ -31,7 +31,7 @@ import scala.reflect.ClassTag
  * This is a trait because the [[Slice]] class itself is getting too
  * long even though inheritance such as like this is discouraged.
  */
-trait SliceCompanion extends SliceBuildFrom {
+trait CompanionSlice extends SliceBuildFrom {
 
   val emptyBytes: Slice[Byte] =
     of[Byte](0)
