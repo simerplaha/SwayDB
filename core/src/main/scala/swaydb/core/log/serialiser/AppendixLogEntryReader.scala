@@ -56,7 +56,7 @@ private[core] class AppendixLogEntryReader(mmapSegment: MMAP.Segment,
                                                                                      segmentIO: SegmentReadIO) {
 
   implicit object AppendixPutReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Segment]] {
-    override def read(reader: ReaderBase[Byte]): LogEntry.Put[Slice[Byte], Segment] = {
+    override def read(reader: ReaderBase): LogEntry.Put[Slice[Byte], Segment] = {
       val segment =
         SegmentSerialiser.FormatA.read(
           reader = reader,
@@ -73,7 +73,7 @@ private[core] class AppendixLogEntryReader(mmapSegment: MMAP.Segment,
   }
 
   implicit object AppendixRemoveReader extends LogEntryReader[LogEntry.Remove[Slice[Byte]]] {
-    override def read(reader: ReaderBase[Byte]): LogEntry.Remove[Slice[Byte]] = {
+    override def read(reader: ReaderBase): LogEntry.Remove[Slice[Byte]] = {
       val minKeyLength = reader.readUnsignedInt()
       val minKey: Slice[Byte] = reader.read(minKeyLength).cut()
       LogEntry.Remove(minKey)(AppendixLogEntryWriter.AppendixRemoveWriter)
@@ -81,7 +81,7 @@ private[core] class AppendixLogEntryReader(mmapSegment: MMAP.Segment,
   }
 
   implicit object AppendixReader extends LogEntryReader[LogEntry[Slice[Byte], Segment]] {
-    override def read(reader: ReaderBase[Byte]): LogEntry[Slice[Byte], Segment] =
+    override def read(reader: ReaderBase): LogEntry[Slice[Byte], Segment] =
       reader.foldLeft(null: LogEntry[Slice[Byte], Segment]) {
         case (previousEntryOrNull, reader) =>
           val entryId = reader.readUnsignedInt()

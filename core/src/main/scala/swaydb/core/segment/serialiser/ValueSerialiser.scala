@@ -34,7 +34,7 @@ private[core] sealed trait ValueSerialiser[T] {
 
   def write(value: T, bytes: SliceMut[Byte]): Unit
 
-  def read(reader: ReaderBase[Byte]): T
+  def read(reader: ReaderBase): T
 
   def read(bytes: Slice[Byte]): T =
     read(Reader(bytes))
@@ -44,7 +44,7 @@ private[core] sealed trait ValueSerialiser[T] {
 
 private[core] object ValueSerialiser {
 
-  def readDeadline(reader: ReaderBase[Byte]): Option[Deadline] = {
+  def readDeadline(reader: ReaderBase): Option[Deadline] = {
     val deadline = reader.readUnsignedLong()
     if (deadline == 0)
       None
@@ -52,7 +52,7 @@ private[core] object ValueSerialiser {
       deadline.toDeadlineOption
   }
 
-  def readTime(reader: ReaderBase[Byte]): Time = {
+  def readTime(reader: ReaderBase): Time = {
     val timeSize = reader.readUnsignedInt()
     if (timeSize == 0)
       Time.empty
@@ -60,7 +60,7 @@ private[core] object ValueSerialiser {
       Time(reader.read(timeSize))
   }
 
-  def readRemainingTime(reader: ReaderBase[Byte]): Time = {
+  def readRemainingTime(reader: ReaderBase): Time = {
     val remaining = reader.readRemaining()
     if (remaining.isEmpty)
       Time.empty
@@ -68,7 +68,7 @@ private[core] object ValueSerialiser {
       Time(remaining)
   }
 
-  def readValue(reader: ReaderBase[Byte]): SliceOption[Byte] = {
+  def readValue(reader: ReaderBase): SliceOption[Byte] = {
     val remaining = reader.readRemaining()
     if (remaining.isEmpty)
       Slice.Null
@@ -91,7 +91,7 @@ private[core] object ValueSerialiser {
         value.time.size +
         value.value.valueOrElseC(_.size, 0)
 
-    override def read(reader: ReaderBase[Byte]): Value.Put = {
+    override def read(reader: ReaderBase): Value.Put = {
       val deadline = readDeadline(reader)
       val time = readTime(reader)
       val value = readValue(reader)
@@ -114,7 +114,7 @@ private[core] object ValueSerialiser {
         value.time.size +
         value.value.valueOrElseC(_.size, 0)
 
-    override def read(reader: ReaderBase[Byte]): Value.Update = {
+    override def read(reader: ReaderBase): Value.Update = {
       val deadline = readDeadline(reader)
       val time = readTime(reader)
       val value = readValue(reader)
@@ -133,7 +133,7 @@ private[core] object ValueSerialiser {
       Bytes.sizeOfUnsignedLong(value.deadline.toNanos) +
         value.time.size
 
-    override def read(reader: ReaderBase[Byte]): Value.Remove = {
+    override def read(reader: ReaderBase): Value.Remove = {
       val deadline = readDeadline(reader)
       val time = readRemainingTime(reader)
       Value.Remove(deadline, time)
@@ -147,7 +147,7 @@ private[core] object ValueSerialiser {
     override def bytesRequired(value: Value.Function): Int =
       ValueSerialiser.bytesRequired((value.function, value.time.time))(TupleOfBytesSerialiser)
 
-    override def read(reader: ReaderBase[Byte]): Value.Function = {
+    override def read(reader: ReaderBase): Value.Function = {
       val (function, time) = ValueSerialiser.read[(Slice[Byte], Slice[Byte])](reader)
       Value.Function(function, Time(time))
     }
@@ -191,7 +191,7 @@ private[core] object ValueSerialiser {
           }
       }
 
-    override def read(reader: ReaderBase[Byte]): Slice[Value.Apply] = {
+    override def read(reader: ReaderBase): Slice[Value.Apply] = {
       val count = reader.readUnsignedInt()
       reader.foldLeft(Slice.of[Value.Apply](count)) {
         case (applies, reader) =>
@@ -224,7 +224,7 @@ private[core] object ValueSerialiser {
     override def bytesRequired(value: Value.PendingApply): Int =
       ValueSerialiser.bytesRequired(value.applies)
 
-    override def read(reader: ReaderBase[Byte]): Value.PendingApply =
+    override def read(reader: ReaderBase): Value.PendingApply =
       Value.PendingApply(ValueSerialiser.read[Slice[Value.Apply]](reader))
   }
 
@@ -247,7 +247,7 @@ private[core] object ValueSerialiser {
           size + Bytes.sizeOfUnsignedInt(valueBytes.size) + valueBytes.size
       }
 
-    override def read(reader: ReaderBase[Byte]): Iterable[Slice[Byte]] =
+    override def read(reader: ReaderBase): Iterable[Slice[Byte]] =
       reader.foldLeft(ListBuffer.empty[Slice[Byte]]) {
         case (result, reader) =>
           val size = reader.readUnsignedInt()
@@ -267,7 +267,7 @@ private[core] object ValueSerialiser {
     override def bytesRequired(value: (Slice[Byte], Slice[Byte])): Int =
       SeqOfBytesSerialiser.bytesRequired(Seq(value._1, value._2))
 
-    override def read(reader: ReaderBase[Byte]): (Slice[Byte], Slice[Byte]) = {
+    override def read(reader: ReaderBase): (Slice[Byte], Slice[Byte]) = {
       val bytes = SeqOfBytesSerialiser.read(reader)
       if (bytes.size != 2)
         throw new Exception(TupleOfBytesSerialiser.getClass.getSimpleName + s".read did not return a tuple. Size = ${bytes.size}")
@@ -303,7 +303,7 @@ private[core] object ValueSerialiser {
             value._1.size
       }
 
-    override def read(reader: ReaderBase[Byte]): (Slice[Byte], SliceOption[Byte]) = {
+    override def read(reader: ReaderBase): (Slice[Byte], SliceOption[Byte]) = {
       val id = reader.readUnsignedInt()
       if (id == 0) {
         val all = reader.readRemaining()
@@ -338,7 +338,7 @@ private[core] object ValueSerialiser {
       }
     }
 
-    override def read(reader: ReaderBase[Byte]): mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]] = {
+    override def read(reader: ReaderBase): mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]] = {
       val format = reader.get()
       if (format != formatId)
         throw new Exception(s"Invalid formatID: $format")
@@ -418,7 +418,7 @@ private[core] object ValueSerialiser {
           bytes addUnsignedInt 0
       }
 
-    override def read(reader: ReaderBase[Byte]): Option[MinMax[Slice[Byte]]] = {
+    override def read(reader: ReaderBase): Option[MinMax[Slice[Byte]]] = {
       val minIdSize = reader.readUnsignedInt()
       if (minIdSize == 0)
         None
@@ -456,7 +456,7 @@ private[core] object ValueSerialiser {
   def read[T](value: Slice[Byte])(implicit serialiser: ValueSerialiser[T]): T =
     serialiser.read(value)
 
-  def read[T](reader: ReaderBase[Byte])(implicit serialiser: ValueSerialiser[T]): T =
+  def read[T](reader: ReaderBase)(implicit serialiser: ValueSerialiser[T]): T =
     serialiser.read(reader)
 
   def bytesRequired[T](value: T)(implicit serialiser: ValueSerialiser[T]): Int =

@@ -40,7 +40,7 @@ private[core] sealed trait SegmentSerialiser {
   def write(value: Segment,
             bytes: SliceMut[Byte]): Unit
 
-  def read(reader: ReaderBase[Byte],
+  def read(reader: ReaderBase,
            mmapSegment: MMAP.Segment,
            segmentRefCacheLife: SegmentRefCacheLife,
            checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -96,7 +96,7 @@ private[core] object SegmentSerialiser {
       MinMaxSerialiser.write(segment.minMaxFunctionId, bytes)
     }
 
-    def read(reader: ReaderBase[Byte],
+    def read(reader: ReaderBase,
              mmapSegment: MMAP.Segment,
              segmentRefCacheLife: SegmentRefCacheLife,
              checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],

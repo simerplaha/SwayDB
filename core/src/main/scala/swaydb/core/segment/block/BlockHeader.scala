@@ -8,6 +8,6 @@ object BlockHeader {
 }
 
 class BlockHeader[O](val compressionInfo: BlockCompressionInfoOption,
-                     val headerReader: ReaderBase[Byte],
+                     val headerReader: ReaderBase,
                      val headerSize: Int,
                      val offset: O)

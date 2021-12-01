@@ -115,7 +115,7 @@ object PersistentReader extends LazyLogging {
                             headerInteger: Int,
                             headerKeyBytes: Slice[Byte],
                             keyValueId: Int,
-                            tailReader: ReaderBase[Byte],
+                            tailReader: ReaderBase,
                             previous: PersistentOption,
                             //sorted index stats
                             mightBeCompressed: Boolean,
@@ -230,7 +230,7 @@ object PersistentReader extends LazyLogging {
    */
   def calculateNextKeyValueOffsetAndSize(sortedIndexEndOffset: Int,
                                          previousKeyValueHeaderKeyBytes: Slice[Byte],
-                                         previousKeyValueIndexReader: ReaderBase[Byte],
+                                         previousKeyValueIndexReader: ReaderBase,
                                          previousKeyValueIndexOffset: Int,
                                          normalisedByteSize: Int): (Int, Int) = {
     val bytesRead =

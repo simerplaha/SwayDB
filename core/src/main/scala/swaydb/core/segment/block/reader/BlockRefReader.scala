@@ -20,7 +20,6 @@ import swaydb.core.file.DBFile
 import swaydb.core.file.reader.{FileReader, Reader}
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.segment.SegmentBlockOffset
-import swaydb.slice.utils.ByteOps
 import swaydb.slice.{Reader, Slice, SliceReader}
 
 private[core] object BlockRefReader {
@@ -128,7 +127,7 @@ private[core] object BlockRefReader {
       reader = ref.reader
     )
 
-  def apply[O <: BlockOffset](reader: Reader[Byte],
+  def apply[O <: BlockOffset](reader: Reader,
                               blockCache: Option[BlockCacheState])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] = {
     val offset = blockOps.createOffset(0, reader.size)
 
@@ -144,7 +143,7 @@ private[core] object BlockRefReader {
 private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
                                                              val rootBlockRefOffset: BlockOffset,
                                                              val blockCache: Option[BlockCacheState],
-                                                             private[reader] val reader: Reader[Byte])(implicit val byteOps: ByteOps[Byte]) extends BlockReaderBase {
+                                                             private[reader] val reader: Reader) extends BlockReaderBase {
 
   override def moveTo(newPosition: Int): BlockRefReader[O] = {
     super.moveTo(newPosition)

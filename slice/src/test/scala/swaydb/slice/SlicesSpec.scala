@@ -19,7 +19,7 @@ class SlicesSpec extends AnyWordSpec with Matchers {
       Slice.range(0, 14) foreach {
         int =>
           slices.get(int) shouldBe int
-          slices.getUnchecked_Unsafe(int) shouldBe int
+          slices.unsafeGet(int) shouldBe int
       }
 
       assertThrows[ArrayIndexOutOfBoundsException](slices.get(15))
@@ -36,7 +36,7 @@ class SlicesSpec extends AnyWordSpec with Matchers {
       Slice.range(0, 11) foreach {
         int =>
           slices.get(int) shouldBe int
-          slices.getUnchecked_Unsafe(int) shouldBe int
+          slices.unsafeGet(int) shouldBe int
       }
 
       assertThrows[ArrayIndexOutOfBoundsException](slices.get(12))

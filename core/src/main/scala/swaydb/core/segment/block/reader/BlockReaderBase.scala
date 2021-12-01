@@ -23,9 +23,9 @@ import swaydb.slice._
 /**
  * Defers [[ReaderBase]] related operations to [[BlockReader]].
  */
-private[block] trait BlockReaderBase extends ReaderBase[Byte] with BlockCacheSource with LazyLogging {
+private[block] trait BlockReaderBase extends ReaderBase with BlockCacheSource with LazyLogging {
 
-  private[reader] val reader: Reader[Byte]
+  private[reader] val reader: Reader
 
   def offset: BlockOffset
 

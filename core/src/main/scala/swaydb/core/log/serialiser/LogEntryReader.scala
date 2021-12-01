@@ -23,7 +23,7 @@ import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for LogEntryReader of type ${T}")
 trait LogEntryReader[T <: LogEntry[_, _]] {
-  def read(reader: ReaderBase[Byte]): T
+  def read(reader: ReaderBase): T
 }
 
 object LogEntryReader {
@@ -31,6 +31,6 @@ object LogEntryReader {
   def read[T <: LogEntry[_, _]](bytes: Slice[Byte])(implicit serialiser: LogEntryReader[T]): T =
     serialiser.read(SliceReader(bytes))
 
-  def read[T <: LogEntry[_, _]](reader: ReaderBase[Byte])(implicit serialiser: LogEntryReader[T]): T =
+  def read[T <: LogEntry[_, _]](reader: ReaderBase)(implicit serialiser: LogEntryReader[T]): T =
     serialiser.read(reader)
 }

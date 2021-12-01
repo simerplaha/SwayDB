@@ -22,7 +22,7 @@ import swaydb.slice.{ReaderBase, Slice}
 private[swaydb] object CounterLogEntryReader {
 
   implicit object CounterPutLogEntryReader extends LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]] {
-    override def read(reader: ReaderBase[Byte]): LogEntry.Put[Slice[Byte], Slice[Byte]] = {
+    override def read(reader: ReaderBase): LogEntry.Put[Slice[Byte], Slice[Byte]] = {
       val _ = reader.get()
       val keySize = reader.readUnsignedInt()
 

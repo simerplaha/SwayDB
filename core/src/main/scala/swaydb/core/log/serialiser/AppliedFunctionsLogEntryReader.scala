@@ -22,17 +22,17 @@ import swaydb.slice.{ReaderBase, Slice}
 private[swaydb] object AppliedFunctionsLogEntryReader {
 
   object FunctionsPutLogEntryReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Slice.Null.type]] {
-    override def read(reader: ReaderBase[Byte]): LogEntry.Put[Slice[Byte], Slice.Null.type] =
+    override def read(reader: ReaderBase): LogEntry.Put[Slice[Byte], Slice.Null.type] =
       LogEntry.Put(reader.read(reader.readUnsignedInt()), Slice.Null)(AppliedFunctionsLogEntryWriter.FunctionsPutLogEntryWriter)
   }
 
   object FunctionsRemoveLogEntryReader extends LogEntryReader[LogEntry.Remove[Slice[Byte]]] {
-    override def read(reader: ReaderBase[Byte]): LogEntry.Remove[Slice[Byte]] =
+    override def read(reader: ReaderBase): LogEntry.Remove[Slice[Byte]] =
       LogEntry.Remove(reader.read(reader.readUnsignedInt()))(AppliedFunctionsLogEntryWriter.FunctionsRemoveLogEntryWriter)
   }
 
   implicit object FunctionsLogEntryReader extends LogEntryReader[LogEntry[Slice[Byte], Slice.Null.type]] {
-    override def read(reader: ReaderBase[Byte]): LogEntry[Slice[Byte], Slice.Null.type] =
+    override def read(reader: ReaderBase): LogEntry[Slice[Byte], Slice.Null.type] =
       reader.foldLeft(null: LogEntry[Slice[Byte], Slice.Null.type]) {
         case (previousEntryOrNull, reader) =>
           val entryId = reader.readUnsignedInt()

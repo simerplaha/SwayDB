@@ -16,13 +16,11 @@
 
 package swaydb.slice
 
-import swaydb.slice.utils.{ByteOps, ScalaByteOps}
 import swaydb.utils.SomeOrNoneCovariant
 
 import java.io.ByteArrayInputStream
 import java.lang
 import java.nio.ByteBuffer
-import java.nio.charset.{Charset, StandardCharsets}
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.{mutable, Iterable, Iterator}
@@ -38,7 +36,7 @@ import scala.util.hashing.MurmurHash3
  * Slice is used heavily by core and every other API so we cannot use
  * `Option[Slice[T]]` as it increases memory allocations.
  */
-sealed trait SliceOption[@specialized(Byte) +T] extends SomeOrNoneCovariant[SliceOption[T], Slice[T]] {
+sealed trait SliceOption[+T] extends SomeOrNoneCovariant[SliceOption[T], Slice[T]] {
   override def noneC: SliceOption[Nothing] = Slice.Null
 
   def isNullOrNonEmptyCut: Boolean
@@ -63,190 +61,9 @@ case object Slice extends SliceCompanion {
 
 }
 
-object SliceMut {
-  implicit class SliceMutByteImplicits(self: SliceMut[Byte]) {
-    @inline def addBoolean(bool: Boolean): SliceMut[Byte] =
-      ScalaByteOps.writeBoolean(bool, self)
-
-    @inline def addInt(integer: Int): SliceMut[Byte] = {
-      ScalaByteOps.writeInt(integer, self)
-      self
-    }
-
-    @inline def addSignedInt(integer: Int): SliceMut[Byte] = {
-      ScalaByteOps.writeSignedInt(integer, self)
-      self
-    }
-
-    @inline def addUnsignedInt(integer: Int): SliceMut[Byte] = {
-      ScalaByteOps.writeUnsignedInt(integer, self)
-      self
-    }
-
-    @inline def addNonZeroUnsignedInt(integer: Int): SliceMut[Byte] = {
-      ScalaByteOps.writeUnsignedIntNonZero(integer, self)
-      self
-    }
-
-    @inline def addLong(num: Long): SliceMut[Byte] = {
-      ScalaByteOps.writeLong(num, self)
-      self
-    }
-
-    @inline def addUnsignedLong(num: Long): SliceMut[Byte] = {
-      ScalaByteOps.writeUnsignedLong(num, self)
-      self
-    }
-
-    @inline def addSignedLong(num: Long): SliceMut[Byte] = {
-      ScalaByteOps.writeSignedLong(num, self)
-      self
-    }
-
-    @inline def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): SliceMut[Byte] = {
-      ScalaByteOps.writeString(string, self, charsets)
-      self
-    }
-
-    @inline def addStringUTF8(string: String): SliceMut[Byte] = {
-      ScalaByteOps.writeString(string, self, StandardCharsets.UTF_8)
-      self
-    }
-
-    @inline def addStringUTF8WithSize(string: String): SliceMut[Byte] = {
-      ScalaByteOps.writeStringWithSize(string, self, StandardCharsets.UTF_8)
-      self
-    }
-  }
-}
-
-/**
- * Mutable slice. This instance implements APIs that can mutate the internal [[array]].
- *
- * [[Slice]] allows managing a large [[Array]] without copying it's values unless needed.
- *
- * [[Slice]] is used extensively by all modules including core so it's performance is critical.
- */
-final class SliceMut[@specialized(Byte) +T](protected[this] override val array: Array[T],
-                                            val fromOffset: Int,
-                                            val toOffset: Int,
-                                            private var _written: Int)(override implicit val classTag: ClassTag[T]@uncheckedVariance) extends Slice[T] { self =>
-
-  override type This = SliceMut[T]@uncheckedVariance
-
-  private var writePosition =
-    fromOffset + _written
-
-  override def size: Int =
-    _written
-
-  override def written: Int =
-    _written
-
-  @inline override def asMut(): SliceMut[T] =
-    this
-
-  override protected[this] def createEmpty: SliceMut[T] =
-    Slice.of[T](0)
-
-  override protected[this] def createNew(array: Array[T]): SliceMut[T] =
-    Slice(array).asMut()
-
-  override protected[this] def createNew(array: Array[T],
-                                         fromOffset: Int,
-                                         toOffset: Int,
-                                         written: Int): SliceMut[T] =
-    new SliceMut[T](
-      array = array,
-      fromOffset = fromOffset,
-      toOffset = toOffset,
-      _written = written
-    )
-
-  @throws[ArrayIndexOutOfBoundsException]
-  private[swaydb] def moveWritePosition(writePosition: Int): Unit = {
-    val adjustedPosition = fromOffset + writePosition
-    //+1 because write position can be a step ahead for the next write but cannot over over toOffset.
-    if (adjustedPosition > toOffset + 1) throw new ArrayIndexOutOfBoundsException(adjustedPosition)
-    this.writePosition = adjustedPosition
-    _written = adjustedPosition max _written
-  }
-
-  def add(item: T@uncheckedVariance): SliceMut[T] = {
-    if (writePosition < fromOffset || writePosition > toOffset) throw new ArrayIndexOutOfBoundsException(writePosition)
-    array(writePosition) = item
-    writePosition += 1
-    _written = (writePosition - fromOffset) max _written
-    self
-  }
-
-  @tailrec
-  def addAllOrNew(items: scala.collection.compat.IterableOnce[T]@uncheckedVariance, expandBy: Int): SliceMut[T] =
-    items match {
-      case array: mutable.WrappedArray[T] =>
-        if (hasSpace(array.length)) {
-          this.copyAll(array.array, 0, array.length)
-        } else {
-          //TODO - core's code make sure that this does not occur often.
-          val newSlice = Slice.of[T]((this.size + array.length) * expandBy)
-          newSlice addAll self
-          newSlice addAll array.array.asInstanceOf[Array[T]]
-        }
-
-      case items: Slice[T] =>
-        if (hasSpace(items.size)) {
-          addAll[T](items)
-        } else {
-          //TODO - core's code make sure that this does not occur often.
-          val newSlice = Slice.of[T]((this.size + items.size) * expandBy)
-          newSlice addAll self
-          newSlice addAll items
-        }
-
-      case items: Iterable[T] =>
-        addAllOrNew(items.toArray[T], expandBy)
-
-      case items =>
-        val buffer = ListBuffer.empty[T]
-        buffer ++= items
-
-        val newSlice = Slice.of[T]((self.size + buffer.size) * expandBy)
-
-        newSlice addAll self
-        newSlice addAll buffer.toArray
-
-        newSlice
-    }
-
-  def addAll[B >: T](items: Array[B]): SliceMut[B] =
-    this.copyAll(items, 0, items.length)
-
-  def addAll[B >: T](items: Slice[B]): SliceMut[B] =
-    this.copyAll(items.unsafeInnerArray, items.fromOffset, items.size)
-
-  def hasSpace(size: Int): Boolean = {
-    val futurePosition = writePosition + size - 1
-    futurePosition >= fromOffset && futurePosition <= toOffset
-  }
-
-  private def copyAll[B >: T](items: Array[_], fromPosition: Int, itemsSize: Int): SliceMut[B] =
-    if (itemsSize > 0) {
-      val futurePosition = writePosition + itemsSize - 1
-      if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
-      Array.copy(items, fromPosition, this.array, currentWritePosition, itemsSize)
-      writePosition += itemsSize
-      _written = (writePosition - fromOffset) max _written
-      self
-    } else {
-      self
-    }
-
-  def currentWritePosition =
-    writePosition
-
-  def currentWritePositionInThisSlice: Int =
-    writePosition - fromOffset
-}
+object SliceRO extends SliceROCompanion
+object SliceMut extends SliceMutCompanion
+object Slices extends SlicesCompanion
 
 /**
  * Read-only [[Slice]] type.
@@ -265,7 +82,7 @@ sealed trait SliceRO[+A] extends Iterable[A] {
   /**
    * Get element at index without doing bound checks.
    */
-  private[swaydb] def getUnchecked_Unsafe(index: Int): A
+  private[swaydb] def unsafeGet(index: Int): A
 
   /**
    * Returns this [[Slice]] if this [[Slice]] is not a sub-slice
@@ -274,8 +91,6 @@ sealed trait SliceRO[+A] extends Iterable[A] {
   def cut(): Slice[A]
 
   def take(fromIndex: Int, count: Int): SliceRO[A]
-
-  def createReader[B >: A]()(implicit byteOps: ByteOps[B]): SliceReader[B]
 
   def toArray: Array[A]@uncheckedVariance
 
@@ -288,7 +103,7 @@ sealed trait SliceRO[+A] extends Iterable[A] {
  *
  * [[Slice]] is used extensively by all modules including core so it's performance is critical.
  */
-sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T] { self =>
+sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
 
   type This <: Slice[T]@uncheckedVariance
 
@@ -609,7 +424,7 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
    * @return the element at given index without doing slice offset bound checks.
    */
   @throws[ArrayIndexOutOfBoundsException]
-  @inline private[swaydb] def getUnchecked_Unsafe(index: Int): T =
+  @inline private[swaydb] def unsafeGet(index: Int): T =
     array(fromOffset + index)
 
   def indexOf[B >: T](elem: B): Option[Int] = {
@@ -1002,53 +817,6 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
       written = self.size
     )
 
-  @inline def readBoolean[B >: T]()(implicit byteOps: ByteOps[B]): Boolean =
-    byteOps.readBoolean(self)
-
-  @inline def readInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
-    byteOps.readInt(self)
-
-  @inline def dropUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): This = {
-    val (_, byteSize) = readUnsignedIntWithByteSize[B]()
-    self drop byteSize
-  }
-
-  @inline def readSignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
-    byteOps.readSignedInt(self)
-
-  @inline def readUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
-    byteOps.readUnsignedInt(self)
-
-  @inline def readUnsignedIntWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Int, Int) =
-    byteOps.readUnsignedIntWithByteSize(self)
-
-  @inline def readNonZeroUnsignedIntWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Int, Int) =
-    byteOps.readUnsignedIntNonZeroWithByteSize(self)
-
-  @inline def readLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
-    byteOps.readLong(self)
-
-  @inline def readUnsignedLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
-    byteOps.readUnsignedLong(self)
-
-  @inline def readUnsignedLongWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Long, Int) =
-    byteOps.readUnsignedLongWithByteSize(self)
-
-  @inline def readUnsignedLongByteSize[B >: T]()(implicit byteOps: ByteOps[B]): Int =
-    byteOps.readUnsignedLongByteSize(self)
-
-  @inline def readSignedLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
-    byteOps.readSignedLong(self)
-
-  @inline def readString[B >: T](charset: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): String =
-    byteOps.readString(self, charset)
-
-  @inline def readStringUTF8[B >: T]()(implicit byteOps: ByteOps[B]): String =
-    byteOps.readString(self, StandardCharsets.UTF_8)
-
-  @inline def createReader[B >: T]()(implicit byteOps: ByteOps[B]): SliceReader[B] =
-    SliceReader[B](self)
-
   @inline def append[B >: T : ClassTag](tail: Slice[B]): Slice[B] = {
     val merged = Slice.of[B](self.size + tail.size)
     merged addAll self
@@ -1134,16 +902,135 @@ sealed trait Slice[@specialized(Byte) +T] extends SliceRO[T] with SliceOption[T]
     }
     MurmurHash3.finalizeHash(seed, size)
   }
-
 }
 
-object Slices {
 
-  @inline def apply[A: ClassTag](data: A*): Slices[A] =
-    new Slices(Array(Slice[A](data: _*)))
+/**
+ * Mutable slice. This instance implements APIs that can mutate the internal [[array]].
+ *
+ * [[Slice]] allows managing a large [[Array]] without copying it's values unless needed.
+ *
+ * [[Slice]] is used extensively by all modules including core so it's performance is critical.
+ */
+final class SliceMut[+T](protected[this] override val array: Array[T],
+                         val fromOffset: Int,
+                         val toOffset: Int,
+                         private var _written: Int)(override implicit val classTag: ClassTag[T]@uncheckedVariance) extends Slice[T] { self =>
 
-  @inline def apply[A: ClassTag](slices: Array[Slice[A]]): Slices[A] =
-    new Slices(slices)
+  override type This = SliceMut[T]@uncheckedVariance
+
+  private var writePosition =
+    fromOffset + _written
+
+  override def size: Int =
+    _written
+
+  override def written: Int =
+    _written
+
+  @inline override def asMut(): SliceMut[T] =
+    this
+
+  override protected[this] def createEmpty: SliceMut[T] =
+    Slice.of[T](0)
+
+  override protected[this] def createNew(array: Array[T]): SliceMut[T] =
+    Slice(array).asMut()
+
+  override protected[this] def createNew(array: Array[T],
+                                         fromOffset: Int,
+                                         toOffset: Int,
+                                         written: Int): SliceMut[T] =
+    new SliceMut[T](
+      array = array,
+      fromOffset = fromOffset,
+      toOffset = toOffset,
+      _written = written
+    )
+
+  @throws[ArrayIndexOutOfBoundsException]
+  private[swaydb] def moveWritePosition(writePosition: Int): Unit = {
+    val adjustedPosition = fromOffset + writePosition
+    //+1 because write position can be a step ahead for the next write but cannot over over toOffset.
+    if (adjustedPosition > toOffset + 1) throw new ArrayIndexOutOfBoundsException(adjustedPosition)
+    this.writePosition = adjustedPosition
+    _written = adjustedPosition max _written
+  }
+
+  def add(item: T@uncheckedVariance): SliceMut[T] = {
+    if (writePosition < fromOffset || writePosition > toOffset) throw new ArrayIndexOutOfBoundsException(writePosition)
+    array(writePosition) = item
+    writePosition += 1
+    _written = (writePosition - fromOffset) max _written
+    self
+  }
+
+  @tailrec
+  def addAllOrNew(items: scala.collection.compat.IterableOnce[T]@uncheckedVariance, expandBy: Int): SliceMut[T] =
+    items match {
+      case array: mutable.WrappedArray[T] =>
+        if (hasSpace(array.length)) {
+          this.copyAll(array.array, 0, array.length)
+        } else {
+          //TODO - core's code make sure that this does not occur often.
+          val newSlice = Slice.of[T]((this.size + array.length) * expandBy)
+          newSlice addAll self
+          newSlice addAll array.array.asInstanceOf[Array[T]]
+        }
+
+      case items: Slice[T] =>
+        if (hasSpace(items.size)) {
+          addAll[T](items)
+        } else {
+          //TODO - core's code make sure that this does not occur often.
+          val newSlice = Slice.of[T]((this.size + items.size) * expandBy)
+          newSlice addAll self
+          newSlice addAll items
+        }
+
+      case items: Iterable[T] =>
+        addAllOrNew(items.toArray[T], expandBy)
+
+      case items =>
+        val buffer = ListBuffer.empty[T]
+        buffer ++= items
+
+        val newSlice = Slice.of[T]((self.size + buffer.size) * expandBy)
+
+        newSlice addAll self
+        newSlice addAll buffer.toArray
+
+        newSlice
+    }
+
+  def addAll[B >: T](items: Array[B]): SliceMut[B] =
+    this.copyAll(items, 0, items.length)
+
+  def addAll[B >: T](items: Slice[B]): SliceMut[B] =
+    this.copyAll(items.unsafeInnerArray, items.fromOffset, items.size)
+
+  def hasSpace(size: Int): Boolean = {
+    val futurePosition = writePosition + size - 1
+    futurePosition >= fromOffset && futurePosition <= toOffset
+  }
+
+  private def copyAll[B >: T](items: Array[_], fromPosition: Int, itemsSize: Int): SliceMut[B] =
+    if (itemsSize > 0) {
+      val futurePosition = writePosition + itemsSize - 1
+      if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
+      Array.copy(items, fromPosition, this.array, currentWritePosition, itemsSize)
+      writePosition += itemsSize
+      _written = (writePosition - fromOffset) max _written
+      self
+    } else {
+      self
+    }
+
+  def currentWritePosition =
+    writePosition
+
+  def currentWritePositionInThisSlice: Int =
+    writePosition - fromOffset
 
 }
 
@@ -1166,28 +1053,22 @@ object Slices {
  *    - [[slices]] cannot be empty.
  *
  */
-class Slices[A](val slices: Array[Slice[A]])(override implicit val classTag: ClassTag[A]@uncheckedVariance) extends SliceRO[A] {
+class Slices[A](val slices: Array[Slice[A]])(override implicit val classTag: ClassTag[A]) extends SliceRO[A] {
 
   val blockSize: Int =
     slices.head.size
-
-  //FIXME - implement without cut
-  def createReader[B >: A]()(implicit byteOps: ByteOps[B]): SliceReader[B] =
-    this.cut().createReader[B]()
 
   def get(index: Int): A =
     if (slices.length == 1)
       slices.head(index)
     else
-    //slice(slot)(slotIndex)
       slices(index / blockSize).get(index % blockSize)
 
-  override private[swaydb] def getUnchecked_Unsafe(index: Int) =
+  override private[swaydb] def unsafeGet(index: Int) =
     if (slices.length == 1)
       slices.head(index)
     else
-    //slice(slot)(slotIndex)
-      slices(index / blockSize).getUnchecked_Unsafe(index % blockSize)
+      slices(index / blockSize).unsafeGet(index % blockSize)
 
   override def take(n: Int): SliceRO[A] =
     take(fromIndex = 0, count = n)
@@ -1228,10 +1109,8 @@ class Slices[A](val slices: Array[Slice[A]])(override implicit val classTag: Cla
     else
       new Slices(slices :+ right)
 
+  //Empty check not required because Slices are always non-empty
   @inline def append(right: Slices[A]): Slices[A] =
-  //    if (right.isEmpty) //Slices can never be empty so this is not possible.
-  //      this
-  //    else
     new Slices(slices ++ right.slices)
 
   def append(right: IterableOnce[Slice[A]]): Slices[A] =

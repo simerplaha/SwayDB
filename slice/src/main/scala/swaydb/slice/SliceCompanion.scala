@@ -16,25 +16,20 @@
 
 package swaydb.slice
 
-import swaydb.slice.utils.{ByteOps, ScalaByteOps}
+import swaydb.slice.utils.ScalaByteOps
 import swaydb.utils.{Aggregator, ByteSizeOf}
 
-import java.lang
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 import scala.collection.{Iterable, Iterator, Seq}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
-import java.lang.{Byte => ByteJ}
-import java.util.function.Supplier
 
 /**
  * Companion implementation for [[Slice]].
  *
  * This is a trait because the [[Slice]] class itself is getting too
  * long even though inheritance such as like this is discouraged.
- *
- * @note All functions prefixed with j are for better Java access.
  */
 trait SliceCompanion extends SliceBuildFrom {
 
@@ -323,9 +318,57 @@ trait SliceCompanion extends SliceBuildFrom {
       sliced.asInstanceOf[Slice[Byte]]
   }
 
-  implicit class ScalaByteSliced(sliced: Slice[Byte]) {
+  implicit class ScalaByteSliced(self: Slice[Byte]) {
     @inline def cast: Slice[java.lang.Byte] =
-      sliced.asInstanceOf[Slice[java.lang.Byte]]
+      self.asInstanceOf[Slice[java.lang.Byte]]
+
+    @inline def readBoolean(): Boolean =
+      ScalaByteOps.readBoolean(self)
+
+    @inline def readInt(): Int =
+      ScalaByteOps.readInt(self)
+
+    @inline def dropUnsignedInt(): Slice[Byte] = {
+      val (_, byteSize) = readUnsignedIntWithByteSize()
+      self drop byteSize
+    }
+
+    @inline def readSignedInt(): Int =
+      ScalaByteOps.readSignedInt(self)
+
+    @inline def readUnsignedInt(): Int =
+      ScalaByteOps.readUnsignedInt(self)
+
+    @inline def readUnsignedIntWithByteSize(): (Int, Int) =
+      ScalaByteOps.readUnsignedIntWithByteSize(self)
+
+    @inline def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
+      ScalaByteOps.readUnsignedIntNonZeroWithByteSize(self)
+
+    @inline def readLong(): Long =
+      ScalaByteOps.readLong(self)
+
+    @inline def readUnsignedLong(): Long =
+      ScalaByteOps.readUnsignedLong(self)
+
+    @inline def readUnsignedLongWithByteSize(): (Long, Int) =
+      ScalaByteOps.readUnsignedLongWithByteSize(self)
+
+    @inline def readUnsignedLongByteSize(): Int =
+      ScalaByteOps.readUnsignedLongByteSize(self)
+
+    @inline def readSignedLong(): Long =
+      ScalaByteOps.readSignedLong(self)
+
+    @inline def readString(charset: Charset = StandardCharsets.UTF_8): String =
+      ScalaByteOps.readString(self, charset)
+
+    @inline def readStringUTF8(): String =
+      ScalaByteOps.readString(self, StandardCharsets.UTF_8)
+
+    @inline def createReader(): SliceReader =
+      SliceReader(self)
+
   }
 
   final def sequence[A: ClassTag](in: Iterable[Future[A]])(implicit ec: ExecutionContext): Future[Slice[A]] =

@@ -18,12 +18,11 @@ package swaydb.core.file.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.file.DBFile
-import swaydb.slice.utils.ByteOps
 import swaydb.slice.{Reader, Slice, SliceRO}
 
 import java.nio.file.Path
 
-private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[Byte]) extends Reader[Byte] with LazyLogging {
+private[core] class FileReader(val file: DBFile) extends Reader with LazyLogging {
 
   private var position: Int = 0
 

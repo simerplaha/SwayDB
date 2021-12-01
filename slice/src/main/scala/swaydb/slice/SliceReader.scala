@@ -16,16 +16,13 @@
 
 package swaydb.slice
 
-import swaydb.slice.utils.ByteOps
-
 import java.nio.file.Paths
-import scala.reflect.ClassTag
 
 /**
  * http://www.swaydb.io/slice/byte-slice
  */
-case class SliceReader[@specialized(Byte) B](slice: Slice[B],
-                                             private var position: Int = 0)(implicit val byteOps: ByteOps[B]) extends Reader[B] {
+case class SliceReader(slice: Slice[Byte],
+                       private var position: Int = 0) extends Reader {
 
   def path = Paths.get(this.productPrefix)
 
@@ -35,7 +32,7 @@ case class SliceReader[@specialized(Byte) B](slice: Slice[B],
   def hasAtLeast(size: Int): Boolean =
     (slice.size - position) >= size
 
-  def read(size: Int): Slice[B] =
+  def read(size: Int): Slice[Byte] =
     if (size <= 0) {
       Slice.empty
     } else {
@@ -44,24 +41,21 @@ case class SliceReader[@specialized(Byte) B](slice: Slice[B],
       bytes
     }
 
-  def read(size: Int, blockSize: Int): SliceRO[B] = {
-    implicit val classTag: ClassTag[B] = slice.classTag
-
+  def read(size: Int, blockSize: Int): SliceRO[Byte] =
     if (size <= 0) {
-      Slice.empty[B]
+      Slice.emptyBytes
     } else {
       val bytes = slice.take(position, size)
       position += size
       Slices(bytes.split(blockSize))
     }
-  }
 
-  def moveTo(newPosition: Int): SliceReader[B] = {
+  def moveTo(newPosition: Int): SliceReader = {
     position = newPosition max 0
     this
   }
 
-  def get(): B = {
+  def get(): Byte = {
     val byte = slice get position
     position += 1
     byte
@@ -73,10 +67,10 @@ case class SliceReader[@specialized(Byte) B](slice: Slice[B],
   override def getPosition: Int =
     position
 
-  override def copy(): SliceReader[B] =
+  override def copy(): SliceReader =
     SliceReader(slice)
 
-  override def readRemaining(): Slice[B] =
+  override def readRemaining(): Slice[Byte] =
     read(remaining)
 
   override def isFile: Boolean = false

@@ -1051,7 +1051,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     "signedInt" in {
       Seq(Int.MinValue, Int.MaxValue, 0, 1, 100, Byte.MinValue, Byte.MaxValue, 100000) foreach {
         i =>
-          val bytes = Slice.writeSignedInt(i).asInstanceOf[Slice[java.lang.Byte]]
+          val bytes = Slice.writeSignedInt(i)
           bytes.isFull shouldBe true
           bytes.readSignedInt() shouldBe i
       }
@@ -1060,7 +1060,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     "signedLong" in {
       Seq(Long.MinValue, Long.MaxValue, 0, 1, 100, Byte.MinValue, Byte.MaxValue, 100000) foreach {
         i =>
-          val bytes = Slice.writeSignedLong(i).asInstanceOf[Slice[java.lang.Byte]]
+          val bytes = Slice.writeSignedLong(i)
           bytes.isFull shouldBe true
           bytes.readSignedLong() shouldBe i
       }

@@ -26,7 +26,7 @@ private[swaydb] object Reader {
   def apply(file: DBFile): FileReader =
     new FileReader(file = file)
 
-  def apply(slice: Slice[Byte], position: Int = 0): SliceReader[Byte] =
+  def apply(slice: Slice[Byte], position: Int = 0): SliceReader =
     SliceReader(
       slice = slice,
       position = position

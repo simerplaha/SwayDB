@@ -227,7 +227,7 @@ private[core] object Block extends LazyLogging {
 
   private def readCompressionInfo(formatID: Int,
                                   headerSize: Int,
-                                  reader: ReaderBase[Byte]): BlockCompressionInfoOption =
+                                  reader: ReaderBase): BlockCompressionInfoOption =
     if (formatID == BlockHeader.compressedBlockID)
       new BlockCompressionInfo(
         decompressor = DecompressorInternal(reader.readUnsignedInt()),
