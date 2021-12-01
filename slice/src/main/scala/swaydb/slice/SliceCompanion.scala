@@ -16,7 +16,7 @@
 
 package swaydb.slice
 
-import swaydb.slice.utils.ByteOps
+import swaydb.slice.utils.{ByteOps, ScalaByteOps}
 import swaydb.utils.{Aggregator, ByteSizeOf}
 
 import java.lang
@@ -137,32 +137,32 @@ trait SliceCompanion extends SliceBuildFrom {
   @inline final def apply[T: ClassTag](data: T*): Slice[T] =
     Slice(data.toArray)
 
-  @inline final def writeInt[B](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
-    of[B](ByteSizeOf.int)(byteOps.classTag).addInt(integer)
+  @inline final def writeInt(integer: Int): Slice[Byte] =
+    of[Byte](ByteSizeOf.int).addInt(integer)
 
-  @inline final def writeUnsignedInt[B](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
-    of[B](ByteSizeOf.varInt)(byteOps.classTag).addUnsignedInt(integer).close()
+  @inline final def writeUnsignedInt(integer: Int): Slice[Byte] =
+    of[Byte](ByteSizeOf.varInt).addUnsignedInt(integer).close()
 
-  @inline final def writeSignedInt[B](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
-    of[B](ByteSizeOf.varInt)(byteOps.classTag).addSignedInt(integer).close()
+  @inline final def writeSignedInt(integer: Int): Slice[Byte] =
+    of[Byte](ByteSizeOf.varInt).addSignedInt(integer).close()
 
-  @inline final def writeLong[B](num: Long)(implicit byteOps: ByteOps[B]): Slice[B] =
-    of[B](ByteSizeOf.long)(byteOps.classTag).addLong(num)
+  @inline final def writeLong(num: Long): Slice[Byte] =
+    of[Byte](ByteSizeOf.long).addLong(num)
 
-  @inline final def writeUnsignedLong[B](num: Long)(implicit byteOps: ByteOps[B]): Slice[B] =
-    of[B](ByteSizeOf.varLong)(byteOps.classTag).addUnsignedLong(num).close()
+  @inline final def writeUnsignedLong(num: Long): Slice[Byte] =
+    of[Byte](ByteSizeOf.varLong).addUnsignedLong(num).close()
 
-  @inline final def writeSignedLong[B](num: Long)(implicit byteOps: ByteOps[B]): Slice[B] =
-    of[B](ByteSizeOf.varLong)(byteOps.classTag).addSignedLong(num).close()
+  @inline final def writeSignedLong(num: Long): Slice[Byte] =
+    of[Byte](ByteSizeOf.varLong).addSignedLong(num).close()
 
-  @inline final def writeBoolean[B](bool: Boolean)(implicit byteOps: ByteOps[B]): Slice[B] =
-    of[B](1)(byteOps.classTag).addBoolean(bool)
+  @inline final def writeBoolean(bool: Boolean): Slice[Byte] =
+    of[Byte](1).addBoolean(bool)
 
-  @inline final def writeString[B](string: String, charsets: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): Slice[B] =
-    byteOps.writeString(string, charsets)
+  @inline final def writeString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] =
+    ScalaByteOps.writeString(string, charsets)
 
-  @inline final def writeStringUTF8[B](string: String)(implicit byteOps: ByteOps[B]): Slice[B] =
-    byteOps.writeString(string, StandardCharsets.UTF_8)
+  @inline final def writeStringUTF8(string: String): Slice[Byte] =
+    ScalaByteOps.writeString(string, StandardCharsets.UTF_8)
 
   @inline final def intersects[T](range1: (Slice[T], Slice[T]),
                                   range2: (Slice[T], Slice[T]))(implicit ordering: Ordering[Slice[T]]): Boolean =

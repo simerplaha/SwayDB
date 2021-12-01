@@ -68,7 +68,7 @@ private[core] case object PersistentCounterLog extends LazyLogging {
       map =>
 
         def writeEntry(startId: Long, commitId: Long) =
-          map.writeSafe(LogEntry.Put(CounterLog.defaultKey, Slice.writeLong[Byte](commitId))) flatMap {
+          map.writeSafe(LogEntry.Put(CounterLog.defaultKey, Slice.writeLong(commitId))) flatMap {
             wrote =>
               if (wrote)
                 IO {
@@ -135,7 +135,7 @@ private[core] class PersistentCounterLog(val mod: Long,
        * it would be due to file system permission issue and should be reported back up with the stacktrace.
        */
       if (count % mod == 0)
-        if (!map.writeNoSync(LogEntry.Put(CounterLog.defaultKey, Slice.writeLong[Byte](count + mod)))) {
+        if (!map.writeNoSync(LogEntry.Put(CounterLog.defaultKey, Slice.writeLong(count + mod)))) {
           val message = s"Failed to write counter entry: $count"
           logger.error(message)
           throw new Exception(message) //:O see note above

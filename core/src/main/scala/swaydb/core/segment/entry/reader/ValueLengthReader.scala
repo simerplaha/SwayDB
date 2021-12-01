@@ -40,7 +40,7 @@ object ValueLengthReader {
     previous match {
       case previous: Persistent =>
         Bytes.decompress(
-          previous = Slice.writeInt[Byte](previous.valueLength),
+          previous = Slice.writeInt(previous.valueLength),
           next = indexReader.read(ByteSizeOf.int - commonBytes),
           commonBytes = commonBytes
         ).readInt()

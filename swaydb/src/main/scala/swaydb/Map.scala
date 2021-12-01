@@ -141,10 +141,10 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
     bag.suspend(core.clear(core.readStates.get()))
 
   def applyFunction(key: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] =
-    bag.suspend(core.applyFunction(key, Slice.writeString[Byte](function.id)))
+    bag.suspend(core.applyFunction(key, Slice.writeString(function.id)))
 
   def applyFunction(from: K, to: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] =
-    bag.suspend(core.applyFunction(from, to, Slice.writeString[Byte](function.id)))
+    bag.suspend(core.applyFunction(from, to, Slice.writeString(function.id)))
 
   def commit(prepare: Prepare[K, V, F]*): BAG[OK] =
     bag.suspend(core.commit(preparesToUntyped(prepare)))
@@ -203,7 +203,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
     bag.suspend(core.mightContainKey(key, core.readStates.get()))
 
   def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[Boolean] =
-    bag.suspend(core mightContainFunction Slice.writeString[Byte](function.id))
+    bag.suspend(core mightContainFunction Slice.writeString(function.id))
 
   def keys: Stream[K, BAG] =
     map(_._1)
@@ -359,7 +359,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
     bag.suspend(core.clearAppliedAndRegisteredFunctions())
 
   override def isFunctionApplied(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): Boolean =
-    core.isFunctionApplied(Slice.writeString[Byte](function.id))
+    core.isFunctionApplied(Slice.writeString(function.id))
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.

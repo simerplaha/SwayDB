@@ -237,7 +237,7 @@ private[segment] object ValueWriter extends ValueWriter {
                                                                            keyWriter: KeyWriter,
                                                                            deadlineWriter: DeadlineWriter): Option[Unit] = {
     val currentValueOffset = builder.nextStartValueOffset
-    Bytes.compress(Slice.writeInt[Byte](builder.startValueOffset), Slice.writeInt[Byte](currentValueOffset), 1) match {
+    Bytes.compress(Slice.writeInt(builder.startValueOffset), Slice.writeInt(currentValueOffset), 1) match {
       case TupleOrNone.None =>
         None
 
@@ -252,7 +252,7 @@ private[segment] object ValueWriter extends ValueWriter {
           else
             throw new Exception(s"Fatal exception: valueOffsetCommonBytes = $valueOffsetCommonBytes")
 
-        Bytes.compress(Slice.writeInt[Byte](previousValue.size), Slice.writeInt[Byte](currentValue.size), 1) match {
+        Bytes.compress(Slice.writeInt(previousValue.size), Slice.writeInt(currentValue.size), 1) match {
           case TupleOrNone.Some(valueLengthCommonBytes, valueLengthRemainingBytes) =>
             val valueLengthId =
               if (valueLengthCommonBytes == 1)
@@ -285,7 +285,7 @@ private[segment] object ValueWriter extends ValueWriter {
 
           case TupleOrNone.None =>
             //if unable to compress valueLengthBytes then write compressed valueOffset with fully valueLength bytes.
-            val currentUnsignedValueLengthBytes = Slice.writeUnsignedInt[Byte](currentValue.size)
+            val currentUnsignedValueLengthBytes = Slice.writeUnsignedInt(currentValue.size)
 
             builder.setSegmentHasPrefixCompression()
             builder.startValueOffset = currentValueOffset
@@ -315,7 +315,7 @@ private[segment] object ValueWriter extends ValueWriter {
                                                builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
                                                                              keyWriter: KeyWriter,
                                                                              deadlineWriter: DeadlineWriter): Unit =
-    Bytes.compress(previous = Slice.writeInt[Byte](previousValue.size), next = Slice.writeInt[Byte](currentValue.size), minimumCommonBytes = 1) match {
+    Bytes.compress(previous = Slice.writeInt(previousValue.size), next = Slice.writeInt(currentValue.size), minimumCommonBytes = 1) match {
       case TupleOrNone.Some(valueLengthCommonBytes, valueLengthRemainingBytes) =>
         val valueLengthId =
           if (valueLengthCommonBytes == 1)

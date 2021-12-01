@@ -123,7 +123,7 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
         range =>
           range foreach {
             int =>
-              val unsignedBytes = Slice.writeUnsignedInt[Byte](int)
+              val unsignedBytes = Slice.writeUnsignedInt(int)
               unsignedBytes.readUnsignedInt() shouldBe int
               val actualByteSize = Bytes.sizeOfUnsignedInt(int)
               actualByteSize shouldBe unsignedBytes.size
@@ -142,7 +142,7 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
         range =>
           range foreach {
             long =>
-              val unsignedBytes = Slice.writeUnsignedLong[Byte](long)
+              val unsignedBytes = Slice.writeUnsignedLong(long)
               unsignedBytes.readUnsignedLong() shouldBe long
               val actualByteSize = Bytes.sizeOfUnsignedLong(long)
               actualByteSize shouldBe unsignedBytes.size

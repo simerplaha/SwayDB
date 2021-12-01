@@ -702,7 +702,7 @@ object TestData {
 
   def createFunction(key: Slice[Byte],
                      swayFunction: SwayFunction)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function = {
-    val functionId = Slice.writeInt[Byte](functionIdGenerator.incrementAndGet())
+    val functionId = Slice.writeInt(functionIdGenerator.incrementAndGet())
     functionStore.put(functionId, swayFunction)
     Memory.Function(key, functionId, testTimer.next)
   }
@@ -856,7 +856,7 @@ object TestData {
       randomValueOnlyFunction(functionOutput)
 
   def randomFunctionId(functionOutput: SwayFunctionOutput = randomFunctionOutput()): Slice[Byte] = {
-    val functionId = Slice.writeInt[Byte](functionIdGenerator.incrementAndGet())
+    val functionId = Slice.writeInt(functionIdGenerator.incrementAndGet())
     functionStore.put(functionId, randomSwayFunction(functionOutput))
     functionId
   }

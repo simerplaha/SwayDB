@@ -60,10 +60,10 @@ private[swaydb] object Times {
       deadline.time.toNanos
 
     @inline final def toUnsignedBytes: Slice[Byte] =
-      Slice.writeUnsignedLong[Byte](toNanos)
+      Slice.writeUnsignedLong(toNanos)
 
     @inline final def toBytes: Slice[Byte] =
-      Slice.writeLong[Byte](toNanos)
+      Slice.writeLong(toNanos)
 
     @inline def earlier(other: Deadline): Deadline =
       if (deadline.timeLeft <= other.timeLeft)

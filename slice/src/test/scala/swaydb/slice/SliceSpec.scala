@@ -496,11 +496,11 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "minMax" should {
-    val oneTwoInclusive = (Slice.writeInt[Byte](1), Slice.writeInt[Byte](2), true)
-    val threeFourInclusive = (Slice.writeInt[Byte](3), Slice.writeInt[Byte](4), true)
+    val oneTwoInclusive = (Slice.writeInt(1), Slice.writeInt(2), true)
+    val threeFourInclusive = (Slice.writeInt(3), Slice.writeInt(4), true)
 
-    val oneTwoExclusive = (Slice.writeInt[Byte](1), Slice.writeInt[Byte](2), false)
-    val threeFourExclusive = (Slice.writeInt[Byte](3), Slice.writeInt[Byte](4), false)
+    val oneTwoExclusive = (Slice.writeInt(1), Slice.writeInt(2), false)
+    val threeFourExclusive = (Slice.writeInt(3), Slice.writeInt(4), false)
 
     "return one or the other on none" in {
       Slice.minMax(Some(oneTwoInclusive), None) should contain(oneTwoInclusive)
@@ -518,56 +518,56 @@ class SliceSpec extends AnyWordSpec with Matchers {
       //1 - 1
       //1 - 1
       Slice.minMax(
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](1), true)),
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](1), true))) should contain((Slice.writeInt[Byte](1), Slice.writeInt[Byte](1), true))
+        Some((Slice.writeInt(1), Slice.writeInt(1), true)),
+        Some((Slice.writeInt(1), Slice.writeInt(1), true))) should contain((Slice.writeInt(1), Slice.writeInt(1), true))
 
       Slice.minMax(
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](1), false)),
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](1), true))) should contain((Slice.writeInt[Byte](1), Slice.writeInt[Byte](1), true))
+        Some((Slice.writeInt(1), Slice.writeInt(1), false)),
+        Some((Slice.writeInt(1), Slice.writeInt(1), true))) should contain((Slice.writeInt(1), Slice.writeInt(1), true))
 
       Slice.minMax(
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](1), true)),
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](1), false))) should contain((Slice.writeInt[Byte](1), Slice.writeInt[Byte](1), true))
+        Some((Slice.writeInt(1), Slice.writeInt(1), true)),
+        Some((Slice.writeInt(1), Slice.writeInt(1), false))) should contain((Slice.writeInt(1), Slice.writeInt(1), true))
 
       Slice.minMax(
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](1), false)),
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](1), false))) should contain((Slice.writeInt[Byte](1), Slice.writeInt[Byte](1), false))
+        Some((Slice.writeInt(1), Slice.writeInt(1), false)),
+        Some((Slice.writeInt(1), Slice.writeInt(1), false))) should contain((Slice.writeInt(1), Slice.writeInt(1), false))
 
       //1 - 5
       //  3 - 10
       Slice.minMax(
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](3), true)),
-        Some((Slice.writeInt[Byte](3), Slice.writeInt[Byte](10), true))) should contain((Slice.writeInt[Byte](1), Slice.writeInt[Byte](10), true))
+        Some((Slice.writeInt(1), Slice.writeInt(3), true)),
+        Some((Slice.writeInt(3), Slice.writeInt(10), true))) should contain((Slice.writeInt(1), Slice.writeInt(10), true))
 
       Slice.minMax(
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](3), false)),
-        Some((Slice.writeInt[Byte](3), Slice.writeInt[Byte](10), true))) should contain((Slice.writeInt[Byte](1), Slice.writeInt[Byte](10), true))
+        Some((Slice.writeInt(1), Slice.writeInt(3), false)),
+        Some((Slice.writeInt(3), Slice.writeInt(10), true))) should contain((Slice.writeInt(1), Slice.writeInt(10), true))
 
       Slice.minMax(
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](3), true)),
-        Some((Slice.writeInt[Byte](3), Slice.writeInt[Byte](10), false))) should contain((Slice.writeInt[Byte](1), Slice.writeInt[Byte](10), false))
+        Some((Slice.writeInt(1), Slice.writeInt(3), true)),
+        Some((Slice.writeInt(3), Slice.writeInt(10), false))) should contain((Slice.writeInt(1), Slice.writeInt(10), false))
 
       Slice.minMax(
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](3), false)),
-        Some((Slice.writeInt[Byte](3), Slice.writeInt[Byte](10), false))) should contain((Slice.writeInt[Byte](1), Slice.writeInt[Byte](10), false))
+        Some((Slice.writeInt(1), Slice.writeInt(3), false)),
+        Some((Slice.writeInt(3), Slice.writeInt(10), false))) should contain((Slice.writeInt(1), Slice.writeInt(10), false))
 
       //  3 - 10
       //1 - 5
       Slice.minMax(
-        Some((Slice.writeInt[Byte](3), Slice.writeInt[Byte](10), true)),
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](3), true))) should contain((Slice.writeInt[Byte](1), Slice.writeInt[Byte](10), true))
+        Some((Slice.writeInt(3), Slice.writeInt(10), true)),
+        Some((Slice.writeInt(1), Slice.writeInt(3), true))) should contain((Slice.writeInt(1), Slice.writeInt(10), true))
 
       Slice.minMax(
-        Some((Slice.writeInt[Byte](3), Slice.writeInt[Byte](10), false)),
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](3), true))) should contain((Slice.writeInt[Byte](1), Slice.writeInt[Byte](10), false))
+        Some((Slice.writeInt(3), Slice.writeInt(10), false)),
+        Some((Slice.writeInt(1), Slice.writeInt(3), true))) should contain((Slice.writeInt(1), Slice.writeInt(10), false))
 
       Slice.minMax(
-        Some((Slice.writeInt[Byte](3), Slice.writeInt[Byte](10), true)),
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](3), false))) should contain((Slice.writeInt[Byte](1), Slice.writeInt[Byte](10), true))
+        Some((Slice.writeInt(3), Slice.writeInt(10), true)),
+        Some((Slice.writeInt(1), Slice.writeInt(3), false))) should contain((Slice.writeInt(1), Slice.writeInt(10), true))
 
       Slice.minMax(
-        Some((Slice.writeInt[Byte](3), Slice.writeInt[Byte](10), false)),
-        Some((Slice.writeInt[Byte](1), Slice.writeInt[Byte](3), false))) should contain((Slice.writeInt[Byte](1), Slice.writeInt[Byte](10), false))
+        Some((Slice.writeInt(3), Slice.writeInt(10), false)),
+        Some((Slice.writeInt(1), Slice.writeInt(3), false))) should contain((Slice.writeInt(1), Slice.writeInt(10), false))
     }
   }
 
@@ -1051,18 +1051,18 @@ class SliceSpec extends AnyWordSpec with Matchers {
     "signedInt" in {
       Seq(Int.MinValue, Int.MaxValue, 0, 1, 100, Byte.MinValue, Byte.MaxValue, 100000) foreach {
         i =>
-          val bytes = Slice.writeSignedInt[java.lang.Byte](i)
+          val bytes = Slice.writeSignedInt(i).asInstanceOf[Slice[java.lang.Byte]]
           bytes.isFull shouldBe true
-          bytes.readSignedInt[java.lang.Byte]() shouldBe i
+          bytes.readSignedInt() shouldBe i
       }
     }
 
     "signedLong" in {
       Seq(Long.MinValue, Long.MaxValue, 0, 1, 100, Byte.MinValue, Byte.MaxValue, 100000) foreach {
         i =>
-          val bytes = Slice.writeSignedLong[java.lang.Byte](i)
+          val bytes = Slice.writeSignedLong(i).asInstanceOf[Slice[java.lang.Byte]]
           bytes.isFull shouldBe true
-          bytes.readSignedLong[java.lang.Byte]() shouldBe i
+          bytes.readSignedLong() shouldBe i
       }
     }
   }

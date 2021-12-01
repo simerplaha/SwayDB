@@ -9,11 +9,11 @@ class MaxKeySpec extends AnyWordSpec with Matchers {
   implicit val keyOrder = KeyOrder.default
 
   "within" when {
-    implicit def toSlice(int: Int): Slice[Byte] = Slice.writeInt[Byte](int)
+    implicit def toSlice(int: Int): Slice[Byte] = Slice.writeInt(int)
 
-    implicit def toSliceMaxKey(int: MaxKey.Fixed[Int]): MaxKey[Slice[Byte]] = MaxKey.Fixed(Slice.writeInt[Byte](int.maxKey))
+    implicit def toSliceMaxKey(int: MaxKey.Fixed[Int]): MaxKey[Slice[Byte]] = MaxKey.Fixed(Slice.writeInt(int.maxKey))
 
-    implicit def toSliceMaxKeyRange(int: MaxKey.Range[Int]): MaxKey[Slice[Byte]] = MaxKey.Range(Slice.writeInt[Byte](int.fromKey), Slice.writeInt[Byte](int.maxKey))
+    implicit def toSliceMaxKeyRange(int: MaxKey.Range[Int]): MaxKey[Slice[Byte]] = MaxKey.Range(Slice.writeInt(int.fromKey), Slice.writeInt(int.maxKey))
 
     "max key is Fixed" in {
       //0

@@ -203,7 +203,7 @@ protected case object TaskAssigner {
 
     while (dataIterator.hasNext) {
       val segment = dataIterator.next()
-      val indexBytes = Slice.writeUnsignedInt[Byte](index)
+      val indexBytes = Slice.writeUnsignedInt(index)
       segmentIndex.put(index, segment)
 
       if (segment.keyValueCount == 1)

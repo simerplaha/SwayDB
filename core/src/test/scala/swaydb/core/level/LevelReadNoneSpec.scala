@@ -126,7 +126,7 @@ sealed trait LevelReadNoneSpec extends TestBase {
               import keyOrder._
               val nonExistingKeys: List[Int] =
                 (level0KeyValues.head.key.readInt() - 100 to getMaxKey(level0KeyValues.last).maxKey.readInt() + 100)
-                  .filterNot(intKey => existing.exists(_.key equiv Slice.writeInt[Byte](intKey)))
+                  .filterNot(intKey => existing.exists(_.key equiv Slice.writeInt(intKey)))
                   .toList
 
               Seq(

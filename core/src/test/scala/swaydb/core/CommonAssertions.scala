@@ -937,7 +937,7 @@ object CommonAssertions {
         val data =
           Seq(s"\nLevel: ${level.rootPath}\n") ++
             dump(level.segments())
-        Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString[Byte](data.mkString("\n"))).toByteBufferWrap)
+        Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString(data.mkString("\n"))).toByteBufferWrap)
 
         dump(nextLevel)
 
@@ -945,7 +945,7 @@ object CommonAssertions {
         val data =
           Seq(s"\nLevel: ${level.rootPath}\n") ++
             dump(level.segments())
-        Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString[Byte](data.mkString("\n"))).toByteBufferWrap)
+        Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString(data.mkString("\n"))).toByteBufferWrap)
     }
 
   def assertGet(keyValues: Iterable[KeyValue],
@@ -999,14 +999,14 @@ object CommonAssertions {
                     level: LevelRef) =
     keys.par foreach {
       key =>
-        level.get(Slice.writeInt[Byte](key), ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+        level.get(Slice.writeInt(key), ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
     }
 
   def assertGetNone(keys: List[Int],
                     level: LevelRef) =
     keys.par foreach {
       key =>
-        level.get(Slice.writeInt[Byte](key), ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+        level.get(Slice.writeInt(key), ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
     }
 
   def assertGetNoneButLast(keyValues: Iterable[KeyValue],
@@ -1106,7 +1106,7 @@ object CommonAssertions {
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
               key =>
                 SegmentSearcher.searchLower(
-                  key = Slice.writeInt[Byte](key),
+                  key = Slice.writeInt(key),
                   start = Persistent.Null,
                   end = Persistent.Null,
                   keyValueCount = blocks.footer.keyValueCount,
@@ -1145,7 +1145,7 @@ object CommonAssertions {
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
               key =>
                 SegmentSearcher.searchLower(
-                  key = Slice.writeInt[Byte](key),
+                  key = Slice.writeInt(key),
                   start = Persistent.Null,
                   end = Persistent.Null,
                   keyValueCount = blocks.footer.keyValueCount,

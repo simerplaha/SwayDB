@@ -54,7 +54,7 @@ object IdsGenerator extends App {
               }
           }
 
-      val content = Slice.writeString[Byte](lines.mkString("\n"))
+      val content = Slice.writeString(lines.mkString("\n"))
       Effect.replace(content.toByteBufferWrap, path)
       source.close()
       println(s"maxID: ${maxID - 1}")

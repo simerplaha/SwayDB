@@ -73,7 +73,7 @@ class CompressionSpec extends AnyWordSpec with Matchers {
       val from = 1
       (from to (from + count)) map {
         long =>
-          slice addAll Slice.writeLong[Byte](long)
+          slice addAll Slice.writeLong(long)
       }
 
       val compressor = CompressorInternal.randomLZ4(minCompressionSavingsPercent = 20)

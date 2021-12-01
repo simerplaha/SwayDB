@@ -84,7 +84,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
         //            map.put(SomeKey(i), i)
         //        }
         //
-        //        val write = Slice.writeUnsignedInt[Byte](1000000)
+        //        val write = Slice.writeUnsignedInt(1000000)
 
         Benchmark("") {
           (1 to 1000000) foreach {
@@ -102,7 +102,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
                 //              Bytes.readUnsignedInt(write)
                 //              write.readUnsignedInt().get
 
-                //              val write = Slice.writeInt[Byte](i)
+                //              val write = Slice.writeInt(i)
                 //              write.readInt()
                 //              Thread.sleep(1)
                 //          println(readBytes)

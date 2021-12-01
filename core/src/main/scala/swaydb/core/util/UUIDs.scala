@@ -27,5 +27,5 @@ object UUIDs {
     randomId().replace("-", "")
 
   def randomIdNoHyphenBytes(): Slice[Byte] =
-    Slice.writeString[Byte](randomIdNoHyphen())
+    Slice.writeString(randomIdNoHyphen())
 }

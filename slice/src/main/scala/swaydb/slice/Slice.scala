@@ -16,7 +16,7 @@
 
 package swaydb.slice
 
-import swaydb.slice.utils.ByteOps
+import swaydb.slice.utils.{ByteOps, ScalaByteOps}
 import swaydb.utils.SomeOrNoneCovariant
 
 import java.io.ByteArrayInputStream
@@ -61,6 +61,63 @@ case object Slice extends SliceCompanion {
     override def asSliceOption(): SliceOption[Nothing] = this
   }
 
+}
+
+object SliceMut {
+  implicit class SliceMutByteImplicits(self: SliceMut[Byte]) {
+    @inline def addBoolean(bool: Boolean): SliceMut[Byte] =
+      ScalaByteOps.writeBoolean(bool, self)
+
+    @inline def addInt(integer: Int): SliceMut[Byte] = {
+      ScalaByteOps.writeInt(integer, self)
+      self
+    }
+
+    @inline def addSignedInt(integer: Int): SliceMut[Byte] = {
+      ScalaByteOps.writeSignedInt(integer, self)
+      self
+    }
+
+    @inline def addUnsignedInt(integer: Int): SliceMut[Byte] = {
+      ScalaByteOps.writeUnsignedInt(integer, self)
+      self
+    }
+
+    @inline def addNonZeroUnsignedInt(integer: Int): SliceMut[Byte] = {
+      ScalaByteOps.writeUnsignedIntNonZero(integer, self)
+      self
+    }
+
+    @inline def addLong(num: Long): SliceMut[Byte] = {
+      ScalaByteOps.writeLong(num, self)
+      self
+    }
+
+    @inline def addUnsignedLong(num: Long): SliceMut[Byte] = {
+      ScalaByteOps.writeUnsignedLong(num, self)
+      self
+    }
+
+    @inline def addSignedLong(num: Long): SliceMut[Byte] = {
+      ScalaByteOps.writeSignedLong(num, self)
+      self
+    }
+
+    @inline def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): SliceMut[Byte] = {
+      ScalaByteOps.writeString(string, self, charsets)
+      self
+    }
+
+    @inline def addStringUTF8(string: String): SliceMut[Byte] = {
+      ScalaByteOps.writeString(string, self, StandardCharsets.UTF_8)
+      self
+    }
+
+    @inline def addStringUTF8WithSize(string: String): SliceMut[Byte] = {
+      ScalaByteOps.writeStringWithSize(string, self, StandardCharsets.UTF_8)
+      self
+    }
+  }
 }
 
 /**
@@ -189,62 +246,6 @@ final class SliceMut[@specialized(Byte) +T](protected[this] override val array: 
 
   def currentWritePositionInThisSlice: Int =
     writePosition - fromOffset
-
-  @inline def addBoolean[B >: T](bool: Boolean)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
-    byteOps.writeBoolean(bool, self)
-    self
-  }
-
-  @inline def addInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
-    byteOps.writeInt(integer, self)
-    self
-  }
-
-  @inline def addSignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
-    byteOps.writeSignedInt(integer, self)
-    self
-  }
-
-  @inline def addUnsignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
-    byteOps.writeUnsignedInt(integer, self)
-    self
-  }
-
-  @inline def addNonZeroUnsignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
-    byteOps.writeUnsignedIntNonZero(integer, self)
-    self
-  }
-
-  @inline def addLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
-    byteOps.writeLong(num, self)
-    self
-  }
-
-  @inline def addUnsignedLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
-    byteOps.writeUnsignedLong(num, self)
-    self
-  }
-
-  @inline def addSignedLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
-    byteOps.writeSignedLong(num, self)
-    self
-  }
-
-  @inline def addString[B >: T](string: String, charsets: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
-    byteOps.writeString(string, self, charsets)
-    self
-  }
-
-  @inline def addStringUTF8[B >: T](string: String)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
-    byteOps.writeString(string, self, StandardCharsets.UTF_8)
-    self
-  }
-
-  @inline def addStringUTF8WithSize[B >: T](string: String)(implicit byteOps: ByteOps[B]): SliceMut[T] = {
-    byteOps.writeStringWithSize(string, self, StandardCharsets.UTF_8)
-    self
-  }
-
 }
 
 /**

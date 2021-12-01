@@ -40,7 +40,7 @@ object ValueOffsetReader {
     previous match {
       case previous: Persistent =>
         Bytes.decompress(
-          previous = Slice.writeInt[Byte](previous.valueOffset),
+          previous = Slice.writeInt(previous.valueOffset),
           next = indexReader.read(ByteSizeOf.int - commonBytes),
           commonBytes = commonBytes
         ).readInt()

@@ -34,7 +34,7 @@ private[swaydb] object PrepareImplicits {
 
       case Prepare.ApplyFunction(from, to, function) =>
         val functionId = function.asInstanceOf[PureFunction[_, _, _]].id
-        Prepare.ApplyFunction[Slice[Byte], Slice[Byte]](from, to, Slice.writeString[Byte](functionId))
+        Prepare.ApplyFunction[Slice[Byte], Slice[Byte]](from, to, Slice.writeString(functionId))
 
       case Prepare.Update(from, to, value) =>
         Prepare.Update[Slice[Byte], SliceOption[Byte]](from, to, value)

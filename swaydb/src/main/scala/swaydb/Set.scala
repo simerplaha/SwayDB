@@ -50,7 +50,7 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
     bag.suspend(core.mightContainKey(elem, core.readStates.get()))
 
   def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Set[A]): BAG[Boolean] =
-    bag.suspend(core mightContainFunction Slice.writeString[Byte](function.id))
+    bag.suspend(core mightContainFunction Slice.writeString(function.id))
 
   def add(elem: A): BAG[OK] =
     bag.suspend(core.put(key = elem))
@@ -121,10 +121,10 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
     bag.suspend(core.clear(core.readStates.get()))
 
   def applyFunction(from: A, to: A, function: F)(implicit evd: F <:< PureFunction.Set[A]): BAG[OK] =
-    bag.suspend(core.applyFunction(from, to, Slice.writeString[Byte](function.id)))
+    bag.suspend(core.applyFunction(from, to, Slice.writeString(function.id)))
 
   def applyFunction(elem: A, function: F)(implicit evd: F <:< PureFunction.Set[A]): BAG[OK] =
-    bag.suspend(core.applyFunction(elem, Slice.writeString[Byte](function.id)))
+    bag.suspend(core.applyFunction(elem, Slice.writeString(function.id)))
 
   def commit(prepare: Prepare[A, Nothing, F]*): BAG[OK] =
     bag.suspend(core.commit(preparesToUntyped(prepare)))
@@ -258,7 +258,7 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
     bag.suspend(core.clearAppliedAndRegisteredFunctions())
 
   def isFunctionApplied(function: F)(implicit evd: F <:< PureFunction.Set[A]): Boolean =
-    core.isFunctionApplied(Slice.writeString[Byte](function.id))
+    core.isFunctionApplied(Slice.writeString(function.id))
 
   def sizeOfBloomFilterEntries: BAG[Int] =
     bag.suspend(core.bloomFilterKeyValueCount)

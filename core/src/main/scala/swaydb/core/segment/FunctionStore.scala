@@ -92,13 +92,13 @@ private[swaydb] object FunctionStore {
     val hashMap = new ConcurrentHashMap[Slice[Byte], SwayFunction]()
 
     override def get(functionId: String): Option[SwayFunction] =
-      get(Slice.writeString[Byte](functionId))
+      get(Slice.writeString(functionId))
 
     override def get(functionId: Slice[Byte]): Option[SwayFunction] =
       Option(hashMap.get(functionId))
 
     override def put(functionId: String, function: SwayFunction): OK =
-      put(Slice.writeString[Byte](functionId), function)
+      put(Slice.writeString(functionId), function)
 
     override def put(functionId: Slice[Byte], function: SwayFunction): OK =
       if (hashMap.putIfAbsent(functionId, function) == null)

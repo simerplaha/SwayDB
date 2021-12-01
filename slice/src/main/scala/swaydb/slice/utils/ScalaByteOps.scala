@@ -135,10 +135,8 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
   def writeStringWithSizeUTF8(string: String): Slice[Byte] =
     writeStringWithSize(string, StandardCharsets.UTF_8)
 
-  def writeBoolean(bool: Boolean, slice: SliceMut[Byte]): SliceMut[Byte] = {
+  def writeBoolean(bool: Boolean, slice: SliceMut[Byte]): SliceMut[Byte] =
     slice add (if (bool) 1.toByte else 0.toByte)
-    slice
-  }
 
   /** **************************************************
    * Duplicate functions here. This code
