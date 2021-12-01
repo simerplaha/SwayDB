@@ -79,15 +79,17 @@ private[file] class StandardFile(val path: Path,
   def append(slice: Slice[Byte]): Unit =
     Effect.writeUnclosed(channel, slice.toByteBufferWrap)
 
-  def appendBatch(slice: Array[Slice[Byte]]): Unit = {
+  def appendBatch(slices: Array[Slice[Byte]]): Unit = {
     var totalBytes = 0
 
-    val buffers =
-      slice map {
-        slice =>
-          totalBytes += slice.size
-          slice.toByteBufferWrap
-      }
+    val buffers = new Array[ByteBuffer](slices.length)
+    var index = 0
+    while (index < slices.length) {
+      val slice = slices(index)
+      totalBytes += slice.size
+      buffers(index) = slice.toByteBufferWrap
+      index += 1
+    }
 
     Effect.writeUnclosedGathering(channel, totalBytes, buffers)
   }

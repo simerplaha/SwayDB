@@ -453,17 +453,6 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
   def apply(index: Int): T =
     get(index)
 
-  def toByteBufferWrap: ByteBuffer =
-    ByteBuffer.wrap(array.asInstanceOf[Array[Byte]], fromOffset, size)
-
-  def toByteBufferDirect: ByteBuffer =
-    ByteBuffer
-      .allocateDirect(size)
-      .put(array.asInstanceOf[Array[Byte]], 0, size)
-
-  def toByteArrayInputStream: ByteArrayInputStream =
-    new ByteArrayInputStream(array.asInstanceOf[Array[Byte]], fromOffset, size)
-
   /**
    * WARNING: Do not access this directly. Use [[toArray]] or [[toArrayCopy]] instead.
    *
@@ -474,6 +463,9 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
    */
   private[slice] def unsafeInnerArray: Array[_] =
     this.array.asInstanceOf[Array[_]]
+
+  private[slice] def unsafeInnerByteArray: Array[Byte] =
+    this.array.asInstanceOf[Array[Byte]]
 
   /**
    * Returns the original Array if Slice is not a sub Slice
@@ -505,20 +497,6 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
       val newArray = new Array[B](size)
       Array.copy(array, fromOffset, newArray, 0, size)
       newArray
-    }
-
-  /**
-   * Convenience function to convert Slice<Byte> to byte[] from Java
-   */
-  def toByteArray: Array[Byte] =
-    try
-      toArray.asInstanceOf[Array[Byte]]
-    catch {
-      case root: ClassCastException =>
-        //converts ClassCastException to something that is not cryptic when calling from Java.
-        val exception = new ClassCastException(s"${this.classTag.runtimeClass} cannot be casted to byte")
-        exception.addSuppressed(root)
-        throw exception
     }
 
   //for java

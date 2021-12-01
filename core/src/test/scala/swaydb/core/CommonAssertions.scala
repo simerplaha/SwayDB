@@ -837,7 +837,7 @@ object CommonAssertions {
 
   def assertReads(keyValues: Slice[Memory],
                   segmentReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                               blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
+                                         blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
 
     //read fullIndex
     readAll(segmentReader.copy()).runRandomIO.right.value shouldBe keyValues
@@ -934,18 +934,22 @@ object CommonAssertions {
   def dump(level: NextLevel): Unit =
     level.nextLevel match {
       case Some(nextLevel) =>
-        val data =
-          Seq(s"\nLevel: ${level.rootPath}\n") ++
-            dump(level.segments())
-        Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString(data.mkString("\n"))).toByteBufferWrap)
+        val data = Seq(s"\nLevel: ${level.rootPath}\n") ++ dump(level.segments())
+
+        Effect.write(
+          to = Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"),
+          bytes = Slice.writeString(data.mkString("\n")).toByteBufferWrap
+        )
 
         dump(nextLevel)
 
       case None =>
-        val data =
-          Seq(s"\nLevel: ${level.rootPath}\n") ++
-            dump(level.segments())
-        Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString(data.mkString("\n"))).toByteBufferWrap)
+        val data = Seq(s"\nLevel: ${level.rootPath}\n") ++ dump(level.segments())
+
+        Effect.write(
+          to = Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"),
+          bytes = Slice.writeString(data.mkString("\n")).toByteBufferWrap
+        )
     }
 
   def assertGet(keyValues: Iterable[KeyValue],
@@ -1080,7 +1084,7 @@ object CommonAssertions {
 
   def assertLower(keyValues: Slice[Memory],
                   reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                        blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
+                                  blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
     implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
 
     val blocks = readBlocksFromReader(reader.copy()).get
@@ -1176,7 +1180,7 @@ object CommonAssertions {
 
   def assertHigher(keyValues: Slice[KeyValue],
                    reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                         blockCacheMemorySweeper: Option[MemorySweeper.Block]): Unit = {
+                                   blockCacheMemorySweeper: Option[MemorySweeper.Block]): Unit = {
     implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
     val blocks = readBlocksFromReader(reader).get
     assertHigher(
@@ -1597,7 +1601,7 @@ object CommonAssertions {
     }
 
   def readBlocksFromReader(reader: Reader, segmentIO: SegmentReadIO = SegmentReadIO.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                  blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] = {
+                                                                                            blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] = {
     val blockCache = getSegmentBlockCacheFromReader(reader, segmentIO)
     readBlocks(blockCache)
   }
