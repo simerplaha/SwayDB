@@ -74,8 +74,8 @@ object TransientSegmentSerialiser {
         MinMaxSerialiser.write(singleton.minMaxFunctionId, value)
 
         /**
-         * - nearestDeadline is stored so that the parent many segment knows which segment to refresh.
-         * - minMaxFunctionIds are not stored here. All request for mightContainFunction are deferred onto the SegmentRef itself.
+         *  - nearestDeadline is stored so that the parent many segment knows which segment to refresh.
+         *  - minMaxFunctionIds are not stored here. All request for mightContainFunction are deferred onto the SegmentRef itself.
          */
 
         if (singleton.minKey equals maxKey)

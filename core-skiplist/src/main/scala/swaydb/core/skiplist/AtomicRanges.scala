@@ -31,8 +31,8 @@ import scala.concurrent.Promise
 /**
  * [[AtomicRanges]] behaves similar to [[java.util.concurrent.locks.ReentrantReadWriteLock]]
  * the difference is
- * - [[AtomicRanges]] is asynchronous/non-blocking for [[Bag.Async]] and is blocking for [[Bag.Sync]]
- * - Requires ranges and [[Action]]s for applying concurrency.
+ *  - [[AtomicRanges]] is asynchronous/non-blocking for [[Bag.Async]] and is blocking for [[Bag.Sync]]
+ *  - Requires ranges and [[Action]]s for applying concurrency.
  */
 private[swaydb] case object AtomicRanges extends LazyLogging {
 

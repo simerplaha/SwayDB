@@ -27,9 +27,9 @@ import scala.collection.mutable.ListBuffer
  * Something that can be assigned to a Segment for merge.
  *
  * Current types
- * - [[swaydb.core.segment.Segment]]
- * - [[swaydb.core.log.Log[Slice[Byte], Memory, LevelZeroMapCache]]
- * - [[swaydb.core.segment.data.KeyValue]]
+ *  - [[swaydb.core.segment.Segment]]
+ *  - [[swaydb.core.log.Log[Slice[Byte], Memory, LevelZeroMapCache]]
+ *  - [[swaydb.core.segment.data.KeyValue]]
  */
 sealed trait Assignable {
   def key: Slice[Byte]

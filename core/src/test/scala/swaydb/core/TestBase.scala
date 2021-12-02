@@ -426,7 +426,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                         sweeper: TestCaseSweeper,
                                                                                                         optimiseWrites: OptimiseWrites = OptimiseWrites.random,
-                                                                                                        atomimc: Atomic = Atomic.random): LevelZero = {
+                                                                                                        atomic: Atomic = Atomic.random): LevelZero = {
       import sweeper._
 
       LevelZero(

@@ -27,6 +27,8 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
 import swaydb.effect.{Effect, IOStrategy}
 import swaydb.utils.StorageUnits._
 
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.DurationInt
 import scala.util.Random
 
 class DBFileWriteReadPerformanceSpec extends TestBase {
@@ -44,8 +46,8 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
         val bytes = randomBytesSlice(20.mb)
 
         implicit val blockCache: Option[BlockCacheState] =
-          BlockCache.forSearch(bytes.size, MemorySweeper.BlockSweeper(blockSize = 4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, false, actorConfig = None))
-        //          None
+        //          BlockCache.forSearch(bytes.size, MemorySweeper.BlockSweeper(blockSize = 4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, false, actorConfig = None))
+          None
 
         val path = randomFilePath
 
@@ -75,49 +77,42 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
           )
         val reader = BlockRefReader(file = standardFile, blockCache = blockCache)
 
-        val bytesToRead = 15
+        val bytesToRead = 4098
 
-        //        case class SomeKey(int: Int)
-        //        val map = new ConcurrentHashMap[SomeKey, Int]()
-        //        (1 to 1000000) foreach {
-        //          i =>
-        //            map.put(SomeKey(i), i)
-        //        }
-        //
-        //        val write = Slice.writeUnsignedInt(1000000)
-
-        Benchmark("") {
-          (1 to 1000000) foreach {
-            i =>
-              (1 to 20) foreach {
+        def benchmarkFuture(maxIteration: Int) = {
+          import scala.concurrent.ExecutionContext.Implicits.global
+          val result =
+            Benchmark.future("Future") {
+              val readers = (1 to maxIteration) map (i => reader.copy())
+              Future.traverse(readers) {
                 _ =>
-                  val index = Random.nextInt(bytes.size - bytesToRead + 1)
-                  //              //          println(index)
-                  val readBytes = reader.moveTo(index).read(bytesToRead)
-                //              map.get(SomeKey(i))
-                //              map.get(SomeKey(i))
-                //              map.get(SomeKey(i))
-
-                //              val write = Slice.writeUnsignedInt(i)
-                //              Bytes.readUnsignedInt(write)
-                //              write.readUnsignedInt().get
-
-                //              val write = Slice.writeInt(i)
-                //              write.readInt()
-                //              Thread.sleep(1)
-                //          println(readBytes)
-                //                  standardFile.read(index, bytesToRead).get
-
-                //                                  mmapFile.read(index, bytesToRead).get
-
-                //          reader.moveTo(i * 4).read(4).get
+                  Future {
+                    val index = Random.nextInt(bytes.size - bytesToRead + 1)
+                    //                    println(index)
+                    val readBytes = reader.moveTo(index).read(bytesToRead)
+                  }
               }
+            }
 
+          Await.result(result, 5.minutes)
+        }
+
+        def benchmarkLocal(maxIteration: Int) = {
+          Benchmark("Sequential") {
+            val readers = (1 to maxIteration) map (i => reader.copy())
+            readers foreach {
+              _ =>
+                val index = Random.nextInt(bytes.size - bytesToRead + 1)
+                //                println(index)
+                val readBytes = reader.moveTo(index).read(bytesToRead)
+            }
           }
         }
 
-      //    println("reader.totalMiss: " + reader.totalMissed)
-      //    println("reader.totalHit: " + reader.totalHit)
+        val maxIteration = 10000000
+        //                benchmarkFuture(maxIteration)
+        benchmarkLocal(maxIteration)
+
     }
   }
 
