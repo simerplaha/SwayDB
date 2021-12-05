@@ -130,19 +130,19 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Glass],
   def path: Path =
     set.path
 
-  def push(elem: A): OK =
+  def push(elem: A): Unit =
     set.add((pushIds.getAndIncrement(), elem))
 
-  def push(elem: A, expireAfter: FiniteDuration): OK =
+  def push(elem: A, expireAfter: FiniteDuration): Unit =
     set.add((pushIds.getAndIncrement(), elem), expireAfter.fromNow)
 
-  def push(elem: A, expireAt: Deadline): OK =
+  def push(elem: A, expireAt: Deadline): Unit =
     set.add((pushIds.getAndIncrement(), elem), expireAt)
 
-  def push(elems: A*): OK =
+  def push(elems: A*): Unit =
     push(elems)
 
-  def push(elems: Stream[A, Glass]): OK =
+  def push(elems: Stream[A, Glass]): Unit =
     set.add {
       elems.map {
         item =>
@@ -150,7 +150,7 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Glass],
       }
     }
 
-  def push(elems: IterableOnce[A]): OK =
+  def push(elems: IterableOnce[A]): Unit =
     set.add {
       elems.map {
         item =>

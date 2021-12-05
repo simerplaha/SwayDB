@@ -176,16 +176,16 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
     else
       bag.failure(new IllegalAccessException(Core.closedMessage))
 
-  def put(key: Slice[Byte]): BAG[OK] =
+  def put(key: Slice[Byte]): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.put(key)))
 
-  def put(key: Slice[Byte], value: Slice[Byte]): BAG[OK] =
+  def put(key: Slice[Byte], value: Slice[Byte]): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.put(key, value)))
 
-  def put(key: Slice[Byte], value: SliceOption[Byte]): BAG[OK] =
+  def put(key: Slice[Byte], value: SliceOption[Byte]): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.put(key, value)))
 
-  def put(key: Slice[Byte], value: SliceOption[Byte], removeAt: Deadline): BAG[OK] =
+  def put(key: Slice[Byte], value: SliceOption[Byte], removeAt: Deadline): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.put(key, value, removeAt)))
 
   /**
@@ -197,7 +197,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
    * @note If the default time order [[TimeOrder.long]] is used
    *       Times should always be unique and in incremental order for *ALL* key values.
    */
-  def commit(entries: IterableOnce[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]]): BAG[OK] =
+  def commit(entries: IterableOnce[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]]): BAG[Unit] =
     assertTerminated {
       if (entries.isEmpty)
         bag.failure(new IllegalArgumentException("Cannot write empty batch"))
@@ -205,37 +205,37 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
         sequencer.execute(zero.put(Core.prepareToLogEntry(entries)(_).get)) //Gah .get!
     }
 
-  def remove(key: Slice[Byte]): BAG[OK] =
+  def remove(key: Slice[Byte]): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.remove(key)))
 
-  def expire(key: Slice[Byte], at: Deadline): BAG[OK] =
+  def expire(key: Slice[Byte], at: Deadline): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.remove(key, at)))
 
-  def remove(from: Slice[Byte], to: Slice[Byte]): BAG[OK] =
+  def remove(from: Slice[Byte], to: Slice[Byte]): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.remove(from, to)))
 
-  def expire(from: Slice[Byte], to: Slice[Byte], at: Deadline): BAG[OK] =
+  def expire(from: Slice[Byte], to: Slice[Byte], at: Deadline): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.remove(from, to, at)))
 
-  def update(key: Slice[Byte], value: Slice[Byte]): BAG[OK] =
+  def update(key: Slice[Byte], value: Slice[Byte]): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.update(key, value)))
 
-  def update(key: Slice[Byte], value: SliceOption[Byte]): BAG[OK] =
+  def update(key: Slice[Byte], value: SliceOption[Byte]): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.update(key, value)))
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): BAG[OK] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.update(fromKey, to, value)))
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: SliceOption[Byte]): BAG[OK] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: SliceOption[Byte]): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.update(fromKey, to, value)))
 
-  def applyFunction(key: Slice[Byte], function: Slice[Byte]): BAG[OK] =
+  def applyFunction(key: Slice[Byte], function: Slice[Byte]): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.applyFunction(key, function)))
 
-  def applyFunction(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): BAG[OK] =
+  def applyFunction(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.applyFunction(from, to, function)))
 
-  def registerFunction(functionId: Slice[Byte], function: SwayFunction): BAG[OK] =
+  def registerFunction(functionId: Slice[Byte], function: SwayFunction): BAG[Unit] =
     execute(_.registerFunction(functionId, function))
 
   def head[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
@@ -328,7 +328,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
     zero.meterFor(levelNumber)
 
-  def clear(readState: ThreadReadState): BAG[OK] =
+  def clear(readState: ThreadReadState): BAG[Unit] =
     execute(_.clear(readState))
 
   def clearAppliedFunctions(): BAG[Iterable[String]] =

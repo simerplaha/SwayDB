@@ -259,7 +259,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
         //    doPut
         doBatch(inBatchesOf = 100000 min keyValueCount)
         val puts: Future[Seq[Unit]] = putRequest runThis 4.times
-        val randoms: Future[Seq[OK]] = batchRandomRequest runThis 2.times
+        val randoms: Future[Seq[Unit]] = batchRandomRequest runThis 2.times
         val batches: Future[Unit] = batchRequest(inBatchesOf = 10000 min keyValueCount)
         val reads: Future[Seq[Seq[Any]]] = readRequests runThis 10.times
 

@@ -24,27 +24,27 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
  */
 trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
-  def remove(from: K, to: K): BAG[OK]
+  def remove(from: K, to: K): BAG[Unit]
 
-  def expire(from: K, to: K, after: FiniteDuration): BAG[OK]
+  def expire(from: K, to: K, after: FiniteDuration): BAG[Unit]
 
-  def expire(from: K, to: K, at: Deadline): BAG[OK]
+  def expire(from: K, to: K, at: Deadline): BAG[Unit]
 
-  def expire(keys: (K, Deadline)*): BAG[OK]
+  def expire(keys: (K, Deadline)*): BAG[Unit]
 
-  def expire(keys: Stream[(K, Deadline), BAG]): BAG[OK]
+  def expire(keys: Stream[(K, Deadline), BAG]): BAG[Unit]
 
-  def expire(keys: IterableOnce[(K, Deadline)]): BAG[OK]
+  def expire(keys: IterableOnce[(K, Deadline)]): BAG[Unit]
 
-  def update(key: K, value: V): BAG[OK]
+  def update(key: K, value: V): BAG[Unit]
 
-  def update(from: K, to: K, value: V): BAG[OK]
+  def update(from: K, to: K, value: V): BAG[Unit]
 
-  def update(keyValues: (K, V)*): BAG[OK]
+  def update(keyValues: (K, V)*): BAG[Unit]
 
-  def update(keyValues: Stream[(K, V), BAG]): BAG[OK]
+  def update(keyValues: Stream[(K, V), BAG]): BAG[Unit]
 
-  def update(keyValues: IterableOnce[(K, V)]): BAG[OK]
+  def update(keyValues: IterableOnce[(K, V)]): BAG[Unit]
 
   def clearAppliedFunctions(): BAG[Iterable[String]]
 
@@ -54,15 +54,15 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
   //use void in java and provide better interop with Scala and Java conversions.
   def isFunctionApplied(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): Boolean
 
-  def applyFunction(key: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK]
+  def applyFunction(key: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[Unit]
 
-  def applyFunction(from: K, to: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK]
+  def applyFunction(from: K, to: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[Unit]
 
-  def commit(prepare: Prepare[K, V, F]*): BAG[OK]
+  def commit(prepare: Prepare[K, V, F]*): BAG[Unit]
 
-  def commit(prepare: Stream[Prepare[K, V, F], BAG]): BAG[OK]
+  def commit(prepare: Stream[Prepare[K, V, F], BAG]): BAG[Unit]
 
-  def commit(prepare: IterableOnce[Prepare[K, V, F]]): BAG[OK]
+  def commit(prepare: IterableOnce[Prepare[K, V, F]]): BAG[Unit]
 
   def getKeyDeadline(key: K): BAG[Option[(K, Option[Deadline])]]
 

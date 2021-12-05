@@ -52,58 +52,58 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
   def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Set[A]): BAG[Boolean] =
     bag.suspend(core mightContainFunction Slice.writeString(function.id))
 
-  def add(elem: A): BAG[OK] =
+  def add(elem: A): BAG[Unit] =
     bag.suspend(core.put(key = elem))
 
-  def add(elem: A, expireAt: Deadline): BAG[OK] =
+  def add(elem: A, expireAt: Deadline): BAG[Unit] =
     bag.suspend(core.put(elem, None, expireAt))
 
-  def add(elem: A, expireAfter: FiniteDuration): BAG[OK] =
+  def add(elem: A, expireAfter: FiniteDuration): BAG[Unit] =
     bag.suspend(core.put(elem, None, expireAfter.fromNow))
 
-  def add(elems: A*): BAG[OK] =
+  def add(elems: A*): BAG[Unit] =
     add(elems)
 
-  def add(elems: Stream[A, BAG]): BAG[OK] =
+  def add(elems: Stream[A, BAG]): BAG[Unit] =
     bag.flatMap(elems.materialize)(add)
 
-  def add(elems: IterableOnce[A]): BAG[OK] =
+  def add(elems: IterableOnce[A]): BAG[Unit] =
     bag.suspend(core.commit(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = Slice.Null, deadline = None))))
 
-  def remove(elem: A): BAG[OK] =
+  def remove(elem: A): BAG[Unit] =
     bag.suspend(core.remove(elem))
 
-  def remove(from: A, to: A): BAG[OK] =
+  def remove(from: A, to: A): BAG[Unit] =
     bag.suspend(core.remove(from, to))
 
-  def remove(elems: A*): BAG[OK] =
+  def remove(elems: A*): BAG[Unit] =
     remove(elems)
 
-  def remove(elems: Stream[A, BAG]): BAG[OK] =
+  def remove(elems: Stream[A, BAG]): BAG[Unit] =
     bag.flatMap(elems.materialize)(remove)
 
-  def remove(elems: IterableOnce[A]): BAG[OK] =
+  def remove(elems: IterableOnce[A]): BAG[Unit] =
     bag.suspend(core.commit(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
 
-  def expire(elem: A, after: FiniteDuration): BAG[OK] =
+  def expire(elem: A, after: FiniteDuration): BAG[Unit] =
     bag.suspend(core.expire(elem, after.fromNow))
 
-  def expire(elem: A, at: Deadline): BAG[OK] =
+  def expire(elem: A, at: Deadline): BAG[Unit] =
     bag.suspend(core.expire(elem, at))
 
-  def expire(from: A, to: A, after: FiniteDuration): BAG[OK] =
+  def expire(from: A, to: A, after: FiniteDuration): BAG[Unit] =
     bag.suspend(core.expire(from, to, after.fromNow))
 
-  def expire(from: A, to: A, at: Deadline): BAG[OK] =
+  def expire(from: A, to: A, at: Deadline): BAG[Unit] =
     bag.suspend(core.expire(from, to, at))
 
-  def expire(elems: (A, Deadline)*): BAG[OK] =
+  def expire(elems: (A, Deadline)*): BAG[Unit] =
     expire(elems)
 
-  def expire(elems: Stream[(A, Deadline), BAG]): BAG[OK] =
+  def expire(elems: Stream[(A, Deadline), BAG]): BAG[Unit] =
     bag.flatMap(elems.materialize)(expire)
 
-  def expire(elems: IterableOnce[(A, Deadline)]): BAG[OK] =
+  def expire(elems: IterableOnce[(A, Deadline)]): BAG[Unit] =
     bag.suspend {
       core.commit {
         elems map {
@@ -117,25 +117,25 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
       }
     }
 
-  def clear(): BAG[OK] =
+  def clear(): BAG[Unit] =
     bag.suspend(core.clear(core.readStates.get()))
 
-  def applyFunction(from: A, to: A, function: F)(implicit evd: F <:< PureFunction.Set[A]): BAG[OK] =
+  def applyFunction(from: A, to: A, function: F)(implicit evd: F <:< PureFunction.Set[A]): BAG[Unit] =
     bag.suspend(core.applyFunction(from, to, Slice.writeString(function.id)))
 
-  def applyFunction(elem: A, function: F)(implicit evd: F <:< PureFunction.Set[A]): BAG[OK] =
+  def applyFunction(elem: A, function: F)(implicit evd: F <:< PureFunction.Set[A]): BAG[Unit] =
     bag.suspend(core.applyFunction(elem, Slice.writeString(function.id)))
 
-  def commit(prepare: Prepare[A, Nothing, F]*): BAG[OK] =
+  def commit(prepare: Prepare[A, Nothing, F]*): BAG[Unit] =
     bag.suspend(core.commit(preparesToUntyped(prepare)))
 
-  def commit(prepare: Stream[Prepare[A, Nothing, F], BAG]): BAG[OK] =
+  def commit(prepare: Stream[Prepare[A, Nothing, F], BAG]): BAG[Unit] =
     bag.flatMap(prepare.materialize) {
       statements =>
         commit(statements)
     }
 
-  def commit(prepare: IterableOnce[Prepare[A, Nothing, F]]): BAG[OK] =
+  def commit(prepare: IterableOnce[Prepare[A, Nothing, F]]): BAG[Unit] =
     bag.suspend(core.commit(preparesToUntyped(prepare)))
 
   def levelZeroMeter: LevelZeroMeter =

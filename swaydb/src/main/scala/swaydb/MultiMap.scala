@@ -76,7 +76,7 @@ object MultiMap {
     bag.flatMap(rootMap.isEmpty) {
       isEmpty =>
 
-        def initialEntries: BAG[OK] =
+        def initialEntries: BAG[Unit] =
           rootMap.commit(
             Seq(
               Prepare.Put(MultiKey.Start(MultiMap.rootMapId), MultiValue.None),
@@ -182,19 +182,19 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
   override def path: Path =
     multiMap.path
 
-  def put(key: K, value: V): BAG[OK] =
+  def put(key: K, value: V): BAG[Unit] =
     multiMap.put(MultiKey.Key(mapId, key), MultiValue.Their(value), defaultExpiration)
 
-  def put(key: K, value: V, expireAfter: FiniteDuration): BAG[OK] =
+  def put(key: K, value: V, expireAfter: FiniteDuration): BAG[Unit] =
     put(key, value, expireAfter.fromNow)
 
-  def put(key: K, value: V, expireAt: Deadline): BAG[OK] =
+  def put(key: K, value: V, expireAt: Deadline): BAG[Unit] =
     multiMap.put(MultiKey.Key(mapId, key), MultiValue.Their(value), defaultExpiration earlier expireAt)
 
-  override def put(keyValues: (K, V)*): BAG[OK] =
+  override def put(keyValues: (K, V)*): BAG[Unit] =
     put(keyValues)
 
-  override def put(keyValues: Stream[(K, V), BAG]): BAG[OK] = {
+  override def put(keyValues: Stream[(K, V), BAG]): BAG[Unit] = {
     val stream: Stream[Prepare[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]]], BAG] =
       keyValues.map {
         case (key, value) =>
@@ -204,7 +204,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
     multiMap.commit(stream)
   }
 
-  override def put(keyValues: IterableOnce[(K, V)]): BAG[OK] = {
+  override def put(keyValues: IterableOnce[(K, V)]): BAG[Unit] = {
     val iterator =
       keyValues.map {
         case (key, value) =>
@@ -214,42 +214,42 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
     multiMap.commit(iterator)
   }
 
-  def remove(key: K): BAG[OK] =
+  def remove(key: K): BAG[Unit] =
     multiMap.remove(MultiKey.Key(mapId, key))
 
-  def remove(from: K, to: K): BAG[OK] =
+  def remove(from: K, to: K): BAG[Unit] =
     multiMap.remove(MultiKey.Key(mapId, from), MultiKey.Key(mapId, to))
 
-  def remove(keys: K*): BAG[OK] =
+  def remove(keys: K*): BAG[Unit] =
     multiMap.remove {
       keys.map(key => MultiKey.Key(mapId, key))
     }
 
-  def remove(keys: Stream[K, BAG]): BAG[OK] =
+  def remove(keys: Stream[K, BAG]): BAG[Unit] =
     bag.flatMap(keys.materialize)(remove)
 
-  def remove(keys: IterableOnce[K]): BAG[OK] =
+  def remove(keys: IterableOnce[K]): BAG[Unit] =
     multiMap.remove(keys.map(key => MultiKey.Key(mapId, key)))
 
-  def expire(key: K, after: FiniteDuration): BAG[OK] =
+  def expire(key: K, after: FiniteDuration): BAG[Unit] =
     multiMap.expire(MultiKey.Key(mapId, key), defaultExpiration.earlier(after.fromNow))
 
-  def expire(key: K, at: Deadline): BAG[OK] =
+  def expire(key: K, at: Deadline): BAG[Unit] =
     multiMap.expire(MultiKey.Key(mapId, key), defaultExpiration.earlier(at))
 
-  def expire(from: K, to: K, after: FiniteDuration): BAG[OK] =
+  def expire(from: K, to: K, after: FiniteDuration): BAG[Unit] =
     multiMap.expire(MultiKey.Key(mapId, from), MultiKey.Key(mapId, to), defaultExpiration.earlier(after.fromNow))
 
-  def expire(from: K, to: K, at: Deadline): BAG[OK] =
+  def expire(from: K, to: K, at: Deadline): BAG[Unit] =
     multiMap.expire(MultiKey.Key(mapId, from), MultiKey.Key(mapId, to), defaultExpiration.earlier(at))
 
-  def expire(keys: (K, Deadline)*): BAG[OK] =
+  def expire(keys: (K, Deadline)*): BAG[Unit] =
     bag.suspend(expire(keys))
 
-  def expire(keys: Stream[(K, Deadline), BAG]): BAG[OK] =
+  def expire(keys: Stream[(K, Deadline), BAG]): BAG[Unit] =
     bag.flatMap(keys.materialize)(expire)
 
-  def expire(keys: IterableOnce[(K, Deadline)]): BAG[OK] = {
+  def expire(keys: IterableOnce[(K, Deadline)]): BAG[Unit] = {
     val iterator: IterableOnce[Prepare.Remove[MultiKey.Key[K]]] =
       keys.map {
         case (key, deadline) =>
@@ -259,13 +259,13 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
     multiMap.commit(iterator)
   }
 
-  def update(key: K, value: V): BAG[OK] =
+  def update(key: K, value: V): BAG[Unit] =
     multiMap.update(MultiKey.Key(mapId, key), MultiValue.Their(value))
 
-  def update(from: K, to: K, value: V): BAG[OK] =
+  def update(from: K, to: K, value: V): BAG[Unit] =
     multiMap.update(MultiKey.Key(mapId, from), MultiKey.Key(mapId, to), MultiValue.Their(value))
 
-  def update(keyValues: (K, V)*): BAG[OK] = {
+  def update(keyValues: (K, V)*): BAG[Unit] = {
     val updates =
       keyValues.map {
         case (key, value) =>
@@ -275,10 +275,10 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
     multiMap.commit(updates)
   }
 
-  def update(keyValues: Stream[(K, V), BAG]): BAG[OK] =
+  def update(keyValues: Stream[(K, V), BAG]): BAG[Unit] =
     bag.flatMap(keyValues.materialize)(update)
 
-  def update(keyValues: IterableOnce[(K, V)]): BAG[OK] = {
+  def update(keyValues: IterableOnce[(K, V)]): BAG[Unit] = {
     val updates =
       keyValues.map {
         case (key, value) =>
@@ -288,7 +288,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
     multiMap.commit(updates)
   }
 
-  def clearKeyValues(): BAG[OK] = {
+  def clearKeyValues(): BAG[Unit] = {
     val entriesStart = MultiKey.KeysStart(mapId)
     val entriesEnd = MultiKey.KeysEnd(mapId)
 
@@ -307,7 +307,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
    *       to get the nearest expiration. But functions does not check if the custom logic within the function expires
    *       key-values earlier than [[defaultExpiration]].
    */
-  def applyFunction(key: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] =
+  def applyFunction(key: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[Unit] =
     multiMap.applyFunction(
       MultiKey.Key(mapId, key),
       function.asInstanceOf[PureFunction.Map[MultiKey[M, K], MultiValue[V]]]
@@ -318,7 +318,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
    *       to get the nearest expiration. But functions does not check if the custom logic within the function expires
    *       key-values earlier than [[defaultExpiration]].
    */
-  def applyFunction(from: K, to: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] =
+  def applyFunction(from: K, to: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[Unit] =
     multiMap.applyFunction(
       from = MultiKey.Key(mapId, from),
       to = MultiKey.Key(mapId, to),
@@ -328,7 +328,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
   /**
    * Commits transaction to global map.
    */
-  def commitMultiPrepare(transaction: IterableOnce[MultiPrepare[M, K, V, F]]): BAG[OK] =
+  def commitMultiPrepare(transaction: IterableOnce[MultiPrepare[M, K, V, F]]): BAG[Unit] =
     multiMap.commit {
       transaction map {
         transaction =>
@@ -336,16 +336,16 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
       }
     }
 
-  def commit(prepare: Prepare[K, V, F]*): BAG[OK] =
+  def commit(prepare: Prepare[K, V, F]*): BAG[Unit] =
     multiMap.commit(prepare.map(prepare => MultiMap.toInnerPrepare(mapId, defaultExpiration, prepare)))
 
-  def commit(prepare: Stream[Prepare[K, V, F], BAG]): BAG[OK] =
+  def commit(prepare: Stream[Prepare[K, V, F], BAG]): BAG[Unit] =
     bag.flatMap(prepare.materialize) {
       prepares =>
         commit(prepares)
     }
 
-  override def commit(prepare: IterableOnce[Prepare[K, V, F]]): BAG[OK] =
+  override def commit(prepare: IterableOnce[Prepare[K, V, F]]): BAG[Unit] =
     multiMap.commit(prepare.map(prepare => MultiMap.toInnerPrepare(mapId, defaultExpiration, prepare)))
 
   def get(key: K): BAG[Option[V]] =

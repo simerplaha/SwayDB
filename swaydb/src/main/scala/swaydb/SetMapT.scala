@@ -31,9 +31,9 @@ trait SetMapT[K, V, BAG[_]] extends Source[K, (K, V), BAG] {
 
   def path: Path
 
-  def put(key: K, value: V): BAG[OK]
+  def put(key: K, value: V): BAG[Unit]
 
-  def put(key: K, value: V, expireAt: Option[Deadline]): BAG[OK] =
+  def put(key: K, value: V, expireAt: Option[Deadline]): BAG[Unit] =
     expireAt match {
       case Some(expireAt) =>
         put(key, value, expireAt)
@@ -42,29 +42,29 @@ trait SetMapT[K, V, BAG[_]] extends Source[K, (K, V), BAG] {
         put(key, value)
     }
 
-  def put(key: K, value: V, expireAfter: FiniteDuration): BAG[OK]
+  def put(key: K, value: V, expireAfter: FiniteDuration): BAG[Unit]
 
-  def put(key: K, value: V, expireAt: Deadline): BAG[OK]
+  def put(key: K, value: V, expireAt: Deadline): BAG[Unit]
 
-  def put(keyValues: (K, V)*): BAG[OK]
+  def put(keyValues: (K, V)*): BAG[Unit]
 
-  def put(keyValues: Stream[(K, V), BAG]): BAG[OK]
+  def put(keyValues: Stream[(K, V), BAG]): BAG[Unit]
 
-  def put(keyValues: IterableOnce[(K, V)]): BAG[OK]
+  def put(keyValues: IterableOnce[(K, V)]): BAG[Unit]
 
-  def remove(key: K): BAG[OK]
+  def remove(key: K): BAG[Unit]
 
-  def remove(keys: K*): BAG[OK]
+  def remove(keys: K*): BAG[Unit]
 
-  def remove(keys: Stream[K, BAG]): BAG[OK]
+  def remove(keys: Stream[K, BAG]): BAG[Unit]
 
-  def remove(keys: IterableOnce[K]): BAG[OK]
+  def remove(keys: IterableOnce[K]): BAG[Unit]
 
-  def expire(key: K, after: FiniteDuration): BAG[OK]
+  def expire(key: K, after: FiniteDuration): BAG[Unit]
 
-  def expire(key: K, at: Deadline): BAG[OK]
+  def expire(key: K, at: Deadline): BAG[Unit]
 
-  def clearKeyValues(): BAG[OK]
+  def clearKeyValues(): BAG[Unit]
 
   def get(key: K): BAG[Option[V]]
 

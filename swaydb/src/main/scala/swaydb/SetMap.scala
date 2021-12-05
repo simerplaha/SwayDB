@@ -125,46 +125,46 @@ case class SetMap[K, V, BAG[_]] private(private val set: Set[(K, V), Nothing, BA
   def path: Path =
     set.path
 
-  def put(key: K, value: V): BAG[OK] =
+  def put(key: K, value: V): BAG[Unit] =
     set.add((key, value))
 
-  def put(key: K, value: V, expireAfter: FiniteDuration): BAG[OK] =
+  def put(key: K, value: V, expireAfter: FiniteDuration): BAG[Unit] =
     set.add((key, value), expireAfter.fromNow)
 
-  def put(key: K, value: V, expireAt: Deadline): BAG[OK] =
+  def put(key: K, value: V, expireAt: Deadline): BAG[Unit] =
     set.add((key, value), expireAt)
 
-  def put(keyValues: (K, V)*): BAG[OK] =
+  def put(keyValues: (K, V)*): BAG[Unit] =
     put(keyValues)
 
-  def put(keyValues: Stream[(K, V), BAG]): BAG[OK] =
+  def put(keyValues: Stream[(K, V), BAG]): BAG[Unit] =
     set.add(keyValues)
 
-  def put(keyValues: IterableOnce[(K, V)]): BAG[OK] =
+  def put(keyValues: IterableOnce[(K, V)]): BAG[Unit] =
     set.add(keyValues)
 
-  def remove(key: K): BAG[OK] =
+  def remove(key: K): BAG[Unit] =
     set.remove((key, nullValue))
 
-  def remove(keys: K*): BAG[OK] =
+  def remove(keys: K*): BAG[Unit] =
     set.remove(keys.map(key => (key, nullValue)))
 
-  def remove(keys: Stream[K, BAG]): BAG[OK] =
+  def remove(keys: Stream[K, BAG]): BAG[Unit] =
     set.remove(keys.map((_, nullValue)))
 
-  def remove(keys: IterableOnce[K]): BAG[OK] =
+  def remove(keys: IterableOnce[K]): BAG[Unit] =
     set.remove(keys.map((_, nullValue)))
 
-  def expire(key: K, after: FiniteDuration): BAG[OK] =
+  def expire(key: K, after: FiniteDuration): BAG[Unit] =
     set.expire((key, nullValue), after)
 
-  def expire(key: K, at: Deadline): BAG[OK] =
+  def expire(key: K, at: Deadline): BAG[Unit] =
     set.expire((key, nullValue), at)
 
   def expiration(key: K): BAG[Option[Deadline]] =
     set.expiration((key, nullValue))
 
-  def clearKeyValues(): BAG[OK] =
+  def clearKeyValues(): BAG[Unit] =
     set.clear()
 
   /**

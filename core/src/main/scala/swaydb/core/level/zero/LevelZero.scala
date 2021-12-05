@@ -17,38 +17,38 @@
 package swaydb.core.level.zero
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.{Bag, Error, Glass, IO}
 import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.Exception.FunctionNotFound
+import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.{LevelMeter, LevelZeroThrottle}
 import swaydb.config.storage.Level0Storage
-import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
-import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
+import swaydb.core.log.{Log, LogEntry, Logs}
 import swaydb.core.log.applied.{AppliedFunctionsLog, AppliedFunctionsLogCache}
 import swaydb.core.log.serialiser.AppliedFunctionsLogEntryWriter
 import swaydb.core.log.timer.Timer
-import swaydb.core.log.{Log, LogEntry, Logs}
+import swaydb.core.segment.{FunctionStore, Segment, SegmentOption}
 import swaydb.core.segment.assigner.Assignable
+import swaydb.core.segment.data._
 import swaydb.core.segment.data.KeyValue.{Put, PutOption}
 import swaydb.core.segment.data.Value.FromValue
-import swaydb.core.segment.data._
 import swaydb.core.segment.entry.reader.PersistentReader
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.segment.{FunctionStore, Segment, SegmentOption}
 import swaydb.core.skiplist.SkipList
 import swaydb.core.util.MinMax
 import swaydb.core.MemoryPathGenerator
 import swaydb.effect.{Effect, FileLocker}
-import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, Slice, SliceOption}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.{DropIterator, Options}
-import swaydb.{Bag, Error, Glass, IO, OK}
 
 import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
@@ -306,48 +306,41 @@ private[swaydb] case class LevelZero(path: Path,
     else if (fromKey > toKey) //fromKey cannot also be equal to toKey. The invoking this assert should also check for equality and call update on single key-value.
       throw new IllegalArgumentException("fromKey should be less than toKey.")
 
-  def put(key: Slice[Byte]): OK = {
+  def put(key: Slice[Byte]): Unit = {
     validateInput(key)
     logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, Slice.Null, None, timer.next)))
-    OK.instance
   }
 
-  def put(key: Slice[Byte], value: Slice[Byte]): OK = {
+  def put(key: Slice[Byte], value: Slice[Byte]): Unit = {
     validateInput(key)
     logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, None, timer.next)))
-    OK.instance
   }
 
-  def put(key: Slice[Byte], value: SliceOption[Byte], removeAt: Deadline): OK = {
+  def put(key: Slice[Byte], value: SliceOption[Byte], removeAt: Deadline): Unit = {
     validateInput(key)
     logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, Some(removeAt), timer.next)))
-    OK.instance
   }
 
-  def put(key: Slice[Byte], value: SliceOption[Byte]): OK = {
+  def put(key: Slice[Byte], value: SliceOption[Byte]): Unit = {
     validateInput(key)
     logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, None, timer.next)))
-    OK.instance
   }
 
-  def put(entry: Timer => LogEntry[Slice[Byte], Memory]): OK = {
+  def put(entry: Timer => LogEntry[Slice[Byte], Memory]): Unit = {
     logs write entry
-    OK.instance
   }
 
-  def remove(key: Slice[Byte]): OK = {
+  def remove(key: Slice[Byte]): Unit = {
     validateInput(key)
     logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, None, timer.next)))
-    OK.instance
   }
 
-  def remove(key: Slice[Byte], at: Deadline): OK = {
+  def remove(key: Slice[Byte], at: Deadline): Unit = {
     validateInput(key)
     logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), timer.next)))
-    OK.instance
   }
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): OK = {
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): Unit = {
     validateInput(fromKey, toKey)
 
     if (fromKey equiv toKey)
@@ -359,11 +352,9 @@ private[swaydb] case class LevelZero(path: Path,
             (LogEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(None, timer.next))): LogEntry[Slice[Byte], Memory]) ++
               LogEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, None, timer.next))
         }
-
-    OK.instance
   }
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): OK = {
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): Unit = {
     validateInput(fromKey, toKey)
 
     if (fromKey equiv toKey)
@@ -375,23 +366,19 @@ private[swaydb] case class LevelZero(path: Path,
             (LogEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(Some(at), timer.next))): LogEntry[Slice[Byte], Memory]) ++
               LogEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, Some(at), timer.next))
         }
-
-    OK.instance
   }
 
-  def update(key: Slice[Byte], value: Slice[Byte]): OK = {
+  def update(key: Slice[Byte], value: Slice[Byte]): Unit = {
     validateInput(key)
     logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next)))
-    OK.instance
   }
 
-  def update(key: Slice[Byte], value: SliceOption[Byte]): OK = {
+  def update(key: Slice[Byte], value: SliceOption[Byte]): Unit = {
     validateInput(key)
     logs.write(timer => LogEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next)))
-    OK.instance
   }
 
-  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: SliceOption[Byte]): OK = {
+  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: SliceOption[Byte]): Unit = {
     validateInput(fromKey, toKey)
 
     if (fromKey equiv toKey)
@@ -410,8 +397,6 @@ private[swaydb] case class LevelZero(path: Path,
               )
             ): LogEntry[Slice[Byte], Memory]) ++ LogEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))
         }
-
-    OK.instance
   }
 
   def clearAppliedFunctions(): ListBuffer[String] =
@@ -487,22 +472,20 @@ private[swaydb] case class LevelZero(path: Path,
   def isFunctionApplied(functionId: Slice[Byte]): Boolean =
     appliedFunctionsLog.exists(_.cache.skipList.contains(functionId))
 
-  def clear(readState: ThreadReadState): OK =
+  def clear(readState: ThreadReadState): Unit =
     headKey(readState) match {
       case headKey: Slice[Byte] =>
         lastKey(readState) match {
           case lastKey: Slice[Byte] =>
             remove(headKey, lastKey)
 
-          case Slice.Null =>
-            OK.instance //might have been removed by another thread?
+          case Slice.Null => //might have been removed by another thread?
         }
 
       case Slice.Null =>
-        OK.instance
     }
 
-  def registerFunction(functionId: Slice[Byte], function: SwayFunction): OK =
+  def registerFunction(functionId: Slice[Byte], function: SwayFunction): Unit =
     functionStore.put(functionId, function)
 
   private def saveAppliedFunctionNoSync(function: Slice[Byte]): Unit =
@@ -515,7 +498,7 @@ private[swaydb] case class LevelZero(path: Path,
         }
     }
 
-  def applyFunction(key: Slice[Byte], function: Slice[Byte]): OK =
+  def applyFunction(key: Slice[Byte], function: Slice[Byte]): Unit =
     if (functionStore.notContains(function)) {
       throw FunctionNotFound(function.readString())
     } else {
@@ -530,11 +513,9 @@ private[swaydb] case class LevelZero(path: Path,
             LogEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next))
           }
       }
-
-      OK.instance
     }
 
-  def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): OK =
+  def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): Unit =
     if (functionStore.notContains(function)) {
       throw FunctionNotFound(function.readString())
     } else {
@@ -554,8 +535,6 @@ private[swaydb] case class LevelZero(path: Path,
                 LogEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
             }
         }
-
-      OK.instance
     }
 
   private def getFromLog(key: Slice[Byte],
