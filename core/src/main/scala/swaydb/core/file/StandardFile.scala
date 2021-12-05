@@ -147,11 +147,7 @@ private[file] class StandardFile(val path: Path,
 
   def readAll: Slice[Byte] = {
     val bytes = new Array[Byte](Effect.getIntFileSizeOrFail(channel))
-    //TODO review these synchronized blocks. For this functions it seems we need these to avoid
-    //     channel's position being updated concurrently.
-    this.synchronized {
-      channel.read(ByteBuffer.wrap(bytes))
-    }
+    channel.read(ByteBuffer.wrap(bytes), 0)
     Slice(bytes)
   }
 
