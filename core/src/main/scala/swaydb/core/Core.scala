@@ -367,21 +367,13 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
         }
 
   def delete(): BAG[Unit] =
-    close().and(zero.delete())
+    close() and zero.delete()
 
   def state: CoreState.State =
     coreState.getState
 
   def toBag[BAG2[_]](implicit bag2: Bag[BAG2]): Core[BAG2] =
-    new Core[BAG2](
-      zero = zero,
-      coreState = coreState,
-      threadStateCache = threadStateCache,
-      sequencer = Sequencer.transfer[BAG, BAG2](sequencer),
-      readStates = readStates
-    )(bag = bag2,
-      compactor = compactor,
-      bufferSweeper = bufferSweeper)
+    toBag[BAG2](serialOrNull = null)(bag2)
 
   def toBag[BAG2[_]](serialOrNull: Sequencer[BAG2])(implicit bag2: Bag[BAG2]): Core[BAG2] =
     new Core[BAG2](
