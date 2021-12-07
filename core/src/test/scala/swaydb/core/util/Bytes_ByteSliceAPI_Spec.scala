@@ -2,17 +2,16 @@ package swaydb.core.util
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CoreTestData._
 import swaydb.core.file.reader.Reader
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 import swaydb.utils.ByteSizeOf
 
 import java.nio.charset.StandardCharsets
 import scala.util.Random
-import swaydb.testkit.TestKit._
 
-class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
+class Bytes_ByteSliceAPI_Spec extends AnyWordSpec with Matchers {
 
   val intRanges =
     Seq(

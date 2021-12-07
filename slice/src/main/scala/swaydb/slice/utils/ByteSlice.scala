@@ -22,13 +22,18 @@ import swaydb.utils.{ByteSizeOf, Maybe}
 
 import java.nio.charset.{Charset, StandardCharsets}
 
-private[swaydb] trait ScalaByteOps  {
+private[swaydb] trait ByteSlice {
+
+  val zero = 0.toByte
+  val one = 1.toByte
 
   def writeInt(int: Int, slice: SliceMut[Byte]): Unit = {
-    slice add (int >>> 24).toByte
-    slice add (int >>> 16).toByte
-    slice add (int >>> 8).toByte
-    slice add int.toByte
+    require(slice.hasSpace(4))
+
+    slice unsafeAdd (int >>> 24).toByte
+    slice unsafeAdd (int >>> 16).toByte
+    slice unsafeAdd (int >>> 8).toByte
+    slice unsafeAdd int.toByte
   }
 
   def readInt(reader: ReaderBase): Int =
@@ -44,14 +49,16 @@ private[swaydb] trait ScalaByteOps  {
   }
 
   def writeLong(long: Long, slice: SliceMut[Byte]): Unit = {
-    slice add (long >>> 56).toByte
-    slice add (long >>> 48).toByte
-    slice add (long >>> 40).toByte
-    slice add (long >>> 32).toByte
-    slice add (long >>> 24).toByte
-    slice add (long >>> 16).toByte
-    slice add (long >>> 8).toByte
-    slice add long.toByte
+    require(slice.hasSpace(8))
+
+    slice unsafeAdd (long >>> 56).toByte
+    slice unsafeAdd (long >>> 48).toByte
+    slice unsafeAdd (long >>> 40).toByte
+    slice unsafeAdd (long >>> 32).toByte
+    slice unsafeAdd (long >>> 24).toByte
+    slice unsafeAdd (long >>> 16).toByte
+    slice unsafeAdd (long >>> 8).toByte
+    slice unsafeAdd long.toByte
   }
 
   def readLong(bytes: SliceRO[Byte]): Long = {
@@ -547,4 +554,4 @@ private[swaydb] trait ScalaByteOps  {
       9
 }
 
-private[swaydb] object ScalaByteOps extends ScalaByteOps
+private[swaydb] object ByteSlice extends ByteSlice

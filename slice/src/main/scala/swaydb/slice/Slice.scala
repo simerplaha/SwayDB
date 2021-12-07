@@ -943,6 +943,13 @@ final class SliceMut[+T](protected[this] override val array: Array[T],
     self
   }
 
+  def unsafeAdd(item: T@uncheckedVariance): SliceMut[T] = {
+    array(writePosition) = item
+    writePosition += 1
+    _written = (writePosition - fromOffset) max _written
+    self
+  }
+
   @tailrec
   def addAllOrNew(items: scala.collection.compat.IterableOnce[T]@uncheckedVariance, expandBy: Int): SliceMut[T] =
     items match {

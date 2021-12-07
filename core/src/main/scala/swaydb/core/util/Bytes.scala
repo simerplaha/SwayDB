@@ -18,13 +18,10 @@ package swaydb.core.util
 
 import swaydb.OK
 import swaydb.slice.{Slice, SliceReader}
-import swaydb.slice.utils.ScalaByteOps
+import swaydb.slice.utils.ByteSlice
 import swaydb.utils.TupleOrNone
 
-private[swaydb] object Bytes extends ScalaByteOps {
-
-  val zero = 0.toByte
-  val one = 1.toByte
+private[swaydb] object Bytes extends ByteSlice {
 
   def commonPrefixBytesCount(previous: Slice[Byte],
                              next: Slice[Byte]): Int = {
@@ -146,7 +143,7 @@ private[swaydb] object Bytes extends ScalaByteOps {
       val compressedSlice = Slice.of[Byte](left.size + sizeOfUnsignedInt(commonBytes) + sizeOfUnsignedInt(left.size) + tail.size)
       compressedSlice addAll left
       compressedSlice addUnsignedInt commonBytes
-      compressedSlice addAll ScalaByteOps.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
+      compressedSlice addAll ByteSlice.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
       compressedSlice addAll tail
     } else {
       val size =
@@ -162,7 +159,7 @@ private[swaydb] object Bytes extends ScalaByteOps {
       compressedSlice addUnsignedInt commonBytes
       compressedSlice addUnsignedInt rightWithoutCommonBytes.size
       compressedSlice addAll rightWithoutCommonBytes
-      compressedSlice addAll ScalaByteOps.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
+      compressedSlice addAll ByteSlice.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
       compressedSlice addAll tail
     }
   }
@@ -170,7 +167,7 @@ private[swaydb] object Bytes extends ScalaByteOps {
   def decompressJoin(bytes: Slice[Byte]): (Slice[Byte], Slice[Byte]) = {
 
     val reader = SliceReader(bytes)
-    val (leftBytesSize, lastBytesRead) = ScalaByteOps.readLastUnsignedInt(bytes)
+    val (leftBytesSize, lastBytesRead) = ByteSlice.readLastUnsignedInt(bytes)
     val left = reader.read(leftBytesSize)
     val commonBytes = reader.readUnsignedInt()
     val hasMore = reader.hasAtLeast(lastBytesRead + 1) //if there are more bytes to read.

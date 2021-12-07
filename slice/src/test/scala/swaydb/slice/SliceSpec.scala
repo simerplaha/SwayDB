@@ -20,7 +20,6 @@ import org.scalatest.OptionValues._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.slice.order.KeyOrder
-import swaydb.slice.utils.ScalaByteOps
 import swaydb.testkit.RunThis._
 import swaydb.utils.ByteSizeOf
 
@@ -30,7 +29,6 @@ import scala.util.Random
 class SliceSpec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val scalaByte = ScalaByteOps
 
   def randomByte() = (Random.nextInt(256) - 128).toByte
 

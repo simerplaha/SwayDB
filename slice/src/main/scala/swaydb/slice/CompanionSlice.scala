@@ -16,7 +16,7 @@
 
 package swaydb.slice
 
-import swaydb.slice.utils.ScalaByteOps
+import swaydb.slice.utils.ByteSlice
 import swaydb.utils.{Aggregator, ByteSizeOf}
 
 import java.io.ByteArrayInputStream
@@ -212,10 +212,10 @@ trait CompanionSlice extends SliceBuildFrom {
     of[Byte](1).addBoolean(bool)
 
   @inline final def writeString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] =
-    ScalaByteOps.writeString(string, charsets)
+    ByteSlice.writeString(string, charsets)
 
   @inline final def writeStringUTF8(string: String): Slice[Byte] =
-    ScalaByteOps.writeString(string, StandardCharsets.UTF_8)
+    ByteSlice.writeString(string, StandardCharsets.UTF_8)
 
   @inline final def intersects[T](range1: (Slice[T], Slice[T]),
                                   range2: (Slice[T], Slice[T]))(implicit ordering: Ordering[Slice[T]]): Boolean =
@@ -381,10 +381,10 @@ trait CompanionSlice extends SliceBuildFrom {
       self.asInstanceOf[Slice[java.lang.Byte]]
 
     @inline def readBoolean(): Boolean =
-      ScalaByteOps.readBoolean(self)
+      ByteSlice.readBoolean(self)
 
     @inline def readInt(): Int =
-      ScalaByteOps.readInt(self)
+      ByteSlice.readInt(self)
 
     @inline def dropUnsignedInt(): Slice[Byte] = {
       val (_, byteSize) = readUnsignedIntWithByteSize()
@@ -392,37 +392,37 @@ trait CompanionSlice extends SliceBuildFrom {
     }
 
     @inline def readSignedInt(): Int =
-      ScalaByteOps.readSignedInt(self)
+      ByteSlice.readSignedInt(self)
 
     @inline def readUnsignedInt(): Int =
-      ScalaByteOps.readUnsignedInt(self)
+      ByteSlice.readUnsignedInt(self)
 
     @inline def readUnsignedIntWithByteSize(): (Int, Int) =
-      ScalaByteOps.readUnsignedIntWithByteSize(self)
+      ByteSlice.readUnsignedIntWithByteSize(self)
 
     @inline def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
-      ScalaByteOps.readUnsignedIntNonZeroWithByteSize(self)
+      ByteSlice.readUnsignedIntNonZeroWithByteSize(self)
 
     @inline def readLong(): Long =
-      ScalaByteOps.readLong(self)
+      ByteSlice.readLong(self)
 
     @inline def readUnsignedLong(): Long =
-      ScalaByteOps.readUnsignedLong(self)
+      ByteSlice.readUnsignedLong(self)
 
     @inline def readUnsignedLongWithByteSize(): (Long, Int) =
-      ScalaByteOps.readUnsignedLongWithByteSize(self)
+      ByteSlice.readUnsignedLongWithByteSize(self)
 
     @inline def readUnsignedLongByteSize(): Int =
-      ScalaByteOps.readUnsignedLongByteSize(self)
+      ByteSlice.readUnsignedLongByteSize(self)
 
     @inline def readSignedLong(): Long =
-      ScalaByteOps.readSignedLong(self)
+      ByteSlice.readSignedLong(self)
 
     @inline def readString(charset: Charset = StandardCharsets.UTF_8): String =
-      ScalaByteOps.readString(self, charset)
+      ByteSlice.readString(self, charset)
 
     @inline def readStringUTF8(): String =
-      ScalaByteOps.readString(self, StandardCharsets.UTF_8)
+      ByteSlice.readString(self, StandardCharsets.UTF_8)
 
     @inline def createReader(): SliceReader =
       SliceReader(self)

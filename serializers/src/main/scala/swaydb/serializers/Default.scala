@@ -17,7 +17,6 @@
 package swaydb.serializers
 
 import swaydb.slice.Slice
-import swaydb.slice.utils.ScalaByteOps
 import swaydb.utils.ByteSizeOf
 
 import java.nio.ByteBuffer
@@ -29,8 +28,6 @@ import java.nio.charset.StandardCharsets
  * Documentation for custom serializers: http://www.swaydb.io/custom-serializers
  */
 object Default {
-
-  implicit val scalaByteOps = ScalaByteOps
 
   implicit object IntSerialiser extends Serializer[Int] {
     override def write(data: Int): Slice[Byte] =

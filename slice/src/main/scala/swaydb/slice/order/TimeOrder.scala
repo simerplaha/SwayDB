@@ -17,7 +17,7 @@
 package swaydb.slice.order
 
 import swaydb.slice.Slice
-import swaydb.slice.utils.ScalaByteOps
+import swaydb.slice.utils.ByteSlice
 
 private[swaydb] object TimeOrder {
   val long = new TimeOrder[Slice[Byte]] {
@@ -25,7 +25,7 @@ private[swaydb] object TimeOrder {
       if (left.isEmpty || right.isEmpty)
         1 //if either of them are empty then favour left to be the largest.
       else
-        ScalaByteOps.readUnsignedInt(left) compare ScalaByteOps.readUnsignedInt(right)
+        ByteSlice.readUnsignedInt(left) compare ByteSlice.readUnsignedInt(right)
   }
 }
 

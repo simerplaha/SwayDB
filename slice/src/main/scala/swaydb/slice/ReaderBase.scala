@@ -16,7 +16,7 @@
 
 package swaydb.slice
 
-import swaydb.slice.utils.ScalaByteOps
+import swaydb.slice.utils.ByteSlice
 import swaydb.utils.Maybe.Maybe
 
 import java.nio.charset.{Charset, StandardCharsets}
@@ -53,10 +53,10 @@ trait ReaderBase { self =>
     moveTo(getPosition + skip)
 
   @inline def readBoolean(): Boolean =
-    ScalaByteOps.readBoolean(self)
+    ByteSlice.readBoolean(self)
 
   @inline def readInt(): Int =
-    ScalaByteOps.readInt(self)
+    ByteSlice.readInt(self)
 
   @inline def readInt(unsigned: Boolean): Int =
     if (unsigned)
@@ -65,49 +65,49 @@ trait ReaderBase { self =>
       readInt()
 
   @inline def readUnsignedInt(): Int =
-    ScalaByteOps.readUnsignedInt(self)
+    ByteSlice.readUnsignedInt(self)
 
   @inline def readUnsignedIntWithByteSize(): (Int, Int) =
-    ScalaByteOps.readUnsignedIntWithByteSize(self)
+    ByteSlice.readUnsignedIntWithByteSize(self)
 
   @inline def readNonZeroUnsignedInt(): Int =
-    ScalaByteOps.readUnsignedIntNonZero(self)
+    ByteSlice.readUnsignedIntNonZero(self)
 
   @inline def readNonZeroStrictUnsignedInt(): Maybe[Int] =
-    ScalaByteOps.readUnsignedIntNonZeroStrict(self)
+    ByteSlice.readUnsignedIntNonZeroStrict(self)
 
   @inline def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
-    ScalaByteOps.readUnsignedIntNonZeroWithByteSize(self)
+    ByteSlice.readUnsignedIntNonZeroWithByteSize(self)
 
   @inline def readUnsignedIntSized(): Slice[Byte] =
-    read(ScalaByteOps.readUnsignedInt(self))
+    read(ByteSlice.readUnsignedInt(self))
 
   @inline def readSignedInt(): Int =
-    ScalaByteOps.readSignedInt(self)
+    ByteSlice.readSignedInt(self)
 
   @inline def readLong(): Long =
-    ScalaByteOps.readLong(self)
+    ByteSlice.readLong(self)
 
   @inline def readUnsignedLong(): Long =
-    ScalaByteOps.readUnsignedLong(self)
+    ByteSlice.readUnsignedLong(self)
 
   @inline def readSignedLong(): Long =
-    ScalaByteOps.readSignedLong(self)
+    ByteSlice.readSignedLong(self)
 
   @inline def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): String =
-    ScalaByteOps.readString(self, charset)
+    ByteSlice.readString(self, charset)
 
   @inline def readRemainingAsStringUTF8(): String =
-    ScalaByteOps.readString(self, StandardCharsets.UTF_8)
+    ByteSlice.readString(self, StandardCharsets.UTF_8)
 
   @inline def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): String =
-    ScalaByteOps.readString(size, self, charset)
+    ByteSlice.readString(size, self, charset)
 
   @inline def readStringUTF8(size: Int): String =
-    ScalaByteOps.readString(size, self, StandardCharsets.UTF_8)
+    ByteSlice.readString(size, self, StandardCharsets.UTF_8)
 
   @inline def readStringWithSizeUTF8(): String =
-    ScalaByteOps.readStringWithSizeUTF8(self)
+    ByteSlice.readStringWithSizeUTF8(self)
 
   @inline def remaining: Int =
     size - getPosition

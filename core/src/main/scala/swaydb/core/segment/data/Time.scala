@@ -19,7 +19,7 @@ package swaydb.core.segment.data
 import swaydb.IO
 import swaydb.slice.Slice
 import swaydb.slice.order.TimeOrder
-import swaydb.slice.utils.ScalaByteOps
+import swaydb.slice.utils.ByteSlice
 import swaydb.utils.ByteSizeOf
 
 private[core] object Time {
@@ -30,7 +30,7 @@ private[core] object Time {
 
   def apply(time: Long): Time = {
     val slice = Slice.of[Byte](ByteSizeOf.varLong)
-    ScalaByteOps.writeUnsignedLong(time, slice)
+    ByteSlice.writeUnsignedLong(time, slice)
     new Time(slice)
   }
 
