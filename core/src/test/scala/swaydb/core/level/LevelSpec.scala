@@ -116,11 +116,11 @@ sealed trait LevelSpec extends CoreTestBase with MockFactory with PrivateMethodT
           if (memory) {
             //memory level always have one folder
             level.dirs should have size 1
-            level.existsOnDisk shouldBe false
+            level.existsOnDisk() shouldBe false
             level.inMemory shouldBe true
             //        level.valuesConfig.compressDuplicateValues shouldBe true
           } else {
-            level.existsOnDisk shouldBe true
+            level.existsOnDisk() shouldBe true
             level.inMemory shouldBe false
 
             //there shouldBe at least one path
@@ -188,7 +188,7 @@ sealed trait LevelSpec extends CoreTestBase with MockFactory with PrivateMethodT
             if (isWindowsAndMMAPSegments())
               sweeper.receiveAll()
 
-            val segmentsIdsBeforeInvalidSegments = level.segmentFilesOnDisk
+            val segmentsIdsBeforeInvalidSegments = level.segmentFilesOnDisk()
             segmentsIdsBeforeInvalidSegments should have size 1
 
             val currentSegmentId = segmentsIdsBeforeInvalidSegments.head.fileId.runRandomIO.right.value._1
@@ -205,13 +205,13 @@ sealed trait LevelSpec extends CoreTestBase with MockFactory with PrivateMethodT
                 currentSegmentId + 3
             }
             //every level folder has 3 uncommitted Segments plus 1 valid Segment
-            level.segmentFilesOnDisk should have size (level.dirs.size * 3) + 1
+            level.segmentFilesOnDisk() should have size (level.dirs.size * 3) + 1
 
             Level.deleteUncommittedSegments(level.dirs, level.segments()).runRandomIO.right.value
 
-            level.segmentFilesOnDisk should have size 1
-            level.segmentFilesOnDisk should contain only segmentsIdsBeforeInvalidSegments.head
-            level.reopen.segmentFilesOnDisk should contain only segmentsIdsBeforeInvalidSegments.head
+            level.segmentFilesOnDisk() should have size 1
+            level.segmentFilesOnDisk() should contain only segmentsIdsBeforeInvalidSegments.head
+            level.reopen.segmentFilesOnDisk() should contain only segmentsIdsBeforeInvalidSegments.head
         }
       }
     }

@@ -21,7 +21,8 @@ import swaydb.core.segment.entry.id.KeyValueId
 import swaydb.core.util.Bytes
 import swaydb.utils.{Aggregator, ByteSizeOf}
 
-import scala.collection.compat.IterableOnce
+import scala.collection.compat
+import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -31,7 +32,7 @@ private[core] sealed trait MergeStats[-FROM, +T[_]] extends Aggregator[FROM, T[d
 
   def addOne(keyValue: FROM): this.type
 
-  override def addAll(items: IterableOnce[FROM]): MergeStats.this.type = {
+  override def addAll(items: compat.IterableOnce[FROM]): MergeStats.this.type = {
     val iterator = items.iterator
     while (iterator.hasNext)
       addOne(iterator.next())
@@ -257,7 +258,7 @@ private[core] case object MergeStats {
         this
       }
 
-      def close: Memory.Closed[T] =
+      def close(): Memory.Closed[T] =
         new Closed[T](
           isEmpty = isEmpty,
           keyValues = keyValues,

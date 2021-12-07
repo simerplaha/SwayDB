@@ -119,7 +119,7 @@ sealed trait BehaviourCompactionTask_refresh_Spec extends CoreTestBase {
           val task = CompactionTask.RefreshSegments(source = level, segments = level.segments())
 
           if (memory)
-            level.segments().last.delete
+            level.segments().last.delete()
           else
             TestSegment(path = level.rootPath.resolve(s"${level.segmentIDGenerator.current + 1}.seg"))
 

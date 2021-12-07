@@ -52,8 +52,8 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
   override def asSegmentOption: SegmentOption =
     this
 
-  override def existsOnDiskOrMemory: Boolean =
-    this.existsOnDisk
+  override def existsOnDiskOrMemory(): Boolean =
+    this.existsOnDisk()
 
   def put(headGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           tailGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],

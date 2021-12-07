@@ -201,7 +201,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends CoreTestBa
             level1.segments().flatMap(_.iterator(randomBoolean())) shouldBe keyValues
 
             //segments are not deleted
-            testSegments.foreach(_.existsOnDiskOrMemory shouldBe true)
+            testSegments.foreach(_.existsOnDiskOrMemory() shouldBe true)
             level1.segments() shouldBe segmentsBeforeCompaction
             level2.isEmpty shouldBe true
         }
@@ -268,7 +268,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends CoreTestBa
 
             level1.isEmpty shouldBe true
             //level1 segments are deleted
-            testSegments.foreach(_.existsOnDiskOrMemory shouldBe false)
+            testSegments.foreach(_.existsOnDiskOrMemory() shouldBe false)
             level2.segments().flatMap(_.iterator(randomBoolean())) shouldBe keyValues
         }
       }

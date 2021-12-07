@@ -907,7 +907,7 @@ private[core] case object Segment extends LazyLogging {
   def deleteSegments(segments: Iterable[Segment]): Int =
     segments.foldLeftRecover(0, failFast = false) {
       case (deleteCount, segment) =>
-        segment.delete
+        segment.delete()
         deleteCount + 1
     }
 
@@ -1233,11 +1233,11 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
 
   def iterator(initialiseIteratorsInOneSeek: Boolean): Iterator[KeyValue]
 
-  def delete: Unit
+  def delete(): Unit
 
   def delete(delay: FiniteDuration): Unit
 
-  def close: Unit
+  def close(): Unit
 
   def keyValueCount: Int
 
@@ -1283,11 +1283,11 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
 
   def persistent: Boolean
 
-  def existsOnDisk: Boolean
+  def existsOnDisk(): Boolean
 
-  def existsOnDiskOrMemory: Boolean
+  def existsOnDiskOrMemory(): Boolean
 
-  def hasBloomFilter: Boolean
+  def hasBloomFilter(): Boolean
 
   override def isNoneS: Boolean =
     false

@@ -238,10 +238,10 @@ private[core] final case class MemorySegment(path: Path,
   override def persistent: Boolean =
     false
 
-  override def existsOnDisk: Boolean =
+  override def existsOnDisk(): Boolean =
     false
 
-  override def existsOnDiskOrMemory: Boolean =
+  override def existsOnDiskOrMemory(): Boolean =
     !deleted
 
   override def isFooterDefined: Boolean =
@@ -250,7 +250,7 @@ private[core] final case class MemorySegment(path: Path,
   def delete(delay: FiniteDuration): Unit = {
     val deadline = delay.fromNow
     if (deadline.isOverdue())
-      this.delete
+      this.delete()
     else
       fileSweeper send FileSweeperCommand.Delete(this, deadline)
   }
@@ -273,7 +273,7 @@ private[core] final case class MemorySegment(path: Path,
   override def cachedKeyValueSize: Int =
     skipList.size
 
-  override def hasBloomFilter: Boolean =
+  override def hasBloomFilter(): Boolean =
     false
 
   override def isMMAP: Boolean =

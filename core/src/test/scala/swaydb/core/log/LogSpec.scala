@@ -1088,7 +1088,7 @@ class LogSpec extends CoreTestBase {
             reopened.cache.skipList.size shouldBe log.cache.skipList.size
             reopened.cache.skipList.toIterable.toList shouldBe log.cache.skipList.toIterable.toList
 
-            reopened.delete
+            reopened.delete()
           }
       }
     }
@@ -1149,7 +1149,7 @@ class LogSpec extends CoreTestBase {
 
               reopened.cache.skipList.iterator.toList shouldBe log.cache.skipList.iterator.toList
 
-              reopened.delete
+              reopened.delete()
             }
         }
       }

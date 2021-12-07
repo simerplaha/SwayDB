@@ -246,7 +246,7 @@ sealed trait LevelSegmentSpec extends CoreTestBase with MockFactory {
 
             val keyValues = randomIntKeyStringValues()
             val segment = TestSegment(keyValues)
-            segment.delete
+            segment.delete()
 
             if (isWindowsAndMMAPSegments())
               sweeper.receiveAll()
@@ -290,7 +290,7 @@ sealed trait LevelSegmentSpec extends CoreTestBase with MockFactory {
                 }
 
                 val appendixBeforePut = level.segments()
-                val levelFilesBeforePut = level.segmentFilesOnDisk
+                val levelFilesBeforePut = level.segmentFilesOnDisk()
 
                 {
                   implicit val compactionIO: SegmentCompactionIO.Actor =
@@ -304,10 +304,10 @@ sealed trait LevelSegmentSpec extends CoreTestBase with MockFactory {
                 if (isWindowsAndMMAPSegments())
                   eventual(10.seconds) {
                     sweeper.receiveAll()
-                    level.segmentFilesOnDisk shouldBe levelFilesBeforePut
+                    level.segmentFilesOnDisk() shouldBe levelFilesBeforePut
                   }
                 else
-                  level.segmentFilesOnDisk shouldBe levelFilesBeforePut
+                  level.segmentFilesOnDisk() shouldBe levelFilesBeforePut
 
                 level.segments().map(_.path) shouldBe appendixBeforePut.map(_.path)
             }

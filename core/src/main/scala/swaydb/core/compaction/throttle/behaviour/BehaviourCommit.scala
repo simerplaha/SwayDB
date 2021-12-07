@@ -52,7 +52,7 @@ private case object BehaviourCommit extends LazyLogging {
                   segmentIO =>
                     segmentIO.output foreach {
                       segment =>
-                        IO(segment.delete) onLeftSideEffect {
+                        IO(segment.delete()) onLeftSideEffect {
                           exception =>
                             logger.error(s"Failed to delete Segment ${segment.path}", exception)
                         }

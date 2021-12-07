@@ -540,7 +540,7 @@ class LogsSpec extends CoreTestBase {
 
           getLogs(recoveredLogs) should have size 3
           //the last log is delete since the second last Log is found corrupted.
-          getLogs(logs).iterator.toList.last.exists shouldBe false
+          getLogs(logs).iterator.toList.last.exists() shouldBe false
 
           //oldest log contains all key-values
           recoveredLogs.find[MemoryOption](Memory.Null, _.cache.skipList.get(1)) shouldBe Memory.put(1)
@@ -571,7 +571,7 @@ class LogsSpec extends CoreTestBase {
           logs.write(_ => LogEntry.Put(1, Memory.put(1)))
           logs.logsCount shouldBe 1
           //delete the log
-          logs.log.delete
+          logs.log.delete()
 
           //failure because the file is deleted. The Log will NOT try to re-write this entry again because
           //it should be an indication that something is wrong with the file system permissions.

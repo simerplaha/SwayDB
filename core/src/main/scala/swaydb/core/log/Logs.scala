@@ -100,7 +100,7 @@ private[core] object Logs extends LazyLogging {
         //delete logs that are empty.
         val (emptyLogs, otherLogs) = recoveredLogsReversed.partition(_.cache.isEmpty)
         if (emptyLogs.nonEmpty) logger.info(s"{}: Deleting empty {} logs {}.", path, emptyLogs.size, emptyLogs.flatMap(_.pathOption).map(_.toString).mkString(", "))
-        emptyLogs foreachIO (log => IO(log.delete)) match {
+        emptyLogs foreachIO (log => IO(log.delete())) match {
           case Some(IO.Left(error)) =>
             logger.error(s"{}: Failed to delete empty logs {}", path, emptyLogs.flatMap(_.pathOption).map(_.toString).mkString(", "))
             IO.Left(error)
@@ -449,7 +449,7 @@ private[core] class Logs[K, V, C <: LogCache[K, V]](private val queue: VolatileQ
   def removeLast(log: Log[K, V, C]): IO[Error.Log, Unit] =
     IO(queue.removeLast(log))
       .and {
-        IO(log.delete) match {
+        IO(log.delete()) match {
           case IO.Right(_) =>
             IO.unit
 
@@ -480,7 +480,7 @@ private[core] class Logs[K, V, C <: LogCache[K, V]](private val queue: VolatileQ
   def close(): IO[swaydb.Error.Log, Unit] =
     IO {
       closed = true
-      timer.close
+      timer.close()
     }.onLeftSideEffect {
       failure =>
         logger.error("Failed to close timer file", failure.exception)
@@ -500,7 +500,7 @@ private[core] class Logs[K, V, C <: LogCache[K, V]](private val queue: VolatileQ
           .queue
           .iterator
           .toList
-          .foreachIO(log => IO(log.delete))
+          .foreachIO(log => IO(log.delete()))
           .getOrElse(IO.unit)
       }
 

@@ -93,7 +93,7 @@ sealed trait TimerSpec extends CoreTestBase {
           val dir = randomDir
           val timer: Timer = newTimer(dir)
           write((CounterLog.startId.toInt + 1) to 1000, timer)
-          timer.close
+          timer.close()
 
           timer match {
             case timer: Timer.PersistentTimer =>
@@ -104,7 +104,7 @@ sealed trait TimerSpec extends CoreTestBase {
               val reopenedTimer2 = reopenedTimer.reopen
 
               write(2000 + 201 to 300 + 301, reopenedTimer2)
-              reopenedTimer2.close
+              reopenedTimer2.close()
 
             case _ =>
             //cannot reopen non-persistent timers.

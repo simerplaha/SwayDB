@@ -35,7 +35,7 @@ private[core] trait Timer {
 
   def next: Time
 
-  def close: Unit
+  def close(): Unit
 }
 
 private[core] object Timer {
@@ -57,8 +57,8 @@ private[core] object Timer {
       override def next: Time =
         Time(memory.next)
 
-      override def close: Unit =
-        memory.close
+      override def close(): Unit =
+        memory.close()
     }
 
   def empty: Timer =
@@ -98,8 +98,8 @@ private[core] object Timer {
           override def next: Time =
             Time(persistentCounter.next)
 
-          override def close: Unit =
-            persistentCounter.close
+          override def close(): Unit =
+            persistentCounter.close()
 
           override def counter: PersistentCounterLog =
             persistentCounter

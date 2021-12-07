@@ -216,7 +216,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
           self.send(message = rescheduleCommand, delay = messageReschedule)
 
         case None =>
-          //AVOIDS FATAL JVM CRASH FOR RARE CIRCUMSTANCES DURING - db.close or db.delete function calls.
+          //AVOIDS FATAL JVM CRASH FOR RARE CIRCUMSTANCES DURING - db.close() or db.delete() function calls.
 
           //We do not expect this to occur in reality. But blocking here is necessary to avoid fatal JVM crash.
 

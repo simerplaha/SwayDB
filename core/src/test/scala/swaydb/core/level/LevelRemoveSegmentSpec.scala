@@ -78,10 +78,10 @@ sealed trait LevelRemoveSegmentSpec extends CoreTestBase with MockFactory with P
             if (isWindowsAndMMAPSegments())
               eventual(10.seconds) {
                 sweeper.receiveAll()
-                level.segmentFilesOnDisk shouldBe empty
+                level.segmentFilesOnDisk() shouldBe empty
               }
             else
-              level.segmentFilesOnDisk shouldBe empty
+              level.segmentFilesOnDisk() shouldBe empty
 
             level.reopen.isEmpty shouldBe true
           }

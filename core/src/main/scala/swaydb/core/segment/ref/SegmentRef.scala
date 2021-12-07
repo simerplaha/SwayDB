@@ -208,7 +208,7 @@ private[core] class SegmentRef(val path: Path,
   def isFooterDefined: Boolean =
     segmentBlockCache.isFooterDefined
 
-  def hasBloomFilter: Boolean =
+  def hasBloomFilter(): Boolean =
     segmentBlockCache.getFooter().bloomFilterOffset.isDefined
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean =

@@ -32,7 +32,7 @@ object TestTimer {
     new TestTimer {
       override val isEmptyTimer: Boolean = false
       override def next: Time = time
-      override def close: Unit = ()
+      override def close(): Unit = ()
     }
 
   case class Incremental(startTime: Long = 0) extends TestTimer {
@@ -43,7 +43,7 @@ object TestTimer {
     override def next: Time =
       Time(timer.incrementAndGet())
 
-    override def close: Unit = ()
+    override def close(): Unit = ()
 
   }
 
@@ -58,7 +58,7 @@ object TestTimer {
       else
         Time.empty
 
-    override def close: Unit = ()
+    override def close(): Unit = ()
   }
 
   case class Decremental(startTime: Long = Int.MaxValue) extends TestTimer {
@@ -68,7 +68,7 @@ object TestTimer {
     override def next: Time =
       Time(timer.decrementAndGet())
 
-    override def close: Unit = ()
+    override def close(): Unit = ()
   }
 
   object DecrementalRandom extends TestTimer {
@@ -82,7 +82,7 @@ object TestTimer {
       else
         Time.empty
 
-    override def close: Unit = ()
+    override def close(): Unit = ()
   }
 
   object Empty extends TestTimer {
@@ -92,7 +92,7 @@ object TestTimer {
     override val next: Time =
       Time(Slice.emptyBytes)
 
-    override def close: Unit = ()
+    override def close(): Unit = ()
   }
 
   def all =

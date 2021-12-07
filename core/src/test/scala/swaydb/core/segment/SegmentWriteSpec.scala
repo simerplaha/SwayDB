@@ -277,7 +277,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
           //adjustSegmentConfig = false so that Many Segments do not get created.
 
           def doAssert(keyValues: Slice[KeyValue], segment: Segment) = {
-            segment.hasBloomFilter shouldBe false
+            segment.hasBloomFilter() shouldBe false
             assertBloom(keyValues, segment)
             segment.hasRange.runRandomIO.right.value shouldBe true
             segment.close.runRandomIO.right.value
@@ -333,7 +333,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
 
               assert =
                 (keyValues, segment) => {
-                  segment.hasBloomFilter.runRandomIO.right.value shouldBe true
+                  segment.hasBloomFilter().runRandomIO.right.value shouldBe true
                   segment.hasRange.runRandomIO.right.value shouldBe false
 
                   segment.rangeCount shouldBe 0
@@ -360,7 +360,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
 
               assert =
                 (keyValues, segment) => {
-                  segment.hasBloomFilter.runRandomIO.right.value shouldBe true
+                  segment.hasBloomFilter().runRandomIO.right.value shouldBe true
                   segment.hasRange.runRandomIO.right.value shouldBe true
 
                   segment.rangeCount shouldBe 1
@@ -548,7 +548,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
 
             //create a segment and delete it
             val segment = TestSegment()
-            segment.delete
+            segment.delete()
 
             eventual(20.seconds) {
               IO(segment.asInstanceOf[PersistentSegment].tryReopen).left.right.value.exception shouldBe a[NoSuchFileException]
@@ -583,9 +583,9 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
               segment2.isFileDefined shouldBe false
               segment3.isFileDefined shouldBe false
 
-              segment1.existsOnDisk shouldBe false
-              segment2.existsOnDisk shouldBe false
-              segment3.existsOnDisk shouldBe false
+              segment1.existsOnDisk() shouldBe false
+              segment2.existsOnDisk() shouldBe false
+              segment3.existsOnDisk() shouldBe false
             }
         }
       }
@@ -603,8 +603,8 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
           val keyValues = randomizedKeyValues(keyValuesCount)
           val segment = TestSegment(keyValues)
 
-          def close: Unit = {
-            segment.close
+          def close(): Unit = {
+            segment.close()
             if (levelStorage.persistent) {
               //also clear the cache so that if the key-value is a group on open file is still reopened
               //instead of just reading from in-memory Group key-value.
@@ -622,7 +622,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
 
           keyValues foreach {
             keyValue =>
-              close
+              close()
               open(keyValue)
           }
       }
@@ -658,13 +658,13 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
               segmentConfig = segmentConfig
             )
 
-          segment.delete
+          segment.delete()
 
           //segment eventually gets deleted
           eventual(5.seconds) {
             segment.isOpen shouldBe false
             segment.isFileDefined shouldBe false
-            segment.existsOnDisk shouldBe false
+            segment.existsOnDisk() shouldBe false
           }
 
           IO(segment.get(keyValues.head.key, ThreadReadState.random)).left.get.exception shouldBe a[NoSuchFileException]
@@ -797,7 +797,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
 
           segment.cachedKeyValueSize shouldBe keyValues.size
 
-          segment.delete
+          segment.delete()
           segment.cachedKeyValueSize shouldBe keyValues.size //cache is not cleared
 
           eventual(5.seconds) {
@@ -805,7 +805,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
               segment.isOpen shouldBe false
               segment.isFooterDefined shouldBe false //on delete in-memory footer is cleared
             }
-            segment.existsOnDisk shouldBe false
+            segment.existsOnDisk() shouldBe false
           }
       }
     }
@@ -824,7 +824,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
             val targetPath = createRandomIntDirectory.resolve(nextId + s".${Extension.Seg}")
 
             segment.copyTo(targetPath)
-            segment.existsOnDisk shouldBe true
+            segment.existsOnDisk() shouldBe true
 
             val copiedSegment = segment.reopen(targetPath)
             copiedSegment.iterator(randomBoolean()).toSlice shouldBe keyValuesReadOnly
@@ -883,7 +883,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
           else
             segments.size should be > 1
 
-          segments.foreach(_.existsOnDisk shouldBe true)
+          segments.foreach(_.existsOnDisk() shouldBe true)
           segments.flatMap(_.iterator(randomBoolean())) shouldBe keyValues
       }
     }
@@ -920,7 +920,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
                 removeDeletes = true
               ).awaitInf.map(_.sweep())
 
-            segments.foreach(_.existsOnDisk shouldBe true)
+            segments.foreach(_.existsOnDisk() shouldBe true)
 
             if (persistent)
               segments.flatMap(_.iterator(randomBoolean())) shouldBe keyValues //persistent Segments are simply copied and are not checked for removed key-values.
@@ -992,7 +992,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
             sweeper.receiveAll()
 
           Effect.size(conflictingPath) shouldBe 0
-          if (persistent) segment.existsOnDisk shouldBe true //original Segment remains untouched
+          if (persistent) segment.existsOnDisk() shouldBe true //original Segment remains untouched
       }
     }
 
@@ -1340,7 +1340,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
 
             segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not value written to disk without splitting.
 
-            segments.foreach(_.existsOnDisk shouldBe false)
+            segments.foreach(_.existsOnDisk() shouldBe false)
             segments.flatMap(_.iterator(randomBoolean())) shouldBe keyValues
         }
       }
@@ -1371,7 +1371,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
                 initialiseIteratorsInOneSeek = randomBoolean()
               ).mapToSlice(_.sweep())
 
-            segments.foreach(_.existsOnDisk shouldBe false)
+            segments.foreach(_.existsOnDisk() shouldBe false)
 
             segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not value written to disk without splitting.
 
@@ -1460,7 +1460,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
           val keyValues1 = randomizedKeyValues(keyValuesCount)
 
           val segment = TestSegment(keyValues1)
-          segment.close
+          segment.close()
           if (persistent) segment.isOpen shouldBe false
 
           val keyValues2 = randomizedKeyValues(keyValuesCount)

@@ -397,7 +397,7 @@ class SegmentBlockCacheSpec extends CoreTestBase {
                 //no caching
                 assertIsNotCached()
 
-                segment.close
+                segment.close()
             }
         }
       }

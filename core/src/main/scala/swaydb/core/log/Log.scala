@@ -96,9 +96,9 @@ private[core] trait Log[K, V, C <: LogCache[K, V]] {
   def writeSafe[E: IO.ExceptionHandler](logEntry: LogEntry[K, V]): IO[E, Boolean] =
     IO[E, Boolean](writeSync(logEntry))
 
-  def delete: Unit
+  def delete(): Unit
 
-  def exists: Boolean
+  def exists(): Boolean
 
   def pathOption: Option[Path]
 

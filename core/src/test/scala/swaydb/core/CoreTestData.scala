@@ -135,7 +135,7 @@ object CoreTestData {
           copiedFrom = someOrNone(segment)
         ).sweep()
 
-      segment.close
+      segment.close()
       reopenedSegment
     }
 
@@ -223,7 +223,7 @@ object CoreTestData {
 
         level.putSegments(segments = segments, removeDeletes = removeDeletes) onRightSideEffect {
           _ =>
-            segments.foreach(_.delete)
+            segments.foreach(_.delete())
         }
       }
     }
@@ -339,7 +339,7 @@ object CoreTestData {
       val reopened =
         level.releaseLocks flatMap {
           _ =>
-            level.closeSegments flatMap {
+            level.closeSegments() flatMap {
               _ =>
                 import sweeper._
 

@@ -145,7 +145,7 @@ sealed trait LevelCollapseSpec extends CoreTestBase {
 
             //resulting segments is 1
             eventually {
-              level.segmentFilesOnDisk should have size 1
+              level.segmentFilesOnDisk() should have size 1
             }
             //can still read Segments
             assertReads(keyValues, reopenLevel)

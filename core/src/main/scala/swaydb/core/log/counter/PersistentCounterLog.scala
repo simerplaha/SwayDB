@@ -144,6 +144,6 @@ private[core] class PersistentCounterLog(val mod: Long,
       count
     }
 
-  override def close: Unit =
+  override def close(): Unit =
     map.close()
 }

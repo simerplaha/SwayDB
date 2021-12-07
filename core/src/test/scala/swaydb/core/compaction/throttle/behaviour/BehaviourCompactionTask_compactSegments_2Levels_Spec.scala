@@ -288,11 +288,11 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends CoreTe
                   targetLevel.isEmpty shouldBe true
 
                   if (persistent) {
-                    targetLevel.segmentFilesOnDisk shouldBe empty
-                    segments.foreach(_.existsOnDiskOrMemory shouldBe true)
+                    targetLevel.segmentFilesOnDisk() shouldBe empty
+                    segments.foreach(_.existsOnDiskOrMemory() shouldBe true)
                   } else {
                     //for memory we delete the last Segment so expect others to exist
-                    segments.dropRight(1).foreach(_.existsOnDiskOrMemory shouldBe true)
+                    segments.dropRight(1).foreach(_.existsOnDiskOrMemory() shouldBe true)
                   }
 
                   assertReads(keyValues, sourceLevel)
@@ -306,7 +306,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends CoreTe
                 val existingSegment =
                   if (memory) { //if it's a memory test delete the last Segment to test failure
                     val segment = segments.last
-                    segment.delete
+                    segment.delete()
                     segment
                   } else {
                     //for persistent expect
@@ -316,7 +316,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends CoreTe
                 //Create a Segment file in the Level's folder giving it the Level's next SegmentId so that it fails
                 //compaction because the fileName is already taken
                 BehaviourCompactionTask.compactSegments(task, targetLevel).awaitFailureInf shouldBe a[Exception]
-                if (persistent) existingSegment.delete //delete the Segment so that assertion can assert for empty Level
+                if (persistent) existingSegment.delete() //delete the Segment so that assertion can assert for empty Level
 
                 //state remains unchanged
                 assertNoChange(sourceLevel, targetLevel)

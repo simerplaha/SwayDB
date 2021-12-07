@@ -854,7 +854,7 @@ sealed trait SegmentReadSpec extends CoreTestBase with ScalaFutures {
           val segment2 = TestSegment(keyValues2)
           val segment3 = TestSegment(keyValues3)
 
-          segment3.delete //delete a segment so that there is a failure.
+          segment3.delete() //delete a segment so that there is a failure.
 
           if (isWindowsAndMMAPSegments()) {
             sweeper.receiveAll() //execute all messages so that delete occurs.
@@ -1004,8 +1004,8 @@ sealed trait SegmentReadSpec extends CoreTestBase with ScalaFutures {
 
             Segment.getNearestDeadlineSegment(segment1, segment2).toOptionS shouldBe empty
 
-            segment1.close
-            segment2.close
+            segment1.close()
+            segment2.close()
           }
       }
     }

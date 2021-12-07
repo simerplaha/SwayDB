@@ -572,7 +572,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
     //        file.close()
     //        file.isOpen shouldBe false
     //        file.isFileDefined shouldBe false
-    //        file.existsOnDisk shouldBe true
+    //        file.existsOnDisk() shouldBe true
     //      }
     //
     //      def open = {
@@ -614,33 +614,33 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
 
           file.append(bytes)
 
-          def close = {
+          def close() = {
             file.close()
             file.isOpen shouldBe false
             file.isFileDefined shouldBe false
             file.existsOnDisk() shouldBe true
           }
 
-          def open = {
+          def open() = {
             file.read(position = 0, size = bytes.size) shouldBe bytes
             file.isOpen shouldBe true
             file.isFileDefined shouldBe true
           }
 
           //closing multiple times should not fail
-          close
-          close
-          close
+          close()
+          close()
+          close()
 
-          open
+          open()
 
-          close
-          open
+          close()
+          open()
 
-          close
-          open
+          close()
+          open()
 
-          close
+          close()
       }
     }
 
@@ -1117,7 +1117,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
   //      val ios =
   //        (1 to 500).par map {
   //          _ =>
-  //            if (randomBoolean) Future(file.close)
+  //            if (randomBoolean) Future(file.close())
   //            file.readAll()
   //        }
   //

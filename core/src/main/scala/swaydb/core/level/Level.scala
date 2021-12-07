@@ -167,7 +167,7 @@ private[core] case object Level extends LazyLogging {
             //check that all existing Segments in appendix also exists on disk or else return error message.
             appendix.cache.values() foreachIO {
               segment =>
-                if (segment.existsOnDisk)
+                if (segment.existsOnDisk())
                   IO.unit
                 else
                   IO.failed(swaydb.Exception.SegmentFileMissing(segment.path))
@@ -765,7 +765,7 @@ private[core] case class Level(dirs: Seq[Dir],
         else
           old foreach {
             segment =>
-              IO(segment.delete) onLeftSideEffect {
+              IO(segment.delete()) onLeftSideEffect {
                 exception =>
                   logger.warn(s"{}: Failed to delete Segment {} after successful collapse", pathDistributor.head, segment.path, exception)
               }
@@ -822,7 +822,7 @@ private[core] case class Level(dirs: Seq[Dir],
         result foreach {
           mergeResult =>
             if (mergeResult.input.isSomeS)
-              IO(mergeResult.input.getS.delete) onLeftSideEffect {
+              IO(mergeResult.input.getS.delete()) onLeftSideEffect {
                 exception =>
                   logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, mergeResult.input.getS.path, exception)
               }
@@ -835,7 +835,7 @@ private[core] case class Level(dirs: Seq[Dir],
           result =>
             result.output foreach {
               segment =>
-                IO(segment.delete) onLeftSideEffect {
+                IO(segment.delete()) onLeftSideEffect {
                   exception =>
                     logger.error(s"${pathDistributor.head}: Failed to delete Segment ${segment.path}", exception)
                 }
@@ -1167,7 +1167,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def isEmpty: Boolean =
     appendix.cache.isEmpty
 
-  def segmentFilesOnDisk: Seq[Path] =
+  def segmentFilesOnDisk(): Seq[Path] =
     Effect.segmentFilesOnDisk(dirs.map(_.path))
 
   def segmentFilesInAppendix: Int =
@@ -1182,7 +1182,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def hasNextLevel: Boolean =
     nextLevel.isDefined
 
-  override def existsOnDisk =
+  override def existsOnDisk() =
     dirs.forall(_.path.exists)
 
   override def levelSize: Long =
@@ -1287,7 +1287,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def closeSegmentsInThisLevel(): IO[Error.Level, Unit] =
     segments()
-      .foreachIO(segment => IO(segment.close), failFast = false)
+      .foreachIO(segment => IO(segment.close()), failFast = false)
       .getOrElse(IO.unit)
       .onLeftSideEffect {
         failure =>
@@ -1333,7 +1333,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .getOrElse(IO.unit)
       .and(deleteFiles())
 
-  override def deleteNoSweep: IO[swaydb.Error.Level, Unit] =
+  override def deleteNoSweep(): IO[swaydb.Error.Level, Unit] =
     closeNoSweep()
       .and(deleteNoSweepNoClose())
       .and(deleteFiles())

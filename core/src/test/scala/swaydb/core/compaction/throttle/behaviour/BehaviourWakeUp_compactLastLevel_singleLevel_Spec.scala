@@ -222,7 +222,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends C
             level.segments().flatMap(_.iterator(randomBoolean())) shouldBe keyValues
 
             //segments are not deleted
-            testSegments.foreach(_.existsOnDiskOrMemory shouldBe true)
+            testSegments.foreach(_.existsOnDiskOrMemory() shouldBe true)
             level.segments() shouldBe segmentsBeforeCompaction
         }
       }
@@ -282,7 +282,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends C
             level.segments().flatMap(_.iterator(randomBoolean())) shouldBe keyValues
 
             //segments are deleted
-            testSegments.foreach(_.existsOnDiskOrMemory shouldBe false)
+            testSegments.foreach(_.existsOnDiskOrMemory() shouldBe false)
         }
       }
     }

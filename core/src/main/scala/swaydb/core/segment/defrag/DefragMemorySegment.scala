@@ -171,7 +171,7 @@ object DefragMemorySegment {
               maxKeyValueCountPerSegment = segmentConfig.maxCount,
               pathsDistributor = pathsDistributor,
               createdInLevel = createdInLevel,
-              stats = stats.close
+              stats = stats.close()
             )
           }
 

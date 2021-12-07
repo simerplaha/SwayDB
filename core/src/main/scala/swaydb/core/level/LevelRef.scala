@@ -213,7 +213,7 @@ private[core] trait LevelRef {
 
   def segmentsCount(): Int
 
-  def segmentFilesOnDisk: Seq[Path]
+  def segmentFilesOnDisk(): Seq[Path]
 
   def foreachSegment[T](f: (Slice[Byte], Segment) => T): Unit
 
@@ -249,7 +249,7 @@ private[core] trait LevelRef {
 
   def getSegment(minKey: Slice[Byte]): SegmentOption
 
-  def existsOnDisk: Boolean
+  def existsOnDisk(): Boolean
 
   def sizeOfSegments: Long
 
@@ -259,7 +259,7 @@ private[core] trait LevelRef {
 
   def close[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
 
-  def closeNoSweep: IO[swaydb.Error.Level, Unit]
+  def closeNoSweep(): IO[swaydb.Error.Level, Unit]
 
   def closeSegments(): IO[swaydb.Error.Level, Unit]
 

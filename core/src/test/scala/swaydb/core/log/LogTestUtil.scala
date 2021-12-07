@@ -98,7 +98,7 @@ object LogTestUtil {
                writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]],
                reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]],
                testCaseSweeper: TestCaseSweeper): PersistentCounterLog = {
-      counter.close
+      counter.close()
       ensureCleanedForWindows(counter.mmap)
 
       CounterLog.persistent(
@@ -116,7 +116,7 @@ object LogTestUtil {
                writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]],
                reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]],
                testCaseSweeper: TestCaseSweeper): PersistentTimer = {
-      timer.close
+      timer.close()
       ensureCleanedForWindows(timer.counter.mmap)
 
       val newTimer =

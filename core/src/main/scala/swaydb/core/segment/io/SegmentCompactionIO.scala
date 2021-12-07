@@ -67,7 +67,7 @@ case object SegmentCompactionIO {
           case State.Failed(_, segments) =>
             segments forEach {
               (segment: Segment, _: Unit) =>
-                segment.delete
+                segment.delete()
             }
 
           case State.Success(_) =>

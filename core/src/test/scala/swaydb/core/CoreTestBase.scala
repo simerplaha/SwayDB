@@ -332,7 +332,7 @@ trait CoreTestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with
             maxKeyValueCountPerSegment = segmentConfig.maxCount,
             pathsDistributor = pathsDistributor,
             createdInLevel = createdInLevel,
-            stats = MergeStats.memoryBuilder(keyValues).close
+            stats = MergeStats.memoryBuilder(keyValues).close()
           )
         else
           Segment.persistent(
@@ -873,7 +873,7 @@ trait CoreTestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with
           segmentConfig = segmentConfig
         )
 
-    if (closeAfterCreate) segment.close
+    if (closeAfterCreate) segment.close()
 
     assert(keyValues, segment) //first
     if (testAgainAfterAssert) {
@@ -891,16 +891,16 @@ trait CoreTestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with
     segment match {
       case segment: PersistentSegment =>
         val segmentReopened = segment.reopen //reopen
-        if (closeAfterCreate) segmentReopened.close
+        if (closeAfterCreate) segmentReopened.close()
         assert(keyValues, segmentReopened)
 
         if (testAgainAfterAssert) assert(keyValues, segmentReopened)
-        segmentReopened.close
+        segmentReopened.close()
 
       case _: Segment =>
       //memory segment cannot be reopened
     }
 
-    segment.close
+    segment.close()
   }
 }

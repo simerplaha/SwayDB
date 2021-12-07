@@ -269,7 +269,7 @@ protected case class PersistentSegmentOne(file: CoreFile,
   override def createdInLevel: Int =
     ref.createdInLevel
 
-  override def close: Unit = {
+  override def close(): Unit = {
     file.close()
     ref.clearAllCaches()
   }
@@ -283,12 +283,12 @@ protected case class PersistentSegmentOne(file: CoreFile,
   def delete(delay: FiniteDuration): Unit = {
     val deadline = delay.fromNow
     if (deadline.isOverdue())
-      this.delete
+      this.delete()
     else
       fileSweeper send FileSweeperCommand.Delete(this, deadline)
   }
 
-  def delete: Unit = {
+  def delete(): Unit = {
     logger.trace(s"{}: DELETING FILE", path)
     IO(file.delete()) onLeftSideEffect {
       failure =>
@@ -426,7 +426,7 @@ protected case class PersistentSegmentOne(file: CoreFile,
   override def isFooterDefined: Boolean =
     ref.isFooterDefined
 
-  def existsOnDisk: Boolean =
+  def existsOnDisk(): Boolean =
     file.existsOnDisk()
 
   def memory: Boolean =
@@ -438,8 +438,8 @@ protected case class PersistentSegmentOne(file: CoreFile,
   def notExistsOnDisk: Boolean =
     !file.existsOnDisk()
 
-  def hasBloomFilter: Boolean =
-    ref.hasBloomFilter
+  def hasBloomFilter(): Boolean =
+    ref.hasBloomFilter()
 
   def clearCachedKeyValues(): Unit =
     ref.clearCachedKeyValues()

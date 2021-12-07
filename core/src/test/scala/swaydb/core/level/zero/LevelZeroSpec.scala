@@ -83,14 +83,14 @@ sealed trait LevelZeroSpec extends CoreTestBase with MockFactory {
           val nextLevel = TestLevel()
           val zero = TestLevelZero(Some(nextLevel))
           if (persistent) {
-            zero.existsOnDisk shouldBe true
-            nextLevel.existsOnDisk shouldBe true
+            zero.existsOnDisk() shouldBe true
+            nextLevel.existsOnDisk() shouldBe true
             //maps folder is initialised
             Effect.exists(zero.path.resolve("0/0.log")) shouldBe true
-            zero.reopen.existsOnDisk shouldBe true
+            zero.reopen.existsOnDisk() shouldBe true
           } else {
-            zero.existsOnDisk shouldBe false
-            nextLevel.existsOnDisk shouldBe false
+            zero.existsOnDisk() shouldBe false
+            nextLevel.existsOnDisk() shouldBe false
           }
       }
     }

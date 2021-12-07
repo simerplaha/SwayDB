@@ -76,7 +76,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
             segments =>
               checkOverlappingSegments(segments, strategy) flatMap {
                 _ =>
-                  buildAppendixMap(levelPath.resolve("appendix"), segments.filter(_.existsOnDisk))
+                  buildAppendixMap(levelPath.resolve("appendix"), segments.filter(_.existsOnDisk()))
               }
           }
     }
@@ -91,14 +91,14 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
           s"${KeepNew.getClass.getSimpleName.dropRight(1)} recovery strategy selected. Deleting old {}",
           segment.path
         )
-        IO(segment.delete)
+        IO(segment.delete())
 
       case KeepOld =>
         logger.info(
           s"${KeepOld.getClass.getSimpleName.dropRight(1)} recovery strategy selected. Deleting new {}.",
           overlappingSegment.path
         )
-        IO(overlappingSegment.delete)
+        IO(overlappingSegment.delete())
 
       case ReportFailure =>
         IO(segment.keyValueCount) flatMap {
@@ -148,7 +148,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
           case Some(overlappingSegment) =>
             applyRecovery(segment, overlappingSegment, strategy) match {
               case IO.Right(_) =>
-                return checkOverlappingSegments(segments.drop(position - 1).filter(_.existsOnDisk), strategy)
+                return checkOverlappingSegments(segments.drop(position - 1).filter(_.existsOnDisk()), strategy)
 
               case IO.Left(error) =>
                 IO.Left(error)

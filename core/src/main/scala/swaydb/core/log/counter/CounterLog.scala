@@ -29,7 +29,7 @@ import java.nio.file.Path
 private[swaydb] trait CounterLog {
   def next: Long
 
-  def close: Unit
+  def close(): Unit
 }
 
 private[swaydb] object CounterLog {

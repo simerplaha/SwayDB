@@ -784,7 +784,7 @@ protected case class PersistentSegmentMany(file: CoreFile,
 
   def path = file.path
 
-  override def close: Unit = {
+  override def close(): Unit = {
     file.close()
     segmentsCache.values().forEach(_.clearAllCaches())
     segmentsCache.clear()
@@ -800,12 +800,12 @@ protected case class PersistentSegmentMany(file: CoreFile,
   def delete(delay: FiniteDuration) = {
     val deadline = delay.fromNow
     if (deadline.isOverdue())
-      this.delete
+      this.delete()
     else
       fileSweeper send FileSweeperCommand.Delete(this, deadline)
   }
 
-  def delete: Unit = {
+  def delete(): Unit = {
     logger.trace(s"{}: DELETING FILE", path)
     IO(file.delete()) onLeftSideEffect {
       failure =>
@@ -995,7 +995,7 @@ protected case class PersistentSegmentMany(file: CoreFile,
   override def isFooterDefined: Boolean =
     segmentsCache.asScala.values.exists(_.isFooterDefined)
 
-  def existsOnDisk: Boolean =
+  def existsOnDisk(): Boolean =
     file.existsOnDisk()
 
   def memory: Boolean =
@@ -1007,8 +1007,8 @@ protected case class PersistentSegmentMany(file: CoreFile,
   def notExistsOnDisk: Boolean =
     !file.existsOnDisk()
 
-  def hasBloomFilter: Boolean =
-    segmentRefs(false).exists(_.hasBloomFilter)
+  def hasBloomFilter(): Boolean =
+    segmentRefs(false).exists(_.hasBloomFilter())
 
   def clearCachedKeyValues(): Unit =
     segmentsCache

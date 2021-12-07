@@ -77,7 +77,7 @@ class SegmentMemorySweeperSpec extends CoreTestBase {
             //eventually all other key-values are dropped and the group remains.
             eventual(4.seconds)(segment.cachedKeyValueSize shouldBe 0)
 
-            segment.close
+            segment.close()
         }
       }
     }

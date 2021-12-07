@@ -125,7 +125,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
           level.isEmpty shouldBe true
           if (persistent) {
             level.reopen.isEmpty shouldBe true
-            level.segmentFilesOnDisk shouldBe empty
+            level.segmentFilesOnDisk() shouldBe empty
           }
       }
     }
@@ -171,7 +171,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
           level.isEmpty shouldBe true
           if (persistent) {
             level.reopen.isEmpty shouldBe true
-            level.segmentFilesOnDisk shouldBe empty
+            level.segmentFilesOnDisk() shouldBe empty
           }
       }
     }
@@ -193,7 +193,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
           level.isEmpty shouldBe false
           if (persistent) {
             level.reopen.isEmpty shouldBe false
-            level.segmentFilesOnDisk should have size segmentsCountBeforeRemove
+            level.segmentFilesOnDisk() should have size segmentsCountBeforeRemove
           }
       }
     }
@@ -244,7 +244,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
 
           if (persistent) {
             level.reopen.isEmpty shouldBe true
-            level.segmentFilesOnDisk shouldBe empty
+            level.segmentFilesOnDisk() shouldBe empty
           }
       }
     }
@@ -287,7 +287,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
 
           if (persistent) {
             level.reopen.isEmpty shouldBe false
-            level.segmentFilesOnDisk.size should be >= 1
+            level.segmentFilesOnDisk().size should be >= 1
           }
       }
     }
@@ -320,7 +320,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
 
           if (persistent) {
             level.reopen.isEmpty shouldBe true
-            level.segmentFilesOnDisk shouldBe empty
+            level.segmentFilesOnDisk() shouldBe empty
           }
       }
     }
@@ -351,7 +351,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
 
           if (persistent) {
             level.reopen.isEmpty shouldBe false
-            level.segmentFilesOnDisk.size should be >= 1
+            level.segmentFilesOnDisk().size should be >= 1
           }
       }
     }

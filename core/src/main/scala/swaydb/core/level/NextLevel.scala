@@ -152,7 +152,7 @@ trait NextLevel extends LevelRef {
 
   def segments(): Iterable[Segment]
 
-  def deleteNoSweep: IO[swaydb.Error.Level, Unit]
+  def deleteNoSweep(): IO[swaydb.Error.Level, Unit]
 
   def deleteNoSweepNoClose(): IO[swaydb.Error.Level, Unit]
 

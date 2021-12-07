@@ -355,10 +355,10 @@ protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
   override def close(): Unit =
     currentFile.close()
 
-  override def exists: Boolean =
+  override def exists(): Boolean =
     currentFile.existsOnDisk()
 
-  override def delete: Unit =
+  override def delete(): Unit =
     if (mmap.deleteAfterClean) {
       //if it's require deleteAfterClean then do not invoke delete directly
       //instead invoke close (which will also call ByteBufferCleaner for closing)

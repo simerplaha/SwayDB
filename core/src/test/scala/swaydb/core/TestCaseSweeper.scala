@@ -97,9 +97,9 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.coreFiles.foreach(_.close())
     sweeper.mapFiles.foreach(_.close())
     sweeper.logs.foreach(_.delete().get)
-    sweeper.segments.foreach(_.close)
+    sweeper.segments.foreach(_.close())
     sweeper.levels.foreach(_.close[Glass]())
-    sweeper.counters.foreach(_.close)
+    sweeper.counters.foreach(_.close())
 
     //TERMINATE - terminate all initialised actors
     sweeper.keyValueMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
@@ -116,12 +116,12 @@ object TestCaseSweeper extends LazyLogging {
 
     sweeper.segments.foreach {
       segment =>
-        if (segment.existsOnDisk)
-          segment.delete
+        if (segment.existsOnDisk())
+          segment.delete()
         else
-          segment.close //the test itself might've delete this file so submit close just in-case.
+          segment.close() //the test itself might've delete this file so submit close just in-case.
 
-        //eventual because segment.delete goes to an actor which might eventually get resolved.
+        //eventual because segment.delete() goes to an actor which might eventually get resolved.
         eventual(20.seconds)(deleteParentPath(segment.path))
     }
 

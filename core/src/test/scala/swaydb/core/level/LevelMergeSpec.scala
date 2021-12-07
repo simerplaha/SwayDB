@@ -91,7 +91,7 @@ sealed trait LevelMergeSpec extends CoreTestBase with MockFactory with PrivateMe
             level.isEmpty shouldBe true
 
             //original segment does not get deleted
-            segment.existsOnDiskOrMemory shouldBe true
+            segment.existsOnDiskOrMemory() shouldBe true
 
             //commit
             level.commitPersisted(compactionResult) shouldBe IO.unit
@@ -129,7 +129,7 @@ sealed trait LevelMergeSpec extends CoreTestBase with MockFactory with PrivateMe
             level.isEmpty shouldBe true
 
             //original segment does not get deleted
-            segment.existsOnDiskOrMemory shouldBe true
+            segment.existsOnDiskOrMemory() shouldBe true
 
             //commit
             level.commitPersisted(compactionResult) shouldBe IO.unit
@@ -198,7 +198,7 @@ sealed trait LevelMergeSpec extends CoreTestBase with MockFactory with PrivateMe
             assertGet(keyValues1, level)
 
             val oldSegments = level.segments().toList //toList so that it's immutable
-            oldSegments.foreach(_.existsOnDiskOrMemory shouldBe true)
+            oldSegments.foreach(_.existsOnDiskOrMemory() shouldBe true)
 
             /**
              * SECOND with 200 key-values
@@ -214,7 +214,7 @@ sealed trait LevelMergeSpec extends CoreTestBase with MockFactory with PrivateMe
 
             assertGet(keyValues2, level)
 
-            oldSegments.foreach(_.existsOnDiskOrMemory shouldBe false)
+            oldSegments.foreach(_.existsOnDiskOrMemory() shouldBe false)
 
         }
       }
@@ -243,7 +243,7 @@ sealed trait LevelMergeSpec extends CoreTestBase with MockFactory with PrivateMe
             assertGet(keyValues1, level)
 
             val oldSegments = level.segments().toList //toList so that it's immutable
-            oldSegments.foreach(_.existsOnDiskOrMemory shouldBe true)
+            oldSegments.foreach(_.existsOnDiskOrMemory() shouldBe true)
 
             /**
              * SECOND with 200 key-values
@@ -257,7 +257,7 @@ sealed trait LevelMergeSpec extends CoreTestBase with MockFactory with PrivateMe
 
             level.isEmpty shouldBe true
 
-            oldSegments.foreach(_.existsOnDiskOrMemory shouldBe false)
+            oldSegments.foreach(_.existsOnDiskOrMemory() shouldBe false)
         }
       }
     }

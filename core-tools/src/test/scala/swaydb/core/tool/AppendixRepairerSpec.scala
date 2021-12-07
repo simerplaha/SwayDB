@@ -152,7 +152,7 @@ class AppendixRepairerSpec extends CoreTestBase {
                 //newer duplicate Segment exists
                 duplicateSegment.exists shouldBe true
                 //older duplicate Segment is deleted
-                segment.existsOnDisk shouldBe false
+                segment.existsOnDisk() shouldBe false
                 segmentNumber + 1
             }
 
@@ -197,7 +197,7 @@ class AppendixRepairerSpec extends CoreTestBase {
                 //create overlapping Segment
                 val overlappingSegment = TestSegment(keyValuesToOverlap, segmentConfig = SegmentBlockConfig.random(mmap = MMAP.Off(TestForceSave.channel())))
                 Effect.copy(overlappingSegment.path, overlappingLevelSegmentPath)
-                overlappingSegment.close //gotta close the new segment create after it's copied over.
+                overlappingSegment.close() //gotta close the new segment create after it's copied over.
                 if (level.hasMMAP && OperatingSystem.isWindows)
                   sweeper.receiveAll()
               }
@@ -216,7 +216,7 @@ class AppendixRepairerSpec extends CoreTestBase {
               //newer overlapping Segment exists
               overlappingLevelSegmentPath.exists shouldBe true
               //older overlapping Segment is deleted
-              segment.existsOnDisk shouldBe false
+              segment.existsOnDisk() shouldBe false
 
               overlappingSegmentId + 1
           }

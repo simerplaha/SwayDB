@@ -142,7 +142,7 @@ private[core] case object LevelZero extends LazyLogging {
                       recovery = recovery
                     ).onLeftSideEffect {
                       _ =>
-                        timer.close
+                        timer.close()
                     }
 
                   logs flatMap {
@@ -160,7 +160,7 @@ private[core] case object LevelZero extends LazyLogging {
                           .andThen((logs, Some(appliedFunctionsLog.item), levelZeroDirectory, Some(lock)))
                           .onLeftSideEffect {
                             _ =>
-                              timer.close
+                              timer.close()
                               appliedFunctionsLog.item.close()
                               logs.close().get
                           }
@@ -171,7 +171,7 @@ private[core] case object LevelZero extends LazyLogging {
                   }
               } onLeftSideEffect {
                 _ =>
-                  timer.close
+                  timer.close()
               }
           }
 
@@ -988,7 +988,7 @@ private[swaydb] case class LevelZero(path: Path,
   def pendingDeletes(): Option[Long] =
     nextLevel.map(_.pendingDeletes())
 
-  def existsOnDisk: Boolean =
+  def existsOnDisk(): Boolean =
     Effect.exists(path)
 
   def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean = {
@@ -1061,9 +1061,9 @@ private[swaydb] case class LevelZero(path: Path,
       .map(_.segmentsCount())
       .getOrElse(0)
 
-  override def segmentFilesOnDisk: Seq[Path] =
+  override def segmentFilesOnDisk(): Seq[Path] =
     nextLevel
-      .map(_.segmentFilesOnDisk)
+      .map(_.segmentFilesOnDisk())
       .getOrElse(Seq.empty)
 
   override def foreachSegment[T](f: (Slice[Byte], Segment) => T): Unit =
@@ -1131,7 +1131,7 @@ private[swaydb] case class LevelZero(path: Path,
         nextKeyValue
     }
 
-  private def closeLogs: IO[Error.Log, Unit] =
+  private def closeLogs(): IO[Error.Log, Unit] =
     logs
       .close()
       .onLeftSideEffect {
@@ -1139,18 +1139,18 @@ private[swaydb] case class LevelZero(path: Path,
           logger.error(s"$path: Failed to close logs", exception)
       }
 
-  def closeNoSweep: IO[swaydb.Error.Level, Unit] =
-    closeLogs
+  def closeNoSweep(): IO[swaydb.Error.Level, Unit] =
+    closeLogs()
       .and(
         nextLevel
-          .map(_.closeNoSweep)
+          .map(_.closeNoSweep())
           .getOrElse(IO.unit)
       )
       .and(releaseLocks)
 
   override def close[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     bag
-      .fromIO(closeLogs)
+      .fromIO(closeLogs())
       .andThen(appliedFunctionsLog.foreach(_.close()))
       .and(
         nextLevel
@@ -1159,14 +1159,14 @@ private[swaydb] case class LevelZero(path: Path,
       )
       .andIO(releaseLocks)
 
-  def closeSegments: IO[swaydb.Error.Level, Unit] =
+  def closeSegments(): IO[swaydb.Error.Level, Unit] =
     nextLevel
       .map(_.closeSegments())
       .getOrElse(IO.unit)
 
   override def delete[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     bag
-      .fromIO(closeLogs)
+      .fromIO(closeLogs())
       .andThen(appliedFunctionsLog.foreach(_.close()))
       .and(
         nextLevel

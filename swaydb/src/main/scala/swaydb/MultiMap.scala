@@ -569,12 +569,12 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
     ScalaMap[K, V](toBag[Glass](Bag.glass))
 
   def close(): BAG[Unit] =
-    bag.and(bag(counter.close)) {
+    bag.and(bag(counter.close())) {
       multiMap.close()
     }
 
   def delete(): BAG[Unit] =
-    bag.and(bag(counter.close)) {
+    bag.and(bag(counter.close())) {
       multiMap.delete()
     }
 

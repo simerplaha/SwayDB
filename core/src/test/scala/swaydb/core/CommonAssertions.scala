@@ -574,11 +574,11 @@ object CommonAssertions {
       actual.rangeCount shouldBe expected.rangeCount
       actual.keyValueCount shouldBe expected.keyValueCount
 
-      actual.hasBloomFilter shouldBe expected.hasBloomFilter
+      actual.hasBloomFilter() shouldBe expected.hasBloomFilter
       actual.minMaxFunctionId shouldBe expected.minMaxFunctionId
       actual.nearestPutDeadline shouldBe expected.nearestPutDeadline
       actual.persistent shouldBe actual.persistent
-      actual.existsOnDisk shouldBe expected.existsOnDisk
+      actual.existsOnDisk() shouldBe expected.existsOnDisk()
       actual.segmentNumber shouldBe expected.segmentNumber
       actual.getClass shouldBe expected.getClass
       if (!ignoreReads)
@@ -737,7 +737,7 @@ object CommonAssertions {
         IO.Defer(segment.mightContainKey(keyValue.key, ThreadReadState.random)).runRandomIO.right.value
     } shouldBe keyValues.size
 
-    if (segment.hasBloomFilter || segment.memory)
+    if (segment.hasBloomFilter() || segment.memory)
       assertBloomNotContains(segment)
   }
 
@@ -763,7 +763,7 @@ object CommonAssertions {
     } should be <= 300
 
   def assertBloomNotContains(segment: Segment) =
-    if (segment.hasBloomFilter)
+    if (segment.hasBloomFilter())
       (1 to 1000).par.count {
         _ =>
           segment.mightContainKey(randomBytesSlice(100), ThreadReadState.random).runRandomIO.right.value

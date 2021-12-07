@@ -28,6 +28,6 @@ private[core] class MemoryCounterLog(count: AtomicLong) extends CounterLog {
   def next: Long =
     count.incrementAndGet()
 
-  override def close: Unit =
+  override def close(): Unit =
     ()
 }

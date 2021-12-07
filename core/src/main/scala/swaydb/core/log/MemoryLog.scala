@@ -31,8 +31,6 @@ protected class MemoryLog[K, V, C <: LogCache[K, V]](val cache: C,
   override val uniqueFileNumber: Long =
     Log.uniqueFileNumberGenerator.next
 
-  def delete: Unit = ()
-
   override def writeSync(entry: LogEntry[K, V]): Boolean =
     synchronized(writeNoSync(entry))
 
@@ -54,8 +52,11 @@ protected class MemoryLog[K, V, C <: LogCache[K, V]](val cache: C,
   override def close(): Unit =
     ()
 
-  override def exists: Boolean =
+  override def exists(): Boolean =
     true
+
+  def delete(): Unit =
+    ()
 
   override def pathOption: Option[Path] =
     None
