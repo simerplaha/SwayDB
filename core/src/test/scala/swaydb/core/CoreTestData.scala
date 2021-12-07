@@ -2077,7 +2077,7 @@ object CoreTestData {
     def toBlockCacheSource: BlockCacheSource =
       new BlockCacheSource {
         override def blockCacheMaxBytes: Int =
-          file.fileSize
+          file.fileSize()
 
         override def readFromSource(position: Int, size: Int): Slice[Byte] =
           file.read(position = position, size = size)

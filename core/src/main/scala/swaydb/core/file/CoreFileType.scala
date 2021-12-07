@@ -32,15 +32,15 @@ private[file] trait CoreFileType extends FileSweeperItem {
 
   def memoryMapped: Boolean
 
-  def isLoaded: Boolean
+  def isLoaded(): Boolean
 
   def isOpen: Boolean
 
-  def isFull: Boolean
+  def isFull(): Boolean
 
   def forceSave(): Unit
 
-  def readAll: Slice[Byte]
+  def readAll(): Slice[Byte]
 
   def size: Int
 

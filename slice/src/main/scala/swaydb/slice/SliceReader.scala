@@ -26,7 +26,7 @@ case class SliceReader(slice: Slice[Byte],
 
   def path = Paths.get(this.productPrefix)
 
-  override def size: Int =
+  override def size(): Int =
     slice.size
 
   def hasAtLeast(size: Int): Boolean =
@@ -71,7 +71,7 @@ case class SliceReader(slice: Slice[Byte],
     SliceReader(slice)
 
   override def readRemaining(): Slice[Byte] =
-    read(remaining)
+    read(remaining())
 
   override def isFile: Boolean = false
 

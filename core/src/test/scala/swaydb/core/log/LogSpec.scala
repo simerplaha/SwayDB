@@ -514,8 +514,8 @@ class LogSpec extends CoreTestBase {
 
           file.isOpen shouldBe true
           file.memoryMapped shouldBe false
-          file.existsOnDisk shouldBe true
-          file.fileSize shouldBe 0
+          file.existsOnDisk() shouldBe true
+          file.fileSize() shouldBe 0
           file.path.fileId shouldBe(0, Extension.Log)
 
           cache.isEmpty shouldBe true
@@ -570,7 +570,7 @@ class LogSpec extends CoreTestBase {
 
           recoveredFile.isOpen shouldBe true
           recoveredFile.memoryMapped shouldBe false
-          recoveredFile.existsOnDisk shouldBe true
+          recoveredFile.existsOnDisk() shouldBe true
           recoveredFile.path.fileId shouldBe(1, Extension.Log) //file id gets incremented on recover
 
           recoveredFile.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
@@ -633,7 +633,7 @@ class LogSpec extends CoreTestBase {
 
           recoveredFile.isOpen shouldBe true
           recoveredFile.memoryMapped shouldBe true
-          recoveredFile.existsOnDisk shouldBe true
+          recoveredFile.existsOnDisk() shouldBe true
           recoveredFile.path.fileId shouldBe(6, Extension.Log) //file id gets incremented on recover
           recoveredFile.path.resolveSibling(5.toLogFileId).exists shouldBe false //5.log gets deleted
 
@@ -662,7 +662,7 @@ class LogSpec extends CoreTestBase {
 
           recoveredFile2.isOpen shouldBe true
           recoveredFile2.memoryMapped shouldBe true
-          recoveredFile2.existsOnDisk shouldBe true
+          recoveredFile2.existsOnDisk() shouldBe true
           recoveredFile2.path.fileId shouldBe(7, Extension.Log) //file id gets incremented on recover
           recoveredFile2.path.resolveSibling(6.toLogFileId).exists shouldBe false //6.log gets deleted
 
@@ -710,7 +710,7 @@ class LogSpec extends CoreTestBase {
 
           file.isOpen shouldBe true
           file.memoryMapped shouldBe false
-          file.existsOnDisk shouldBe true
+          file.existsOnDisk() shouldBe true
           file.path.fileId shouldBe(1, Extension.Log) //file id gets incremented on recover
           file.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
 
@@ -754,7 +754,7 @@ class LogSpec extends CoreTestBase {
             ).sweep()
 
           val nextFileSkipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
-          val nextFileBytes = CoreFile.standardRead(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false).readAll
+          val nextFileBytes = CoreFile.standardRead(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false).readAll()
           nextFileBytes.size should be > 0
           val logEntries = LogEntrySerialiser.read(nextFileBytes, dropCorruptedTailEntries = false).value.item.value
           logEntries applyBatch nextFileSkipList

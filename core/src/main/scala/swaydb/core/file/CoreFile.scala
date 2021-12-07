@@ -321,10 +321,10 @@ private[core] class CoreFile(val path: Path,
                              cache: Cache[swaydb.Error.IO, Unit, CoreFileType])(implicit bufferCleaner: ByteBufferSweeperActor,
                                                                                 forceSaveApplied: ForceSaveApplier) extends LazyLogging {
 
-  def existsOnDisk: Boolean =
+  def existsOnDisk(): Boolean =
     Effect.exists(path)
 
-  @inline def file: CoreFileType =
+  @inline def file(): CoreFileType =
     cache.value(()).get
 
   def delete(): Unit =
@@ -390,10 +390,10 @@ private[core] class CoreFile(val path: Path,
       cache.value(()).get.read(position = position, size = size, blockSize = blockSize)
 
   def transfer(position: Int, count: Int, transferTo: CoreFile): Int =
-    file.transfer(
+    file().transfer(
       position = position,
       count = count,
-      transferTo = transferTo.file
+      transferTo = transferTo.file()
     )
 
   def get(position: Int): Byte =
@@ -402,10 +402,10 @@ private[core] class CoreFile(val path: Path,
   def getSkipCache(position: Int): Byte =
     cache.value(()).get.get(position)
 
-  def readAll: Slice[Byte] =
-    cache.value(()).get.readAll
+  def readAll(): Slice[Byte] =
+    cache.value(()).get.readAll()
 
-  def fileSize: Int =
+  def fileSize(): Int =
     cache.value(()).get.size
 
   //memory files are never closed, if it's memory file return true.
@@ -415,11 +415,11 @@ private[core] class CoreFile(val path: Path,
   def isFileDefined: Boolean =
     cache.getIO().isDefined
 
-  def isLoaded: Boolean =
-    cache.value(()).get.isLoaded
+  def isLoaded(): Boolean =
+    cache.value(()).get.isLoaded()
 
-  def isFull: Boolean =
-    cache.value(()).get.isFull
+  def isFull(): Boolean =
+    cache.value(()).get.isFull()
 
   def forceSave(): Unit =
     cache.value(()).get.forceSave()

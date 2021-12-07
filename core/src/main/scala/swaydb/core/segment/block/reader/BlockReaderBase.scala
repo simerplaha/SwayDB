@@ -42,7 +42,7 @@ private[block] trait BlockReaderBase extends ReaderBase with BlockCacheSource wi
   override val isFile: Boolean =
     reader.isFile
 
-  override def remaining: Int =
+  override def remaining(): Int =
     offset.size - position
 
   def moveTo(position: Int) = {
@@ -161,5 +161,5 @@ private[block] trait BlockReaderBase extends ReaderBase with BlockCacheSource wi
       readFullBlock()
 
   override def readRemaining(): Slice[Byte] =
-    read(remaining)
+    read(remaining())
 }

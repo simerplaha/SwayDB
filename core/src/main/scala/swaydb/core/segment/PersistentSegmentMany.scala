@@ -402,7 +402,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
     if (fileExtension != Extension.Seg)
       throw new Exception(s"Invalid Segment file extension: $fileExtension")
 
-    val segmentSize = file.fileSize
+    val segmentSize = file.fileSize()
 
     val listSegment: SegmentRef =
       initListSegment(
@@ -501,7 +501,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
       minKey = minKey,
       maxKey = maxKey,
       minMaxFunctionId = deadlineFunctionId.minMaxFunctionId.map(_.cut()),
-      segmentSize = file.fileSize,
+      segmentSize = file.fileSize(),
       nearestPutDeadline = deadlineFunctionId.nearestDeadline,
       updateCount = segmentRefs.values().foldLeft(0)(_ + _.updateCount),
       rangeCount = segmentRefs.values().foldLeft(0)(_ + _.rangeCount),
@@ -996,7 +996,7 @@ protected case class PersistentSegmentMany(file: CoreFile,
     segmentsCache.asScala.values.exists(_.isFooterDefined)
 
   def existsOnDisk: Boolean =
-    file.existsOnDisk
+    file.existsOnDisk()
 
   def memory: Boolean =
     false
@@ -1005,7 +1005,7 @@ protected case class PersistentSegmentMany(file: CoreFile,
     true
 
   def notExistsOnDisk: Boolean =
-    !file.existsOnDisk
+    !file.existsOnDisk()
 
   def hasBloomFilter: Boolean =
     segmentRefs(false).exists(_.hasBloomFilter)

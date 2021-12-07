@@ -148,7 +148,7 @@ private[log] object PersistentLog extends LazyLogging {
         path =>
           logger.info(s"$path: Recovering key-values with dropCorruptedTailEntries set as $dropCorruptedTailEntries.")
           val file = CoreFile.standardRead(path, IOStrategy.SynchronisedIO(true), autoClose = false)
-          val bytes = file.readAll
+          val bytes = file.readAll()
           val recovery = LogEntrySerialiser.read[K, V](bytes, dropCorruptedTailEntries).get
 
           val entriesCount = recovery.item.map(_.entriesCount).getOrElse(0)
@@ -338,7 +338,7 @@ protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
         if (allowedPostFlushEntriesBeforeWarn <= 0) //if it was in negative then restart the count
           allowedPostFlushEntriesBeforeWarn = minimumNumberOfWritesAfterFlush
         else if (allowedPostFlushEntriesBeforeWarn > 0) //If the count did not get negative then warn that the fileSize is too small.
-          logger.warn(s"${this.productPrefix}'s file size of $fileSize.bytes is too small and would result in too many flushes. Please increase the default fileSize to at least ${newFile.fileSize}.bytes. Folder: $path.")
+          logger.warn(s"${this.productPrefix}'s file size of $fileSize.bytes is too small and would result in too many flushes. Please increase the default fileSize to at least ${newFile.fileSize()}.bytes. Folder: $path.")
 
         currentFile = newFile
         actualFileSize = nextFilesSize
@@ -356,7 +356,7 @@ protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
     currentFile.close()
 
   override def exists: Boolean =
-    currentFile.existsOnDisk
+    currentFile.existsOnDisk()
 
   override def delete: Unit =
     if (mmap.deleteAfterClean) {

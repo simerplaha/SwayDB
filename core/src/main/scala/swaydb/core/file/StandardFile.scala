@@ -142,7 +142,7 @@ private[file] class StandardFile(val path: Path,
   def get(position: Int): Byte =
     read(position, 1).head
 
-  def readAll: Slice[Byte] = {
+  def readAll(): Slice[Byte] = {
     val bytes = new Array[Byte](Effect.getIntFileSizeOrFail(channel))
     channel.read(ByteBuffer.wrap(bytes), 0)
     Slice.wrap(bytes)
@@ -157,10 +157,10 @@ private[file] class StandardFile(val path: Path,
   override def memoryMapped: Boolean =
     false
 
-  override def isLoaded: Boolean =
+  override def isLoaded(): Boolean =
     false
 
-  override def isFull: Boolean =
+  override def isFull(): Boolean =
     false
 
   override def delete(): Unit = {

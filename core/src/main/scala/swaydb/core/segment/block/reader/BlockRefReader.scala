@@ -26,7 +26,7 @@ private[core] object BlockRefReader {
 
   def apply(file: CoreFile,
             blockCache: Option[BlockCacheState]): BlockRefReader[SegmentBlockOffset] = {
-    val offset = SegmentBlockOffset(0, file.fileSize)
+    val offset = SegmentBlockOffset(0, file.fileSize())
 
     new BlockRefReader(
       offset = offset,
@@ -129,10 +129,10 @@ private[core] object BlockRefReader {
 
   def apply[O <: BlockOffset](reader: Reader,
                               blockCache: Option[BlockCacheState])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] = {
-    val offset = blockOps.createOffset(0, reader.size)
+    val offset = blockOps.createOffset(0, reader.size())
 
     new BlockRefReader(
-      offset = blockOps.createOffset(0, reader.size),
+      offset = blockOps.createOffset(0, reader.size()),
       rootBlockRefOffset = offset,
       blockCache = blockCache,
       reader = reader

@@ -84,7 +84,7 @@ private[swaydb] trait ByteSlice {
     slice.head == 1
 
   def readString(reader: ReaderBase, charset: Charset): String = {
-    val size = reader.size
+    val size = reader.size()
     val bytes = reader.read(size - reader.getPosition)
     readString(bytes, charset)
   }

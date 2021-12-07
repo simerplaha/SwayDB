@@ -33,7 +33,7 @@ trait ReaderBase { self =>
 
   def read(size: Int, blockSize: Int): SliceRO[Byte]
 
-  def size: Int
+  def size(): Int
 
   def hasMore: Boolean
 
@@ -109,8 +109,8 @@ trait ReaderBase { self =>
   @inline def readStringWithSizeUTF8(): String =
     ByteSlice.readStringWithSizeUTF8(self)
 
-  @inline def remaining: Int =
-    size - getPosition
+  @inline def remaining(): Int =
+    size() - getPosition
 
   @inline def reset(): ReaderBase =
     this moveTo 0

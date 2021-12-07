@@ -179,7 +179,7 @@ protected case object PersistentSegmentOne {
                             forceSaveApplier: ForceSaveApplier,
                             segmentIO: SegmentReadIO): PersistentSegment = {
 
-    val fileSize = file.fileSize
+    val fileSize = file.fileSize()
 
     val refReader =
       BlockRefReader(
@@ -427,7 +427,7 @@ protected case class PersistentSegmentOne(file: CoreFile,
     ref.isFooterDefined
 
   def existsOnDisk: Boolean =
-    file.existsOnDisk
+    file.existsOnDisk()
 
   def memory: Boolean =
     false
@@ -436,7 +436,7 @@ protected case class PersistentSegmentOne(file: CoreFile,
     true
 
   def notExistsOnDisk: Boolean =
-    !file.existsOnDisk
+    !file.existsOnDisk()
 
   def hasBloomFilter: Boolean =
     ref.hasBloomFilter

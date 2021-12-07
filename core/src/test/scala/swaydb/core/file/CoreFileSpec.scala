@@ -49,12 +49,12 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
 
           createAllFilesReaders(files.head.path) foreach {
             reader =>
-              reader.file.readAll shouldBe bytes1
+              reader.file.readAll() shouldBe bytes1
           }
 
           createAllFilesReaders(files.last.path) foreach {
             reader =>
-              reader.file.readAll shouldBe bytes2
+              reader.file.readAll() shouldBe bytes2
           }
       }
     }
@@ -68,13 +68,13 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
           //then they are not created which would only occur if all key-values
           //from that file were removed.
           val files = createCoreFiles(Slice.emptyBytes, Slice.emptyBytes)
-          files.foreach(_.existsOnDisk shouldBe true)
+          files.foreach(_.existsOnDisk() shouldBe true)
 
           files foreach {
             file =>
               createAllFilesReaders(file.path) foreach {
                 reader =>
-                  reader.file.readAll shouldBe Slice.emptyBytes
+                  reader.file.readAll() shouldBe Slice.emptyBytes
                   reader.file.close()
               }
           }
@@ -101,7 +101,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
           files foreach {
             file =>
               Slice(Effect.readAllBytes(file.path)) shouldBe bytes
-              file.readAll shouldBe bytes
+              file.readAll() shouldBe bytes
           }
       }
     }
@@ -128,7 +128,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
 
           files foreach {
             file =>
-              file.readAll shouldBe bytes
+              file.readAll() shouldBe bytes
           }
       }
     }
@@ -166,7 +166,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
           file.isOpen shouldBe true
           file.append(bytes)
 
-          IO(file.readAll).left.value shouldBe a[NonReadableChannelException]
+          IO(file.readAll()).left.value shouldBe a[NonReadableChannelException]
           IO(file.read(position = 0, size = 1)).left.value shouldBe a[NonReadableChannelException]
           IO(file.getSkipCache(position = 0)).left.value shouldBe a[NonReadableChannelException]
 
@@ -174,7 +174,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
           file.close()
           file.isFileDefined shouldBe false
           file.isOpen shouldBe false
-          file.readAll shouldBe bytes //read
+          file.readAll() shouldBe bytes //read
           //above onOpen is also invoked
           file.isFileDefined shouldBe true
           file.isOpen shouldBe true
@@ -189,7 +189,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             autoClose = true
           ) ==> {
             file =>
-              file.readAll shouldBe bytes
+              file.readAll() shouldBe bytes
               file.close()
           }
         //above onOpen is also invoked
@@ -227,7 +227,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
           readFile.isFileDefined shouldBe false
           readFile.isOpen shouldBe false
           //reading the opens the file
-          readFile.readAll shouldBe bytes
+          readFile.readAll() shouldBe bytes
           //file is now opened
           readFile.isFileDefined shouldBe true
           readFile.isOpen shouldBe true
@@ -239,7 +239,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
-          ).readAll shouldBe bytes
+          ).readAll() shouldBe bytes
 
           readFile.close()
           readFile.isOpen shouldBe false
@@ -295,28 +295,28 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
               bytes = bytes
             )
 
-          file.readAll shouldBe bytes
-          file.isFull shouldBe true
+          file.readAll() shouldBe bytes
+          file.isFull() shouldBe true
 
           //overflow bytes
           val bytes2 = Slice.wrap("bytes two".getBytes())
           file.append(bytes2)
-          file.isFull shouldBe true //complete fit - no extra bytes
+          file.isFull() shouldBe true //complete fit - no extra bytes
 
           //overflow bytes
           val bytes3 = Slice.wrap("bytes three".getBytes())
           file.append(bytes3)
-          file.isFull shouldBe true //complete fit - no extra bytes
+          file.isFull() shouldBe true //complete fit - no extra bytes
 
           val expectedBytes = bytes ++ bytes2 ++ bytes3
 
-          file.readAll shouldBe expectedBytes
+          file.readAll() shouldBe expectedBytes
 
           //close buffer
           file.close()
           file.isFileDefined shouldBe false
           file.isOpen shouldBe false
-          file.readAll shouldBe expectedBytes
+          file.readAll() shouldBe expectedBytes
           file.isFileDefined shouldBe true
           file.isOpen shouldBe true
 
@@ -332,7 +332,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             deleteAfterClean = OperatingSystem.isWindows
           ) ==> {
             file =>
-              file.readAll shouldBe expectedBytes
+              file.readAll() shouldBe expectedBytes
               file.close()
           }
       }
@@ -397,7 +397,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             deleteAfterClean = OperatingSystem.isWindows
           ) ==> {
             file =>
-              file.readAll shouldBe bytes
+              file.readAll() shouldBe bytes
               file.close()
           }
       }
@@ -425,7 +425,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
           def doRead = {
             readFile.isFileDefined shouldBe false //reading a file should load the file lazily
             readFile.isOpen shouldBe false
-            readFile.readAll shouldBe bytes
+            readFile.readAll() shouldBe bytes
             readFile.isFileDefined shouldBe true
             readFile.isOpen shouldBe true
           }
@@ -499,22 +499,22 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
                 if (testNumber % 2 == 0) {
                   //bytes4 will cause buffer overflow.
                   file.appendBatch(Array(bytes1, bytes2, bytes3, bytes4))
-                  if (file.memoryMapped) file.isFull shouldBe true
+                  if (file.memoryMapped) file.isFull() shouldBe true
                 } else {
                   file.append(bytes1)
-                  file.isFull shouldBe false
+                  file.isFull() shouldBe false
                   file.append(bytes2)
-                  file.isFull shouldBe false
+                  file.isFull() shouldBe false
                   file.append(bytes3)
-                  //          file.isFull shouldBe true
+                  //          file.isFull() shouldBe true
                   file.append(bytes4) //overflow write, buffer gets extended
-                  if (file.memoryMapped) file.isFull shouldBe true
+                  if (file.memoryMapped) file.isFull() shouldBe true
                 }
 
                 val allBytes = bytes1 ++ bytes2 ++ bytes3 ++ bytes4
 
                 if (file.memoryMapped)
-                  file.readAll shouldBe allBytes
+                  file.readAll() shouldBe allBytes
                 else
                   Effect.readAllBytes(standardFile.path) shouldBe allBytes.toArray
             }
@@ -618,7 +618,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             file.close()
             file.isOpen shouldBe false
             file.isFileDefined shouldBe false
-            file.existsOnDisk shouldBe true
+            file.existsOnDisk() shouldBe true
           }
 
           def open = {
@@ -663,7 +663,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
           file.close()
 
           IO(file.append(bytes)).left.value shouldBe a[NonWritableChannelException]
-          file.readAll shouldBe bytes
+          file.readAll() shouldBe bytes
 
           file.close()
       }
@@ -728,7 +728,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             autoClose = true
           ) ==> {
             file =>
-              file.readAll shouldBe expectedAllBytes
+              file.readAll() shouldBe expectedAllBytes
               file.close()
           }
           CoreFile.mmapRead(
@@ -738,7 +738,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             deleteAfterClean = OperatingSystem.isWindows
           ) ==> {
             file =>
-              file.readAll shouldBe expectedAllBytes
+              file.readAll() shouldBe expectedAllBytes
               file.close()
           }
 
@@ -772,7 +772,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
 
           val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
-          file.readAll shouldBe expectedAllBytes
+          file.readAll() shouldBe expectedAllBytes
           file.close() //close
 
           //reopen
@@ -783,7 +783,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             deleteAfterClean = OperatingSystem.isWindows
           ) ==> {
             file =>
-              file.readAll shouldBe expectedAllBytes
+              file.readAll() shouldBe expectedAllBytes
               file.close()
           }
 
@@ -793,7 +793,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             autoClose = true
           ) ==> {
             file =>
-              file.readAll shouldBe expectedAllBytes
+              file.readAll() shouldBe expectedAllBytes
               file.close()
           }
       }
@@ -827,7 +827,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
 
           val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
-          file.readAll shouldBe expectedAllBytes
+          file.readAll() shouldBe expectedAllBytes
           file.close() //close
 
           //reopen
@@ -838,7 +838,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             deleteAfterClean = OperatingSystem.isWindows
           ) ==> {
             file =>
-              file.readAll shouldBe expectedAllBytes
+              file.readAll() shouldBe expectedAllBytes
               file.close()
           }
 
@@ -848,7 +848,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             autoClose = true
           ) ==> {
             file =>
-              file.readAll shouldBe expectedAllBytes
+              file.readAll() shouldBe expectedAllBytes
               file.close()
           }
       }
@@ -875,7 +875,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             autoClose = true
           ) ==> {
             file =>
-              file.readAll shouldBe empty
+              file.readAll() shouldBe empty
               file.close()
           }
           file.close()
@@ -898,7 +898,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             )
 
           file.append(Slice.emptyBytes)
-          file.readAll shouldBe Slice.fill(file.fileSize)(0)
+          file.readAll() shouldBe Slice.fill(file.fileSize())(0)
           file.close()
 
           CoreFile.mmapRead(
@@ -908,7 +908,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             deleteAfterClean = OperatingSystem.isWindows
           ) ==> {
             file2 =>
-              file2.readAll shouldBe Slice.fill(file.fileSize)(0)
+              file2.readAll() shouldBe Slice.fill(file.fileSize())(0)
               file2.close()
           }
       }
@@ -974,7 +974,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
           file.append(bytes)
 
           file.delete()
-          file.existsOnDisk shouldBe false
+          file.existsOnDisk() shouldBe false
           file.isOpen shouldBe false
           file.isFileDefined shouldBe false
       }
@@ -1002,7 +1002,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
           if (OperatingSystem.isWindows)
             sweeper.receiveAll()
 
-          file.existsOnDisk shouldBe false
+          file.existsOnDisk() shouldBe false
           file.isOpen shouldBe false
           file.isFileDefined shouldBe false
       }
@@ -1035,7 +1035,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             autoClose = true
           ) ==> {
             file =>
-              file.readAll shouldBe bytes
+              file.readAll() shouldBe bytes
               file.close()
           }
 
@@ -1060,7 +1060,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             )
 
           file.append(bytes)
-          file.isFull shouldBe true
+          file.isFull() shouldBe true
           file.close()
 
           val targetFile = randomFilePath
@@ -1072,7 +1072,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
             autoClose = true
           ) ==> {
             file =>
-              file.readAll shouldBe bytes
+              file.readAll() shouldBe bytes
               file.close()
           }
       }
@@ -1099,7 +1099,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
   //              bytes = bytes
   //            )
   //
-  //          file.readAll
+  //          file.readAll()
   //
   //          Effect.copy(testFile, randomFilePath)
   //        }
@@ -1118,7 +1118,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
   //        (1 to 500).par map {
   //          _ =>
   //            if (randomBoolean) Future(file.close)
-  //            file.readAll
+  //            file.readAll()
   //        }
   //
   //      //convert all failures to Async

@@ -65,7 +65,7 @@ class ByteBufferSweeperSpec extends CoreTestBase with MockFactory {
               bytes = Array(randomBytesSlice())
             )
 
-          val innerFile = file.file.asInstanceOf[MMAPFile]
+          val innerFile = file.file().asInstanceOf[MMAPFile]
 
           fileSweeper.closer.terminateAndRecover[Glass, Unit](_ => ())
           fileSweeper.deleter.terminateAndRecover[Glass, Unit](_ => ())
