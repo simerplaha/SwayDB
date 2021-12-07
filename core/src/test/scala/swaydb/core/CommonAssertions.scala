@@ -321,7 +321,7 @@ object CommonAssertions {
                   lastLevelExpect: KeyValueOption)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     //    println("*** Expected assert ***")
-    assertMerge(newKeyValue, oldKeyValue, Slice(expected), lastLevelExpect.toOptional.map(Slice(_)).getOrElse(Slice.empty))
+    assertMerge(newKeyValue, oldKeyValue, Slice(expected), lastLevelExpect.toOption.map(Slice(_)).getOrElse(Slice.empty))
     //println("*** Skip list assert ***")
     assertSkipListMerge(Slice(newKeyValue), Slice(oldKeyValue), Slice(expected))
   }
@@ -1030,7 +1030,7 @@ object CommonAssertions {
                                      level: Level) =
     keyValues foreach {
       keyValue =>
-        level.getFromThisLevel(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptional shouldBe empty
+        level.getFromThisLevel(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOption shouldBe empty
     }
 
   /**
@@ -1105,7 +1105,7 @@ object CommonAssertions {
               binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReaderOrNull = blocks.valuesReader.orNull
-            ).runRandomIO.right.value.toOptional shouldBe empty
+            ).runRandomIO.right.value.toOption shouldBe empty
 
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
               key =>
@@ -1129,7 +1129,7 @@ object CommonAssertions {
               binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReaderOrNull = blocks.valuesReader.orNull
-            ).runRandomIO.right.value.toOptional shouldBe empty
+            ).runRandomIO.right.value.toOption shouldBe empty
         }
         assertLowers(index + 1)
       } else {
@@ -1196,7 +1196,7 @@ object CommonAssertions {
               binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.map(_.copy()).orNull,
               sortedIndexReader = blocks.sortedIndexReader.copy(),
               valuesReaderOrNull = blocks.valuesReader.map(_.copy()).orNull
-            ).toOptional
+            ).toOption
           }
     )
   }
@@ -1211,7 +1211,7 @@ object CommonAssertions {
       } else if (index == 0) {
         val actualKeyValue = keyValues(index)
         //        println(s"Lower: ${actualKeyValue.key.readInt()}")
-        IO.Defer(segment.lower(actualKeyValue.key, ThreadReadState.random)).runRandomIO.right.value.toOptional shouldBe empty
+        IO.Defer(segment.lower(actualKeyValue.key, ThreadReadState.random)).runRandomIO.right.value.toOption shouldBe empty
         assertLowers(index + 1)
       } else {
         val expectedLower = keyValues(index - 1)
@@ -1236,7 +1236,7 @@ object CommonAssertions {
 
   def assertHigher(keyValues: Slice[KeyValue],
                    segment: Segment): Unit =
-    assertHigher(keyValues, getHigher = key => IO(IO.Defer(segment.higher(key, ThreadReadState.random)).runRandomIO.right.value.toOptional))
+    assertHigher(keyValues, getHigher = key => IO(IO.Defer(segment.higher(key, ThreadReadState.random)).runRandomIO.right.value.toOption))
 
   /**
    * Asserts that all key-values are returned in order when fetching higher in sequence.

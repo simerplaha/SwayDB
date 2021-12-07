@@ -74,9 +74,9 @@ sealed trait SegmentLowerSpec extends CoreTestBase with ScalaFutures with Privat
             assert =
               (keyValues, segment) => {
                 val readState = ThreadReadState.random
-                segment.lower(0, readState).toOptional shouldBe empty
-                segment.lower(1, readState).toOptional shouldBe empty
-                segment.lower(2, readState).toOptional.value shouldBe keyValues.head
+                segment.lower(0, readState).toOption shouldBe empty
+                segment.lower(1, readState).toOption shouldBe empty
+                segment.lower(2, readState).toOption.value shouldBe keyValues.head
               }
           )
       }
@@ -94,14 +94,14 @@ sealed trait SegmentLowerSpec extends CoreTestBase with ScalaFutures with Privat
               (keyValues, segment) => {
                 val readState = ThreadReadState.random
 
-                segment.lower(0, readState).toOptional shouldBe empty //smallest key in this segment is 1
-                segment.lower(1, readState).toOptional shouldBe empty
+                segment.lower(0, readState).toOption shouldBe empty //smallest key in this segment is 1
+                segment.lower(1, readState).toOption shouldBe empty
 
-                segment.lower(2, readState).toOptional.value shouldBe keyValues.head
-                segment.lower(3, readState).toOptional.value shouldBe keyValues(1)
+                segment.lower(2, readState).toOption.value shouldBe keyValues.head
+                segment.lower(3, readState).toOption.value shouldBe keyValues(1)
                 (4 to 10) foreach {
                   i =>
-                    segment.lower(i, readState).toOptional.value shouldBe keyValues(2)
+                    segment.lower(i, readState).toOption.value shouldBe keyValues(2)
                 }
               }
           )
@@ -129,10 +129,10 @@ sealed trait SegmentLowerSpec extends CoreTestBase with ScalaFutures with Privat
 
                   //0
                   //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(0, readState).toOptional shouldBe empty
+                  segment.lower(0, readState).toOption shouldBe empty
                   //1
                   //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(1, readState).toOptional shouldBe empty
+                  segment.lower(1, readState).toOption shouldBe empty
                   //    2
                   //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
                   segment.lower(2, readState).getUnsafe shouldBe keyValues(0)

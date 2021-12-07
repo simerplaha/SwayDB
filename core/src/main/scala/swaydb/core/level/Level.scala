@@ -994,7 +994,7 @@ private[core] case class Level(dirs: Seq[Dir],
         segment =>
           LevelSeek(
             segmentNumber = segment.segmentNumber,
-            result = segment.lower(key, readState).toOptional
+            result = segment.lower(key, readState).toOption
           )
       }
 
@@ -1027,7 +1027,7 @@ private[core] case class Level(dirs: Seq[Dir],
       case segment: Segment =>
         LevelSeek(
           segmentNumber = segment.segmentNumber,
-          result = segment.higher(key, readState).toOptional
+          result = segment.higher(key, readState).toOption
         )
 
       case Segment.Null =>
@@ -1039,7 +1039,7 @@ private[core] case class Level(dirs: Seq[Dir],
       case segment: Segment =>
         LevelSeek(
           segmentNumber = segment.segmentNumber,
-          result = segment.higher(key, readState).toOptional
+          result = segment.higher(key, readState).toOption
         )
 
       case Segment.Null =>

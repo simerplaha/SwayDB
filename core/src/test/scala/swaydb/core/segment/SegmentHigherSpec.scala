@@ -72,8 +72,8 @@ sealed trait SegmentHigherSpec extends CoreTestBase with ScalaFutures with Priva
                   val readState = ThreadReadState.random
 
                   segment.higher(0, readState).getUnsafe shouldBe keyValue.head
-                  segment.higher(1, readState).toOptional shouldBe empty
-                  segment.higher(2, readState).toOptional shouldBe empty
+                  segment.higher(1, readState).toOption shouldBe empty
+                  segment.higher(2, readState).toOption shouldBe empty
                 }
             )
         }
@@ -98,7 +98,7 @@ sealed trait SegmentHigherSpec extends CoreTestBase with ScalaFutures with Priva
 
                   (10 to 15) foreach {
                     i =>
-                      segment.higher(i, readState).toOptional shouldBe empty
+                      segment.higher(i, readState).toOption shouldBe empty
                   }
                 }
             )
@@ -122,7 +122,7 @@ sealed trait SegmentHigherSpec extends CoreTestBase with ScalaFutures with Priva
                 segment.higher(2, readState).getUnsafe shouldBe keyValues(2)
                 (3 to 10) foreach {
                   i =>
-                    segment.higher(i, readState).toOptional shouldBe empty
+                    segment.higher(i, readState).toOption shouldBe empty
                 }
               }
           )
@@ -191,10 +191,10 @@ sealed trait SegmentHigherSpec extends CoreTestBase with ScalaFutures with Priva
                   segment.higher(29, readState).getUnsafe shouldBe keyValues(4)
                   //                                                 50
                   //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.higher(50, readState).toOptional shouldBe empty
+                  segment.higher(50, readState).toOption shouldBe empty
                   //                                                     51
                   //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.higher(51, readState).toOptional shouldBe empty
+                  segment.higher(51, readState).toOption shouldBe empty
                 }
             )
         }

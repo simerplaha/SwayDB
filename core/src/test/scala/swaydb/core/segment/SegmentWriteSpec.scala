@@ -450,7 +450,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
                   val readState = ThreadReadState.random
                   failedKV foreach {
                     keyValue =>
-                      segment.get(keyValue.key, readState).runRandomIO.right.value.toOptional shouldBe empty
+                      segment.get(keyValue.key, readState).runRandomIO.right.value.toOption shouldBe empty
                   }
                   assertBloom(keyValues, segment)
                 }
@@ -1988,8 +1988,8 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
 
           newSegment.get(keyValue.key, ThreadReadState.random).getUnsafe shouldBe keyValue
 
-          newSegment.lower(keyValue.key, ThreadReadState.random).toOptional shouldBe empty
-          newSegment.higher(keyValue.key, ThreadReadState.random).toOptional shouldBe empty
+          newSegment.lower(keyValue.key, ThreadReadState.random).toOption shouldBe empty
+          newSegment.higher(keyValue.key, ThreadReadState.random).toOption shouldBe empty
       }
     }
 

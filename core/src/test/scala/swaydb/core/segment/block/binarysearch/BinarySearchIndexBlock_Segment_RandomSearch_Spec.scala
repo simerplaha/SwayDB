@@ -300,7 +300,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends CoreTestBase with
                     binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
                     sortedIndexReader = blocks.sortedIndexReader,
                     valuesReaderOrNull = blocks.valuesReader.orNull
-                  ).toOptional
+                  ).toOption
 
                 keyValue match {
                   case fixed: Memory.Fixed =>

@@ -548,9 +548,9 @@ class LogsSpec extends CoreTestBase {
           //second log is partially read but it's missing 4th entry
           recoveredLogs.find[MemoryOption](Memory.Null, _.cache.skipList.get(3)) shouldBe Memory.put(3)
           //third log is completely ignored.
-          recoveredLogs.find[MemoryOption](Memory.Null, _.cache.skipList.get(4)).toOptional shouldBe empty
-          recoveredLogs.find[MemoryOption](Memory.Null, _.cache.skipList.get(5)).toOptional shouldBe empty
-          recoveredLogs.find[MemoryOption](Memory.Null, _.cache.skipList.get(6)).toOptional shouldBe empty
+          recoveredLogs.find[MemoryOption](Memory.Null, _.cache.skipList.get(4)).toOption shouldBe empty
+          recoveredLogs.find[MemoryOption](Memory.Null, _.cache.skipList.get(5)).toOption shouldBe empty
+          recoveredLogs.find[MemoryOption](Memory.Null, _.cache.skipList.get(6)).toOption shouldBe empty
       }
     }
 

@@ -33,7 +33,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 private[core] sealed trait KeyValueOption {
   def getUnsafe: KeyValue
 
-  def toOptional: Option[KeyValue] =
+  def toOption: Option[KeyValue] =
     this match {
       case optional: MemoryOption =>
         optional.toOptionS

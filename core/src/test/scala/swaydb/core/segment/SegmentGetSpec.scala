@@ -79,8 +79,8 @@ sealed trait SegmentGetSpec extends CoreTestBase with ScalaFutures with PrivateM
                 (keyValues, segment) =>
                   Random.shuffle(
                     Seq(
-                      () => segment.get(0, ThreadReadState.random).toOptional shouldBe empty,
-                      () => segment.get(2, ThreadReadState.random).toOptional shouldBe empty,
+                      () => segment.get(0, ThreadReadState.random).toOption shouldBe empty,
+                      () => segment.get(2, ThreadReadState.random).toOption shouldBe empty,
                       () => segment.get(keyValues.head.key, ThreadReadState.random).getUnsafe shouldBe keyValues.head
                     )
                   ).foreach(_ ())
@@ -93,8 +93,8 @@ sealed trait SegmentGetSpec extends CoreTestBase with ScalaFutures with PrivateM
                 (keyValues, segment) =>
                   Random.shuffle(
                     Seq(
-                      () => segment.get(0, ThreadReadState.random).toOptional shouldBe empty,
-                      () => segment.get(3, ThreadReadState.random).toOptional shouldBe empty,
+                      () => segment.get(0, ThreadReadState.random).toOption shouldBe empty,
+                      () => segment.get(3, ThreadReadState.random).toOption shouldBe empty,
                       () => segment.get(keyValues.head.key, ThreadReadState.random).getUnsafe shouldBe keyValues.head
                     )
                   ).foreach(_ ())
@@ -114,9 +114,9 @@ sealed trait SegmentGetSpec extends CoreTestBase with ScalaFutures with PrivateM
                 (keyValues, segment) =>
                   Random.shuffle(
                     Seq(
-                      () => segment.get(0, ThreadReadState.random).toOptional shouldBe empty,
-                      () => segment.get(10, ThreadReadState.random).toOptional shouldBe empty,
-                      () => segment.get(11, ThreadReadState.random).toOptional shouldBe empty,
+                      () => segment.get(0, ThreadReadState.random).toOption shouldBe empty,
+                      () => segment.get(10, ThreadReadState.random).toOption shouldBe empty,
+                      () => segment.get(11, ThreadReadState.random).toOption shouldBe empty,
                       () =>
                         (1 to 9) foreach {
                           i =>
@@ -134,9 +134,9 @@ sealed trait SegmentGetSpec extends CoreTestBase with ScalaFutures with PrivateM
                 (keyValues, segment) =>
                   Random.shuffle(
                     Seq(
-                      () => segment.get(0, ThreadReadState.random).toOptional shouldBe empty,
-                      () => segment.get(20, ThreadReadState.random).toOptional shouldBe empty,
-                      () => segment.get(21, ThreadReadState.random).toOptional shouldBe empty,
+                      () => segment.get(0, ThreadReadState.random).toOption shouldBe empty,
+                      () => segment.get(20, ThreadReadState.random).toOption shouldBe empty,
+                      () => segment.get(21, ThreadReadState.random).toOption shouldBe empty,
                       () =>
                         (1 to 9) foreach {
                           i =>
@@ -180,7 +180,7 @@ sealed trait SegmentGetSpec extends CoreTestBase with ScalaFutures with PrivateM
                 (0 until keyValues.size) foreach {
                   index =>
                     val keyValue = keyValues(index)
-                    if (persistent) segment.getFromCache(keyValue.key).toOptional shouldBe empty
+                    if (persistent) segment.getFromCache(keyValue.key).toOption shouldBe empty
                     segment.get(keyValue.key, ThreadReadState.random).getUnsafe shouldBe keyValue
 
                     val gotFromCache = eventually(segment.getFromCache(keyValue.key).getUnsafe)
