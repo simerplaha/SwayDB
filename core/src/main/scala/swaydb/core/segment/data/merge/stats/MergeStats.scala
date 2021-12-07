@@ -32,7 +32,10 @@ private[core] sealed trait MergeStats[-FROM, +T[_]] extends Aggregator[FROM, T[d
   def addOne(keyValue: FROM): this.type
 
   override def addAll(items: IterableOnce[FROM]): MergeStats.this.type = {
-    items foreach addOne
+    val iterator = items.iterator
+    while (iterator.hasNext)
+      addOne(iterator.next())
+
     this
   }
 
