@@ -426,7 +426,7 @@ sealed trait SwayDBSpec extends TestBaseAPI {
 
               db.close().value
 
-              db.get(1).left.value.exception.getMessage shouldBe Core.closedMessage
+              db.get(1).left.value.exception.getMessage shouldBe Core.closedMessage()
           }
         }
       }
@@ -445,7 +445,7 @@ sealed trait SwayDBSpec extends TestBaseAPI {
 
               db.delete().value
 
-              db.get(1).left.value.exception.getMessage shouldBe Core.closedMessage
+              db.get(1).left.value.exception.getMessage shouldBe Core.closedMessage()
           }
         }
       }

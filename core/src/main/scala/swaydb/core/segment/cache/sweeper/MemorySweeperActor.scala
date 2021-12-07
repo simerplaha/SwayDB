@@ -28,7 +28,7 @@ protected object MemorySweeperActor {
           cacheOrNull remove ref.key
 
       case cache: MemorySweeperCommand.SweepCache =>
-        val cacheOrNull = cache.cache.underlying.get
+        val cacheOrNull = cache.cache.underlying.get()
         if (cacheOrNull != null)
           cacheOrNull.clear()
     }

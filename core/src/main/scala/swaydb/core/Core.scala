@@ -47,7 +47,7 @@ import scala.concurrent.duration._
  */
 private[swaydb] object Core {
 
-  val closedMessage = "Cannot perform read or write on a closed instance."
+  def closedMessage() = "Cannot perform read or write on a closed instance."
 
   def apply(enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
@@ -162,7 +162,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
     if (coreState.isRunning)
       f
     else
-      bag.failure(new IllegalAccessException(Core.closedMessage))
+      bag.failure(new IllegalAccessException(Core.closedMessage()))
 
   @inline private def execute[R, BAG[_]](thunk: LevelZero => R)(implicit bag: Bag[BAG]): BAG[R] =
     if (coreState.isRunning)
@@ -174,7 +174,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
           IO.Defer[swaydb.Error.Level, R](thunk(zero), error).run(1)
       }
     else
-      bag.failure(new IllegalAccessException(Core.closedMessage))
+      bag.failure(new IllegalAccessException(Core.closedMessage()))
 
   def put(key: Slice[Byte]): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.put(key)))
