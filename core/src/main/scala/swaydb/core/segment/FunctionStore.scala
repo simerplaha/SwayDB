@@ -17,7 +17,7 @@
 package swaydb.core.segment
 
 import swaydb.OK
-import swaydb.core.segment.data.{SwayFunction, Value}
+import swaydb.core.segment.data.{CoreFunction, Value}
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 
@@ -33,19 +33,19 @@ import scala.jdk.CollectionConverters._
  * Missing functions will be reported with their functionId.
  */
 private[swaydb] abstract class FunctionStore {
-  def get(functionId: Slice[Byte]): Option[SwayFunction]
-  def get(functionId: String): Option[SwayFunction]
+  def get(functionId: Slice[Byte]): Option[CoreFunction]
+  def get(functionId: String): Option[CoreFunction]
 
-  def put(functionId: Slice[Byte], function: SwayFunction): OK
-  def put(functionId: String, function: SwayFunction): OK
+  def put(functionId: Slice[Byte], function: CoreFunction): OK
+  def put(functionId: String, function: CoreFunction): OK
 
-  def remove(functionId: Slice[Byte]): SwayFunction
+  def remove(functionId: Slice[Byte]): CoreFunction
 
   def contains(functionId: Slice[Byte]): Boolean
   def notContains(functionId: Slice[Byte]): Boolean =
     !contains(functionId)
 
-  def asScala: mutable.Map[Slice[Byte], SwayFunction]
+  def asScala: mutable.Map[Slice[Byte], CoreFunction]
 
   def size: Int
 }
@@ -89,18 +89,18 @@ private[swaydb] object FunctionStore {
 
   final class Memory extends FunctionStore {
 
-    val hashMap = new ConcurrentHashMap[Slice[Byte], SwayFunction]()
+    val hashMap = new ConcurrentHashMap[Slice[Byte], CoreFunction]()
 
-    override def get(functionId: String): Option[SwayFunction] =
+    override def get(functionId: String): Option[CoreFunction] =
       get(Slice.writeString(functionId))
 
-    override def get(functionId: Slice[Byte]): Option[SwayFunction] =
+    override def get(functionId: Slice[Byte]): Option[CoreFunction] =
       Option(hashMap.get(functionId))
 
-    override def put(functionId: String, function: SwayFunction): OK =
+    override def put(functionId: String, function: CoreFunction): OK =
       put(Slice.writeString(functionId), function)
 
-    override def put(functionId: Slice[Byte], function: SwayFunction): OK =
+    override def put(functionId: Slice[Byte], function: CoreFunction): OK =
       if (hashMap.putIfAbsent(functionId, function) == null)
         OK.instance
       else
@@ -109,10 +109,10 @@ private[swaydb] object FunctionStore {
     override def contains(functionId: Slice[Byte]): Boolean =
       get(functionId).isDefined
 
-    override def remove(functionId: Slice[Byte]): SwayFunction =
+    override def remove(functionId: Slice[Byte]): CoreFunction =
       hashMap.remove(functionId)
 
-    def asScala: mutable.Map[Slice[Byte], SwayFunction] =
+    def asScala: mutable.Map[Slice[Byte], CoreFunction] =
       hashMap.asScala
 
     def size =

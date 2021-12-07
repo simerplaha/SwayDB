@@ -27,18 +27,18 @@ private[core] object FunctionMerger {
             oldKeyValue: KeyValue.Put)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                        functionStore: FunctionStore): KeyValue.Fixed = {
 
-    def applyOutput(output: SwayFunctionOutput) =
+    def applyOutput(output: CoreFunctionOutput) =
       output match {
-        case SwayFunctionOutput.Nothing =>
+        case CoreFunctionOutput.Nothing =>
           oldKeyValue.copyWithTime(newKeyValue.time)
 
-        case SwayFunctionOutput.Remove =>
+        case CoreFunctionOutput.Remove =>
           Memory.Remove(oldKeyValue.key, None, newKeyValue.time)
 
-        case SwayFunctionOutput.Expire(deadline) =>
+        case CoreFunctionOutput.Expire(deadline) =>
           oldKeyValue.copyWithDeadlineAndTime(Some(deadline), newKeyValue.time)
 
-        case SwayFunctionOutput.Update(value, deadline) =>
+        case CoreFunctionOutput.Update(value, deadline) =>
           Memory.Put(oldKeyValue.key, value.asSliceOption(), deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
       }
 
@@ -47,30 +47,30 @@ private[core] object FunctionMerger {
       functionStore.get(function) match {
         case Some(functionId) =>
           functionId match {
-            case SwayFunction.Value(f) =>
+            case CoreFunction.Value(f) =>
               val output = f(oldKeyValue.getOrFetchValue)
               applyOutput(output)
 
-            case SwayFunction.ValueDeadline(f) =>
+            case CoreFunction.ValueDeadline(f) =>
               val value = oldKeyValue.getOrFetchValue
               val output = f(value, oldKeyValue.deadline)
               applyOutput(output)
 
-            case function: SwayFunction.RequiresKey =>
+            case function: CoreFunction.RequiresKey =>
               function match {
-                case SwayFunction.Key(f) =>
+                case CoreFunction.Key(f) =>
                   applyOutput(f(oldKeyValue.key))
 
-                case SwayFunction.KeyValue(f) =>
+                case CoreFunction.KeyValue(f) =>
                   val oldValue = oldKeyValue.getOrFetchValue
                   val output = f(oldKeyValue.key, oldValue)
                   applyOutput(output)
 
-                case SwayFunction.KeyDeadline(f) =>
+                case CoreFunction.KeyDeadline(f) =>
                   val output = f(oldKeyValue.key, oldKeyValue.deadline)
                   applyOutput(output)
 
-                case SwayFunction.KeyValueDeadline(f) =>
+                case CoreFunction.KeyValueDeadline(f) =>
                   val oldValue = oldKeyValue.getOrFetchValue
                   val output = f(oldKeyValue.key, oldValue, oldKeyValue.deadline)
                   applyOutput(output)
@@ -90,18 +90,18 @@ private[core] object FunctionMerger {
             oldKeyValue: KeyValue.Update)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore): KeyValue.Fixed = {
 
-    def applyOutput(output: SwayFunctionOutput) =
+    def applyOutput(output: CoreFunctionOutput) =
       output match {
-        case SwayFunctionOutput.Nothing =>
+        case CoreFunctionOutput.Nothing =>
           oldKeyValue.copyWithTime(newKeyValue.time)
 
-        case SwayFunctionOutput.Remove =>
+        case CoreFunctionOutput.Remove =>
           Memory.Remove(oldKeyValue.key, None, newKeyValue.time)
 
-        case SwayFunctionOutput.Expire(deadline) =>
+        case CoreFunctionOutput.Expire(deadline) =>
           oldKeyValue.copyWithDeadlineAndTime(Some(deadline), newKeyValue.time)
 
-        case SwayFunctionOutput.Update(value, deadline) =>
+        case CoreFunctionOutput.Update(value, deadline) =>
           Memory.Update(oldKeyValue.key, value.asSliceOption(), deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
       }
 
@@ -116,11 +116,11 @@ private[core] object FunctionMerger {
       functionStore.get(function) match {
         case Some(functionId) =>
           functionId match {
-            case SwayFunction.Value(f) =>
+            case CoreFunction.Value(f) =>
               val value = oldKeyValue.getOrFetchValue
               applyOutput(f(value))
 
-            case SwayFunction.ValueDeadline(f) =>
+            case CoreFunction.ValueDeadline(f) =>
               //if deadline is not set, then the deadline of this key might have another update in lower levels.
               //so stash update.
               if (oldKeyValue.deadline.isEmpty) {
@@ -131,26 +131,26 @@ private[core] object FunctionMerger {
                 applyOutput(output)
               }
 
-            case function: SwayFunction.RequiresKey =>
+            case function: CoreFunction.RequiresKey =>
               if (oldKeyValue.key.isEmpty)
                 toPendingApply()
               else
                 function match {
-                  case SwayFunction.Key(f) =>
+                  case CoreFunction.Key(f) =>
                     applyOutput(f(oldKeyValue.key))
 
-                  case SwayFunction.KeyValue(f) =>
+                  case CoreFunction.KeyValue(f) =>
                     val oldValue = oldKeyValue.getOrFetchValue
                     val output = f(oldKeyValue.key, oldValue)
                     applyOutput(output)
 
-                  case SwayFunction.KeyDeadline(f) =>
+                  case CoreFunction.KeyDeadline(f) =>
                     if (oldKeyValue.deadline.isEmpty)
                       toPendingApply()
                     else
                       applyOutput(f(oldKeyValue.key, oldKeyValue.deadline))
 
-                  case SwayFunction.KeyValueDeadline(f) =>
+                  case CoreFunction.KeyValueDeadline(f) =>
                     if (oldKeyValue.deadline.isEmpty) {
                       toPendingApply()
                     } else {
@@ -173,18 +173,18 @@ private[core] object FunctionMerger {
             oldKeyValue: KeyValue.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore): KeyValue.Fixed = {
 
-    def applyOutput(output: SwayFunctionOutput) =
+    def applyOutput(output: CoreFunctionOutput) =
       output match {
-        case SwayFunctionOutput.Nothing =>
+        case CoreFunctionOutput.Nothing =>
           oldKeyValue.copyWithTime(newKeyValue.time)
 
-        case SwayFunctionOutput.Remove =>
+        case CoreFunctionOutput.Remove =>
           Memory.Remove(oldKeyValue.key, None, newKeyValue.time)
 
-        case SwayFunctionOutput.Expire(deadline) =>
+        case CoreFunctionOutput.Expire(deadline) =>
           Memory.Remove(oldKeyValue.key, Some(deadline), newKeyValue.time)
 
-        case SwayFunctionOutput.Update(value, deadline) =>
+        case CoreFunctionOutput.Update(value, deadline) =>
           Memory.Update(oldKeyValue.key, value.asSliceOption(), deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
       }
 
@@ -204,18 +204,18 @@ private[core] object FunctionMerger {
           functionStore.get(function) match {
             case Some(function) =>
               function match {
-                case _: SwayFunction.RequiresKey if oldKeyValue.key.isEmpty =>
+                case _: CoreFunction.RequiresKey if oldKeyValue.key.isEmpty =>
                   //key is unknown since it's empty. Stash the merge.
                   toPendingApply()
 
-                case _: SwayFunction.RequiresValue =>
+                case _: CoreFunction.RequiresValue =>
                   //value is not known since remove has deadline set - PendingApply!
                   toPendingApply()
 
-                case SwayFunction.Key(f) =>
+                case CoreFunction.Key(f) =>
                   applyOutput(f(oldKeyValue.key))
 
-                case SwayFunction.KeyDeadline(f) =>
+                case CoreFunction.KeyDeadline(f) =>
                   applyOutput(f(oldKeyValue.key, oldKeyValue.deadline))
               }
 

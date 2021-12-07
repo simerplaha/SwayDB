@@ -36,7 +36,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  "Merging SwayFunction Key/Value/KeyValue into Update" when {
+  "Merging coreFunction Key/Value/KeyValue into Update" when {
     "times are in order" should {
       "always return new key-value" in {
 
@@ -53,24 +53,24 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
             createFunction(
               key = key,
               eitherOne(
-                SwayFunction.Key(_ => functionOutput),
-                SwayFunction.KeyValue((_, _) => functionOutput),
-                SwayFunction.Value(_ => functionOutput)
+                CoreFunction.Key(_ => functionOutput),
+                CoreFunction.KeyValue((_, _) => functionOutput),
+                CoreFunction.Value(_ => functionOutput)
               )
             )
 
           val expected =
             functionOutput match {
-              case SwayFunctionOutput.Remove =>
+              case CoreFunctionOutput.Remove =>
                 Memory.Remove(key, None, newKeyValue.time)
 
-              case SwayFunctionOutput.Nothing =>
+              case CoreFunctionOutput.Nothing =>
                 oldKeyValue.copy(time = newKeyValue.time)
 
-              case SwayFunctionOutput.Expire(deadline) =>
+              case CoreFunctionOutput.Expire(deadline) =>
                 oldKeyValue.copy(deadline = Some(deadline), time = newKeyValue.time)
 
-              case SwayFunctionOutput.Update(value, deadline) =>
+              case CoreFunctionOutput.Update(value, deadline) =>
                 oldKeyValue.copy(value = value, deadline = deadline.orElse(oldKeyValue.deadline), time = newKeyValue.time)
             }
 
@@ -85,7 +85,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
     }
   }
 
-  "Merging SwayFunction that requires deadline KeyDeadline/KeyValueDeadline/ValueDeadline into Update" when {
+  "Merging coreFunction that requires deadline KeyDeadline/KeyValueDeadline/ValueDeadline into Update" when {
     "times are in order" should {
       "always return new key-value" in {
         runThis(1000.times) {
@@ -101,25 +101,25 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
             createFunction(
               key = key,
               eitherOne(
-                SwayFunction.KeyDeadline((_, _) => functionOutput),
-                SwayFunction.ValueDeadline((_, _) => functionOutput),
-                SwayFunction.KeyValueDeadline((_, _, _) => functionOutput)
+                CoreFunction.KeyDeadline((_, _) => functionOutput),
+                CoreFunction.ValueDeadline((_, _) => functionOutput),
+                CoreFunction.KeyValueDeadline((_, _, _) => functionOutput)
               )
             )
 
           val expected =
             if (oldKeyValue.deadline.isDefined)
               functionOutput match {
-                case SwayFunctionOutput.Remove =>
+                case CoreFunctionOutput.Remove =>
                   Memory.Remove(key, None, newKeyValue.time)
 
-                case SwayFunctionOutput.Nothing =>
+                case CoreFunctionOutput.Nothing =>
                   oldKeyValue.copy(time = newKeyValue.time)
 
-                case SwayFunctionOutput.Expire(deadline) =>
+                case CoreFunctionOutput.Expire(deadline) =>
                   oldKeyValue.copy(deadline = Some(deadline), time = newKeyValue.time)
 
-                case SwayFunctionOutput.Update(value, deadline) =>
+                case CoreFunctionOutput.Update(value, deadline) =>
                   oldKeyValue.copy(value = value, deadline = deadline.orElse(oldKeyValue.deadline), time = newKeyValue.time)
               }
             else
@@ -143,14 +143,14 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
           //mock functions are never called
           implicit val testTimer = TestTimer.Incremental()
           Seq(
-            mock[SwayFunction.Key],
-            mock[SwayFunction.KeyDeadline],
-            mock[SwayFunction.KeyValue],
-            mock[SwayFunction.KeyValueDeadline]
+            mock[CoreFunction.Key],
+            mock[CoreFunction.KeyDeadline],
+            mock[CoreFunction.KeyValue],
+            mock[CoreFunction.KeyValueDeadline]
           ) foreach {
-            swayFunction =>
+            coreFunction =>
               val oldKeyValue = randomUpdateKeyValue(Slice.emptyBytes)
-              val newKeyValue = createFunction(Slice.emptyBytes, swayFunction)
+              val newKeyValue = createFunction(Slice.emptyBytes, coreFunction)
 
               assertMerge(
                 newKeyValue = newKeyValue,
@@ -169,11 +169,11 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
           //mock functions are never called
           implicit val testTimer = TestTimer.Incremental()
           Seq(
-            mock[SwayFunction.ValueDeadline]
+            mock[CoreFunction.ValueDeadline]
           ) foreach {
-            swayFunction =>
+            coreFunction =>
               val oldKeyValue = randomUpdateKeyValue(1, deadline = None)
-              val newKeyValue = createFunction(1, swayFunction)
+              val newKeyValue = createFunction(1, coreFunction)
 
               assertMerge(
                 newKeyValue = newKeyValue,
@@ -191,19 +191,19 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
         runThis(100.times) {
           //mock functions are never called
           implicit val testTimer = TestTimer.Incremental()
-          val output = SwayFunctionOutput.Update((randomStringOption: Slice[Byte]).asSliceOption(), Some(randomDeadline()))
+          val output = CoreFunctionOutput.Update((randomStringOption: Slice[Byte]).asSliceOption(), Some(randomDeadline()))
 
           Seq(
-            SwayFunction.Key(_ => output),
-            SwayFunction.KeyValue((_, _) => output),
-            SwayFunction.KeyDeadline((_, _) => output),
-            SwayFunction.KeyValueDeadline((_, _, _) => output),
-            SwayFunction.Value(_ => output),
-            SwayFunction.ValueDeadline((_, _) => output)
+            CoreFunction.Key(_ => output),
+            CoreFunction.KeyValue((_, _) => output),
+            CoreFunction.KeyDeadline((_, _) => output),
+            CoreFunction.KeyValueDeadline((_, _, _) => output),
+            CoreFunction.Value(_ => output),
+            CoreFunction.ValueDeadline((_, _) => output)
           ) foreach {
-            swayFunction =>
+            coreFunction =>
               val oldKeyValue = randomUpdateKeyValue(1, deadline = Some(randomDeadline()))
-              val newKeyValue = createFunction(1, swayFunction)
+              val newKeyValue = createFunction(1, coreFunction)
 
               val expect = Memory.Update(1, output.value, output.deadline, newKeyValue.time)
 
@@ -227,10 +227,10 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
           //should still result in the same value
 
           val function =
-            SwayFunction.KeyValue(
+            CoreFunction.KeyValue(
               (key, value) => {
                 key shouldBe 1.serialise
-                SwayFunctionOutput.Update(value.getC.readInt() + 1, None)
+                CoreFunctionOutput.Update(value.getC.readInt() + 1, None)
               }
             )
 

@@ -83,13 +83,15 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
           import scala.concurrent.ExecutionContext.Implicits.global
           val result =
             Benchmark.future("Future") {
-              val readers = (1 to maxIteration) map (i => reader.copy())
-              Future.traverse(readers) {
+              Future.traverse((1 to 5).toList) {
                 _ =>
                   Future {
-                    val index = Random.nextInt(bytes.size - bytesToRead + 1)
-                    //                    println(index)
-                    val readBytes = reader.moveTo(index).read(bytesToRead)
+                    (1 to maxIteration / 5) foreach {
+                      _ =>
+                        val index = Random.nextInt(bytes.size - bytesToRead + 1)
+                        //                    println(index)
+                        val readBytes = reader.moveTo(index).read(bytesToRead)
+                    }
                   }
               }
             }
@@ -99,8 +101,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
 
         def benchmarkLocal(maxIteration: Int) = {
           Benchmark("Sequential") {
-            val readers = (1 to maxIteration) map (i => reader.copy())
-            readers foreach {
+            (1 to maxIteration) foreach {
               _ =>
                 val index = Random.nextInt(bytes.size - bytesToRead + 1)
                 //                println(index)
@@ -110,8 +111,8 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
         }
 
         val maxIteration = 10000000
-        //                benchmarkFuture(maxIteration)
-        benchmarkLocal(maxIteration)
+        benchmarkFuture(maxIteration)
+      //              benchmarkLocal(maxIteration)
 
     }
   }

@@ -485,7 +485,7 @@ private[swaydb] case class LevelZero(path: Path,
       case Slice.Null =>
     }
 
-  def registerFunction(functionId: Slice[Byte], function: SwayFunction): Unit =
+  def registerFunction(functionId: Slice[Byte], function: CoreFunction): Unit =
     functionStore.put(functionId, function)
 
   private def saveAppliedFunctionNoSync(function: Slice[Byte]): Unit =

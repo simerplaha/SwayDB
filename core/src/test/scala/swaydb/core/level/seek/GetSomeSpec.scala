@@ -24,7 +24,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.data.merge.{FixedMerger, FunctionMerger, PendingApplyMerger}
-import swaydb.core.segment.data.{SwayFunctionOutput, Value}
+import swaydb.core.segment.data.{CoreFunctionOutput, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestData, TestTimer}
 import swaydb.serializers.Default._
@@ -103,8 +103,8 @@ class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with Option
             key = 1,
             output =
               eitherOne(
-                SwayFunctionOutput.Expire(randomDeadline(false)),
-                SwayFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
+                CoreFunctionOutput.Expire(randomDeadline(false)),
+                CoreFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
               )
           )
 
@@ -131,8 +131,8 @@ class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with Option
             deadline = Some(randomDeadline(false)),
             functionOutput =
               eitherOne(
-                SwayFunctionOutput.Expire(randomDeadline(false)),
-                SwayFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
+                CoreFunctionOutput.Expire(randomDeadline(false)),
+                CoreFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
               )
           )
 
@@ -177,8 +177,8 @@ class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with Option
             key = 1,
             output =
               eitherOne(
-                SwayFunctionOutput.Expire(randomDeadline(false)),
-                SwayFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
+                CoreFunctionOutput.Expire(randomDeadline(false)),
+                CoreFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
               )
           )
 

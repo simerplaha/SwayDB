@@ -92,7 +92,7 @@ class FunctionMerger_PendingApply_Spec extends AnyWordSpec with Matchers {
           //          println(s"newKeyValue: $newKeyValue")
           //          println(s"old applies: $oldApplies")
           //          println(s"oldKeyValue: $oldKeyValue")
-          ////          println(s"function result: ${functionStore.get(newKeyValue.function).get.asInstanceOf[SwayFunction.Key].f(randomBytesSlice())}")
+          ////          println(s"function result: ${functionStore.get(newKeyValue.function).get.asInstanceOf[coreFunction.Key].f(randomBytesSlice())}")
           //          println(s"expected: $expected")
           //          println
 

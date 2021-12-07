@@ -614,10 +614,10 @@ object TestData {
   }
 
   def randomRemoveFunctionValue()(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.Function =
-    randomFunctionKeyValue(Slice.emptyBytes, SwayFunctionOutput.Remove).toRangeValue().runRandomIO.right.value
+    randomFunctionKeyValue(Slice.emptyBytes, CoreFunctionOutput.Remove).toRangeValue().runRandomIO.right.value
 
-  def randomFunctionValue(output: SwayFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.Function =
-    randomFunctionKeyValue(Slice.emptyBytes, SwayFunctionOutput.Remove).toRangeValue().runRandomIO.right.value
+  def randomFunctionValue(output: CoreFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.Function =
+    randomFunctionKeyValue(Slice.emptyBytes, CoreFunctionOutput.Remove).toRangeValue().runRandomIO.right.value
 
   def randomRemoveOrUpdateOrFunctionRemoveValueOption(addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Option[RangeValue] =
     eitherOne(
@@ -639,15 +639,15 @@ object TestData {
 
   def randomRemoveFunctionOutput() =
     eitherOne(
-      SwayFunctionOutput.Remove,
-      SwayFunctionOutput.Expire(expiredDeadline()),
-      SwayFunctionOutput.Update(randomStringOption, Some(expiredDeadline()))
+      CoreFunctionOutput.Remove,
+      CoreFunctionOutput.Expire(expiredDeadline()),
+      CoreFunctionOutput.Update(randomStringOption, Some(expiredDeadline()))
     )
 
   def randomUpdateFunctionOutput() =
     eitherOne(
-      SwayFunctionOutput.Expire(randomDeadline(false)),
-      SwayFunctionOutput.Update(randomStringOption, randomDeadlineOption(false))
+      CoreFunctionOutput.Expire(randomDeadline(false)),
+      CoreFunctionOutput.Update(randomStringOption, randomDeadlineOption(false))
     )
 
   def randomRemoveRange(from: Slice[Byte],
@@ -686,7 +686,7 @@ object TestData {
                                  max: Int = 5,
                                  value: SliceOption[Byte] = randomStringSliceOptional,
                                  deadline: Option[Deadline] = randomDeadlineOption,
-                                 functionOutput: SwayFunctionOutput = randomFunctionOutput(),
+                                 functionOutput: CoreFunctionOutput = randomFunctionOutput(),
                                  includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()) =
     Memory.PendingApply(
       key = key,
@@ -701,170 +701,170 @@ object TestData {
     )
 
   def createFunction(key: Slice[Byte],
-                     swayFunction: SwayFunction)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function = {
+                     coreFunction: CoreFunction)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function = {
     val functionId = Slice.writeInt(functionIdGenerator.incrementAndGet())
-    functionStore.put(functionId, swayFunction)
+    functionStore.put(functionId, coreFunction)
     Memory.Function(key, functionId, testTimer.next)
   }
 
   def randomFunctionKeyValue(key: Slice[Byte],
-                             output: SwayFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                             output: CoreFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
     createFunction(
       key = key,
-      swayFunction = randomSwayFunction(output)
+      coreFunction = randomcoreFunction(output)
     )
 
   def randomFunctionNoDeadlineKeyValue(key: Slice[Byte],
-                                       output: SwayFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                                       output: CoreFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
     createFunction(
       key = key,
-      swayFunction = randomSwayFunctionNoDeadline(output)
+      coreFunction = randomcoreFunctionNoDeadline(output)
     )
 
   def randomKeyFunctionKeyValue(key: Slice[Byte],
-                                output: SwayFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                                output: CoreFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
     createFunction(
       key = key,
-      swayFunction = SwayFunction.Key(_ => output)
+      coreFunction = CoreFunction.Key(_ => output)
     )
 
   def randomKeyDeadlineFunctionKeyValue(key: Slice[Byte],
-                                        output: SwayFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                                        output: CoreFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
     createFunction(
       key = key,
-      swayFunction = SwayFunction.KeyDeadline((_, _) => output)
+      coreFunction = CoreFunction.KeyDeadline((_, _) => output)
     )
 
   def randomKeyValueFunctionKeyValue(key: Slice[Byte],
-                                     output: SwayFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                                     output: CoreFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
     createFunction(
       key = key,
-      swayFunction = SwayFunction.KeyValue((_, _) => output)
+      coreFunction = CoreFunction.KeyValue((_, _) => output)
     )
 
   def randomKeyValueDeadlineFunctionKeyValue(key: Slice[Byte],
-                                             output: SwayFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                                             output: CoreFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
     createFunction(
       key = key,
-      swayFunction = SwayFunction.KeyValueDeadline((_, _, _) => output)
+      coreFunction = CoreFunction.KeyValueDeadline((_, _, _) => output)
     )
 
   def randomValueFunctionKeyValue(key: Slice[Byte],
-                                  output: SwayFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                                  output: CoreFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
     createFunction(
       key = key,
-      swayFunction = SwayFunction.Value(_ => output)
+      coreFunction = CoreFunction.Value(_ => output)
     )
 
   def randomValueDeadlineFunctionKeyValue(key: Slice[Byte],
-                                          output: SwayFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                                          output: CoreFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
     createFunction(
       key = key,
-      swayFunction = SwayFunction.ValueDeadline((_, _) => output)
+      coreFunction = CoreFunction.ValueDeadline((_, _) => output)
     )
 
-  def randomFunctionOutput(addRemoves: Boolean = randomBoolean(), expiredDeadline: Boolean = randomBoolean()): SwayFunctionOutput =
+  def randomFunctionOutput(addRemoves: Boolean = randomBoolean(), expiredDeadline: Boolean = randomBoolean()): CoreFunctionOutput =
     if (addRemoves && randomBoolean())
-      SwayFunctionOutput.Remove
+      CoreFunctionOutput.Remove
     else if (randomBoolean())
-      SwayFunctionOutput.Nothing
+      CoreFunctionOutput.Nothing
     else
       randomFunctionUpdateOutput(expiredDeadline)
 
-  def randomFunctionUpdateOutput(expiredDeadline: Boolean = randomBoolean()): SwayFunctionOutput =
+  def randomFunctionUpdateOutput(expiredDeadline: Boolean = randomBoolean()): CoreFunctionOutput =
     if (randomBoolean())
-      SwayFunctionOutput.Expire(randomDeadline(expiredDeadline))
+      CoreFunctionOutput.Expire(randomDeadline(expiredDeadline))
     else
-      SwayFunctionOutput.Update((randomStringOption: Slice[Byte]).asSliceOption(), randomDeadlineOption(expiredDeadline))
+      CoreFunctionOutput.Update((randomStringOption: Slice[Byte]).asSliceOption(), randomDeadlineOption(expiredDeadline))
 
-  def randomRequiresKeyFunction(functionOutput: SwayFunctionOutput = randomFunctionOutput()): SwayFunction.RequiresKey =
+  def randomRequiresKeyFunction(functionOutput: CoreFunctionOutput = randomFunctionOutput()): CoreFunction.RequiresKey =
     Random.shuffle(
-      Seq[SwayFunction.RequiresKey](
-        SwayFunction.Key(_ => functionOutput),
-        SwayFunction.KeyValue((_, _) => functionOutput),
-        SwayFunction.KeyDeadline((_, _) => functionOutput),
-        SwayFunction.KeyValueDeadline((_, _, _) => functionOutput)
+      Seq[CoreFunction.RequiresKey](
+        CoreFunction.Key(_ => functionOutput),
+        CoreFunction.KeyValue((_, _) => functionOutput),
+        CoreFunction.KeyDeadline((_, _) => functionOutput),
+        CoreFunction.KeyValueDeadline((_, _, _) => functionOutput)
       )
     ).head
 
-  def randomRequiresKeyOnlyWithOptionDeadlineFunction(functionOutput: SwayFunctionOutput = randomFunctionOutput()): SwayFunction.RequiresKey =
+  def randomRequiresKeyOnlyWithOptionDeadlineFunction(functionOutput: CoreFunctionOutput = randomFunctionOutput()): CoreFunction.RequiresKey =
     Random.shuffle(
-      Seq[SwayFunction.RequiresKey](
-        SwayFunction.Key(_ => functionOutput),
-        SwayFunction.KeyDeadline((_, _) => functionOutput)
+      Seq[CoreFunction.RequiresKey](
+        CoreFunction.Key(_ => functionOutput),
+        CoreFunction.KeyDeadline((_, _) => functionOutput)
       )
     ).head
 
-  def randomValueOnlyFunction(functionOutput: SwayFunctionOutput = randomFunctionOutput()): SwayFunction.RequiresValue =
+  def randomValueOnlyFunction(functionOutput: CoreFunctionOutput = randomFunctionOutput()): CoreFunction.RequiresValue =
     Random.shuffle(
-      Seq[SwayFunction.RequiresValue](
-        SwayFunction.Value(_ => functionOutput),
-        SwayFunction.ValueDeadline((_, _) => functionOutput)
+      Seq[CoreFunction.RequiresValue](
+        CoreFunction.Value(_ => functionOutput),
+        CoreFunction.ValueDeadline((_, _) => functionOutput)
       )
     ).head
 
-  def randomRequiresValueWithOptionalKeyAndDeadlineFunction(functionOutput: SwayFunctionOutput = randomFunctionOutput()): SwayFunction.RequiresValue =
+  def randomRequiresValueWithOptionalKeyAndDeadlineFunction(functionOutput: CoreFunctionOutput = randomFunctionOutput()): CoreFunction.RequiresValue =
     Random.shuffle(
-      Seq[SwayFunction.RequiresValue](
-        SwayFunction.Value(_ => functionOutput),
-        SwayFunction.KeyValueDeadline((_, _, _) => functionOutput),
-        SwayFunction.KeyValue((_, _) => functionOutput),
-        SwayFunction.ValueDeadline((_, _) => functionOutput)
+      Seq[CoreFunction.RequiresValue](
+        CoreFunction.Value(_ => functionOutput),
+        CoreFunction.KeyValueDeadline((_, _, _) => functionOutput),
+        CoreFunction.KeyValue((_, _) => functionOutput),
+        CoreFunction.ValueDeadline((_, _) => functionOutput)
       )
     ).head
 
-  def randomSwayFunctionNoDeadline(functionOutput: SwayFunctionOutput = randomFunctionOutput()): SwayFunction =
+  def randomcoreFunctionNoDeadline(functionOutput: CoreFunctionOutput = randomFunctionOutput()): CoreFunction =
     Random.shuffle(
       Seq(
-        SwayFunction.Value(_ => functionOutput),
-        SwayFunction.Key(_ => functionOutput),
-        SwayFunction.KeyValue((_, _) => functionOutput)
+        CoreFunction.Value(_ => functionOutput),
+        CoreFunction.Key(_ => functionOutput),
+        CoreFunction.KeyValue((_, _) => functionOutput)
       )
     ).head
 
-  def randomRequiresDeadlineFunction(functionOutput: SwayFunctionOutput = randomFunctionOutput()): SwayFunction.RequiresDeadline =
+  def randomRequiresDeadlineFunction(functionOutput: CoreFunctionOutput = randomFunctionOutput()): CoreFunction.RequiresDeadline =
     Random.shuffle(
-      Seq[SwayFunction.RequiresDeadline](
-        SwayFunction.KeyDeadline((_, _) => functionOutput),
-        SwayFunction.KeyValueDeadline((_, _, _) => functionOutput),
-        SwayFunction.ValueDeadline((_, _) => functionOutput)
+      Seq[CoreFunction.RequiresDeadline](
+        CoreFunction.KeyDeadline((_, _) => functionOutput),
+        CoreFunction.KeyValueDeadline((_, _, _) => functionOutput),
+        CoreFunction.ValueDeadline((_, _) => functionOutput)
       )
     ).head
 
-  implicit class FunctionOutputImplicits(functionOutput: SwayFunctionOutput) {
+  implicit class FunctionOutputImplicits(functionOutput: CoreFunctionOutput) {
     def toMemory(key: Slice[Byte],
                  time: Time): Memory.Fixed =
       functionOutput match {
-        case SwayFunctionOutput.Remove =>
+        case CoreFunctionOutput.Remove =>
           Memory.Remove(key, None, time)
 
-        case SwayFunctionOutput.Expire(deadline) =>
+        case CoreFunctionOutput.Expire(deadline) =>
           Memory.Remove(key, Some(deadline), time)
 
-        case SwayFunctionOutput.Update(newValue, newDeadline) =>
+        case CoreFunctionOutput.Update(newValue, newDeadline) =>
           Memory.Update(key, newValue, newDeadline, time)
 
-        case SwayFunctionOutput.Nothing =>
-          fail("SwayFunctionOutput.Nothing")
+        case CoreFunctionOutput.Nothing =>
+          fail("coreFunctionOutput.Nothing")
       }
   }
 
-  def randomSwayFunction(functionOutput: SwayFunctionOutput = randomFunctionOutput()): SwayFunction =
+  def randomcoreFunction(functionOutput: CoreFunctionOutput = randomFunctionOutput()): CoreFunction =
     if (randomBoolean())
       randomRequiresKeyFunction(functionOutput)
     else
       randomValueOnlyFunction(functionOutput)
 
-  def randomFunctionId(functionOutput: SwayFunctionOutput = randomFunctionOutput()): Slice[Byte] = {
+  def randomFunctionId(functionOutput: CoreFunctionOutput = randomFunctionOutput()): Slice[Byte] = {
     val functionId = Slice.writeInt(functionIdGenerator.incrementAndGet())
-    functionStore.put(functionId, randomSwayFunction(functionOutput))
+    functionStore.put(functionId, randomcoreFunction(functionOutput))
     functionId
   }
 
   def randomApply(value: SliceOption[Byte] = randomStringSliceOptional,
                   deadline: Option[Deadline] = randomDeadlineOption,
                   addRemoves: Boolean = randomBoolean(),
-                  functionOutput: SwayFunctionOutput = randomFunctionOutput(),
+                  functionOutput: CoreFunctionOutput = randomFunctionOutput(),
                   includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()) =
     if (addRemoves && randomBoolean())
       Value.Remove(deadline, testTimer.next)
@@ -885,7 +885,7 @@ object TestData {
                     value: SliceOption[Byte] = randomStringSliceOptional,
                     deadline: Option[Deadline] = randomDeadlineOption,
                     addRemoves: Boolean = randomBoolean(),
-                    functionOutput: SwayFunctionOutput = randomFunctionOutput(),
+                    functionOutput: CoreFunctionOutput = randomFunctionOutput(),
                     includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Value.Apply] =
     Slice {
       (1 to (Random.nextInt(max) max 1)).map {
@@ -922,7 +922,7 @@ object TestData {
                               rangeValue: RangeValue = randomRangeValue(),
                               deadline: Option[Deadline] = randomDeadlineOption,
                               time: Time = Time.empty,
-                              functionOutput: SwayFunctionOutput = randomFunctionOutput(),
+                              functionOutput: CoreFunctionOutput = randomFunctionOutput(),
                               includePendingApply: Boolean = true,
                               includeFunctions: Boolean = true,
                               includeRemoves: Boolean = true,
@@ -952,7 +952,7 @@ object TestData {
                                    value: SliceOption[Byte] = randomStringSliceOptional,
                                    deadline: Option[Deadline] = randomDeadlineOption,
                                    time: Time = Time.empty,
-                                   functionOutput: SwayFunctionOutput = randomFunctionOutput(),
+                                   functionOutput: CoreFunctionOutput = randomFunctionOutput(),
                                    includePendingApply: Boolean = true,
                                    includeFunctions: Boolean = true,
                                    includeRemoves: Boolean = true,
@@ -1000,7 +1000,7 @@ object TestData {
   def randomFixedKeyValue(key: Slice[Byte],
                           value: SliceOption[Byte] = randomStringSliceOptional,
                           deadline: Option[Deadline] = randomDeadlineOption,
-                          functionOutput: SwayFunctionOutput = randomFunctionOutput(),
+                          functionOutput: CoreFunctionOutput = randomFunctionOutput(),
                           includePendingApply: Boolean = true,
                           includeFunctions: Boolean = true,
                           includeRemoves: Boolean = true,
@@ -1099,7 +1099,7 @@ object TestData {
 
   def randomFromValueOption(value: SliceOption[Byte] = randomStringSliceOptional,
                             deadline: Option[Deadline] = randomDeadlineOption,
-                            functionOutput: SwayFunctionOutput = randomFunctionOutput(),
+                            functionOutput: CoreFunctionOutput = randomFunctionOutput(),
                             addRemoves: Boolean = randomBoolean(),
                             addPut: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): FromValueOption =
     if (randomBoolean())
@@ -1123,7 +1123,7 @@ object TestData {
 
   def randomUpdateRangeValue(value: SliceOption[Byte] = randomStringSliceOptional,
                              addRemoves: Boolean = randomBoolean(),
-                             functionOutput: SwayFunctionOutput = randomUpdateFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()) = {
+                             functionOutput: CoreFunctionOutput = randomUpdateFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()) = {
     val deadline =
     //if removes are allowed make sure to set the deadline
       if (addRemoves)
@@ -1137,7 +1137,7 @@ object TestData {
   def randomFromValue(value: SliceOption[Byte] = randomStringSliceOptional,
                       addRemoves: Boolean = randomBoolean(),
                       deadline: Option[Deadline] = randomDeadlineOption,
-                      functionOutput: SwayFunctionOutput = randomFunctionOutput(),
+                      functionOutput: CoreFunctionOutput = randomFunctionOutput(),
                       addPut: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.FromValue =
     if (addPut && randomBoolean())
       Value.Put(value, deadline, testTimer.next)
@@ -1146,7 +1146,7 @@ object TestData {
 
   def randomRangeValue(value: SliceOption[Byte] = randomStringSliceOptional,
                        deadline: Option[Deadline] = randomDeadlineOption,
-                       functionOutput: SwayFunctionOutput = randomFunctionOutput(),
+                       functionOutput: CoreFunctionOutput = randomFunctionOutput(),
                        addRemoves: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.RangeValue =
     if (addRemoves && randomBoolean())
       Value.Remove(deadline, testTimer.next)
@@ -1712,13 +1712,13 @@ object TestData {
                     value = updatedValue,
                     deadline = deadline,
                     addRemoves = false,
-                    functionOutput = SwayFunctionOutput.Update(updatedValue, deadline),
+                    functionOutput = CoreFunctionOutput.Update(updatedValue, deadline),
                     addPut = false
                   ),
                   rangeValue = randomRangeValue(
                     value = updatedValue,
                     deadline = deadline,
-                    functionOutput = SwayFunctionOutput.Update(updatedValue, deadline),
+                    functionOutput = CoreFunctionOutput.Update(updatedValue, deadline),
                     addRemoves = false
                   )
                 )
@@ -1729,7 +1729,7 @@ object TestData {
               Some(
                 randomFunctionKeyValue(
                   key = keyValue.key,
-                  output = SwayFunctionOutput.Update(updatedValue, deadline)
+                  output = CoreFunctionOutput.Update(updatedValue, deadline)
                 )
               )
             }
