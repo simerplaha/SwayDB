@@ -499,7 +499,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
                 if (testNumber % 2 == 0) {
                   //bytes4 will cause buffer overflow.
                   file.appendBatch(Array(bytes1, bytes2, bytes3, bytes4))
-                  if (file.isMemoryMapped) file.isFull shouldBe true
+                  if (file.memoryMapped) file.isFull shouldBe true
                 } else {
                   file.append(bytes1)
                   file.isFull shouldBe false
@@ -508,12 +508,12 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
                   file.append(bytes3)
                   //          file.isFull shouldBe true
                   file.append(bytes4) //overflow write, buffer gets extended
-                  if (file.isMemoryMapped) file.isFull shouldBe true
+                  if (file.memoryMapped) file.isFull shouldBe true
                 }
 
                 val allBytes = bytes1 ++ bytes2 ++ bytes3 ++ bytes4
 
-                if (file.isMemoryMapped)
+                if (file.memoryMapped)
                   file.readAll shouldBe allBytes
                 else
                   Effect.readAllBytes(standardFile.path) shouldBe allBytes.toArray

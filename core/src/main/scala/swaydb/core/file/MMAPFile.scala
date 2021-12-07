@@ -339,7 +339,7 @@ private[file] class MMAPFile(val path: Path,
   override def isOpen =
     watchNullPointer(channel.isOpen)
 
-  override def isMemoryMapped =
+  override def memoryMapped =
     true
 
   override def isLoaded: Boolean =

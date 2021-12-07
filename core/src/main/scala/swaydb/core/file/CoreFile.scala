@@ -415,9 +415,6 @@ class CoreFile(val path: Path,
   def isFileDefined: Boolean =
     fileCache.getIO().isDefined
 
-  def isMemoryMapped: Boolean =
-    memoryMapped
-
   def isLoaded: Boolean =
     fileCache.value(()).get.isLoaded
 

@@ -513,7 +513,7 @@ class MapSpec extends CoreTestBase {
             ).item
 
           file.isOpen shouldBe true
-          file.isMemoryMapped shouldBe false
+          file.memoryMapped shouldBe false
           file.existsOnDisk shouldBe true
           file.fileSize shouldBe 0
           file.path.fileId shouldBe(0, Extension.Log)
@@ -569,7 +569,7 @@ class MapSpec extends CoreTestBase {
             ).item.sweep()
 
           recoveredFile.isOpen shouldBe true
-          recoveredFile.isMemoryMapped shouldBe false
+          recoveredFile.memoryMapped shouldBe false
           recoveredFile.existsOnDisk shouldBe true
           recoveredFile.path.fileId shouldBe(1, Extension.Log) //file id gets incremented on recover
 
@@ -632,7 +632,7 @@ class MapSpec extends CoreTestBase {
             ).item.sweep()
 
           recoveredFile.isOpen shouldBe true
-          recoveredFile.isMemoryMapped shouldBe true
+          recoveredFile.memoryMapped shouldBe true
           recoveredFile.existsOnDisk shouldBe true
           recoveredFile.path.fileId shouldBe(6, Extension.Log) //file id gets incremented on recover
           recoveredFile.path.resolveSibling(5.toLogFileId).exists shouldBe false //5.log gets deleted
@@ -661,7 +661,7 @@ class MapSpec extends CoreTestBase {
             ).item.sweep()
 
           recoveredFile2.isOpen shouldBe true
-          recoveredFile2.isMemoryMapped shouldBe true
+          recoveredFile2.memoryMapped shouldBe true
           recoveredFile2.existsOnDisk shouldBe true
           recoveredFile2.path.fileId shouldBe(7, Extension.Log) //file id gets incremented on recover
           recoveredFile2.path.resolveSibling(6.toLogFileId).exists shouldBe false //6.log gets deleted
@@ -709,7 +709,7 @@ class MapSpec extends CoreTestBase {
             ).item.sweep()
 
           file.isOpen shouldBe true
-          file.isMemoryMapped shouldBe false
+          file.memoryMapped shouldBe false
           file.existsOnDisk shouldBe true
           file.path.fileId shouldBe(1, Extension.Log) //file id gets incremented on recover
           file.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted

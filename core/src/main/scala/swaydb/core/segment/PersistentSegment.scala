@@ -47,7 +47,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
   def copyTo(toPath: Path): Path
 
   final def isMMAP: Boolean =
-    file.isMemoryMapped
+    file.memoryMapped
 
   override def asSegmentOption: SegmentOption =
     this

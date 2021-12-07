@@ -157,7 +157,7 @@ private[file] class StandardFile(val path: Path,
   override def isOpen =
     channel.isOpen
 
-  override def isMemoryMapped =
+  override def memoryMapped =
     false
 
   override def isLoaded =
