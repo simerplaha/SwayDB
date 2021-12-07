@@ -151,48 +151,48 @@ private[swaydb] object Effect extends LazyLogging {
     transferCount.toInt
   }
 
-  def copy(copyFrom: Path,
-           copyTo: Path): Path =
+  @inline def copy(copyFrom: Path,
+                   copyTo: Path): Path =
     Files.copy(copyFrom, copyTo)
 
-  def delete(path: Path): Unit =
+  @inline def delete(path: Path): Unit =
     Files.delete(path)
 
-  def deleteIfExists(path: Path): Unit =
+  @inline def deleteIfExists(path: Path): Unit =
     if (exists(path))
       delete(path)
 
-  def createFile(path: Path): Path =
+  @inline def createFile(path: Path): Path =
     Files.createFile(path)
 
-  def createFileIfAbsent(path: Path): Path =
+  @inline def createFileIfAbsent(path: Path): Path =
     if (exists(path))
       path
     else
       createFile(path)
 
-  def exists(path: Path) =
+  @inline def exists(path: Path) =
     Files.exists(path)
 
-  def notExists(path: Path) =
+  @inline def notExists(path: Path) =
     !exists(path)
 
-  def createDirectoryIfAbsent(path: Path): Path =
+  @inline def createDirectoryIfAbsent(path: Path): Path =
     if (exists(path))
       path
     else
       createDirectory(path)
 
-  def createDirectory(path: Path): Path =
+  @inline def createDirectory(path: Path): Path =
     Files.createDirectory(path)
 
-  def createDirectoriesIfAbsent(path: Path): Path =
+  @inline def createDirectoriesIfAbsent(path: Path): Path =
     if (exists(path))
       path
     else
       Files.createDirectories(path)
 
-  def walkDelete(folder: Path): Unit =
+  @inline def walkDelete(folder: Path): Unit =
     Effect.walkFoldLeft((), folder) {
       case (_, path) =>
         Files.delete(path)
@@ -221,7 +221,7 @@ private[swaydb] object Effect extends LazyLogging {
       initial
     }
 
-  def stream[T](path: Path)(f: DirectoryStream[Path] => T): T = {
+  @inline def stream[T](path: Path)(f: DirectoryStream[Path] => T): T = {
     val stream: DirectoryStream[Path] = Files.newDirectoryStream(path)
     try
       f(stream)
@@ -229,7 +229,7 @@ private[swaydb] object Effect extends LazyLogging {
       stream.close()
   }
 
-  def release(lock: Option[FileLocker]): Unit =
+  @inline def release(lock: Option[FileLocker]): Unit =
     lock.foreach(_.channel.close())
 
   implicit class FileIdImplicits(id: Long) {
@@ -243,20 +243,20 @@ private[swaydb] object Effect extends LazyLogging {
       s"$id.${Extension.Seg}"
   }
 
-  def incrementFileId(path: Path): Path = {
+  @inline def incrementFileId(path: Path): Path = {
     val (id, ext) = numberFileId(path)
     path.getParent.resolve(s"${id + 1}.${ext.toString}")
   }
 
-  def incrementFolderId(path: Path): Path = {
+  @inline def incrementFolderId(path: Path): Path = {
     val currentFolderId = folderId(path)
     path.getParent.resolve((currentFolderId + 1).toString)
   }
 
-  def folderId(path: Path): Long =
+  @inline def folderId(path: Path): Long =
     path.getFileName.toString.toLong
 
-  def fileExtension(path: Path): Extension =
+  @inline def fileExtension(path: Path): Extension =
     numberFileId(path)._2
 
   def numberFileId(path: Path): (Long, Extension) = {
@@ -284,7 +284,7 @@ private[swaydb] object Effect extends LazyLogging {
     }
   }
 
-  def isExtension(path: Path, ext: Extension): Boolean =
+  @inline def isExtension(path: Path, ext: Extension): Boolean =
     Try(numberFileId(path)).map(_._2 == ext) getOrElse false
 
   def files(folder: Path,
@@ -311,13 +311,13 @@ private[swaydb] object Effect extends LazyLogging {
       .flatMap(_.files(Extension.Seg))
       .sortBy(_.getFileName.fileId._1)
 
-  def readAllBytes(path: Path): Array[Byte] =
+  @inline def readAllBytes(path: Path): Array[Byte] =
     Files.readAllBytes(path)
 
-  def readAllLines(path: Path): util.List[String] =
+  @inline def readAllLines(path: Path): util.List[String] =
     Files.readAllLines(path)
 
-  def size(path: Path): Long =
+  @inline def size(path: Path): Long =
     Files.size(path)
 
   def isEmptyOrNotExists[E: IO.ExceptionHandler](path: Path): IO[E, Boolean] =
