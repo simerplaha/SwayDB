@@ -21,17 +21,17 @@ import org.scalatest.OptionValues._
 import swaydb.Error.Log.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.data._
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{TestBase, TestTimer}
+import swaydb.core.{CoreTestBase, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
 
-class LogEntrySerialiserSpec extends TestBase {
+class LogEntrySerialiserSpec extends CoreTestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty

@@ -19,7 +19,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import swaydb.Benchmark
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.BlockCompressionInfo
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.SegmentBlockConfig
@@ -27,7 +27,7 @@ import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.data.{Memory, Persistent, PersistentOption}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.SegmentSearcher
-import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}
+import swaydb.core.{SegmentBlocks, CoreTestBase, TestCaseSweeper}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -37,7 +37,7 @@ import swaydb.testkit.RunThis._
 import scala.util.Try
 import swaydb.testkit.TestKit._
 
-class SegmentSearcherSpec extends TestBase with MockFactory {
+class SegmentSearcherSpec extends CoreTestBase with MockFactory {
 
   implicit val order = KeyOrder.default
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(order))

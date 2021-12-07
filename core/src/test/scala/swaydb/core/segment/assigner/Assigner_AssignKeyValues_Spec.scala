@@ -19,11 +19,11 @@ package swaydb.core.segment.assigner
 import org.scalatest.OptionValues._
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.effect.Effect._
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -64,7 +64,7 @@ class Segment_AssignerAssignKeyValues_Spec3 extends Assigner_AssignKeyValues_Spe
   override def inMemoryStorage = true
 }
 
-sealed trait Assigner_AssignKeyValues_Spec extends TestBase {
+sealed trait Assigner_AssignKeyValues_Spec extends CoreTestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit def segmentIO: SegmentReadIO = SegmentReadIO.random

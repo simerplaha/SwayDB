@@ -88,7 +88,7 @@ private[file] class MMAPFile(val path: Path,
                              val deleteAfterClean: Boolean,
                              val forceSaveConfig: ForceSave.MMAPFiles,
                              @volatile private var buffer: MappedByteBuffer)(implicit cleaner: ByteBufferSweeperActor,
-                                                                             forceSaveApplier: ForceSaveApplier) extends LazyLogging with DBFileType {
+                                                                             forceSaveApplier: ForceSaveApplier) extends LazyLogging with CoreFileType {
 
   //Force is applied on files after they are marked immutable so it only needs
   //to be invoked once.
@@ -244,7 +244,7 @@ private[file] class MMAPFile(val path: Path,
         append(slice)
     }
 
-  override def transfer(position: Int, count: Int, transferTo: DBFileType): Int =
+  override def transfer(position: Int, count: Int, transferTo: CoreFileType): Int =
     transferTo match {
       case _: StandardFile =>
         //TODO - Is forceSave really required here? Can a buffer contain bytes that FileChannel is unaware of?

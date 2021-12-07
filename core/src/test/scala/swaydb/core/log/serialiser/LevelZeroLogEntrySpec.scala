@@ -21,12 +21,12 @@ import swaydb.Error.Log.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.file.reader.Reader
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.data.{Memory, MemoryOption}
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{TestBase, TestTimer}
+import swaydb.core.{CoreTestBase, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.KeyOrder
@@ -35,7 +35,7 @@ import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 import swaydb.utils.ByteSizeOf
 
-class LevelZeroLogEntrySpec extends TestBase {
+class LevelZeroLogEntrySpec extends CoreTestBase {
 
   implicit val keyOrder = KeyOrder.default
 

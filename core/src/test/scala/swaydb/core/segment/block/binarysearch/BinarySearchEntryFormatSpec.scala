@@ -16,13 +16,13 @@
 
 package swaydb.core.segment.block.binarysearch
 
-import swaydb.core.TestBase
-import swaydb.core.TestData._
+import swaydb.core.CoreTestBase
+import swaydb.core.CoreTestData._
 import swaydb.core.util.Bytes
 import swaydb.slice.Slice
 import swaydb.utils.ByteSizeOf
 
-class BinarySearchEntryFormatSpec extends TestBase {
+class BinarySearchEntryFormatSpec extends CoreTestBase {
 
   "ReferenceIndex" when {
     "non zero" should {

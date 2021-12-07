@@ -21,7 +21,7 @@ import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.config.compaction.LevelThrottle
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
@@ -62,7 +62,7 @@ class LevelReadSpec3 extends LevelReadSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelReadSpec extends TestBase with MockFactory {
+sealed trait LevelReadSpec extends CoreTestBase with MockFactory {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty

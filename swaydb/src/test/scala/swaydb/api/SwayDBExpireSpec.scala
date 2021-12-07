@@ -79,7 +79,7 @@ class MultiMapExpireSpec5 extends SwayDBExpireSpec {
     generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get).sweep(_.delete().get)
 }
 
-sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
+sealed trait SwayDBExpireSpec extends TestBaseAPI {
 
   val keyValueCount: Int
 

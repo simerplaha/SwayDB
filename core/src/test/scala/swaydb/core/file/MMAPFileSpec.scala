@@ -19,9 +19,9 @@ package swaydb.core.file
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCleaner
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave}
 import swaydb.effect.Effect
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
@@ -33,7 +33,7 @@ import java.nio.file.StandardOpenOption
 import java.util.concurrent.atomic.AtomicBoolean
 import swaydb.testkit.TestKit._
 
-class MMAPFileSpec extends TestBase with MockFactory {
+class MMAPFileSpec extends CoreTestBase with MockFactory {
 
   "BEHAVIOUR TEST - cleared MappedByteBuffer without forceSave" should {
     "not fatal JVM terminate" when {

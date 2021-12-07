@@ -19,7 +19,7 @@ package swaydb.core.log.counter
 import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.log.MapTestUtil._
 import swaydb.core.log.serialiser._
@@ -31,7 +31,7 @@ import swaydb.utils.StorageUnits._
 import scala.collection.mutable.ListBuffer
 import swaydb.testkit.TestKit._
 
-class CounterLogSpec extends TestBase {
+class CounterLogSpec extends CoreTestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 

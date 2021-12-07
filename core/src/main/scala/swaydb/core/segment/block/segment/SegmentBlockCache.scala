@@ -18,7 +18,7 @@ package swaydb.core.segment.block.segment
 
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.cache.{Cache, Lazy}
-import swaydb.core.file.DBFile
+import swaydb.core.file.CoreFile
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
@@ -539,13 +539,13 @@ private[core] class SegmentBlockCache private(path: Path,
   def offset(): SegmentBlockOffset =
     segmentBlockRef.offset
 
-  def transfer(position: Int, count: Int, transferTo: DBFile): Unit =
+  def transfer(position: Int, count: Int, transferTo: CoreFile): Unit =
     segmentBlockRef.transfer(position = position, count = count, transferTo = transferTo)
 
   /**
    * Transfers bytes at file level. Ignores the [[BlockRefReader]]'s offset.
    */
-  def transferIgnoreOffset(position: Int, count: Int, transferTo: DBFile): Unit =
+  def transferIgnoreOffset(position: Int, count: Int, transferTo: CoreFile): Unit =
     segmentBlockRef.transferIgnoreOffset(position = position, count = count, transferTo = transferTo)
 
   def clear(): Unit =

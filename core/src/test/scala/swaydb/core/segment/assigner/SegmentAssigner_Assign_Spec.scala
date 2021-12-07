@@ -18,11 +18,11 @@ package swaydb.core.segment.assigner
 
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne, Segment}
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
@@ -59,7 +59,7 @@ class SegmentAssigner_Assign_Spec3 extends SegmentAssigner_Assign_Spec {
   override def inMemoryStorage = true
 }
 
-sealed trait SegmentAssigner_Assign_Spec extends TestBase {
+sealed trait SegmentAssigner_Assign_Spec extends CoreTestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit def segmentIO: SegmentReadIO = SegmentReadIO.random

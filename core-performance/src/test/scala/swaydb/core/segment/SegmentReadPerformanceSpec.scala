@@ -19,7 +19,7 @@ package swaydb.core.segment
 import swaydb.Benchmark
 import swaydb.config.SegmentRefCacheLife
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlockConfig}
@@ -34,7 +34,7 @@ import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.entry.reader.PersistentReader
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestSweeper}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestSweeper}
 import swaydb.effect.{Dir, IOAction, IOStrategy}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -45,7 +45,7 @@ import java.nio.file.Path
 import scala.concurrent.duration._
 import scala.util.Random
 
-class SegmentReadPerformanceSpec extends TestBase {
+class SegmentReadPerformanceSpec extends CoreTestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
@@ -299,7 +299,7 @@ class SegmentReadPerformanceSpec extends TestBase {
         //    }
 
         //
-        //    val file = DBFile.mmapRead(segment.path, randomIOStrategy(false), true).get
+        //    val file = CoreFile.mmapRead(segment.path, randomIOStrategy(false), true).get
         //
         //
         //    val reader = Reader(file)

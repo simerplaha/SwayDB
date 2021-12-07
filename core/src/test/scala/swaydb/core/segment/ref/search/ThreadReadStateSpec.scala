@@ -18,7 +18,7 @@ package swaydb.core.segment.ref.search
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 
 import java.nio.file.Paths
 import swaydb.testkit.TestKit._

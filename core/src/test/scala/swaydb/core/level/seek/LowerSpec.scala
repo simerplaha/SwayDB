@@ -19,9 +19,9 @@ package swaydb.core.level.seek
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.data.Value
-import swaydb.core.{TestData, TestTimer}
+import swaydb.core.{CoreTestData, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -32,7 +32,7 @@ class LowerSpec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
-  implicit val functionStore = TestData.functionStore
+  implicit val functionStore = CoreTestData.functionStore
   implicit val time = TestTimer.Empty
 
   "lowerFromValue" in {

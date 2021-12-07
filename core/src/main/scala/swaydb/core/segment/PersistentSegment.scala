@@ -17,7 +17,7 @@
 package swaydb.core.segment
 
 import swaydb.config.{MMAP, SegmentRefCacheLife}
-import swaydb.core.file.DBFile
+import swaydb.core.file.CoreFile
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
@@ -42,7 +42,7 @@ sealed trait PersistentSegmentOption {
 }
 
 trait PersistentSegment extends Segment with PersistentSegmentOption {
-  def file: DBFile
+  def file: CoreFile
 
   def copyTo(toPath: Path): Path
 

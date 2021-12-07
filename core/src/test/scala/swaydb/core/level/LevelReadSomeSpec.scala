@@ -22,9 +22,9 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
@@ -53,7 +53,7 @@ class LevelReadSomeSpec3 extends LevelReadSomeSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
+sealed trait LevelReadSomeSpec extends CoreTestBase with MockFactory {
 
   //  override def deleteFiles = false
 

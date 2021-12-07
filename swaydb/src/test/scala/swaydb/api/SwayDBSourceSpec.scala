@@ -75,7 +75,7 @@ class MultiMapSwayDBSourceSpec5 extends SwayDBSourceSpec {
     generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get).sweep(_.delete().get)
 }
 
-sealed trait SwayDBSourceSpec extends TestBaseEmbedded {
+sealed trait SwayDBSourceSpec extends TestBaseAPI {
 
   def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, IO.ApiIO]
 

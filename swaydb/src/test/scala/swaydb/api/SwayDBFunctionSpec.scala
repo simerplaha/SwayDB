@@ -21,8 +21,8 @@ import swaydb.PureFunctionScala._
 import swaydb.config.Functions
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.CoreTestData._
+import swaydb.core.{CoreTestBase, TestCaseSweeper}
 import swaydb.macros.Sealed
 import swaydb.serializers.Default._
 import swaydb.serializers.Serializer
@@ -107,7 +107,7 @@ class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
 //    swaydb.memory.zero.Map[Key, Int, Key.Function, IO.ApiIO]().right.value
 //}
 
-sealed trait SwayDBFunctionSpec extends TestBase {
+sealed trait SwayDBFunctionSpec extends CoreTestBase {
 
   def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
                     keySerializer: Serializer[K],

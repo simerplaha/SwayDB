@@ -20,7 +20,7 @@
 //import swaydb.core.TestData._
 //import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 //import swaydb.core.file.sweeper.FileSweeper
-//import swaydb.core.file.{BlockCache, DBFile}
+//import swaydb.core.file.{BlockCache, CoreFile}
 //import swaydb.core.file.reader.FileReader
 //import swaydb.core.segment.block.reader.{BlockReader, BlockRefReader}
 //import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
@@ -42,7 +42,7 @@
 //    val ioStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true)
 //
 //    val file =
-//      DBFile.mmapInit(
+//      CoreFile.mmapInit(
 //        path = randomFilePath,
 //        ioStrategy = ioStrategy,
 //        bufferSize = bytes.size,
@@ -57,7 +57,7 @@
 //    file.close()
 //
 //    val readerFile =
-//      DBFile.mmapRead(
+//      CoreFile.mmapRead(
 //        path = file.path,
 //        ioStrategy = ioStrategy,
 //        autoClose = true,

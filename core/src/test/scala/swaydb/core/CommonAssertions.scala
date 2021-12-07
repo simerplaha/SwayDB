@@ -24,7 +24,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.config.compaction.PushStrategy
 import swaydb.config.{Atomic, OptimiseWrites}
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.file.reader.{FileReader, Reader}
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}

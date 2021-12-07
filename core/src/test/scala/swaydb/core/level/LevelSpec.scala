@@ -22,7 +22,7 @@ import swaydb.Glass
 import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.config.storage.LevelStorage
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.Segment
@@ -61,7 +61,7 @@ class LevelSpec3 extends LevelSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelSpec extends CoreTestBase with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty

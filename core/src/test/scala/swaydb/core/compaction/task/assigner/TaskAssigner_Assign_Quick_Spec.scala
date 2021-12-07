@@ -19,12 +19,12 @@ package swaydb.core.compaction.task.assigner
 import org.scalamock.scalatest.MockFactory
 import swaydb.config.MMAP
 import swaydb.config.compaction.PushStrategy
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.compaction.task.CompactionTask
 import swaydb.core.level.Level
 import swaydb.core.segment.Segment
 import swaydb.core.segment.data.Memory
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -53,7 +53,7 @@ class TaskAssigner_run_Spec3 extends TaskAssigner_run_Spec {
   override def inMemoryStorage = true
 }
 
-sealed trait TaskAssigner_run_Spec extends TestBase with MockFactory {
+sealed trait TaskAssigner_run_Spec extends CoreTestBase with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default

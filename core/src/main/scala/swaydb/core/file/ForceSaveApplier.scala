@@ -33,12 +33,12 @@ trait ForceSaveApplier {
                   forced: AtomicBoolean,
                   forceSave: ForceSave.MMAPFiles): Unit
 
-  def beforeCopy(file: DBFile,
+  def beforeCopy(file: CoreFile,
                  toPath: Path,
                  forceSave: ForceSave): Unit
 
-  def beforeClose[F <: DBFileType](file: F,
-                                   forceSave: ForceSave): Unit
+  def beforeClose[F <: CoreFileType](file: F,
+                                     forceSave: ForceSave): Unit
 }
 
 object ForceSaveApplier extends LazyLogging {
@@ -47,10 +47,10 @@ object ForceSaveApplier extends LazyLogging {
     override def beforeClean(path: Path, buffer: MappedByteBuffer, forced: AtomicBoolean, forceSave: ForceSave.MMAPFiles): Unit =
       logger.error(s"Disabled ForceSaveApplier beforeClean - $path", new Exception("Disabled ForceSaveApplier"))
 
-    override def beforeCopy(file: DBFile, toPath: Path, forceSave: ForceSave): Unit =
+    override def beforeCopy(file: CoreFile, toPath: Path, forceSave: ForceSave): Unit =
       logger.error(s"Disabled ForceSaveApplier beforeCopy - ${file.path} - toPath - $toPath", new Exception("Disabled ForceSaveApplier"))
 
-    override def beforeClose[F <: DBFileType](file: F, forceSave: ForceSave): Unit =
+    override def beforeClose[F <: CoreFileType](file: F, forceSave: ForceSave): Unit =
       logger.error(s"Disabled ForceSaveApplier beforeClose - ${file.path}", new Exception("Disabled ForceSaveApplier"))
   }
 
@@ -88,7 +88,7 @@ object ForceSaveApplier extends LazyLogging {
      * @param toPath    Path of copy-to location.
      * @param forceSave [[ForceSave]] configuration.
      */
-    def beforeCopy(file: DBFile,
+    def beforeCopy(file: CoreFile,
                    toPath: Path,
                    forceSave: ForceSave): Unit =
       if (forceSave.enableBeforeCopy)
@@ -103,8 +103,8 @@ object ForceSaveApplier extends LazyLogging {
      * @param file      File to close
      * @param forceSave [[ForceSave]] configuration.
      */
-    def beforeClose[F <: DBFileType](file: F,
-                                     forceSave: ForceSave): Unit =
+    def beforeClose[F <: CoreFileType](file: F,
+                                       forceSave: ForceSave): Unit =
       if (forceSave.enabledBeforeClose)
         if (forceSave.logBenchmark)
           Benchmark(s"ForceSave before close: '${file.path}", useLazyLogging = true)(file.forceSave())

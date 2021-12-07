@@ -19,7 +19,7 @@ package swaydb.core.log.applied
 import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.log.LogEntry
 import swaydb.core.log.MapTestUtil._
@@ -32,7 +32,7 @@ import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 import swaydb.testkit.TestKit._
 
-class AppliedFunctionsLogSpec extends TestBase {
+class AppliedFunctionsLogSpec extends CoreTestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 

@@ -22,11 +22,11 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.data.merge.{FixedMerger, FunctionMerger, PendingApplyMerger}
 import swaydb.core.segment.data.{CoreFunctionOutput, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{TestData, TestTimer}
+import swaydb.core.{CoreTestData, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -38,7 +38,7 @@ class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with Option
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
-  implicit val functionStore = TestData.functionStore
+  implicit val functionStore = CoreTestData.functionStore
 
   "return Some" when {
     "put is not expired" in {

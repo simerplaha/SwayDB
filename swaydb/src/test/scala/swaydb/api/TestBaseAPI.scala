@@ -22,7 +22,7 @@ import swaydb.IO.ApiIO
 import swaydb.IOValues._
 import swaydb._
 import swaydb.config.sequencer.Sequencer
-import swaydb.core.{Core, TestBase, TestExecutionContext}
+import swaydb.core.{Core, CoreTestBase, TestExecutionContext}
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
@@ -33,7 +33,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
 
-trait TestBaseEmbedded extends TestBase {
+trait TestBaseAPI extends CoreTestBase {
 
   val keyValueCount: Int
 

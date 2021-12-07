@@ -22,7 +22,7 @@ import swaydb.config.MMAP
 import swaydb.config.storage.LevelStorage
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data._
@@ -61,7 +61,7 @@ class LevelSegmentSpec3 extends LevelSegmentSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelSegmentSpec extends TestBase with MockFactory {
+sealed trait LevelSegmentSpec extends CoreTestBase with MockFactory {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty

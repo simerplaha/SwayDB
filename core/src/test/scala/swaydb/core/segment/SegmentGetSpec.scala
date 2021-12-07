@@ -22,10 +22,10 @@ import org.scalatest.concurrent.ScalaFutures
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.data._
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestSweeper}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave, TestSweeper}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -60,7 +60,7 @@ class SegmentGetSpec3 extends SegmentGetSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMethodTester {
+sealed trait SegmentGetSpec extends CoreTestBase with ScalaFutures with PrivateMethodTester {
 
   implicit val keyOrder = KeyOrder.default
 

@@ -18,7 +18,7 @@ package swaydb.api.multimap.multiprepare
 
 import org.scalatest.OptionValues._
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
-import swaydb.api.TestBaseEmbedded
+import swaydb.api.TestBaseAPI
 import swaydb.api.multimap.multiprepare.PrimaryKey._
 import swaydb.api.multimap.multiprepare.Row._
 import swaydb.api.multimap.multiprepare.Table._
@@ -29,7 +29,7 @@ import swaydb.{Bag, Glass, Prepare}
 
 import scala.concurrent.duration._
 
-class MultiMapMultiPrepareSpec extends TestBaseEmbedded {
+class MultiMapMultiPrepareSpec extends TestBaseAPI {
   override val keyValueCount: Int = 1000
 
   "transaction" when {

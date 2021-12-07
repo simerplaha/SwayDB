@@ -18,7 +18,7 @@ package swaydb.core.segment.serialiser
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.TestTimer
 import swaydb.core.segment.data.Value
 import swaydb.core.segment.data.Value.{FromValue, FromValueOption, RangeValue}

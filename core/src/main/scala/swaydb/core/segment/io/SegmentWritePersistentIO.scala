@@ -21,7 +21,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.config.{ForceSave, MMAP, SegmentRefCacheLife}
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
-import swaydb.core.file.{DBFile, ForceSaveApplier}
+import swaydb.core.file.{CoreFile, ForceSaveApplier}
 import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment._
 import swaydb.core.segment.block.segment.transient.TransientSegment
@@ -110,7 +110,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
 
               segment match {
                 case segment: TransientSegment.One =>
-                  val file: DBFile =
+                  val file: CoreFile =
                     segmentFile(
                       path = path,
                       mmap = mmap,
@@ -133,7 +133,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                 case segment: TransientSegment.RemoteRef =>
                   val segmentSize = segment.segmentSize
 
-                  val file: DBFile =
+                  val file: CoreFile =
                     segmentFile(
                       path = path,
                       mmap = mmap,
@@ -163,7 +163,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                   )
 
                 case segment: TransientSegment.Many =>
-                  val file: DBFile =
+                  val file: CoreFile =
                     segmentFile(
                       path = path,
                       mmap = mmap,
@@ -205,7 +205,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
    * Write segments to target file and also attempts to batch transfer bytes.
    */
   private def writeOrTransfer(segments: Slice[TransientSegment.OneOrRemoteRef],
-                              target: DBFile): Unit = {
+                              target: CoreFile): Unit = {
 
     /**
      * Batch transfer segments to remote file. This defers transfer to the operating
@@ -255,13 +255,13 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
   private def segmentFile(path: Path,
                           mmap: MMAP.Segment,
                           segmentSize: Int,
-                          byteTransferer: DBFile => Unit)(implicit segmentReadIO: SegmentReadIO,
-                                                          fileSweeper: FileSweeper,
-                                                          bufferCleaner: ByteBufferSweeperActor,
-                                                          forceSaveApplier: ForceSaveApplier): DBFile =
+                          byteTransferer: CoreFile => Unit)(implicit segmentReadIO: SegmentReadIO,
+                                                            fileSweeper: FileSweeper,
+                                                            bufferCleaner: ByteBufferSweeperActor,
+                                                            forceSaveApplier: ForceSaveApplier): CoreFile =
     mmap match {
       case MMAP.On(deleteAfterClean, forceSave) => //if both read and writes are mmaped. Keep the file open.
-        DBFile.mmapWriteAndReadTransfer(
+        CoreFile.mmapWriteAndReadTransfer(
           path = path,
           fileOpenIOStrategy = segmentReadIO.fileOpenIO,
           autoClose = true,
@@ -273,7 +273,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
 
       case MMAP.ReadOnly(deleteAfterClean) =>
         val standardWrite =
-          DBFile.standardWrite(
+          CoreFile.standardWrite(
             path = path,
             fileOpenIOStrategy = segmentReadIO.fileOpenIO,
             autoClose = true,
@@ -291,7 +291,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
 
         standardWrite.close()
 
-        DBFile.mmapRead(
+        CoreFile.mmapRead(
           path = standardWrite.path,
           fileOpenIOStrategy = segmentReadIO.fileOpenIO,
           autoClose = true,
@@ -300,7 +300,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
 
       case _: MMAP.Off =>
         val standardWrite =
-          DBFile.standardWrite(
+          CoreFile.standardWrite(
             path = path,
             fileOpenIOStrategy = segmentReadIO.fileOpenIO,
             autoClose = true,
@@ -318,7 +318,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
 
         standardWrite.close()
 
-        DBFile.standardRead(
+        CoreFile.standardRead(
           path = standardWrite.path,
           fileOpenIOStrategy = segmentReadIO.fileOpenIO,
           autoClose = true
@@ -327,7 +327,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
       //another case if mmapReads is false, write bytes in mmaped mode and then close and re-open for read. Currently not inuse.
       //    else if (mmap.mmapWrites && !mmap.mmapReads) {
       //      val file =
-      //        DBFile.mmapWriteAndRead(
+      //        CoreFile.mmapWriteAndRead(
       //          path = path,
       //          autoClose = true,
       //          ioStrategy = SegmentIO.segmentBlockIO(IOAction.OpenResource),
@@ -338,7 +338,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
       //      //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
       //      //is probably not the most efficient and should not be used.
       //      file.close()
-      //      DBFile.standardRead(
+      //      CoreFile.standardRead(
       //        path = file.path,
       //        ioStrategy = SegmentIO.segmentBlockIO(IOAction.OpenResource),
       //        blockCacheFileId = BlockCacheFileIDGenerator.nextID,

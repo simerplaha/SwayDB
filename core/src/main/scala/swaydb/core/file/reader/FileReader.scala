@@ -17,12 +17,12 @@
 package swaydb.core.file.reader
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.file.DBFile
+import swaydb.core.file.CoreFile
 import swaydb.slice.{Reader, Slice, SliceRO}
 
 import java.nio.file.Path
 
-private[core] class FileReader(val file: DBFile) extends Reader with LazyLogging {
+private[core] class FileReader(val file: CoreFile) extends Reader with LazyLogging {
 
   private var position: Int = 0
 
@@ -48,7 +48,7 @@ private[core] class FileReader(val file: DBFile) extends Reader with LazyLogging
 
   override def getPosition: Int = position
 
-  def transfer(position: Int, count: Int, transferTo: DBFile): Unit =
+  def transfer(position: Int, count: Int, transferTo: CoreFile): Unit =
     file.transfer(position = position, count = count, transferTo = transferTo)
 
   override def get() = {

@@ -30,13 +30,13 @@ import swaydb.{Error, IO}
 import java.nio.file.Path
 import scala.util.hashing.MurmurHash3
 
-object DBFile extends LazyLogging {
+object CoreFile extends LazyLogging {
 
   def fileCache(filePath: Path,
                 memoryMapped: Boolean,
                 deleteAfterClean: Boolean,
                 fileOpenIOStrategy: IOStrategy.ThreadSafe,
-                file: Option[DBFileType],
+                file: Option[CoreFileType],
                 autoClose: Boolean)(implicit fileSweeper: FileSweeper,
                                     bufferCleaner: ByteBufferSweeperActor,
                                     forceSaveApplier: ForceSaveApplier) = {
@@ -45,7 +45,7 @@ object DBFile extends LazyLogging {
     //re-submitted to fileSweeper every time this file requires a close Actor request.
     //Creating new FileSweeper item for each close request would result in cleaner
     //code without null but would be expensive considering the number of objects created.
-    var self: Cache[Error.IO, Unit, DBFileType] = null
+    var self: Cache[Error.IO, Unit, CoreFileType] = null
 
     val closer: FileSweeperItem =
       new FileSweeperItem {
@@ -72,13 +72,13 @@ object DBFile extends LazyLogging {
       }
 
     val cache =
-      Cache.io[swaydb.Error.IO, Error.OpeningFile, Unit, DBFileType](
+      Cache.io[swaydb.Error.IO, Error.OpeningFile, Unit, CoreFileType](
         //force the cache to be cacheOnAccess regardless of what's configured.
         //This is also needed because only a single thread can close or delete a
         //file using clearApply and stored cached is required otherwise this will lead
         //to many open FileChannels without reference which results in "too many files open" exception.
         strategy = fileOpenIOStrategy.forceCacheOnAccess,
-        reserveError = Error.OpeningFile(filePath, Reserve.free(name = s"DBFile: $filePath. MemoryMapped: $memoryMapped")),
+        reserveError = Error.OpeningFile(filePath, Reserve.free(name = s"CoreFile: $filePath. MemoryMapped: $memoryMapped")),
         initial = file
       ) {
         (_, _) =>
@@ -112,9 +112,9 @@ object DBFile extends LazyLogging {
                     autoClose: Boolean,
                     forceSave: ForceSave.StandardFiles)(implicit fileSweeper: FileSweeper,
                                                         bufferCleaner: ByteBufferSweeperActor,
-                                                        forceSaveApplier: ForceSaveApplier): DBFile = {
+                                                        forceSaveApplier: ForceSaveApplier): CoreFile = {
     val file = StandardFile.write(path, forceSave)
-    new DBFile(
+    new CoreFile(
       path = path,
       memoryMapped = false,
       autoClose = autoClose,
@@ -137,11 +137,11 @@ object DBFile extends LazyLogging {
                    autoClose: Boolean,
                    checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                                 bufferCleaner: ByteBufferSweeperActor,
-                                                forceSaveApplier: ForceSaveApplier): DBFile =
+                                                forceSaveApplier: ForceSaveApplier): CoreFile =
     if (checkExists && Effect.notExists(path))
       throw swaydb.Exception.NoSuchFile(path)
     else
-      new DBFile(
+      new CoreFile(
         path = path,
         memoryMapped = false,
         autoClose = autoClose,
@@ -165,7 +165,7 @@ object DBFile extends LazyLogging {
                        forceSave: ForceSave.MMAPFiles,
                        bytes: Array[Slice[Byte]])(implicit fileSweeper: FileSweeper,
                                                   bufferCleaner: ByteBufferSweeperActor,
-                                                  forceSaveApplier: ForceSaveApplier): DBFile = {
+                                                  forceSaveApplier: ForceSaveApplier): CoreFile = {
     val totalWritten =
       bytes.foldLeft(0) { //do not write bytes if the Slice has empty bytes.
         case (written, bytes) =>
@@ -195,9 +195,9 @@ object DBFile extends LazyLogging {
                                deleteAfterClean: Boolean,
                                forceSave: ForceSave.MMAPFiles,
                                bufferSize: Int,
-                               transfer: DBFile => Unit)(implicit fileSweeper: FileSweeper,
-                                                         bufferCleaner: ByteBufferSweeperActor,
-                                                         forceSaveApplier: ForceSaveApplier): DBFile = {
+                               transfer: CoreFile => Unit)(implicit fileSweeper: FileSweeper,
+                                                           bufferCleaner: ByteBufferSweeperActor,
+                                                           forceSaveApplier: ForceSaveApplier): CoreFile = {
     val file =
       mmapInit(
         path = path,
@@ -227,7 +227,7 @@ object DBFile extends LazyLogging {
                        forceSave: ForceSave.MMAPFiles,
                        bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
                                            bufferCleaner: ByteBufferSweeperActor,
-                                           forceSaveApplier: ForceSaveApplier): DBFile =
+                                           forceSaveApplier: ForceSaveApplier): CoreFile =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull) {
       throw swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size)
@@ -252,11 +252,11 @@ object DBFile extends LazyLogging {
                deleteAfterClean: Boolean,
                checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                             bufferCleaner: ByteBufferSweeperActor,
-                                            forceSaveApplier: ForceSaveApplier): DBFile =
+                                            forceSaveApplier: ForceSaveApplier): CoreFile =
     if (checkExists && Effect.notExists(path)) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
-      new DBFile(
+      new CoreFile(
         path = path,
         memoryMapped = true,
         autoClose = autoClose,
@@ -281,7 +281,7 @@ object DBFile extends LazyLogging {
                deleteAfterClean: Boolean,
                forceSave: ForceSave.MMAPFiles)(implicit fileSweeper: FileSweeper,
                                                bufferCleaner: ByteBufferSweeperActor,
-                                               forceSaveApplier: ForceSaveApplier): DBFile = {
+                                               forceSaveApplier: ForceSaveApplier): CoreFile = {
     val file =
       MMAPFile.write(
         path = path,
@@ -290,7 +290,7 @@ object DBFile extends LazyLogging {
         forceSave = forceSave
       )
 
-    new DBFile(
+    new CoreFile(
       path = path,
       memoryMapped = true,
       autoClose = autoClose,
@@ -309,22 +309,22 @@ object DBFile extends LazyLogging {
   }
 }
 /**
- * Wrapper class for different file types of [[DBFileType]].
+ * Wrapper class for different file types of [[CoreFileType]].
  *
  * Responsible for lazy loading files for reads and opening closed files in a thread safe manner.
  */
-class DBFile(val path: Path,
-             val memoryMapped: Boolean,
-             val autoClose: Boolean,
-             val deleteAfterClean: Boolean,
-             val forceSaveConfig: ForceSave,
-             fileCache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit bufferCleaner: ByteBufferSweeperActor,
-                                                                  forceSaveApplied: ForceSaveApplier) extends LazyLogging {
+class CoreFile(val path: Path,
+               val memoryMapped: Boolean,
+               val autoClose: Boolean,
+               val deleteAfterClean: Boolean,
+               val forceSaveConfig: ForceSave,
+               fileCache: Cache[swaydb.Error.IO, Unit, CoreFileType])(implicit bufferCleaner: ByteBufferSweeperActor,
+                                                                      forceSaveApplied: ForceSaveApplier) extends LazyLogging {
 
   def existsOnDisk =
     Effect.exists(path)
 
-  @inline def file: DBFileType =
+  @inline def file: CoreFileType =
     fileCache.value(()).get
 
   def delete(): Unit =
@@ -389,7 +389,7 @@ class DBFile(val path: Path,
     else
       fileCache.value(()).get.read(position = position, size = size, blockSize = blockSize)
 
-  def transfer(position: Int, count: Int, transferTo: DBFile): Int =
+  def transfer(position: Int, count: Int, transferTo: CoreFile): Int =
     file.transfer(
       position = position,
       count = count,
@@ -429,7 +429,7 @@ class DBFile(val path: Path,
 
   override def equals(that: Any): Boolean =
     that match {
-      case other: DBFile =>
+      case other: CoreFile =>
         this.path == other.path
 
       case _ =>

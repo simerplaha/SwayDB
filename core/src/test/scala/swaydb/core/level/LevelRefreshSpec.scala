@@ -21,7 +21,7 @@ import org.scalatest.PrivateMethodTester
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.config.MMAP
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data._
@@ -55,7 +55,7 @@ class LevelRefreshSpec3 extends LevelRefreshSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelRefreshSpec extends CoreTestBase with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty

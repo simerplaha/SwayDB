@@ -20,20 +20,20 @@ import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.file.reader.Reader
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.OperatingSystem
 
-class AppendixLogEntrySpec extends TestBase {
+class AppendixLogEntrySpec extends CoreTestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long

@@ -17,16 +17,16 @@
 package swaydb.core.segment.block.reader
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.segment.block.{Block, BlockCache, BlockOps}
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.{CoreTestBase, TestCaseSweeper}
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class BlockedReaderSpec extends TestBase with MockFactory {
+class BlockedReaderSpec extends CoreTestBase with MockFactory {
 
   "apply" when {
     "ref" in {

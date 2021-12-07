@@ -21,11 +21,11 @@ import org.scalatest.OptionValues._
 import swaydb.IO
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data.Memory
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -56,7 +56,7 @@ class LevelTaskAssignerSpec3 extends LevelTaskAssignerSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelTaskAssignerSpec extends TestBase with MockFactory {
+sealed trait LevelTaskAssignerSpec extends CoreTestBase with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default

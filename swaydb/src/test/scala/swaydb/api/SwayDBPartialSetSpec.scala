@@ -65,7 +65,7 @@ class SwayDBPartialSet_Memory_Spec extends SwayDBPartialSetSpec {
     swaydb.memory.Set[(Int, Option[String]), Nothing, Glass](logSize = 10.bytes).sweep(_.delete())
 }
 
-trait SwayDBPartialSetSpec extends TestBaseEmbedded {
+trait SwayDBPartialSetSpec extends TestBaseAPI {
 
   val keyValueCount = 1000
 

@@ -16,14 +16,14 @@
 
 package swaydb.core.file.reader
 
-import swaydb.core.file.DBFile
+import swaydb.core.file.CoreFile
 import swaydb.slice.{Slice, SliceReader}
 
 private[swaydb] object Reader {
 
   val empty = Reader(Slice.emptyBytes)
 
-  @inline def apply(file: DBFile): FileReader =
+  @inline def apply(file: CoreFile): FileReader =
     new FileReader(file = file)
 
   @inline def apply(slice: Slice[Byte], position: Int = 0): SliceReader =

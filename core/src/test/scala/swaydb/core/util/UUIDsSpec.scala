@@ -16,9 +16,9 @@
 
 package swaydb.core.util
 
-import swaydb.core.TestBase
+import swaydb.core.CoreTestBase
 
-class UUIDsSpec extends TestBase {
+class UUIDsSpec extends CoreTestBase {
 
   "randomIdNoHyphen" should {
     "return unique UUID without hyphens" in {

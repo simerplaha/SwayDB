@@ -51,7 +51,7 @@ class MultiMapSizeSpec5 extends SwayDBSizeSpec {
     generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get).sweep(_.delete().get)
 }
 
-sealed trait SwayDBSizeSpec extends TestBaseEmbedded {
+sealed trait SwayDBSizeSpec extends TestBaseAPI {
 
   val keyValueCount: Int
 

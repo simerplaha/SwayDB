@@ -18,7 +18,7 @@ package swaydb.core.compaction.throttle.behaviour
 
 import swaydb.IO
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.compaction.task.CompactionTask
 import swaydb.core.segment.Segment
@@ -50,7 +50,7 @@ class BehaviourCompactionTask_refresh_Spec3 extends BehaviourCompactionTask_refr
   override def inMemoryStorage = true
 }
 
-sealed trait BehaviourCompactionTask_refresh_Spec extends TestBase {
+sealed trait BehaviourCompactionTask_refresh_Spec extends CoreTestBase {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default

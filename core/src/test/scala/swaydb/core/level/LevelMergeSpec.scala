@@ -22,7 +22,7 @@ import swaydb.IO
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.segment.data.Value.FromValue
@@ -53,7 +53,7 @@ class LevelMergeSpec3 extends LevelMergeSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelMergeSpec extends CoreTestBase with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty

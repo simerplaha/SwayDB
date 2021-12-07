@@ -19,7 +19,7 @@ package swaydb.core.segment.data.merge
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.TestTimer
 import swaydb.core.segment.data.Value.FromValueOption
 import swaydb.core.segment.data.{Memory, Value}

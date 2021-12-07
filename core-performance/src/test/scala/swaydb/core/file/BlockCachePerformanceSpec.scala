@@ -17,14 +17,14 @@
 package swaydb.core.file
 
 import swaydb.Benchmark
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.{CoreTestBase, TestCaseSweeper}
 import swaydb.utils.StorageUnits._
 import swaydb.testkit.TestKit._
 
-class BlockCachePerformanceSpec extends TestBase {
+class BlockCachePerformanceSpec extends CoreTestBase {
 
   "force save benchmark" when {
     "memory-mapped file" in {

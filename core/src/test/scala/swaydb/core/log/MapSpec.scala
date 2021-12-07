@@ -21,9 +21,9 @@ import swaydb.IOValues._
 import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core._
-import swaydb.core.file.DBFile
+import swaydb.core.file.CoreFile
 import swaydb.core.level.AppendixLogCache
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.log.MapTestUtil._
@@ -46,7 +46,7 @@ import swaydb.testkit.TestKit._
 import java.nio.file.{FileAlreadyExistsException, Path}
 import swaydb.testkit.TestKit._
 
-class MapSpec extends TestBase {
+class MapSpec extends CoreTestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
@@ -754,7 +754,7 @@ class MapSpec extends TestBase {
             ).sweep()
 
           val nextFileSkipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
-          val nextFileBytes = DBFile.standardRead(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false).readAll
+          val nextFileBytes = CoreFile.standardRead(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false).readAll
           nextFileBytes.size should be > 0
           val logEntries = LogEntrySerialiser.read(nextFileBytes, dropCorruptedTailEntries = false).value.item.value
           logEntries applyBatch nextFileSkipList

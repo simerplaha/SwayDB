@@ -16,44 +16,44 @@
 
 package swaydb.core
 
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import swaydb.{DefActor, Glass, IO}
 import swaydb.IOValues._
+import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.config.storage.{Level0Storage, LevelStorage}
-import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
 import swaydb.core.CommonAssertions._
+import swaydb.core.CoreTestData._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
 import swaydb.core.compaction._
 import swaydb.core.compaction.throttle.ThrottleCompactorCreator
-import swaydb.core.file.DBFile
+import swaydb.core.file.CoreFile
 import swaydb.core.file.reader.FileReader
-import swaydb.core.level.zero.LevelZero.LevelZeroLog
-import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
+import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.log.{Log, LogEntry}
+import swaydb.core.segment.{PathsDistributor, PersistentSegment, Segment}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
-import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.{Memory, Time}
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.io.{SegmentCompactionIO, SegmentReadIO}
-import swaydb.core.segment.{PathsDistributor, PersistentSegment, Segment}
 import swaydb.effect.{Dir, Effect}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis.FutureImplicits
 import swaydb.testkit.TestKit._
-import swaydb.utils.StorageUnits._
 import swaydb.utils.{IDGenerator, OperatingSystem}
-import swaydb.{DefActor, Glass, IO}
+import swaydb.utils.StorageUnits._
 
 import java.nio.file._
 import java.util.concurrent.atomic.AtomicInteger
@@ -61,7 +61,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.Random
 
-trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with BeforeAndAfterEach with Eventually {
+trait CoreTestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with BeforeAndAfterEach with Eventually {
 
   implicit val idGenerator = IDGenerator()
 
@@ -464,22 +464,22 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
   /**
    * Creates all file types currently supported which are MMAP and StandardFile.
    */
-  def createDBFiles(mmapPath: Path, mmapBytes: Slice[Byte], channelPath: Path, channelBytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): List[DBFile] =
+  def createCoreFiles(mmapPath: Path, mmapBytes: Slice[Byte], channelPath: Path, channelBytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): List[CoreFile] =
     List(
       createMMAPWriteAndRead(mmapPath, mmapBytes),
       createStandardWriteAndRead(channelPath, channelBytes)
     )
 
-  def createDBFiles(mmapBytes: Slice[Byte], channelBytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): List[DBFile] =
+  def createCoreFiles(mmapBytes: Slice[Byte], channelBytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): List[CoreFile] =
     List(
       createMMAPWriteAndRead(randomFilePath, mmapBytes),
       createStandardWriteAndRead(randomFilePath, channelBytes)
     )
 
-  def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): DBFile = {
+  def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): CoreFile = {
     import sweeper._
 
-    DBFile.mmapWriteAndRead(
+    CoreFile.mmapWriteAndRead(
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
@@ -489,10 +489,10 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     ).sweep()
   }
 
-  def createWriteableMMAPFile(path: Path, bufferSize: Int)(implicit sweeper: TestCaseSweeper): DBFile = {
+  def createWriteableMMAPFile(path: Path, bufferSize: Int)(implicit sweeper: TestCaseSweeper): CoreFile = {
     import sweeper._
 
-    DBFile.mmapInit(
+    CoreFile.mmapInit(
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
@@ -502,10 +502,10 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     ).sweep()
   }
 
-  def createWriteableStandardFile(path: Path)(implicit sweeper: TestCaseSweeper): DBFile = {
+  def createWriteableStandardFile(path: Path)(implicit sweeper: TestCaseSweeper): CoreFile = {
     import sweeper._
 
-    DBFile.standardWrite(
+    CoreFile.standardWrite(
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
@@ -513,11 +513,11 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     )
   }
 
-  def createStandardWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): DBFile = {
+  def createStandardWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): CoreFile = {
     import sweeper._
 
     val file =
-      DBFile.standardWrite(
+      CoreFile.standardWrite(
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
@@ -527,7 +527,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     file.append(bytes)
     file.close()
 
-    DBFile.standardRead(
+    CoreFile.standardRead(
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true
@@ -538,7 +538,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     import sweeper._
 
     val file =
-      DBFile.mmapRead(
+      CoreFile.mmapRead(
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
@@ -555,7 +555,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     import sweeper._
 
     val file =
-      DBFile.standardRead(
+      CoreFile.standardRead(
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true

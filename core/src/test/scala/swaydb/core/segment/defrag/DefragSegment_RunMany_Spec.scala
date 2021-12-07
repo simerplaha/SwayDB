@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.EitherValues
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -31,7 +31,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany}
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
@@ -41,7 +41,7 @@ import scala.concurrent.ExecutionContext
 import scala.util.Random
 import swaydb.testkit.TestKit._
 
-class DefragSegment_RunMany_Spec extends TestBase with MockFactory with EitherValues {
+class DefragSegment_RunMany_Spec extends CoreTestBase with MockFactory with EitherValues {
 
   implicit val ec: ExecutionContext = TestExecutionContext.executionContext
   implicit val timer: TestTimer = TestTimer.Empty

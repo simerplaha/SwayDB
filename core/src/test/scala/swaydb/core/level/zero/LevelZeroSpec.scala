@@ -25,12 +25,12 @@ import swaydb.config.compaction.LevelThrottle
 import swaydb.config.storage.LevelStorage
 import swaydb.core.CommonAssertions._
 import swaydb.core.PrivateMethodInvokers._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.log.applied.AppliedFunctionsLog
 import swaydb.core.log.timer.Timer
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.effect.{Dir, Effect}
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -64,7 +64,7 @@ class LevelZeroSpec3 extends LevelZeroSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelZeroSpec extends TestBase with MockFactory {
+sealed trait LevelZeroSpec extends CoreTestBase with MockFactory {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty

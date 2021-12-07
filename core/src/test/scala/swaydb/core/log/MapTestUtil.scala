@@ -20,7 +20,7 @@ import org.scalatest.matchers.should.Matchers._
 import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.{ByteBufferSweeperActor, State}

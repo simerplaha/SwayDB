@@ -19,7 +19,7 @@ package swaydb.api.setmap
 import org.scalatest.OptionValues._
 import swaydb.Glass
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.{CoreTestBase, TestCaseSweeper}
 import swaydb.serializers.Default._
 
 class SetMapSpec0 extends SetMapSpec {
@@ -32,7 +32,7 @@ class SetMapSpec3 extends SetMapSpec {
     swaydb.memory.SetMap[Int, String, Glass]().sweep(_.delete())
 }
 
-sealed trait SetMapSpec extends TestBase {
+sealed trait SetMapSpec extends CoreTestBase {
 
   def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Glass]
 

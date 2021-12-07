@@ -25,7 +25,7 @@ import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.file.reader.Reader
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand}
-import swaydb.core.file.{DBFile, ForceSaveApplier}
+import swaydb.core.file.{CoreFile, ForceSaveApplier}
 import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -64,7 +64,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
   val formatId: Byte = 127
   val formatIdSlice: Slice[Byte] = Slice(formatId)
 
-  def apply(file: DBFile,
+  def apply(file: CoreFile,
             segmentRefCacheLife: SegmentRefCacheLife,
             segment: TransientSegment.Many)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                             timeOrder: TimeOrder[Slice[Byte]],
@@ -215,7 +215,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
     )
   }
 
-  def apply(file: DBFile,
+  def apply(file: CoreFile,
             segmentSize: Int,
             createdInLevel: Int,
             segmentRefCacheLife: SegmentRefCacheLife,
@@ -386,7 +386,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
    *
    * Used when Segment's information is unknown.
    */
-  def apply(file: DBFile,
+  def apply(file: CoreFile,
             segmentRefCacheLife: SegmentRefCacheLife)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: FunctionStore,
@@ -517,7 +517,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
     )
   }
 
-  private def parseSkipList(file: DBFile,
+  private def parseSkipList(file: CoreFile,
                             segmentSize: Int,
                             minKey: Slice[Byte],
                             maxKey: MaxKey[Slice[Byte]],
@@ -616,7 +616,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
     skipList
   }
 
-  private def initListSegment(file: DBFile,
+  private def initListSegment(file: CoreFile,
                               segmentSize: Int,
                               minKey: Slice[Byte],
                               maxKey: MaxKey[Slice[Byte]],
@@ -668,7 +668,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
   }
 }
 
-protected case class PersistentSegmentMany(file: DBFile,
+protected case class PersistentSegmentMany(file: CoreFile,
                                            createdInLevel: Int,
                                            minKey: Slice[Byte],
                                            maxKey: MaxKey[Slice[Byte]],

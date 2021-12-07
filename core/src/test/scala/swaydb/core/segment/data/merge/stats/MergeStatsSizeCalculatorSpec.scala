@@ -18,17 +18,17 @@ package swaydb.core.segment.data.merge.stats
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.EitherValues
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.data.Memory
-import swaydb.core.{TestBase, TestExecutionContext, TestTimer}
+import swaydb.core.{CoreTestBase, TestExecutionContext, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class MergeStatsSizeCalculatorSpec extends TestBase with MockFactory with EitherValues {
+class MergeStatsSizeCalculatorSpec extends CoreTestBase with MockFactory with EitherValues {
 
   implicit val ec = TestExecutionContext.executionContext
   implicit val timer = TestTimer.Empty

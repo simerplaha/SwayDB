@@ -21,7 +21,7 @@ import swaydb.IO
 /**
  * Files can be partially recovered based on the value set for [[swaydb.config.RecoveryMode]].
  *
- * This instance stores the result of the recovery of the target [[swaydb.core.file.DBFile]]
+ * This instance stores the result of the recovery of the target [[swaydb.core.file.CoreFile]]
  * and the result of each partial recovery.
  *
  * This instance will only contain failure if the file was partially recovered. If there was a full failure then

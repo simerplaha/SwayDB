@@ -24,7 +24,7 @@ import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.{DBFile, ForceSaveApplier}
+import swaydb.core.file.{CoreFile, ForceSaveApplier}
 import swaydb.core.level.LevelRef
 import swaydb.core.log.counter.CounterLog
 import swaydb.core.log.{Log, Logs}
@@ -70,7 +70,7 @@ object TestCaseSweeper extends LazyLogging {
       segments = ListBuffer.empty,
       mapFiles = ListBuffer.empty,
       logs = ListBuffer.empty,
-      dbFiles = ListBuffer.empty,
+      coreFiles = ListBuffer.empty,
       paths = ListBuffer.empty,
       actors = ListBuffer.empty,
       counters = ListBuffer.empty,
@@ -94,7 +94,7 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.schedulers.foreach(_.get().foreach(_.terminate()))
 
     //CLOSE - close everything first so that Actors sweepers get populated with Clean messages
-    sweeper.dbFiles.foreach(_.close())
+    sweeper.coreFiles.foreach(_.close())
     sweeper.mapFiles.foreach(_.close())
     sweeper.logs.foreach(_.delete().get)
     sweeper.segments.foreach(_.close)
@@ -132,7 +132,7 @@ object TestCaseSweeper extends LazyLogging {
         map.pathOption.foreach(deleteParentPath)
     }
 
-    sweeper.dbFiles.foreach(_.delete())
+    sweeper.coreFiles.foreach(_.delete())
     sweeper.functions.foreach(_ ())
 
     sweeper.paths.foreach {
@@ -187,9 +187,9 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepPath path
   }
 
-  implicit class DBFileSweeperImplicits(dbFile: DBFile) {
-    def sweep()(implicit sweeper: TestCaseSweeper): DBFile =
-      sweeper sweepDBFiles dbFile
+  implicit class CoreFileSweeperImplicits(coreFile: CoreFile) {
+    def sweep()(implicit sweeper: TestCaseSweeper): CoreFile =
+      sweeper sweepCoreFiles coreFile
   }
 
   implicit class KeyValueMemorySweeperImplicits(keyValue: MemorySweeper.KeyValue) {
@@ -280,7 +280,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
                       private val segments: ListBuffer[Segment],
                       private val mapFiles: ListBuffer[Log[_, _, _]],
                       private val logs: ListBuffer[Logs[_, _, _]],
-                      private val dbFiles: ListBuffer[DBFile],
+                      private val coreFiles: ListBuffer[CoreFile],
                       private val paths: ListBuffer[Path],
                       private val actors: ListBuffer[ActorRef[_, _]],
                       private val defActors: ListBuffer[DefActor[_]],
@@ -329,8 +329,8 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
     path
   }
 
-  def sweepDBFiles(file: DBFile): DBFile = {
-    dbFiles += file
+  def sweepCoreFiles(file: CoreFile): CoreFile = {
+    coreFiles += file
     file
   }
 

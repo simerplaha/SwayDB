@@ -17,13 +17,12 @@
 package swaydb.core.file
 
 import swaydb.Benchmark
-import swaydb.core.TestData._
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestSweeper}
+import swaydb.core.CoreTestData._
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.segment.block.reader.BlockRefReader
-import swaydb.core.segment.block.{BlockCache, BlockCacheState}
-import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
+import swaydb.core.segment.block.BlockCacheState
 import swaydb.effect.{Effect, IOStrategy}
 import swaydb.utils.StorageUnits._
 
@@ -31,7 +30,7 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.DurationInt
 import scala.util.Random
 
-class DBFileWriteReadPerformanceSpec extends TestBase {
+class CoreFileWriteReadPerformanceSpec extends CoreTestBase {
 
   implicit val fileSweeper: FileSweeper = TestSweeper.createFileSweeper()
   implicit val bufferCleaner: ByteBufferSweeperActor = TestSweeper.createBufferCleaner()
@@ -52,7 +51,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
         val path = randomFilePath
 
         //        val mmapFile =
-        //          DBFile.mmapInit(
+        //          CoreFile.mmapInit(
         //            path = path,
         //            fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
         //            bufferSize = bytes.size,
@@ -70,7 +69,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
         //        mmapFile.close()
 
         val standardFile =
-          DBFile.standardRead(
+          CoreFile.standardRead(
             path = Effect.write(path, bytes.toByteBufferWrap),
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
             autoClose = true
@@ -136,7 +135,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //    }
   //  }
 
-  //  "DBFile" should {
+  //  "CoreFile" should {
   //    //use larger chunkSize to test on larger data-set
   //    //    val chunkSize = 100.kb
   //    val chunkSize = 4096
@@ -169,13 +168,13 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //       * Round 2: 1.328009528 seconds
   //       * Round 3: 1.3148811 seconds
   //       */
-  //      val standardFile = DBFile.standardWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val standardFile = CoreFile.standardWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      Benchmark("FileChannel write Benchmark") {
   //        bytes foreach standardFile.append
   //      }
   //
   //      //check all the bytes were written
-  //      val readStandardFile = DBFile.standardRead(standardFile.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val readStandardFile = CoreFile.standardRead(standardFile.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      readStandardFile.fileSize.runRandomIO.right.value shouldBe bytes.size * chunkSize
   //      Effect.readAll(standardFile.path) shouldBe flattenBytes
   //      standardFile.close().runRandomIO.right.value
@@ -189,7 +188,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //       * Round 3: 0.542235514 seconds
   //       */
   //
-  //      val mmapFile = DBFile.mmapInit(randomFilePath, IOStrategy.ConcurrentIO(true), bytes.size * chunkSize, autoClose = true, deleteAfterClean = OperatingSystem.isWindows, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val mmapFile = CoreFile.mmapInit(randomFilePath, IOStrategy.ConcurrentIO(true), bytes.size * chunkSize, autoClose = true, deleteAfterClean = OperatingSystem.isWindows, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      Benchmark("mmap write Benchmark") {
   //        bytes foreach mmapFile.append
   //      }
@@ -200,7 +199,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //
   //    "Get performance" in {
   //      val bytes = randomBytes(chunkSize)
-  //      val file = DBFile.standardWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val file = CoreFile.standardWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      file.append(Slice(bytes))
   //      file.close().runRandomIO.right.value
   //
@@ -211,7 +210,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //       * Round 3: 1.842739196 seconds
   //       */
   //
-  //      val standardFile = DBFile.standardRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val standardFile = CoreFile.standardRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      Benchmark("FileChannel value Benchmark") {
   //        bytes.indices foreach {
   //          index =>
@@ -227,7 +226,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //       * Round 2: 0.965750206 seconds
   //       * Round 3: 1.044735106 seconds
   //       */
-  //      val mmapFile = DBFile.mmapRead(file.path, autoClose = true, deleteAfterClean = OperatingSystem.isWindows, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val mmapFile = CoreFile.mmapRead(file.path, autoClose = true, deleteAfterClean = OperatingSystem.isWindows, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      Benchmark("mmap value Benchmark") {
   //        bytes.indices foreach {
   //          index =>
@@ -246,7 +245,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //          allBytes addAll bytes
   //          bytes
   //      }
-  //      val file = DBFile.standardWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val file = CoreFile.standardWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      bytes foreach (file.append(_).runRandomIO.right.value)
   //      file.close().runRandomIO.right.value
   //
@@ -257,7 +256,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //       * Round 3: 0.819253382 seconds
   //       */
   //
-  //      val standardFile = DBFile.standardRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val standardFile = CoreFile.standardRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      Benchmark("FileChannel read Benchmark") {
   //        bytes.foldLeft(0) {
   //          case (index, byteSlice) =>
@@ -275,7 +274,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   //       * Round 2: 0.54580672 seconds
   //       * Round 3: 0.463990916 seconds
   //       */
-  //      val mmapFile = DBFile.mmapRead(file.path, autoClose = true, deleteAfterClean = OperatingSystem.isWindows, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val mmapFile = CoreFile.mmapRead(file.path, autoClose = true, deleteAfterClean = OperatingSystem.isWindows, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //
   //      Benchmark("mmap read Benchmark") {
   //        bytes.foldLeft(0) {

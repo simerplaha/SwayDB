@@ -21,11 +21,11 @@ import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.{DBFile, ForceSaveApplier, MMAPFile}
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.core.file.{CoreFile, ForceSaveApplier, MMAPFile}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
@@ -41,7 +41,7 @@ import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.testkit.TestKit._
 
-class ByteBufferSweeperSpec extends TestBase with MockFactory {
+class ByteBufferSweeperSpec extends CoreTestBase with MockFactory {
 
   implicit val ec = TestExecutionContext.executionContext
   implicit val futureBag = Bag.future
@@ -55,8 +55,8 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
           implicit val fileSweeper: FileSweeper =
             FileSweeper(1, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext)).sweep()
 
-          val file: DBFile =
-            DBFile.mmapWriteAndRead(
+          val file: CoreFile =
+            CoreFile.mmapWriteAndRead(
               path = randomDir,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -91,7 +91,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
           val files =
             (1 to 10) map {
               _ =>
-                DBFile.mmapWriteAndRead(
+                CoreFile.mmapWriteAndRead(
                   path = randomDir,
                   fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                   autoClose = true,

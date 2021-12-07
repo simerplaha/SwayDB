@@ -23,7 +23,7 @@ import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand}
-import swaydb.core.file.{DBFile, ForceSaveApplier}
+import swaydb.core.file.{CoreFile, ForceSaveApplier}
 import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockConfig, BinarySearchIndexBlockOffset}
@@ -58,7 +58,7 @@ protected case object PersistentSegmentOne {
   val formatId = 126.toByte
   val formatIdSlice: Slice[Byte] = Slice(formatId)
 
-  def apply(file: DBFile,
+  def apply(file: CoreFile,
             segment: TransientSegment.OneOrRemoteRef)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: FunctionStore,
@@ -97,7 +97,7 @@ protected case object PersistentSegmentOne {
         }
     )
 
-  def apply(file: DBFile,
+  def apply(file: CoreFile,
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
@@ -169,15 +169,15 @@ protected case object PersistentSegmentOne {
     )
   }
 
-  def apply(file: DBFile)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                          timeOrder: TimeOrder[Slice[Byte]],
-                          functionStore: FunctionStore,
-                          blockCacheSweeper: Option[MemorySweeper.Block],
-                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                          fileSweeper: FileSweeper,
-                          bufferCleaner: ByteBufferSweeperActor,
-                          forceSaveApplier: ForceSaveApplier,
-                          segmentIO: SegmentReadIO): PersistentSegment = {
+  def apply(file: CoreFile)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                            timeOrder: TimeOrder[Slice[Byte]],
+                            functionStore: FunctionStore,
+                            blockCacheSweeper: Option[MemorySweeper.Block],
+                            keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                            fileSweeper: FileSweeper,
+                            bufferCleaner: ByteBufferSweeperActor,
+                            forceSaveApplier: ForceSaveApplier,
+                            segmentIO: SegmentReadIO): PersistentSegment = {
 
     val fileSize = file.fileSize
 
@@ -246,7 +246,7 @@ protected case object PersistentSegmentOne {
   }
 }
 
-protected case class PersistentSegmentOne(file: DBFile,
+protected case class PersistentSegmentOne(file: CoreFile,
                                           minKey: Slice[Byte],
                                           maxKey: MaxKey[Slice[Byte]],
                                           minMaxFunctionId: Option[MinMax[Slice[Byte]]],

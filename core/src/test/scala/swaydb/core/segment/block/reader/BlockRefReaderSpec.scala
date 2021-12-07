@@ -18,17 +18,17 @@ package swaydb.core.segment.block.reader
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.compression.CompressionInternal
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.segment.SegmentBlockOffset
 import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.segment.block.values.ValuesBlockOffset.ValuesBlockOps
 import swaydb.core.segment.block.{Block, BlockCache}
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.{CoreTestBase, TestCaseSweeper}
 import swaydb.slice.{Reader, Slice}
 import swaydb.testkit.TestKit._
 
-class BlockRefReaderSpec extends TestBase with MockFactory {
+class BlockRefReaderSpec extends CoreTestBase with MockFactory {
 
   "apply" when {
     "File, bytes & reader" in {
@@ -40,7 +40,7 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
 
           val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 
-          //DBFile
+          //CoreFile
           BlockRefReader(file = file, blockCache = blockCache).readRemaining() shouldBe bytes
           //Slice[Byte]
           BlockRefReader[SegmentBlockOffset](bytes).readRemaining() shouldBe bytes

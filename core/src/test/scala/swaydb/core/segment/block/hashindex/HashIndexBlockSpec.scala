@@ -17,11 +17,11 @@
 package swaydb.core.segment.block.hashindex
 
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.data.Persistent
-import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}
+import swaydb.core.{SegmentBlocks, CoreTestBase, TestCaseSweeper}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -29,7 +29,7 @@ import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class HashIndexBlockSpec extends TestBase {
+class HashIndexBlockSpec extends CoreTestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))

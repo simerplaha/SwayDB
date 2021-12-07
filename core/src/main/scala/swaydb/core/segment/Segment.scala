@@ -21,7 +21,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.{FileSweeper, FileSweeperItem}
-import swaydb.core.file.{DBFile, ForceSaveApplier}
+import swaydb.core.file.{CoreFile, ForceSaveApplier}
 import swaydb.core.segment.assigner.{Assignable, Assigner}
 import swaydb.core.segment.block.BlockCompressionInfo
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -557,7 +557,7 @@ private[core] case object Segment extends LazyLogging {
     val file =
       mmap match {
         case _: MMAP.On | _: MMAP.ReadOnly =>
-          DBFile.mmapRead(
+          CoreFile.mmapRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
             autoClose = true,
@@ -566,7 +566,7 @@ private[core] case object Segment extends LazyLogging {
           )
 
         case _: MMAP.Off =>
-          DBFile.standardRead(
+          CoreFile.standardRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
             autoClose = true,
@@ -694,7 +694,7 @@ private[core] case object Segment extends LazyLogging {
     val file =
       mmap match {
         case _: MMAP.On | _: MMAP.ReadOnly =>
-          DBFile.mmapRead(
+          CoreFile.mmapRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
             autoClose = false,
@@ -703,7 +703,7 @@ private[core] case object Segment extends LazyLogging {
           )
 
         case _: MMAP.Off =>
-          DBFile.standardRead(
+          CoreFile.standardRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
             autoClose = false,

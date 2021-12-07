@@ -18,7 +18,7 @@ package swaydb.core.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.data.{merge => _}
@@ -30,7 +30,7 @@ import swaydb.testkit.RunThis._
 import scala.concurrent.duration.DurationInt
 import swaydb.testkit.TestKit._
 
-class LevelZeroTaskAssigner_flatten_Spec extends TestBase with MockFactory {
+class LevelZeroTaskAssigner_flatten_Spec extends CoreTestBase with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
@@ -119,7 +119,7 @@ class LevelZeroTaskAssigner_flatten_Spec extends TestBase with MockFactory {
                 //sleep for some-time
                 sleep(2.second)
                 //For better print find the furthest deadline to show how long will this test run for
-                val furthestDeadline = TestData.furthestDeadline(expected ++ actual)
+                val furthestDeadline = CoreTestData.furthestDeadline(expected ++ actual)
                 println(s"Test TimeLeft: ${testTimeout.timeLeft.asString}: ${exception.getMessage}. furthestDeadline timeLeft: ${furthestDeadline.map(_.timeLeft.asString)}")
                 if (testTimeout.isOverdue())
                   fail(exception)

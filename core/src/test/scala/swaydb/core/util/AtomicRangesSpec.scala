@@ -21,7 +21,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.testkit.EitherValues.EitherTestUtils
 import swaydb.IO.ApiIO
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.TestExecutionContext
 import swaydb.core.skiplist.AtomicRanges
 import swaydb.core.skiplist.AtomicRanges.Action

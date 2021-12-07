@@ -17,11 +17,11 @@
 package swaydb.api.multimap
 
 import org.scalatest.OptionValues._
-import swaydb.api.{TestBaseEmbedded, repeatTest}
+import swaydb.api.{TestBaseAPI, repeatTest}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.multimap.MultiPrepare
 import swaydb.serializers.Default._
 import swaydb.slice.Slice
@@ -62,7 +62,7 @@ class MultiMapSpec3 extends MultiMapSpec {
     swaydb.memory.MultiMap[Int, Int, String, Nothing, Glass](logSize = 1.byte).sweep(_.delete())
 }
 
-sealed trait MultiMapSpec extends TestBaseEmbedded {
+sealed trait MultiMapSpec extends TestBaseAPI {
 
   val keyValueCount: Int
 

@@ -17,16 +17,16 @@
 package swaydb.core.segment.data.merge
 
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.data._
 import swaydb.core.segment.data.merge.stats.MergeStats
-import swaydb.core.{TestBase, TestTimer}
+import swaydb.core.{CoreTestBase, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class KeyValueGrouperSpec extends TestBase {
+class KeyValueGrouperSpec extends CoreTestBase {
 
   implicit def testTimer: TestTimer = TestTimer.Empty
 

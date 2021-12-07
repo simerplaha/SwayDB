@@ -19,7 +19,7 @@ package swaydb.core.util
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.TestTimer
 import swaydb.core.segment.data.Value.FromValue
 import swaydb.core.segment.data.{KeyValue, Memory, Value}

@@ -19,7 +19,7 @@ package swaydb.core.actor
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext}
 import swaydb.testkit.RunThis._
 import swaydb.{Actor, DefActor}
 
@@ -27,7 +27,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class DefActorSpec extends AnyWordSpec with Matchers with TestBase {
+class DefActorSpec extends AnyWordSpec with Matchers with CoreTestBase {
   implicit val ec = TestExecutionContext.executionContext
 
   "ActorWire" should {

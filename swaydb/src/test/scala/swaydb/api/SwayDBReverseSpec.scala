@@ -43,7 +43,7 @@ class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value.sweep(_.delete().get)
 }
 
-sealed trait SwayDBReverseSpec extends TestBaseEmbedded {
+sealed trait SwayDBReverseSpec extends TestBaseAPI {
 
   val keyValueCount: Int
 

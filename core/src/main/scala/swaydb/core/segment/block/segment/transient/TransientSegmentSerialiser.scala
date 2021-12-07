@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.block.segment.transient
 
-import swaydb.core.file.DBFile
+import swaydb.core.file.CoreFile
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.serialiser.ValueSerialiser.MinMaxSerialiser
 import swaydb.core.segment.block.BlockCache
@@ -159,7 +159,7 @@ object TransientSegmentSerialiser {
         throw new Exception(s"Invalid key-value ${keyValue.getClass.getName}")
     }
 
-  def toSegmentRef(file: DBFile,
+  def toSegmentRef(file: CoreFile,
                    firstSegmentStartOffset: Int,
                    persistent: Persistent,
                    valuesReaderCacheable: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]],
@@ -202,7 +202,7 @@ object TransientSegmentSerialiser {
         throw new Exception(s"Invalid key-value ${keyValue.getClass.getName}")
     }
 
-  def toSegmentRef(file: DBFile,
+  def toSegmentRef(file: CoreFile,
                    firstSegmentStartOffset: Int,
                    range: Persistent.Range,
                    valuesReaderCacheable: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]],
@@ -308,7 +308,7 @@ object TransientSegmentSerialiser {
         throw new Exception("Invalid value. Update expected")
     }
 
-  def toSegmentRef(file: DBFile,
+  def toSegmentRef(file: CoreFile,
                    firstSegmentStartOffset: Int,
                    put: Persistent.Put,
                    valuesReaderCacheable: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]],

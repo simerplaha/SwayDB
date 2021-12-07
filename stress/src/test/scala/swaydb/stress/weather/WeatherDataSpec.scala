@@ -19,8 +19,8 @@ package swaydb.stress.weather
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.Assertion
 import swaydb.IOValues._
-import swaydb.core.TestData._
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.CoreTestData._
+import swaydb.core.{CoreTestBase, TestCaseSweeper}
 import swaydb.testkit.RunThis._
 import swaydb.{Bag, IO, OK}
 
@@ -29,7 +29,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import swaydb.testkit.TestKit._
 
-trait WeatherDataSpec extends TestBase with LazyLogging {
+trait WeatherDataSpec extends CoreTestBase with LazyLogging {
 
   def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMapT[Int, WeatherData, IO.ApiIO]
 

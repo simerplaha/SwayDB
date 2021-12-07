@@ -18,7 +18,7 @@ package swaydb.api.multimap
 
 import org.scalatest.OptionValues._
 import swaydb.PureFunctionScala._
-import swaydb.api.TestBaseEmbedded
+import swaydb.api.TestBaseAPI
 import swaydb.config.Functions
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
@@ -54,7 +54,7 @@ class MultiMapFunctionsSpec3 extends MultiMapFunctionsSpec {
     swaydb.memory.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](logSize = 1.byte).sweep(_.delete())
 }
 
-sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
+sealed trait MultiMapFunctionsSpec extends TestBaseAPI {
 
   val keyValueCount: Int = 30
 

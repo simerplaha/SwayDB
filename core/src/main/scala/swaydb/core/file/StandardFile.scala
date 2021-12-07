@@ -57,7 +57,7 @@ private[file] object StandardFile {
 private[file] class StandardFile(val path: Path,
                                  mode: StandardOpenOption,
                                  channel: FileChannel,
-                                 forceSave: ForceSave.StandardFiles)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with DBFileType {
+                                 forceSave: ForceSave.StandardFiles)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with CoreFileType {
 
   //Force is applied on files after they are marked immutable so it only needs
   //to be invoked once.
@@ -94,7 +94,7 @@ private[file] class StandardFile(val path: Path,
     Effect.writeUnclosedGathering(channel, totalBytes, buffers)
   }
 
-  override def transfer(position: Int, count: Int, transferTo: DBFileType): Int =
+  override def transfer(position: Int, count: Int, transferTo: CoreFileType): Int =
     transferTo match {
       case target: StandardFile =>
         Effect.transfer(

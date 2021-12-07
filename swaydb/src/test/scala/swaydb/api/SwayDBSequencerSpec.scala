@@ -47,7 +47,7 @@ class SwayDBSequencerSpec3 extends SwayDBSequencerSpec {
     swaydb.memory.Map[Int, String, Nothing, BAG]().map(_.sweep(_.toBag[Glass].delete()))
 }
 
-sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
+sealed trait SwayDBSequencerSpec extends TestBaseAPI {
 
   def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
                        sequencer: Sequencer[BAG],

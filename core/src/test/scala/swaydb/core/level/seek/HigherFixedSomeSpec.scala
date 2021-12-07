@@ -21,11 +21,11 @@ import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.level.LevelSeek
 import swaydb.core.segment.data.merge.FixedMerger
 import swaydb.core.segment.data.{KeyValue, Memory}
-import swaydb.core.{TestData, TestTimer}
+import swaydb.core.{CoreTestData, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -37,7 +37,7 @@ class HigherFixedSomeSpec extends AnyWordSpec with Matchers with MockFactory wit
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
-  implicit val functionStore = TestData.functionStore
+  implicit val functionStore = CoreTestData.functionStore
 
   "return Some" when {
     implicit val testTimer = TestTimer.Decremental()

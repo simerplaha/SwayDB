@@ -23,7 +23,7 @@ import swaydb.config.MMAP
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.{DBFile, ForceSaveApplier}
+import swaydb.core.file.{CoreFile, ForceSaveApplier}
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntrySerialiser, LogEntryWriter}
 import swaydb.effect.Effect._
 import swaydb.effect.{Effect, IOStrategy}
@@ -109,10 +109,10 @@ private[log] object PersistentLog extends LazyLogging {
                              memoryMapped: MMAP.Log,
                              fileSize: Int)(implicit fileSweeper: FileSweeper,
                                             bufferCleaner: ByteBufferSweeperActor,
-                                            forceSaveApplier: ForceSaveApplier): DBFile =
+                                            forceSaveApplier: ForceSaveApplier): CoreFile =
     memoryMapped match {
       case MMAP.On(deleteAfterClean, forceSave) =>
-        DBFile.mmapInit(
+        CoreFile.mmapInit(
           path = folder.resolve(0.toLogFileId),
           fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
           bufferSize = fileSize,
@@ -122,7 +122,7 @@ private[log] object PersistentLog extends LazyLogging {
         )
 
       case MMAP.Off(forceSave) =>
-        DBFile.standardWrite(
+        CoreFile.standardWrite(
           path = folder.resolve(0.toLogFileId),
           fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
           autoClose = false,
@@ -139,7 +139,7 @@ private[log] object PersistentLog extends LazyLogging {
                                                                                          mapReader: LogEntryReader[LogEntry[K, V]],
                                                                                          fileSweeper: FileSweeper,
                                                                                          bufferCleaner: ByteBufferSweeperActor,
-                                                                                         forceSaveApplier: ForceSaveApplier): RecoveryResult[DBFile] = {
+                                                                                         forceSaveApplier: ForceSaveApplier): RecoveryResult[CoreFile] = {
 
     val files = folder.files(Extension.Log)
 
@@ -147,7 +147,7 @@ private[log] object PersistentLog extends LazyLogging {
       files mapRecover {
         path =>
           logger.info(s"$path: Recovering key-values with dropCorruptedTailEntries set as $dropCorruptedTailEntries.")
-          val file = DBFile.standardRead(path, IOStrategy.SynchronisedIO(true), autoClose = false)
+          val file = CoreFile.standardRead(path, IOStrategy.SynchronisedIO(true), autoClose = false)
           val bytes = file.readAll
           val recovery = LogEntrySerialiser.read[K, V](bytes, dropCorruptedTailEntries).get
 
@@ -194,13 +194,13 @@ private[log] object PersistentLog extends LazyLogging {
    *
    * oldFiles value deleted after the recovery is successful. In case of a failure an error message is logged.
    */
-  private[log] def nextFile[K, V, C <: LogCache[K, V]](oldFiles: Slice[DBFile],
+  private[log] def nextFile[K, V, C <: LogCache[K, V]](oldFiles: Slice[CoreFile],
                                                        mmap: MMAP.Log,
                                                        fileSize: Int,
                                                        cache: C)(implicit writer: LogEntryWriter[LogEntry.Put[K, V]],
                                                                  fileSweeper: FileSweeper,
                                                                  bufferCleaner: ByteBufferSweeperActor,
-                                                                 forceSaveApplier: ForceSaveApplier): Option[DBFile] =
+                                                                 forceSaveApplier: ForceSaveApplier): Option[CoreFile] =
     oldFiles.lastOption map {
       lastFile =>
         val file =
@@ -226,13 +226,13 @@ private[log] object PersistentLog extends LazyLogging {
         }
     }
 
-  private[log] def nextFile[K, V, C <: LogCache[K, V]](currentFile: DBFile,
+  private[log] def nextFile[K, V, C <: LogCache[K, V]](currentFile: CoreFile,
                                                        mmap: MMAP.Log,
                                                        size: Int,
                                                        cache: C)(implicit writer: LogEntryWriter[LogEntry.Put[K, V]],
                                                                  fileSweeper: FileSweeper,
                                                                  bufferCleaner: ByteBufferSweeperActor,
-                                                                 forceSaveApplier: ForceSaveApplier): DBFile = {
+                                                                 forceSaveApplier: ForceSaveApplier): CoreFile = {
 
     val nextPath = currentFile.path.incrementFileId
     val bytes = LogEntrySerialiser.write(cache.iterator)
@@ -240,7 +240,7 @@ private[log] object PersistentLog extends LazyLogging {
     val newFile =
       mmap match {
         case MMAP.On(deleteAfterClean, forceSave) =>
-          DBFile.mmapInit(
+          CoreFile.mmapInit(
             path = nextPath,
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
             bufferSize = bytes.size + size,
@@ -250,7 +250,7 @@ private[log] object PersistentLog extends LazyLogging {
           )
 
         case MMAP.Off(forceSave) =>
-          DBFile.standardWrite(
+          CoreFile.standardWrite(
             path = nextPath,
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
             autoClose = false,
@@ -269,10 +269,10 @@ protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
                                                               fileSize: Int,
                                                               flushOnOverflow: Boolean,
                                                               cache: C,
-                                                              private var currentFile: DBFile)(implicit val fileSweeper: FileSweeper,
-                                                                                               val bufferCleaner: ByteBufferSweeperActor,
-                                                                                               val writer: LogEntryWriter[LogEntry.Put[K, V]],
-                                                                                               val forceSaveApplier: ForceSaveApplier) extends Log[K, V, C] with LazyLogging {
+                                                              private var currentFile: CoreFile)(implicit val fileSweeper: FileSweeper,
+                                                                                                 val bufferCleaner: ByteBufferSweeperActor,
+                                                                                                 val writer: LogEntryWriter[LogEntry.Put[K, V]],
+                                                                                                 val forceSaveApplier: ForceSaveApplier) extends Log[K, V, C] with LazyLogging {
 
   // actualSize of the file can be different to fileSize when the entry's size is > fileSize.
   // In this case a file is created just to fit those bytes (for that one entry).

@@ -21,13 +21,13 @@ import swaydb._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.testkit.RunThis.runThis
 
 import scala.util.Random
 import swaydb.testkit.TestKit._
 
-class SwayDBBooPickleSpec extends TestBaseEmbedded {
+class SwayDBBooPickleSpec extends TestBaseAPI {
 
   case class User(email: String, id: Int, string: String, optional: Option[String])
 

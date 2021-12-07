@@ -29,7 +29,7 @@ import java.nio.file.Files
 import scala.concurrent.duration.DurationInt
 import scala.util.Try
 
-class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
+class SwayDBAppliedFunctionsSpec extends TestBaseAPI {
 
   override val keyValueCount: Int = 1000
 

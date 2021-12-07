@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.block.reader
 
-import swaydb.core.file.DBFile
+import swaydb.core.file.CoreFile
 import swaydb.core.file.reader.{FileReader, Reader}
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.segment.SegmentBlockOffset
@@ -24,7 +24,7 @@ import swaydb.slice.{Reader, Slice, SliceReader}
 
 private[core] object BlockRefReader {
 
-  def apply(file: DBFile,
+  def apply(file: CoreFile,
             blockCache: Option[BlockCacheState]): BlockRefReader[SegmentBlockOffset] = {
     val offset = SegmentBlockOffset(0, file.fileSize)
 
@@ -36,7 +36,7 @@ private[core] object BlockRefReader {
     )
   }
 
-  def apply(file: DBFile,
+  def apply(file: CoreFile,
             fileSize: Int,
             blockCache: Option[BlockCacheState]): BlockRefReader[SegmentBlockOffset] = {
     val offset = SegmentBlockOffset(0, fileSize)
@@ -49,7 +49,7 @@ private[core] object BlockRefReader {
     )
   }
 
-  def apply(file: DBFile,
+  def apply(file: CoreFile,
             start: Int,
             fileSize: Int,
             blockCache: Option[BlockCacheState]): BlockRefReader[SegmentBlockOffset] = {
@@ -101,7 +101,7 @@ private[core] object BlockRefReader {
 
   /**
    * NOTE: [[swaydb.core.segment.PersistentSegment]]s should not create [[BlockRefReader]]
-   * from other [[BlockReaderBase]]. They should be created directly on a [[DBFile]] because
+   * from other [[BlockReaderBase]]. They should be created directly on a [[CoreFile]] because
    * [[BlockRefReader]] becomes the [[BlockReaderBase.rootBlockRefOffset]] which [[BlockReaderBase]]
    * uses within it's [[BlockCache]] to adjust position (key) in the cache such that they are
    * transferable when Segments are transferred to other Segments.
@@ -150,7 +150,7 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
     this
   }
 
-  def transfer(position: Int, count: Int, transferTo: DBFile): Unit =
+  def transfer(position: Int, count: Int, transferTo: CoreFile): Unit =
     reader match {
       case reader: FileReader =>
         reader.transfer(position = offset.start + position, count = count, transferTo = transferTo)
@@ -162,7 +162,7 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
   /**
    * Transfers bytes outside this [[BlockRefReader]]'s offset.
    */
-  def transferIgnoreOffset(position: Int, count: Int, transferTo: DBFile): Unit =
+  def transferIgnoreOffset(position: Int, count: Int, transferTo: CoreFile): Unit =
     reader match {
       case reader: FileReader =>
         reader.transfer(position = position, count = count, transferTo = transferTo)

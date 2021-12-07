@@ -17,14 +17,14 @@
 package swaydb.api.multimap
 
 import org.scalatest.OptionValues._
-import swaydb.api.TestBaseEmbedded
+import swaydb.api.TestBaseAPI
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.serializers.Serializer
 import swaydb.slice.Slice
 import swaydb.{Bag, Glass}
 
-class NestedOptionValueSpec extends TestBaseEmbedded {
+class NestedOptionValueSpec extends TestBaseAPI {
   override val keyValueCount: Int = 1000
   implicit val bag = Bag.glass
 

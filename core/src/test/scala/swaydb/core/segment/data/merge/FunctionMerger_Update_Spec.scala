@@ -22,9 +22,9 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.OK
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.data._
-import swaydb.core.{TestData, TestTimer}
+import swaydb.core.{CoreTestData, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -243,7 +243,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
 
           //merge LEVEL1 and LEVEL2
           val level1And2Merge =
-            TestData.merge(
+            CoreTestData.merge(
               newKeyValues = Slice(functionLevel1),
               oldKeyValues = Slice(functionLevel2),
               isLastLevel = false
@@ -253,7 +253,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
 
           //merge LEVEL3 and LEVEL3
           val level2And3Merge =
-            TestData.merge(
+            CoreTestData.merge(
               newKeyValues = Slice(functionLevel2),
               oldKeyValues = Slice(functionLevel3),
               isLastLevel = false
@@ -263,7 +263,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
 
           //merge the result of above two merges
           val finalFunctionMerge =
-            TestData.merge(
+            CoreTestData.merge(
               newKeyValues = level1And2Merge.toSlice,
               oldKeyValues = level2And3Merge.toSlice,
               isLastLevel = false
@@ -288,7 +288,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
 
           //put collapses all functions
           val putMerge =
-            TestData.merge(
+            CoreTestData.merge(
               newKeyValues = finalFunctionMerge.toSlice,
               oldKeyValues = Slice(Memory.Put(1, 0, randomDeadline, Time(0))),
               isLastLevel = randomBoolean()

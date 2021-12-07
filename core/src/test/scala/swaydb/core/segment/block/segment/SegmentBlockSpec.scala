@@ -18,7 +18,7 @@ package swaydb.core.segment.block.segment
 
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
@@ -28,7 +28,7 @@ import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.data._
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -38,7 +38,7 @@ import swaydb.testkit.RunThis._
 import scala.collection.mutable.ListBuffer
 import swaydb.testkit.TestKit._
 
-class SegmentBlockSpec extends TestBase {
+class SegmentBlockSpec extends CoreTestBase {
 
   val keyValueCount = 100
 

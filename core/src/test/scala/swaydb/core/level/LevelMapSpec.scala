@@ -22,7 +22,7 @@ import swaydb.IOValues._
 import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.log.{Log, LogEntry}
@@ -56,7 +56,7 @@ class LevelMapSpec3 extends LevelMapSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelMapSpec extends CoreTestBase with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty

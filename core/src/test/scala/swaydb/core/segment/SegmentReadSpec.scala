@@ -23,7 +23,7 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data._
@@ -66,7 +66,7 @@ class SegmentReadSpec3 extends SegmentReadSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
+sealed trait SegmentReadSpec extends CoreTestBase with ScalaFutures {
 
   implicit val keyOrder = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.random

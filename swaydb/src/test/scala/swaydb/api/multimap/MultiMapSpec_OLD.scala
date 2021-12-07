@@ -17,7 +17,7 @@
 package swaydb.api.multimap
 
 import org.scalatest.OptionValues._
-import swaydb.api.TestBaseEmbedded
+import swaydb.api.TestBaseAPI
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
@@ -65,7 +65,7 @@ class MultiMapSpecOLD3 extends MultiMapSpec_OLD {
  * OLD test-cases when [[MultiMap]] was called Extension. Keeping these test around
  * because cover some use-cases.
  */
-sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
+sealed trait MultiMapSpec_OLD extends TestBaseAPI {
 
   val keyValueCount: Int
 

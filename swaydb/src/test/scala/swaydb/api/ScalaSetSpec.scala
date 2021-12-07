@@ -53,7 +53,7 @@ class ScalaSetSpec3 extends ScalaSetSpec {
     swaydb.memory.Set[Int, Nothing, IO.ApiIO]().right.value.sweep(_.delete().get)
 }
 
-sealed trait ScalaSetSpec extends TestBaseEmbedded {
+sealed trait ScalaSetSpec extends TestBaseAPI {
 
   val keyValueCount: Int
 

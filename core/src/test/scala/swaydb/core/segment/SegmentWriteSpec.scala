@@ -23,7 +23,7 @@ import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
@@ -80,7 +80,7 @@ class SegmentWriteSpec3 extends SegmentWriteSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait SegmentWriteSpec extends TestBase {
+sealed trait SegmentWriteSpec extends CoreTestBase {
 
   val keyValuesCount = 100
 

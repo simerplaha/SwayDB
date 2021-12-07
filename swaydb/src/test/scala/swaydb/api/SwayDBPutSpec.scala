@@ -95,7 +95,7 @@ class MultiMapPutSpec5 extends SwayDBPutSpec {
 //    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO]().right.value
 //}
 
-sealed trait SwayDBPutSpec extends TestBaseEmbedded {
+sealed trait SwayDBPutSpec extends TestBaseAPI {
 
   val keyValueCount: Int
 

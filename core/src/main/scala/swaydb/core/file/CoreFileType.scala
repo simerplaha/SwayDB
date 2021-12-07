@@ -22,7 +22,7 @@ import swaydb.slice.{Slice, SliceRO}
 import java.nio.channels.WritableByteChannel
 import java.nio.file.Path
 
-private[file] trait DBFileType extends FileSweeperItem {
+private[file] trait CoreFileType extends FileSweeperItem {
 
   val path: Path
 
@@ -50,7 +50,7 @@ private[file] trait DBFileType extends FileSweeperItem {
 
   def appendBatch(slice: Array[Slice[Byte]]): Unit
 
-  def transfer(position: Int, count: Int, transferTo: DBFileType): Int
+  def transfer(position: Int, count: Int, transferTo: CoreFileType): Int
 
   def read(position: Int, size: Int): Slice[Byte]
 

@@ -20,9 +20,9 @@ import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -55,7 +55,7 @@ class SegmentHigherSpec3 extends SegmentHigherSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMethodTester {
+sealed trait SegmentHigherSpec extends CoreTestBase with ScalaFutures with PrivateMethodTester {
 
   def keyValuesCount: Int
 

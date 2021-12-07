@@ -20,10 +20,10 @@ import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.ActorConfig.QueueOrder
 import swaydb.PureFunctionScala._
-import swaydb.api.TestBaseEmbedded
+import swaydb.api.TestBaseAPI
 import swaydb.config.Functions
 import swaydb.core.TestCaseSweeper
-import swaydb.core.TestData._
+import swaydb.core.CoreTestData._
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Default._
 import swaydb.slice.Slice
@@ -63,7 +63,7 @@ object ProductCommand {
   case class AssertState(removeAsserted: RemoveAsserted) extends ProductCommand
 }
 
-trait SimulationSpec extends AnyWordSpec with TestBaseEmbedded with LazyLogging {
+trait SimulationSpec extends AnyWordSpec with TestBaseAPI with LazyLogging {
 
   override val keyValueCount: Int = 0
 

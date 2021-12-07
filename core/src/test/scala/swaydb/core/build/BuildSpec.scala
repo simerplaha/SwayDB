@@ -20,8 +20,8 @@ import swaydb.Error.IO
 import swaydb.Exception.InvalidDirectoryType
 import swaydb.IOValues._
 import swaydb.config.DataType
-import swaydb.core.TestData._
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.CoreTestData._
+import swaydb.core.{CoreTestBase, TestCaseSweeper}
 import swaydb.effect.Effect
 import swaydb.slice.Slice
 import swaydb.utils.{ByteSizeOf, Extension}
@@ -30,7 +30,7 @@ import java.nio.file.FileAlreadyExistsException
 import scala.util.Random
 import swaydb.testkit.TestKit._
 
-class BuildSpec extends TestBase {
+class BuildSpec extends CoreTestBase {
 
   "write" should {
     "create a build.info file" in {

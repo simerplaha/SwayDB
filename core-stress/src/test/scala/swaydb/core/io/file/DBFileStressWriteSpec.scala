@@ -30,16 +30,16 @@
 //import scala.concurrent.Future
 //import scala.concurrent.duration._
 //
-//class DBFileStressWriteSpec extends TestBase {
+//class CoreFileStressWriteSpec extends TestBase {
 //
-//  "DBFile" should {
+//  "CoreFile" should {
 //    //use a larger size (200000) to test on larger data-set.
 //    val bytes = randomByteChunks(size = 20000, sizePerChunk = 50.bytes)
 //
 //    "write key values to a StandardFile" in {
 //      val path = randomFilePath
 //
-//      val file = DBFile.standardWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//      val file = CoreFile.standardWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
 //      Benchmark("write 1 million key values to a StandardFile") {
 //        bytes foreach {
 //          byteChunk =>
@@ -52,7 +52,7 @@
 //    "write key values to a StandardFile concurrently" in {
 //      val path = randomFilePath
 //
-//      val file = DBFile.standardWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//      val file = CoreFile.standardWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
 //      Benchmark("write 1 million key values to a StandardFile concurrently") {
 //        Future.sequence {
 //          bytes map {
@@ -68,7 +68,7 @@
 //      val path = randomFilePath
 //
 //      val file =
-//        DBFile.mmapInit(
+//        CoreFile.mmapInit(
 //          path = path,
 //          ioStrategy = randomIOAccess(true),
 //          bufferSize = bytes.size * 50,
@@ -90,7 +90,7 @@
 //      val path = randomFilePath
 //
 //      val file =
-//        DBFile.mmapInit(
+//        CoreFile.mmapInit(
 //          path = path,
 //          ioStrategy = randomIOAccess(true),
 //          bufferSize = bytes.size * 50,

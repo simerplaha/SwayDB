@@ -74,7 +74,7 @@ class MultiMapSpec5 extends ScalaMapSpec {
     generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get.sweep(_.delete().get))
 }
 
-sealed trait ScalaMapSpec extends TestBaseEmbedded {
+sealed trait ScalaMapSpec extends TestBaseAPI {
 
   val keyValueCount: Int
 

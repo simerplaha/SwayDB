@@ -24,7 +24,7 @@ import swaydb.core.log.MapTestUtil._
 import swaydb.core.log.counter.CounterLog
 import swaydb.core.log.serialiser.{CounterLogEntryReader, CounterLogEntryWriter, LogEntryReader, LogEntryWriter}
 import swaydb.core.segment.FunctionStore
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.OperatingSystem
@@ -61,7 +61,7 @@ class MemoryTimerSpec extends TimerSpec {
     Timer.memory()
 }
 
-sealed trait TimerSpec extends TestBase {
+sealed trait TimerSpec extends CoreTestBase {
 
   implicit val ec = TestExecutionContext.executionContext
   implicit val keyOrder = KeyOrder.default

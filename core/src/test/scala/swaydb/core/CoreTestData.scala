@@ -30,7 +30,7 @@ import swaydb.config.storage.{Level0Storage, LevelStorage}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.cache.Cache
-import swaydb.core.file.DBFile
+import swaydb.core.file.CoreFile
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
@@ -84,7 +84,7 @@ import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.Random
 
-object TestData {
+object CoreTestData {
 
   val unit: Unit = ()
 
@@ -2073,7 +2073,7 @@ object TestData {
     }
   }
 
-  implicit class DBFileImplicits(file: DBFile) {
+  implicit class CoreFileImplicits(file: CoreFile) {
     def toBlockCacheSource: BlockCacheSource =
       new BlockCacheSource {
         override def blockCacheMaxBytes: Int =

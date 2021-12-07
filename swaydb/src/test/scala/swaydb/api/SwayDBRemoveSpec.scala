@@ -71,7 +71,7 @@ class MultiMapRemoveSpec5 extends SwayDBRemoveSpec {
     generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get).sweep(_.delete().get)
 }
 
-sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
+sealed trait SwayDBRemoveSpec extends TestBaseAPI {
 
   val keyValueCount: Int
 
