@@ -37,9 +37,9 @@ import swaydb.{Bag, Glass}
 
 import scala.concurrent.duration.DurationInt
 
-object MapTestUtil {
+object LogTestUtil {
 
-  //windows requires special handling. If a Map was initially opened as a MMAP file
+  //windows requires special handling. If a Log was initially opened as a MMAP file
   //we cant reopen without cleaning it first because reopen will re-read the file's content
   //using FileChannel, and flushes it's content to a new file deleting the old File. But if it's
   //was previously opened as MMAP file (in a test) then it cannot be deleted without clean.
@@ -51,11 +51,11 @@ object MapTestUtil {
     }
 
   //cannot be added to TestBase because PersistentMap cannot leave the log package.
-  implicit class ReopenMap[K, V, C <: LogCache[K, V]](log: PersistentLog[K, V, C]) {
+  implicit class ReopenLog[K, V, C <: LogCache[K, V]](log: PersistentLog[K, V, C]) {
     def reopen(implicit keyOrder: KeyOrder[K],
                reader: LogEntryReader[LogEntry[K, V]],
                testCaseSweeper: TestCaseSweeper,
-               mapCacheBuilder: LogCacheBuilder[C]) = {
+               logCacheBuilder: LogCacheBuilder[C]) = {
       log.close()
 
       implicit val writer = log.writer
@@ -75,9 +75,9 @@ object MapTestUtil {
     }
   }
 
-  implicit class PersistentMapImplicit[K, V](log: PersistentLog[K, V, _]) {
+  implicit class PersistentLogImplicit[K, V](log: PersistentLog[K, V, _]) {
     /**
-     * Manages closing of Map accouting for Windows where
+     * Manages closing of Log accounting for Windows where
      * Memory-mapped files require in-memory ByteBuffer be cleared.
      */
     def ensureClose(): Unit = {

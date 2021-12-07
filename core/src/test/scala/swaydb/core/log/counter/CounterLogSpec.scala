@@ -21,7 +21,7 @@ import swaydb.config.MMAP
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core._
-import swaydb.core.log.MapTestUtil._
+import swaydb.core.log.LogTestUtil._
 import swaydb.core.log.serialiser._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
