@@ -34,7 +34,7 @@ case class SliceReader(slice: Slice[Byte],
 
   def read(size: Int): Slice[Byte] =
     if (size <= 0) {
-      Slice.empty
+      Slice.emptyBytes
     } else {
       val bytes = slice.take(position, size)
       position += size

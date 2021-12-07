@@ -60,7 +60,7 @@ private[series] class SeriesAppendableVolatile[T >: Null] private(array: Array[V
     else
       array(0).value
 
-  def isFull =
+  def isFull: Boolean =
     array.length == writePosition
 
   def iterator: Iterator[T] =
