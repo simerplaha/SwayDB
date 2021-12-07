@@ -64,7 +64,7 @@ private[core] object LogEntrySerialiser extends LazyLogging {
    * THIS FUNCTION NEED REFACTORING.
    */
   def read[K, V](bytes: Slice[Byte],
-                 dropCorruptedTailEntries: Boolean)(implicit mapReader: LogEntryReader[LogEntry[K, V]]): IO[swaydb.Error.Log, RecoveryResult[Option[LogEntry[K, V]]]] =
+                 dropCorruptedTailEntries: Boolean)(implicit logReader: LogEntryReader[LogEntry[K, V]]): IO[swaydb.Error.Log, RecoveryResult[Option[LogEntry[K, V]]]] =
     Reader(bytes).foldLeftIO(RecoveryResult(Option.empty[LogEntry[K, V]], IO.unit)) {
       case (recovery, reader) =>
         IO(reader.hasAtLeast(ByteSizeOf.long)) match {
@@ -84,7 +84,7 @@ private[core] object LogEntrySerialiser extends LazyLogging {
                         //crc check.
                         if (crc == checkCRC) {
                           IO {
-                            val readLogEntry = mapReader.read(Reader(payload))
+                            val readLogEntry = logReader.read(Reader(payload))
                             val nextEntry = recovery.item.map(_ ++ readLogEntry) orElse Some(readLogEntry)
                             RecoveryResult(nextEntry, recovery.result)
                           }

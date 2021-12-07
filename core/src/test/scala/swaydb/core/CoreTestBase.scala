@@ -623,7 +623,7 @@ trait CoreTestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with
     val compaction: Option[DefActor[Compactor]] =
       if (throttleOn) {
         val compactor =
-          CoreInitializer.initialiseCompaction(
+          CoreInitialiser.initialiseCompaction(
             zero = level0,
             compactionConfig =
               CompactionConfig(

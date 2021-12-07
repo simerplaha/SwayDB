@@ -59,7 +59,7 @@ private[swaydb] object Core {
                                             timeOrder: TimeOrder[Slice[Byte]],
                                             functionStore: FunctionStore,
                                             buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
-    CoreInitializer(
+    CoreInitialiser(
       config = config,
       enableTimer = enableTimer,
       cacheKeyValueIds = cacheKeyValueIds,
@@ -79,7 +79,7 @@ private[swaydb] object Core {
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         functionStore: FunctionStore,
                                         buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
-    CoreInitializer(
+    CoreInitialiser(
       config = config,
       enableTimer = enableTimer,
       cacheKeyValueIds = cacheKeyValueIds,

@@ -30,7 +30,7 @@ import swaydb.{Error, IO}
 import java.nio.file.Path
 import scala.util.hashing.MurmurHash3
 
-object CoreFile extends LazyLogging {
+private[core] object CoreFile extends LazyLogging {
 
   def fileCache(filePath: Path,
                 memoryMapped: Boolean,
@@ -120,7 +120,7 @@ object CoreFile extends LazyLogging {
       autoClose = autoClose,
       deleteAfterClean = false,
       forceSaveConfig = forceSave,
-      fileCache =
+      cache =
         fileCache(
           filePath = path,
           memoryMapped = false,
@@ -147,7 +147,7 @@ object CoreFile extends LazyLogging {
         autoClose = autoClose,
         deleteAfterClean = false,
         forceSaveConfig = ForceSave.Off,
-        fileCache =
+        cache =
           fileCache(
             filePath = path,
             memoryMapped = false,
@@ -262,7 +262,7 @@ object CoreFile extends LazyLogging {
         autoClose = autoClose,
         deleteAfterClean = deleteAfterClean,
         forceSaveConfig = ForceSave.Off,
-        fileCache =
+        cache =
           fileCache(
             filePath = path,
             memoryMapped = true,
@@ -296,7 +296,7 @@ object CoreFile extends LazyLogging {
       autoClose = autoClose,
       deleteAfterClean = deleteAfterClean,
       forceSaveConfig = forceSave,
-      fileCache =
+      cache =
         fileCache(
           filePath = path,
           memoryMapped = true,
@@ -313,22 +313,22 @@ object CoreFile extends LazyLogging {
  *
  * Responsible for lazy loading files for reads and opening closed files in a thread safe manner.
  */
-class CoreFile(val path: Path,
-               val memoryMapped: Boolean,
-               val autoClose: Boolean,
-               val deleteAfterClean: Boolean,
-               val forceSaveConfig: ForceSave,
-               fileCache: Cache[swaydb.Error.IO, Unit, CoreFileType])(implicit bufferCleaner: ByteBufferSweeperActor,
-                                                                      forceSaveApplied: ForceSaveApplier) extends LazyLogging {
+private[core] class CoreFile(val path: Path,
+                             val memoryMapped: Boolean,
+                             val autoClose: Boolean,
+                             val deleteAfterClean: Boolean,
+                             val forceSaveConfig: ForceSave,
+                             cache: Cache[swaydb.Error.IO, Unit, CoreFileType])(implicit bufferCleaner: ByteBufferSweeperActor,
+                                                                                forceSaveApplied: ForceSaveApplier) extends LazyLogging {
 
   def existsOnDisk =
     Effect.exists(path)
 
   @inline def file: CoreFileType =
-    fileCache.value(()).get
+    cache.value(()).get
 
   def delete(): Unit =
-    fileCache.clearApply {
+    cache.clearApply {
       case Some(file) =>
         IO {
           file.close()
@@ -351,7 +351,7 @@ class CoreFile(val path: Path,
     } get
 
   def close(): Unit =
-    fileCache.clearApply {
+    cache.clearApply {
       case Some(file) =>
         IO(file.close())
 
@@ -369,17 +369,17 @@ class CoreFile(val path: Path,
   }
 
   def append(slice: Slice[Byte]) =
-    fileCache.value(()).get.append(slice)
+    cache.value(()).get.append(slice)
 
   def appendBatch(slice: Array[Slice[Byte]]) =
-    fileCache.value(()).get.appendBatch(slice)
+    cache.value(()).get.appendBatch(slice)
 
   def read(position: Int,
            size: Int): Slice[Byte] =
     if (size == 0)
       Slice.emptyBytes
     else
-      fileCache.value(()).get.read(position = position, size = size)
+      cache.value(()).get.read(position = position, size = size)
 
   def read(position: Int,
            size: Int,
@@ -387,7 +387,7 @@ class CoreFile(val path: Path,
     if (size == 0)
       Slice.emptyBytes //no need to have this as global val because core never asks for 0 size
     else
-      fileCache.value(()).get.read(position = position, size = size, blockSize = blockSize)
+      cache.value(()).get.read(position = position, size = size, blockSize = blockSize)
 
   def transfer(position: Int, count: Int, transferTo: CoreFile): Int =
     file.transfer(
@@ -397,32 +397,32 @@ class CoreFile(val path: Path,
     )
 
   def get(position: Int): Byte =
-    fileCache.value(()).get.get(position)
+    cache.value(()).get.get(position)
 
   def getSkipCache(position: Int): Byte =
-    fileCache.value(()).get.get(position)
+    cache.value(()).get.get(position)
 
   def readAll: Slice[Byte] =
-    fileCache.value(()).get.readAll
+    cache.value(()).get.readAll
 
   def fileSize: Int =
-    fileCache.value(()).get.size
+    cache.value(()).get.size
 
   //memory files are never closed, if it's memory file return true.
   def isOpen: Boolean =
-    fileCache.getIO().exists(_.exists(_.isOpen))
+    cache.getIO().exists(_.exists(_.isOpen))
 
   def isFileDefined: Boolean =
-    fileCache.getIO().isDefined
+    cache.getIO().isDefined
 
   def isLoaded: Boolean =
-    fileCache.value(()).get.isLoaded
+    cache.value(()).get.isLoaded
 
   def isFull: Boolean =
-    fileCache.value(()).get.isFull
+    cache.value(()).get.isFull
 
   def forceSave(): Unit =
-    fileCache.value(()).get.forceSave()
+    cache.value(()).get.forceSave()
 
   override def equals(that: Any): Boolean =
     that match {

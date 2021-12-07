@@ -136,7 +136,7 @@ private[log] object PersistentLog extends LazyLogging {
                                                       fileSize: Int,
                                                       cache: C,
                                                       dropCorruptedTailEntries: Boolean)(implicit writer: LogEntryWriter[LogEntry.Put[K, V]],
-                                                                                         mapReader: LogEntryReader[LogEntry[K, V]],
+                                                                                         logReader: LogEntryReader[LogEntry[K, V]],
                                                                                          fileSweeper: FileSweeper,
                                                                                          bufferCleaner: ByteBufferSweeperActor,
                                                                                          forceSaveApplier: ForceSaveApplier): RecoveryResult[CoreFile] = {

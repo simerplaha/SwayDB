@@ -70,7 +70,7 @@ private[core] case object MergeStats {
   def bufferBuilder[FROM](keyValues: IterableOnce[FROM])(implicit convert: FROM => data.Memory): MergeStats.Buffer[FROM, ListBuffer] =
     buffer[FROM, ListBuffer](Aggregator.listBuffer) addAll keyValues
 
-  def persistent[FROM, T[_]](aggregator: Aggregator[swaydb.core.segment.data.Memory, T[swaydb.core.segment.data.Memory]])(implicit converterOrNull: FROM => data.Memory): MergeStats.Persistent.Builder[FROM, T] =
+  def persistent[FROM, T[_]](aggregator: Aggregator[data.Memory, T[data.Memory]])(implicit converterOrNull: FROM => data.Memory): MergeStats.Persistent.Builder[FROM, T] =
     new Persistent.Builder(
       maxMergedKeySize = 0,
       totalMergedKeysSize = 0,
@@ -88,12 +88,12 @@ private[core] case object MergeStats {
       aggregator = aggregator
     )
 
-  def memory[FROM, T[_]](aggregator: Aggregator[swaydb.core.segment.data.Memory, T[swaydb.core.segment.data.Memory]])(implicit converterOrNull: FROM => data.Memory): MergeStats.Memory.Builder[FROM, T] =
+  def memory[FROM, T[_]](aggregator: Aggregator[data.Memory, T[data.Memory]])(implicit converterOrNull: FROM => data.Memory): MergeStats.Memory.Builder[FROM, T] =
     new Memory.Builder[FROM, T](
       aggregator = aggregator
     )
 
-  def buffer[FROM, T[_]](aggregator: Aggregator[swaydb.core.segment.data.Memory, T[swaydb.core.segment.data.Memory]])(implicit converterOrNull: FROM => data.Memory): MergeStats.Buffer[FROM, T] =
+  def buffer[FROM, T[_]](aggregator: Aggregator[data.Memory, T[data.Memory]])(implicit converterOrNull: FROM => data.Memory): MergeStats.Buffer[FROM, T] =
     new Buffer(aggregator)
 
   object Persistent {
@@ -110,7 +110,7 @@ private[core] case object MergeStats {
                                 var hasRange: Boolean,
                                 var mightContainRemoveRange: Boolean,
                                 var hasPut: Boolean,
-                                aggregator: Aggregator[swaydb.core.segment.data.Memory, T[swaydb.core.segment.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats.Segment[FROM, T] {
+                                aggregator: Aggregator[data.Memory, T[data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats.Segment[FROM, T] {
 
       def close(hasAccessPositionIndex: Boolean, optimiseForReverseIteration: Boolean): MergeStats.Persistent.Closed[T] =
         new MergeStats.Persistent.Closed[T](
@@ -199,7 +199,7 @@ private[core] case object MergeStats {
 
     /**
      * Does not expose [[Closed.keyValues]] to handle
-     * cases where the collection type T[_] type might
+     * cases where the collection type `T[_]`` type might
      * be [[IterableOnce]]
      */
     sealed trait ClosedStatsOnly {
@@ -225,7 +225,7 @@ private[core] case object MergeStats {
           0
       }
 
-    class Builder[-FROM, +T[_]](aggregator: Aggregator[swaydb.core.segment.data.Memory, T[swaydb.core.segment.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats.Segment[FROM, T] {
+    class Builder[-FROM, +T[_]](aggregator: Aggregator[data.Memory, T[data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats.Segment[FROM, T] {
 
       private var _segmentSize = 0
       private var _totalKeyValueCount: Int = 0
@@ -275,7 +275,7 @@ private[core] case object MergeStats {
                         val segmentSize: Int) extends ClosedIgnoreStats[T](isEmpty, keyValues) with ClosedStats[T]
   }
 
-  class Buffer[-FROM, +T[_]](aggregator: Aggregator[swaydb.core.segment.data.Memory, T[swaydb.core.segment.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats[FROM, T] {
+  class Buffer[-FROM, +T[_]](aggregator: Aggregator[data.Memory, T[data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats[FROM, T] {
 
     override def addOne(from: FROM): this.type = {
       val keyValueOrNull = converterOrNull(from)

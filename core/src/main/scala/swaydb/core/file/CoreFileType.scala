@@ -26,8 +26,6 @@ private[file] trait CoreFileType extends FileSweeperItem {
 
   val path: Path
 
-  private[file] def writeableChannel: WritableByteChannel
-
   def delete(): Unit
 
   def close(): Unit

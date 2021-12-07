@@ -56,7 +56,7 @@ private[file] object StandardFile {
 
 private[file] class StandardFile(val path: Path,
                                  mode: StandardOpenOption,
-                                 channel: FileChannel,
+                                 private[file] val channel: FileChannel,
                                  forceSave: ForceSave.StandardFiles)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with CoreFileType {
 
   //Force is applied on files after they are marked immutable so it only needs
@@ -67,9 +67,6 @@ private[file] class StandardFile(val path: Path,
     else
       new AtomicBoolean(mode == StandardOpenOption.READ)
   }
-
-  override private[file] def writeableChannel: GatheringByteChannel =
-    channel
 
   def close(): Unit = {
     forceSaveApplied.beforeClose(this, forceSave)
@@ -96,17 +93,17 @@ private[file] class StandardFile(val path: Path,
 
   override def transfer(position: Int, count: Int, transferTo: CoreFileType): Int =
     transferTo match {
-      case target: StandardFile =>
+      case transferTo: StandardFile =>
         Effect.transfer(
           position = position,
           count = count,
           from = channel,
-          transferTo = target.writeableChannel
+          transferTo = transferTo.channel
         )
 
-      case target: MMAPFile =>
+      case transferTo: MMAPFile =>
         val bytes = read(position = position, size = count)
-        target.append(bytes)
+        transferTo.append(bytes)
         bytes.size
     }
 

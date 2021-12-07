@@ -52,7 +52,7 @@ import scala.sys.ShutdownHookThread
 /**
  * Creates all configured Levels via [[ConfigWizard]] instances and starts compaction.
  */
-private[core] object CoreInitializer extends LazyLogging {
+private[core] object CoreInitialiser extends LazyLogging {
 
   /**
    * Boots up compaction Actor and start listening to changes in levels.

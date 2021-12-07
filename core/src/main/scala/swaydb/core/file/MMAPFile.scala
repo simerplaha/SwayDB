@@ -82,7 +82,7 @@ private[file] object MMAPFile {
 }
 
 private[file] class MMAPFile(val path: Path,
-                             val channel: FileChannel,
+                             channel: FileChannel,
                              mode: MapMode,
                              bufferSize: Int,
                              val deleteAfterClean: Boolean,
@@ -102,9 +102,6 @@ private[file] class MMAPFile(val path: Path,
   private val open = new AtomicBoolean(true)
   //Increments on each request made to this object and decrements on request's end.
   private val referenceCount = new AtomicLong(0)
-
-  override private[file] def writeableChannel: WritableByteChannel =
-    channel
 
   /**
    * [[buffer]] is set to null for safely clearing it from the RAM. Setting it to null
@@ -246,7 +243,7 @@ private[file] class MMAPFile(val path: Path,
 
   override def transfer(position: Int, count: Int, transferTo: CoreFileType): Int =
     transferTo match {
-      case _: StandardFile =>
+      case transferTo: StandardFile =>
         //TODO - Is forceSave really required here? Can a buffer contain bytes that FileChannel is unaware of?
         this.forceSave()
 
@@ -255,19 +252,19 @@ private[file] class MMAPFile(val path: Path,
             position = position,
             count = count,
             from = channel,
-            transferTo = transferTo.writeableChannel
+            transferTo = transferTo.channel
           )
 
         assert(transferred == count, s"$transferred != $count")
 
         transferred
 
-      case target: MMAPFile =>
+      case transferTo: MMAPFile =>
         val duplicate = buffer.duplicate()
         duplicate.position(position)
         duplicate.limit(position + count)
 
-        target.buffer.put(duplicate)
+        transferTo.buffer.put(duplicate)
         count
     }
 
