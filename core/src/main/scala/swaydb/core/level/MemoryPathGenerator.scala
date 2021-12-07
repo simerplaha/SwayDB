@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core
+package swaydb.core.level
 
 import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicInteger

@@ -28,7 +28,7 @@ import swaydb.config.storage.Level0Storage
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
+import swaydb.core.level.{LevelRef, LevelSeek, MemoryPathGenerator, NextLevel}
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.log.{Log, LogEntry, Logs}
@@ -44,7 +44,6 @@ import swaydb.core.segment.entry.reader.PersistentReader
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.skiplist.SkipList
 import swaydb.core.util.MinMax
-import swaydb.core.MemoryPathGenerator
 import swaydb.effect.{Effect, FileLocker}
 import swaydb.slice.{MaxKey, Slice, SliceOption}
 import swaydb.slice.order.{KeyOrder, TimeOrder}

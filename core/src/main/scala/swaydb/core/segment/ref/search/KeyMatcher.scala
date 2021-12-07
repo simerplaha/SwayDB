@@ -297,7 +297,7 @@ private[core] object KeyMatcher {
       val nextCompare = keyOrder.compare(keyValue.key, key)
       if (nextCompare > 0)
         new Matched(keyValue)
-      else if (nextCompare <= 0)
+      else if (nextCompare <= 0) // TODO - Condition is always true
         keyValue match {
           case range: Persistent.Partial.Range if keyOrder.compare(key, range.toKey) < 0 =>
             new Matched(keyValue)

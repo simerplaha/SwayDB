@@ -17,11 +17,12 @@
 package swaydb.core
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.{Bag, DefActor, Error, Glass, IO}
 import swaydb.Error.Level.ExceptionHandler
+import swaydb.config._
 import swaydb.config.compaction.CompactionConfig
 import swaydb.config.sequencer.Sequencer
 import swaydb.config.storage.{Level0Storage, LevelStorage}
-import swaydb.config._
 import swaydb.core.build.{Build, BuildValidator}
 import swaydb.core.compaction._
 import swaydb.core.compaction.throttle.ThrottleCompactorCreator
@@ -29,9 +30,9 @@ import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
+import swaydb.core.level.{Level, LevelCloser, MemoryPathGenerator, NextLevel}
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.{Level, LevelCloser, NextLevel}
-import swaydb.core.segment.{FunctionStore, block}
+import swaydb.core.segment.{block, FunctionStore}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.segment.SegmentBlockConfig
@@ -44,7 +45,6 @@ import swaydb.effect.IOStrategy
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.StorageUnits._
-import swaydb.{Bag, DefActor, Error, Glass, IO}
 
 import java.util.function.Supplier
 import scala.sys.ShutdownHookThread
