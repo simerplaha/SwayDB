@@ -53,7 +53,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
     "be created from an Array" in {
       val array = Array.fill[Byte](10)(1)
-      val slice = Slice[Byte](array)
+      val slice = Slice.wrap(array)
       slice.allocatedSize shouldBe 10
       slice.size shouldBe 10
       slice.fromOffset shouldBe 0
@@ -62,7 +62,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
     "be created from another Slice" in {
       val array = Array.fill[Int](3)(Random.nextInt())
-      val slice1 = Slice[Int](array)
+      val slice1 = Slice.wrap(array)
       slice1.size shouldBe 3
       slice1.allocatedSize shouldBe 3
 
@@ -184,7 +184,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
     "be read by it's index position" in {
       val array = Array.fill(5)(Random.nextInt())
-      val slice = Slice(array)
+      val slice = Slice.wrap(array)
 
       Range.inclusive(0, 4).foreach {
         index =>
@@ -295,7 +295,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "group elements" in {
-      val slice = Slice((1 to 100).toArray)
+      val slice = Slice.wrap((1 to 100).toArray)
 
       //even equal slices
       val groupsOf5 = slice.grouped(5).toArray
@@ -845,13 +845,13 @@ class SliceSpec extends AnyWordSpec with Matchers {
           bytes.drop(2).hashCode() shouldBe Slice(3, 4, 5).##
           bytes.drop(3).hashCode() shouldBe Slice(4, 5).##
           bytes.drop(4).hashCode() shouldBe Slice(5).##
-          bytes.drop(5).hashCode() shouldBe Slice[Int]().##
+          bytes.drop(5).hashCode() shouldBe Slice.empty[Int].##
 
           bytes.dropRight(1).hashCode() shouldBe Slice(1, 2, 3, 4).##
           bytes.dropRight(2).hashCode() shouldBe Slice(1, 2, 3).##
           bytes.dropRight(3).hashCode() shouldBe Slice(1, 2).##
           bytes.dropRight(4).hashCode() shouldBe Slice(1).##
-          bytes.dropRight(5).hashCode() shouldBe Slice[Int]().##
+          bytes.dropRight(5).hashCode() shouldBe Slice.empty[Int].##
       }
     }
   }
@@ -1261,7 +1261,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "blockSize < slice.size" in {
-      val slice: Slice[Int] = Slice((1 to 100).toArray)
+      val slice: Slice[Int] = Slice.wrap((1 to 100).toArray)
       //even equal slices
       val splits = slice.split(10)
       splits should have size 10
@@ -1272,7 +1272,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
           split.underlyingArraySize shouldBe 10
       }
 
-      Slice(splits).flatten shouldBe slice
+      Slice.wrap(splits).flatten shouldBe slice
     }
 
     "blockSize >= slice.size" when {
@@ -1283,7 +1283,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
         splits.head shouldBe slice
       }
 
-      val slice: Slice[Int] = Slice((1 to 100).toArray)
+      val slice: Slice[Int] = Slice.wrap((1 to 100).toArray)
 
       "blockSize == slice.slice" in {
         runTest(slice, slice.size)

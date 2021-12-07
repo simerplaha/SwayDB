@@ -37,7 +37,7 @@ object PrimaryKey {
 
   implicit val serializer = new Serializer[PrimaryKey] {
     override def write(data: PrimaryKey): Slice[Byte] =
-      Slice(Pickle.intoBytes(data).array())
+      Slice.wrap(Pickle.intoBytes(data).array())
 
     override def read(slice: Slice[Byte]): PrimaryKey =
       Unpickle[PrimaryKey].fromBytes(slice.toByteBufferWrap)

@@ -273,7 +273,7 @@ sealed trait LevelZeroSpec extends CoreTestBase with MockFactory {
 
           assertGet(keyValues, zero)
 
-          val removeKeyValues = Slice(keyValues.mapToSlice(keyValue => Memory.remove(keyValue.key)).toArray)
+          val removeKeyValues = Slice.wrap(keyValues.mapToSlice(keyValue => Memory.remove(keyValue.key)).toArray)
           zero.put(_ => removeKeyValues.toLogEntry.get).runRandomIO
 
           assertGetNone(keyValues, zero)

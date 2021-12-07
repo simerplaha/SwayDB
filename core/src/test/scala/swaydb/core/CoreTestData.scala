@@ -887,7 +887,7 @@ object CoreTestData {
                     addRemoves: Boolean = randomBoolean(),
                     functionOutput: CoreFunctionOutput = randomFunctionOutput(),
                     includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Value.Apply] =
-    Slice {
+    Slice.wrap {
       (1 to (Random.nextInt(max) max 1)).map {
         _ =>
           randomApply(
@@ -904,7 +904,7 @@ object CoreTestData {
                                 value: SliceOption[Byte] = randomStringSliceOptional,
                                 addRangeRemoves: Boolean = randomBoolean(),
                                 deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Value.Apply] =
-    Slice {
+    Slice.wrap {
       (1 to (Random.nextInt(max) max 1)).map {
         _ =>
           randomApplyWithDeadline(
@@ -1193,12 +1193,12 @@ object CoreTestData {
     val slice = Slice.of[Slice[Byte]](size)
     (1 to size) foreach {
       _ =>
-        slice add Slice(randomBytes(sizePerChunk))
+        slice add Slice.wrap(randomBytes(sizePerChunk))
     }
     slice
   }
 
-  def randomBytesSlice(size: Int = 10): Slice[Byte] = Slice(randomBytes(size))
+  def randomBytesSlice(size: Int = 10): Slice[Byte] = Slice.wrap(randomBytes(size))
 
   def randomBytesSliceOption(size: Int = 10): Option[Slice[Byte]] =
     randomBytesSliceOptional(size).toOptionC

@@ -34,8 +34,8 @@ class BytesSpec extends AnyWordSpec with Matchers {
 
   "compress, decompress & commonPrefixBytes" should {
     "return common bytes" in {
-      val previous = Slice(Array[Byte](1, 2, 3, 4))
-      val next = Slice(Array[Byte](1, 2, 3, 4, 5, 6))
+      val previous = Slice.wrap(Array[Byte](1, 2, 3, 4))
+      val next = Slice.wrap(Array[Byte](1, 2, 3, 4, 5, 6))
 
       val (commonBytes, compressed) = Bytes.compress(previous, next, 1).toOption().value
 
@@ -53,8 +53,8 @@ class BytesSpec extends AnyWordSpec with Matchers {
     }
 
     "return empty bytes when all the bytes were compressed" in {
-      val previous = Slice(Array[Byte](1, 2, 3, 4))
-      val next = Slice(Array[Byte](1, 2, 3))
+      val previous = Slice.wrap(Array[Byte](1, 2, 3, 4))
+      val next = Slice.wrap(Array[Byte](1, 2, 3))
 
       val (commonBytes, compressed) = Bytes.compress(previous, next, 1).toOption().value
 
@@ -72,8 +72,8 @@ class BytesSpec extends AnyWordSpec with Matchers {
     }
 
     "return empty when there are no common bytes" in {
-      val previous = Slice(Array[Byte](1, 2, 3, 4))
-      val next = Slice(Array[Byte](5, 6, 7, 8, 9, 10))
+      val previous = Slice.wrap(Array[Byte](1, 2, 3, 4))
+      val next = Slice.wrap(Array[Byte](5, 6, 7, 8, 9, 10))
 
       Bytes.compress(previous, next, 1).toOption() shouldBe empty
 
@@ -83,40 +83,40 @@ class BytesSpec extends AnyWordSpec with Matchers {
 
   "compressFull and compressExact" should {
     "compress when all bytes are compressed" in {
-      val previous = Slice(Array[Byte](1, 2, 3, 4))
-      val next = Slice(Array[Byte](1, 2, 3, 4))
+      val previous = Slice.wrap(Array[Byte](1, 2, 3, 4))
+      val next = Slice.wrap(Array[Byte](1, 2, 3, 4))
 
       Bytes.compressFull(Some(previous), next).value shouldBe OK.instance
       Bytes.compressExact(previous, next).value shouldBe OK.instance
     }
 
     "return empty bytes when all the bytes were compressed and next key's size is smaller" in {
-      val previous = Slice(Array[Byte](1, 2, 3, 4))
-      val next = Slice(Array[Byte](1, 2, 3))
+      val previous = Slice.wrap(Array[Byte](1, 2, 3, 4))
+      val next = Slice.wrap(Array[Byte](1, 2, 3))
 
       Bytes.compressFull(Some(previous), next).value shouldBe OK.instance
       Bytes.compressExact(previous, next) shouldBe empty
     }
 
     "return empty bytes when all the bytes were compressed and previous key's size is smaller" in {
-      val previous = Slice(Array[Byte](1, 2, 3))
-      val next = Slice(Array[Byte](1, 2, 3, 4))
+      val previous = Slice.wrap(Array[Byte](1, 2, 3))
+      val next = Slice.wrap(Array[Byte](1, 2, 3, 4))
 
       Bytes.compressFull(Some(previous), next) shouldBe empty
       Bytes.compressExact(previous, next) shouldBe empty
     }
 
     "return empty when not all bytes were compressed" in {
-      val previous = Slice(Array[Byte](1, 2))
-      val next = Slice(Array[Byte](1, 2, 3))
+      val previous = Slice.wrap(Array[Byte](1, 2))
+      val next = Slice.wrap(Array[Byte](1, 2, 3))
 
       Bytes.compressFull(Some(previous), next) shouldBe empty
       Bytes.compressExact(previous, next) shouldBe empty
     }
 
     "return empty when there are no common bytes" in {
-      val previous = Slice(Array[Byte](1, 2, 3, 4))
-      val next = Slice(Array[Byte](5, 6, 7, 8, 9, 10))
+      val previous = Slice.wrap(Array[Byte](1, 2, 3, 4))
+      val next = Slice.wrap(Array[Byte](5, 6, 7, 8, 9, 10))
 
       Bytes.compressFull(Some(previous), next) shouldBe empty
       Bytes.compressExact(previous, next) shouldBe empty
@@ -211,7 +211,7 @@ class BytesSpec extends AnyWordSpec with Matchers {
       intToWrite =>
         val slice = Slice.writeUnsignedInt(intToWrite)
         val sliceReverse = Bytes.writeUnsignedIntReversed(intToWrite)
-        sliceReverse shouldBe Slice(slice.toList.reverse.toArray)
+        sliceReverse shouldBe Slice.wrap(slice.toList.reverse.toArray)
 
         Bytes.readLastUnsignedInt(sliceReverse).runRandomIO.right.value shouldBe ((intToWrite, slice.size))
     }

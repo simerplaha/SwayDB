@@ -35,7 +35,7 @@ object Row {
 
   implicit val serializer = new Serializer[Row] {
     override def write(data: Row): Slice[Byte] =
-      Slice(Pickle.intoBytes(data).array())
+      Slice.wrap(Pickle.intoBytes(data).array())
 
     override def read(slice: Slice[Byte]): Row =
       Unpickle[Row].fromBytes(slice.toByteBufferWrap)

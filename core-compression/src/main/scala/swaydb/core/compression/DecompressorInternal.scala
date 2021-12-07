@@ -102,7 +102,7 @@ private[swaydb] object DecompressorInternal {
 
     override def decompress(slice: Slice[Byte],
                             decompressLength: Int): Slice[Byte] =
-      Slice(decompressor.decompress(slice.toArray, decompressLength))
+      Slice.wrap(decompressor.decompress(slice.toArray, decompressLength))
   }
 
   private[swaydb] case class LZ4Safe(id: Int,
@@ -110,7 +110,7 @@ private[swaydb] object DecompressorInternal {
 
     override def decompress(slice: Slice[Byte],
                             decompressLength: Int): Slice[Byte] =
-      Slice(decompressor.decompress(slice.toArray, decompressLength))
+      Slice.wrap(decompressor.decompress(slice.toArray, decompressLength))
   }
 
   private[swaydb] case object UnCompressed extends DecompressorInternal {
@@ -128,6 +128,6 @@ private[swaydb] object DecompressorInternal {
 
     override def decompress(slice: Slice[Byte],
                             decompressLength: Int): Slice[Byte] =
-      Slice(snappy.Snappy.uncompress(slice.toArray))
+      Slice.wrap(snappy.Snappy.uncompress(slice.toArray))
   }
 }

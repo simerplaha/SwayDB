@@ -33,7 +33,7 @@ object SwayDBPartialSetSpec {
 
   implicit object Serialiser extends swaydb.serializers.Serializer[(Int, Option[String])] {
     override def write(data: (Int, Option[String])): Slice[Byte] =
-      Slice(Pickle.intoBytes(data).array())
+      Slice.wrap(Pickle.intoBytes(data).array())
 
     override def read(slice: Slice[Byte]): (Int, Option[String]) =
       Unpickle[(Int, Option[String])].fromBytes(slice.toByteBufferWrap)

@@ -63,7 +63,7 @@ private[core] object SegmentSerialiser {
     val formatId: Byte = 0.toByte
 
     override def write(segment: Segment, bytes: SliceMut[Byte]): Unit = {
-      val segmentPath = Slice(segment.path.toString.getBytes(StandardCharsets.UTF_8))
+      val segmentPath = Slice.wrap(segment.path.toString.getBytes(StandardCharsets.UTF_8))
 
       val (maxKeyId, maxKeyBytes) =
         segment.maxKey match {

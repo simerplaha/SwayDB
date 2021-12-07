@@ -134,7 +134,7 @@ sealed trait LevelMapSpec extends CoreTestBase with MockFactory with PrivateMeth
             val existingKeyValues = Array(Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"))
 
             val sortedExistingKeyValues =
-              Slice(
+              Slice.wrap(
                 Array(
                   //also randomly set expired deadline for Remove.
                   Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"), Memory.remove("four", randomly(expiredDeadline()))

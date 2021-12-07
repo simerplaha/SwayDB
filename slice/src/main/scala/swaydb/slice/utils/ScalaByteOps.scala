@@ -112,7 +112,7 @@ private[swaydb] trait ScalaByteOps  {
 
   def writeString(string: String,
                   charsets: Charset): Slice[Byte] =
-    Slice(string.getBytes(charsets))
+    Slice.wrap(string.getBytes(charsets))
 
   def writeStringWithSize(string: String,
                           charsets: Charset): Slice[Byte] = {

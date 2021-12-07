@@ -114,7 +114,7 @@ private[file] class StandardFile(val path: Path,
     val buffer = ByteBuffer.allocate(size)
     //no need for synchronized since this does not update channel's position
     channel.read(buffer, position)
-    Slice(buffer.array())
+    Slice.wrap(buffer.array())
   }
 
   def read(position: Int, size: Int, blockSize: Int): SliceRO[Byte] =
@@ -139,7 +139,7 @@ private[file] class StandardFile(val path: Path,
         channel.read(buffers) //read data
       }
 
-      Slices(buffers.map(buffer => Slice.of(buffer))) //create slices
+      Slices(buffers.map(buffer => Slice.wrap(buffer))) //create slices
     }
 
   def get(position: Int): Byte =
@@ -148,7 +148,7 @@ private[file] class StandardFile(val path: Path,
   def readAll: Slice[Byte] = {
     val bytes = new Array[Byte](Effect.getIntFileSizeOrFail(channel))
     channel.read(ByteBuffer.wrap(bytes), 0)
-    Slice(bytes)
+    Slice.wrap(bytes)
   }
 
   def size: Int =

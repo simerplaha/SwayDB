@@ -284,7 +284,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
             new Array[B](blockSize)
 
         loadFromSlice(array, i * blockSize)
-        slices(i) = Slice(array)
+        slices(i) = Slice.wrap(array)
 
         i += 1
       }
@@ -729,7 +729,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
     if (other.isEmpty) {
       self
     } else if (self.isEmpty) {
-      Slice(other)
+      Slice.wrap(other)
     } else {
       val slice = Slice.of[B](size + other.length)
       slice addAll self
@@ -760,10 +760,10 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
    * Return a new ordered Slice.
    */
   def sorted[B >: T](implicit ordering: Ordering[B]): Slice[B] =
-    Slice(toArrayCopy.sorted(ordering))
+    Slice.wrap(toArrayCopy.sorted(ordering))
 
   def sortBy[B >: T, C](f: T => C)(implicit ordering: Ordering[C]): Slice[B] =
-    Slice(toArrayCopy.sortBy(f)(ordering))
+    Slice.wrap(toArrayCopy.sortBy(f)(ordering))
 
   /**
    * @return A tuple2 where _1 is written bytes and _2 is tail unwritten bytes.
@@ -913,7 +913,7 @@ final class SliceMut[+T](protected[this] override val array: Array[T],
     Slice.of[T](0)
 
   override protected[this] def createNew(array: Array[T]): SliceMut[T] =
-    Slice(array).asMut()
+    Slice.wrap(array).asMut()
 
   override protected[this] def createNew(array: Array[T],
                                          fromOffset: Int,

@@ -104,7 +104,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
 
       if (isCompressionSatisfied(minCompressionPercentage, compressedBytes, slice.size, compressionName))
         Some(
-          Slice.of(
+          Slice.wrap(
             byteBuffer = compressedBuffer,
             from = 0,
             to = emptyHeadSpace + compressedBytes - 1
@@ -142,7 +142,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
       val (bytes, fromOffset, written) = slice.underlyingWrittenArrayUnsafe
       val compressedSize = snappy.Snappy.compress(bytes, fromOffset, written, compressedArray, emptyHeadSpace)
       if (isCompressionSatisfied(minCompressionPercentage, compressedSize, slice.size, this.productPrefix))
-        Some(Slice(compressedArray).slice(0, emptyHeadSpace + compressedSize - 1))
+        Some(Slice.wrap(compressedArray).slice(0, emptyHeadSpace + compressedSize - 1))
       else
         None
     }

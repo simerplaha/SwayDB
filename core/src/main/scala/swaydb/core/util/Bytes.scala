@@ -103,7 +103,7 @@ private[swaydb] object Bytes extends ScalaByteOps {
       x += 1
       i += 1
     }
-    Slice(fullKey)
+    Slice.wrap(fullKey)
   }
 
   def compressJoin(left: Slice[Byte],

@@ -71,9 +71,6 @@ trait CompanionSlice extends SliceBuildFrom {
       _written = length
     )
 
-  def ofBytes(length: Int): SliceMut[Byte] =
-    of[Byte](length)
-
   @inline final def of[T: ClassTag](length: Int, isFull: Boolean = false): SliceMut[T] =
     new SliceMut(
       array = new Array[T](length),
@@ -82,10 +79,7 @@ trait CompanionSlice extends SliceBuildFrom {
       _written = if (isFull) length else 0
     )
 
-  def of(array: Array[Byte]): Slice[Byte] =
-    apply(array)
-
-  def apply[T: ClassTag](data: Array[T]): Slice[T] =
+  def wrap[T: ClassTag](data: Array[T]): Slice[T] =
     if (data.length == 0)
       of[T](0)
     else
@@ -95,6 +89,88 @@ trait CompanionSlice extends SliceBuildFrom {
         toOffset = data.length - 1,
         _written = data.length
       )
+
+  def wrap(byteBuffer: ByteBuffer): Slice[Byte] =
+    new SliceMut[Byte](
+      array = byteBuffer.array(),
+      fromOffset = byteBuffer.arrayOffset(),
+      toOffset = byteBuffer.position() - 1,
+      _written = byteBuffer.position()
+    )
+
+  def wrap(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[Byte] =
+    new SliceMut[Byte](
+      array = byteBuffer.array(),
+      fromOffset = from,
+      toOffset = to,
+      _written = to - from + 1
+    )
+
+  @inline final def apply[T: ClassTag](a: T): Slice[T] =
+    Slice.wrap(Array(a))
+
+  @inline final def apply[T: ClassTag](a: T, b: T): Slice[T] =
+    Slice.wrap(Array(a, b))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T): Slice[T] =
+    Slice.wrap(Array(a, b, c))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T, i: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h, i))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T, i: T, j: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h, i, j))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T, i: T, j: T, k: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h, i, j, k))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T, i: T, j: T, k: T, l: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h, i, j, k, l))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T, i: T, j: T, k: T, l: T, m: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h, i, j, k, l, m))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T, i: T, j: T, k: T, l: T, m: T, n: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h, i, j, k, l, m, n))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T, i: T, j: T, k: T, l: T, m: T, n: T, o: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T, i: T, j: T, k: T, l: T, m: T, n: T, o: T, p: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T, i: T, j: T, k: T, l: T, m: T, n: T, o: T, p: T, q: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T, i: T, j: T, k: T, l: T, m: T, n: T, o: T, p: T, q: T, r: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T, i: T, j: T, k: T, l: T, m: T, n: T, o: T, p: T, q: T, r: T, s: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T, i: T, j: T, k: T, l: T, m: T, n: T, o: T, p: T, q: T, r: T, s: T, t: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T, i: T, j: T, k: T, l: T, m: T, n: T, o: T, p: T, q: T, r: T, s: T, t: T, u: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u))
+
+  @inline final def apply[T: ClassTag](a: T, b: T, c: T, d: T, e: T, f: T, g: T, h: T, i: T, j: T, k: T, l: T, m: T, n: T, o: T, p: T, q: T, r: T, s: T, t: T, u: T, v: T): Slice[T] =
+    Slice.wrap(Array(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v))
 
   def from[T: ClassTag](iterator: Iterator[T], size: Int): Slice[T] = {
     val slice = of[T](size)
@@ -113,25 +189,6 @@ trait CompanionSlice extends SliceBuildFrom {
     iterable foreach slice.addAll
     slice
   }
-
-  def of(byteBuffer: ByteBuffer): Slice[Byte] =
-    new SliceMut[Byte](
-      array = byteBuffer.array(),
-      fromOffset = byteBuffer.arrayOffset(),
-      toOffset = byteBuffer.position() - 1,
-      _written = byteBuffer.position()
-    )
-
-  def of(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[Byte] =
-    new SliceMut[Byte](
-      array = byteBuffer.array(),
-      fromOffset = from,
-      toOffset = to,
-      _written = to - from + 1
-    )
-
-  @inline final def apply[T: ClassTag](data: T*): Slice[T] =
-    Slice(data.toArray)
 
   @inline final def writeInt(integer: Int): Slice[Byte] =
     of[Byte](ByteSizeOf.int).addInt(integer)

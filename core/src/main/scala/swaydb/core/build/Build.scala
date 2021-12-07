@@ -103,7 +103,7 @@ object Build extends LazyLogging {
         else
           IO {
             val bytes = Effect.readAllBytes(file)
-            val buildInfo = BuildSerialiser.read(Slice(bytes), file)
+            val buildInfo = BuildSerialiser.read(Slice.wrap(bytes), file)
             logger.debug(s"build.info - v${buildInfo.version.version}")
             buildInfo
           }

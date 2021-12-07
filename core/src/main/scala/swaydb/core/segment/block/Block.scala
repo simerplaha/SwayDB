@@ -207,7 +207,7 @@ private[core] object Block extends LazyLogging {
         minKey = segment.minKey,
         maxKey = segment.maxKey,
         fileHeader = Slice.emptyBytes,
-        bodyBytes = Slice(Array(compressionResult.headerBytes, compressedOrUncompressedSegmentBytes)),
+        bodyBytes = Slice.wrap(Array(compressionResult.headerBytes, compressedOrUncompressedSegmentBytes)),
         minMaxFunctionId = segment.functionMinMax,
         nearestPutDeadline = segment.nearestDeadline,
         updateCount = segment.updateCount,

@@ -39,7 +39,7 @@ object Table {
 
   implicit val serializer = new Serializer[Table] {
     override def write(data: Table): Slice[Byte] =
-      Slice(Pickle.intoBytes(data).array())
+      Slice.wrap(Pickle.intoBytes(data).array())
 
     override def read(slice: Slice[Byte]): Table =
       Unpickle[Table].fromBytes(slice.toByteBufferWrap)

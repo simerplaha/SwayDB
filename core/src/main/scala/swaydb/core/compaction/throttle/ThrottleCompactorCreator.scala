@@ -43,7 +43,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
                               config: CompactionConfig)(implicit fileSweeper: FileSweeper.On): DefActor[ThrottleCompactor] = {
     val state =
       ThrottleCompactorContext(
-        levels = Slice(levels.toArray),
+        levels = Slice.wrap(levels.toArray),
         compactionConfig = config,
         compactionStates = Map.empty
       )

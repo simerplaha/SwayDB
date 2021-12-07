@@ -831,7 +831,7 @@ sealed trait SegmentReadSpec extends CoreTestBase with ScalaFutures {
             val segment2 = TestSegment(keyValues2)
             val segment3 = TestSegment(keyValues3)
 
-            val all = Slice((keyValues1 ++ keyValues2 ++ keyValues3).toArray)
+            val all = Slice.wrap((keyValues1 ++ keyValues2 ++ keyValues3).toArray)
 
             val mergedSegment = TestSegment(all)
             mergedSegment.nearestPutDeadline shouldBe nearestPutDeadline(all)

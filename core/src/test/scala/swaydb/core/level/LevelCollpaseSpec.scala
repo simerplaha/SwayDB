@@ -93,7 +93,7 @@ sealed trait LevelCollapseSpec extends CoreTestBase {
               }
           }
         //delete half of the key values which will create small Segments
-        level.put(Slice(deleteEverySecond.toArray)).runRandomIO.right.value
+        level.put(Slice.wrap(deleteEverySecond.toArray)).runRandomIO.right.value
 
         level.collapse(level.segments(), removeDeletedRecords = false).awaitInf match {
           case LevelCollapseResult.Empty =>
@@ -105,7 +105,7 @@ sealed trait LevelCollapseSpec extends CoreTestBase {
 
         //since every second key-value was delete, the number of Segments is reduced to half
         level.segmentFilesInAppendix shouldBe <=((segmentCountBeforeDelete / 2) + 1) //+1 for odd number of key-values
-        assertReads(Slice(keyValuesNoDeleted.toArray), level)
+        assertReads(Slice.wrap(keyValuesNoDeleted.toArray), level)
 
     }
   }
@@ -183,7 +183,7 @@ sealed trait LevelCollapseSpec extends CoreTestBase {
           }
 
         //delete half of the key values which will create small Segments
-        level.put(Slice(expireEverySecond.toArray)).runRandomIO.right.value
+        level.put(Slice.wrap(expireEverySecond.toArray)).runRandomIO.right.value
         keyValues.zipWithIndex foreach {
           case (keyValue, index) =>
             if (index % 2 == 0)
@@ -202,7 +202,7 @@ sealed trait LevelCollapseSpec extends CoreTestBase {
 
         level.segmentFilesInAppendix should be <= ((segmentCountBeforeDelete / 2) + 1)
 
-        assertReads(Slice(keyValuesNotExpired.toArray), level)
+        assertReads(Slice.wrap(keyValuesNotExpired.toArray), level)
     }
   }
 

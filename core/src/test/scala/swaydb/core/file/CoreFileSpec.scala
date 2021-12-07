@@ -40,9 +40,9 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
     "write bytes to a File" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val bytes1 = Slice(randomBytes(100))
+          val bytes1 = Slice.wrap(randomBytes(100))
 
-          val bytes2 = Slice(randomBytes(100))
+          val bytes2 = Slice.wrap(randomBytes(100))
 
           val files = createCoreFiles(bytes1, bytes2)
           files should have size 2
@@ -274,7 +274,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath
-          val bytes = Slice("bytes one".getBytes())
+          val bytes = Slice.wrap("bytes one".getBytes())
 
           //      //opening a file should trigger the onOpen function
           //      implicit val fileSweeper = mock[FileSweeper]
@@ -299,12 +299,12 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
           file.isFull shouldBe true
 
           //overflow bytes
-          val bytes2 = Slice("bytes two".getBytes())
+          val bytes2 = Slice.wrap("bytes two".getBytes())
           file.append(bytes2)
           file.isFull shouldBe true //complete fit - no extra bytes
 
           //overflow bytes
-          val bytes3 = Slice("bytes three".getBytes())
+          val bytes3 = Slice.wrap("bytes three".getBytes())
           file.append(bytes3)
           file.isFull shouldBe true //complete fit - no extra bytes
 
@@ -410,7 +410,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath
-          val bytes = Slice("bytes one".getBytes())
+          val bytes = Slice.wrap("bytes one".getBytes())
 
           Effect.write(testFile, bytes.toByteBufferWrap)
 
@@ -464,10 +464,10 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
         TestCaseSweeper {
           implicit sweeper =>
             import sweeper._
-            val bytes1 = Slice("bytes one".getBytes())
-            val bytes2 = Slice("bytes two".getBytes())
-            val bytes3 = Slice("bytes three".getBytes())
-            val bytes4 = Slice("bytes four".getBytes())
+            val bytes1 = Slice.wrap("bytes one".getBytes())
+            val bytes2 = Slice.wrap("bytes two".getBytes())
+            val bytes3 = Slice.wrap("bytes three".getBytes())
+            val bytes4 = Slice.wrap("bytes four".getBytes())
 
             val bufferSize = {
               //also randomly add partial or full byte size of byte4 to assert BufferOverflow is extended
@@ -528,7 +528,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath
-          Effect.write(to = testFile, bytes = Slice(randomBytes()).toByteBufferWrap)
+          Effect.write(to = testFile, bytes = Slice.wrap(randomBytes()).toByteBufferWrap)
 
           IO {
             CoreFile.mmapInit(

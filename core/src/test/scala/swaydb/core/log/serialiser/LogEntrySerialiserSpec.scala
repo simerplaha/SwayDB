@@ -131,7 +131,7 @@ class LogEntrySerialiserSpec extends CoreTestBase {
       val bytes1 = LogEntrySerialiser.write(skipList1.iterator)
       val bytes2 = LogEntrySerialiser.write(skipList2.iterator)
       //combined the bytes of both the entries so that are in one single file.
-      val allBytes = Slice((bytes1 ++ bytes2).toArray)
+      val allBytes = Slice.wrap((bytes1 ++ bytes2).toArray)
 
       val map = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 

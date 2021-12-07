@@ -287,7 +287,7 @@ private[file] class MMAPFile(val path: Path,
     watchNullPointer {
       val array = new Array[Byte](size)
       loadFromBuffer(array = array, position = position)
-      Slice(array)
+      Slice.wrap(array)
     }
 
   def read(position: Int, size: Int, blockSize: Int): SliceRO[Byte] =
@@ -316,7 +316,7 @@ private[file] class MMAPFile(val path: Path,
               new Array[Byte](blockSize)
 
           loadFromBuffer(array, position + (i * blockSize))
-          slices(i) = Slice(array)
+          slices(i) = Slice.wrap(array)
 
           i += 1
         }
