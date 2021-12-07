@@ -14,14 +14,14 @@ val logbackClassicVersion = "1.2.7"
 val scalaLoggingVersion = "3.9.4"
 val scalaMockVersion = "5.1.0"
 val scalaTestVersion = "3.2.10"
-val junitJupiterVersion = "5.8.1"
+val junitJupiterVersion = "5.8.2"
 val scalaParallelCollectionsVersion = "1.0.4"
 
 //INTEROP - Supported external libraries for serialisation & effects interop
 val boopickleVersion = "1.4.0"
 val monixVersion = "3.4.0"
 val zioVersion = "1.0.12"
-val catsEffectVersion = "3.2.9"
+val catsEffectVersion = "3.3.0"
 
 //SCALA VERSIONS
 val scala212 = "2.12.15"

@@ -151,16 +151,16 @@ private[file] class StandardFile(val path: Path,
   def size: Int =
     Effect.getIntFileSizeOrFail(channel)
 
-  override def isOpen =
+  override def isOpen: Boolean =
     channel.isOpen
 
-  override def memoryMapped =
+  override def memoryMapped: Boolean =
     false
 
-  override def isLoaded =
+  override def isLoaded: Boolean =
     false
 
-  override def isFull =
+  override def isFull: Boolean =
     false
 
   override def delete(): Unit = {

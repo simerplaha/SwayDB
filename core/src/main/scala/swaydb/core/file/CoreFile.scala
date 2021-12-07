@@ -321,7 +321,7 @@ private[core] class CoreFile(val path: Path,
                              cache: Cache[swaydb.Error.IO, Unit, CoreFileType])(implicit bufferCleaner: ByteBufferSweeperActor,
                                                                                 forceSaveApplied: ForceSaveApplier) extends LazyLogging {
 
-  def existsOnDisk =
+  def existsOnDisk: Boolean =
     Effect.exists(path)
 
   @inline def file: CoreFileType =
