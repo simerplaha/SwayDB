@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.data.merge
 
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.core.segment.data.{KeyValue, Memory, Value}
 import swaydb.slice.Slice
 import swaydb.slice.order.TimeOrder
@@ -25,7 +25,7 @@ private[core] object FixedMerger {
 
   def apply(newer: KeyValue.Fixed,
             older: KeyValue.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): KeyValue.Fixed =
+                                          functionStore: CoreFunctionStore): KeyValue.Fixed =
     FixedMerger(
       newer = newer,
       oldApplies = older.getOrFetchApplies
@@ -33,7 +33,7 @@ private[core] object FixedMerger {
 
   def apply(newer: KeyValue.Fixed,
             oldApplies: Slice[Value.Apply])(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore): KeyValue.Fixed =
+                                            functionStore: CoreFunctionStore): KeyValue.Fixed =
     oldApplies.reverse.foldLeft((newer, 0)) {
       case ((newerMerged, count), olderApply) =>
         newerMerged match {
@@ -67,7 +67,7 @@ private[core] object FixedMerger {
 
   def apply(newKeyValue: KeyValue.Fixed,
             oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): KeyValue.Fixed =
+                                         functionStore: CoreFunctionStore): KeyValue.Fixed =
     newKeyValue match {
       case newKeyValue: KeyValue.Put =>
         PutMerger(newKeyValue, oldKeyValue)

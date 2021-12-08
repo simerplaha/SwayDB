@@ -68,7 +68,7 @@ private case object PersistentSegmentMany extends LazyLogging {
             segmentRefCacheLife: SegmentRefCacheLife,
             segment: TransientSegment.Many)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                             timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore,
+                                            functionStore: CoreFunctionStore,
                                             keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                             blockCacheSweeper: Option[MemorySweeper.Block],
                                             fileSweeper: FileSweeper,
@@ -230,7 +230,7 @@ private case object PersistentSegmentMany extends LazyLogging {
             keyValueCount: Int,
             copiedFrom: Option[PersistentSegmentMany])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                       functionStore: FunctionStore,
+                                                       functionStore: CoreFunctionStore,
                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                        blockCacheSweeper: Option[MemorySweeper.Block],
                                                        fileSweeper: FileSweeper,
@@ -389,7 +389,7 @@ private case object PersistentSegmentMany extends LazyLogging {
   def apply(file: CoreFile,
             segmentRefCacheLife: SegmentRefCacheLife)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                      functionStore: FunctionStore,
+                                                      functionStore: CoreFunctionStore,
                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                       blockCacheSweeper: Option[MemorySweeper.Block],
                                                       fileSweeper: FileSweeper,
@@ -628,7 +628,7 @@ private case object PersistentSegmentMany extends LazyLogging {
                               createdInLevel: Int,
                               listSegmentBlockCache: Option[BlockCacheState])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                               timeOrder: TimeOrder[Slice[Byte]],
-                                                                              functionStore: FunctionStore,
+                                                                              functionStore: CoreFunctionStore,
                                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                               blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                               segmentIO: SegmentReadIO): SegmentRef = {
@@ -684,7 +684,7 @@ private case class PersistentSegmentMany(file: CoreFile,
                                          segmentRefCacheLife: SegmentRefCacheLife,
                                          private val segmentsCache: ConcurrentSkipListMap[Slice[Byte], SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                    functionStore: FunctionStore,
+                                                                                                                    functionStore: CoreFunctionStore,
                                                                                                                     blockCacheSweeper: Option[MemorySweeper.Block],
                                                                                                                     fileSweeper: FileSweeper,
                                                                                                                     bufferCleaner: ByteBufferSweeperActor,
@@ -870,7 +870,7 @@ private case class PersistentSegmentMany(file: CoreFile,
               bloomFilterConfig: BloomFilterBlockConfig,
               segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
                                                  ec: ExecutionContext): Future[DefIO[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]]] =
-    Segment.refreshForNewLevel(
+    PersistentSegment.refreshForNewLevel(
       keyValues = iterator(segmentConfig.initialiseIteratorsInOneSeek),
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
@@ -923,7 +923,7 @@ private case class PersistentSegmentMany(file: CoreFile,
         MinMax.contains(
           key = key,
           minMax = minMaxFunctionId
-        )(FunctionStore.order)
+        )(CoreFunctionStore.order)
     }
 
   def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption = {

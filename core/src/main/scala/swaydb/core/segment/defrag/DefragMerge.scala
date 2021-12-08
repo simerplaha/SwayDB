@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.defrag
 
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.data.Memory
@@ -51,7 +51,7 @@ private[segment] object DefragMerge {
                                                                              initialiseIteratorsInOneSeek: Boolean,
                                                                              fragments: ListBuffer[TransientSegment.Fragment[S]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                                  functionStore: FunctionStore,
+                                                                                                                                  functionStore: CoreFunctionStore,
                                                                                                                                   defragSource: DefragSource[SEG],
                                                                                                                                   mergeStatsCreator: MergeStatsCreator[S]): NULL_SEG =
     if (newKeyValues.hasNext)

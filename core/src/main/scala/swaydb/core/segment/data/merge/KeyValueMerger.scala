@@ -17,7 +17,7 @@
 package swaydb.core.segment.data.merge
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.{KeyValue, Memory, Value}
@@ -36,7 +36,7 @@ private[core] object KeyValueMerger extends LazyLogging {
             isLastLevel: Boolean,
             initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                   functionStore: FunctionStore): Unit =
+                                                   functionStore: CoreFunctionStore): Unit =
     merge(
       headGap = Assignable.emptyIterable,
       tailGap = Assignable.emptyIterable,
@@ -53,7 +53,7 @@ private[core] object KeyValueMerger extends LazyLogging {
             isLastLevel: Boolean,
             initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                   functionStore: FunctionStore): Unit =
+                                                   functionStore: CoreFunctionStore): Unit =
     merge(
       headGap = Assignable.emptyIterable,
       tailGap = Assignable.emptyIterable,
@@ -72,7 +72,7 @@ private[core] object KeyValueMerger extends LazyLogging {
             isLastLevel: Boolean,
             initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                   functionStore: FunctionStore): Unit =
+                                                   functionStore: CoreFunctionStore): Unit =
     merge(
       headGap = headGap,
       tailGap = tailGap,
@@ -91,7 +91,7 @@ private[core] object KeyValueMerger extends LazyLogging {
                   isLastLevel: Boolean,
                   inOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                       timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): Unit =
+                                      functionStore: CoreFunctionStore): Unit =
     merge(
       headGap = headGap,
       tailGap = tailGap,
@@ -110,7 +110,7 @@ private[core] object KeyValueMerger extends LazyLogging {
                   isLastLevel: Boolean,
                   initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                         functionStore: FunctionStore): Unit =
+                                                         functionStore: CoreFunctionStore): Unit =
     merge(
       headGap = headGap,
       tailGap = tailGap,
@@ -127,7 +127,7 @@ private[core] object KeyValueMerger extends LazyLogging {
                             isLastLevel: Boolean,
                             initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                                   functionStore: FunctionStore): Unit =
+                                                                   functionStore: CoreFunctionStore): Unit =
     merge(
       headGap = Assignable.emptyIterable,
       tailGap = Assignable.emptyIterable,
@@ -144,7 +144,7 @@ private[core] object KeyValueMerger extends LazyLogging {
                   isLastLevel: Boolean,
                   initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                         functionStore: FunctionStore): Unit =
+                                                         functionStore: CoreFunctionStore): Unit =
     merge(
       headGap = Assignable.emptyIterable,
       tailGap = Assignable.emptyIterable,
@@ -163,7 +163,7 @@ private[core] object KeyValueMerger extends LazyLogging {
                           isLastLevel: Boolean,
                           initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                                 functionStore: FunctionStore): Unit = {
+                                                                 functionStore: CoreFunctionStore): Unit = {
 
     import keyOrder._
 

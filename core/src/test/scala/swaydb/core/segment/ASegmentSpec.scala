@@ -142,7 +142,7 @@ trait ASegmentSpec extends ACoreSpec {
 //
 //      val segment =
 //        if (isMemorySpec)
-//          Segment.memory(
+//          MemorySegment(
 //            minSegmentSize = segmentConfig.minSize,
 //            maxKeyValueCountPerSegment = segmentConfig.maxCount,
 //            pathsDistributor = pathsDistributor,
@@ -150,7 +150,7 @@ trait ASegmentSpec extends ACoreSpec {
 //            stats = MergeStats.memoryBuilder(keyValues).close()
 //          )
 //        else
-//          Segment.persistent(
+//          PersistentSegment(
 //            pathsDistributor = pathsDistributor,
 //            createdInLevel = createdInLevel,
 //            bloomFilterConfig = bloomFilterConfig,

@@ -32,7 +32,7 @@ import scala.jdk.CollectionConverters._
  *
  * Missing functions will be reported with their functionId.
  */
-private[swaydb] abstract class FunctionStore {
+private[swaydb] abstract class CoreFunctionStore {
   def get(functionId: Slice[Byte]): Option[CoreFunction]
   def get(functionId: String): Option[CoreFunction]
 
@@ -50,9 +50,9 @@ private[swaydb] abstract class FunctionStore {
   def size: Int
 }
 
-private[swaydb] object FunctionStore {
+private[swaydb] object CoreFunctionStore {
 
-  def memory(): FunctionStore.Memory =
+  def memory(): CoreFunctionStore.Memory =
     new Memory()
 
   val order: FunctionIdOrder =
@@ -87,7 +87,7 @@ private[swaydb] object FunctionStore {
 
   trait FunctionIdOrder extends Ordering[Slice[Byte]]
 
-  final class Memory extends FunctionStore {
+  final class Memory extends CoreFunctionStore {
 
     val hashMap = new ConcurrentHashMap[Slice[Byte], CoreFunction]()
 

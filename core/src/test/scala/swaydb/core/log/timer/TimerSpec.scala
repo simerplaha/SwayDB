@@ -25,7 +25,7 @@ import swaydb.core.log.LogEntry
 import swaydb.core.log.LogTestUtil._
 import swaydb.core.log.counter.CounterLog
 import swaydb.core.log.serialiser.{CounterLogEntryReader, CounterLogEntryWriter, LogEntryReader, LogEntryWriter}
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestForceSave}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -68,7 +68,7 @@ sealed trait TimerSpec extends ACoreSpec {
   implicit val ec = TestExecutionContext.executionContext
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
-  implicit val functionStore = FunctionStore.memory()
+  implicit val functionStore = CoreFunctionStore.memory()
   implicit val timerReader = CounterLogEntryReader.CounterPutLogEntryReader
   implicit val timerWriter = CounterLogEntryWriter.CounterPutLogEntryWriter
 

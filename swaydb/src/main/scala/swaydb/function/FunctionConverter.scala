@@ -17,7 +17,7 @@
 package swaydb.function
 
 import swaydb.config.Functions
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.core.segment.data.CoreFunctionOutput
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
@@ -197,8 +197,8 @@ private[swaydb] case object FunctionConverter {
     Functions(functions.map(function => toCore[K, V, R, F](function)))
 
   def toFunctionsStore[K, V, R <: Apply[V], F <: PureFunction[K, V, R]](functions: Functions[F])(implicit keySerializer: Serializer[K],
-                                                                                                 valueSerializer: Serializer[V]): FunctionStore = {
-    val functionStore = FunctionStore.memory()
+                                                                                                 valueSerializer: Serializer[V]): CoreFunctionStore = {
+    val functionStore = CoreFunctionStore.memory()
 
     functions foreach {
       function =>

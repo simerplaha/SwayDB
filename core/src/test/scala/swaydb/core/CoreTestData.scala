@@ -94,7 +94,7 @@ object CoreTestData {
 
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
 
-  implicit val functionStore: FunctionStore = FunctionStore.memory()
+  implicit val functionStore: CoreFunctionStore = CoreFunctionStore.memory()
 
   val functionIdGenerator = new AtomicInteger(0)
 
@@ -116,7 +116,7 @@ object CoreTestData {
 
     def tryReopen(path: Path): PersistentSegment = {
       val reopenedSegment =
-        Segment(
+        PersistentSegment(
           path = path,
           formatId = segment.formatId,
           createdInLevel = segment.createdInLevel,
@@ -196,7 +196,7 @@ object CoreTestData {
       else {
         val segments =
           if (level.inMemory)
-            Segment.copyToMemory(
+            MemorySegment(
               keyValues = keyValues.iterator,
               //            fetchNextPath = fetchNextPath,
               pathsDistributor = level.pathDistributor,
@@ -206,7 +206,7 @@ object CoreTestData {
               createdInLevel = level.levelNumber
             )
           else
-            Segment.copyToPersist(
+            PersistentSegment(
               keyValues = keyValues,
               createdInLevel = level.levelNumber,
               pathsDistributor = level.pathDistributor,
@@ -1745,7 +1745,7 @@ object CoreTestData {
                                 timeOrder: TimeOrder[Slice[Byte]],
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
-                                functionStore: FunctionStore): IO[swaydb.Error.Level, Option[KeyValue.Put]] =
+                                functionStore: CoreFunctionStore): IO[swaydb.Error.Level, Option[KeyValue.Put]] =
       IO.Defer(Higher(key, ThreadReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).toOptionPut).runIO
   }
 
@@ -1754,7 +1754,7 @@ object CoreTestData {
                                 timeOrder: TimeOrder[Slice[Byte]],
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
-                                functionStore: FunctionStore): IO[swaydb.Error.Level, Option[KeyValue.Put]] =
+                                functionStore: CoreFunctionStore): IO[swaydb.Error.Level, Option[KeyValue.Put]] =
       IO.Defer(Lower(key, ThreadReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).toOptionPut).runIO
   }
 

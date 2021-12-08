@@ -17,7 +17,7 @@
 package swaydb.core.level.seek
 
 import swaydb.core.level.LevelSeek
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.core.segment.data.Value.FromValueOption
 import swaydb.core.segment.data.merge._
 import swaydb.core.segment.data.{KeyValue, Memory, Value}
@@ -57,7 +57,7 @@ private[core] object Higher {
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
-           functionStore: FunctionStore): KeyValue.PutOption =
+           functionStore: CoreFunctionStore): KeyValue.PutOption =
     Higher(key, readState, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   /**
@@ -75,7 +75,7 @@ private[core] object Higher {
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  currentWalker: CurrentWalker,
                                  nextWalker: NextWalker,
-                                 functionStore: FunctionStore): KeyValue.PutOption = {
+                                 functionStore: CoreFunctionStore): KeyValue.PutOption = {
     import keyOrder._
 
     //    println(s"Current walker: ${currentWalker.levelNumber} - ${key.readInt()}")

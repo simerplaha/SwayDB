@@ -46,7 +46,7 @@ object DefragMemorySegment {
                                          pathsDistributor: PathsDistributor)(implicit executionContext: ExecutionContext,
                                                                              keyOrder: KeyOrder[Slice[Byte]],
                                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                                             functionStore: FunctionStore,
+                                                                             functionStore: CoreFunctionStore,
                                                                              defragSource: DefragSource[SEG],
                                                                              segmentConfig: SegmentBlockConfig,
                                                                              fileSweeper: FileSweeper,
@@ -87,7 +87,7 @@ object DefragMemorySegment {
                                       pathsDistributor: PathsDistributor)(implicit executionContext: ExecutionContext,
                                                                           keyOrder: KeyOrder[Slice[Byte]],
                                                                           timeOrder: TimeOrder[Slice[Byte]],
-                                                                          functionStore: FunctionStore,
+                                                                          functionStore: CoreFunctionStore,
                                                                           defragSource: DefragSource[SEG],
                                                                           segmentConfig: SegmentBlockConfig,
                                                                           fileSweeper: FileSweeper,
@@ -130,7 +130,7 @@ object DefragMemorySegment {
                                                    pathsDistributor: PathsDistributor)(implicit executionContext: ExecutionContext,
                                                                                        keyOrder: KeyOrder[Slice[Byte]],
                                                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                                                       functionStore: FunctionStore,
+                                                                                       functionStore: CoreFunctionStore,
                                                                                        segmentConfig: SegmentBlockConfig,
                                                                                        fileSweeper: FileSweeper,
                                                                                        idGenerator: IDGenerator): Future[ListBuffer[Slice[MemorySegment]]] =
@@ -139,7 +139,7 @@ object DefragMemorySegment {
         Future {
           remote match {
             case ref: TransientSegment.RemoteRef =>
-              Segment.copyToMemory(
+              MemorySegment(
                 keyValues = ref.iterator(segmentConfig.initialiseIteratorsInOneSeek),
                 pathsDistributor = pathsDistributor,
                 removeDeletes = removeDeletes,
@@ -149,7 +149,7 @@ object DefragMemorySegment {
               )
 
             case TransientSegment.RemotePersistentSegment(segment) =>
-              Segment.copyToMemory(
+              MemorySegment.copyFrom(
                 segment = segment,
                 createdInLevel = createdInLevel,
                 pathsDistributor = pathsDistributor,
@@ -166,7 +166,7 @@ object DefragMemorySegment {
           Future.successful(Slice.empty)
         else
           Future {
-            Segment.memory(
+            MemorySegment(
               minSegmentSize = segmentConfig.minSize,
               maxKeyValueCountPerSegment = segmentConfig.maxCount,
               pathsDistributor = pathsDistributor,

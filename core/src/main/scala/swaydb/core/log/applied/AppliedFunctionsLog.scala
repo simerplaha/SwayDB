@@ -24,7 +24,7 @@ import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.log
 import swaydb.core.log.serialiser.{AppliedFunctionsLogEntryReader, AppliedFunctionsLogEntryWriter}
 import swaydb.core.log.{Log, RecoveryResult}
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.effect.Effect
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
@@ -59,7 +59,7 @@ case object AppliedFunctionsLog extends LazyLogging {
   }
 
   def validate(appliedFunctions: Log[Slice[Byte], Slice.Null.type, AppliedFunctionsLogCache],
-               functionStore: FunctionStore): IO[Error.Level, Unit] = {
+               functionStore: CoreFunctionStore): IO[Error.Level, Unit] = {
     val missingFunctions = ListBuffer.empty[String]
     logger.debug("Checking for missing functions.")
 

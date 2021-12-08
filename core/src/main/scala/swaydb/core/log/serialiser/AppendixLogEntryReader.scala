@@ -23,7 +23,7 @@ import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperAc
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.{FunctionStore, Segment, SegmentSerialiser}
+import swaydb.core.segment.{CoreFunctionStore, Segment, SegmentSerialiser}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{ReaderBase, Slice}
 
@@ -31,7 +31,7 @@ private[core] object AppendixLogEntryReader {
   def apply(mmapSegment: MMAP.Segment,
             segmentRefCacheLife: SegmentRefCacheLife)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                      functionStore: FunctionStore,
+                                                      functionStore: CoreFunctionStore,
                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                       fileSweeper: FileSweeper,
                                                       bufferCleaner: ByteBufferSweeperActor,
@@ -47,7 +47,7 @@ private[core] object AppendixLogEntryReader {
 private[core] class AppendixLogEntryReader(mmapSegment: MMAP.Segment,
                                            segmentRefCacheLife: SegmentRefCacheLife)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                      timeOrder: TimeOrder[Slice[Byte]],
-                                                                                     functionStore: FunctionStore,
+                                                                                     functionStore: CoreFunctionStore,
                                                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                      fileSweeper: FileSweeper,
                                                                                      bufferCleaner: ByteBufferSweeperActor,

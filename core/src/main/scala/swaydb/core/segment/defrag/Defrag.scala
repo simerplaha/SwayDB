@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.defrag
 
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.segment.transient.TransientSegment
@@ -74,7 +74,7 @@ object Defrag {
                                                                                               createdInLevel: Int,
                                                                                               createFence: SEG => TransientSegment.Fragment[S])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                                                functionStore: FunctionStore,
+                                                                                                                                                functionStore: CoreFunctionStore,
                                                                                                                                                 defragSource: DefragSource[SEG],
                                                                                                                                                 segmentConfig: SegmentBlockConfig,
                                                                                                                                                 mergeStatsCreator: MergeStatsCreator[S],

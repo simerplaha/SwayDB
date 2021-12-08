@@ -16,7 +16,7 @@
 
 package swaydb.core.level.seek
 
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.core.segment.data.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
 import swaydb.core.segment.data.{KeyValue, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -32,7 +32,7 @@ private[core] object Get {
                    currentGetter: CurrentGetter,
                    nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                            timeOrder: TimeOrder[Slice[Byte]],
-                                           functionStore: FunctionStore): KeyValue.PutOption =
+                                           functionStore: CoreFunctionStore): KeyValue.PutOption =
     Get(key = key, readState = readState)(
       keyOrder = keyOrder,
       timeOrder = timeOrder,
@@ -46,7 +46,7 @@ private[core] object Get {
                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                 currentGetter: CurrentGetter,
                                                 nextGetter: NextGetter,
-                                                functionStore: FunctionStore): KeyValue.PutOption =
+                                                functionStore: CoreFunctionStore): KeyValue.PutOption =
     currentGetter.get(key, readState) match {
       case current: KeyValue =>
         resolve(
@@ -69,7 +69,7 @@ private[core] object Get {
                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                   currentGetter: CurrentGetter,
                                                   nextGetter: NextGetter,
-                                                  functionStore: FunctionStore): KeyValue.PutOption =
+                                                  functionStore: CoreFunctionStore): KeyValue.PutOption =
     current match {
       case current: KeyValue.Put =>
         if (current.hasTimeLeft())

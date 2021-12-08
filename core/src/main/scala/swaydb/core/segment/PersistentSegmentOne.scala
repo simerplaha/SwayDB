@@ -61,7 +61,7 @@ private case object PersistentSegmentOne {
   def apply(file: CoreFile,
             segment: TransientSegment.OneOrRemoteRef)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                      functionStore: FunctionStore,
+                                                      functionStore: CoreFunctionStore,
                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                       blockCacheSweeper: Option[MemorySweeper.Block],
                                                       fileSweeper: FileSweeper,
@@ -117,7 +117,7 @@ private case object PersistentSegmentOne {
             footerCacheable: Option[SegmentFooterBlock],
             previousBlockCache: Option[BlockCacheState])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                         functionStore: FunctionStore,
+                                                         functionStore: CoreFunctionStore,
                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                          blockCacheSweeper: Option[MemorySweeper.Block],
                                                          fileSweeper: FileSweeper,
@@ -171,7 +171,7 @@ private case object PersistentSegmentOne {
 
   def apply(file: CoreFile)(implicit keyOrder: KeyOrder[Slice[Byte]],
                             timeOrder: TimeOrder[Slice[Byte]],
-                            functionStore: FunctionStore,
+                            functionStore: CoreFunctionStore,
                             blockCacheSweeper: Option[MemorySweeper.Block],
                             keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                             fileSweeper: FileSweeper,
@@ -254,7 +254,7 @@ private case class PersistentSegmentOne(file: CoreFile,
                                         nearestPutDeadline: Option[Deadline],
                                         private[segment] val ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                               timeOrder: TimeOrder[Slice[Byte]],
-                                                                              functionStore: FunctionStore,
+                                                                              functionStore: CoreFunctionStore,
                                                                               blockCacheSweeper: Option[MemorySweeper.Block],
                                                                               fileSweeper: FileSweeper,
                                                                               bufferCleaner: ByteBufferSweeperActor,
@@ -374,7 +374,7 @@ private case class PersistentSegmentOne(file: CoreFile,
     //      )
     //    else
 
-    Segment.refreshForNewLevel(
+    PersistentSegment.refreshForNewLevel(
       keyValues = ref.iterator(segmentConfig.initialiseIteratorsInOneSeek),
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
@@ -405,7 +405,7 @@ private case class PersistentSegmentOne(file: CoreFile,
         MinMax.contains(
           key = key,
           minMax = minMaxFunctionId
-        )(FunctionStore.order)
+        )(CoreFunctionStore.order)
     }
 
   def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =

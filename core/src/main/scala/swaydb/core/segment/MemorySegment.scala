@@ -28,9 +28,10 @@ import swaydb.core.skiplist.SkipListTreeMap
 import swaydb.core.util._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, Slice, SliceOption}
-import swaydb.utils.IDGenerator
+import swaydb.utils.{FiniteDurations, IDGenerator}
 
 import java.nio.file.Path
+import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
@@ -44,6 +45,189 @@ private[core] object MemorySegment {
     override val asSegmentOption: SegmentOption =
       Segment.Null
   }
+
+  def apply(minSegmentSize: Int,
+            maxKeyValueCountPerSegment: Int,
+            pathsDistributor: PathsDistributor,
+            createdInLevel: Int,
+            stats: MergeStats.Memory.ClosedIgnoreStats[IterableOnce])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                      timeOrder: TimeOrder[Slice[Byte]],
+                                                                      functionStore: CoreFunctionStore,
+                                                                      fileSweeper: FileSweeper,
+                                                                      idGenerator: IDGenerator): Slice[MemorySegment] =
+    if (stats.isEmpty) {
+      throw new Exception("Empty key-values submitted to memory Segment.")
+    } else {
+      val segments = ListBuffer.empty[MemorySegment]
+
+      var skipList = SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+      var minMaxFunctionId: Option[MinMax[Slice[Byte]]] = None
+      var nearestDeadline: Option[Deadline] = None
+      var updateCount = 0
+      var rangeCount = 0
+      var putCount = 0
+      var putDeadlineCount = 0
+      var currentSegmentSize = 0
+      var currentSegmentKeyValuesCount = 0
+      var minKey: Slice[Byte] = null
+      var lastKeyValue: Memory = null
+
+      def setClosed(): Unit = {
+        skipList = SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+        minMaxFunctionId = None
+        nearestDeadline = None
+        updateCount = 0
+        rangeCount = 0
+        putCount = 0
+        putDeadlineCount = 0
+        currentSegmentSize = 0
+        currentSegmentKeyValuesCount = 0
+        minKey = null
+        lastKeyValue = null
+      }
+
+      def put(keyValue: Memory): Unit =
+        keyValue.cut() match {
+          case keyValue: Memory.Put =>
+            putCount += 1
+            if (keyValue.deadline.isDefined) putDeadlineCount += 1
+            nearestDeadline = FiniteDurations.getNearestDeadline(nearestDeadline, keyValue.deadline)
+            skipList.put(keyValue.key, keyValue)
+
+          case keyValue: Memory.Update =>
+            updateCount += 1
+            skipList.put(keyValue.key, keyValue)
+
+          case keyValue: Memory.Function =>
+            updateCount += 1
+            minMaxFunctionId = Some(MinMax.minMaxFunction(keyValue, minMaxFunctionId))
+            skipList.put(keyValue.key, keyValue)
+
+          case keyValue: Memory.PendingApply =>
+            updateCount += 1
+            minMaxFunctionId = MinMax.minMaxFunction(keyValue.applies, minMaxFunctionId)
+            skipList.put(keyValue.key, keyValue)
+
+          case keyValue: Memory.Remove =>
+            updateCount += 1
+            skipList.put(keyValue.key, keyValue)
+
+          case keyValue: Memory.Range =>
+            rangeCount += 1
+
+            keyValue.fromValue foreachS {
+              case put: Value.Put =>
+                putCount += 1
+                if (put.deadline.isDefined) putDeadlineCount += 1
+                nearestDeadline = FiniteDurations.getNearestDeadline(nearestDeadline, put.deadline)
+
+              case _: Value.RangeValue =>
+              //no need to do anything here. Just put deadline required.
+            }
+            minMaxFunctionId = MinMax.minMaxFunction(keyValue, minMaxFunctionId)
+            skipList.put(keyValue.key, keyValue)
+        }
+
+      def createSegment() = {
+        val path = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
+
+        //Note: Memory key-values can be received from Persistent Segments in which case it's important that
+        //all byte arrays are cutd before writing them to Memory Segment.
+
+        val segment =
+          MemorySegment(
+            path = path,
+            minKey = minKey.cut(),
+            maxKey =
+              lastKeyValue match {
+                case range: Memory.Range =>
+                  MaxKey.Range(range.fromKey.cut(), range.toKey.cut())
+
+                case keyValue: Memory.Fixed =>
+                  MaxKey.Fixed(keyValue.key.cut())
+              },
+            minMaxFunctionId = minMaxFunctionId,
+            segmentSize = currentSegmentSize,
+            updateCount = updateCount,
+            rangeCount = rangeCount,
+            putCount = putCount,
+            putDeadlineCount = putDeadlineCount,
+            createdInLevel = createdInLevel,
+            skipList = skipList,
+            nearestPutDeadline = nearestDeadline,
+            pathsDistributor = pathsDistributor
+          )
+
+        segments += segment
+        setClosed()
+      }
+
+      stats.keyValues foreach {
+        keyValue =>
+          if (minKey == null) minKey = keyValue.key
+          lastKeyValue = keyValue
+
+          put(keyValue)
+
+          currentSegmentSize += MergeStats.Memory calculateSize keyValue
+          currentSegmentKeyValuesCount += 1
+
+          if (currentSegmentSize >= minSegmentSize || currentSegmentKeyValuesCount >= maxKeyValueCountPerSegment)
+            createSegment()
+      }
+
+      if (lastKeyValue != null)
+        createSegment()
+
+      Slice.from(segments, segments.size)
+    }
+
+  def apply(keyValues: Iterator[KeyValue],
+            pathsDistributor: PathsDistributor,
+            removeDeletes: Boolean,
+            minSegmentSize: Int,
+            maxKeyValueCountPerSegment: Int,
+            createdInLevel: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                 timeOrder: TimeOrder[Slice[Byte]],
+                                 functionStore: CoreFunctionStore,
+                                 fileSweeper: FileSweeper,
+                                 idGenerator: IDGenerator): Slice[MemorySegment] = {
+    val builder =
+      new MergeStats.Memory.ClosedIgnoreStats[Iterator](
+        isEmpty = false,
+        keyValues = Segment.toMemoryIterator(keyValues, removeDeletes)
+      )
+
+    MemorySegment(
+      minSegmentSize = minSegmentSize,
+      pathsDistributor = pathsDistributor,
+      createdInLevel = createdInLevel,
+      maxKeyValueCountPerSegment = maxKeyValueCountPerSegment,
+      stats = builder
+    )
+  }
+
+  def copyFrom(segment: Segment,
+               createdInLevel: Int,
+               pathsDistributor: PathsDistributor,
+               removeDeletes: Boolean,
+               minSegmentSize: Int,
+               maxKeyValueCountPerSegment: Int,
+               initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                      timeOrder: TimeOrder[Slice[Byte]],
+                                                      functionStore: CoreFunctionStore,
+                                                      fileSweeper: FileSweeper,
+                                                      idGenerator: IDGenerator): Slice[MemorySegment] =
+    apply(
+      keyValues = segment.iterator(initialiseIteratorsInOneSeek),
+      pathsDistributor = pathsDistributor,
+      removeDeletes = removeDeletes,
+      minSegmentSize = minSegmentSize,
+      maxKeyValueCountPerSegment = maxKeyValueCountPerSegment,
+      createdInLevel = createdInLevel
+    )
+
+
 }
 
 private[core] final case class MemorySegment(path: Path,
@@ -60,7 +244,7 @@ private[core] final case class MemorySegment(path: Path,
                                              nearestPutDeadline: Option[Deadline],
                                              pathsDistributor: PathsDistributor)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                                                 functionStore: FunctionStore,
+                                                                                 functionStore: CoreFunctionStore,
                                                                                  fileSweeper: FileSweeper) extends Segment with MemorySegmentOption with LazyLogging {
 
   @volatile private var deleted = false
@@ -109,7 +293,7 @@ private[core] final case class MemorySegment(path: Path,
         )
 
       val refreshed =
-        Segment.memory(
+        MemorySegment(
           minSegmentSize = segmentConfig.minSize,
           maxKeyValueCountPerSegment = segmentConfig.maxCount,
           pathsDistributor = pathsDistributor,
@@ -177,7 +361,7 @@ private[core] final case class MemorySegment(path: Path,
         MinMax.contains(
           key = key,
           minMax = minMaxFunctionId
-        )(FunctionStore.order)
+        )(CoreFunctionStore.order)
     }
 
   override def lower(key: Slice[Byte],

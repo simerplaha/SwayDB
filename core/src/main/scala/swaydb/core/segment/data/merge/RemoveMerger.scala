@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.data.merge
 
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.core.segment.data.{KeyValue, Memory, Value}
 import swaydb.slice.Slice
 import swaydb.slice.order.TimeOrder
@@ -99,7 +99,7 @@ private[core] object RemoveMerger {
 
   def apply(newer: KeyValue.Remove,
             older: KeyValue.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): KeyValue.Fixed =
+                                          functionStore: CoreFunctionStore): KeyValue.Fixed =
     if (newer.time > older.time)
       newer.deadline match {
         case Some(_) =>
@@ -116,7 +116,7 @@ private[core] object RemoveMerger {
 
   def apply(newKeyValue: KeyValue.Remove,
             oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): KeyValue.Fixed =
+                                         functionStore: CoreFunctionStore): KeyValue.Fixed =
   //@formatter:off
     oldKeyValue match {
       case oldKeyValue: KeyValue.Put =>             RemoveMerger(newKeyValue, oldKeyValue)

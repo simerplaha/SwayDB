@@ -32,7 +32,7 @@ import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
 import swaydb.core.level.{Level, LevelCloser, MemoryPathGenerator, NextLevel}
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.segment.{block, FunctionStore}
+import swaydb.core.segment.{block, CoreFunctionStore}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.segment.SegmentBlockConfig
@@ -98,7 +98,7 @@ private[core] object CoreInitialiser extends LazyLogging {
             memoryCache: MemoryCache,
             compactionConfig: CompactionConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore,
+                                                functionStore: CoreFunctionStore,
                                                 buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
     if (config.level0.logSize > 1.gb) {
       val exception = new Exception(s"logSize ${config.level0.logSize / 1000000}.MB is too large. Maximum limit is 1.GB.")

@@ -198,7 +198,7 @@
 //
 //    val segments =
 //      Benchmark(s"Creating segment. keyValues: ${keyValues.size}") {
-//        Segment.persistent(
+//        PersistentSegment(
 //          pathsDistributor = pathsDistributor,
 //          createdInLevel = 1,
 //          bloomFilterConfig = bloomFilterConfig,

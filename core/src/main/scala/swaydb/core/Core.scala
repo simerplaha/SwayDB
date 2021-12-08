@@ -30,7 +30,7 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.log.LogEntry
 import swaydb.core.log.serialiser.LevelZeroLogEntryWriter
 import swaydb.core.log.timer.Timer
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.core.segment.data.{Memory, CoreFunction, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -57,7 +57,7 @@ private[swaydb] object Core {
             compactionConfig: CompactionConfig,
             config: SwayDBPersistentConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                             timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore,
+                                            functionStore: CoreFunctionStore,
                                             buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
     CoreInitialiser(
       config = config,
@@ -77,7 +77,7 @@ private[swaydb] object Core {
             compactionConfig: CompactionConfig,
             config: SwayDBMemoryConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]],
-                                        functionStore: FunctionStore,
+                                        functionStore: CoreFunctionStore,
                                         buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] =
     CoreInitialiser(
       config = config,

@@ -45,7 +45,7 @@ private[core] sealed trait SegmentSerialiser {
            segmentRefCacheLife: SegmentRefCacheLife,
            checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                  timeOrder: TimeOrder[Slice[Byte]],
-                                 functionStore: FunctionStore,
+                                 functionStore: CoreFunctionStore,
                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                  fileSweeper: FileSweeper,
                                  bufferCleaner: ByteBufferSweeperActor,
@@ -101,7 +101,7 @@ private[core] object SegmentSerialiser {
              segmentRefCacheLife: SegmentRefCacheLife,
              checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
-                                   functionStore: FunctionStore,
+                                   functionStore: CoreFunctionStore,
                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                    fileSweeper: FileSweeper,
                                    bufferCleaner: ByteBufferSweeperActor,
@@ -156,7 +156,7 @@ private[core] object SegmentSerialiser {
       if (fileType != Extension.Seg)
         throw new Exception(s"File is not a Segment. Path: $segmentPath")
 
-      Segment(
+      PersistentSegment(
         path = segmentPath,
         formatId = segmentFormatId,
         createdInLevel = createdInLevel,

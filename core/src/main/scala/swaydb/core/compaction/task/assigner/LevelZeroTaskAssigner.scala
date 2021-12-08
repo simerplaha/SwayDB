@@ -22,7 +22,7 @@ import swaydb.core.compaction.task.CompactionTask.CompactLogs
 import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.data.merge.KeyValueMerger
 import swaydb.core.segment.data.merge.stats.MergeStats
@@ -55,7 +55,7 @@ case object LevelZeroTaskAssigner {
           lowerLevels: NonEmptyList[Level])(implicit ec: ExecutionContext): Future[CompactLogs] = {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
     implicit val timeOrder: TimeOrder[Slice[Byte]] = source.timeOrder
-    implicit val functionStore: FunctionStore = source.functionStore
+    implicit val functionStore: CoreFunctionStore = source.functionStore
 
     //covert to List because now BehaviourCommit.commit requires
     //this maps to be reversible so do the conversion here instead
@@ -89,7 +89,7 @@ case object LevelZeroTaskAssigner {
   def flatten(input: IterableOnce[LevelZeroLog])(implicit ec: ExecutionContext,
                                                  keyOrder: KeyOrder[Slice[Byte]],
                                                  timerOrder: TimeOrder[Slice[Byte]],
-                                                 functionStore: FunctionStore): Future[Iterable[Assignable.Collection]] =
+                                                 functionStore: CoreFunctionStore): Future[Iterable[Assignable.Collection]] =
     Future(createStacks(input)) flatMap {
       stacks =>
         Future.traverse(stacks.values().asScala.map(_.stack))(mergeStack) map {
@@ -316,7 +316,7 @@ case object LevelZeroTaskAssigner {
   def mergeStack(stack: Iterable[Either[LevelZeroLog, Iterable[Memory]]])(implicit ec: ExecutionContext,
                                                                           keyOrder: KeyOrder[Slice[Byte]],
                                                                           timerOrder: TimeOrder[Slice[Byte]],
-                                                                          functionStore: FunctionStore): Future[Iterable[Memory]] =
+                                                                          functionStore: CoreFunctionStore): Future[Iterable[Memory]] =
     if (stack.isEmpty)
       Futures.emptyIterable
     else if (stack.size == 1)

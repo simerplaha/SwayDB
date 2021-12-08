@@ -24,7 +24,7 @@ import swaydb.config._
 import swaydb.configs.level.{DefaultExecutionContext, DefaultMemoryConfig}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.function.FunctionConverter
 import swaydb.serializers.{Default, Serializer}
 import swaydb.slice.Slice
@@ -60,7 +60,7 @@ object Set extends LazyLogging {
     bag.suspend {
       val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
       implicit val unitSerializer: Serializer[Nothing] = Default.NothingSerializer
-      val functionStore: FunctionStore = FunctionConverter.toFunctionsStore[A, Nothing, Apply.Set[Nothing], F](functions)
+      val functionStore: CoreFunctionStore = FunctionConverter.toFunctionsStore[A, Nothing, Apply.Set[Nothing], F](functions)
 
       val set =
         Core(

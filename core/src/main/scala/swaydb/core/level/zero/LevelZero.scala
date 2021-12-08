@@ -35,7 +35,7 @@ import swaydb.core.log.{Log, LogEntry, Logs}
 import swaydb.core.log.applied.{AppliedFunctionsLog, AppliedFunctionsLogCache}
 import swaydb.core.log.serialiser.AppliedFunctionsLogEntryWriter
 import swaydb.core.log.timer.Timer
-import swaydb.core.segment.{FunctionStore, Segment, SegmentOption}
+import swaydb.core.segment.{CoreFunctionStore, Segment, SegmentOption}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.data._
 import swaydb.core.segment.data.KeyValue.{Put, PutOption}
@@ -84,7 +84,7 @@ private[core] case object LevelZero extends LazyLogging {
             throttle: LevelZeroMeter => LevelZeroThrottle)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                            bufferCleaner: ByteBufferSweeperActor,
-                                                           functionStore: FunctionStore,
+                                                           functionStore: CoreFunctionStore,
                                                            forceSaveApplier: ForceSaveApplier,
                                                            optimiseWrites: OptimiseWrites,
                                                            atomic: Atomic): IO[swaydb.Error.Level, LevelZero] = {
@@ -275,7 +275,7 @@ private[swaydb] case class LevelZero(path: Path,
                                      appliedFunctionsLog: Option[Log[Slice[Byte], Slice.Null.type, AppliedFunctionsLogCache]],
                                      private val lock: Option[FileLocker])(implicit val keyOrder: KeyOrder[Slice[Byte]],
                                                                            val timeOrder: TimeOrder[Slice[Byte]],
-                                                                           val functionStore: FunctionStore) extends LevelRef with LazyLogging {
+                                                                           val functionStore: CoreFunctionStore) extends LevelRef with LazyLogging {
 
   logger.info("{}: Level0 started.", path)
 
@@ -1018,7 +1018,7 @@ private[swaydb] case class LevelZero(path: Path,
                 function.function equiv functionId
 
               case pendingApply: Memory.PendingApply =>
-                FunctionStore.containsFunction(functionId, pendingApply.applies)
+                CoreFunctionStore.containsFunction(functionId, pendingApply.applies)
 
               case range: Memory.Range =>
                 val values =
@@ -1030,7 +1030,7 @@ private[swaydb] case class LevelZero(path: Path,
                       Slice(range.rangeValue, fromValue)
                   }
 
-                FunctionStore.containsFunction(functionId, values)
+                CoreFunctionStore.containsFunction(functionId, values)
             }
     )
 

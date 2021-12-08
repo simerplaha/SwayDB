@@ -101,7 +101,7 @@ private[core] case object Level extends LazyLogging {
             nextLevel: Option[NextLevel],
             throttle: LevelMeter => LevelThrottle)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                   functionStore: FunctionStore,
+                                                   functionStore: CoreFunctionStore,
                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                    blockSweeper: Option[MemorySweeper.Block],
                                                    fileSweeper: FileSweeper,
@@ -290,7 +290,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                lock: Option[FileLocker],
                                pathDistributor: PathsDistributor)(implicit val keyOrder: KeyOrder[Slice[Byte]],
                                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                                  functionStore: FunctionStore,
+                                                                  functionStore: CoreFunctionStore,
                                                                   removeWriter: LogEntryWriter[LogEntry.Remove[Slice[Byte]]],
                                                                   addWriter: LogEntryWriter[LogEntry.Put[Slice[Byte], Segment]],
                                                                   val keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -973,7 +973,7 @@ private[core] case class Level(dirs: Seq[Dir],
                 MinMax.contains(
                   key = functionId,
                   minMax = minMax
-                )(FunctionStore.order)
+                )(CoreFunctionStore.order)
             }
       }
 

@@ -46,7 +46,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                     mmap: MMAP.Segment,
                     mergeResult: Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Persistent]]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                        functionStore: FunctionStore,
+                                                                                                        functionStore: CoreFunctionStore,
                                                                                                         fileSweeper: FileSweeper,
                                                                                                         bufferCleaner: ByteBufferSweeperActor,
                                                                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -89,7 +89,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                        mmap: MMAP.Segment,
                        transient: Iterable[TransientSegment.Persistent])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                                         functionStore: FunctionStore,
+                                                                         functionStore: CoreFunctionStore,
                                                                          fileSweeper: FileSweeper,
                                                                          bufferCleaner: ByteBufferSweeperActor,
                                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -154,7 +154,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
 
                 case segment: TransientSegment.RemotePersistentSegment =>
                   Slice(
-                    Segment.copyToPersist(
+                    PersistentSegment.copyFrom(
                       segment = segment.segment,
                       pathsDistributor = pathsDistributor,
                       segmentRefCacheLife = segmentRefCacheLife,

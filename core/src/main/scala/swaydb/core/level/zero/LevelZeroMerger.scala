@@ -17,7 +17,7 @@
 package swaydb.core.level.zero
 
 import swaydb.core.level.zero.LevelZeroLogCache.State
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.merge.{FixedMerger, KeyValueMerger}
@@ -32,7 +32,7 @@ object LevelZeroMerger {
   @inline def mergeInsert(insert: Memory,
                           state: State)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]],
-                                        functionStore: FunctionStore): Unit =
+                                        functionStore: CoreFunctionStore): Unit =
     insert match {
       case insert: Memory.Fixed =>
         insertFixed(insert = insert, state = state)
@@ -47,7 +47,7 @@ object LevelZeroMerger {
   @inline private def insertFixed(insert: Memory.Fixed,
                                   state: State)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): Unit =
+                                                functionStore: CoreFunctionStore): Unit =
     state.skipList.floor(insert.key) match {
       case floorEntry: Memory =>
         import keyOrder._
@@ -104,7 +104,7 @@ object LevelZeroMerger {
   @inline private def insertRange(insert: Memory.Range,
                                   state: State)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): Unit = {
+                                                functionStore: CoreFunctionStore): Unit = {
     import keyOrder._
 
     //value the start position of this range to fetch the range's start and end key-values for the skipList.

@@ -28,7 +28,7 @@ import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperAc
 import swaydb.core.level.AppendixLogCache
 import swaydb.core.log.serialiser.LogEntryWriter
 import swaydb.core.log.{Log, LogEntry}
-import swaydb.core.segment.Segment
+import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.effect.Effect
 import swaydb.slice.Slice
@@ -57,7 +57,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
           .mapRecoverIO {
             segmentPath =>
               IO {
-                Segment(
+                PersistentSegment(
                   path = segmentPath,
                   mmap = MMAP.Off(ForceSave.Off),
                   checkExists = true

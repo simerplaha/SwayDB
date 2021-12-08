@@ -19,7 +19,7 @@ package swaydb.core.level.zero
 import swaydb.Bag
 import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.core.log.{LogCache, LogCacheBuilder, LogEntry}
-import swaydb.core.segment.FunctionStore
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.core.segment.data.{Memory, MemoryOption}
 import swaydb.core.skiplist.{SkipList, SkipListConcurrent, SkipListSeries}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -31,7 +31,7 @@ private[core] object LevelZeroLogCache {
 
   implicit def builder(implicit keyOrder: KeyOrder[Slice[Byte]],
                        timeOrder: TimeOrder[Slice[Byte]],
-                       functionStore: FunctionStore,
+                       functionStore: CoreFunctionStore,
                        optimiseWrites: OptimiseWrites,
                        atomic: Atomic): LogCacheBuilder[LevelZeroLogCache] =
     () => LevelZeroLogCache()
@@ -69,7 +69,7 @@ private[core] object LevelZeroLogCache {
 
   @inline def apply()(implicit keyOrder: KeyOrder[Slice[Byte]],
                       timeOrder: TimeOrder[Slice[Byte]],
-                      functionStore: FunctionStore,
+                      functionStore: CoreFunctionStore,
                       optimiseWrites: OptimiseWrites,
                       atomic: Atomic): LevelZeroLogCache =
     new LevelZeroLogCache(State())
@@ -97,7 +97,7 @@ private[core] object LevelZeroLogCache {
   @inline private[zero] def put(entries: ListBuffer[LogEntry.Point[Slice[Byte], Memory]],
                                 state: State)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): Unit =
+                                              functionStore: CoreFunctionStore): Unit =
     entries foreach {
       case remove @ LogEntry.Remove(_) =>
         //this does not occur in reality and should be type-safe instead of having this Exception.
@@ -120,7 +120,7 @@ private[core] object LevelZeroLogCache {
  */
 private[core] class LevelZeroLogCache private(@volatile private var state: LevelZeroLogCache.State)(implicit val keyOrder: KeyOrder[Slice[Byte]],
                                                                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                    functionStore: FunctionStore,
+                                                                                                    functionStore: CoreFunctionStore,
                                                                                                     atomic: Atomic) extends LogCache[Slice[Byte], Memory] {
 
   @inline private def write(entry: LogEntry[Slice[Byte], Memory], atomic: Boolean): Unit = {

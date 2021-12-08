@@ -22,9 +22,9 @@ import swaydb.core.segment.data.{CoreFunction, CoreFunctionOutput}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class FunctionStoreSpec extends AnyFlatSpec with Matchers {
+class CoreFunctionStoreSpec extends AnyFlatSpec with Matchers {
 
-  val store = FunctionStore.memory()
+  val store = CoreFunctionStore.memory()
 
   it should "write int keys" in {
 
