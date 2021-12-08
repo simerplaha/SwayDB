@@ -218,7 +218,7 @@ private[core] object MemorySegment {
                                                       functionStore: CoreFunctionStore,
                                                       fileSweeper: FileSweeper,
                                                       idGenerator: IDGenerator): Slice[MemorySegment] =
-    apply(
+    MemorySegment(
       keyValues = segment.iterator(initialiseIteratorsInOneSeek),
       pathsDistributor = pathsDistributor,
       removeDeletes = removeDeletes,

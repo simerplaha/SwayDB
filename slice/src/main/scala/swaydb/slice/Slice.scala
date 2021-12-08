@@ -608,7 +608,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
     val target =
       Slice
         .allocate[B](self.size + 1)
-        .add(head)
+        .unsafeAdd(head)
 
     collectToSliceAndClose(target, pf)
   }

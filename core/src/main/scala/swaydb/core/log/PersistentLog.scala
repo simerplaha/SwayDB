@@ -35,19 +35,19 @@ import swaydb.utils.Extension
 import java.nio.file.Path
 import scala.annotation.tailrec
 
-private[log] object PersistentLog extends LazyLogging {
+protected object PersistentLog extends LazyLogging {
 
-  private[log] def apply[K, V, C <: LogCache[K, V]](folder: Path,
-                                                    mmap: MMAP.Log,
-                                                    flushOnOverflow: Boolean,
-                                                    fileSize: Int,
-                                                    dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                                       fileSweeper: FileSweeper,
-                                                                                       bufferCleaner: ByteBufferSweeperActor,
-                                                                                       reader: LogEntryReader[LogEntry[K, V]],
-                                                                                       writer: LogEntryWriter[LogEntry.Put[K, V]],
-                                                                                       cacheBuilder: LogCacheBuilder[C],
-                                                                                       forceSaveApplier: ForceSaveApplier): RecoveryResult[PersistentLog[K, V, C]] = {
+  def apply[K, V, C <: LogCache[K, V]](folder: Path,
+                                       mmap: MMAP.Log,
+                                       flushOnOverflow: Boolean,
+                                       fileSize: Int,
+                                       dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
+                                                                          fileSweeper: FileSweeper,
+                                                                          bufferCleaner: ByteBufferSweeperActor,
+                                                                          reader: LogEntryReader[LogEntry[K, V]],
+                                                                          writer: LogEntryWriter[LogEntry.Put[K, V]],
+                                                                          cacheBuilder: LogCacheBuilder[C],
+                                                                          forceSaveApplier: ForceSaveApplier): RecoveryResult[PersistentLog[K, V, C]] = {
     Effect.createDirectoryIfAbsent(folder)
 
     val cache = cacheBuilder.create()
@@ -77,15 +77,15 @@ private[log] object PersistentLog extends LazyLogging {
     )
   }
 
-  private[log] def apply[K, V, C <: LogCache[K, V]](folder: Path,
-                                                    mmap: MMAP.Log,
-                                                    flushOnOverflow: Boolean,
-                                                    fileSize: Int)(implicit keyOrder: KeyOrder[K],
-                                                                   fileSweeper: FileSweeper,
-                                                                   bufferCleaner: ByteBufferSweeperActor,
-                                                                   cacheBuilder: LogCacheBuilder[C],
-                                                                   writer: LogEntryWriter[LogEntry.Put[K, V]],
-                                                                   forceSaveApplier: ForceSaveApplier): PersistentLog[K, V, C] = {
+  def apply[K, V, C <: LogCache[K, V]](folder: Path,
+                                       mmap: MMAP.Log,
+                                       flushOnOverflow: Boolean,
+                                       fileSize: Int)(implicit keyOrder: KeyOrder[K],
+                                                      fileSweeper: FileSweeper,
+                                                      bufferCleaner: ByteBufferSweeperActor,
+                                                      cacheBuilder: LogCacheBuilder[C],
+                                                      writer: LogEntryWriter[LogEntry.Put[K, V]],
+                                                      forceSaveApplier: ForceSaveApplier): PersistentLog[K, V, C] = {
     Effect.createDirectoryIfAbsent(folder)
 
     val file =
@@ -105,11 +105,11 @@ private[log] object PersistentLog extends LazyLogging {
     )
   }
 
-  private[log] def firstFile(folder: Path,
-                             memoryMapped: MMAP.Log,
-                             fileSize: Int)(implicit fileSweeper: FileSweeper,
-                                            bufferCleaner: ByteBufferSweeperActor,
-                                            forceSaveApplier: ForceSaveApplier): CoreFile =
+  def firstFile(folder: Path,
+                memoryMapped: MMAP.Log,
+                fileSize: Int)(implicit fileSweeper: FileSweeper,
+                               bufferCleaner: ByteBufferSweeperActor,
+                               forceSaveApplier: ForceSaveApplier): CoreFile =
     memoryMapped match {
       case MMAP.On(deleteAfterClean, forceSave) =>
         CoreFile.mmapInit(
@@ -131,15 +131,15 @@ private[log] object PersistentLog extends LazyLogging {
     }
 
 
-  private[log] def recover[K, V, C <: LogCache[K, V]](folder: Path,
-                                                      mmap: MMAP.Log,
-                                                      fileSize: Int,
-                                                      cache: C,
-                                                      dropCorruptedTailEntries: Boolean)(implicit writer: LogEntryWriter[LogEntry.Put[K, V]],
-                                                                                         logReader: LogEntryReader[LogEntry[K, V]],
-                                                                                         fileSweeper: FileSweeper,
-                                                                                         bufferCleaner: ByteBufferSweeperActor,
-                                                                                         forceSaveApplier: ForceSaveApplier): RecoveryResult[CoreFile] = {
+  def recover[K, V, C <: LogCache[K, V]](folder: Path,
+                                         mmap: MMAP.Log,
+                                         fileSize: Int,
+                                         cache: C,
+                                         dropCorruptedTailEntries: Boolean)(implicit writer: LogEntryWriter[LogEntry.Put[K, V]],
+                                                                            logReader: LogEntryReader[LogEntry[K, V]],
+                                                                            fileSweeper: FileSweeper,
+                                                                            bufferCleaner: ByteBufferSweeperActor,
+                                                                            forceSaveApplier: ForceSaveApplier): RecoveryResult[CoreFile] = {
 
     val files = folder.files(Extension.Log)
 
@@ -194,13 +194,13 @@ private[log] object PersistentLog extends LazyLogging {
    *
    * oldFiles value deleted after the recovery is successful. In case of a failure an error message is logged.
    */
-  private[log] def nextFile[K, V, C <: LogCache[K, V]](oldFiles: Slice[CoreFile],
-                                                       mmap: MMAP.Log,
-                                                       fileSize: Int,
-                                                       cache: C)(implicit writer: LogEntryWriter[LogEntry.Put[K, V]],
-                                                                 fileSweeper: FileSweeper,
-                                                                 bufferCleaner: ByteBufferSweeperActor,
-                                                                 forceSaveApplier: ForceSaveApplier): Option[CoreFile] =
+  def nextFile[K, V, C <: LogCache[K, V]](oldFiles: Slice[CoreFile],
+                                          mmap: MMAP.Log,
+                                          fileSize: Int,
+                                          cache: C)(implicit writer: LogEntryWriter[LogEntry.Put[K, V]],
+                                                    fileSweeper: FileSweeper,
+                                                    bufferCleaner: ByteBufferSweeperActor,
+                                                    forceSaveApplier: ForceSaveApplier): Option[CoreFile] =
     oldFiles.lastOption map {
       lastFile =>
         val file =
@@ -226,13 +226,13 @@ private[log] object PersistentLog extends LazyLogging {
         }
     }
 
-  private[log] def nextFile[K, V, C <: LogCache[K, V]](currentFile: CoreFile,
-                                                       mmap: MMAP.Log,
-                                                       size: Int,
-                                                       cache: C)(implicit writer: LogEntryWriter[LogEntry.Put[K, V]],
-                                                                 fileSweeper: FileSweeper,
-                                                                 bufferCleaner: ByteBufferSweeperActor,
-                                                                 forceSaveApplier: ForceSaveApplier): CoreFile = {
+  def nextFile[K, V, C <: LogCache[K, V]](currentFile: CoreFile,
+                                          mmap: MMAP.Log,
+                                          size: Int,
+                                          cache: C)(implicit writer: LogEntryWriter[LogEntry.Put[K, V]],
+                                                    fileSweeper: FileSweeper,
+                                                    bufferCleaner: ByteBufferSweeperActor,
+                                                    forceSaveApplier: ForceSaveApplier): CoreFile = {
 
     val nextPath = currentFile.path.incrementFileId
     val bytes = LogEntrySerialiser.write(cache.iterator)
