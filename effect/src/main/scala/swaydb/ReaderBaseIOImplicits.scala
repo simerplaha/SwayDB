@@ -6,10 +6,10 @@ import scala.annotation.tailrec
 
 object ReaderBaseIOImplicits {
 
-  implicit class ReaderIOImplicits[B](reader: ReaderBase) {
+  implicit class ReaderIOImplicits[B <: ReaderBase](reader: B) {
 
     @tailrec
-    @inline final def foldLeftIO[E: IO.ExceptionHandler, R](result: R)(f: (R, ReaderBase) => IO[E, R]): IO[E, R] =
+    @inline final def foldLeftIO[E: IO.ExceptionHandler, R](result: R)(f: (R, B) => IO[E, R]): IO[E, R] =
       IO(reader.hasMore) match {
         case IO.Left(error) =>
           IO.Left(error)
