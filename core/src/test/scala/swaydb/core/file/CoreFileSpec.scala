@@ -31,21 +31,19 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
   "write" should {
     "write bytes to a File" in {
-      TestSweeper {
+      TestSweeper(times = 10) {
         implicit sweeper =>
           val bytes1 = Slice.wrap(randomBytes(100))
-
           val bytes2 = Slice.wrap(randomBytes(100))
 
-          val files = createFiles(bytes1, bytes2)
-          files should have size 2
+          val (left, right) = createFiles(bytes1, bytes2).toTuple
 
-          createFileReaders(files.head.path) foreach {
+          createFileReaders(left.path) foreach {
             reader =>
               reader.file.readAll() shouldBe bytes1
           }
 
-          createFileReaders(files.last.path) foreach {
+          createFileReaders(right.path) foreach {
             reader =>
               reader.file.readAll() shouldBe bytes2
           }
@@ -90,7 +88,6 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
           val files = createFiles(bytes, bytes)
 
-          files should have size 2
           files foreach {
             file =>
               Slice(Effect.readAllBytes(file.path)) shouldBe bytes

@@ -59,7 +59,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 
-protected case object PersistentSegmentMany extends LazyLogging {
+private case object PersistentSegmentMany extends LazyLogging {
 
   val formatId: Byte = 127
   val formatIdSlice: Slice[Byte] = Slice(formatId)
@@ -668,29 +668,29 @@ protected case object PersistentSegmentMany extends LazyLogging {
   }
 }
 
-protected case class PersistentSegmentMany(file: CoreFile,
-                                           createdInLevel: Int,
-                                           minKey: Slice[Byte],
-                                           maxKey: MaxKey[Slice[Byte]],
-                                           minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                                           segmentSize: Int,
-                                           nearestPutDeadline: Option[Deadline],
-                                           updateCount: Int,
-                                           rangeCount: Int,
-                                           putCount: Int,
-                                           putDeadlineCount: Int,
-                                           keyValueCount: Int,
-                                           listSegmentCache: CacheNoIO[Unit, SegmentRef],
-                                           segmentRefCacheLife: SegmentRefCacheLife,
-                                           private val segmentsCache: ConcurrentSkipListMap[Slice[Byte], SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                      timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                      functionStore: FunctionStore,
-                                                                                                                      blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                                                                      fileSweeper: FileSweeper,
-                                                                                                                      bufferCleaner: ByteBufferSweeperActor,
-                                                                                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                                      segmentIO: SegmentReadIO,
-                                                                                                                      forceSaveApplier: ForceSaveApplier) extends PersistentSegment with LazyLogging {
+private case class PersistentSegmentMany(file: CoreFile,
+                                         createdInLevel: Int,
+                                         minKey: Slice[Byte],
+                                         maxKey: MaxKey[Slice[Byte]],
+                                         minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+                                         segmentSize: Int,
+                                         nearestPutDeadline: Option[Deadline],
+                                         updateCount: Int,
+                                         rangeCount: Int,
+                                         putCount: Int,
+                                         putDeadlineCount: Int,
+                                         keyValueCount: Int,
+                                         listSegmentCache: CacheNoIO[Unit, SegmentRef],
+                                         segmentRefCacheLife: SegmentRefCacheLife,
+                                         private val segmentsCache: ConcurrentSkipListMap[Slice[Byte], SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                                    timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                    functionStore: FunctionStore,
+                                                                                                                    blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                                                                    fileSweeper: FileSweeper,
+                                                                                                                    bufferCleaner: ByteBufferSweeperActor,
+                                                                                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                                                    segmentIO: SegmentReadIO,
+                                                                                                                    forceSaveApplier: ForceSaveApplier) extends PersistentSegment with LazyLogging {
 
   override def formatId: Byte = PersistentSegmentMany.formatId
 

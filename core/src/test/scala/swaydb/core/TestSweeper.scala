@@ -17,25 +17,23 @@
 package swaydb.core
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.{ActorRef, Bag, DefActor, Glass, Scheduler}
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.CoreTestSweepers._
 import swaydb.core.cache.{Cache, CacheNoIO}
-import swaydb.core.segment.io.SegmentCompactionIO
+import swaydb.core.file.{CoreFile, ForceSaveApplier}
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.{CoreFile, ForceSaveApplier}
 import swaydb.core.level.LevelRef
-import swaydb.core.log.counter.CounterLog
 import swaydb.core.log.{Log, Logs}
+import swaydb.core.log.counter.CounterLog
+import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._
-import swaydb.{ActorRef, Bag, DefActor, Glass, Scheduler}
-import swaydb.core.TestSweeper.TestLevelPathSweeperImplicits
-import swaydb.testkit.TestKit.randomCharacters
 import swaydb.utils.{IDGenerator, OperatingSystem}
 
 import java.nio.file.{Path, Paths}
@@ -61,6 +59,21 @@ import scala.util.Try
 object TestSweeper extends LazyLogging {
 
   private val testNumber = new AtomicInteger(0)
+
+  private val projectTargetFolder: String =
+    getClass.getClassLoader.getResource("").getPath
+
+  val projectDirectory: Path =
+    if (OperatingSystem.isWindows)
+      Paths.get(projectTargetFolder.drop(1)).getParent.getParent
+    else
+      Paths.get(projectTargetFolder).getParent.getParent
+
+  val testFileDirectory: Path =
+    projectDirectory.resolve("TEST_FILES")
+
+  val testMemoryFileDirectory: Path =
+    projectDirectory.resolve("TEST_MEMORY_FILES")
 
   def deleteParentPath(path: Path) = {
     val parentPath = path.getParent
@@ -96,36 +109,38 @@ object TestSweeper extends LazyLogging {
     sweeper.compactionIOActors.foreach(_.get().foreach(_.terminate[Glass]()))
 
     //DELETE - delete after closing Levels.
-    sweeper.levels.foreach(_.delete[Glass]())
+    if (sweeper.deleteFiles) sweeper.levels.foreach(_.delete[Glass]())
 
     sweeper.segments.foreach {
       segment =>
-        if (segment.existsOnDisk())
+        if (sweeper.deleteFiles && segment.existsOnDisk())
           segment.delete()
         else
           segment.close() //the test itself might've delete this file so submit close just in-case.
 
         //eventual because segment.delete() goes to an actor which might eventually get resolved.
-        eventual(20.seconds)(deleteParentPath(segment.path))
+        if (sweeper.deleteFiles)
+          eventual(20.seconds)(deleteParentPath(segment.path))
     }
 
-    sweeper.mapFiles.foreach {
-      map =>
-        if (map.pathOption.exists(Effect.exists))
-          map.pathOption.foreach(Effect.walkDelete)
-        map.pathOption.foreach(deleteParentPath)
+    if (sweeper.deleteFiles) {
+      sweeper.mapFiles.foreach {
+        map =>
+          if (map.pathOption.exists(Effect.exists))
+            map.pathOption.foreach(Effect.walkDelete)
+          map.pathOption.foreach(deleteParentPath)
+      }
+
+      sweeper.coreFiles.foreach(_.delete())
+      sweeper.functions.foreach(_ ())
+
+      sweeper.paths.foreach {
+        path =>
+          eventual(10.seconds)(Effect.walkDelete(path))
+      }
+
+      eventual(10.seconds)(sweeper.testDirPath)
     }
-
-    sweeper.coreFiles.foreach(_.delete())
-    sweeper.functions.foreach(_ ())
-
-    sweeper.paths.foreach {
-      path =>
-        eventual(10.seconds)(Effect.walkDelete(path))
-    }
-
-    if (sweeper.deleteFolder)
-      Effect.deleteIfExists(sweeper.testDirPath)
   }
 
   private def receiveAll(sweeper: TestSweeper): Unit = {
@@ -140,6 +155,11 @@ object TestSweeper extends LazyLogging {
     })
     sweeper.cleaners.foreach(_.get().foreach(_.actor.receiveAllForce[Glass, Unit](_ => ())))
     sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Glass, Unit](_ => ())))))
+  }
+
+  def apply(times: Int, log: Boolean = true)(code: TestSweeper => Unit): Unit = {
+    import swaydb.testkit.RunThis._
+    runThis(times, log)(TestSweeper[Unit](s"TEST${testNumber.incrementAndGet()}")(code))
   }
 
   def apply[T](code: TestSweeper => T): T =
@@ -234,7 +254,7 @@ object TestSweeper extends LazyLogging {
 
   implicit class ActorWiresSweeperImplicits[T](actor: DefActor[T]) {
     def sweep()(implicit sweeper: TestSweeper): DefActor[T] =
-      sweeper sweepWireActor actor
+      sweeper sweepActor actor
   }
 
   implicit class FunctionSweeperImplicits[BAG[_], T](sweepable: T) {
@@ -258,7 +278,7 @@ object TestSweeper extends LazyLogging {
  */
 
 class TestSweeper(val testName: String = s"TEST${TestSweeper.testNumber.incrementAndGet()}",
-                  @BeanProperty protected var deleteFolder: Boolean = true,
+                  @BeanProperty protected var deleteFiles: Boolean = true,
                   private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeper.On]] = ListBuffer(Cache.noIO[Unit, FileSweeper.On](true, true, None)((_, _) => createFileSweeper())),
                   private val cleaners: ListBuffer[CacheNoIO[Unit, ByteBufferSweeperActor]] = ListBuffer(Cache.noIO[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner())),
                   private val compactionIOActors: ListBuffer[CacheNoIO[Unit, SegmentCompactionIO.Actor]] = ListBuffer(Cache.noIO[Unit, SegmentCompactionIO.Actor](true, true, None)((_, _) => SegmentCompactionIO.create()(TestExecutionContext.executionContext))),
@@ -281,23 +301,8 @@ class TestSweeper(val testName: String = s"TEST${TestSweeper.testNumber.incremen
 
   val idGenerator = IDGenerator()
 
-  private val projectTargetFolder: String =
-    getClass.getClassLoader.getResource("").getPath
-
-  val projectDirectory: Path =
-    if (OperatingSystem.isWindows)
-      Paths.get(projectTargetFolder.drop(1)).getParent.getParent
-    else
-      Paths.get(projectTargetFolder).getParent.getParent
-
-  val testFileDirectory: Path =
-    projectDirectory.resolve("TEST_FILES")
-
-  val testMemoryFileDirectory: Path =
-    projectDirectory.resolve("TEST_MEMORY_FILES")
-
   val testDirPath: Path =
-    testFileDirectory.resolve(testName)
+    TestSweeper.testFileDirectory.resolve(testName)
 
   def testDir(): Path =
     Effect.createDirectoriesIfAbsent(testDirPath)
@@ -398,7 +403,7 @@ class TestSweeper(val testName: String = s"TEST${TestSweeper.testNumber.incremen
     actor
   }
 
-  def sweepWireActor[T](actor: DefActor[T]): DefActor[T] = {
+  def sweepActor[T](actor: DefActor[T]): DefActor[T] = {
     defActors += actor
     actor
   }

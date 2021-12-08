@@ -1,6 +1,6 @@
 package swaydb.core.file
 
-import swaydb.core.{ACoreSpec, TestForceSave, TestSweeper}
+import swaydb.core.{TestForceSave, TestSweeper, TestTuple2}
 import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.file.reader.FileReader
 import swaydb.core.TestSweeper._
@@ -29,11 +29,8 @@ object AFileSpec {
     else
       createStandardFileFileReader(path)
 
-  def createFileReaders(path: Path)(implicit sweeper: TestSweeper): List[FileReader] =
-    List(
-      createMMAPFileReader(path),
-      createStandardFileFileReader(path)
-    )
+  def createFileReaders(path: Path)(implicit sweeper: TestSweeper): TestTuple2[FileReader] =
+    TestTuple2(createMMAPFileReader(path), createStandardFileFileReader(path))
 
   def createMMAPFileReader(bytes: Slice[Byte])(implicit sweeper: TestSweeper): FileReader =
     createMMAPFileReader(createFile(bytes))
@@ -44,17 +41,11 @@ object AFileSpec {
   def createFiles(mmapPath: Path,
                   mmapBytes: Slice[Byte],
                   channelPath: Path,
-                  standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): List[CoreFile] =
-    List(
-      createMMAPWriteAndRead(mmapPath, mmapBytes),
-      createStandardWriteAndRead(channelPath, standardBytes)
-    )
+                  standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): TestTuple2[CoreFile] =
+    TestTuple2(createMMAPWriteAndRead(mmapPath, mmapBytes), createStandardWriteAndRead(channelPath, standardBytes))
 
-  def createFiles(mmapBytes: Slice[Byte], standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): List[CoreFile] =
-    List(
-      createMMAPWriteAndRead(randomFilePath(), mmapBytes),
-      createStandardWriteAndRead(randomFilePath(), standardBytes)
-    )
+  def createFiles(mmapBytes: Slice[Byte], standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): TestTuple2[CoreFile] =
+    TestTuple2(createMMAPWriteAndRead(randomFilePath(), mmapBytes), createStandardWriteAndRead(randomFilePath(), standardBytes))
 
   def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestSweeper): CoreFile = {
     import sweeper._

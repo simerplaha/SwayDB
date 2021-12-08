@@ -37,11 +37,11 @@ import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 
-sealed trait PersistentSegmentOption {
+private[core] sealed trait PersistentSegmentOption {
   def asSegmentOption: SegmentOption
 }
 
-trait PersistentSegment extends Segment with PersistentSegmentOption {
+private[core] trait PersistentSegment extends Segment with PersistentSegmentOption {
   def file: CoreFile
 
   def copyTo(toPath: Path): Path
@@ -85,7 +85,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
 
 }
 
-object PersistentSegment {
+private[core] object PersistentSegment {
 
   case object Null extends PersistentSegmentOption {
     override val asSegmentOption: SegmentOption = Segment.Null

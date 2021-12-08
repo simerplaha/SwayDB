@@ -35,11 +35,11 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 
-sealed trait MemorySegmentOption {
+private[core] sealed trait MemorySegmentOption {
   def asSegmentOption: SegmentOption
 }
 
-object MemorySegment {
+private[core] object MemorySegment {
   final case object Null extends MemorySegmentOption {
     override val asSegmentOption: SegmentOption =
       Segment.Null

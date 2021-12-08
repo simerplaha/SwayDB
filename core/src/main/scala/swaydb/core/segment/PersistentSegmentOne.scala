@@ -53,7 +53,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-protected case object PersistentSegmentOne {
+private case object PersistentSegmentOne {
 
   val formatId = 126.toByte
   val formatIdSlice: Slice[Byte] = Slice(formatId)
@@ -246,21 +246,21 @@ protected case object PersistentSegmentOne {
   }
 }
 
-protected case class PersistentSegmentOne(file: CoreFile,
-                                          minKey: Slice[Byte],
-                                          maxKey: MaxKey[Slice[Byte]],
-                                          minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                                          segmentSize: Int,
-                                          nearestPutDeadline: Option[Deadline],
-                                          private[segment] val ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                                                functionStore: FunctionStore,
-                                                                                blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                                fileSweeper: FileSweeper,
-                                                                                bufferCleaner: ByteBufferSweeperActor,
-                                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                forceSaveApplier: ForceSaveApplier,
-                                                                                segmentIO: SegmentReadIO) extends PersistentSegment with LazyLogging {
+private case class PersistentSegmentOne(file: CoreFile,
+                                        minKey: Slice[Byte],
+                                        maxKey: MaxKey[Slice[Byte]],
+                                        minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+                                        segmentSize: Int,
+                                        nearestPutDeadline: Option[Deadline],
+                                        private[segment] val ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                              timeOrder: TimeOrder[Slice[Byte]],
+                                                                              functionStore: FunctionStore,
+                                                                              blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                              fileSweeper: FileSweeper,
+                                                                              bufferCleaner: ByteBufferSweeperActor,
+                                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                              forceSaveApplier: ForceSaveApplier,
+                                                                              segmentIO: SegmentReadIO) extends PersistentSegment with LazyLogging {
 
   override def formatId: Byte = PersistentSegmentOne.formatId
 
