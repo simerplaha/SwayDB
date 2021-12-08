@@ -32,6 +32,7 @@ import swaydb.{Apply, IO, Prepare, PureFunction, StorageIntImplicits}
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.DurationInt
 import swaydb.testkit.TestKit._
+import swaydb.core.file.CoreFileTestKit._
 
 sealed trait Key
 object Key {
@@ -66,7 +67,7 @@ class SwayDBFunctionSpec0 extends SwayDBFunctionSpec {
                     keySerializer: Serializer[K],
                     valueSerializer: Serializer[V],
                     sweeper: TestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
-    swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](randomDir).right.value.sweep(_.delete().get)
+    swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](randomDir()).right.value.sweep(_.delete().get)
 }
 
 class SwayDBFunctionSpec1 extends SwayDBFunctionSpec {
@@ -75,7 +76,7 @@ class SwayDBFunctionSpec1 extends SwayDBFunctionSpec {
                     keySerializer: Serializer[K],
                     valueSerializer: Serializer[V],
                     sweeper: TestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
-    swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](randomDir, logSize = 1.byte).right.value.sweep(_.delete().get)
+    swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](randomDir(), logSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBFunctionSpec2 extends SwayDBFunctionSpec {

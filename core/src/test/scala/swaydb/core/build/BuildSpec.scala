@@ -29,6 +29,7 @@ import swaydb.utils.{ByteSizeOf, Extension}
 import java.nio.file.FileAlreadyExistsException
 import scala.util.Random
 import swaydb.testkit.TestKit._
+import swaydb.core.file.CoreFileTestKit._
 
 class BuildSpec extends ACoreSpec {
 
@@ -41,7 +42,7 @@ class BuildSpec extends ACoreSpec {
               val version = Build.Version(major = randomIntMax(), minor = randomIntMax(), revision = randomIntMax())
               val buildInfo = Build.Info(version = version, dataType = dataType)
 
-              val folder = randomDir
+              val folder = randomDir()
               Build.write(folder, buildInfo).value shouldBe folder.resolve(Build.fileName)
 
               val readBuildInfo = Build.read(folder).value
@@ -53,7 +54,7 @@ class BuildSpec extends ACoreSpec {
     "fail if build.info already exists" in {
       TestSweeper {
         implicit sweeper =>
-          val folder = createRandomDir
+          val folder = createRandomDir()
           val file = Effect.createFile(folder.resolve(Build.fileName))
           val fileContent = Effect.readAllBytes(file)
 
@@ -71,7 +72,7 @@ class BuildSpec extends ACoreSpec {
         TestSweeper {
           implicit sweeper =>
 
-            val folder = randomDir
+            val folder = randomDir()
             Effect.exists(folder) shouldBe false
             Build.read(folder).value shouldBe Build.Fresh
         }
@@ -81,7 +82,7 @@ class BuildSpec extends ACoreSpec {
         TestSweeper {
           implicit sweeper =>
 
-            val folder = createRandomDir
+            val folder = createRandomDir()
             Effect.exists(folder) shouldBe true
             Build.read(folder).value shouldBe Build.Fresh
         }
@@ -94,7 +95,7 @@ class BuildSpec extends ACoreSpec {
           implicit sweeper =>
             Extension.all foreach {
               extension =>
-                val folder = createRandomDir
+                val folder = createRandomDir()
                 val file = Effect.createFile(folder.resolve(s"somefile.$extension"))
 
                 Effect.exists(folder) shouldBe true
@@ -119,7 +120,7 @@ class BuildSpec extends ACoreSpec {
                 val version = Build.Version(major = randomIntMax(), minor = randomIntMax(), revision = randomIntMax())
                 val buildInfo = Build.Info(version = version, dataType = dataType)
 
-                val folder = randomDir
+                val folder = randomDir()
                 val file = Build.write(folder, buildInfo).value
 
                 //drop crc
@@ -138,7 +139,7 @@ class BuildSpec extends ACoreSpec {
                 val version = Build.Version(major = randomIntMax(), minor = randomIntMax(), revision = randomIntMax())
                 val buildInfo = Build.Info(version = version, dataType = dataType)
 
-                val folder = randomDir
+                val folder = randomDir()
                 val file = Build.write(folder, buildInfo).value
 
                 val existsBytes = Effect.readAllBytes(file)
@@ -171,7 +172,7 @@ class BuildSpec extends ACoreSpec {
                 Extension.all foreach {
                   extension =>
 
-                    val folder = createRandomDir
+                    val folder = createRandomDir()
                     val file = folder.resolve(s"somefile.$extension")
 
                     Effect.createFile(file)
@@ -196,7 +197,7 @@ class BuildSpec extends ACoreSpec {
                 val dataType = Random.shuffle(DataType.all.toList).find(_ != invalidDataType).get
 
                 implicit val validator = BuildValidator.DisallowOlderVersions(dataType)
-                val folder = createRandomDir
+                val folder = createRandomDir()
                 Build.validateOrCreate(folder)
 
                 Effect.exists(folder) shouldBe true
@@ -215,7 +216,7 @@ class BuildSpec extends ACoreSpec {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>
-                val folder = createRandomDir
+                val folder = createRandomDir()
                 Effect.exists(folder) shouldBe true
 
                 implicit val validator = BuildValidator.DisallowOlderVersions(dataType)
@@ -233,7 +234,7 @@ class BuildSpec extends ACoreSpec {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>
-                val folder = randomDir
+                val folder = randomDir()
                 Effect.exists(folder) shouldBe false
 
                 implicit val validator = BuildValidator.DisallowOlderVersions(dataType)

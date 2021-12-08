@@ -28,6 +28,7 @@ import swaydb.{Benchmark, Glass, _}
 import java.nio.file.Files
 import scala.concurrent.duration.DurationInt
 import scala.util.Try
+import swaydb.core.file.CoreFileTestKit._
 
 class SwayDBAppliedFunctionsSpec extends TestBaseAPI {
 
@@ -41,7 +42,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseAPI {
           TestSweeper {
             implicit sweeper =>
 
-              val dir = createRandomDir
+              val dir = createRandomDir()
               val map = swaydb.persistent.Map[Int, String, Nothing, Glass](dir).sweep(_.delete())
 
               Files.exists(dir) shouldBe true
@@ -59,7 +60,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseAPI {
           TestSweeper {
             implicit sweeper =>
 
-              val dir = createRandomDir
+              val dir = createRandomDir()
 
               val function: OnKey[Int, String] =
                 _ =>
@@ -84,7 +85,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseAPI {
         TestSweeper {
           implicit sweeper =>
 
-            val dir = createRandomDir
+            val dir = createRandomDir()
 
             val function1: OnKey[Int, String] =
               (_: Int) =>
@@ -120,7 +121,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseAPI {
         TestSweeper {
           implicit sweeper =>
 
-            val dir = createRandomDir
+            val dir = createRandomDir()
 
             val noDataToApply: OnKey[Int, String] =
               (_: Int) =>
@@ -176,7 +177,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseAPI {
         TestSweeper {
           implicit sweeper =>
 
-            val dir = createRandomDir
+            val dir = createRandomDir()
 
             val noDataToApply: OnKey[Int, String] =
               (key: Int) => fail("There is no data for this function to execute")
@@ -215,7 +216,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseAPI {
       TestSweeper {
         implicit sweeper =>
 
-          val dir = createRandomDir
+          val dir = createRandomDir()
 
           val functions =
             (1 to 1000) map {

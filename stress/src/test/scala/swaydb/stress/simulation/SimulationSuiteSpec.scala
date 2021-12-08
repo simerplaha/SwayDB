@@ -16,6 +16,7 @@
 
 package swaydb.stress.simulation
 
+import swaydb.core.file.CoreFileTestKit._
 import swaydb.config.{Atomic, Functions}
 import swaydb.core.TestSweeper
 import swaydb.core.TestSweeper._
@@ -42,7 +43,7 @@ class Persistent_NonAtomic_SimulationSpec extends SimulationSpec {
   override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
                        sweeper: TestSweeper) =
     swaydb.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
-      dir = randomDir,
+      dir = randomDir(),
       //      acceleration = Accelerator.brake(),
       atomic = Atomic.Off,
       //      mmapLogs = MMAP.randomForMap(),
@@ -58,7 +59,7 @@ class Persistent_Atomic_SimulationSpec extends SimulationSpec {
   override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
                        sweeper: TestSweeper) =
     swaydb.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
-      dir = randomDir,
+      dir = randomDir(),
       //      acceleration = Accelerator.brake(),
       atomic = Atomic.On,
       //      mmapLogs = MMAP.randomForMap(),
@@ -74,7 +75,7 @@ class Memory_NonAtomic_Persistent_SimulationSpec extends SimulationSpec {
   override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
                        sweeper: TestSweeper) =
     swaydb.eventually.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
-      dir = randomDir,
+      dir = randomDir(),
       //      acceleration = Accelerator.brake(),
       atomic = Atomic.Off,
       //      mmapLogs = MMAP.randomForMap(),
@@ -89,7 +90,7 @@ class Memory_Atomic_Persistent_SimulationSpec extends SimulationSpec {
   override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
                        sweeper: TestSweeper) =
     swaydb.eventually.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
-      dir = randomDir,
+      dir = randomDir(),
       //      acceleration = Accelerator.brake(),
       atomic = Atomic.On,
       //      mmapLogs = MMAP.randomForMap(),

@@ -22,24 +22,24 @@ import swaydb.Glass
 import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.config.storage.LevelStorage
-import swaydb.core.CoreTestData._
 import swaydb.core._
+import swaydb.core.CoreTestData._
+import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data._
-import swaydb.effect.Effect._
 import swaydb.effect.{Dir, Effect}
-import swaydb.serializers.Default._
+import swaydb.effect.Effect._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.testkit.TestKit._
 import swaydb.utils.{Extension, OperatingSystem}
 import swaydb.utils.StorageUnits._
-import swaydb.testkit.TestKit._
 
 import java.nio.channels.OverlappingFileLockException
-import swaydb.testkit.TestKit._
 
 class LevelSpec0 extends LevelSpec
 
@@ -79,10 +79,10 @@ sealed trait LevelSpec extends ALevelSpec with MockFactory with PrivateMethodTes
         TestSweeper {
           implicit sweeper =>
 
-            val otherDirs = (0 to randomIntMax(5)) map (_ => Dir(randomDir, 1))
+            val otherDirs = (0 to randomIntMax(5)) map (_ => Dir(randomDir(), 1))
             val storage =
               LevelStorage.Persistent(
-                dir = randomDir,
+                dir = randomDir(),
                 otherDirs = otherDirs,
                 appendixMMAP = MMAP.randomForLog(),
                 appendixFlushCheckpointSize = 4.mb

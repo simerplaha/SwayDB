@@ -11,7 +11,7 @@ import swaydb.utils.OperatingSystem
 import java.nio.file.Path
 import scala.util.Random
 
-object AFileSpec {
+object CoreFileTestKit {
 
   def randomFilePath()(implicit sweeper: TestSweeper): Path =
     sweeper.testDir().resolve(s"${randomCharacters()}.test").sweep()
@@ -136,6 +136,18 @@ object AFileSpec {
 
   def createRandomFileReader(bytes: Slice[Byte])(implicit sweeper: TestSweeper): FileReader =
     createRandomFileReader(createFile(bytes))
+
+  def randomIntDirectory()(implicit sweeper: TestSweeper): Path =
+    sweeper.testDirPath.resolve(sweeper.idGenerator.toString)
+
+  def createRandomIntDirectory()(implicit sweeper: TestSweeper): Path =
+    Effect.createDirectoriesIfAbsent(randomIntDirectory()).sweep()
+
+  def randomDir()(implicit sweeper: TestSweeper): Path =
+    sweeper.testDirPath.resolve(s"${randomCharacters()}").sweep()
+
+  def createRandomDir()(implicit sweeper: TestSweeper): Path =
+    Effect.createDirectory(randomDir()).sweep()
 
 }
 

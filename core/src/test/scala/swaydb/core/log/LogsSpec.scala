@@ -39,6 +39,7 @@ import swaydb.utils.StorageUnits._
 
 import java.nio.file.NoSuchFileException
 import swaydb.testkit.TestKit._
+import swaydb.core.file.CoreFileTestKit._
 
 class LogsSpec extends ALogSpec {
 
@@ -58,7 +59,7 @@ class LogsSpec extends ALogSpec {
           implicit sweeper =>
             import sweeper._
 
-            val path = createRandomDir
+            val path = createRandomDir()
             val logs: Logs[Slice[Byte], Memory, LevelZeroLogCache] =
               Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 path = path,
@@ -113,7 +114,7 @@ class LogsSpec extends ALogSpec {
         TestSweeper {
           implicit sweeper =>
             import sweeper._
-            val path = createRandomDir
+            val path = createRandomDir()
             val logs =
               Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 path = path,
@@ -191,7 +192,7 @@ class LogsSpec extends ALogSpec {
           }
 
           //persistent
-          val path = createRandomDir
+          val path = createRandomDir()
           val logs =
             Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               path = path,
@@ -249,7 +250,7 @@ class LogsSpec extends ALogSpec {
               logs
             }
 
-            val path = createRandomDir
+            val path = createRandomDir()
             //persistent
 
             val originalLogs =
@@ -299,7 +300,7 @@ class LogsSpec extends ALogSpec {
           implicit sweeper =>
             import sweeper._
 
-            val path = createRandomDir
+            val path = createRandomDir()
             val logs =
               Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 path = path,
@@ -366,7 +367,7 @@ class LogsSpec extends ALogSpec {
           implicit sweeper =>
             import sweeper._
 
-            val path = createRandomDir
+            val path = createRandomDir()
             val logs =
               Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 path = path,
@@ -411,7 +412,7 @@ class LogsSpec extends ALogSpec {
         TestSweeper {
           implicit sweeper =>
             import sweeper._
-            val path = createRandomDir
+            val path = createRandomDir()
             val logs =
               Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 path = path,
@@ -450,7 +451,7 @@ class LogsSpec extends ALogSpec {
         TestSweeper {
           implicit sweeper =>
             import sweeper._
-            val path = createRandomDir
+            val path = createRandomDir()
             val logs =
               Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 path = path,
@@ -508,7 +509,7 @@ class LogsSpec extends ALogSpec {
       TestSweeper {
         implicit sweeper =>
           import sweeper._
-          val path = createRandomDir
+          val path = createRandomDir()
           val logs =
             Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               path = path,
@@ -558,7 +559,7 @@ class LogsSpec extends ALogSpec {
       TestSweeper {
         implicit sweeper =>
           import sweeper._
-          val path = createRandomDir
+          val path = createRandomDir()
           val logs =
             Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               path = path,

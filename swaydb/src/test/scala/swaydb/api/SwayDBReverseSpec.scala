@@ -24,6 +24,7 @@ import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
+import swaydb.core.file.CoreFileTestKit._
 
 class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
   implicit val order: KeyOrder[Slice[Byte]] = KeyOrder.reverseLexicographic
@@ -31,7 +32,7 @@ class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
   val keyValueCount: Int = 10000
 
   override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value.sweep(_.delete().get)
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir()).right.value.sweep(_.delete().get)
 }
 
 class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {

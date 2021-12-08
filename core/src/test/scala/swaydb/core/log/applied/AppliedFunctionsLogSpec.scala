@@ -31,6 +31,7 @@ import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 import swaydb.testkit.TestKit._
+import swaydb.core.file.CoreFileTestKit._
 
 class AppliedFunctionsLogSpec extends ACoreSpec {
 
@@ -47,7 +48,7 @@ class AppliedFunctionsLogSpec extends ACoreSpec {
 
           val mapResult =
             AppliedFunctionsLog(
-              dir = randomDir,
+              dir = randomDir(),
               fileSize = randomIntMax(1.kb) max 1,
               mmap = MMAP.randomForLog()
             )

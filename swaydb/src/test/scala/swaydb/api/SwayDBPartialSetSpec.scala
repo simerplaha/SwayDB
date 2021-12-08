@@ -26,6 +26,7 @@ import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
+import swaydb.core.file.CoreFileTestKit._
 
 object SwayDBPartialSetSpec {
 
@@ -54,7 +55,7 @@ class SwayDBPartialSet_Persistent_Spec extends SwayDBPartialSetSpec {
   import SwayDBPartialSetSpec._
 
   override def newDB()(implicit sweeper: TestSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass] =
-    swaydb.persistent.Set[(Int, Option[String]), Nothing, Glass](randomDir, logSize = 10.bytes).sweep(_.delete())
+    swaydb.persistent.Set[(Int, Option[String]), Nothing, Glass](randomDir(), logSize = 10.bytes).sweep(_.delete())
 }
 
 class SwayDBPartialSet_Memory_Spec extends SwayDBPartialSetSpec {

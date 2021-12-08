@@ -33,19 +33,20 @@ import swaydb.{Bag, Glass, IO, MultiMap, Prepare}
 import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.testkit.TestKit._
+import swaydb.core.file.CoreFileTestKit._
 
 class MultiMapSpec0 extends MultiMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
-    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir).sweep(_.delete())
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir()).sweep(_.delete())
 }
 
 class MultiMapSpec1 extends MultiMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
-    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir, logSize = 1.byte).sweep(_.delete())
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir(), logSize = 1.byte).sweep(_.delete())
 }
 
 class MultiMapSpec2 extends MultiMapSpec {

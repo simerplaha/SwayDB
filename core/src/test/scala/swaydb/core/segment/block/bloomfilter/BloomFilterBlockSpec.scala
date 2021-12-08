@@ -21,7 +21,7 @@
 //import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 //import swaydb.core.segment.block.{Block, BlockCache}
 //import swaydb.core.{ACoreSpec, TestSweeper}
-//import swaydb.core.file.AFileSpec
+//import swaydb.core.file.FileTestKit
 //import swaydb.core.segment.ASegmentSpec
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
@@ -31,7 +31,7 @@
 //
 //import scala.util.Random
 //
-//class BloomFilterBlockSpec extends ASegmentSpec with AFileSpec {
+//class BloomFilterBlockSpec extends ASegmentSpec with FileTestKit {
 //
 //  implicit val keyOrder = KeyOrder.default
 //

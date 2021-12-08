@@ -23,7 +23,7 @@
 //import swaydb.core.segment.cache.sweeper.MemorySweeper
 //import swaydb.core.util.Bytes
 //import swaydb.core.{ACoreSpec, TestSweeper}
-//import swaydb.core.file.AFileSpec
+//import swaydb.core.file.FileTestKit
 //import swaydb.core.segment.ASegmentSpec
 //import swaydb.slice.{Slice, SliceRO, Slices}
 //import swaydb.testkit.RunThis._
@@ -32,7 +32,7 @@
 //import scala.jdk.CollectionConverters._
 //import swaydb.testkit.TestKit._
 //
-//class BlockCacheSpec extends ASegmentSpec with AFileSpec with MockFactory {
+//class BlockCacheSpec extends ASegmentSpec with FileTestKit with MockFactory {
 //
 //  "seekSize" should {
 //    val bytes = randomBytesSlice(1000)

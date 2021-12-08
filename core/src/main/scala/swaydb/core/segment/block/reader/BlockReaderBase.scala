@@ -37,7 +37,7 @@ private[block] trait BlockReaderBase extends ReaderBase with BlockCacheSource wi
 
   private var position: Int = 0
 
-  override val isFile: Boolean =
+  override def isFile: Boolean =
     reader.isFile
 
   override def remaining(): Int =

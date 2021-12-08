@@ -21,10 +21,11 @@ import swaydb.Glass
 import swaydb.core.TestSweeper._
 import swaydb.core.{ACoreSpec, TestSweeper}
 import swaydb.serializers.Default._
+import swaydb.core.file.CoreFileTestKit._
 
 class SetMapSpec0 extends SetMapSpec {
   override def newDB()(implicit sweeper: TestSweeper): swaydb.SetMap[Int, String, Glass] =
-    swaydb.persistent.SetMap[Int, String, Glass](randomDir).sweep(_.delete())
+    swaydb.persistent.SetMap[Int, String, Glass](randomDir()).sweep(_.delete())
 }
 
 class SetMapSpec3 extends SetMapSpec {

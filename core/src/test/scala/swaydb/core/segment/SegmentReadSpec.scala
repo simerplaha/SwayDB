@@ -865,7 +865,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
             eventual(1.minute)(Effect.notExists(segment3.path) shouldBe true)
           }
 
-          IO(Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean()))).left.value.exception shouldBe a[NoSuchFileException]
+          assertThrows[NoSuchFileException](Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean())))
       }
     }
 
@@ -899,19 +899,19 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
                 Effect.overwrite(segment2.path, bytes.drop(1))
                 clearAll()
-                IO(Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean()))).left.runRandomIO.get shouldBe a[swaydb.Error]
+                assertThrows[swaydb.Error](Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean())))
 
                 Effect.overwrite(segment2.path, bytes.dropRight(1))
                 clearAll()
-                IO(segment2.iterator(randomBoolean())).left.runRandomIO.get shouldBe a[swaydb.Error]
+                assertThrows[swaydb.Error](segment2.iterator(randomBoolean()))
 
                 Effect.overwrite(segment2.path, bytes.drop(10))
                 clearAll()
-                IO(Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean()))).left.runRandomIO.get shouldBe a[swaydb.Error]
+                assertThrows[swaydb.Error](Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean())))
 
                 Effect.overwrite(segment2.path, bytes.dropRight(1))
                 clearAll()
-                IO(Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean()))).left.runRandomIO.get shouldBe a[swaydb.Error]
+                assertThrows[swaydb.Error](Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean())))
               }
           }
       //memory files do not require this test

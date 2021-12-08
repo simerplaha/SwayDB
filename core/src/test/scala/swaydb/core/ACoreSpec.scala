@@ -57,15 +57,6 @@ trait ACoreSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll with Be
 
   def isPersistentSpec = !isMemorySpec
 
-  def randomDir(implicit sweeper: TestSweeper) = testClassDir.resolve(s"${randomCharacters()}").sweep()
-
-  def createRandomDir(implicit sweeper: TestSweeper) = Effect.createDirectory(randomDir).sweep()
-
-  def randomFilePath(implicit sweeper: TestSweeper) =
-    testClassDir.resolve(s"${randomCharacters()}.test").sweep()
-
-//  def nextId = idGenerator.next
-
   def deleteFiles = true
 
   def randomIntDirectory: Path =
@@ -76,8 +67,6 @@ trait ACoreSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll with Be
       Effect.createDirectoriesIfAbsent(randomIntDirectory).sweep()
     else
       randomIntDirectory
-
-  def farOut = new Exception("Far out!")
 
   def testClassDir: Path =
     if (isMemorySpec)

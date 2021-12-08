@@ -24,7 +24,7 @@
 //import swaydb.utils.StorageUnits._
 //import swaydb.testkit.TestKit._
 //
-//class BlockCachePerformanceSpec extends AFileSpec {
+//class BlockCachePerformanceSpec extends FileTestKit {
 //
 //  "force save benchmark" when {
 //    "memory-mapped file" in {

@@ -63,17 +63,17 @@ object TestSweeper extends LazyLogging {
   private val projectTargetFolder: String =
     getClass.getClassLoader.getResource("").getPath
 
-  val projectDirectory: Path =
+  val projectFolder: Path =
     if (OperatingSystem.isWindows)
       Paths.get(projectTargetFolder.drop(1)).getParent.getParent
     else
       Paths.get(projectTargetFolder).getParent.getParent
 
-  val testFileDirectory: Path =
-    projectDirectory.resolve("TEST_FILES")
+  val testFolder: Path =
+    projectFolder.resolve("TEST_FILES")
 
-  val testMemoryFileDirectory: Path =
-    projectDirectory.resolve("TEST_MEMORY_FILES")
+  val testMemoryFolder: Path =
+    projectFolder.resolve("TEST_MEMORY_FILES")
 
   def deleteParentPath(path: Path) = {
     val parentPath = path.getParent
@@ -302,7 +302,7 @@ class TestSweeper(val testName: String = s"TEST${TestSweeper.testNumber.incremen
   val idGenerator = IDGenerator()
 
   val testDirPath: Path =
-    TestSweeper.testFileDirectory.resolve(testName)
+    TestSweeper.testFolder.resolve(testName)
 
   def testDir(): Path =
     Effect.createDirectoriesIfAbsent(testDirPath)

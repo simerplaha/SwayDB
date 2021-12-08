@@ -16,9 +16,9 @@
 
 package swaydb.core.log.timer
 
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
 import swaydb.config.MMAP
+import swaydb.core.{ACoreSpec, TestExecutionContext, TestForceSave, TestSweeper}
+import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.log.LogEntry
@@ -26,7 +26,6 @@ import swaydb.core.log.LogTestUtil._
 import swaydb.core.log.counter.CounterLog
 import swaydb.core.log.serialiser.{CounterLogEntryReader, CounterLogEntryWriter, LogEntryReader, LogEntryWriter}
 import swaydb.core.segment.CoreFunctionStore
-import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestForceSave}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.OperatingSystem
@@ -92,7 +91,7 @@ sealed trait TimerSpec extends ACoreSpec {
                 nextTime.readUnsignedLong() shouldBe i
             }
 
-          val dir = randomDir
+          val dir = randomDir()
           val timer: Timer = newTimer(dir)
           write((CounterLog.startId.toInt + 1) to 1000, timer)
           timer.close()

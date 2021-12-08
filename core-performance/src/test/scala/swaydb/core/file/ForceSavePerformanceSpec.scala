@@ -30,6 +30,7 @@ import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.StandardOpenOption
 import java.util.concurrent.atomic.AtomicBoolean
+import swaydb.core.file.CoreFileTestKit._
 
 class ForceSavePerformanceSpec extends ACoreSpec {
 
@@ -55,7 +56,7 @@ class ForceSavePerformanceSpec extends ACoreSpec {
 
           runThis(100.times, log = true) {
             //create random path and byte slice
-            val path = randomFilePath
+            val path = randomFilePath()
 
             val channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
             val buffer = channel.map(MapMode.READ_WRITE, 0, bytes.size)
@@ -103,7 +104,7 @@ class ForceSavePerformanceSpec extends ACoreSpec {
 
           runThis(100.times, log = true) {
             //create random path and byte slice
-            val path = randomFilePath
+            val path = randomFilePath()
 
             val channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
 

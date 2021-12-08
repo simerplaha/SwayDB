@@ -27,12 +27,13 @@ import swaydb.testkit.RunThis.FutureImplicits
 
 import scala.concurrent.Future
 import scala.util.Try
+import swaydb.core.file.CoreFileTestKit._
 
 class SwayDBSequencerSpec0 extends SwayDBSequencerSpec {
   def newDB[BAG[+_]]()(implicit sweeper: TestSweeper,
                        sequencer: Sequencer[BAG],
                        bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
-    swaydb.persistent.Map[Int, String, Nothing, BAG](randomDir).map(_.sweep(_.toBag[Glass].delete()))
+    swaydb.persistent.Map[Int, String, Nothing, BAG](randomDir()).map(_.sweep(_.toBag[Glass].delete()))
 
   override val keyValueCount: Int = 100
 }

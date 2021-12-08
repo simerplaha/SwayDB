@@ -31,6 +31,7 @@ import swaydb.testkit.TestKit._
 import swaydb.utils.StorageUnits._
 
 import scala.collection.mutable.ListBuffer
+import swaydb.core.file.CoreFileTestKit._
 
 class CounterLogSpec extends ALogSpec {
 
@@ -70,7 +71,7 @@ class CounterLogSpec extends ALogSpec {
 
           val map =
             CounterLog.persistent(
-              dir = randomDir,
+              dir = randomDir(),
               fileSize = randomIntMax(100) max 1,
               mmap = MMAP.randomForLog(),
               mod = mod
@@ -103,7 +104,7 @@ class CounterLogSpec extends ALogSpec {
 
           val map =
             CounterLog.persistent(
-              dir = randomDir,
+              dir = randomDir(),
               fileSize = randomIntMax(1.kb) max 1,
               mmap = MMAP.randomForLog(),
               mod = mod

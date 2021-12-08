@@ -28,7 +28,7 @@
 //import swaydb.core.segment.data.merge.stats.MergeStats
 //import swaydb.core.segment.io.SegmentReadIO
 //import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestTimer}
-//import swaydb.core.file.AFileSpec
+//import swaydb.core.file.FileTestKit
 //import swaydb.core.segment.ASegmentSpec
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
@@ -39,7 +39,7 @@
 //import scala.collection.mutable.ListBuffer
 //import swaydb.testkit.TestKit._
 //
-//class SegmentBlockSpec extends ASegmentSpec with AFileSpec {
+//class SegmentBlockSpec extends ASegmentSpec with FileTestKit {
 //
 //  val keyValueCount = 100
 //

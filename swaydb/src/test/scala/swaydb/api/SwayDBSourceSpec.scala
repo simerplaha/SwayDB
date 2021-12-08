@@ -22,17 +22,18 @@ import swaydb.core.TestSweeper
 import swaydb.core.TestSweeper._
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis.runThis
+import swaydb.core.file.CoreFileTestKit._
 
 class SwayDBSourceSpec0 extends SwayDBSourceSpec {
   override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir).right.value.sweep(_.delete().get)
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir()).right.value.sweep(_.delete().get)
 
   override val keyValueCount: Int = 100
 }
 
 class SwayDBSource_SetMap_Spec0 extends SwayDBSourceSpec {
   override def newDB()(implicit sweeper: TestSweeper): SetMap[Int, String, IO.ApiIO] =
-    swaydb.persistent.SetMap[Int, String, IO.ApiIO](randomDir).right.value.sweep(_.delete().get)
+    swaydb.persistent.SetMap[Int, String, IO.ApiIO](randomDir()).right.value.sweep(_.delete().get)
 
   override val keyValueCount: Int = 100
 }
@@ -42,7 +43,7 @@ class SwayDBSourceSpec1 extends SwayDBSourceSpec {
   override val keyValueCount: Int = 100
 
   override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, logSize = 1.byte).right.value.sweep(_.delete().get)
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir(), logSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBSourceSpec2 extends SwayDBSourceSpec {
@@ -65,7 +66,7 @@ class MultiMapSwayDBSourceSpec4 extends SwayDBSourceSpec {
   val keyValueCount: Int = 10000
 
   override def newDB()(implicit sweeper: TestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir).get).sweep(_.delete().get)
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir()).get).sweep(_.delete().get)
 }
 
 class MultiMapSwayDBSourceSpec5 extends SwayDBSourceSpec {

@@ -30,7 +30,7 @@ import java.nio.{BufferOverflowException, MappedByteBuffer}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 import scala.annotation.tailrec
 
-private[file] object MMAPFile {
+private object MMAPFile {
 
   def write(path: Path,
             bufferSize: Int,
@@ -81,14 +81,14 @@ private[file] object MMAPFile {
   }
 }
 
-private[file] class MMAPFile(val path: Path,
-                             channel: FileChannel,
-                             mode: MapMode,
-                             bufferSize: Int,
-                             val deleteAfterClean: Boolean,
-                             val forceSaveConfig: ForceSave.MMAPFiles,
-                             @volatile private var buffer: MappedByteBuffer)(implicit cleaner: ByteBufferSweeperActor,
-                                                                             forceSaveApplier: ForceSaveApplier) extends LazyLogging with CoreFileType {
+private class MMAPFile(val path: Path,
+                       channel: FileChannel,
+                       mode: MapMode,
+                       bufferSize: Int,
+                       val deleteAfterClean: Boolean,
+                       val forceSaveConfig: ForceSave.MMAPFiles,
+                       @volatile private var buffer: MappedByteBuffer)(implicit cleaner: ByteBufferSweeperActor,
+                                                                       forceSaveApplier: ForceSaveApplier) extends LazyLogging with CoreFileType {
 
   //Force is applied on files after they are marked immutable so it only needs
   //to be invoked once.

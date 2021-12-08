@@ -27,7 +27,7 @@ import java.nio.channels.{FileChannel, GatheringByteChannel}
 import java.nio.file.{Path, StandardOpenOption}
 import java.util.concurrent.atomic.AtomicBoolean
 
-private[file] object StandardFile {
+private object StandardFile {
 
   def write(path: Path,
             forceSave: ForceSave.StandardFiles)(implicit forceSaveApplier: ForceSaveApplier): StandardFile = {
@@ -54,10 +54,10 @@ private[file] object StandardFile {
       throw swaydb.Exception.NoSuchFile(path)
 }
 
-private[file] class StandardFile(val path: Path,
-                                 mode: StandardOpenOption,
-                                 private[file] val channel: FileChannel,
-                                 forceSave: ForceSave.StandardFiles)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with CoreFileType {
+private class StandardFile(val path: Path,
+                           mode: StandardOpenOption,
+                           private[file] val channel: FileChannel,
+                           forceSave: ForceSave.StandardFiles)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with CoreFileType {
 
   //Force is applied on files after they are marked immutable so it only needs
   //to be invoked once.

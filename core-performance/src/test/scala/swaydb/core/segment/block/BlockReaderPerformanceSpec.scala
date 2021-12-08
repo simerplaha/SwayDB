@@ -43,7 +43,7 @@
 //
 //    val file =
 //      CoreFile.mmapInit(
-//        path = randomFilePath,
+//        path = randomFilePath(),
 //        ioStrategy = ioStrategy,
 //        bufferSize = bytes.size,
 //        blockCacheFileId = BlockCacheFileIDGenerator.nextID,

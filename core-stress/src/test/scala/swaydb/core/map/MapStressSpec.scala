@@ -60,8 +60,8 @@
 //            map.get(keyValue.key).value shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
 //        }
 //
-//      val dir1 = createRandomDir
-//      val dir2 = createRandomDir
+//      val dir1 = createRandomDir()
+//      val dir2 = createRandomDir()
 //
 //      import swaydb.core.log.serializer.LevelZeroLogEntryReader.Level0Reader
 //      import swaydb.core.log.serializer.LevelZeroLogEntryWriter.Level0LogEntryPutWriter

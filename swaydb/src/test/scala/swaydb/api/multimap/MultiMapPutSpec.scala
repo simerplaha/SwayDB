@@ -24,12 +24,13 @@ import swaydb.core.CoreTestData._
 import swaydb.serializers.Default._
 import swaydb.{Glass, MultiMap}
 import swaydb.testkit.TestKit._
+import swaydb.core.file.CoreFileTestKit._
 
 class MultiMapPutSpec0 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000
 
   override def newDB()(implicit sweeper: TestSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass] =
-    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir).sweep(_.delete())
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir()).sweep(_.delete())
 }
 
 class MultiMapPutSpec1 extends MultiMapPutSpec {

@@ -22,12 +22,13 @@ import swaydb.core.TestSweeper
 import swaydb.core.TestSweeper._
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis._
+import swaydb.core.file.CoreFileTestKit._
 
 class ScalaSetSpec0 extends ScalaSetSpec {
   val keyValueCount: Int = 1000
 
   override def newDB()(implicit sweeper: TestSweeper): Set[Int, Nothing, IO.ApiIO] =
-    swaydb.persistent.Set[Int, Nothing, IO.ApiIO](dir = randomDir).right.value.sweep(_.delete().get)
+    swaydb.persistent.Set[Int, Nothing, IO.ApiIO](dir = randomDir()).right.value.sweep(_.delete().get)
 }
 
 class ScalaSetSpec1 extends ScalaSetSpec {
@@ -35,7 +36,7 @@ class ScalaSetSpec1 extends ScalaSetSpec {
   val keyValueCount: Int = 1000
 
   override def newDB()(implicit sweeper: TestSweeper): Set[Int, Nothing, IO.ApiIO] =
-    swaydb.persistent.Set[Int, Nothing, IO.ApiIO](randomDir, logSize = 1.byte, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = 10.bytes)).right.value.sweep(_.delete().get)
+    swaydb.persistent.Set[Int, Nothing, IO.ApiIO](randomDir(), logSize = 1.byte, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = 10.bytes)).right.value.sweep(_.delete().get)
 }
 
 class ScalaSetSpec2 extends ScalaSetSpec {

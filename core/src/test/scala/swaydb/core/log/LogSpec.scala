@@ -45,6 +45,7 @@ import swaydb.testkit.TestKit._
 
 import java.nio.file.{FileAlreadyExistsException, Path}
 import swaydb.testkit.TestKit._
+import swaydb.core.file.CoreFileTestKit._
 
 class LogSpec extends ALogSpec with ASegmentSpec {
 
@@ -126,7 +127,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
@@ -170,7 +171,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val log =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false, fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -230,7 +231,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
@@ -274,7 +275,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val log =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
@@ -324,7 +325,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val map1 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
@@ -338,7 +339,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val map2 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
@@ -405,7 +406,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val map1 =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
@@ -418,7 +419,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val map2 =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
@@ -464,7 +465,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb
@@ -505,7 +506,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val file =
             PersistentLog.recover[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               fileSize = 4.mb,
               cache = cache,
@@ -532,7 +533,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           //create a log
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 4.mb,
@@ -594,7 +595,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           //create a log
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
               flushOnOverflow = true,
               fileSize = 1.byte,
@@ -685,7 +686,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           //create a log
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 4.mb,
@@ -738,7 +739,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val currentFile =
             PersistentLog.recover[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               fileSize = 4.mb,
               cache = cache,
@@ -778,7 +779,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           import sweeper._
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 4.mb,
@@ -820,7 +821,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           import sweeper._
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 4.mb,
@@ -879,7 +880,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val map1 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
@@ -892,7 +893,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val map2 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
@@ -968,7 +969,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val map1 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
@@ -981,7 +982,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val map2 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
@@ -1060,7 +1061,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
             //create a Map with randomly max size so that this test also covers when multiple maps are created. Also set flushOnOverflow to true so that the same Map gets written.
             val log =
               Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-                folder = createRandomDir,
+                folder = createRandomDir(),
                 mmap = MMAP.randomForLog(),
                 flushOnOverflow = true,
                 fileSize = randomIntMax(1.mb),
@@ -1117,7 +1118,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
               val log =
                 Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-                  folder = createRandomDir,
+                  folder = createRandomDir(),
                   //when deleteAfterClean is false, this will pass with TestTimer.Empty because the files are deleted
                   //immediately and reopen does not have to recovery multiple log files with functions. But we always
                   //use Timer when functions are enabled.
@@ -1166,7 +1167,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           val map1 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-              folder = createRandomDir,
+              folder = createRandomDir(),
               mmap = MMAP.randomForLog(),
               flushOnOverflow = true,
               fileSize = 1.mb,

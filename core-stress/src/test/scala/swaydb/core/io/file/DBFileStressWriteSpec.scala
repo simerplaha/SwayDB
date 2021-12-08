@@ -37,7 +37,7 @@
 //    val bytes = randomByteChunks(size = 20000, sizePerChunk = 50.bytes)
 //
 //    "write key values to a StandardFile" in {
-//      val path = randomFilePath
+//      val path = randomFilePath()
 //
 //      val file = CoreFile.standardWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
 //      Benchmark("write 1 million key values to a StandardFile") {
@@ -50,7 +50,7 @@
 //    }
 //
 //    "write key values to a StandardFile concurrently" in {
-//      val path = randomFilePath
+//      val path = randomFilePath()
 //
 //      val file = CoreFile.standardWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
 //      Benchmark("write 1 million key values to a StandardFile concurrently") {
@@ -65,7 +65,7 @@
 //    }
 //
 //    "write key values to a MMAPlFile" in {
-//      val path = randomFilePath
+//      val path = randomFilePath()
 //
 //      val file =
 //        CoreFile.mmapInit(
@@ -87,7 +87,7 @@
 //    }
 //
 //    "write key values to a MMAPlFile concurrently" in {
-//      val path = randomFilePath
+//      val path = randomFilePath()
 //
 //      val file =
 //        CoreFile.mmapInit(

@@ -24,12 +24,12 @@
 //import swaydb.core.segment.block.values.ValuesBlockOffset.ValuesBlockOps
 //import swaydb.core.segment.block.{Block, BlockCache}
 //import swaydb.core.{ACoreSpec, TestSweeper}
-//import swaydb.core.file.AFileSpec
+//import swaydb.core.file.FileTestKit
 //import swaydb.core.segment.ASegmentSpec
 //import swaydb.slice.{Reader, Slice}
 //import swaydb.testkit.TestKit._
 //
-//class BlockRefReaderSpec extends ASegmentSpec with AFileSpec with MockFactory {
+//class BlockRefReaderSpec extends ASegmentSpec with FileTestKit with MockFactory {
 //
 //  "apply" when {
 //    "File, bytes & reader" in {

@@ -20,6 +20,7 @@ import swaydb.IO
 import swaydb.config.Atomic
 import swaydb.core.TestSweeper
 import swaydb.core.TestSweeper._
+import swaydb.core.file.CoreFileTestKit._
 import swaydb.serializers.Default._
 
 class Memory_NonAtomic_WeatherDataSpec extends WeatherDataSpec {
@@ -40,7 +41,7 @@ class Memory_NonAtomic_MultiMap_WeatherDataSpec extends WeatherDataSpec {
 class Persistent_NonAtomic_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](
-      dir = randomDir,
+      dir = randomDir(),
       //      acceleration = Accelerator.brake(),
       //      atomic = Atomic.Off,
       //      mmapLogs = MMAP.randomForMap(),
@@ -55,7 +56,7 @@ class Persistent_NonAtomic_WeatherDataSpec extends WeatherDataSpec {
 class Persistent_Atomic_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](
-      dir = randomDir,
+      dir = randomDir(),
       //      acceleration = Accelerator.brake(),
       atomic = Atomic.On
       //      mmapLogs = MMAP.randomForMap(),
@@ -70,7 +71,7 @@ class Persistent_Atomic_WeatherDataSpec extends WeatherDataSpec {
 class Persistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.persistent.MultiMap[Int, Int, WeatherData, Nothing, IO.ApiIO](
-      dir = randomDir,
+      dir = randomDir(),
       //      acceleration = Accelerator.brake(),
       //      mmapLogs = MMAP.randomForMap(),
       //      mmapAppendixLogs = MMAP.randomForMap(),
@@ -84,7 +85,7 @@ class Persistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
 class Persistent_SetMap_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.persistent.SetMap[Int, WeatherData, IO.ApiIO](
-      dir = randomDir,
+      dir = randomDir(),
       //      acceleration = Accelerator.brake(),
       //      mmapLogs = MMAP.randomForMap(),
       //      mmapAppendixLogs = MMAP.randomForMap(),
@@ -101,10 +102,10 @@ class Memory_SetMap_WeatherDataSpec extends WeatherDataSpec {
 }
 
 class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
-  //  override def newDB()(implicit sweeper: TestSweeper) = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
+  //  override def newDB()(implicit sweeper: TestSweeper) = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir(), maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
   override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](
-      dir = randomDir,
+      dir = randomDir(),
       //      acceleration = Accelerator.brake(),
       //      cacheKeyValueIds = randomBoolean(),
       //      mmapPersistentLevelAppendixLogs = MMAP.randomForMap(),
@@ -113,10 +114,10 @@ class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
 }
 
 class EventuallyPersistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
-  //  override def newDB()(implicit sweeper: TestSweeper) = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
+  //  override def newDB()(implicit sweeper: TestSweeper) = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir(), maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
   override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.eventually.persistent.MultiMap[Int, Int, WeatherData, Nothing, IO.ApiIO](
-      dir = randomDir,
+      dir = randomDir(),
       //      acceleration = Accelerator.brake(),
       //      cacheKeyValueIds = randomBoolean(),
       //      mmapPersistentLevelAppendixLogs = MMAP.randomForMap(),

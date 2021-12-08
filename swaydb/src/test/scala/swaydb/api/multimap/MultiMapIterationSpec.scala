@@ -23,19 +23,20 @@ import swaydb.core.TestSweeper._
 import swaydb.serializers.Default._
 import swaydb.utils.StorageUnits._
 import swaydb.{Bag, Glass, MultiMap}
+import swaydb.core.file.CoreFileTestKit._
 
 class MultiMapIterationSpec0 extends MultiMapIterationSpec {
   val keyValueCount: Int = 1000
 
   override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
-    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir).sweep(_.delete())
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir()).sweep(_.delete())
 }
 
 class MultiMapIterationSpec1 extends MultiMapIterationSpec {
   val keyValueCount: Int = 1000
 
   override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
-    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir, logSize = 1.byte).sweep(_.delete())
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir(), logSize = 1.byte).sweep(_.delete())
 }
 
 class MultiMapIterationSpec2 extends MultiMapIterationSpec {

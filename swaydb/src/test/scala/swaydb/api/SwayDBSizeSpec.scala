@@ -22,12 +22,13 @@ import swaydb.core.TestSweeper
 import swaydb.core.TestSweeper._
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis._
+import swaydb.core.file.CoreFileTestKit._
 
 class SwayDBSize_Persistent_Spec extends SwayDBSizeSpec {
   val keyValueCount: Int = 10000
 
   override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value.sweep(_.delete().get)
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir()).right.value.sweep(_.delete().get)
 }
 
 class SwayDBSize_Memory_Spec extends SwayDBSizeSpec {
@@ -41,7 +42,7 @@ class MultiMapSizeSpec4 extends SwayDBSizeSpec {
   val keyValueCount: Int = 10000
 
   override def newDB()(implicit sweeper: TestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir).get).sweep(_.delete().get)
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir()).get).sweep(_.delete().get)
 }
 
 class MultiMapSizeSpec5 extends SwayDBSizeSpec {

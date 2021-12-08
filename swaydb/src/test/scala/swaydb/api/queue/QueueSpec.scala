@@ -27,11 +27,12 @@ import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.Random
+import swaydb.core.file.CoreFileTestKit._
 
 class QueueSpec0 extends QueueSpec {
 
   override def newQueue()(implicit sweeper: TestSweeper): Queue[Int] =
-    swaydb.persistent.Queue[Int, Glass](randomDir).sweep(_.delete())
+    swaydb.persistent.Queue[Int, Glass](randomDir()).sweep(_.delete())
 }
 
 class QueueSpec3 extends QueueSpec {
@@ -188,7 +189,7 @@ sealed trait QueueSpec extends ACoreSpec {
     TestSweeper {
       implicit sweeper =>
 
-        val path = randomDir
+        val path = randomDir()
         val queue = swaydb.persistent.Queue[Int, Glass](path)
 
         (1 to 6).map(queue.push)

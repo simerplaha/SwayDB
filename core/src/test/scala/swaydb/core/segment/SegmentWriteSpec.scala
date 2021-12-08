@@ -552,7 +552,7 @@
 //            segment.delete()
 //
 //            eventual(20.seconds) {
-//              IO(segment.asInstanceOf[PersistentSegment].tryReopen).left.right.value.exception shouldBe a[NoSuchFileException]
+//              assertThrows[NoSuchFileException](segment.asInstanceOf[PersistentSegment].tryReopen)
 //            }
 //        }
 //      }
@@ -668,7 +668,7 @@
 //            segment.existsOnDisk() shouldBe false
 //          }
 //
-//          IO(segment.get(keyValues.head.key, ThreadReadState.random)).left.get.exception shouldBe a[NoSuchFileException]
+//          assertThrows[NoSuchFileException](segment.get(keyValues.head.key, ThreadReadState.random))
 //
 //          val (head, mid, tail) =
 //            if (gaped) {

@@ -44,6 +44,7 @@ import swaydb.utils.StorageUnits._
 import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.testkit.TestKit._
+import swaydb.core.file.CoreFileTestKit._
 
 class LevelZeroSpec0 extends LevelZeroSpec
 
@@ -148,7 +149,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
       TestSweeper {
         implicit sweeper =>
           val zero = TestLevelZero(Some(TestLevel()))
-          IO(zero.put(Slice.empty, Slice.empty)).left.value shouldBe a[IllegalArgumentException]
+          assertThrows[IllegalArgumentException](zero.put(Slice.empty, Slice.empty))
       }
     }
 
@@ -454,7 +455,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
                 TestLevel(
                   LevelStorage.Persistent(
                     dir = nextLevelPath,
-                    otherDirs = eitherOne(Seq.empty, Seq(Dir(randomDir, 1), Dir(randomDir, 1))),
+                    otherDirs = eitherOne(Seq.empty, Seq(Dir(randomDir(), 1), Dir(randomDir(), 1))),
                     appendixMMAP = MMAP.randomForLog(),
                     appendixFlushCheckpointSize = 4.mb
                   )

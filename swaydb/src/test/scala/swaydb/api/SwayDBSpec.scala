@@ -27,17 +27,18 @@ import swaydb.serializers.Default._
 import swaydb.testkit.RunThis.runThis
 
 import java.nio.file.Files
+import swaydb.core.file.CoreFileTestKit._
 
 class SwayDBSpec0 extends SwayDBSpec {
   override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir).value.sweep(_.delete().get)
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir()).value.sweep(_.delete().get)
 
   override val keyValueCount: Int = 100
 }
 
 class SwayDB_SetMap_Spec0 extends SwayDBSpec {
   override def newDB()(implicit sweeper: TestSweeper): SetMap[Int, String, IO.ApiIO] =
-    swaydb.persistent.SetMap[Int, String, IO.ApiIO](randomDir).value.sweep(_.delete().get)
+    swaydb.persistent.SetMap[Int, String, IO.ApiIO](randomDir()).value.sweep(_.delete().get)
 
   override val keyValueCount: Int = 100
 }
@@ -47,7 +48,7 @@ class SwayDBSpec1 extends SwayDBSpec {
   override val keyValueCount: Int = 100
 
   override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, logSize = 1.byte).value.sweep(_.delete().get)
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir(), logSize = 1.byte).value.sweep(_.delete().get)
 }
 
 class SwayDBSpec2 extends SwayDBSpec {
@@ -70,7 +71,7 @@ class MultiMapSwayDBSpec4 extends SwayDBSpec {
   val keyValueCount: Int = 10000
 
   override def newDB()(implicit sweeper: TestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir).get).sweep(_.delete().get)
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir()).get).sweep(_.delete().get)
 }
 
 class MultiMapSwayDBSpec5 extends SwayDBSpec {
@@ -455,7 +456,7 @@ sealed trait SwayDBSpec extends TestBaseAPI {
       TestSweeper {
         implicit sweeper =>
 
-          val dir = randomDir
+          val dir = randomDir()
           val map = swaydb.persistent.Map[Int, Int, Nothing, Glass](dir)
           map.path shouldBe dir
           map.put(1, 1)
