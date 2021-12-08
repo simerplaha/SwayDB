@@ -20,12 +20,12 @@
 //import org.scalatest.OptionValues._
 //import swaydb.IOValues._
 //import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
-//import swaydb.core.TestCaseSweeper._
+//import swaydb.core.TestSweeper._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.file.sweeper.FileSweeper
 //import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 //import swaydb.core.file.{CoreFile, AFileSpec, ForceSaveApplier, MMAPFile}
-//import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestForceSave}
+//import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestForceSave}
 //import swaydb.effect.Effect
 //import swaydb.testkit.RunThis._
 //import swaydb.utils.OperatingSystem
@@ -48,7 +48,7 @@
 //
 //  "clear a MMAP file" in {
 //    runThis(10.times, log = true) {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -79,7 +79,7 @@
 //
 //  "it should not fatal terminate" when {
 //    "concurrently reading a closed MMAP file" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //          implicit val ec = TestExecutionContext.executionContext
@@ -159,7 +159,7 @@
 //    }
 //
 //    "increment record if non-empty and decrement on success" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //
 //          val path = Paths.get("test")
@@ -208,7 +208,7 @@
 //
 //  "clean ByteBuffer" should {
 //    "initialise cleaner" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //
 //          val path = randomFilePath
@@ -253,7 +253,7 @@
 //
 //    "deleteFile" when {
 //      "delete after clean" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -297,7 +297,7 @@
 //      }
 //
 //      "delete before clean" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -342,7 +342,7 @@
 //
 //    "deleteFolder" when {
 //      "delete after clean" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -385,7 +385,7 @@
 //      }
 //
 //      "delete before clean" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -429,7 +429,7 @@
 //
 //    "IsClean" should {
 //      "return true if ByteBufferCleaner is empty" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //
 //            implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(0, 1.seconds).sweep()
@@ -441,7 +441,7 @@
 //      }
 //
 //      "return true if ByteBufferCleaner has cleaned the file" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //
 //            implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(messageReschedule = 2.seconds).sweep()
@@ -486,7 +486,7 @@
 //      }
 //
 //      "return true if ByteBufferCleaner has cleaned and delete the file" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -547,7 +547,7 @@
 //
 //    "IsTerminatedAndCleaned" when {
 //      "ByteBufferCleaner is empty" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //
 //            implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(messageReschedule = 2.seconds).sweep()
@@ -561,7 +561,7 @@
 //      }
 //
 //      "return true if ByteBufferCleaner has cleaned and delete the file" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //

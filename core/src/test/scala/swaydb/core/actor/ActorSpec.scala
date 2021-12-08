@@ -156,7 +156,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     //FIXME - currently cannot terminate in recovery since the actor is already busy.
     //
     //    "terminate actor in recovery" in {
-    //      TestCaseSweeper {
+    //      TestSweeper {
     //        implicit sweeper =>
     //          import sweeper._
     //          case class State(processed: ListBuffer[Int], errors: ListBuffer[Int])

@@ -28,7 +28,7 @@
 //import swaydb.core.segment.data._
 //import swaydb.core.segment.data.merge.stats.MergeStats
 //import swaydb.core.segment.io.SegmentReadIO
-//import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestTimer}
+//import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestTimer}
 //import swaydb.core.file.AFileSpec
 //import swaydb.core.segment.ASegmentSpec
 //import swaydb.serializers.Default._
@@ -76,7 +76,7 @@
 //    }
 //
 //    "converting KeyValues to bytes and execute readAll and find on the bytes" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -104,7 +104,7 @@
 //
 //    "converting large KeyValues to bytes" in {
 //      runThis(10.times, log = true) {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //            //increase the size of value to test it on larger values.
@@ -124,7 +124,7 @@
 //    }
 //
 //    "write and read Int min max key values" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //          val keyValues = Slice(Memory.put(Int.MaxValue, Int.MinValue), Memory.put(Int.MinValue, Int.MaxValue))
@@ -145,7 +145,7 @@
 //
 //    "write and read Keys with None value to a Slice[Byte]" in {
 //      runThis(10.times) {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //            val setDeadlines = randomBoolean()
@@ -214,7 +214,7 @@
 //  "SegmentFooter.read" should {
 //    "set hasRange to false when Segment contains no Range key-value" in {
 //      runThis(100.times) {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //            val keyValues = randomizedKeyValues(keyValueCount, addRanges = false)
@@ -230,7 +230,7 @@
 //    }
 //
 //    "set hasRange to true and mightContainRemoveRange to false when Segment does not contain Remove range or function or pendingApply with function or remove but has other ranges" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //          def doAssert(keyValues: Slice[Memory]) = {
@@ -254,7 +254,7 @@
 //    }
 //
 //    "set hasRange & mightContainRemoveRange to true and not create bloomFilter when Segment contains Remove range key-value" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //          def doAssert(keyValues: Slice[Memory]) = {
@@ -300,7 +300,7 @@
 //    }
 //
 //    "set hasRange to false when there are no ranges" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //          def doAssert(keyValues: Slice[Memory]) = {
@@ -333,7 +333,7 @@
 //    }
 //
 //    "set mightContainRemoveRange to true, hasGroup to true & not create bloomFilter when only the group contains remove range" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //          def doAssert(keyValues: Slice[Memory]) = {
@@ -371,7 +371,7 @@
 //
 //  "writing key-values with duplicate values" should {
 //    "use the same valueOffset and not create duplicate values" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //          runThis(1000.times) {

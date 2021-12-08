@@ -180,7 +180,7 @@ sealed trait MultiMapSpec extends TestBaseAPI {
     }
 
     //    "benchmark" in {
-    //      TestCaseSweeper {
+    //      TestSweeper {
     //        implicit sweeper =>
     //          val root = newDB()
     //

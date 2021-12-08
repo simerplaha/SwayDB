@@ -40,6 +40,7 @@ import swaydb.utils.{IDGenerator, OperatingSystem}
 
 import java.nio.file.{Path, Paths}
 import java.util.concurrent.atomic.AtomicInteger
+import scala.beans.BeanProperty
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.DurationInt
 import scala.util.Try
@@ -59,28 +60,7 @@ import scala.util.Try
 
 object TestSweeper extends LazyLogging {
 
-  def apply(): TestSweeper =
-    new TestSweeper(
-      fileSweepers = ListBuffer(Cache.noIO[Unit, FileSweeper.On](true, true, None)((_, _) => createFileSweeper())),
-      cleaners = ListBuffer(Cache.noIO[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner())),
-      compactionIOActors = ListBuffer(Cache.noIO[Unit, SegmentCompactionIO.Actor](true, true, None)((_, _) => SegmentCompactionIO.create()(TestExecutionContext.executionContext))),
-      blockCaches = ListBuffer(Cache.noIO[Unit, Option[BlockCacheState]](true, true, None)((_, _) => createBlockCacheRandom())),
-      allMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.All]](true, true, None)((_, _) => createMemorySweeperMax())),
-      keyValueMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.KeyValue]](true, true, None)((_, _) => createMemorySweeperRandom())),
-      blockMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.Block]](true, true, None)((_, _) => createMemoryBlockSweeper())),
-      cacheMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.Cache]](true, true, None)((_, _) => createRandomCacheSweeper())),
-      schedulers = ListBuffer(Cache.noIO[Unit, Scheduler](true, true, None)((_, _) => Scheduler()(DefaultExecutionContext.sweeperEC))),
-      levels = ListBuffer.empty,
-      segments = ListBuffer.empty,
-      mapFiles = ListBuffer.empty,
-      logs = ListBuffer.empty,
-      coreFiles = ListBuffer.empty,
-      paths = ListBuffer.empty,
-      actors = ListBuffer.empty,
-      counters = ListBuffer.empty,
-      defActors = ListBuffer.empty,
-      functions = ListBuffer.empty
-    )
+  private val testNumber = new AtomicInteger(0)
 
   def deleteParentPath(path: Path) = {
     val parentPath = path.getParent
@@ -143,6 +123,9 @@ object TestSweeper extends LazyLogging {
       path =>
         eventual(10.seconds)(Effect.walkDelete(path))
     }
+
+    if (sweeper.deleteFolder)
+      Effect.deleteIfExists(sweeper.testDirPath)
   }
 
   private def receiveAll(sweeper: TestSweeper): Unit = {
@@ -159,8 +142,11 @@ object TestSweeper extends LazyLogging {
     sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Glass, Unit](_ => ())))))
   }
 
-  def apply[T](code: TestSweeper => T): T = {
-    val sweeper = TestSweeper()
+  def apply[T](code: TestSweeper => T): T =
+    TestSweeper[T](s"TEST${testNumber.incrementAndGet()}")(code)
+
+  def apply[T](testName: String)(code: TestSweeper => T): T = {
+    val sweeper = new TestSweeper(testName)
     val result = code(sweeper)
     terminate(sweeper)
     result
@@ -271,51 +257,50 @@ object TestSweeper extends LazyLogging {
  * }}}
  */
 
-class TestSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeper.On]],
-                  private val cleaners: ListBuffer[CacheNoIO[Unit, ByteBufferSweeperActor]],
-                  private val compactionIOActors: ListBuffer[CacheNoIO[Unit, SegmentCompactionIO.Actor]],
-                  private val blockCaches: ListBuffer[CacheNoIO[Unit, Option[BlockCacheState]]],
-                  private val allMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.All]]],
-                  private val keyValueMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.KeyValue]]],
-                  private val blockMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.Block]]],
-                  private val cacheMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.Cache]]],
-                  private val schedulers: ListBuffer[CacheNoIO[Unit, Scheduler]],
-                  private val levels: ListBuffer[LevelRef],
-                  private val segments: ListBuffer[Segment],
-                  private val mapFiles: ListBuffer[Log[_, _, _]],
-                  private val logs: ListBuffer[Logs[_, _, _]],
-                  private val coreFiles: ListBuffer[CoreFile],
-                  private val paths: ListBuffer[Path],
-                  private val actors: ListBuffer[ActorRef[_, _]],
-                  private val defActors: ListBuffer[DefActor[_]],
-                  private val counters: ListBuffer[CounterLog],
-                  private val functions: ListBuffer[() => Unit]) {
+class TestSweeper(val testName: String = s"TEST${TestSweeper.testNumber.incrementAndGet()}",
+                  @BeanProperty protected var deleteFolder: Boolean = true,
+                  private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeper.On]] = ListBuffer(Cache.noIO[Unit, FileSweeper.On](true, true, None)((_, _) => createFileSweeper())),
+                  private val cleaners: ListBuffer[CacheNoIO[Unit, ByteBufferSweeperActor]] = ListBuffer(Cache.noIO[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner())),
+                  private val compactionIOActors: ListBuffer[CacheNoIO[Unit, SegmentCompactionIO.Actor]] = ListBuffer(Cache.noIO[Unit, SegmentCompactionIO.Actor](true, true, None)((_, _) => SegmentCompactionIO.create()(TestExecutionContext.executionContext))),
+                  private val blockCaches: ListBuffer[CacheNoIO[Unit, Option[BlockCacheState]]] = ListBuffer(Cache.noIO[Unit, Option[BlockCacheState]](true, true, None)((_, _) => createBlockCacheRandom())),
+                  private val allMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.All]]] = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.All]](true, true, None)((_, _) => createMemorySweeperMax())),
+                  private val keyValueMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.KeyValue]]] = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.KeyValue]](true, true, None)((_, _) => createMemorySweeperRandom())),
+                  private val blockMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.Block]]] = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.Block]](true, true, None)((_, _) => createMemoryBlockSweeper())),
+                  private val cacheMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.Cache]]] = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.Cache]](true, true, None)((_, _) => createRandomCacheSweeper())),
+                  private val schedulers: ListBuffer[CacheNoIO[Unit, Scheduler]] = ListBuffer(Cache.noIO[Unit, Scheduler](true, true, None)((_, _) => Scheduler()(DefaultExecutionContext.sweeperEC))),
+                  private val levels: ListBuffer[LevelRef] = ListBuffer.empty,
+                  private val segments: ListBuffer[Segment] = ListBuffer.empty,
+                  private val mapFiles: ListBuffer[Log[_, _, _]] = ListBuffer.empty,
+                  private val logs: ListBuffer[Logs[_, _, _]] = ListBuffer.empty,
+                  private val coreFiles: ListBuffer[CoreFile] = ListBuffer.empty,
+                  private val paths: ListBuffer[Path] = ListBuffer.empty,
+                  private val actors: ListBuffer[ActorRef[_, _]] = ListBuffer.empty,
+                  private val defActors: ListBuffer[DefActor[_]] = ListBuffer.empty,
+                  private val counters: ListBuffer[CounterLog] = ListBuffer.empty,
+                  private val functions: ListBuffer[() => Unit] = ListBuffer.empty) {
 
-  implicit val idGenerator = IDGenerator()
+  val idGenerator = IDGenerator()
 
-  val reverseIdGenerator = new AtomicInteger(100000000)
+  private val projectTargetFolder: String =
+    getClass.getClassLoader.getResource("").getPath
 
-  def nextIntReversed = reverseIdGenerator.decrementAndGet()
-
-  private val projectTargetFolder = getClass.getClassLoader.getResource("").getPath
-
-  val projectDirectory =
+  val projectDirectory: Path =
     if (OperatingSystem.isWindows)
       Paths.get(projectTargetFolder.drop(1)).getParent.getParent
     else
       Paths.get(projectTargetFolder).getParent.getParent
 
-  val testFileDirectory = projectDirectory.resolve("TEST_FILES")
+  val testFileDirectory: Path =
+    projectDirectory.resolve("TEST_FILES")
 
-  val testMemoryFileDirectory = projectDirectory.resolve("TEST_MEMORY_FILES")
+  val testMemoryFileDirectory: Path =
+    projectDirectory.resolve("TEST_MEMORY_FILES")
 
-  val testClassDirPath = testFileDirectory.resolve(this.getClass.getSimpleName)
+  val testDirPath: Path =
+    testFileDirectory.resolve(testName)
 
-  def testClassDir: Path =
-    Effect.createDirectoriesIfAbsent(testClassDirPath)
-
-  def randomFilePath =
-    testClassDir.resolve(s"${randomCharacters()}.test").sweep()(this)
+  def testDir(): Path =
+    Effect.createDirectoriesIfAbsent(testDirPath)
 
   implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.On
   implicit lazy val fileSweeper: FileSweeper.On = fileSweepers.head.value(())

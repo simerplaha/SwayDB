@@ -16,26 +16,16 @@
 
 package swaydb.core.file
 
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.IO
-import swaydb.IOValues._
-import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
-import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
-import swaydb.effect.Effect
-import swaydb.slice.{Slice, Slices}
-import swaydb.testkit.RunThis._
-import swaydb.utils.OperatingSystem
-import swaydb.utils.PipeOps._
-
-import java.nio.ReadOnlyBufferException
-import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
-import java.nio.file.FileAlreadyExistsException
-import swaydb.testkit.TestKit._
+import swaydb.core.TestSweeper
 import swaydb.core.file.AFileSpec._
+import swaydb.effect.Effect
+import swaydb.slice.Slice
+import swaydb.testkit.TestKit._
+
+import java.nio.file.FileAlreadyExistsException
 
 class CoreFileSpec extends AnyWordSpec with Matchers {
 
@@ -62,84 +52,85 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
       }
     }
 
-    //    "write empty bytes to a File" in {
-    //      TestCaseSweeper {
-    //        implicit sweeper =>
-    //          //This test might log NullPointerException because cleaner is being
-    //          //invoked a MappedByteBuffer which is empty. This is a valid test
-    //          //but does not occur in reality. If a file (Segment or Map) are empty
-    //          //then they are not created which would only occur if all key-values
-    //          //from that file were removed.
-    //          val files = createFiles(Slice.emptyBytes, Slice.emptyBytes)
-    //          files.foreach(_.existsOnDisk() shouldBe true)
-    //
-    //          files foreach {
-    //            file =>
-    //              createFileReaders(file.path) foreach {
-    //                reader =>
-    //                  reader.file.readAll() shouldBe Slice.emptyBytes
-    //                  reader.file.close()
-    //              }
-    //          }
-    //
-    //          //ensure that file exists
-    //          files.exists(file => Effect.notExists(file.path)) shouldBe false
-    //      }
-    //    }
-    //
-    //    "write partially written bytes" in {
-    //      TestCaseSweeper {
-    //        implicit sweeper =>
-    //          //size is 10 but only 2 bytes were written
-    //          val incompleteBytes = Slice.of[Byte](10)
-    //          incompleteBytes.addUnsignedInt(1)
-    //          incompleteBytes.addUnsignedInt(2)
-    //          incompleteBytes.size shouldBe 2
-    //
-    //          val bytes = incompleteBytes.close()
-    //
-    //          val files = createFiles(bytes, bytes)
-    //
-    //          files should have size 2
-    //          files foreach {
-    //            file =>
-    //              Slice(Effect.readAllBytes(file.path)) shouldBe bytes
-    //              file.readAll() shouldBe bytes
-    //          }
-    //      }
-    //    }
-    //
-    //    "fail to write if the file already exists" in {
-    //      TestCaseSweeper {
-    //        implicit sweeper =>
-    //          val bytes = randomBytesSlice()
-    //
-    //          val mmap = createMMAPWriteAndRead(randomFilePath, bytes)
-    //          val standard = createStandardWriteAndRead(randomFilePath, bytes)
-    //
-    //          val files = List(mmap, standard)
-    //
-    //          files foreach {
-    //            file =>
-    //              //creating the same file again should fail
-    //              IO(createMMAPWriteAndRead(file.path, randomBytesSlice())).left.value shouldBe a[FileAlreadyExistsException]
-    //              IO(createStandardWriteAndRead(file.path, randomBytesSlice())).left.value shouldBe a[FileAlreadyExistsException]
-    //          }
-    //
-    //          //flush
-    //          files.foreach(_.close())
-    //
-    //          files foreach {
-    //            file =>
-    //              file.readAll() shouldBe bytes
-    //          }
-    //      }
-    //    }
+    "write empty bytes to a File" in {
+      TestSweeper {
+        implicit sweeper =>
+          //This test might log NullPointerException because cleaner is being
+          //invoked a MappedByteBuffer which is empty. This is a valid test
+          //but does not occur in reality. If a file (Segment or Map) are empty
+          //then they are not created which would only occur if all key-values
+          //from that file were removed.
+          val files = createFiles(Slice.emptyBytes, Slice.emptyBytes)
+          files.foreach(_.existsOnDisk() shouldBe true)
+
+          files foreach {
+            file =>
+              createFileReaders(file.path) foreach {
+                reader =>
+                  reader.file.readAll() shouldBe Slice.emptyBytes
+                  reader.file.close()
+              }
+          }
+
+          //ensure that file exists
+          files.exists(file => Effect.notExists(file.path)) shouldBe false
+      }
+    }
+
+    "write partially written bytes" in {
+      TestSweeper {
+        implicit sweeper =>
+          //size is 10 but only 2 bytes were written
+          val incompleteBytes = Slice.of[Byte](10)
+          incompleteBytes.addUnsignedInt(1)
+          incompleteBytes.addUnsignedInt(2)
+          incompleteBytes.size shouldBe 2
+
+          val bytes = incompleteBytes.close()
+
+          val files = createFiles(bytes, bytes)
+
+          files should have size 2
+          files foreach {
+            file =>
+              Slice(Effect.readAllBytes(file.path)) shouldBe bytes
+              file.readAll() shouldBe bytes
+          }
+      }
+    }
+
+    "fail to write if the file already exists" in {
+      TestSweeper {
+        implicit sweeper =>
+
+          val bytes = randomBytesSlice()
+
+          val mmap = createMMAPWriteAndRead(randomFilePath(), bytes)
+          val standard = createStandardWriteAndRead(randomFilePath(), bytes)
+
+          val files = List(mmap, standard)
+
+          files foreach {
+            file =>
+              //creating the same file again should fail
+              assertThrows[FileAlreadyExistsException](createMMAPWriteAndRead(file.path, randomBytesSlice()))
+              assertThrows[FileAlreadyExistsException](createStandardWriteAndRead(file.path, randomBytesSlice()))
+          }
+
+          //flush
+          files.foreach(_.close())
+
+          files foreach {
+            file =>
+              file.readAll() shouldBe bytes
+          }
+      }
+    }
   }
 
   //  "standardWrite" should {
   //    "initialise a StandardFile for writing and not reading and invoke the onOpen function on open" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //
@@ -202,7 +193,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //
   //  "standardRead" should {
   //    "initialise a StandardFile for reading only" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //
@@ -257,7 +248,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    }
   //
   //    "fail initialisation if the file does not exists" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          IO {
@@ -273,7 +264,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //
   //  "mmapWriteAndRead" should {
   //    "write bytes to a File, extend the buffer on overflow and reopen it for reading via mmapRead" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val testFile = randomFilePath
@@ -342,7 +333,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    }
   //
   //    "fail write if the slice is partially written" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val testFile = randomFilePath
@@ -366,7 +357,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    }
   //
   //    "fail to write if the file already exists" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val testFile = randomFilePath
@@ -409,7 +400,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //
   //  "mmapRead" should {
   //    "open an existing file for reading" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val testFile = randomFilePath
@@ -446,7 +437,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    }
   //
   //    "fail to read if the file does not exists" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          IO {
@@ -464,7 +455,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //  "open a file for writing and handle BufferOverflow" in {
   //    runThisNumbered(10.times, log = true) {
   //      testNumber =>
-  //        TestCaseSweeper {
+  //        TestSweeper {
   //          implicit sweeper =>
   //            import sweeper._
   //            val bytes1 = Slice.wrap("bytes one".getBytes())
@@ -527,7 +518,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //
   //  "mmapInit" should {
   //    "fail to initialise if it already exists" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val testFile = randomFilePath
@@ -599,7 +590,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    //    }
   //
   //    "close a memory mapped file and reopen on read" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val testFile = randomFilePath
@@ -648,7 +639,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    }
   //
   //    "close a StandardFile and then reopening the file should open it in read only mode" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val testFile = randomFilePath
@@ -673,7 +664,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    }
   //
   //    "close that MMAPFile and reopening the file should open it in read only mode" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val testFile = randomFilePath
@@ -702,7 +693,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //
   //  "append" should {
   //    "append bytes to the end of the StandardFile" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val testFile = randomFilePath
@@ -750,7 +741,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    }
   //
   //    "append bytes to the end of the MMAP file" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val testFile = randomFilePath
@@ -803,7 +794,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    }
   //
   //    "append bytes by extending an overflown buffer of MMAP file" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val testFile = randomFilePath
@@ -858,7 +849,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    }
   //
   //    "not fail when appending empty bytes to StandardFile" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //
@@ -886,7 +877,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    }
   //
   //    "not fail when appending empty bytes to MMAPFile" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //
@@ -920,7 +911,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //
   //  "read and find" should {
   //    "read and find bytes at a position from a StandardFile" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val testFile = randomFilePath
@@ -961,7 +952,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //
   //  "delete" should {
   //    "delete a StandardFile" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val bytes = randomBytesSlice(100)
@@ -984,7 +975,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    }
   //
   //    "delete a MMAPFile" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //
@@ -1014,7 +1005,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //
   //  "copy" should {
   //    "copy a StandardFile" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val bytes = randomBytesSlice(100)
@@ -1047,7 +1038,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    }
   //
   //    "copy a MMAPFile" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          import sweeper._
   //          val bytes = randomBytesSlice(100)
@@ -1083,7 +1074,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //  }
   //
   //  //  "copying large number of memory-mapped files" in {
-  //  //    TestCaseSweeper {
+  //  //    TestSweeper {
   //  //      implicit sweeper =>
   //  //        import swaydb.testkit.RunThis._
   //  //
@@ -1146,7 +1137,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //
   //  "read chunked bytes" when {
   //    "size is empty" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          createFiles(randomBytesSlice(100), randomBytesSlice(100)) foreach {
   //            file =>
@@ -1156,7 +1147,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    }
   //
   //    "blockSize == size" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          val bytes = randomBytesSlice(100)
   //
@@ -1168,7 +1159,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //    }
   //
   //    "blockSize > size" in {
-  //      TestCaseSweeper {
+  //      TestSweeper {
   //        implicit sweeper =>
   //          val bytes = randomBytesSlice(100)
   //
@@ -1181,7 +1172,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //
   //    "blockSize < size" when {
   //      "size is multiple of blockSize" in {
-  //        TestCaseSweeper {
+  //        TestSweeper {
   //          implicit sweeper =>
   //            val bytes = randomBytesSlice(100)
   //
@@ -1205,7 +1196,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //      }
   //
   //      "size is not a multiple of blockSize" in {
-  //        TestCaseSweeper {
+  //        TestSweeper {
   //          implicit sweeper =>
   //            val bytes = randomBytesSlice(100)
   //

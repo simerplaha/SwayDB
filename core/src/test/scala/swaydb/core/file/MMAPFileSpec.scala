@@ -21,7 +21,7 @@
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.file.sweeper.bytebuffer.ByteBufferCleaner
-//import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave}
+//import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
 //import swaydb.effect.Effect
 //import swaydb.slice.Slice
 //import swaydb.testkit.RunThis._
@@ -38,7 +38,7 @@
 //  "BEHAVIOUR TEST - cleared MappedByteBuffer without forceSave" should {
 //    "not fatal JVM terminate" when {
 //      "writing, reading & copying" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            runThis(50.times, log = true) {
 //              //create random path and byte slice

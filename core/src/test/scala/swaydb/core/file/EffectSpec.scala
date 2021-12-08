@@ -19,7 +19,7 @@
 //import swaydb.{Benchmark, IO}
 //import swaydb.IOValues._
 //import swaydb.core.CoreTestData._
-//import swaydb.core.{ACoreSpec, TestCaseSweeper}
+//import swaydb.core.{ACoreSpec, TestSweeper}
 //import swaydb.effect.Effect
 //import swaydb.slice.Slice
 //import swaydb.testkit.RunThis._
@@ -75,7 +75,7 @@
 //
 //  "files" should {
 //    "fetch all the files in sorted order" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //
 //          val dir = createRandomIntDirectory
@@ -115,7 +115,7 @@
 //
 //  "folders" should {
 //    "fetch all the folders in sorted order" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //
 //          val dir = createRandomIntDirectory
@@ -155,7 +155,7 @@
 //
 //  "segmentFilesOnDisk" should {
 //    "fetch all segment files in order" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //
 //          val dir1 = createRandomIntDirectory
@@ -261,7 +261,7 @@
 //  }
 //
 //  "transfer" in {
-//    TestCaseSweeper {
+//    TestSweeper {
 //      implicit sweeper =>
 //        val bytes = randomBytesSlice(size = 100)
 //        //test when files are both channel and mmap
@@ -291,7 +291,7 @@
 //  }
 //
 //  "benchmark" in {
-//    TestCaseSweeper {
+//    TestSweeper {
 //      implicit sweeper =>
 //
 //        val fileSize = 4.mb
@@ -316,7 +316,7 @@
 //
 //  "isEmptyOrNotExists" when {
 //    "folder does not exist" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          val dir = randomDir
 //          Effect.notExists(dir) shouldBe true
@@ -326,7 +326,7 @@
 //    }
 //
 //    "folder exists but is empty" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          val dir = createRandomDir
 //          Effect.exists(dir) shouldBe true
@@ -336,7 +336,7 @@
 //    }
 //
 //    "folder exists and is non-empty" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          Extension.all foreach {
 //            extension =>
@@ -351,7 +351,7 @@
 //    }
 //
 //    "input is a file" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          Extension.all foreach {
 //            extension =>

@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 trait ACoreSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll with BeforeAndAfterEach with Eventually {
 
-  implicit val idGenerator = IDGenerator()
+//  implicit val idGenerator = IDGenerator()
 
   val reverseIdGenerator = new AtomicInteger(100000000)
 
@@ -64,7 +64,7 @@ trait ACoreSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll with Be
   def randomFilePath(implicit sweeper: TestSweeper) =
     testClassDir.resolve(s"${randomCharacters()}.test").sweep()
 
-  def nextId = idGenerator.next
+//  def nextId = idGenerator.next
 
   def deleteFiles = true
 

@@ -101,7 +101,7 @@ class Memory_SetMap_WeatherDataSpec extends WeatherDataSpec {
 }
 
 class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
-  //  override def newDB()(implicit sweeper: TestCaseSweeper) = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
+  //  override def newDB()(implicit sweeper: TestSweeper) = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
   override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
@@ -113,7 +113,7 @@ class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
 }
 
 class EventuallyPersistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
-  //  override def newDB()(implicit sweeper: TestCaseSweeper) = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
+  //  override def newDB()(implicit sweeper: TestSweeper) = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
   override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.eventually.persistent.MultiMap[Int, Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,

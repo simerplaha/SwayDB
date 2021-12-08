@@ -22,7 +22,7 @@
 //import swaydb.core.CoreTestData._
 //import swaydb.core.segment.cache.sweeper.MemorySweeper
 //import swaydb.core.util.Bytes
-//import swaydb.core.{ACoreSpec, TestCaseSweeper}
+//import swaydb.core.{ACoreSpec, TestSweeper}
 //import swaydb.core.file.AFileSpec
 //import swaydb.core.segment.ASegmentSpec
 //import swaydb.slice.{Slice, SliceRO, Slices}
@@ -123,7 +123,7 @@
 //    }
 //
 //    "getOrSeek" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          val bytes: Slice[Byte] = Slice.range(Bytes.zero, Byte.MaxValue)
 //          val file = createRandomFileReader(bytes).file.toBlockCacheSource
@@ -192,7 +192,7 @@
 //  }
 //
 //  "randomAccess" in {
-//    TestCaseSweeper {
+//    TestSweeper {
 //      implicit sweeper =>
 //        val bytes: Slice[Byte] = Slice.range(Bytes.zero, Byte.MaxValue)
 //        val file = createRandomFileReader(bytes).file

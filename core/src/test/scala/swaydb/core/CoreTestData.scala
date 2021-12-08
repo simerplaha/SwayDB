@@ -2054,22 +2054,23 @@ object CoreTestData {
                                                               segmentReadIO: SegmentReadIO,
                                                               timeOrder: TimeOrder[Slice[Byte]],
                                                               testCaseSweeper: TestSweeper): IO[Error.Segment, Slice[PersistentSegment]] = {
-      import testCaseSweeper._
-
-      val persistedSegments =
-        SegmentWritePersistentIO.persistTransient(
-          pathsDistributor = pathDistributor,
-          segmentRefCacheLife = segmentRefCacheLife,
-          mmap = mmap,
-          transient = segments
-        )
-
-      persistedSegments.foreach(_.foreach(_.sweep()))
-
-      persistedSegments map {
-        persistedSegments =>
-          Slice.from(persistedSegments, persistedSegments.size)
-      }
+//      import testCaseSweeper._
+//
+//      val persistedSegments =
+//        SegmentWritePersistentIO.persistTransient(
+//          pathsDistributor = pathDistributor,
+//          segmentRefCacheLife = segmentRefCacheLife,
+//          mmap = mmap,
+//          transient = segments
+//        )
+//
+//      persistedSegments.foreach(_.foreach(_.sweep()))
+//
+//      persistedSegments map {
+//        persistedSegments =>
+//          Slice.from(persistedSegments, persistedSegments.size)
+//      }
+      ???
     }
   }
 

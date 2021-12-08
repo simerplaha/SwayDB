@@ -1,11 +1,12 @@
 package swaydb.core.file
 
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
+import swaydb.core.{ACoreSpec, TestForceSave, TestSweeper}
 import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.file.reader.FileReader
 import swaydb.core.TestSweeper._
 import swaydb.effect.Effect
 import swaydb.slice.Slice
+import swaydb.testkit.TestKit.randomCharacters
 import swaydb.utils.OperatingSystem
 
 import java.nio.file.Path
@@ -13,10 +14,14 @@ import scala.util.Random
 
 object AFileSpec {
 
-  def createFile(bytes: Slice[Byte])(implicit sweeper: TestSweeper): Path = {
-    import sweeper._
-    Effect.write(testClassDir.resolve(idGenerator.nextSegment).sweep(), bytes.toByteBufferWrap)
-  }
+  def randomFilePath()(implicit sweeper: TestSweeper): Path =
+    sweeper.testDir().resolve(s"${randomCharacters()}.test").sweep()
+
+  def createFile(bytes: Slice[Byte])(implicit sweeper: TestSweeper): Path =
+    Effect.write(
+      to = sweeper.testDir().resolve(sweeper.idGenerator.nextSegment),
+      bytes = bytes.toByteBufferWrap
+    ).sweep()
 
   def createRandomFileReader(path: Path)(implicit sweeper: TestSweeper): FileReader =
     if (Random.nextBoolean())
@@ -45,13 +50,11 @@ object AFileSpec {
       createStandardWriteAndRead(channelPath, standardBytes)
     )
 
-  def createFiles(mmapBytes: Slice[Byte], standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): List[CoreFile] = {
-    import sweeper._
+  def createFiles(mmapBytes: Slice[Byte], standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): List[CoreFile] =
     List(
-      createMMAPWriteAndRead(randomFilePath, mmapBytes),
-      createStandardWriteAndRead(randomFilePath, standardBytes)
+      createMMAPWriteAndRead(randomFilePath(), mmapBytes),
+      createStandardWriteAndRead(randomFilePath(), standardBytes)
     )
-  }
 
   def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestSweeper): CoreFile = {
     import sweeper._

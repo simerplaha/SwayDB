@@ -19,10 +19,11 @@ import java.nio.file.Path
 trait ALogSpec extends ACoreSpec {
 
   def testLogFile: Path =
-    if (isMemorySpec)
-      randomIntDirectory.resolve(nextId.toString + ".map")
-    else
-      Effect.createDirectoriesIfAbsent(randomIntDirectory).resolve(nextId.toString + ".map")
+//    if (isMemorySpec)
+//      randomIntDirectory.resolve(nextId.toString + ".map")
+//    else
+//      Effect.createDirectoriesIfAbsent(randomIntDirectory).resolve(nextId.toString + ".map")
+  ???
 
 
   object TestLog {

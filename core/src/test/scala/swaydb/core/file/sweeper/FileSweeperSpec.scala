@@ -18,7 +18,7 @@
 //
 //import org.scalamock.scalatest.MockFactory
 ////import swaydb.core.CommonAssertions._
-//import swaydb.core.TestCaseSweeper._
+//import swaydb.core.TestSweeper._
 //import swaydb.core.TestData._
 //import swaydb.core._
 //import swaydb.core.file.sweeper.FileSweeper._
@@ -50,7 +50,7 @@
 //
 //  "queueOrder" should {
 //    "prioritise PauseResume messages" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          val skipList = new ConcurrentSkipListSet[FileSweeperCommand.Close](FileCloserActor.actorQueueOrder())
 //
@@ -103,7 +103,7 @@
 //
 //  "pause and resume level" in {
 //    runThis(5.times, log = true) {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -135,7 +135,7 @@
 //
 //  "stress" in {
 //    runThis(5.times, log = true) {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //

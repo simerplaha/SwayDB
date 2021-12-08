@@ -20,7 +20,7 @@
 //import swaydb.core.CoreTestData._
 //import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 //import swaydb.core.segment.block.{Block, BlockCache}
-//import swaydb.core.{ACoreSpec, TestCaseSweeper}
+//import swaydb.core.{ACoreSpec, TestSweeper}
 //import swaydb.core.file.AFileSpec
 //import swaydb.core.segment.ASegmentSpec
 //import swaydb.serializers.Default._
@@ -40,7 +40,7 @@
 //  "toBytes & toSlice" should {
 //    "write bloom filter to bytes" in {
 //      runThis(10.times) {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            val compressions = eitherOne(Seq.empty, randomCompressions())
 //
@@ -76,7 +76,7 @@
 //
 //    "write bloom filter to bytes for a single key-value" in {
 //      runThis(10.times) {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            val compressions = eitherOne(Seq.empty, randomCompressions())
 //
@@ -281,7 +281,7 @@
 //    }
 //
 //    runThis(5.times) {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          val compressions = eitherOne(Seq.empty, randomCompressions())
 //

@@ -88,7 +88,7 @@
 //
 //    "remove Segments" when {
 //      "Segments from upper Level are merged into lower level" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            val thisLevel = mock[NextLevel]("thisLevel")
 //            val nextLevel = mock[NextLevel]("nextLevel")
@@ -123,7 +123,7 @@
 //
 //    "return success" when {
 //      "it fails to remove Segments" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            val thisLevel = mock[NextLevel]("thisLevel")
 //            val nextLevel = mock[NextLevel]("nextLevel")
@@ -161,14 +161,14 @@
 //  "copyForwardForEach" should {
 //    "not copy" when {
 //      "it's the last Level and is empty" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            ThrottleCompaction.copyForwardForEach(Slice(TestLevel())) shouldBe 0
 //        }
 //      }
 //
 //      "it's the last Level and is non empty" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            val keyValues = randomPutKeyValues(keyValueCount)
 //            val level = TestLevel(keyValues = keyValues)
@@ -188,7 +188,7 @@
 //    "copy all Segments to last level" when {
 //      "no Segments overlap" in {
 //        runThis(1.times, log = true) {
-//          TestCaseSweeper {
+//          TestSweeper {
 //            implicit sweeper =>
 //              val allKeyValues = randomPutKeyValues(keyValueCount, startId = Some(1))
 //              val keyValues = allKeyValues.groupedSlice(5)
@@ -227,7 +227,7 @@
 //
 //    "copy Segments to last level" when {
 //      "some Segments overlap" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            val allKeyValues = randomPutKeyValues(keyValueCount, addPutDeadlines = false, startId = Some(1))
 //
@@ -293,7 +293,7 @@
 //
 //    "keep invoking refresh" when {
 //      "remaining compactions are non zero" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            val segments: ListBuffer[Segment] =
 //              (1 to 10).flatMap({
@@ -335,7 +335,7 @@
 //
 //    "invoke collapse" when {
 //      "checkExpired is false" in {
-//        TestCaseSweeper {
+//        TestSweeper {
 //          implicit sweeper =>
 //            val segments: ListBuffer[Segment] =
 //              (1 to 10).flatMap({

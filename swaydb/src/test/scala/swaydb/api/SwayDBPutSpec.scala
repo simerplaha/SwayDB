@@ -84,14 +84,14 @@ class MultiMapPutSpec5 extends SwayDBPutSpec {
 //
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
 //    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO](logSize = 1.byte).right.value
 //}
 //
 //class SwayDBPutSpec5 extends SwayDBPutSpec {
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
 //    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO]().right.value
 //}
 

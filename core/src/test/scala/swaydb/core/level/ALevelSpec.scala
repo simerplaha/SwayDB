@@ -5,7 +5,7 @@ import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.config.storage.{Level0Storage, LevelStorage}
-import swaydb.core.{CoreInitialiser, TestSweeper, TestExecutionContext, TestForceSave, TestTimer}
+import swaydb.core.{CoreInitialiser, TestExecutionContext, TestForceSave, TestSweeper, TestTimer}
 import swaydb.core.compaction.{Compactor, CompactorCreator}
 import swaydb.core.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -25,6 +25,7 @@ import swaydb.testkit.TestKit.{randomBoolean, randomIntMax, randomNextInt}
 import swaydb.IOValues._
 import swaydb.core.segment.{ASegmentSpec, PathsDistributor}
 import swaydb.core.TestSweeper._
+import swaydb.core.file.sweeper.FileSweeper
 import swaydb.effect.{Dir, Effect}
 import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._
@@ -200,8 +201,8 @@ trait ALevelSpec extends ASegmentSpec {
 
     println("Starting levels")
 
-    implicit val levelSweeper: TestSweeper = TestSweeper()
-    implicit val fileSweeper = levelSweeper.fileSweeper
+    implicit val levelSweeper: TestSweeper = new TestSweeper()
+    implicit val fileSweeper: FileSweeper.On = levelSweeper.fileSweeper
 
     val level4 = TestLevel(throttle = levelThrottle)
     val level3 = TestLevel(nextLevel = Some(level4), throttle = levelThrottle)

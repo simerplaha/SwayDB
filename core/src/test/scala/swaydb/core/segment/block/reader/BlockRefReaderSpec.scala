@@ -24,7 +24,7 @@
 //import swaydb.core.segment.block.values.ValuesBlockOffset
 //import swaydb.core.segment.block.values.ValuesBlockOffset.ValuesBlockOps
 //import swaydb.core.segment.block.{Block, BlockCache}
-//import swaydb.core.{ACoreSpec, TestCaseSweeper}
+//import swaydb.core.{ACoreSpec, TestSweeper}
 //import swaydb.core.file.AFileSpec
 //import swaydb.core.segment.ASegmentSpec
 //import swaydb.slice.{Reader, Slice}
@@ -34,7 +34,7 @@
 //
 //  "apply" when {
 //    "File, bytes & reader" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          val bytes = randomBytesSlice(100)
 //          val fileReader = createRandomFileReader(bytes)
@@ -57,7 +57,7 @@
 //
 //  "moveTo & moveWithin" when {
 //    "random bytes with header" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 //
@@ -84,7 +84,7 @@
 //    }
 //
 //    "compressed & uncompressed blocks" in {
-//      TestCaseSweeper {
+//      TestSweeper {
 //        implicit sweeper =>
 //          val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 //

@@ -30,7 +30,7 @@ trait ASegmentSpec extends ACoreSpec {
   def isWindowsAndMMAPSegments(): Boolean =
     OperatingSystem.isWindows && mmapSegments.mmapReads && mmapSegments.mmapWrites
 
-  def nextSegmentId = idGenerator.nextSegment
+  def nextSegmentId: String = ??? //idGenerator.nextSegment
 
   def testSegmentFile: Path =
     if (isMemorySpec)
@@ -130,47 +130,48 @@ trait ASegmentSpec extends ACoreSpec {
                                                                                                       ec: ExecutionContext = TestExecutionContext.executionContext): Slice[Segment] = {
       import sweeper._
 
-      implicit val segmentIO: SegmentReadIO =
-        SegmentReadIO(
-          bloomFilterConfig = bloomFilterConfig,
-          hashIndexConfig = hashIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          valuesConfig = valuesConfig,
-          segmentConfig = segmentConfig
-        )
-
-      val segment =
-        if (isMemorySpec)
-          Segment.memory(
-            minSegmentSize = segmentConfig.minSize,
-            maxKeyValueCountPerSegment = segmentConfig.maxCount,
-            pathsDistributor = pathsDistributor,
-            createdInLevel = createdInLevel,
-            stats = MergeStats.memoryBuilder(keyValues).close()
-          )
-        else
-          Segment.persistent(
-            pathsDistributor = pathsDistributor,
-            createdInLevel = createdInLevel,
-            bloomFilterConfig = bloomFilterConfig,
-            hashIndexConfig = hashIndexConfig,
-            binarySearchIndexConfig = binarySearchIndexConfig,
-            sortedIndexConfig = sortedIndexConfig,
-            valuesConfig = valuesConfig,
-            segmentConfig = segmentConfig,
-            mergeStats =
-              MergeStats
-                .persistentBuilder(keyValues)
-                .close(
-                  hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
-                  optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
-                )
-          ).awaitInf
-
-      segment.foreach(_.sweep())
-
-      Slice.from(segment, segment.size)
+//      implicit val segmentIO: SegmentReadIO =
+//        SegmentReadIO(
+//          bloomFilterConfig = bloomFilterConfig,
+//          hashIndexConfig = hashIndexConfig,
+//          binarySearchIndexConfig = binarySearchIndexConfig,
+//          sortedIndexConfig = sortedIndexConfig,
+//          valuesConfig = valuesConfig,
+//          segmentConfig = segmentConfig
+//        )
+//
+//      val segment =
+//        if (isMemorySpec)
+//          Segment.memory(
+//            minSegmentSize = segmentConfig.minSize,
+//            maxKeyValueCountPerSegment = segmentConfig.maxCount,
+//            pathsDistributor = pathsDistributor,
+//            createdInLevel = createdInLevel,
+//            stats = MergeStats.memoryBuilder(keyValues).close()
+//          )
+//        else
+//          Segment.persistent(
+//            pathsDistributor = pathsDistributor,
+//            createdInLevel = createdInLevel,
+//            bloomFilterConfig = bloomFilterConfig,
+//            hashIndexConfig = hashIndexConfig,
+//            binarySearchIndexConfig = binarySearchIndexConfig,
+//            sortedIndexConfig = sortedIndexConfig,
+//            valuesConfig = valuesConfig,
+//            segmentConfig = segmentConfig,
+//            mergeStats =
+//              MergeStats
+//                .persistentBuilder(keyValues)
+//                .close(
+//                  hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+//                  optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+//                )
+//          ).awaitInf
+//
+//      segment.foreach(_.sweep())
+//
+//      Slice.from(segment, segment.size)
+      ???
     }
   }
 
