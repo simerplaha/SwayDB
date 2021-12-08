@@ -23,7 +23,8 @@ import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
 import swaydb.core.segment.data.{Memory, Persistent, PersistentOption}
-import swaydb.core.{SegmentBlocks, CoreTestBase, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, SegmentBlocks, TestCaseSweeper}
+import swaydb.core.segment.ASegmentSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -33,7 +34,7 @@ import swaydb.testkit.RunThis._
 import scala.util.Try
 import swaydb.testkit.TestKit._
 
-class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends CoreTestBase with MockFactory {
+class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends ASegmentSpec with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))

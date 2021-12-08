@@ -21,12 +21,13 @@ import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.segment.block.{Block, BlockCache, BlockOps}
-import swaydb.core.{CoreTestBase, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestCaseSweeper}
+import swaydb.core.segment.ASegmentSpec
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class BlockedReaderSpec extends CoreTestBase with MockFactory {
+class BlockedReaderSpec extends ASegmentSpec with MockFactory {
 
   "apply" when {
     "ref" in {

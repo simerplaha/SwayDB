@@ -22,13 +22,14 @@ import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.data.Memory
-import swaydb.core.{CoreTestBase, TestExecutionContext, TestTimer}
+import swaydb.core.{ACoreSpec, TestExecutionContext, TestTimer}
+import swaydb.core.segment.ASegmentSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class MergeStatsSizeCalculatorSpec extends CoreTestBase with MockFactory with EitherValues {
+class MergeStatsSizeCalculatorSpec extends ASegmentSpec with MockFactory with EitherValues {
 
   implicit val ec = TestExecutionContext.executionContext
   implicit val timer = TestTimer.Empty

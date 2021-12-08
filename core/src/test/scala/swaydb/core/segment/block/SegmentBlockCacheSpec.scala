@@ -16,8 +16,8 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data.Memory
-import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.segment.{ASegmentSpec, PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.effect.IOStrategy
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -33,7 +33,7 @@ import scala.jdk.CollectionConverters._
 import scala.util.Random
 import swaydb.testkit.TestKit._
 
-class SegmentBlockCacheSpec extends CoreTestBase {
+class SegmentBlockCacheSpec extends ASegmentSpec {
   implicit val order = KeyOrder.default
   implicit val timer: TestTimer = TestTimer.Empty
   implicit val sweeper: Option[MemorySweeper.Block] = None

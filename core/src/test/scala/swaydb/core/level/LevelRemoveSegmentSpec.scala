@@ -22,7 +22,7 @@ import swaydb.IO
 import swaydb.config.MMAP
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
@@ -48,10 +48,10 @@ class LevelRemoveSegmentSpec2 extends LevelRemoveSegmentSpec {
 }
 
 class LevelRemoveSegmentSpec3 extends LevelRemoveSegmentSpec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait LevelRemoveSegmentSpec extends CoreTestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelRemoveSegmentSpec extends ALevelSpec with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
@@ -74,7 +74,7 @@ sealed trait LevelRemoveSegmentSpec extends CoreTestBase with MockFactory with P
 
           level.isEmpty shouldBe true
 
-          if (persistent) {
+          if (isPersistentSpec) {
             if (isWindowsAndMMAPSegments())
               eventual(10.seconds) {
                 sweeper.receiveAll()

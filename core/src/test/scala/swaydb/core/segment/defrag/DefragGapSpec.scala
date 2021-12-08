@@ -27,7 +27,8 @@ import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.data.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.level.ALevelSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -61,7 +62,7 @@ class PersistentSegment_DefragGapSpec extends DefragGapSpec[PersistentSegment, P
  */
 class MemorySegment_DefragGapSpec extends DefragGapSpec[MemorySegment, MemorySegmentOption, MergeStats.Memory.Builder[Memory, ListBuffer]] {
 
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 
   override def testSegment(keyValues: Slice[Memory])(implicit sweeper: TestCaseSweeper): MemorySegment =
     TestSegment(keyValues).shouldBeInstanceOf[MemorySegment]
@@ -77,7 +78,7 @@ class MemorySegment_DefragGapSpec extends DefragGapSpec[MemorySegment, MemorySeg
 }
 
 
-sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats.Segment[Memory, ListBuffer]] extends CoreTestBase with MockFactory with EitherValues {
+sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats.Segment[Memory, ListBuffer]] extends ALevelSpec with MockFactory with EitherValues {
 
   implicit val ec = TestExecutionContext.executionContext
   implicit val timer = TestTimer.Empty
@@ -107,7 +108,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
               hasNext = false
             )
 
-          if (persistent) {
+          if (isPersistentSpec) {
             val expected =
               segments map {
                 case segment: PersistentSegment =>
@@ -149,7 +150,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
               hasNext = false
             )
 
-          if (persistent) {
+          if (isPersistentSpec) {
             val expectedTail =
               segments map {
                 case segment: PersistentSegment =>
@@ -208,7 +209,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
                 hasNext = false
               )
 
-            if (persistent) { //headKeyValues are larger than initial
+            if (isPersistentSpec) { //headKeyValues are larger than initial
               mergeStatsCreated.keyValues.size should be > initialKeyValues.size
 
               //first segment gets merged into merge stats and other 4 remain intact.
@@ -256,7 +257,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
       "PersistentSegmentMany is input" in {
         //in this test the second SegmentRef from the one PersistentSegmentMany instance should get merged into head stats.
         //and expect PersistentSegmentMany to expand and SegmentRefs to get appended.
-        if (memory)
+        if (isMemorySpec)
           cancel("TODO")
         else
           runThis(10.times, log = true) {
@@ -339,7 +340,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
 
       "SegmentRefs are input" in {
         //in this test the second SegmentRef from the one PersistentSegmentMany instance should get merged into head stats.
-        if (memory)
+        if (isMemorySpec)
           cancel("TODO")
         else
           runThis(10.times, log = true) {

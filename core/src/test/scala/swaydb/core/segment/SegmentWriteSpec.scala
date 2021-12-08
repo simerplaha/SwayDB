@@ -52,6 +52,7 @@ import swaydb.slice.{MaxKey, Slice}
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 import swaydb.{ActorConfig, Benchmark, IO}
+import swaydb.core.level.ALevelSpec
 
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import scala.collection.mutable.ListBuffer
@@ -77,10 +78,10 @@ class SegmentWriteSpec2 extends SegmentWriteSpec {
 }
 
 class SegmentWriteSpec3 extends SegmentWriteSpec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait SegmentWriteSpec extends CoreTestBase {
+sealed trait SegmentWriteSpec extends ALevelSpec {
 
   val keyValuesCount = 100
 
@@ -238,7 +239,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
                 (keyValues, segment) => {
                   assertMinAndMaxKeyAreSliced(segment)
                   //if Persistent Segment, read all key-values from disk so that they value added to cache.
-                  if (persistent) assertGet(readKeyValues, segment)
+                  if (isPersistentSpec) assertGet(readKeyValues, segment)
                   //assert key-values added to cache are un-sliced
                   assertCacheKeyValuesAreSliced(segment)
                 }
@@ -315,7 +316,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
     }
 
     "create bloomFilter if the Segment has no Remove range key-values but has update range key-values. And set hasRange to true" in {
-      if (persistent) {
+      if (isPersistentSpec) {
         TestCaseSweeper {
           implicit sweeper =>
             assertSegment(
@@ -431,7 +432,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
     }
 
     "not overwrite a Segment if it already exists" in {
-      if (memory) {
+      if (isMemorySpec) {
         //memory Segments do not check for overwrite. No tests required
       } else {
         TestCaseSweeper {
@@ -460,7 +461,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
     }
 
     "initialise a segment that already exists" in {
-      if (memory) {
+      if (isMemorySpec) {
         //memory Segments cannot re-initialise Segments after shutdown.
       } else {
         runThis(10.times) {
@@ -507,7 +508,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
     }
 
     "initialise a segment that already exists but Segment info is unknown" in {
-      if (memory) {
+      if (isMemorySpec) {
         //memory Segments cannot re-initialise Segments after shutdown.
       } else {
         runThis(100.times, log = true) {
@@ -536,7 +537,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
     }
 
     "fail initialisation if the segment does not exist" in {
-      if (memory) {
+      if (isMemorySpec) {
         //memory Segments do not value re-initialised
       } else {
         TestCaseSweeper {
@@ -605,7 +606,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
 
           def close(): Unit = {
             segment.close()
-            if (levelStorage.persistent) {
+            if (isPersistentSpec) {
               //also clear the cache so that if the key-value is a group on open file is still reopened
               //instead of just reading from in-memory Group key-value.
               eitherOne(segment.clearCachedKeyValues(), segment.clearAllCaches())
@@ -715,7 +716,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
           segment.isOpen shouldBe false
           segment.isFileDefined shouldBe false
 
-          if (persistent && gaped) {
+          if (isPersistentSpec && gaped) {
             //if gap wait for gap segments to be created.
             sleep(2.seconds)
             //failure should triggered recovery and then cleanup so the directory should be empty.
@@ -733,7 +734,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
   }
 
   "reopen closed channel for read when closed by LimitQueue" in {
-    if (memory) {
+    if (isMemorySpec) {
       //memory Segments do not value closed via
     } else {
       runThis(5.times, log = true) {
@@ -801,7 +802,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
           segment.cachedKeyValueSize shouldBe keyValues.size //cache is not cleared
 
           eventual(5.seconds) {
-            if (persistent) {
+            if (isPersistentSpec) {
               segment.isOpen shouldBe false
               segment.isFooterDefined shouldBe false //on delete in-memory footer is cleared
             }
@@ -813,7 +814,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
 
   "copyTo" should {
     "copy the segment to a target path without deleting the original" in {
-      if (persistent) {
+      if (isPersistentSpec) {
         TestCaseSweeper {
           implicit sweeper =>
 
@@ -878,7 +879,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
               removeDeletes = false,
             ).awaitInf.map(_.sweep())
 
-          if (persistent)
+          if (isPersistentSpec)
             segments.size shouldBe 1
           else
             segments.size should be > 1
@@ -922,7 +923,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
 
             segments.foreach(_.existsOnDisk() shouldBe true)
 
-            if (persistent)
+            if (isPersistentSpec)
               segments.flatMap(_.iterator(randomBoolean())) shouldBe keyValues //persistent Segments are simply copied and are not checked for removed key-values.
             else
               segments.flatMap(_.iterator(randomBoolean())) shouldBe keyValues.collect { //memory Segments does a split/merge and apply lastLevel rules.
@@ -992,7 +993,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
             sweeper.receiveAll()
 
           Effect.size(conflictingPath) shouldBe 0
-          if (persistent) segment.existsOnDisk() shouldBe true //original Segment remains untouched
+          if (isPersistentSpec) segment.existsOnDisk() shouldBe true //original Segment remains untouched
       }
     }
 
@@ -1068,7 +1069,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
 
     "transfer blockCache on copy" in {
       //when a Segment is copied it's BlockCache bytes should still be accessible.
-      if (persistent)
+      if (isPersistentSpec)
         runThis(50.times, log = true) {
           TestCaseSweeper {
             implicit sweeper =>
@@ -1461,7 +1462,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
 
           val segment = TestSegment(keyValues1)
           segment.close()
-          if (persistent) segment.isOpen shouldBe false
+          if (isPersistentSpec) segment.isOpen shouldBe false
 
           val keyValues2 = randomizedKeyValues(keyValuesCount)
 
@@ -1482,7 +1483,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
             mmapSegment = mmapSegments
           ).output.mapToSlice(_.sweep())
 
-          if (persistent) segment.isOpen shouldBe true
+          if (isPersistentSpec) segment.isOpen shouldBe true
       }
     }
 
@@ -1646,7 +1647,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
     }
 
     "fail put and delete partially written batch Segments if there was a failure in creating one of them" in {
-      if (memory)
+      if (isMemorySpec)
         cancel("Test not need for Memory Segment")
       else
         runThis(10.times, log = true) {
@@ -1759,7 +1760,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
           newDeletedSegment.iterator(randomBoolean()).toList shouldBe deleteKeyValues
 
           assertGet(keyValues, segment)
-          if (persistent) assertGet(keyValues, segment.asInstanceOf[PersistentSegment].reopen)
+          if (isPersistentSpec) assertGet(keyValues, segment.asInstanceOf[PersistentSegment].reopen)
       }
     }
 
@@ -1826,7 +1827,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
 
             val keyValues2Closed = keyValues2Unclosed.close()
 
-            val segmentConfig2 = SegmentBlockConfig.random.copy(Int.MaxValue, if (memory) keyValues2Closed.size else randomIntMax(keyValues2Closed.size))
+            val segmentConfig2 = SegmentBlockConfig.random.copy(Int.MaxValue, if (isMemorySpec) keyValues2Closed.size else randomIntMax(keyValues2Closed.size))
 
             val segment2 = TestSegment(keyValues2Closed, segmentConfig = segmentConfig2)
 
@@ -2010,7 +2011,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
           val pathsDistributor = PathsDistributor(dirs, () => Seq(segment))
 
           val segments =
-            if (persistent)
+            if (isPersistentSpec)
               segment.put(
                 headGap = Iterable.empty[KeyValue],
                 tailGap = Iterable.empty[KeyValue],
@@ -2060,7 +2061,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
           segments(2).path.getParent shouldBe dirs(2).path
           segments(3).path.getParent shouldBe dirs(3).path
 
-          if (persistent)
+          if (isPersistentSpec)
             segments(4).path.getParent shouldBe dirs(4).path
 
         //all paths are used ???
@@ -2071,7 +2072,7 @@ sealed trait SegmentWriteSpec extends CoreTestBase {
 
   "refresh" should {
     "return new Segment with Removed key-values removed" in {
-      if (persistent) {
+      if (isPersistentSpec) {
         TestCaseSweeper {
           implicit sweeper =>
 

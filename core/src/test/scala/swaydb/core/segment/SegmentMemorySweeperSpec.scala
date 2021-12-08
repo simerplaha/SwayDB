@@ -24,7 +24,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext}
 import swaydb.slice.Slice
 import swaydb.slice.order.TimeOrder
 import swaydb.testkit.RunThis._
@@ -34,7 +34,7 @@ import scala.concurrent.duration._
 /**
  * These class has tests to assert the behavior of [[MemorySweeper]] on [[swaydb.core.segment.Segment]]s.
  */
-class SegmentMemorySweeperSpec extends CoreTestBase {
+class SegmentMemorySweeperSpec extends ASegmentSpec {
 
   val keyValuesCount = 100
 

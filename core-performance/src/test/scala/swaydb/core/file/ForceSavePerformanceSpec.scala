@@ -20,7 +20,7 @@ import swaydb.Benchmark
 import swaydb.config.ForceSave
 import swaydb.core.CoreTestData.randomBytesSlice
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCleaner
-import swaydb.core.{CoreTestBase, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestCaseSweeper}
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
@@ -31,7 +31,7 @@ import java.nio.channels.FileChannel.MapMode
 import java.nio.file.StandardOpenOption
 import java.util.concurrent.atomic.AtomicBoolean
 
-class ForceSavePerformanceSpec extends CoreTestBase {
+class ForceSavePerformanceSpec extends ACoreSpec {
 
   "force save benchmark" when {
     "memory-mapped file" in {

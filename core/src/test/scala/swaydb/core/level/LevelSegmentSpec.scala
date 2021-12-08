@@ -58,10 +58,10 @@ class LevelSegmentSpec2 extends LevelSegmentSpec {
 }
 
 class LevelSegmentSpec3 extends LevelSegmentSpec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait LevelSegmentSpec extends CoreTestBase with MockFactory {
+sealed trait LevelSegmentSpec extends ALevelSpec with MockFactory {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
@@ -164,7 +164,7 @@ sealed trait LevelSegmentSpec extends CoreTestBase with MockFactory {
       }
 
       "distribute Segments to multiple directories based on the distribution ratio" in {
-        if (persistent) {
+        if (isPersistentSpec) {
           TestCaseSweeper {
             implicit sweeper =>
               import sweeper._
@@ -252,7 +252,7 @@ sealed trait LevelSegmentSpec extends CoreTestBase with MockFactory {
               sweeper.receiveAll()
 
             val result = level.put(segment).left.get
-            if (persistent)
+            if (isPersistentSpec)
               result.exception shouldBe a[NoSuchFileException]
             else
               result.exception shouldBe a[Exception]
@@ -260,12 +260,12 @@ sealed trait LevelSegmentSpec extends CoreTestBase with MockFactory {
             level.isEmpty shouldBe true
 
             //if it's a persistent Level, reopen to ensure that Segment did not value committed.
-            if (persistent) level.reopen.isEmpty shouldBe true
+            if (isPersistentSpec) level.reopen.isEmpty shouldBe true
         }
       }
 
       "revert copy if merge fails" in {
-        if (persistent)
+        if (isPersistentSpec)
           runThis(10.times, log = true) {
             TestCaseSweeper {
               implicit sweeper =>

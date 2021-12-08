@@ -19,7 +19,7 @@ package swaydb.core.file
 import swaydb.{Benchmark, IO}
 import swaydb.IOValues._
 import swaydb.core.CoreTestData._
-import swaydb.core.{CoreTestBase, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestCaseSweeper}
 import swaydb.effect.Effect
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
@@ -28,7 +28,7 @@ import swaydb.utils.StorageUnits._
 
 import java.nio.file.Paths
 
-class EffectSpec extends CoreTestBase {
+class EffectSpec extends AFileSpec {
 
   "fileId" should {
 
@@ -265,7 +265,7 @@ class EffectSpec extends CoreTestBase {
       implicit sweeper =>
         val bytes = randomBytesSlice(size = 100)
         //test when files are both channel and mmap
-        val files = createCoreFiles(mmapBytes = bytes, channelBytes = bytes)
+        val files = createFiles(mmapBytes = bytes, standardBytes = bytes)
         files should have size 2
 
         files foreach {
@@ -279,7 +279,7 @@ class EffectSpec extends CoreTestBase {
                 file.transfer(position = 0, count = 10, transferTo = targetFile)
                 targetFile.close()
 
-                val fileReaders = createAllFilesReaders(targetFile.path)
+                val fileReaders = createFileReaders(targetFile.path)
                 fileReaders should have size 2
                 fileReaders foreach {
                   reader =>

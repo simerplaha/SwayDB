@@ -23,6 +23,7 @@ import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.core.CoreTestData._
 import swaydb.core._
+import swaydb.core.log.ALogSpec
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data._
 import swaydb.serializers.Default._
@@ -52,10 +53,10 @@ class LevelRefreshSpec2 extends LevelRefreshSpec {
 }
 
 class LevelRefreshSpec3 extends LevelRefreshSpec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait LevelRefreshSpec extends CoreTestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelRefreshSpec extends ALevelSpec with ALogSpec with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty

@@ -17,7 +17,7 @@
 package swaydb.core.file
 
 import swaydb.Benchmark
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestSweeper}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestSweeper}
 import swaydb.core.CoreTestData._
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
@@ -30,7 +30,7 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.DurationInt
 import scala.util.Random
 
-class CoreFileWriteReadPerformanceSpec extends CoreTestBase {
+class CoreFileWriteReadPerformanceSpec extends ACoreSpec {
 
   implicit val fileSweeper: FileSweeper = TestSweeper.createFileSweeper()
   implicit val bufferCleaner: ByteBufferSweeperActor = TestSweeper.createBufferCleaner()

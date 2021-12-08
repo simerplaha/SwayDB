@@ -21,6 +21,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.compaction.task.CompactionTask
+import swaydb.core.level.ALevelSpec
 import swaydb.core.segment.Segment
 import swaydb.core.segment.data.Memory
 import swaydb.serializers.Default._
@@ -47,10 +48,10 @@ class BehaviourCompactionTask_refresh_Spec0 extends BehaviourCompactionTask_refr
 //}
 
 class BehaviourCompactionTask_refresh_Spec3 extends BehaviourCompactionTask_refresh_Spec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait BehaviourCompactionTask_refresh_Spec extends CoreTestBase {
+sealed trait BehaviourCompactionTask_refresh_Spec extends ALevelSpec {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
@@ -82,7 +83,7 @@ sealed trait BehaviourCompactionTask_refresh_Spec extends CoreTestBase {
           BehaviourCompactionTask.refresh(task, level).awaitInf shouldBe unit
           level.isEmpty shouldBe true
 
-          if (persistent) {
+          if (isPersistentSpec) {
             val reopen = level.reopen
             reopen.isEmpty shouldBe true
           }
@@ -118,7 +119,7 @@ sealed trait BehaviourCompactionTask_refresh_Spec extends CoreTestBase {
 
           val task = CompactionTask.RefreshSegments(source = level, segments = level.segments())
 
-          if (memory)
+          if (isMemorySpec)
             level.segments().last.delete()
           else
             TestSegment(path = level.rootPath.resolve(s"${level.segmentIDGenerator.current + 1}.seg"))
@@ -127,7 +128,7 @@ sealed trait BehaviourCompactionTask_refresh_Spec extends CoreTestBase {
 
           level.segments().map(_.path) shouldBe segmentPathsBeforeRefresh
 
-          if (persistent) {
+          if (isPersistentSpec) {
             val reopen = level.reopen
             assertReads(keyValues, reopen)
             reopen.segments().map(_.path) shouldBe segmentPathsBeforeRefresh

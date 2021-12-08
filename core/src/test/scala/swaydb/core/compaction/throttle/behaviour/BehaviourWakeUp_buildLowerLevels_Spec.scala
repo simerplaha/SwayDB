@@ -18,8 +18,8 @@ package swaydb.core.compaction.throttle.behaviour
 
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
-import swaydb.core.level.Level
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.core.level.{ALevelSpec, Level}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.utils.OperatingSystem
 
 
@@ -40,10 +40,10 @@ class BehaviourWakeUp_buildLowerLevels_Spec2 extends BehaviourWakeUp_buildLowerL
 }
 
 class BehaviourWakeUp_buildLowerLevels_Spec3 extends BehaviourWakeUp_buildLowerLevels_Spec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait BehaviourWakeUp_buildLowerLevels_Spec extends CoreTestBase {
+sealed trait BehaviourWakeUp_buildLowerLevels_Spec extends ALevelSpec {
 
   implicit val ec = TestExecutionContext.executionContext
 

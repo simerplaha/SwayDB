@@ -30,7 +30,8 @@ import swaydb.core.log.applied.AppliedFunctionsLog
 import swaydb.core.log.timer.Timer
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.level.ALevelSpec
 import swaydb.effect.{Dir, Effect}
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -61,10 +62,10 @@ class LevelZeroSpec2 extends LevelZeroSpec {
 }
 
 class LevelZeroSpec3 extends LevelZeroSpec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait LevelZeroSpec extends CoreTestBase with MockFactory {
+sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
@@ -82,7 +83,7 @@ sealed trait LevelZeroSpec extends CoreTestBase with MockFactory {
         implicit sweeper =>
           val nextLevel = TestLevel()
           val zero = TestLevelZero(Some(nextLevel))
-          if (persistent) {
+          if (isPersistentSpec) {
             zero.existsOnDisk() shouldBe true
             nextLevel.existsOnDisk() shouldBe true
             //maps folder is initialised
@@ -110,7 +111,7 @@ sealed trait LevelZeroSpec extends CoreTestBase with MockFactory {
 
           val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))))
           assert(zero)
-          if (persistent) assert(zero.reopen)
+          if (isPersistentSpec) assert(zero.reopen)
       }
     }
 
@@ -132,7 +133,7 @@ sealed trait LevelZeroSpec extends CoreTestBase with MockFactory {
 
           //the following does not apply to in-memory Levels
           //in-memory key-values are slice of the whole Segment.
-          if (persistent) {
+          if (isPersistentSpec) {
             //put the same key-value to Level1 and expect the key-values to be sliced
             level.put(Slice(Memory.put(one, one))).runRandomIO
             val gotFromLevelOne = level.get(one, ThreadReadState.random).getPut
@@ -187,7 +188,7 @@ sealed trait LevelZeroSpec extends CoreTestBase with MockFactory {
 
           //allow compaction to do it's work
           sleep(2.seconds)
-          if (persistent) assertRead(zero.reopen)
+          if (isPersistentSpec) assertRead(zero.reopen)
       }
     }
 
@@ -417,7 +418,7 @@ sealed trait LevelZeroSpec extends CoreTestBase with MockFactory {
 
     "initiate" when {
       "timer is enabled" in {
-        if (persistent)
+        if (isPersistentSpec)
           TestCaseSweeper {
             implicit sweeper =>
               val zero = TestLevelZero(None, enableTimer = true)
@@ -443,7 +444,7 @@ sealed trait LevelZeroSpec extends CoreTestBase with MockFactory {
       }
 
       "timer is enabled for in-memory but next level is-persistent" in {
-        if (persistent)
+        if (isPersistentSpec)
           cancel("does not apply for in-memory")
         else
           TestCaseSweeper {
@@ -481,7 +482,7 @@ sealed trait LevelZeroSpec extends CoreTestBase with MockFactory {
 
     "not initiate" when {
       "timer is disabled" in {
-        if (persistent)
+        if (isPersistentSpec)
           TestCaseSweeper {
             implicit sweeper =>
               val zero = TestLevelZero(None, enableTimer = false)

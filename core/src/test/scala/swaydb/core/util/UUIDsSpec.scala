@@ -16,9 +16,10 @@
 
 package swaydb.core.util
 
-import swaydb.core.CoreTestBase
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class UUIDsSpec extends CoreTestBase {
+class UUIDsSpec extends AnyWordSpec with Matchers {
 
   "randomIdNoHyphen" should {
     "return unique UUID without hyphens" in {

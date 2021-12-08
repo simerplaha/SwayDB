@@ -34,7 +34,7 @@ import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.entry.reader.PersistentReader
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestSweeper}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestSweeper}
 import swaydb.effect.{Dir, IOAction, IOStrategy}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -45,7 +45,7 @@ import java.nio.file.Path
 import scala.concurrent.duration._
 import scala.util.Random
 
-class SegmentReadPerformanceSpec extends CoreTestBase {
+class SegmentReadPerformanceSpec extends ASegmentSpec {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long

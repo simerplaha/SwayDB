@@ -17,6 +17,8 @@
 package swaydb.core.segment.ref
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
@@ -29,7 +31,8 @@ import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data.{Persistent, PersistentOption, Time}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.{SegmentSearcher, ThreadReadState}
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext}
+import swaydb.core.segment.ASegmentSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.{MaxKey, Slice}
@@ -39,7 +42,7 @@ import swaydb.testkit.RunThis._
 import java.nio.file.Paths
 import swaydb.testkit.TestKit._
 
-class SegmentRefGetBehaviorSpec extends CoreTestBase with MockFactory {
+class SegmentRefGetBehaviorSpec extends AnyWordSpec with Matchers with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))

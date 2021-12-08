@@ -25,7 +25,8 @@ import swaydb.core.CoreTestData._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data.Memory
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.level.ALevelSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -53,10 +54,10 @@ class LevelTaskAssignerSpec2 extends LevelTaskAssignerSpec {
 }
 
 class LevelTaskAssignerSpec3 extends LevelTaskAssignerSpec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait LevelTaskAssignerSpec extends CoreTestBase with MockFactory {
+sealed trait LevelTaskAssignerSpec extends ALevelSpec with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
@@ -134,7 +135,7 @@ sealed trait LevelTaskAssignerSpec extends CoreTestBase with MockFactory {
     }
 
     "Level has unexpired key-values" in {
-      if (memory)
+      if (isMemorySpec)
         cancel("Test not required for in-memory")
       else
         TestCaseSweeper {

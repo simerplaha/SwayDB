@@ -25,6 +25,8 @@ import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core._
+import swaydb.core.level.ALevelSpec
+import swaydb.core.log.ALogSpec
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data._
 import swaydb.core.segment.io.SegmentReadIO
@@ -63,10 +65,10 @@ class SegmentReadSpec2 extends SegmentReadSpec {
 
 class SegmentReadSpec3 extends SegmentReadSpec {
   val keyValuesCount = 100
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait SegmentReadSpec extends CoreTestBase with ScalaFutures {
+sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   implicit val keyOrder = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.random
@@ -755,7 +757,7 @@ sealed trait SegmentReadSpec extends CoreTestBase with ScalaFutures {
       }
     }
 
-    "return true or false if input map overlap or do not overlap with busy Segments respectively" in {
+    "return true or false if input map overlap or do not overlap with busy Segments respectively" in new ALogSpec {
       TestCaseSweeper {
         implicit sweeper =>
 
@@ -870,7 +872,7 @@ sealed trait SegmentReadSpec extends CoreTestBase with ScalaFutures {
     "fail read if reading any one Segment file is corrupted" in {
       //Ignoring for windows MMAP because even after closing the files Windows not allow altering the unmapped file's Bytes.
       //Exception - The requested operation cannot be performed on a file with a user-mapped section open.
-      if (persistent)
+      if (isPersistentSpec)
         if (isWindowsAndMMAPSegments())
           cancel("Test does not apply to Windows with MMAP files.")
         else
@@ -918,7 +920,7 @@ sealed trait SegmentReadSpec extends CoreTestBase with ScalaFutures {
 
   "getAll" should {
     "read full index" in {
-      if (persistent)
+      if (isPersistentSpec)
         TestCaseSweeper {
           implicit sweeper =>
             runThis(10.times) {
@@ -926,7 +928,7 @@ sealed trait SegmentReadSpec extends CoreTestBase with ScalaFutures {
               val keyValues = randomizedKeyValues(keyValuesCount)
               val segment = TestSegment(keyValues)
 
-              if (persistent) segment.isKeyValueCacheEmpty shouldBe true
+              if (isPersistentSpec) segment.isKeyValueCacheEmpty shouldBe true
 
               val segmentKeyValues = segment.iterator(randomBoolean()).toSlice
 
@@ -935,7 +937,7 @@ sealed trait SegmentReadSpec extends CoreTestBase with ScalaFutures {
                   val actualKeyValue = keyValues(index)
                   val segmentKeyValue = segmentKeyValues(index)
 
-                  if (persistent) {
+                  if (isPersistentSpec) {
                     //ensure that indexEntry's values are not already read as they are lazily fetched from the file.
                     //values with Length 0 and non Range key-values always have isValueDefined set to true as they do not required disk seek.
                     segmentKeyValue match {
@@ -990,7 +992,7 @@ sealed trait SegmentReadSpec extends CoreTestBase with ScalaFutures {
       TestCaseSweeper {
         implicit sweeper =>
           def segmentConfig(keyValuesCount: Int) =
-            if (persistent)
+            if (isPersistentSpec)
               SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValuesCount * 2), mmap = mmapSegments)
             else
               SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments)
@@ -1059,7 +1061,7 @@ sealed trait SegmentReadSpec extends CoreTestBase with ScalaFutures {
             val keyValues2 = randomizedKeyValues(1000)
 
             val segmentConfig =
-              if (persistent)
+              if (isPersistentSpec)
                 SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValues1.size * 2), mmap = mmapSegments)
               else
                 SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments)

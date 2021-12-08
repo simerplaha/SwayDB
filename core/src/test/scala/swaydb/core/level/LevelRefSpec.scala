@@ -17,12 +17,12 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.{CoreTestBase, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestCaseSweeper}
 
 import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
 
-class LevelRefSpec extends CoreTestBase with MockFactory {
+class LevelRefSpec extends ALevelSpec with MockFactory {
 
   "firstPersistentLevel" should {
     "return none" in {

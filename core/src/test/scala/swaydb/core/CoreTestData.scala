@@ -2223,4 +2223,54 @@ object CoreTestData {
       buffer
     }
   }
+
+  implicit class OptimiseWritesImplicits(optimise: OptimiseWrites.type) {
+
+    def randomAll: Seq[OptimiseWrites] =
+      Seq(
+        OptimiseWrites.RandomOrder,
+        OptimiseWrites.SequentialOrder(initialSkipListLength = randomIntMax(100))
+      )
+
+    def random: OptimiseWrites =
+      if (randomBoolean())
+        OptimiseWrites.RandomOrder
+      else
+        OptimiseWrites.SequentialOrder(
+          initialSkipListLength = randomIntMax(100)
+        )
+  }
+
+  implicit class AtomicImplicits(atomic: Atomic.type) {
+
+    def all: Seq[Atomic] =
+      Seq(
+        Atomic.On,
+        Atomic.Off
+      )
+
+    def random: Atomic =
+      if (randomBoolean())
+        Atomic.On
+      else
+        Atomic.Off
+  }
+
+  implicit class SegmentIOImplicits(io: SegmentReadIO.type) {
+    def random: SegmentReadIO =
+      random(cacheOnAccess = randomBoolean())
+
+    def random(cacheOnAccess: Boolean = randomBoolean(),
+               includeReserved: Boolean = true): SegmentReadIO =
+      SegmentReadIO(
+        fileOpenIO = randomThreadSafeIOStrategy(cacheOnAccess, includeReserved),
+        segmentBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
+        hashIndexBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
+        bloomFilterBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
+        binarySearchIndexBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
+        sortedIndexBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
+        valuesBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
+        segmentFooterBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved)
+      )
+  }
 }

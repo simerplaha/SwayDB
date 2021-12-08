@@ -31,8 +31,9 @@ import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.{KeyValue, Memory}
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.{PersistentSegment, Segment}
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.segment.{ASegmentSpec, PersistentSegment, Segment}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.level.ALevelSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -43,7 +44,7 @@ import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import swaydb.testkit.TestKit._
 
-class DefragSegment_RunOne_Spec extends CoreTestBase with MockFactory with EitherValues {
+class DefragSegment_RunOne_Spec extends ALevelSpec with MockFactory with EitherValues {
 
   implicit val ec = TestExecutionContext.executionContext
   implicit val timer = TestTimer.Empty

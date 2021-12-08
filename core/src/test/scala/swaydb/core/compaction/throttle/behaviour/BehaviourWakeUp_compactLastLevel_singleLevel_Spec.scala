@@ -24,7 +24,8 @@ import swaydb.core.compaction.throttle.LevelState
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.util.DefIO
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.core.level.ALevelSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -52,10 +53,10 @@ class BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec2 extends Behavio
 }
 
 class BehaviourWakeUp_compactLastLevel_singleLevel_Spec extends BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends CoreTestBase {
+sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends ALevelSpec {
 
   implicit val ec = TestExecutionContext.executionContext
 

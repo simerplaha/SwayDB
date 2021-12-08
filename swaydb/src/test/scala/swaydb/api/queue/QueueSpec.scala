@@ -18,7 +18,7 @@ package swaydb.api.queue
 
 import org.scalatest.OptionValues._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.{CoreTestBase, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestCaseSweeper}
 import swaydb.serializers.Default._
 import swaydb.{Benchmark, Glass, Queue}
 
@@ -39,7 +39,7 @@ class QueueSpec3 extends QueueSpec {
     swaydb.memory.Queue[Int, Glass]().sweep(_.delete())
 }
 
-sealed trait QueueSpec extends CoreTestBase {
+sealed trait QueueSpec extends ACoreSpec {
 
   def newQueue()(implicit sweeper: TestCaseSweeper): Queue[Int]
 

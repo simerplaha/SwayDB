@@ -21,7 +21,8 @@ import org.scalatest.concurrent.ScalaFutures
 import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.core.CoreTestData._
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave}
+import swaydb.core.level.ALevelSpec
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
@@ -49,10 +50,10 @@ class SegmentKeyValueCount2 extends SegmentKeyValueCount {
 class SegmentKeyValueCount3 extends SegmentKeyValueCount {
   val keyValuesCount = 10000
 
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait SegmentKeyValueCount extends CoreTestBase with ScalaFutures with PrivateMethodTester {
+sealed trait SegmentKeyValueCount extends ALevelSpec with ScalaFutures with PrivateMethodTester {
 
   implicit val keyOrder = KeyOrder.default
 

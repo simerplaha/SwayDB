@@ -22,13 +22,13 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.{CoreTestBase, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestCaseSweeper}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class SegmentSerialiserSpec extends CoreTestBase {
+class SegmentSerialiserSpec extends ASegmentSpec {
 
   "serialise segment" in {
     runThis(100.times, log = true, "Test - Serialise segment") {

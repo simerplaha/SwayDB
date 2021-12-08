@@ -20,6 +20,8 @@ import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core._
+import swaydb.core.level.ALevelSpec
+import swaydb.core.log.ALogSpec
 import swaydb.core.segment.Segment
 import swaydb.core.segment.data.{merge => _}
 import swaydb.serializers.Default._
@@ -30,7 +32,7 @@ import swaydb.testkit.RunThis._
 import scala.concurrent.duration.DurationInt
 import swaydb.testkit.TestKit._
 
-class LevelZeroTaskAssigner_flatten_Spec extends CoreTestBase with MockFactory {
+class LevelZeroTaskAssigner_flatten_Spec extends ALevelSpec with ALogSpec with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default

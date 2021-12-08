@@ -21,7 +21,7 @@ import swaydb.config.MMAP
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core._
-import swaydb.core.log.LogEntry
+import swaydb.core.log.{ALogSpec, LogEntry}
 import swaydb.core.log.LogTestUtil._
 import swaydb.core.log.serialiser._
 import swaydb.serializers.Default._
@@ -32,7 +32,7 @@ import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 import swaydb.testkit.TestKit._
 
-class AppliedFunctionsLogSpec extends CoreTestBase {
+class AppliedFunctionsLogSpec extends ACoreSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 

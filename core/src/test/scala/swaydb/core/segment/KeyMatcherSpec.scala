@@ -16,7 +16,7 @@
 
 package swaydb.core.segment
 
-import swaydb.core.CoreTestBase
+import swaydb.core.ACoreSpec
 import swaydb.core.cache.Cache
 import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.segment.data.Persistent._
@@ -31,7 +31,7 @@ import swaydb.slice.order.KeyOrder
 
 import scala.util.Random
 
-class KeyMatcherSpec extends CoreTestBase {
+class KeyMatcherSpec extends ASegmentSpec {
 
   implicit val integer: KeyOrder[Slice[Byte]] =
     new KeyOrder[Slice[Byte]] {

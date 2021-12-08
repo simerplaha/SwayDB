@@ -17,6 +17,8 @@
 package swaydb.core.log.serialiser
 
 import org.scalatest.OptionValues._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
@@ -25,7 +27,7 @@ import swaydb.core.file.reader.Reader
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.data.{Memory, MemoryOption}
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{CoreTestBase, TestTimer}
+import swaydb.core.{ACoreSpec, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.KeyOrder
@@ -33,7 +35,7 @@ import swaydb.slice.{Slice, SliceOption}
 import swaydb.testkit.TestKit._
 import swaydb.utils.ByteSizeOf
 
-class Level0LogEntrySpec extends CoreTestBase {
+class Level0LogEntrySpec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
   implicit val testTimer = TestTimer.Empty

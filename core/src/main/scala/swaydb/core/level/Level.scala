@@ -267,10 +267,10 @@ private[core] case object Level extends LazyLogging {
 /**
  * Committing data to a [[Level]] goes through the following 4 phases.
  *
- * 1. Assign - assign new key-values to existing [[Segment]]s in the Level
- * 2. Merge - process the assignments resulting in merged key-values.
- * 3. Persist - persist the merged key-values to create new [[Segment]]s (tied during merge to avoid accumulating too much memory before persisting)
- * 4. Commit - commit new [[Segment]]s replacing the old ones atomically.
+ *  1. Assign - assign new key-values to existing [[Segment]]s in the Level
+ *  1. Merge - process the assignments resulting in merged key-values.
+ *  1. Persist - persist the merged key-values to create new [[Segment]]s (tied during merge to avoid accumulating too much memory before persisting)
+ *  1. Commit - commit new [[Segment]]s replacing the old ones atomically.
  *
  * Compaction invokes these individually for maximum concurrency when performing
  * merge and controlled concurrency for write IO when persisting and committing

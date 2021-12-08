@@ -53,10 +53,10 @@ class LevelMapSpec2 extends LevelMapSpec {
 }
 
 class LevelMapSpec3 extends LevelMapSpec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait LevelMapSpec extends CoreTestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelMapSpec extends ALevelSpec with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
@@ -78,7 +78,7 @@ sealed trait LevelMapSpec extends CoreTestBase with MockFactory with PrivateMeth
       implicit val atomic: Atomic = Atomic.random
 
       val map =
-        if (persistent)
+        if (isPersistentSpec)
           Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
             folder = randomIntDirectory,
             mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),

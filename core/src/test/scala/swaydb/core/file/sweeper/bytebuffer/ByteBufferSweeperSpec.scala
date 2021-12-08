@@ -24,8 +24,8 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.{CoreFile, ForceSaveApplier, MMAPFile}
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.core.file.{CoreFile, AFileSpec, ForceSaveApplier, MMAPFile}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
@@ -41,7 +41,7 @@ import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.testkit.TestKit._
 
-class ByteBufferSweeperSpec extends CoreTestBase with MockFactory {
+class ByteBufferSweeperSpec extends AFileSpec with MockFactory {
 
   implicit val ec = TestExecutionContext.executionContext
   implicit val futureBag = Bag.future

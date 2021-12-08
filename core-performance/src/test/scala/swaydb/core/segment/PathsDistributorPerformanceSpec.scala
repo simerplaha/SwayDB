@@ -18,14 +18,15 @@ package swaydb.core.segment
 
 import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.{CoreTestBase, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestCaseSweeper}
 import swaydb.effect.{Dir, Effect}
 import swaydb.slice.order.KeyOrder
-import swaydb.{Benchmark, effect}
+import swaydb.{effect, Benchmark}
+import swaydb.core.level.ALevelSpec
 
 import scala.util.Random
 
-class PathsDistributorPerformanceSpec extends CoreTestBase {
+class PathsDistributorPerformanceSpec extends ALevelSpec {
 
   implicit val keyOrder = KeyOrder.default
 

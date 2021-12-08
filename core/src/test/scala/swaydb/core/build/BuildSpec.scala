@@ -21,7 +21,7 @@ import swaydb.Exception.InvalidDirectoryType
 import swaydb.IOValues._
 import swaydb.config.DataType
 import swaydb.core.CoreTestData._
-import swaydb.core.{CoreTestBase, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestCaseSweeper}
 import swaydb.effect.Effect
 import swaydb.slice.Slice
 import swaydb.utils.{ByteSizeOf, Extension}
@@ -30,7 +30,7 @@ import java.nio.file.FileAlreadyExistsException
 import scala.util.Random
 import swaydb.testkit.TestKit._
 
-class BuildSpec extends CoreTestBase {
+class BuildSpec extends ACoreSpec {
 
   "write" should {
     "create a build.info file" in {

@@ -22,6 +22,8 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.compaction.task.CompactionTask
+import swaydb.core.level.ALevelSpec
+import swaydb.core.log.ALogSpec
 import swaydb.core.segment.Segment
 import swaydb.core.segment.data.Memory
 import swaydb.serializers.Default._
@@ -51,10 +53,10 @@ class BehaviourCompactionTask_compactSegments_MultiLevels_Spec2 extends Behaviou
 }
 
 class BehaviourCompactionTask_compactSegments_MultiLevels_Spec3 extends BehaviourCompactionTask_compactSegments_MultiLevels_Spec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait BehaviourCompactionTask_compactSegments_MultiLevels_Spec extends CoreTestBase {
+sealed trait BehaviourCompactionTask_compactSegments_MultiLevels_Spec extends ALevelSpec with ALogSpec {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
@@ -118,7 +120,7 @@ sealed trait BehaviourCompactionTask_compactSegments_MultiLevels_Spec extends Co
               assertReads(keyValues.drop(2).take(1), level4)
               assertReads(keyValues.drop(3).take(1), level5)
 
-              if (persistent) {
+              if (isPersistentSpec) {
                 val reopenLevel1 = level1.reopen
                 val reopenLevel2 = level2.reopen
                 val reopenLevel3 = level3.reopen
@@ -192,7 +194,7 @@ sealed trait BehaviourCompactionTask_compactSegments_MultiLevels_Spec extends Co
               assertReads(newKeyValues.drop(2).take(1), level4)
               assertReads(newKeyValues.drop(3).take(1), level5)
 
-              if (persistent) {
+              if (isPersistentSpec) {
                 val reopenLevel1 = level1.reopen
                 val reopenLevel2 = level2.reopen
                 val reopenLevel3 = level3.reopen

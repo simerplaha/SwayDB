@@ -22,7 +22,8 @@ import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave}
+import swaydb.core.level.ALevelSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -52,10 +53,10 @@ class SegmentHigherSpec2 extends SegmentHigherSpec {
 
 class SegmentHigherSpec3 extends SegmentHigherSpec {
   val keyValuesCount: Int = 1000
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait SegmentHigherSpec extends CoreTestBase with ScalaFutures with PrivateMethodTester {
+sealed trait SegmentHigherSpec extends ALevelSpec with ScalaFutures with PrivateMethodTester {
 
   def keyValuesCount: Int
 

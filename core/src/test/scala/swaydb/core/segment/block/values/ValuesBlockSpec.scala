@@ -17,13 +17,16 @@
 package swaydb.core.segment.block.values
 
 import org.scalatest.OptionValues._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.Block
-import swaydb.core.segment.block.reader.{BlockRefReader, BlockedReader}
+import swaydb.core.segment.block.reader.{BlockedReader, BlockRefReader}
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.entry.writer.EntryWriter
-import swaydb.core.{CoreTestBase, TestTimer}
+import swaydb.core.{ACoreSpec, TestTimer}
+import swaydb.core.segment.ASegmentSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -34,7 +37,7 @@ import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import swaydb.testkit.TestKit._
 
-class ValuesBlockSpec extends CoreTestBase {
+class ValuesBlockSpec extends AnyWordSpec with Matchers {
 
   implicit val timer = TestTimer.Empty
 

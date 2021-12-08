@@ -1,18 +1,19 @@
 package swaydb.core.segment.block
 
 import swaydb.core.compression.CompressionInternal
-import swaydb.core.CoreTestBase
+import swaydb.core.ACoreSpec
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.reader.BlockRefReader
 import swaydb.core.segment.block.segment.transient.TransientSegmentRef
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
+import swaydb.core.segment.ASegmentSpec
 import swaydb.effect.IOAction
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class BlockSpec extends CoreTestBase {
+class BlockSpec extends ASegmentSpec {
 
   "decompressionAction" in {
     //uncompressed

@@ -18,12 +18,12 @@ package swaydb.core.segment.data.merge
 
 import swaydb.Benchmark
 import swaydb.core.segment.data.{Memory, Time}
-import swaydb.core.{CoreTestBase, TestTimer}
+import swaydb.core.{ACoreSpec, TestTimer}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
-class SegmentMerge_Performance_Spec extends CoreTestBase {
+class SegmentMerge_Performance_Spec extends ACoreSpec {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long

@@ -24,7 +24,8 @@ import swaydb.config.repairAppendix.{AppendixRepairStrategy, OverlappingSegments
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.core.level.ALevelSpec
 import swaydb.effect.Effect
 import swaydb.effect.Effect._
 import swaydb.slice.Slice
@@ -38,7 +39,7 @@ import java.nio.file.NoSuchFileException
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.Random
 
-class AppendixRepairerSpec extends CoreTestBase {
+class AppendixRepairerSpec extends ALevelSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long

@@ -22,7 +22,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.CoreTestData._
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave}
 import swaydb.effect.Effect
 import swaydb.slice.{Slice, Slices}
 import swaydb.testkit.RunThis._
@@ -34,7 +34,7 @@ import java.nio.channels.{NonReadableChannelException, NonWritableChannelExcepti
 import java.nio.file.FileAlreadyExistsException
 import swaydb.testkit.TestKit._
 
-class CoreFileSpec extends CoreTestBase with MockFactory {
+class CoreFileSpec extends AFileSpec with MockFactory {
 
   "write" should {
     "write bytes to a File" in {
@@ -44,15 +44,15 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
 
           val bytes2 = Slice.wrap(randomBytes(100))
 
-          val files = createCoreFiles(bytes1, bytes2)
+          val files = createFiles(bytes1, bytes2)
           files should have size 2
 
-          createAllFilesReaders(files.head.path) foreach {
+          createFileReaders(files.head.path) foreach {
             reader =>
               reader.file.readAll() shouldBe bytes1
           }
 
-          createAllFilesReaders(files.last.path) foreach {
+          createFileReaders(files.last.path) foreach {
             reader =>
               reader.file.readAll() shouldBe bytes2
           }
@@ -67,12 +67,12 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
           //but does not occur in reality. If a file (Segment or Map) are empty
           //then they are not created which would only occur if all key-values
           //from that file were removed.
-          val files = createCoreFiles(Slice.emptyBytes, Slice.emptyBytes)
+          val files = createFiles(Slice.emptyBytes, Slice.emptyBytes)
           files.foreach(_.existsOnDisk() shouldBe true)
 
           files foreach {
             file =>
-              createAllFilesReaders(file.path) foreach {
+              createFileReaders(file.path) foreach {
                 reader =>
                   reader.file.readAll() shouldBe Slice.emptyBytes
                   reader.file.close()
@@ -95,7 +95,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
 
           val bytes = incompleteBytes.close()
 
-          val files = createCoreFiles(bytes, bytes)
+          val files = createFiles(bytes, bytes)
 
           files should have size 2
           files foreach {
@@ -1145,7 +1145,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
     "size is empty" in {
       TestCaseSweeper {
         implicit sweeper =>
-          createCoreFiles(randomBytesSlice(100), randomBytesSlice(100)) foreach {
+          createFiles(randomBytesSlice(100), randomBytesSlice(100)) foreach {
             file =>
               file.read(0, 0, 10) shouldBe empty
           }
@@ -1157,7 +1157,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
         implicit sweeper =>
           val bytes = randomBytesSlice(100)
 
-          createCoreFiles(bytes, bytes) foreach {
+          createFiles(bytes, bytes) foreach {
             file =>
               file.read(0, bytes.size, bytes.size) shouldBe bytes
           }
@@ -1169,7 +1169,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
         implicit sweeper =>
           val bytes = randomBytesSlice(100)
 
-          createCoreFiles(bytes, bytes) foreach {
+          createFiles(bytes, bytes) foreach {
             file =>
               file.read(0, bytes.size, bytes.size + 1).asInstanceOf[Slice[Byte]] shouldBe bytes
           }
@@ -1182,7 +1182,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
           implicit sweeper =>
             val bytes = randomBytesSlice(100)
 
-            createCoreFiles(bytes, bytes) foreach {
+            createFiles(bytes, bytes) foreach {
               file =>
                 val slices = file.read(0, bytes.size, 10).asInstanceOf[Slices[Byte]].slices
                 slices should have size 10
@@ -1206,7 +1206,7 @@ class CoreFileSpec extends CoreTestBase with MockFactory {
           implicit sweeper =>
             val bytes = randomBytesSlice(100)
 
-            createCoreFiles(bytes, bytes) foreach {
+            createFiles(bytes, bytes) foreach {
               file =>
                 //blockSize is 9 so expect 12 slices to get created with the last slice being of size 1
                 val slices = file.read(0, bytes.size, 9).asInstanceOf[Slices[Byte]].slices

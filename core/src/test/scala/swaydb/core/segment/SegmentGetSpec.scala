@@ -25,7 +25,8 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.data._
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave, TestSweeper}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestSweeper}
+import swaydb.core.level.ALevelSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -57,10 +58,10 @@ class SegmentGetSpec2 extends SegmentGetSpec {
 
 class SegmentGetSpec3 extends SegmentGetSpec {
   val keyValuesCount = 1000
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait SegmentGetSpec extends CoreTestBase with ScalaFutures with PrivateMethodTester {
+sealed trait SegmentGetSpec extends ALevelSpec with ScalaFutures with PrivateMethodTester {
 
   implicit val keyOrder = KeyOrder.default
 
@@ -180,7 +181,7 @@ sealed trait SegmentGetSpec extends CoreTestBase with ScalaFutures with PrivateM
                 (0 until keyValues.size) foreach {
                   index =>
                     val keyValue = keyValues(index)
-                    if (persistent) segment.getFromCache(keyValue.key).toOption shouldBe empty
+                    if (isPersistentSpec) segment.getFromCache(keyValue.key).toOption shouldBe empty
                     segment.get(keyValue.key, ThreadReadState.random).getUnsafe shouldBe keyValue
 
                     val gotFromCache = eventually(segment.getFromCache(keyValue.key).getUnsafe)
@@ -217,7 +218,7 @@ sealed trait SegmentGetSpec extends CoreTestBase with ScalaFutures with PrivateM
 
                   keyValues foreach {
                     keyValue =>
-                      if (persistent) segment isInKeyValueCache keyValue.key shouldBe false
+                      if (isPersistentSpec) segment isInKeyValueCache keyValue.key shouldBe false
                       segment.get(keyValue.key, readState).getUnsafe shouldBe keyValue
                       segment isInKeyValueCache keyValue.key shouldBe true
                   }

@@ -21,10 +21,10 @@ import swaydb.config.MMAP
 import swaydb.config.compaction.PushStrategy
 import swaydb.core.CoreTestData._
 import swaydb.core.compaction.task.CompactionTask
-import swaydb.core.level.Level
+import swaydb.core.level.{ALevelSpec, Level}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.data.Memory
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -50,10 +50,10 @@ class TaskAssigner_run_Spec2 extends TaskAssigner_run_Spec {
 }
 
 class TaskAssigner_run_Spec3 extends TaskAssigner_run_Spec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait TaskAssigner_run_Spec extends CoreTestBase with MockFactory {
+sealed trait TaskAssigner_run_Spec extends ALevelSpec with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default

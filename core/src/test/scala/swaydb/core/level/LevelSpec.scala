@@ -58,10 +58,10 @@ class LevelSpec2 extends LevelSpec {
 }
 
 class LevelSpec3 extends LevelSpec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait LevelSpec extends CoreTestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelSpec extends ALevelSpec with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
@@ -75,7 +75,7 @@ sealed trait LevelSpec extends CoreTestBase with MockFactory with PrivateMethodT
   "acquireLock" should {
     "create a lock file for only the root directory and not allow more locks" in {
       //memory databases do not perform locks
-      if (persistent) {
+      if (isPersistentSpec) {
         TestCaseSweeper {
           implicit sweeper =>
 
@@ -113,7 +113,7 @@ sealed trait LevelSpec extends CoreTestBase with MockFactory with PrivateMethodT
         implicit sweeper =>
           val level = TestLevel()
 
-          if (memory) {
+          if (isMemorySpec) {
             //memory level always have one folder
             level.dirs should have size 1
             level.existsOnDisk() shouldBe false
@@ -140,7 +140,7 @@ sealed trait LevelSpec extends CoreTestBase with MockFactory with PrivateMethodT
     }
 
     "report error if appendix file and folder does not exists" in {
-      if (persistent) {
+      if (isPersistentSpec) {
         TestCaseSweeper {
           implicit sweeper =>
             import sweeper._
@@ -173,7 +173,7 @@ sealed trait LevelSpec extends CoreTestBase with MockFactory with PrivateMethodT
 
   "deleteUncommittedSegments" should {
     "delete segments that are not in the appendix" in {
-      if (memory) {
+      if (isMemorySpec) {
         // memory Level do not have uncommitted Segments
       } else {
         TestCaseSweeper {

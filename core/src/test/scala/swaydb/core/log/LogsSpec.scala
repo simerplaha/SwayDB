@@ -26,7 +26,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.segment.data.{Memory, MemoryOption, Value}
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.effect.Effect._
 import swaydb.effect.Effect
 import swaydb.serializers.Default._
@@ -40,7 +40,7 @@ import swaydb.utils.StorageUnits._
 import java.nio.file.NoSuchFileException
 import swaydb.testkit.TestKit._
 
-class LogsSpec extends CoreTestBase {
+class LogsSpec extends ALogSpec {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long

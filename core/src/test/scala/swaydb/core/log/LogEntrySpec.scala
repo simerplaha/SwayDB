@@ -24,9 +24,9 @@ import swaydb.core.file.reader.Reader
 import swaydb.core.log.serialiser._
 import swaydb.core.segment.data.{Memory, MemoryOption, Value}
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.{Segment, SegmentOption}
+import swaydb.core.segment.{ASegmentSpec, Segment, SegmentOption}
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -35,7 +35,7 @@ import swaydb.utils.{ByteSizeOf, OperatingSystem}
 
 import scala.concurrent.duration._
 
-class LogEntrySpec extends CoreTestBase {
+class LogEntrySpec extends ALogSpec with ASegmentSpec {
 
   implicit val keyOrder = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty

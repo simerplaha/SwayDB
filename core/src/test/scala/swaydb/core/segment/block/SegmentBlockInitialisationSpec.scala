@@ -27,8 +27,8 @@ import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.data._
-import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestTimer}
+import swaydb.core.segment.{ASegmentSpec, PersistentSegmentMany, PersistentSegmentOne}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestTimer}
 import swaydb.effect.IOStrategy
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -40,7 +40,7 @@ import swaydb.utils.StorageUnits._
 import scala.util.Random
 import swaydb.testkit.TestKit._
 
-class SegmentBlockInitialisationSpec extends CoreTestBase {
+class SegmentBlockInitialisationSpec extends ASegmentSpec {
 
   val keyValueCount = 100
 

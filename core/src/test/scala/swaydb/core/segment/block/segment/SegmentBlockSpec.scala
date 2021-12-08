@@ -28,7 +28,9 @@ import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.data._
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.file.AFileSpec
+import swaydb.core.segment.ASegmentSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -38,7 +40,7 @@ import swaydb.testkit.RunThis._
 import scala.collection.mutable.ListBuffer
 import swaydb.testkit.TestKit._
 
-class SegmentBlockSpec extends CoreTestBase {
+class SegmentBlockSpec extends ASegmentSpec with AFileSpec {
 
   val keyValueCount = 100
 

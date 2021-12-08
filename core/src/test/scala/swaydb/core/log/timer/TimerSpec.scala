@@ -16,6 +16,8 @@
 
 package swaydb.core.log.timer
 
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.config.MMAP
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
@@ -24,7 +26,7 @@ import swaydb.core.log.LogTestUtil._
 import swaydb.core.log.counter.CounterLog
 import swaydb.core.log.serialiser.{CounterLogEntryReader, CounterLogEntryWriter, LogEntryReader, LogEntryWriter}
 import swaydb.core.segment.FunctionStore
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.OperatingSystem
@@ -34,7 +36,7 @@ import scala.concurrent.ExecutionContext
 
 class PersistentTimerSpec extends TimerSpec {
 
-  override def persistent: Boolean = true
+  override def isPersistentSpec: Boolean = true
 
   def newTimer(path: Path)(implicit ec: ExecutionContext,
                            forceSaveApplier: ForceSaveApplier,
@@ -51,7 +53,7 @@ class PersistentTimerSpec extends TimerSpec {
 
 class MemoryTimerSpec extends TimerSpec {
 
-  override def persistent: Boolean = false
+  override def isPersistentSpec: Boolean = false
 
   def newTimer(path: Path)(implicit ec: ExecutionContext,
                            forceSaveApplier: ForceSaveApplier,
@@ -61,7 +63,7 @@ class MemoryTimerSpec extends TimerSpec {
     Timer.memory()
 }
 
-sealed trait TimerSpec extends CoreTestBase {
+sealed trait TimerSpec extends ACoreSpec {
 
   implicit val ec = TestExecutionContext.executionContext
   implicit val keyOrder = KeyOrder.default

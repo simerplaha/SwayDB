@@ -59,10 +59,10 @@ class LevelReadSpec2 extends LevelReadSpec {
 }
 
 class LevelReadSpec3 extends LevelReadSpec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait LevelReadSpec extends CoreTestBase with MockFactory {
+sealed trait LevelReadSpec extends ALevelSpec with MockFactory {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
@@ -93,7 +93,7 @@ sealed trait LevelReadSpec extends CoreTestBase with MockFactory {
           level.put(keyValues).runRandomIO.right.value
 
           assert(level)
-          if (persistent) assert(level.reopen)
+          if (isPersistentSpec) assert(level.reopen)
       }
     }
   }
@@ -113,7 +113,7 @@ sealed trait LevelReadSpec extends CoreTestBase with MockFactory {
           level.put(keyValues.headSlice).runRandomIO.right.value
           level.segmentsCount() > 1 shouldBe true //ensure there are Segments in this Level
 
-          if (persistent) {
+          if (isPersistentSpec) {
             val reopen = level.reopen(segmentSize = 10.mb)
 
             reopen.takeSmallSegments(10000) should not be empty

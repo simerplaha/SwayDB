@@ -24,11 +24,13 @@ import swaydb.core.segment.block.segment.SegmentBlockOffset
 import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.segment.block.values.ValuesBlockOffset.ValuesBlockOps
 import swaydb.core.segment.block.{Block, BlockCache}
-import swaydb.core.{CoreTestBase, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestCaseSweeper}
+import swaydb.core.file.AFileSpec
+import swaydb.core.segment.ASegmentSpec
 import swaydb.slice.{Reader, Slice}
 import swaydb.testkit.TestKit._
 
-class BlockRefReaderSpec extends CoreTestBase with MockFactory {
+class BlockRefReaderSpec extends ASegmentSpec with AFileSpec with MockFactory {
 
   "apply" when {
     "File, bytes & reader" in {

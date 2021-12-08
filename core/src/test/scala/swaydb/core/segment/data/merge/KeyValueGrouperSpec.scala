@@ -16,17 +16,19 @@
 
 package swaydb.core.segment.data.merge
 
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.data._
 import swaydb.core.segment.data.merge.stats.MergeStats
-import swaydb.core.{CoreTestBase, TestTimer}
-import swaydb.serializers.Default._
+import swaydb.core.TestTimer
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class KeyValueGrouperSpec extends CoreTestBase {
+class KeyValueGrouperSpec extends AnyWordSpec with Matchers {
 
   implicit def testTimer: TestTimer = TestTimer.Empty
 

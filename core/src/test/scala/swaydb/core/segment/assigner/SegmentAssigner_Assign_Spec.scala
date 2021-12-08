@@ -21,8 +21,9 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne, Segment}
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.segment.{ASegmentSpec, PersistentSegment, PersistentSegmentMany, PersistentSegmentOne, Segment}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.level.ALevelSpec
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
@@ -56,10 +57,10 @@ class SegmentAssigner_Assign_Spec2 extends SegmentAssigner_Assign_Spec {
 
 class SegmentAssigner_Assign_Spec3 extends SegmentAssigner_Assign_Spec {
   val keyValueCount = 1000
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait SegmentAssigner_Assign_Spec extends CoreTestBase {
+sealed trait SegmentAssigner_Assign_Spec extends ALevelSpec {
   implicit val keyOrder = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
@@ -102,7 +103,7 @@ sealed trait SegmentAssigner_Assign_Spec extends CoreTestBase {
               gaps.head.tailGap.result shouldBe empty
             }
 
-            if (persistent) {
+            if (isPersistentSpec) {
               val segment = TestSegment.one().asInstanceOf[PersistentSegment]
 
               val segmentRef =
@@ -459,7 +460,7 @@ sealed trait SegmentAssigner_Assign_Spec extends CoreTestBase {
 
     "PersistentSegmentMany" when {
       "head Segments do not overlap" in {
-        if (persistent)
+        if (isPersistentSpec)
           runThis(10.times, log = true) {
             TestCaseSweeper {
               implicit sweeper =>
@@ -495,7 +496,7 @@ sealed trait SegmentAssigner_Assign_Spec extends CoreTestBase {
       }
 
       "tail Segments do not overlap" in {
-        if (persistent)
+        if (isPersistentSpec)
           runThis(10.times, log = true) {
             TestCaseSweeper {
               implicit sweeper =>
@@ -531,7 +532,7 @@ sealed trait SegmentAssigner_Assign_Spec extends CoreTestBase {
       }
 
       "head SegmentRef is a gap Segment" in {
-        if (persistent)
+        if (isPersistentSpec)
           runThis(10.times, log = true) {
             TestCaseSweeper {
               implicit sweeper =>
@@ -567,7 +568,7 @@ sealed trait SegmentAssigner_Assign_Spec extends CoreTestBase {
       }
 
       "last SegmentRef is a gap Segment" in {
-        if (persistent)
+        if (isPersistentSpec)
           runThis(10.times, log = true) {
             TestCaseSweeper {
               implicit sweeper =>
@@ -603,7 +604,7 @@ sealed trait SegmentAssigner_Assign_Spec extends CoreTestBase {
       }
 
       "mid SegmentRefs are gap Segment and there is only one Segment" in {
-        if (persistent)
+        if (isPersistentSpec)
           runThis(10.times, log = true) {
             TestCaseSweeper {
               implicit sweeper =>
@@ -640,7 +641,7 @@ sealed trait SegmentAssigner_Assign_Spec extends CoreTestBase {
       }
 
       "mid SegmentRefs are gap Segment between two Segments" in {
-        if (persistent)
+        if (isPersistentSpec)
           runThis(10.times, log = true) {
             TestCaseSweeper {
               implicit sweeper =>
@@ -687,7 +688,7 @@ sealed trait SegmentAssigner_Assign_Spec extends CoreTestBase {
       }
 
       "mid PersistentSegmentMany spreads onto next Segment" in {
-        if (persistent)
+        if (isPersistentSpec)
           runThis(10.times, log = true) {
             TestCaseSweeper {
               implicit sweeper =>

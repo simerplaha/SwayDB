@@ -22,18 +22,18 @@ import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.file.reader.Reader
-import swaydb.core.log.LogEntry
+import swaydb.core.log.{ALogSpec, LogEntry}
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.{Segment, SegmentOption}
+import swaydb.core.segment.{ASegmentSpec, Segment, SegmentOption}
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestForceSave}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.OperatingSystem
 
-class AppendixLogEntrySpec extends CoreTestBase {
+class AppendixLogEntrySpec extends ASegmentSpec {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long

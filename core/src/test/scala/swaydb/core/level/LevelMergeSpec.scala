@@ -24,6 +24,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core._
+import swaydb.core.log.ALogSpec
 import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.segment.data.Value.FromValue
 import swaydb.serializers.Default._
@@ -50,10 +51,10 @@ class LevelMergeSpec2 extends LevelMergeSpec {
 }
 
 class LevelMergeSpec3 extends LevelMergeSpec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait LevelMergeSpec extends CoreTestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelMergeSpec extends ALevelSpec with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
@@ -141,7 +142,7 @@ sealed trait LevelMergeSpec extends CoreTestBase with MockFactory with PrivateMe
   }
 
   "level is non empty" should {
-    "overwrite existing key-values" in {
+    "overwrite existing key-values" in new ALogSpec {
       runThis(10.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
@@ -175,7 +176,7 @@ sealed trait LevelMergeSpec extends CoreTestBase with MockFactory with PrivateMe
       }
     }
 
-    "merge new key-values" in {
+    "merge new key-values" in new ALevelSpec with ALogSpec {
       runThis(10.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
@@ -220,7 +221,7 @@ sealed trait LevelMergeSpec extends CoreTestBase with MockFactory with PrivateMe
       }
     }
 
-    "seconds merge clears all existing key-values" in {
+    "seconds merge clears all existing key-values" in new ALogSpec {
       runThis(10.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>

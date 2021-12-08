@@ -22,6 +22,8 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.compaction.task.CompactionTask
+import swaydb.core.level.ALevelSpec
+import swaydb.core.log.ALogSpec
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data.Memory
@@ -54,10 +56,10 @@ class BehaviourCompactionTask_collapse_Spec2 extends BehaviourCompactionTask_col
 }
 
 class BehaviourCompactionTask_collapse_Spec3 extends BehaviourCompactionTask_collapse_Spec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait BehaviourCompactionTask_collapse_Spec extends CoreTestBase {
+sealed trait BehaviourCompactionTask_collapse_Spec extends ALevelSpec {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
@@ -86,7 +88,7 @@ sealed trait BehaviourCompactionTask_collapse_Spec extends CoreTestBase {
           level.isEmpty shouldBe false
           assertReads(keyValues, level)
 
-          if (persistent) {
+          if (isPersistentSpec) {
             val levelReopen = level.reopen(segmentSize = Int.MaxValue)
             val task = CompactionTask.CollapseSegments(source = levelReopen, segments = levelReopen.segments())
             BehaviourCompactionTask.collapse(task, levelReopen).awaitInf
@@ -121,7 +123,7 @@ sealed trait BehaviourCompactionTask_collapse_Spec extends CoreTestBase {
           level.isEmpty shouldBe false
           assertReads(keyValues, level)
 
-          if (persistent) {
+          if (isPersistentSpec) {
             val levelReopen = level.reopen(segmentSize = Int.MaxValue)
             val task = CompactionTask.CollapseSegments(source = levelReopen, segments = levelReopen.segments())
 

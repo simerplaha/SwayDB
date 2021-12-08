@@ -21,7 +21,8 @@ import swaydb.testkit.EitherValues._
 import swaydb.core.CoreTestData._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.segment.data.Memory
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestTimer}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestTimer}
+import swaydb.core.log.ALogSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.{MaxKey, Slice}
@@ -31,7 +32,7 @@ import swaydb.testkit.RunThis._
 import scala.jdk.CollectionConverters._
 import scala.util.Random
 
-class LevelZeroTaskAssigner_createStacks_Fixed_Spec extends CoreTestBase with MockFactory {
+class LevelZeroTaskAssigner_createStacks_Fixed_Spec extends ALogSpec with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default

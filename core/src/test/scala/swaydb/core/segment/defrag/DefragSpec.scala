@@ -30,7 +30,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.data.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment.data.{KeyValue, Memory}
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -63,7 +63,7 @@ class PersistentSegment_DefragSpec extends DefragSpec[PersistentSegment, Persist
  */
 class MemorySegment_DefragSpec extends DefragSpec[MemorySegment, MemorySegmentOption, MergeStats.Memory.Builder[Memory, ListBuffer]] {
 
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 
   override def testSegment(keyValues: Slice[Memory])(implicit sweeper: TestCaseSweeper): MemorySegment =
     TestSegment(keyValues).shouldBeInstanceOf[MemorySegment]
@@ -79,7 +79,7 @@ class MemorySegment_DefragSpec extends DefragSpec[MemorySegment, MemorySegmentOp
 }
 
 
-sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats.Segment[Memory, ListBuffer]] extends CoreTestBase with MockFactory with EitherValues {
+sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats.Segment[Memory, ListBuffer]] extends ASegmentSpec with MockFactory with EitherValues {
 
   implicit val ec = TestExecutionContext.executionContext
   implicit val timer = TestTimer.Empty
@@ -193,7 +193,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
 
               mergeResult.output should have size 3
 
-              if (persistent) //if it's persistent Remote Segments instances
+              if (isPersistentSpec) //if it's persistent Remote Segments instances
                 mergeResult.output.head.shouldBeInstanceOf[TransientSegment.RemotePersistentSegment].segment shouldBe headGap
               else //if it's memory stats are created
                 mergeResult.output.head.shouldBeInstanceOf[TransientSegment.Stats[S]].stats.keyValues shouldBe headGap.iterator(randomBoolean()).toList
@@ -201,7 +201,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
               //fence always remains the same
               mergeResult.output.drop(1).head shouldBe TransientSegment.Fence
 
-              if (persistent) //if it's persistent Remote Segments instances
+              if (isPersistentSpec) //if it's persistent Remote Segments instances
                 mergeResult.output.last.shouldBeInstanceOf[TransientSegment.RemotePersistentSegment].segment shouldBe tailGap
               else //if it's memory stats are created
                 mergeResult.output.last.shouldBeInstanceOf[TransientSegment.Stats[S]].stats.keyValues shouldBe tailGap.iterator(randomBoolean()).toList
@@ -245,7 +245,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
 
               mergeResult.input shouldBe midSegment
 
-              if (persistent) {
+              if (isPersistentSpec) {
                 mergeResult.output should have size 2
 
                 mergeResult.output.head.shouldBeInstanceOf[TransientSegment.Stats[S]].stats.keyValues shouldBe keyValues.take(51).flatten

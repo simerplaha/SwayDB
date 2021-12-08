@@ -23,7 +23,8 @@ import swaydb.core.CoreTestData._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.segment.Segment
 import swaydb.core.segment.data.Memory
-import swaydb.core.{CoreTestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.log.ALogSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -31,7 +32,7 @@ import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class LevelZeroTaskAssigner_mergeStack_Spec extends CoreTestBase with MockFactory {
+class LevelZeroTaskAssigner_mergeStack_Spec extends ALogSpec with MockFactory {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default

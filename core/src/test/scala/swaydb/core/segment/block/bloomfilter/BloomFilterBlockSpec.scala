@@ -20,7 +20,9 @@ import org.scalatest.OptionValues._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.{Block, BlockCache}
-import swaydb.core.{CoreTestBase, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestCaseSweeper}
+import swaydb.core.file.AFileSpec
+import swaydb.core.segment.ASegmentSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.KeyOrder
@@ -29,7 +31,7 @@ import swaydb.testkit.TestKit._
 
 import scala.util.Random
 
-class BloomFilterBlockSpec extends CoreTestBase {
+class BloomFilterBlockSpec extends ASegmentSpec with AFileSpec {
 
   implicit val keyOrder = KeyOrder.default
 

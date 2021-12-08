@@ -22,7 +22,8 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.compaction.task.CompactionTask
-import swaydb.core.level.Level
+import swaydb.core.level.{ALevelSpec, Level}
+import swaydb.core.log.ALogSpec
 import swaydb.core.segment.Segment
 import swaydb.core.segment.data.Memory
 import swaydb.serializers.Default._
@@ -52,10 +53,10 @@ class BehaviourCompactionTask_compactSegments_2Levels_Spec2 extends BehaviourCom
 }
 
 class BehaviourCompactionTask_compactSegments_2Levels_Spec3 extends BehaviourCompactionTask_compactSegments_2Levels_Spec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends CoreTestBase {
+sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends ALevelSpec with ALogSpec {
 
   implicit val timer = TestTimer.Empty
   implicit val keyOrder = KeyOrder.default
@@ -95,7 +96,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends CoreTe
               assertEmpty(keyValues, sourceLevel)
               assertReads(keyValues, targetLevel)
 
-              if (persistent) {
+              if (isPersistentSpec) {
                 val reopenSource = sourceLevel.reopen
                 val reopenTarget = targetLevel.reopen
 
@@ -140,7 +141,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends CoreTe
               assertEmpty(keyValues, sourceLevel)
               assertReads(keyValues, targetLevel)
 
-              if (persistent) {
+              if (isPersistentSpec) {
                 val reopenSource = sourceLevel.reopen
                 val reopenTarget = targetLevel.reopen
 
@@ -188,7 +189,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends CoreTe
                 assertEmpty(keyValues, sourceLevel)
                 assertEmpty(keyValues, targetLevel)
 
-                if (persistent) {
+                if (isPersistentSpec) {
                   val reopenSource = sourceLevel.reopen
                   val reopenTarget = targetLevel.reopen
 
@@ -248,7 +249,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends CoreTe
                 sourceLevel.isEmpty shouldBe true
                 targetLevel.isEmpty shouldBe true
 
-                if (persistent) {
+                if (isPersistentSpec) {
                   val reopenSource = sourceLevel.reopen
                   val reopenTarget = targetLevel.reopen
 
@@ -287,7 +288,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends CoreTe
                   sourceLevel.isEmpty shouldBe false
                   targetLevel.isEmpty shouldBe true
 
-                  if (persistent) {
+                  if (isPersistentSpec) {
                     targetLevel.segmentFilesOnDisk() shouldBe empty
                     segments.foreach(_.existsOnDiskOrMemory() shouldBe true)
                   } else {
@@ -304,7 +305,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends CoreTe
                 val task = CompactionTask.CompactSegments(sourceLevel, Seq(CompactionTask.Task(targetLevel, segments)))
 
                 val existingSegment =
-                  if (memory) { //if it's a memory test delete the last Segment to test failure
+                  if (isMemorySpec) { //if it's a memory test delete the last Segment to test failure
                     val segment = segments.last
                     segment.delete()
                     segment
@@ -316,12 +317,12 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends CoreTe
                 //Create a Segment file in the Level's folder giving it the Level's next SegmentId so that it fails
                 //compaction because the fileName is already taken
                 BehaviourCompactionTask.compactSegments(task, targetLevel).awaitFailureInf shouldBe a[Exception]
-                if (persistent) existingSegment.delete() //delete the Segment so that assertion can assert for empty Level
+                if (isPersistentSpec) existingSegment.delete() //delete the Segment so that assertion can assert for empty Level
 
                 //state remains unchanged
                 assertNoChange(sourceLevel, targetLevel)
 
-                if (persistent) {
+                if (isPersistentSpec) {
                   val reopenSource = sourceLevel.reopen
                   val reopenTarget = targetLevel.reopen
                   assertNoChange(reopenSource, reopenTarget)

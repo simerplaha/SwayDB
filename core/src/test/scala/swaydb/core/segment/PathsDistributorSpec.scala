@@ -19,7 +19,8 @@ package swaydb.core.segment
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.{CoreTestBase, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestCaseSweeper}
+import swaydb.core.level.ALevelSpec
 import swaydb.effect
 import swaydb.effect.{Dir, Effect}
 import swaydb.slice.order.KeyOrder
@@ -27,7 +28,7 @@ import swaydb.testkit.RunThis._
 
 import java.nio.file.{Path, Paths}
 
-class PathsDistributorSpec extends CoreTestBase with MockFactory {
+class PathsDistributorSpec extends ALevelSpec with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
 

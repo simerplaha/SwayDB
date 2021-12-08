@@ -55,10 +55,10 @@ class LevelKeyValuesSpec2 extends LevelKeyValuesSpec {
 }
 
 class LevelKeyValuesSpec3 extends LevelKeyValuesSpec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
@@ -88,7 +88,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
 
           assertReads(keyValues, level)
 
-          if (persistent) {
+          if (isPersistentSpec) {
             val reopen = level.reopen
             assertReads(keyValues, reopen)
           }
@@ -123,7 +123,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
           level.segmentFilesInAppendix shouldBe 0
 
           level.isEmpty shouldBe true
-          if (persistent) {
+          if (isPersistentSpec) {
             level.reopen.isEmpty shouldBe true
             level.segmentFilesOnDisk() shouldBe empty
           }
@@ -169,7 +169,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
           level.segmentFilesInAppendix shouldBe 0
 
           level.isEmpty shouldBe true
-          if (persistent) {
+          if (isPersistentSpec) {
             level.reopen.isEmpty shouldBe true
             level.segmentFilesOnDisk() shouldBe empty
           }
@@ -191,7 +191,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
           level.segmentFilesInAppendix shouldBe segmentsCountBeforeRemove
 
           level.isEmpty shouldBe false
-          if (persistent) {
+          if (isPersistentSpec) {
             level.reopen.isEmpty shouldBe false
             level.segmentFilesOnDisk() should have size segmentsCountBeforeRemove
           }
@@ -242,7 +242,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
 
           level.isEmpty shouldBe true
 
-          if (persistent) {
+          if (isPersistentSpec) {
             level.reopen.isEmpty shouldBe true
             level.segmentFilesOnDisk() shouldBe empty
           }
@@ -285,7 +285,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
           level.isEmpty shouldBe false
           level.segmentFilesInAppendix should be >= 1
 
-          if (persistent) {
+          if (isPersistentSpec) {
             level.reopen.isEmpty shouldBe false
             level.segmentFilesOnDisk().size should be >= 1
           }
@@ -318,7 +318,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
 
           level.isEmpty shouldBe true
 
-          if (persistent) {
+          if (isPersistentSpec) {
             level.reopen.isEmpty shouldBe true
             level.segmentFilesOnDisk() shouldBe empty
           }
@@ -349,7 +349,7 @@ sealed trait LevelKeyValuesSpec extends CoreTestBase with MockFactory with Priva
 
           level.isEmpty shouldBe false
 
-          if (persistent) {
+          if (isPersistentSpec) {
             level.reopen.isEmpty shouldBe false
             level.segmentFilesOnDisk().size should be >= 1
           }

@@ -23,6 +23,7 @@ import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core._
+import swaydb.core.log.ALogSpec
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data._
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -52,10 +53,10 @@ class LevelCollapseSpec2 extends LevelCollapseSpec {
 }
 
 class LevelCollapseSpec3 extends LevelCollapseSpec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait LevelCollapseSpec extends CoreTestBase {
+sealed trait LevelCollapseSpec extends ALevelSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
@@ -111,7 +112,7 @@ sealed trait LevelCollapseSpec extends CoreTestBase {
   }
 
   "collapse all small Segments into one of the existing small Segments, if the Segment was reopened with a larger segment size" in {
-    if (persistent) //memory Level cannot be reopened.
+    if (isPersistentSpec) //memory Level cannot be reopened.
       runThis(10.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
@@ -206,7 +207,7 @@ sealed trait LevelCollapseSpec extends CoreTestBase {
     }
   }
 
-  "update createdInLevel" in {
+  "update createdInLevel" in new ALogSpec {
     TestCaseSweeper {
       implicit sweeper =>
         import sweeper._
@@ -220,7 +221,7 @@ sealed trait LevelCollapseSpec extends CoreTestBase {
         val nextLevel = TestLevel()
         nextLevel.putSegments(level.segments()).get
 
-        if (persistent) nextLevel.segments() foreach (_.createdInLevel shouldBe level.levelNumber)
+        if (isPersistentSpec) nextLevel.segments() foreach (_.createdInLevel shouldBe level.levelNumber)
 
         nextLevel.collapse(nextLevel.segments(), removeDeletedRecords = false).awaitInf match {
           case LevelCollapseResult.Empty =>

@@ -22,7 +22,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{CoreTestBase, TestForceSave}
+import swaydb.core.{ACoreSpec, TestForceSave}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -48,10 +48,10 @@ class LevelReadNoneSpec2 extends LevelReadNoneSpec {
 }
 
 class LevelReadNoneSpec3 extends LevelReadNoneSpec {
-  override def inMemoryStorage = true
+  override def isMemorySpec = true
 }
 
-sealed trait LevelReadNoneSpec extends CoreTestBase {
+sealed trait LevelReadNoneSpec extends ALevelSpec {
 
   //  override def deleteFiles = false
 

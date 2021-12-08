@@ -28,7 +28,7 @@ import swaydb.core.level.AppendixLogCache
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.log.LogTestUtil._
 import swaydb.core.log.serialiser._
-import swaydb.core.segment.Segment
+import swaydb.core.segment.{ASegmentSpec, Segment}
 import swaydb.core.segment.data.{Memory, MemoryOption, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.skiplist.SkipListConcurrent
@@ -46,7 +46,7 @@ import swaydb.testkit.TestKit._
 import java.nio.file.{FileAlreadyExistsException, Path}
 import swaydb.testkit.TestKit._
 
-class LogSpec extends CoreTestBase {
+class LogSpec extends ALogSpec with ASegmentSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
