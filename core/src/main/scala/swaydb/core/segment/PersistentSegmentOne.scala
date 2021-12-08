@@ -252,15 +252,15 @@ private case class PersistentSegmentOne(file: CoreFile,
                                         minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                         segmentSize: Int,
                                         nearestPutDeadline: Option[Deadline],
-                                        private[segment] val ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                                              functionStore: CoreFunctionStore,
-                                                                              blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                              fileSweeper: FileSweeper,
-                                                                              bufferCleaner: ByteBufferSweeperActor,
-                                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                              forceSaveApplier: ForceSaveApplier,
-                                                                              segmentIO: SegmentReadIO) extends PersistentSegment with LazyLogging {
+                                        ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                         functionStore: CoreFunctionStore,
+                                                         blockCacheSweeper: Option[MemorySweeper.Block],
+                                                         fileSweeper: FileSweeper,
+                                                         bufferCleaner: ByteBufferSweeperActor,
+                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                         forceSaveApplier: ForceSaveApplier,
+                                                         segmentIO: SegmentReadIO) extends PersistentSegment with LazyLogging {
 
   override def formatId: Byte = PersistentSegmentOne.formatId
 

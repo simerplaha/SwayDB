@@ -139,6 +139,7 @@ private[core] class SegmentRef(val path: Path,
                                                                          keyOrder: KeyOrder[Slice[Byte]]) extends SegmentRefOption with Assignable.Collection with LazyLogging {
 
   implicit val self: SegmentRef = this
+  //TODO - these can be initialised once with a new CoreKeyOrder type.
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
   implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
   implicit val segmentSearcher: SegmentSearcher = SegmentSearcher
@@ -169,7 +170,7 @@ private[core] class SegmentRef(val path: Path,
           keyValueMemorySweeper.foreach(_.add(keyValue, skipList))
     }
 
-  private[segment] def applyToSkipList(f: SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent] => PersistentOption): PersistentOption =
+  @inline private[segment] def applyToSkipList(f: SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent] => PersistentOption): PersistentOption =
     if (skipList.isDefined)
       f(skipList.get)
     else
