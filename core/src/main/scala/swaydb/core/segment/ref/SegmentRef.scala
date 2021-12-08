@@ -70,12 +70,14 @@ private[core] case object SegmentRef extends LazyLogging {
             hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
             binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
             bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
-            footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
+            footerCacheable: Option[SegmentFooterBlock])(implicit keyOrders: SegmentKeyOrders,
                                                          blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentRef = {
     val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent]] =
       keyValueMemorySweeper map {
         sweeper =>
+          import keyOrders.keyOrder
+
           sweeper.maxKeyValuesPerSegment match {
             case Some(maxKeyValuesPerSegment) =>
               SkipListConcurrentLimit(
@@ -136,12 +138,12 @@ private[core] class SegmentRef(val path: Path,
                                val minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent]],
                                val segmentBlockCache: SegmentBlockCache)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                         keyOrder: KeyOrder[Slice[Byte]]) extends SegmentRefOption with Assignable.Collection with LazyLogging {
+                                                                         keyOrders: SegmentKeyOrders) extends SegmentRefOption with Assignable.Collection with LazyLogging {
+
+  import keyOrders._
 
   implicit val self: SegmentRef = this
   //TODO - these can be initialised once with a new CoreKeyOrder type.
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
-  implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
   implicit val segmentSearcher: SegmentSearcher = SegmentSearcher
 
   override def key: Slice[Byte] =
@@ -189,7 +191,7 @@ private[core] class SegmentRef(val path: Path,
     val bloomFilterReader = segmentBlockCache.createBloomFilterReaderOrNull()
     bloomFilterReader == null ||
       BloomFilterBlock.mightContain(
-        comparableKey = keyOrder.comparableKey(key),
+        comparableKey = keyOrders.keyOrder.comparableKey(key),
         reader = bloomFilterReader
       )
   }

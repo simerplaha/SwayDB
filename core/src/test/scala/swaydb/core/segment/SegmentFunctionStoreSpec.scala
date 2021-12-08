@@ -18,11 +18,11 @@ package swaydb.core.segment
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import swaydb.core.segment.data.{CoreFunction, CoreFunctionOutput}
+import swaydb.core.segment.data.{SegmentFunction, SegmentFunctionOutput}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class CoreFunctionStoreSpec extends AnyFlatSpec with Matchers {
+class SegmentFunctionStoreSpec extends AnyFlatSpec with Matchers {
 
   val store = CoreFunctionStore.memory()
 
@@ -30,18 +30,18 @@ class CoreFunctionStoreSpec extends AnyFlatSpec with Matchers {
 
     (1 to 100) foreach {
       i =>
-        val function = CoreFunction.Key(_ => CoreFunctionOutput.Update(i, None))
+        val function = SegmentFunction.Key(_ => SegmentFunctionOutput.Update(i, None))
 
         store.put(i, function)
         store.contains(i) shouldBe true
-        store.get(i).get.asInstanceOf[CoreFunction.Key].f(i) shouldBe CoreFunctionOutput.Update(i, None)
+        store.get(i).get.asInstanceOf[SegmentFunction.Key].f(i) shouldBe SegmentFunctionOutput.Update(i, None)
     }
   }
 
   it should "not allow duplicate functions" in {
 
     val key = 0
-    val function = CoreFunction.Key(_ => CoreFunctionOutput.Update(key, None))
+    val function = SegmentFunction.Key(_ => SegmentFunctionOutput.Update(key, None))
     store.put(key, function)
     assertThrows[Exception] {
       store.put(key, function)

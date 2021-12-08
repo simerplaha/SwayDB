@@ -31,7 +31,7 @@ import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlock
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.segment.block.BlockCompressionInfo
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.segment.data.{Memory, Persistent}
+import swaydb.core.segment.data.{SegmentKeyOrders, Memory, Persistent}
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.merge.KeyValueGrouper
 import swaydb.core.segment.io.{SegmentCompactionIO, SegmentReadIO, SegmentWritePersistentIO}
@@ -109,7 +109,7 @@ private[core] object PersistentSegment extends LazyLogging {
             sortedIndexConfig: SortedIndexBlockConfig,
             valuesConfig: ValuesBlockConfig,
             segmentConfig: SegmentBlockConfig,
-            mergeStats: MergeStats.Persistent.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
+            mergeStats: MergeStats.Persistent.Closed[Iterable])(implicit keyOrders: SegmentKeyOrders,
                                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                                 functionStore: CoreFunctionStore,
                                                                 fileSweeper: FileSweeper,
@@ -119,7 +119,9 @@ private[core] object PersistentSegment extends LazyLogging {
                                                                 segmentIO: SegmentReadIO,
                                                                 idGenerator: IDGenerator,
                                                                 forceSaveApplier: ForceSaveApplier,
-                                                                ec: ExecutionContext): Future[Iterable[PersistentSegment]] =
+                                                                ec: ExecutionContext): Future[Iterable[PersistentSegment]] = {
+    import keyOrders.keyOrder
+
     SegmentBlock.writeOneOrMany(
       mergeStats = mergeStats,
       createdInLevel = createdInLevel,
@@ -138,6 +140,7 @@ private[core] object PersistentSegment extends LazyLogging {
           transient = transient
         ).toFuture
     }
+  }
 
   def apply(path: Path,
             formatId: Byte,
@@ -155,7 +158,7 @@ private[core] object PersistentSegment extends LazyLogging {
             keyValueCount: Int,
             nearestExpiryDeadline: Option[Deadline],
             copiedFrom: Option[PersistentSegment],
-            checkExists: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            checkExists: Boolean = true)(implicit keyOrders: SegmentKeyOrders,
                                          timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: CoreFunctionStore,
                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -290,7 +293,7 @@ private[core] object PersistentSegment extends LazyLogging {
    */
   def apply(path: Path,
             mmap: MMAP.Segment,
-            checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            checkExists: Boolean)(implicit keyOrders: SegmentKeyOrders,
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: CoreFunctionStore,
                                   blockCacheSweeper: Option[MemorySweeper.Block],
@@ -346,7 +349,7 @@ private[core] object PersistentSegment extends LazyLogging {
             binarySearchIndexConfig: BinarySearchIndexBlockConfig,
             hashIndexConfig: HashIndexBlockConfig,
             bloomFilterConfig: BloomFilterBlockConfig,
-            segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            segmentConfig: SegmentBlockConfig)(implicit keyOrders: SegmentKeyOrders,
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                functionStore: CoreFunctionStore,
                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -393,7 +396,7 @@ private[core] object PersistentSegment extends LazyLogging {
                binarySearchIndexConfig: BinarySearchIndexBlockConfig,
                hashIndexConfig: HashIndexBlockConfig,
                bloomFilterConfig: BloomFilterBlockConfig,
-               segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
+               segmentConfig: SegmentBlockConfig)(implicit keyOrders: SegmentKeyOrders,
                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                   functionStore: CoreFunctionStore,
                                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -418,6 +421,8 @@ private[core] object PersistentSegment extends LazyLogging {
         }
 
       case memory: MemorySegment =>
+        import keyOrders.keyOrder
+
         PersistentSegment(
           keyValues = memory.skipList.values(),
           createdInLevel = createdInLevel,
@@ -435,7 +440,7 @@ private[core] object PersistentSegment extends LazyLogging {
   def copyFrom(segment: PersistentSegment,
                pathsDistributor: PathsDistributor,
                segmentRefCacheLife: SegmentRefCacheLife,
-               mmap: MMAP.Segment)(implicit keyOrder: KeyOrder[Slice[Byte]],
+               mmap: MMAP.Segment)(implicit keyOrders: SegmentKeyOrders,
                                    timeOrder: TimeOrder[Slice[Byte]],
                                    functionStore: CoreFunctionStore,
                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],

@@ -63,7 +63,7 @@ private case object PersistentSegmentMany extends LazyLogging {
 
   def apply(file: CoreFile,
             segmentRefCacheLife: SegmentRefCacheLife,
-            segment: TransientSegment.Many)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            segment: TransientSegment.Many)(implicit keyOrders: SegmentKeyOrders,
                                             timeOrder: TimeOrder[Slice[Byte]],
                                             functionStore: CoreFunctionStore,
                                             keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -73,7 +73,7 @@ private case object PersistentSegmentMany extends LazyLogging {
                                             segmentIO: SegmentReadIO,
                                             forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
 
-    val segmentsCache = new ConcurrentSkipListMap[Slice[Byte], SegmentRef](keyOrder)
+    val segmentsCache = new ConcurrentSkipListMap[Slice[Byte], SegmentRef](keyOrders.keyOrder)
 
     val listSegmentSize = segment.listSegment.segmentSize
 
@@ -225,7 +225,7 @@ private case object PersistentSegmentMany extends LazyLogging {
             putCount: Int,
             putDeadlineCount: Int,
             keyValueCount: Int,
-            copiedFrom: Option[PersistentSegmentMany])(implicit keyOrder: KeyOrder[Slice[Byte]],
+            copiedFrom: Option[PersistentSegmentMany])(implicit keyOrders: SegmentKeyOrders,
                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                        functionStore: CoreFunctionStore,
                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -235,7 +235,7 @@ private case object PersistentSegmentMany extends LazyLogging {
                                                        segmentIO: SegmentReadIO,
                                                        forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
 
-    val segmentsCache = new ConcurrentSkipListMap[Slice[Byte], SegmentRef](keyOrder)
+    val segmentsCache = new ConcurrentSkipListMap[Slice[Byte], SegmentRef](keyOrders.keyOrder)
 
     copiedFrom foreach {
       copiedFrom =>
@@ -384,7 +384,7 @@ private case object PersistentSegmentMany extends LazyLogging {
    * Used when Segment's information is unknown.
    */
   def apply(file: CoreFile,
-            segmentRefCacheLife: SegmentRefCacheLife)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            segmentRefCacheLife: SegmentRefCacheLife)(implicit keyOrders: SegmentKeyOrders,
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: CoreFunctionStore,
                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -510,7 +510,7 @@ private case object PersistentSegmentMany extends LazyLogging {
       //above parsed segmentRefs cannot be used here because
       //it's MaxKey.Range's minKey is set to the Segment's minKey
       //instead of the Segment's last range key-values minKey.
-      segmentsCache = new ConcurrentSkipListMap[Slice[Byte], SegmentRef](keyOrder)
+      segmentsCache = new ConcurrentSkipListMap[Slice[Byte], SegmentRef](keyOrders.keyOrder)
     )
   }
 
@@ -518,7 +518,7 @@ private case object PersistentSegmentMany extends LazyLogging {
                             segmentSize: Int,
                             minKey: Slice[Byte],
                             maxKey: MaxKey[Slice[Byte]],
-                            initialiseIteratorsInOneSeek: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                            initialiseIteratorsInOneSeek: Boolean)(implicit keyOrders: SegmentKeyOrders,
                                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                    blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                    segmentIO: SegmentReadIO): SkipListTreeMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef] = {
@@ -550,7 +550,7 @@ private case object PersistentSegmentMany extends LazyLogging {
         footerCacheable = None
       )
 
-    val skipList = SkipListTreeMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
+    val skipList = SkipListTreeMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null)(keyOrders.keyOrder)
 
 
     //this will also clear all the SegmentRef's
@@ -623,7 +623,7 @@ private case object PersistentSegmentMany extends LazyLogging {
                               putDeadlineCount: Int,
                               keyValueCount: Int,
                               createdInLevel: Int,
-                              listSegmentBlockCache: Option[BlockCacheState])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                              listSegmentBlockCache: Option[BlockCacheState])(implicit keyOrders: SegmentKeyOrders,
                                                                               timeOrder: TimeOrder[Slice[Byte]],
                                                                               functionStore: CoreFunctionStore,
                                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -679,7 +679,7 @@ private case class PersistentSegmentMany(file: CoreFile,
                                          keyValueCount: Int,
                                          listSegmentCache: CacheNoIO[Unit, SegmentRef],
                                          segmentRefCacheLife: SegmentRefCacheLife,
-                                         private val segmentsCache: ConcurrentSkipListMap[Slice[Byte], SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                         private val segmentsCache: ConcurrentSkipListMap[Slice[Byte], SegmentRef])(implicit keyOrders: SegmentKeyOrders,
                                                                                                                     timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                     functionStore: CoreFunctionStore,
                                                                                                                     blockCacheSweeper: Option[MemorySweeper.Block],
@@ -688,6 +688,8 @@ private case class PersistentSegmentMany(file: CoreFile,
                                                                                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                                                     segmentIO: SegmentReadIO,
                                                                                                                     forceSaveApplier: ForceSaveApplier) extends PersistentSegment with LazyLogging {
+
+  import keyOrders.keyOrder
 
   override def formatId: Byte = PersistentSegmentMany.formatId
 

@@ -22,7 +22,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
-import swaydb.core.segment.data.{KeyValue, CoreFunctionOutput, Value}
+import swaydb.core.segment.data.{KeyValue, SegmentFunctionOutput, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{CoreTestData, TestTimer}
 import swaydb.serializers.Default._
@@ -190,9 +190,9 @@ class GetNoneSpec extends AnyWordSpec with Matchers with MockFactory with Option
             deadline = Some(expiredDeadline()),
             functionOutput =
               eitherOne(
-                CoreFunctionOutput.Remove,
-                CoreFunctionOutput.Expire(expiredDeadline()),
-                CoreFunctionOutput.Update(randomStringOption, Some(expiredDeadline()))
+                SegmentFunctionOutput.Remove,
+                SegmentFunctionOutput.Expire(expiredDeadline()),
+                SegmentFunctionOutput.Update(randomStringOption, Some(expiredDeadline()))
               )
           )
 
@@ -235,9 +235,9 @@ class GetNoneSpec extends AnyWordSpec with Matchers with MockFactory with Option
             key = 1,
             output =
               eitherOne(
-                CoreFunctionOutput.Remove,
-                CoreFunctionOutput.Expire(expiredDeadline()),
-                CoreFunctionOutput.Update(randomStringOption, Some(expiredDeadline()))
+                SegmentFunctionOutput.Remove,
+                SegmentFunctionOutput.Expire(expiredDeadline()),
+                SegmentFunctionOutput.Update(randomStringOption, Some(expiredDeadline()))
               )
           ).toRangeValue()
 

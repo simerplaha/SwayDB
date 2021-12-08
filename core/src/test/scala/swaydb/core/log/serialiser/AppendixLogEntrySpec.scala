@@ -24,6 +24,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.{ASegmentSpec, Segment, SegmentOption}
+import swaydb.core.segment.data.SegmentKeyOrders
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.serializers._
@@ -35,6 +36,7 @@ import swaydb.utils.OperatingSystem
 class AppendixLogEntrySpec extends ASegmentSpec {
 
   implicit val keyOrder = KeyOrder.default
+  implicit val keyOrders: SegmentKeyOrders = SegmentKeyOrders(keyOrder)
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
 

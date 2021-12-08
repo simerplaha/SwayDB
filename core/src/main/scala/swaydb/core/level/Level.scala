@@ -99,7 +99,7 @@ private[core] case object Level extends LazyLogging {
             segmentConfig: SegmentBlockConfig,
             levelStorage: LevelStorage,
             nextLevel: Option[NextLevel],
-            throttle: LevelMeter => LevelThrottle)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            throttle: LevelMeter => LevelThrottle)(implicit keyOrders: SegmentKeyOrders,
                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                    functionStore: CoreFunctionStore,
                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -109,17 +109,19 @@ private[core] case object Level extends LazyLogging {
                                                    forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Level, Level] =
     acquireLock(levelStorage) flatMap { //acquire lock on folder
       lock =>
+        import keyOrders.keyOrder
+
         //lock acquired.
         //initialise Segment IO for this Level.
         implicit val segmentIO: SegmentReadIO =
-          SegmentReadIO(
-            bloomFilterConfig = bloomFilterConfig,
-            hashIndexConfig = hashIndexConfig,
-            binarySearchIndexConfig = binarySearchIndexConfig,
-            sortedIndexConfig = sortedIndexConfig,
-            valuesConfig = valuesConfig,
-            segmentConfig = segmentConfig
-          )
+        SegmentReadIO(
+          bloomFilterConfig = bloomFilterConfig,
+          hashIndexConfig = hashIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          valuesConfig = valuesConfig,
+          segmentConfig = segmentConfig
+        )
 
         //initialise readers & writers
         import AppendixLogEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
@@ -288,7 +290,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                nextLevel: Option[NextLevel],
                                appendix: Log[Slice[Byte], Segment, AppendixLogCache],
                                lock: Option[FileLocker],
-                               pathDistributor: PathsDistributor)(implicit val keyOrder: KeyOrder[Slice[Byte]],
+                               pathDistributor: PathsDistributor)(implicit val keyOrders: SegmentKeyOrders,
                                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                                   functionStore: CoreFunctionStore,
                                                                   removeWriter: LogEntryWriter[LogEntry.Remove[Slice[Byte]]],
@@ -301,6 +303,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                                   val segmentIO: SegmentReadIO,
                                                                   val forceSaveApplier: ForceSaveApplier) extends NextLevel with LazyLogging { self =>
 
+  import keyOrders._
 
   override val levelNumber: Int =
     pathDistributor

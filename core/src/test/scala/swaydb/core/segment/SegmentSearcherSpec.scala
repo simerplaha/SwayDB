@@ -18,29 +18,29 @@ package swaydb.core.segment
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import swaydb.Benchmark
+import swaydb.core.{SegmentBlocks, TestSweeper}
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.BlockCompressionInfo
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
-import swaydb.core.segment.data.{Memory, Persistent, PersistentOption}
+import swaydb.core.segment.data.{Memory, Persistent, PersistentOption, SegmentKeyOrders}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.SegmentSearcher
-import swaydb.core.{SegmentBlocks, ACoreSpec, TestSweeper}
-import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 import scala.util.Try
-import swaydb.testkit.TestKit._
 
 class SegmentSearcherSpec extends ASegmentSpec with MockFactory {
 
-  implicit val order = KeyOrder.default
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(order))
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = SegmentKeyOrders(keyOrder).partialKeyOrder
   implicit def segmentIO = SegmentReadIO.random
 
   def randomlySelectHigher(index: Int, keyValues: Slice[Persistent]): PersistentOption =
@@ -143,7 +143,7 @@ class SegmentSearcherSpec extends ASegmentSpec with MockFactory {
   def runSearchHigherTest(keyValues: Slice[Persistent], blocks: SegmentBlocks) = {
     //TEST - basic search.
 
-    import order._
+    import keyOrder._
 
     def assertHigher(index: Int, key: Slice[Byte], expectedHigher: PersistentOption): Unit = {
       val randomStart = randomlySelectLower(index, keyValues)

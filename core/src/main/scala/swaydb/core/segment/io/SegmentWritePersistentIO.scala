@@ -32,6 +32,7 @@ import swaydb.SliceIOImplicits._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.IDGenerator
 import swaydb.{Error, IO}
+import swaydb.core.segment.data.SegmentKeyOrders
 
 import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
@@ -44,7 +45,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
   def persistMerged(pathsDistributor: PathsDistributor,
                     segmentRefCacheLife: SegmentRefCacheLife,
                     mmap: MMAP.Segment,
-                    mergeResult: Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Persistent]]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                    mergeResult: Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Persistent]]])(implicit keyOrders: SegmentKeyOrders,
                                                                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                                                                         functionStore: CoreFunctionStore,
                                                                                                         fileSweeper: FileSweeper,
@@ -87,7 +88,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
   def persistTransient(pathsDistributor: PathsDistributor,
                        segmentRefCacheLife: SegmentRefCacheLife,
                        mmap: MMAP.Segment,
-                       transient: Iterable[TransientSegment.Persistent])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                       transient: Iterable[TransientSegment.Persistent])(implicit keyOrders: SegmentKeyOrders,
                                                                          timeOrder: TimeOrder[Slice[Byte]],
                                                                          functionStore: CoreFunctionStore,
                                                                          fileSweeper: FileSweeper,

@@ -27,18 +27,18 @@ private[core] object FunctionMerger {
             oldKeyValue: KeyValue.Put)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                        functionStore: CoreFunctionStore): KeyValue.Fixed = {
 
-    def applyOutput(output: CoreFunctionOutput) =
+    def applyOutput(output: SegmentFunctionOutput) =
       output match {
-        case CoreFunctionOutput.Nothing =>
+        case SegmentFunctionOutput.Nothing =>
           oldKeyValue.copyWithTime(newKeyValue.time)
 
-        case CoreFunctionOutput.Remove =>
+        case SegmentFunctionOutput.Remove =>
           Memory.Remove(oldKeyValue.key, None, newKeyValue.time)
 
-        case CoreFunctionOutput.Expire(deadline) =>
+        case SegmentFunctionOutput.Expire(deadline) =>
           oldKeyValue.copyWithDeadlineAndTime(Some(deadline), newKeyValue.time)
 
-        case CoreFunctionOutput.Update(value, deadline) =>
+        case SegmentFunctionOutput.Update(value, deadline) =>
           Memory.Put(oldKeyValue.key, value.asSliceOption(), deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
       }
 
@@ -47,30 +47,30 @@ private[core] object FunctionMerger {
       functionStore.get(function) match {
         case Some(functionId) =>
           functionId match {
-            case CoreFunction.Value(f) =>
+            case SegmentFunction.Value(f) =>
               val output = f(oldKeyValue.getOrFetchValue)
               applyOutput(output)
 
-            case CoreFunction.ValueDeadline(f) =>
+            case SegmentFunction.ValueDeadline(f) =>
               val value = oldKeyValue.getOrFetchValue
               val output = f(value, oldKeyValue.deadline)
               applyOutput(output)
 
-            case function: CoreFunction.RequiresKey =>
+            case function: SegmentFunction.RequiresKey =>
               function match {
-                case CoreFunction.Key(f) =>
+                case SegmentFunction.Key(f) =>
                   applyOutput(f(oldKeyValue.key))
 
-                case CoreFunction.KeyValue(f) =>
+                case SegmentFunction.KeyValue(f) =>
                   val oldValue = oldKeyValue.getOrFetchValue
                   val output = f(oldKeyValue.key, oldValue)
                   applyOutput(output)
 
-                case CoreFunction.KeyDeadline(f) =>
+                case SegmentFunction.KeyDeadline(f) =>
                   val output = f(oldKeyValue.key, oldKeyValue.deadline)
                   applyOutput(output)
 
-                case CoreFunction.KeyValueDeadline(f) =>
+                case SegmentFunction.KeyValueDeadline(f) =>
                   val oldValue = oldKeyValue.getOrFetchValue
                   val output = f(oldKeyValue.key, oldValue, oldKeyValue.deadline)
                   applyOutput(output)
@@ -90,18 +90,18 @@ private[core] object FunctionMerger {
             oldKeyValue: KeyValue.Update)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: CoreFunctionStore): KeyValue.Fixed = {
 
-    def applyOutput(output: CoreFunctionOutput) =
+    def applyOutput(output: SegmentFunctionOutput) =
       output match {
-        case CoreFunctionOutput.Nothing =>
+        case SegmentFunctionOutput.Nothing =>
           oldKeyValue.copyWithTime(newKeyValue.time)
 
-        case CoreFunctionOutput.Remove =>
+        case SegmentFunctionOutput.Remove =>
           Memory.Remove(oldKeyValue.key, None, newKeyValue.time)
 
-        case CoreFunctionOutput.Expire(deadline) =>
+        case SegmentFunctionOutput.Expire(deadline) =>
           oldKeyValue.copyWithDeadlineAndTime(Some(deadline), newKeyValue.time)
 
-        case CoreFunctionOutput.Update(value, deadline) =>
+        case SegmentFunctionOutput.Update(value, deadline) =>
           Memory.Update(oldKeyValue.key, value.asSliceOption(), deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
       }
 
@@ -116,11 +116,11 @@ private[core] object FunctionMerger {
       functionStore.get(function) match {
         case Some(functionId) =>
           functionId match {
-            case CoreFunction.Value(f) =>
+            case SegmentFunction.Value(f) =>
               val value = oldKeyValue.getOrFetchValue
               applyOutput(f(value))
 
-            case CoreFunction.ValueDeadline(f) =>
+            case SegmentFunction.ValueDeadline(f) =>
               //if deadline is not set, then the deadline of this key might have another update in lower levels.
               //so stash update.
               if (oldKeyValue.deadline.isEmpty) {
@@ -131,26 +131,26 @@ private[core] object FunctionMerger {
                 applyOutput(output)
               }
 
-            case function: CoreFunction.RequiresKey =>
+            case function: SegmentFunction.RequiresKey =>
               if (oldKeyValue.key.isEmpty)
                 toPendingApply()
               else
                 function match {
-                  case CoreFunction.Key(f) =>
+                  case SegmentFunction.Key(f) =>
                     applyOutput(f(oldKeyValue.key))
 
-                  case CoreFunction.KeyValue(f) =>
+                  case SegmentFunction.KeyValue(f) =>
                     val oldValue = oldKeyValue.getOrFetchValue
                     val output = f(oldKeyValue.key, oldValue)
                     applyOutput(output)
 
-                  case CoreFunction.KeyDeadline(f) =>
+                  case SegmentFunction.KeyDeadline(f) =>
                     if (oldKeyValue.deadline.isEmpty)
                       toPendingApply()
                     else
                       applyOutput(f(oldKeyValue.key, oldKeyValue.deadline))
 
-                  case CoreFunction.KeyValueDeadline(f) =>
+                  case SegmentFunction.KeyValueDeadline(f) =>
                     if (oldKeyValue.deadline.isEmpty) {
                       toPendingApply()
                     } else {
@@ -173,18 +173,18 @@ private[core] object FunctionMerger {
             oldKeyValue: KeyValue.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: CoreFunctionStore): KeyValue.Fixed = {
 
-    def applyOutput(output: CoreFunctionOutput) =
+    def applyOutput(output: SegmentFunctionOutput) =
       output match {
-        case CoreFunctionOutput.Nothing =>
+        case SegmentFunctionOutput.Nothing =>
           oldKeyValue.copyWithTime(newKeyValue.time)
 
-        case CoreFunctionOutput.Remove =>
+        case SegmentFunctionOutput.Remove =>
           Memory.Remove(oldKeyValue.key, None, newKeyValue.time)
 
-        case CoreFunctionOutput.Expire(deadline) =>
+        case SegmentFunctionOutput.Expire(deadline) =>
           Memory.Remove(oldKeyValue.key, Some(deadline), newKeyValue.time)
 
-        case CoreFunctionOutput.Update(value, deadline) =>
+        case SegmentFunctionOutput.Update(value, deadline) =>
           Memory.Update(oldKeyValue.key, value.asSliceOption(), deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
       }
 
@@ -204,18 +204,18 @@ private[core] object FunctionMerger {
           functionStore.get(function) match {
             case Some(function) =>
               function match {
-                case _: CoreFunction.RequiresKey if oldKeyValue.key.isEmpty =>
+                case _: SegmentFunction.RequiresKey if oldKeyValue.key.isEmpty =>
                   //key is unknown since it's empty. Stash the merge.
                   toPendingApply()
 
-                case _: CoreFunction.RequiresValue =>
+                case _: SegmentFunction.RequiresValue =>
                   //value is not known since remove has deadline set - PendingApply!
                   toPendingApply()
 
-                case CoreFunction.Key(f) =>
+                case SegmentFunction.Key(f) =>
                   applyOutput(f(oldKeyValue.key))
 
-                case CoreFunction.KeyDeadline(f) =>
+                case SegmentFunction.KeyDeadline(f) =>
                   applyOutput(f(oldKeyValue.key, oldKeyValue.deadline))
               }
 

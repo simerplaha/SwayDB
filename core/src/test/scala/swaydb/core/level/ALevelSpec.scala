@@ -17,7 +17,7 @@ import swaydb.core.CommonAssertions.randomPushStrategy
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
-import swaydb.core.segment.data.Memory
+import swaydb.core.segment.data.{SegmentKeyOrders, Memory}
 import swaydb.core.CoreTestData._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -101,6 +101,9 @@ trait ALevelSpec extends ASegmentSpec {
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                       sweeper: TestSweeper): Level = {
       import sweeper._
+
+      implicit val keyOrders: SegmentKeyOrders =
+        SegmentKeyOrders(keyOrder)
 
       val level =
         Level(

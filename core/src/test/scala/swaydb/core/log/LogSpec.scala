@@ -29,7 +29,7 @@ import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.log.LogTestUtil._
 import swaydb.core.log.serialiser._
 import swaydb.core.segment.{ASegmentSpec, Segment}
-import swaydb.core.segment.data.{Memory, MemoryOption, Value}
+import swaydb.core.segment.data.{SegmentKeyOrders, Memory, MemoryOption, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.effect.Effect._
@@ -50,6 +50,7 @@ import swaydb.core.file.CoreFileTestKit._
 class LogSpec extends ALogSpec with ASegmentSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrders: SegmentKeyOrders = SegmentKeyOrders(keyOrder)
   implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO = SegmentReadIO.random

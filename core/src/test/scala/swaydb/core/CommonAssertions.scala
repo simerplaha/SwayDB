@@ -694,7 +694,7 @@ object CommonAssertions {
                 rawSegmentReader: Reader,
                 segmentIO: SegmentReadIO = SegmentReadIO.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                  blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
-    implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+    implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = SegmentKeyOrders(keyOrder).partialKeyOrder
     val blocks = readBlocksFromReader(rawSegmentReader.copy()).get
 
     keyValues.par foreach {
@@ -1086,7 +1086,7 @@ object CommonAssertions {
   def assertLower(keyValues: Slice[Memory],
                   reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                   blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
-    implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+    implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = SegmentKeyOrders(keyOrder).partialKeyOrder
 
     val blocks = readBlocksFromReader(reader.copy()).get
 
@@ -1182,7 +1182,7 @@ object CommonAssertions {
   def assertHigher(keyValues: Slice[KeyValue],
                    reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                    blockCacheMemorySweeper: Option[MemorySweeper.Block]): Unit = {
-    implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+    implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = SegmentKeyOrders(keyOrder).partialKeyOrder
     val blocks = readBlocksFromReader(reader).get
     assertHigher(
       keyValues,

@@ -24,7 +24,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.data.merge.{FixedMerger, FunctionMerger, PendingApplyMerger}
-import swaydb.core.segment.data.{CoreFunctionOutput, Value}
+import swaydb.core.segment.data.{SegmentFunctionOutput, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{CoreTestData, TestTimer}
 import swaydb.serializers.Default._
@@ -103,8 +103,8 @@ class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with Option
             key = 1,
             output =
               eitherOne(
-                CoreFunctionOutput.Expire(randomDeadline(false)),
-                CoreFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
+                SegmentFunctionOutput.Expire(randomDeadline(false)),
+                SegmentFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
               )
           )
 
@@ -131,8 +131,8 @@ class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with Option
             deadline = Some(randomDeadline(false)),
             functionOutput =
               eitherOne(
-                CoreFunctionOutput.Expire(randomDeadline(false)),
-                CoreFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
+                SegmentFunctionOutput.Expire(randomDeadline(false)),
+                SegmentFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
               )
           )
 
@@ -177,8 +177,8 @@ class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with Option
             key = 1,
             output =
               eitherOne(
-                CoreFunctionOutput.Expire(randomDeadline(false)),
-                CoreFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
+                SegmentFunctionOutput.Expire(randomDeadline(false)),
+                SegmentFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
               )
           )
 

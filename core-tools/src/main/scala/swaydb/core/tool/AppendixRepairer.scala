@@ -33,6 +33,7 @@ import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.effect.Effect
 import swaydb.slice.Slice
 import swaydb.SliceIOImplicits._
+import swaydb.core.segment.data.SegmentKeyOrders
 import swaydb.slice.order.KeyOrder
 import swaydb.utils.Extension
 import swaydb.utils.StorageUnits._
@@ -50,6 +51,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     //mmap is false. FIXME - use ByteBufferCleaner.Disabled instead
     implicit val bufferCleaner: ByteBufferSweeperActor = null
     implicit val forceSaveApplier: ForceSaveApplier.On.type = ForceSaveApplier.On
+    implicit val keyOrders: SegmentKeyOrders = SegmentKeyOrders(keyOrder)
 
     IO(Effect.files(levelPath, Extension.Seg)) flatMap {
       files =>
@@ -61,7 +63,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                   path = segmentPath,
                   mmap = MMAP.Off(ForceSave.Off),
                   checkExists = true
-                )(keyOrder = keyOrder,
+                )(keyOrders = keyOrders,
                   timeOrder = null,
                   functionStore = null,
                   blockCacheSweeper = None,

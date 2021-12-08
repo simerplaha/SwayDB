@@ -20,7 +20,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
-import swaydb.core.segment.data.Persistent
+import swaydb.core.segment.data.{Persistent, SegmentKeyOrders}
 import swaydb.core.{ACoreSpec, SegmentBlocks, TestSweeper}
 import swaydb.core.segment.ASegmentSpec
 import swaydb.serializers.Default._
@@ -32,8 +32,8 @@ import swaydb.testkit.TestKit._
 
 class HashIndexBlockSpec extends ASegmentSpec {
 
-  implicit val keyOrder = KeyOrder.default
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = SegmentKeyOrders(keyOrder).partialKeyOrder
 
   val keyValueCount = 10000
 

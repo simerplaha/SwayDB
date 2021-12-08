@@ -22,7 +22,7 @@ import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.segment.data.KeyValue
+import swaydb.core.segment.data.{SegmentKeyOrders, KeyValue}
 import swaydb.core.segment.{CoreFunctionStore, PathsDistributor, Segment}
 import swaydb.utils.IDGenerator
 import swaydb.slice.Slice
@@ -98,7 +98,7 @@ class SegmentCompactionIO(@volatile private var state: SegmentCompactionIO.State
   def persist[T <: TransientSegment, S <: Segment](pathsDistributor: PathsDistributor,
                                                    segmentRefCacheLife: SegmentRefCacheLife,
                                                    mmap: MMAP.Segment,
-                                                   transient: Iterable[T])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                   transient: Iterable[T])(implicit keyOrders: SegmentKeyOrders,
                                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                                            functionStore: CoreFunctionStore,
                                                                            fileSweeper: FileSweeper,

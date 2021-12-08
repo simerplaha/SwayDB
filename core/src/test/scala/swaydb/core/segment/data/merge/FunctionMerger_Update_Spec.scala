@@ -53,24 +53,24 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
             createFunction(
               key = key,
               eitherOne(
-                CoreFunction.Key(_ => functionOutput),
-                CoreFunction.KeyValue((_, _) => functionOutput),
-                CoreFunction.Value(_ => functionOutput)
+                SegmentFunction.Key(_ => functionOutput),
+                SegmentFunction.KeyValue((_, _) => functionOutput),
+                SegmentFunction.Value(_ => functionOutput)
               )
             )
 
           val expected =
             functionOutput match {
-              case CoreFunctionOutput.Remove =>
+              case SegmentFunctionOutput.Remove =>
                 Memory.Remove(key, None, newKeyValue.time)
 
-              case CoreFunctionOutput.Nothing =>
+              case SegmentFunctionOutput.Nothing =>
                 oldKeyValue.copy(time = newKeyValue.time)
 
-              case CoreFunctionOutput.Expire(deadline) =>
+              case SegmentFunctionOutput.Expire(deadline) =>
                 oldKeyValue.copy(deadline = Some(deadline), time = newKeyValue.time)
 
-              case CoreFunctionOutput.Update(value, deadline) =>
+              case SegmentFunctionOutput.Update(value, deadline) =>
                 oldKeyValue.copy(value = value, deadline = deadline.orElse(oldKeyValue.deadline), time = newKeyValue.time)
             }
 
@@ -101,25 +101,25 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
             createFunction(
               key = key,
               eitherOne(
-                CoreFunction.KeyDeadline((_, _) => functionOutput),
-                CoreFunction.ValueDeadline((_, _) => functionOutput),
-                CoreFunction.KeyValueDeadline((_, _, _) => functionOutput)
+                SegmentFunction.KeyDeadline((_, _) => functionOutput),
+                SegmentFunction.ValueDeadline((_, _) => functionOutput),
+                SegmentFunction.KeyValueDeadline((_, _, _) => functionOutput)
               )
             )
 
           val expected =
             if (oldKeyValue.deadline.isDefined)
               functionOutput match {
-                case CoreFunctionOutput.Remove =>
+                case SegmentFunctionOutput.Remove =>
                   Memory.Remove(key, None, newKeyValue.time)
 
-                case CoreFunctionOutput.Nothing =>
+                case SegmentFunctionOutput.Nothing =>
                   oldKeyValue.copy(time = newKeyValue.time)
 
-                case CoreFunctionOutput.Expire(deadline) =>
+                case SegmentFunctionOutput.Expire(deadline) =>
                   oldKeyValue.copy(deadline = Some(deadline), time = newKeyValue.time)
 
-                case CoreFunctionOutput.Update(value, deadline) =>
+                case SegmentFunctionOutput.Update(value, deadline) =>
                   oldKeyValue.copy(value = value, deadline = deadline.orElse(oldKeyValue.deadline), time = newKeyValue.time)
               }
             else
@@ -143,10 +143,10 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
           //mock functions are never called
           implicit val testTimer = TestTimer.Incremental()
           Seq(
-            mock[CoreFunction.Key],
-            mock[CoreFunction.KeyDeadline],
-            mock[CoreFunction.KeyValue],
-            mock[CoreFunction.KeyValueDeadline]
+            mock[SegmentFunction.Key],
+            mock[SegmentFunction.KeyDeadline],
+            mock[SegmentFunction.KeyValue],
+            mock[SegmentFunction.KeyValueDeadline]
           ) foreach {
             coreFunction =>
               val oldKeyValue = randomUpdateKeyValue(Slice.emptyBytes)
@@ -169,7 +169,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
           //mock functions are never called
           implicit val testTimer = TestTimer.Incremental()
           Seq(
-            mock[CoreFunction.ValueDeadline]
+            mock[SegmentFunction.ValueDeadline]
           ) foreach {
             coreFunction =>
               val oldKeyValue = randomUpdateKeyValue(1, deadline = None)
@@ -191,15 +191,15 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
         runThis(100.times) {
           //mock functions are never called
           implicit val testTimer = TestTimer.Incremental()
-          val output = CoreFunctionOutput.Update((randomStringOption: Slice[Byte]).asSliceOption(), Some(randomDeadline()))
+          val output = SegmentFunctionOutput.Update((randomStringOption: Slice[Byte]).asSliceOption(), Some(randomDeadline()))
 
           Seq(
-            CoreFunction.Key(_ => output),
-            CoreFunction.KeyValue((_, _) => output),
-            CoreFunction.KeyDeadline((_, _) => output),
-            CoreFunction.KeyValueDeadline((_, _, _) => output),
-            CoreFunction.Value(_ => output),
-            CoreFunction.ValueDeadline((_, _) => output)
+            SegmentFunction.Key(_ => output),
+            SegmentFunction.KeyValue((_, _) => output),
+            SegmentFunction.KeyDeadline((_, _) => output),
+            SegmentFunction.KeyValueDeadline((_, _, _) => output),
+            SegmentFunction.Value(_ => output),
+            SegmentFunction.ValueDeadline((_, _) => output)
           ) foreach {
             coreFunction =>
               val oldKeyValue = randomUpdateKeyValue(1, deadline = Some(randomDeadline()))
@@ -227,10 +227,10 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
           //should still result in the same value
 
           val function =
-            CoreFunction.KeyValue(
+            SegmentFunction.KeyValue(
               (key, value) => {
                 key shouldBe 1.serialise
-                CoreFunctionOutput.Update(value.getC.readInt() + 1, None)
+                SegmentFunctionOutput.Update(value.getC.readInt() + 1, None)
               }
             )
 

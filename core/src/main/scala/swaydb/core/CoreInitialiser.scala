@@ -39,6 +39,7 @@ import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.segment.data.SegmentKeyOrders
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.effect.Effect._
 import swaydb.effect.IOStrategy
@@ -105,6 +106,9 @@ private[core] object CoreInitialiser extends LazyLogging {
       logger.error(exception.getMessage, exception)
       IO.failed[swaydb.Error.Boot, Core[Glass]](exception)
     } else {
+      implicit val keyOrders: SegmentKeyOrders =
+        SegmentKeyOrders(keyOrder)
+
       val validationResult =
         config.level0.storage match {
           case Level0Storage.Memory =>

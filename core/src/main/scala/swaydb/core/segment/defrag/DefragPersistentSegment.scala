@@ -30,7 +30,7 @@ import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.segment.data.Memory
+import swaydb.core.segment.data.{SegmentKeyOrders, Memory}
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.defrag.DefragSource._
 import swaydb.core.segment.io.{SegmentCompactionIO, SegmentReadIO, SegmentWriteIO}
@@ -68,7 +68,7 @@ object DefragPersistentSegment {
                                          segmentRefCacheLife: SegmentRefCacheLife,
                                          mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
                                                              defragSource: DefragSource[SEG],
-                                                             keyOrder: KeyOrder[Slice[Byte]],
+                                                             keyOrders: SegmentKeyOrders,
                                                              valuesConfig: ValuesBlockConfig,
                                                              sortedIndexConfig: SortedIndexBlockConfig,
                                                              binarySearchIndexConfig: BinarySearchIndexBlockConfig,
@@ -87,6 +87,8 @@ object DefragPersistentSegment {
                                                              compactionIO: SegmentCompactionIO.Actor,
                                                              segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment]): Future[DefIO[NULL_SEG, scala.collection.SortedSet[PersistentSegment]]] =
     Future {
+      import keyOrders.keyOrder
+
       Defrag.runOnSegment(
         segment = segment,
         nullSegment = nullSegment,
@@ -123,7 +125,7 @@ object DefragPersistentSegment {
                                       pathsDistributor: PathsDistributor,
                                       segmentRefCacheLife: SegmentRefCacheLife,
                                       mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
-                                                          keyOrder: KeyOrder[Slice[Byte]],
+                                                          keyOrders: SegmentKeyOrders,
                                                           valuesConfig: ValuesBlockConfig,
                                                           sortedIndexConfig: SortedIndexBlockConfig,
                                                           binarySearchIndexConfig: BinarySearchIndexBlockConfig,
@@ -181,7 +183,7 @@ object DefragPersistentSegment {
               pathsDistributor: PathsDistributor,
               segmentRefCacheLife: SegmentRefCacheLife,
               mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
-                                  keyOrder: KeyOrder[Slice[Byte]],
+                                  keyOrders: SegmentKeyOrders,
                                   valuesConfig: ValuesBlockConfig,
                                   sortedIndexConfig: SortedIndexBlockConfig,
                                   binarySearchIndexConfig: BinarySearchIndexBlockConfig,
@@ -214,6 +216,8 @@ object DefragPersistentSegment {
       Future
         .unit
         .flatMapUnit {
+          import keyOrders.keyOrder
+
           runHeadDefragAndAssignments(
             headGap = headGap,
             segments = segment.segmentRefs(segmentConfig.initialiseIteratorsInOneSeek),
@@ -224,6 +228,8 @@ object DefragPersistentSegment {
         }
         .flatMap {
           headDefragAndAssignments =>
+            import keyOrders.keyOrder
+
             defragAssignedAndMergeHead[SegmentRefOption, SegmentRef](
               nullSegment = SegmentRef.Null,
               removeDeletes = removeDeletes,
@@ -424,7 +430,7 @@ object DefragPersistentSegment {
                       pathsDistributor: PathsDistributor,
                       segmentRefCacheLife: SegmentRefCacheLife,
                       mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
-                                          keyOrder: KeyOrder[Slice[Byte]],
+                                          keyOrders: SegmentKeyOrders,
                                           valuesConfig: ValuesBlockConfig,
                                           sortedIndexConfig: SortedIndexBlockConfig,
                                           binarySearchIndexConfig: BinarySearchIndexBlockConfig,
@@ -442,6 +448,8 @@ object DefragPersistentSegment {
                                           forceSaveApplier: ForceSaveApplier,
                                           compactionIO: SegmentCompactionIO.Actor,
                                           segmentWriteIO: SegmentWriteIO[TransientSegment.Persistent, PersistentSegment]): Future[scala.collection.SortedSet[PersistentSegment]] = {
+    import keyOrders.keyOrder
+
     val groups = ListBuffer.empty[ListBuffer[TransientSegment.RemoteRefOrStats[MergeStats.Persistent.Builder[Memory, ListBuffer]]]]
 
     val remoteSegments = ListBuffer.empty[TransientSegment.RemotePersistentSegment]
@@ -534,7 +542,7 @@ object DefragPersistentSegment {
                           pathsDistributor: PathsDistributor,
                           segmentRefCacheLife: SegmentRefCacheLife,
                           mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
-                                              keyOrder: KeyOrder[Slice[Byte]],
+                                              keyOrders: SegmentKeyOrders,
                                               valuesConfig: ValuesBlockConfig,
                                               sortedIndexConfig: SortedIndexBlockConfig,
                                               binarySearchIndexConfig: BinarySearchIndexBlockConfig,
@@ -560,6 +568,8 @@ object DefragPersistentSegment {
           Future.successful(Slice(ref))
 
         case TransientSegment.Stats(stats) =>
+          import keyOrders.keyOrder
+
           Future
             .unit
             .mapUnit {
@@ -583,6 +593,8 @@ object DefragPersistentSegment {
             }
       } flatMap {
         segments =>
+          import keyOrders.keyOrder
+
           SegmentBlock.writeOneOrMany(
             createdInLevel = createdInLevel,
             ones = Slice.from(segments),

@@ -21,7 +21,7 @@ import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.log.serialiser._
-import swaydb.core.segment.data.{Memory, MemoryOption, Value}
+import swaydb.core.segment.data.{SegmentKeyOrders, Memory, MemoryOption, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{ASegmentSpec, Segment, SegmentOption}
 import swaydb.core.skiplist.SkipListConcurrent
@@ -37,6 +37,7 @@ import scala.concurrent.duration._
 class LogEntrySpec extends ALogSpec with ASegmentSpec {
 
   implicit val keyOrder = KeyOrder.default
+  implicit val keyOrders: SegmentKeyOrders = SegmentKeyOrders(keyOrder)
   implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO: SegmentReadIO = SegmentReadIO.random

@@ -28,10 +28,10 @@ import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.segment.data.{Persistent, PersistentOption, Time}
+import swaydb.core.segment.data.{SegmentKeyOrders, Persistent, PersistentOption, Time}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.{SegmentSearcher, ThreadReadState}
-import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext}
+import swaydb.core.{ACoreSpec, TestExecutionContext, TestSweeper}
 import swaydb.core.segment.ASegmentSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -45,7 +45,8 @@ import swaydb.testkit.TestKit._
 class SegmentRefGetBehaviorSpec extends AnyWordSpec with Matchers with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+  implicit val keyOrders: SegmentKeyOrders = SegmentKeyOrders(keyOrder)
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = SegmentKeyOrders(keyOrder).partialKeyOrder
   implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
 
   implicit val cacheMemorySweeper: Option[MemorySweeper.Cache] = None

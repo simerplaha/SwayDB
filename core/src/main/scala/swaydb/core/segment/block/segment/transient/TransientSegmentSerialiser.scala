@@ -27,7 +27,7 @@ import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.segment.data.{Memory, Persistent, Time, Value}
+import swaydb.core.segment.data.{SegmentKeyOrders, Memory, Persistent, Time, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.util.Bytes
@@ -166,7 +166,7 @@ object TransientSegmentSerialiser {
                    hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
                    binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
                    bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
-                   footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                   footerCacheable: Option[SegmentFooterBlock])(implicit keyOrders: SegmentKeyOrders,
                                                                 segmentIO: SegmentReadIO,
                                                                 blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentRef =
@@ -209,7 +209,7 @@ object TransientSegmentSerialiser {
                    hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
                    binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
                    bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
-                   footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                   footerCacheable: Option[SegmentFooterBlock])(implicit keyOrders: SegmentKeyOrders,
                                                                 segmentIO: SegmentReadIO,
                                                                 blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentRef =
@@ -315,7 +315,7 @@ object TransientSegmentSerialiser {
                    hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
                    binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
                    bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
-                   footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                   footerCacheable: Option[SegmentFooterBlock])(implicit keyOrders: SegmentKeyOrders,
                                                                 segmentIO: SegmentReadIO,
                                                                 blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentRef = {

@@ -24,12 +24,13 @@ import swaydb.core.log.LogEntry
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{CoreFunctionStore, Segment, SegmentSerialiser}
+import swaydb.core.segment.data.SegmentKeyOrders
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.{SliceReader, Slice}
+import swaydb.slice.{Slice, SliceReader}
 
 private[core] object AppendixLogEntryReader {
   def apply(mmapSegment: MMAP.Segment,
-            segmentRefCacheLife: SegmentRefCacheLife)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            segmentRefCacheLife: SegmentRefCacheLife)(implicit keyOrders: SegmentKeyOrders,
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: CoreFunctionStore,
                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -45,7 +46,7 @@ private[core] object AppendixLogEntryReader {
 }
 
 private[core] class AppendixLogEntryReader(mmapSegment: MMAP.Segment,
-                                           segmentRefCacheLife: SegmentRefCacheLife)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                           segmentRefCacheLife: SegmentRefCacheLife)(implicit keyOrders: SegmentKeyOrders,
                                                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                                                      functionStore: CoreFunctionStore,
                                                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],

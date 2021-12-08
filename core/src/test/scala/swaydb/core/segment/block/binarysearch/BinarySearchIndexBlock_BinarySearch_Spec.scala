@@ -30,7 +30,7 @@
 //class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
 //
 //  implicit val keyOrder = KeyOrder.default
-//  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+//  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = CoreKeyOrders(keyOrder).partialKeyOrder
 //
 //  "binarySearch" should {
 //

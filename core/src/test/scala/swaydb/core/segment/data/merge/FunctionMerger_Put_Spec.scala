@@ -53,16 +53,16 @@ class FunctionMerger_Put_Spec extends AnyWordSpec with Matchers {
 
           val expected =
             functionOutput match {
-              case CoreFunctionOutput.Remove =>
+              case SegmentFunctionOutput.Remove =>
                 Memory.Remove(key, None, newKeyValue.time)
 
-              case CoreFunctionOutput.Nothing =>
+              case SegmentFunctionOutput.Nothing =>
                 oldKeyValue.copy(time = newKeyValue.time)
 
-              case CoreFunctionOutput.Expire(deadline) =>
+              case SegmentFunctionOutput.Expire(deadline) =>
                 oldKeyValue.copy(deadline = Some(deadline), time = newKeyValue.time)
 
-              case CoreFunctionOutput.Update(value, deadline) =>
+              case SegmentFunctionOutput.Update(value, deadline) =>
                 oldKeyValue.copy(value = value, deadline = deadline.orElse(oldKeyValue.deadline), time = newKeyValue.time)
             }
 

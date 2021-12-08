@@ -35,7 +35,7 @@ case object LevelTaskAssigner {
              pushStrategy: PushStrategy,
              lowerLevels: NonEmptyList[Level],
              sourceOverflow: Long): CompactionTask.CompactSegments = {
-    implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
+    implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrders.keyOrder
 
     val tasks =
       TaskAssigner.assignQuick[Segment](

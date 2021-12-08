@@ -21,6 +21,7 @@ import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.segment.data.SegmentKeyOrders
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.serialiser.ValueSerialiser.MinMaxSerialiser
 import swaydb.core.util.Bytes
@@ -43,7 +44,7 @@ private[core] sealed trait SegmentSerialiser {
   def read(reader: SliceReader,
            mmapSegment: MMAP.Segment,
            segmentRefCacheLife: SegmentRefCacheLife,
-           checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+           checkExists: Boolean)(implicit keyOrders: SegmentKeyOrders,
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  functionStore: CoreFunctionStore,
                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -99,7 +100,7 @@ private[core] object SegmentSerialiser {
     def read(reader: SliceReader,
              mmapSegment: MMAP.Segment,
              segmentRefCacheLife: SegmentRefCacheLife,
-             checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+             checkExists: Boolean)(implicit keyOrders: SegmentKeyOrders,
                                    timeOrder: TimeOrder[Slice[Byte]],
                                    functionStore: CoreFunctionStore,
                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],

@@ -31,7 +31,7 @@ import swaydb.core.log.LogEntry
 import swaydb.core.log.serialiser.LevelZeroLogEntryWriter
 import swaydb.core.log.timer.Timer
 import swaydb.core.segment.CoreFunctionStore
-import swaydb.core.segment.data.{Memory, CoreFunction, Value}
+import swaydb.core.segment.data.{Memory, SegmentFunction, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
@@ -235,7 +235,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
   def applyFunction(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): BAG[Unit] =
     assertTerminated(sequencer.execute(zero.applyFunction(from, to, function)))
 
-  def registerFunction(functionId: Slice[Byte], function: CoreFunction): BAG[Unit] =
+  def registerFunction(functionId: Slice[Byte], function: SegmentFunction): BAG[Unit] =
     execute(_.registerFunction(functionId, function))
 
   def head[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =

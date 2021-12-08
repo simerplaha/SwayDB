@@ -53,19 +53,19 @@ class FunctionMerger_Remove_Spec extends AnyWordSpec with Matchers {
 
           val expected: Memory.Fixed =
             functionOutput match {
-              case CoreFunctionOutput.Remove =>
+              case SegmentFunctionOutput.Remove =>
                 Memory.Remove(key, None, newKeyValue.time)
 
-              case CoreFunctionOutput.Nothing =>
+              case SegmentFunctionOutput.Nothing =>
                 oldKeyValue.copy(time = newKeyValue.time)
 
-              case CoreFunctionOutput.Expire(deadline) =>
+              case SegmentFunctionOutput.Expire(deadline) =>
                 if (oldKeyValue.deadline.isEmpty)
                   oldKeyValue.copy(time = newKeyValue.time)
                 else
                   oldKeyValue.copy(deadline = Some(deadline), time = newKeyValue.time)
 
-              case CoreFunctionOutput.Update(value, deadline) =>
+              case SegmentFunctionOutput.Update(value, deadline) =>
                 if (oldKeyValue.deadline.isEmpty)
                   oldKeyValue.copy(time = newKeyValue.time)
                 else

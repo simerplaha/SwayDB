@@ -18,7 +18,7 @@ package swaydb.function
 
 import swaydb.config.Functions
 import swaydb.core.segment.CoreFunctionStore
-import swaydb.core.segment.data.CoreFunctionOutput
+import swaydb.core.segment.data.SegmentFunctionOutput
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
 import swaydb.slice.{Slice, SliceOption}
@@ -30,7 +30,7 @@ import scala.concurrent.duration.Deadline
 private[swaydb] case object FunctionConverter {
 
   def toCore[K, V, R <: Apply[V], F <: PureFunction[K, V, R]](function: F)(implicit keySerializer: Serializer[K],
-                                                                           valueSerializer: Serializer[V]): swaydb.core.segment.data.CoreFunction =
+                                                                           valueSerializer: Serializer[V]): swaydb.core.segment.data.SegmentFunction =
 
 
     function match {
@@ -89,111 +89,111 @@ private[swaydb] case object FunctionConverter {
         toCoreFunctionKeyValueExpiration[K, V](function)
     }
 
-  private def toCoreFunctionOutput[V](output: Apply[V])(implicit valueSerializer: Serializer[V]): CoreFunctionOutput =
+  private def toCoreFunctionOutput[V](output: Apply[V])(implicit valueSerializer: Serializer[V]): SegmentFunctionOutput =
     output match {
       case Apply.Nothing =>
-        CoreFunctionOutput.Nothing
+        SegmentFunctionOutput.Nothing
 
       case Apply.Remove =>
-        CoreFunctionOutput.Remove
+        SegmentFunctionOutput.Remove
 
       case Apply.Expire(deadline) =>
-        CoreFunctionOutput.Expire(deadline)
+        SegmentFunctionOutput.Expire(deadline)
 
       case update: Apply.Update[V] =>
         val untypedValue: Slice[Byte] = valueSerializer.write(update.value)
-        CoreFunctionOutput.Update(untypedValue, update.deadline)
+        SegmentFunctionOutput.Update(untypedValue, update.deadline)
     }
 
   private def toCoreFunctionKey[K, V](f: K => Apply[V])(implicit keySerializer: Serializer[K],
-                                                        valueSerializer: Serializer[V]): swaydb.core.segment.data.CoreFunction = {
+                                                        valueSerializer: Serializer[V]): swaydb.core.segment.data.SegmentFunction = {
     import swaydb.serializers._
 
     def function(key: Slice[Byte]) =
       toCoreFunctionOutput(f(key.read[K]))
 
-    swaydb.core.segment.data.CoreFunction.Key(function)
+    swaydb.core.segment.data.SegmentFunction.Key(function)
   }
 
   private def toCoreFunctionKeyDeadline[K, V](f: (K, Option[Deadline]) => Apply[V])(implicit keySerializer: Serializer[K],
-                                                                                    valueSerializer: Serializer[V]): swaydb.core.segment.data.CoreFunction = {
+                                                                                    valueSerializer: Serializer[V]): swaydb.core.segment.data.SegmentFunction = {
     import swaydb.serializers._
 
     def function(key: Slice[Byte], deadline: Option[Deadline]) =
       toCoreFunctionOutput(f(key.read[K], deadline))
 
-    swaydb.core.segment.data.CoreFunction.KeyDeadline(function)
+    swaydb.core.segment.data.SegmentFunction.KeyDeadline(function)
   }
 
   private def toCoreFunctionKeyExpiration[K, V](f: (K, Optional[Expiration]) => Apply[V])(implicit keySerializer: Serializer[K],
-                                                                                          valueSerializer: Serializer[V]): swaydb.core.segment.data.CoreFunction = {
+                                                                                          valueSerializer: Serializer[V]): swaydb.core.segment.data.SegmentFunction = {
     import swaydb.serializers._
 
     def function(key: Slice[Byte], deadline: Option[Deadline]) =
       toCoreFunctionOutput(f(key.read[K], Expiration(deadline)))
 
-    swaydb.core.segment.data.CoreFunction.KeyDeadline(function)
+    swaydb.core.segment.data.SegmentFunction.KeyDeadline(function)
   }
 
   private def toCoreFunctionKeyValueExpiration[K, V](f: (K, V, Optional[Expiration]) => Apply[V])(implicit keySerializer: Serializer[K],
-                                                                                                  valueSerializer: Serializer[V]): swaydb.core.segment.data.CoreFunction = {
+                                                                                                  valueSerializer: Serializer[V]): swaydb.core.segment.data.SegmentFunction = {
     import swaydb.serializers._
 
     def function(key: Slice[Byte], value: SliceOption[Byte], deadline: Option[Deadline]) =
       toCoreFunctionOutput(f(key.read[K], value.read[V], Expiration(deadline)))
 
-    swaydb.core.segment.data.CoreFunction.KeyValueDeadline(function)
+    swaydb.core.segment.data.SegmentFunction.KeyValueDeadline(function)
   }
 
   private def toCoreFunctionKeyValueDeadline[K, V](f: (K, V, Option[Deadline]) => Apply[V])(implicit keySerializer: Serializer[K],
-                                                                                            valueSerializer: Serializer[V]): swaydb.core.segment.data.CoreFunction = {
+                                                                                            valueSerializer: Serializer[V]): swaydb.core.segment.data.SegmentFunction = {
     import swaydb.serializers._
 
     def function(key: Slice[Byte], value: SliceOption[Byte], deadline: Option[Deadline]) =
       toCoreFunctionOutput(f(key.read[K], value.read[V], deadline))
 
-    swaydb.core.segment.data.CoreFunction.KeyValueDeadline(function)
+    swaydb.core.segment.data.SegmentFunction.KeyValueDeadline(function)
   }
 
   private def toCoreFunctionKeyValue[K, V](f: (K, V) => Apply[V])(implicit keySerializer: Serializer[K],
-                                                                  valueSerializer: Serializer[V]): swaydb.core.segment.data.CoreFunction = {
+                                                                  valueSerializer: Serializer[V]): swaydb.core.segment.data.SegmentFunction = {
     import swaydb.serializers._
 
     def function(key: Slice[Byte], value: SliceOption[Byte]) =
       toCoreFunctionOutput(f(key.read[K], value.read[V]))
 
-    swaydb.core.segment.data.CoreFunction.KeyValue(function)
+    swaydb.core.segment.data.SegmentFunction.KeyValue(function)
   }
 
-  private def toCoreFunctionValue[V](f: V => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.segment.data.CoreFunction = {
+  private def toCoreFunctionValue[V](f: V => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.segment.data.SegmentFunction = {
     import swaydb.serializers._
 
     def function(value: SliceOption[Byte]) =
       toCoreFunctionOutput(f(value.read[V]))
 
-    swaydb.core.segment.data.CoreFunction.Value(function)
+    swaydb.core.segment.data.SegmentFunction.Value(function)
   }
 
-  private def toCoreFunctionValueExpiration[V](f: (V, Optional[Expiration]) => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.segment.data.CoreFunction = {
+  private def toCoreFunctionValueExpiration[V](f: (V, Optional[Expiration]) => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.segment.data.SegmentFunction = {
     import swaydb.serializers._
 
     def function(value: SliceOption[Byte], deadline: Option[Deadline]) =
       toCoreFunctionOutput(f(value.read[V], Expiration(deadline)))
 
-    swaydb.core.segment.data.CoreFunction.ValueDeadline(function)
+    swaydb.core.segment.data.SegmentFunction.ValueDeadline(function)
   }
 
-  private def toCoreFunctionValueDeadline[V](f: (V, Option[Deadline]) => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.segment.data.CoreFunction = {
+  private def toCoreFunctionValueDeadline[V](f: (V, Option[Deadline]) => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.segment.data.SegmentFunction = {
     import swaydb.serializers._
 
     def function(value: SliceOption[Byte], deadline: Option[Deadline]) =
       toCoreFunctionOutput(f(value.read[V], deadline))
 
-    swaydb.core.segment.data.CoreFunction.ValueDeadline(function)
+    swaydb.core.segment.data.SegmentFunction.ValueDeadline(function)
   }
 
   def toCore[K, V, R <: Apply[V], F <: PureFunction[K, V, R]](functions: Functions[F])(implicit keySerializer: Serializer[K],
-                                                                                       valueSerializer: Serializer[V]): Functions[swaydb.core.segment.data.CoreFunction] =
+                                                                                       valueSerializer: Serializer[V]): Functions[swaydb.core.segment.data.SegmentFunction] =
     Functions(functions.map(function => toCore[K, V, R, F](function)))
 
   def toFunctionsStore[K, V, R <: Apply[V], F <: PureFunction[K, V, R]](functions: Functions[F])(implicit keySerializer: Serializer[K],

@@ -16,6 +16,7 @@
 
 package swaydb.core.segment.io
 
+import swaydb.{Error, IO}
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.FileSweeper
@@ -23,11 +24,11 @@ import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperAc
 import swaydb.core.segment._
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.segment.data.SegmentKeyOrders
 import swaydb.core.util.DefIO
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.IDGenerator
-import swaydb.{Error, IO}
 
 /**
  * Provides implementation on how [[TransientSegment]]
@@ -44,7 +45,7 @@ trait SegmentWriteIO[-T <: TransientSegment, S] {
   def persistMerged(pathsDistributor: PathsDistributor,
                     segmentRefCacheLife: SegmentRefCacheLife,
                     mmap: MMAP.Segment,
-                    mergeResult: Iterable[DefIO[SegmentOption, Iterable[T]]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                    mergeResult: Iterable[DefIO[SegmentOption, Iterable[T]]])(implicit keyOrders: SegmentKeyOrders,
                                                                               timeOrder: TimeOrder[Slice[Byte]],
                                                                               functionStore: CoreFunctionStore,
                                                                               fileSweeper: FileSweeper,
@@ -58,7 +59,7 @@ trait SegmentWriteIO[-T <: TransientSegment, S] {
   def persistTransient(pathsDistributor: PathsDistributor,
                        segmentRefCacheLife: SegmentRefCacheLife,
                        mmap: MMAP.Segment,
-                       transient: Iterable[T])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                       transient: Iterable[T])(implicit keyOrders: SegmentKeyOrders,
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                functionStore: CoreFunctionStore,
                                                fileSweeper: FileSweeper,

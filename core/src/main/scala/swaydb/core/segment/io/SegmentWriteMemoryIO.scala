@@ -16,20 +16,20 @@
 
 package swaydb.core.segment.io
 
+import swaydb.{Error, IO}
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
-import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment._
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.segment.data.SegmentKeyOrders
 import swaydb.core.util.DefIO
 import swaydb.slice.Slice
-import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.TimeOrder
 import swaydb.utils.IDGenerator
-import swaydb.{Error, IO}
 
 
 object SegmentWriteMemoryIO extends SegmentWriteIO[TransientSegment.Memory, MemorySegment] {
@@ -40,7 +40,7 @@ object SegmentWriteMemoryIO extends SegmentWriteIO[TransientSegment.Memory, Memo
   override def persistTransient(pathsDistributor: PathsDistributor,
                                 segmentRefCacheLife: SegmentRefCacheLife,
                                 mmap: MMAP.Segment,
-                                transient: Iterable[TransientSegment.Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                transient: Iterable[TransientSegment.Memory])(implicit keyOrders: SegmentKeyOrders,
                                                                               timeOrder: TimeOrder[Slice[Byte]],
                                                                               functionStore: CoreFunctionStore,
                                                                               fileSweeper: FileSweeper,
@@ -57,7 +57,7 @@ object SegmentWriteMemoryIO extends SegmentWriteIO[TransientSegment.Memory, Memo
   override def persistMerged(pathsDistributor: PathsDistributor,
                              segmentRefCacheLife: SegmentRefCacheLife,
                              mmap: MMAP.Segment,
-                             mergeResult: Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Memory]]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                             mergeResult: Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Memory]]])(implicit keyOrders: SegmentKeyOrders,
                                                                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                                                                              functionStore: CoreFunctionStore,
                                                                                                              fileSweeper: FileSweeper,
