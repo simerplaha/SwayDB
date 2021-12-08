@@ -348,7 +348,7 @@ class BlockSpec extends ASegmentSpec {
 
   "unblock" in {
     runThis(100.times) {
-      val dataBytes = Slice.of[Byte](300, true)
+      val dataBytes = Slice.allocate[Byte](300, true)
       val compression = randomCompression()
       val compressedBytes = Block.compress(dataBytes, 0, Seq(compression), "testBlock")
 

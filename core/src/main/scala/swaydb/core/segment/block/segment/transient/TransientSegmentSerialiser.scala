@@ -56,7 +56,7 @@ object TransientSegmentSerialiser {
             Bytes.sizeOfUnsignedInt(singleton.keyValueCount) +
             Bytes.sizeOfUnsignedInt(singleton.createdInLevel)
 
-        val value = Slice.of[Byte](ByteSizeOf.byte + byteSizeOfInts + singleton.minKey.size + minMaxFunctionBytesSize)
+        val value = Slice.allocate[Byte](ByteSizeOf.byte + byteSizeOfInts + singleton.minKey.size + minMaxFunctionBytesSize)
         value add 0 //fixed maxKey id
         value addUnsignedInt singleton.minKey.size
         value addAll singleton.minKey
@@ -99,7 +99,7 @@ object TransientSegmentSerialiser {
             Bytes.sizeOfUnsignedInt(singleton.keyValueCount) +
             Bytes.sizeOfUnsignedInt(singleton.createdInLevel)
 
-        val value = Slice.of[Byte](ByteSizeOf.byte + byteSizeOfInts + minMaxFunctionBytesSize + fromKey.size)
+        val value = Slice.allocate[Byte](ByteSizeOf.byte + byteSizeOfInts + minMaxFunctionBytesSize + fromKey.size)
         value add 1 //range maxKey id
         value addUnsignedInt offset
         value addUnsignedInt size

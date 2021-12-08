@@ -81,7 +81,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
       TestSweeper {
         implicit sweeper =>
           //size is 10 but only 2 bytes were written
-          val incompleteBytes = Slice.of[Byte](10)
+          val incompleteBytes = Slice.allocate[Byte](10)
           incompleteBytes.addUnsignedInt(1)
           incompleteBytes.addUnsignedInt(2)
           incompleteBytes.size shouldBe 2

@@ -64,7 +64,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
 
     val hasCompression = compressions(UncompressedBlockInfo(numberOfBits)).nonEmpty
 
-    val bytes = Slice.of[Byte](numberOfBits)
+    val bytes = Slice.allocate[Byte](numberOfBits)
 
     new BloomFilterBlockState(
       numberOfBits = numberOfBits,

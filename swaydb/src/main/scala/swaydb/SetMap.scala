@@ -46,7 +46,7 @@ object SetMap {
             bSerializer.write(data._2)
 
         Slice
-          .of[Byte](Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + Bytes.sizeOfUnsignedInt(valueBytes.size) + valueBytes.size)
+          .allocate[Byte](Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + Bytes.sizeOfUnsignedInt(valueBytes.size) + valueBytes.size)
           .addUnsignedInt(keyBytes.size)
           .addAll(keyBytes)
           .addUnsignedInt(valueBytes.size)

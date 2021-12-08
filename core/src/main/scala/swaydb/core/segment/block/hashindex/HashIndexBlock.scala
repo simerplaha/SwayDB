@@ -60,7 +60,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
       if (optimalBytes < ByteSizeOf.int) {
         None
       } else {
-        val bytes = Slice.of[Byte](optimalBytes)
+        val bytes = Slice.allocate[Byte](optimalBytes)
         val state =
           new HashIndexBlockState(
             hit = 0,

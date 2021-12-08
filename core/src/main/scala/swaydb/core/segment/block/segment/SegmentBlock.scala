@@ -193,7 +193,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                 ByteSizeOf.byte +
                   Bytes.sizeOfUnsignedInt(listSegmentSize)
 
-              val fileHeader = Slice.of[Byte](headerSize)
+              val fileHeader = Slice.allocate[Byte](headerSize)
               fileHeader add PersistentSegmentMany.formatId
               fileHeader addUnsignedInt listSegmentSize
 

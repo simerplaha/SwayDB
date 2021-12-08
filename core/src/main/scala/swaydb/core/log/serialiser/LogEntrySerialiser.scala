@@ -45,7 +45,7 @@ private[core] object LogEntrySerialiser extends LazyLogging {
   def write[K, V](logEntries: LogEntry[K, V]): Slice[Byte] = {
     val totalEntrySize = headerSize + logEntries.entryBytesSize
 
-    val slice = Slice.of[Byte](totalEntrySize)
+    val slice = Slice.allocate[Byte](totalEntrySize)
 
     slice moveWritePosition headerSize
     logEntries writeTo slice

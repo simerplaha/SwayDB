@@ -122,7 +122,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
 
           val level = TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))
           val zero = TestLevelZero(Some(level))
-          val one = Slice.of[Byte](10).addInt(1).close()
+          val one = Slice.allocate[Byte](10).addInt(1).close()
 
           zero.put(one, one).runRandomIO
 

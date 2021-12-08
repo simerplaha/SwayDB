@@ -35,25 +35,25 @@ import scala.reflect.ClassTag
 trait CompanionSlice extends SliceBuildFrom {
 
   val emptyBytes: Slice[Byte] =
-    of[Byte](0)
+    allocate[Byte](0)
 
   @inline final def empty[T: ClassTag]: Slice[T] =
-    of[T](0)
+    allocate[T](0)
 
   final def range(from: Int, to: Int): Slice[Int] = {
-    val slice = of[Int](to - from + 1)
+    val slice = allocate[Int](to - from + 1)
     (from to to) foreach slice.add
     slice
   }
 
   final def range(from: Char, to: Char): Slice[Char] = {
-    val slice = of[Char](26)
+    val slice = allocate[Char](26)
     (from to to) foreach slice.add
     slice.close()
   }
 
   final def range(from: Byte, to: Byte): Slice[Byte] = {
-    val slice = of[Byte](to - from + 1)
+    val slice = allocate[Byte](to - from + 1)
 
     (from to to) foreach {
       i =>
@@ -71,7 +71,7 @@ trait CompanionSlice extends SliceBuildFrom {
       _written = length
     )
 
-  @inline final def of[T: ClassTag](length: Int, isFull: Boolean = false): SliceMut[T] =
+  @inline final def allocate[T: ClassTag](length: Int, isFull: Boolean = false): SliceMut[T] =
     new SliceMut(
       array = new Array[T](length),
       fromOffset = 0,
@@ -81,7 +81,7 @@ trait CompanionSlice extends SliceBuildFrom {
 
   def wrap[T: ClassTag](data: Array[T]): Slice[T] =
     if (data.length == 0)
-      of[T](0)
+      allocate[T](0)
     else
       new SliceMut[T](
         array = data,
@@ -173,43 +173,43 @@ trait CompanionSlice extends SliceBuildFrom {
     Slice.wrap(Array(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v))
 
   def from[T: ClassTag](iterator: Iterator[T], size: Int): Slice[T] = {
-    val slice = of[T](size)
+    val slice = allocate[T](size)
     iterator foreach slice.add
     slice
   }
 
   def from[T: ClassTag](iterable: Iterable[T], size: Int): Slice[T] = {
-    val slice = of[T](size)
+    val slice = allocate[T](size)
     iterable foreach slice.add
     slice
   }
 
   def from[T: ClassTag](iterable: Iterable[Slice[T]]): Slice[T] = {
-    val slice = of[T](iterable.foldLeft(0)(_ + _.size))
+    val slice = allocate[T](iterable.foldLeft(0)(_ + _.size))
     iterable foreach slice.addAll
     slice
   }
 
   @inline final def writeInt(integer: Int): Slice[Byte] =
-    of[Byte](ByteSizeOf.int).addInt(integer)
+    allocate[Byte](ByteSizeOf.int).addInt(integer)
 
   @inline final def writeUnsignedInt(integer: Int): Slice[Byte] =
-    of[Byte](ByteSizeOf.varInt).addUnsignedInt(integer).close()
+    allocate[Byte](ByteSizeOf.varInt).addUnsignedInt(integer).close()
 
   @inline final def writeSignedInt(integer: Int): Slice[Byte] =
-    of[Byte](ByteSizeOf.varInt).addSignedInt(integer).close()
+    allocate[Byte](ByteSizeOf.varInt).addSignedInt(integer).close()
 
   @inline final def writeLong(num: Long): Slice[Byte] =
-    of[Byte](ByteSizeOf.long).addLong(num)
+    allocate[Byte](ByteSizeOf.long).addLong(num)
 
   @inline final def writeUnsignedLong(num: Long): Slice[Byte] =
-    of[Byte](ByteSizeOf.varLong).addUnsignedLong(num).close()
+    allocate[Byte](ByteSizeOf.varLong).addUnsignedLong(num).close()
 
   @inline final def writeSignedLong(num: Long): Slice[Byte] =
-    of[Byte](ByteSizeOf.varLong).addSignedLong(num).close()
+    allocate[Byte](ByteSizeOf.varLong).addSignedLong(num).close()
 
   @inline final def writeBoolean(bool: Boolean): Slice[Byte] =
-    of[Byte](1).addBoolean(bool)
+    allocate[Byte](1).addBoolean(bool)
 
   @inline final def writeString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] =
     ByteSlice.writeString(string, charsets)
@@ -306,8 +306,8 @@ trait CompanionSlice extends SliceBuildFrom {
     } else {
       val allGroups =
         Slice
-          .of[SliceMut[T]](items.size)
-          .add(Slice.of[T](items.size))
+          .allocate[SliceMut[T]](items.size)
+          .add(Slice.allocate[T](items.size))
 
       var currentGroupSize: Int = 0
 
@@ -321,7 +321,7 @@ trait CompanionSlice extends SliceBuildFrom {
         } else {
           val tailItemsSize = items.drop(i).foldLeft(0)(_ + itemSize(_))
           if (tailItemsSize >= minGroupSize) {
-            val newGroup = Slice.of[T](items.size - i + 1)
+            val newGroup = Slice.allocate[T](items.size - i + 1)
             allGroups add newGroup
             currentGroupSize = 0
           } else {
@@ -339,7 +339,7 @@ trait CompanionSlice extends SliceBuildFrom {
      * more data to be written to any of the Slices.
      */
     @inline final def closeAll(): Slice[Slice[T]] = {
-      val newSlices = of[Slice[T]](slices.close().size)
+      val newSlices = allocate[Slice[T]](slices.close().size)
 
       slices foreach {
         slice =>
@@ -440,7 +440,7 @@ trait CompanionSlice extends SliceBuildFrom {
   }
 
   final def sequence[A: ClassTag](in: Iterable[Future[A]])(implicit ec: ExecutionContext): Future[Slice[A]] =
-    in.iterator.foldLeft(Future.successful(Slice.of[A](in.size))) {
+    in.iterator.foldLeft(Future.successful(Slice.allocate[A](in.size))) {
       case (result, next) =>
         result.zipWith(next)(_ add _)
     }

@@ -105,7 +105,7 @@ sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with Private
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.put(keyValues) shouldBe IO.unit
 
-          val deleteKeyValues = Slice.of[Memory](keyValues.size * 2)
+          val deleteKeyValues = Slice.allocate[Memory](keyValues.size * 2)
           keyValues foreach {
             keyValue =>
               deleteKeyValues add Memory.remove(keyValue.key)
@@ -140,7 +140,7 @@ sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with Private
           val keyValues = randomPutKeyValues()
           level.put(keyValues).runRandomIO.right.value
 
-          val deleteKeyValues = Slice.of[Memory](keyValues.size)
+          val deleteKeyValues = Slice.allocate[Memory](keyValues.size)
           keyValues foreach {
             keyValue =>
               deleteKeyValues add Memory.remove(keyValue.key)
@@ -208,7 +208,7 @@ sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with Private
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.put(keyValues).runRandomIO.right.value
 
-          val deleteKeyValues = Slice.of[Memory](keyValues.size * 2)
+          val deleteKeyValues = Slice.allocate[Memory](keyValues.size * 2)
           keyValues foreach {
             keyValue =>
               deleteKeyValues add Memory.remove(keyValue.key, 1.seconds)
@@ -259,7 +259,7 @@ sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with Private
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.put(keyValues).runRandomIO.right.value
 
-          val deleteKeyValues = Slice.of[Memory](keyValues.size * 2)
+          val deleteKeyValues = Slice.allocate[Memory](keyValues.size * 2)
           keyValues foreach {
             keyValue =>
               deleteKeyValues add Memory.remove(keyValue.key, 0.seconds)

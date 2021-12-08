@@ -153,7 +153,7 @@ private[swaydb] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] priva
     skipList.navigableKeySet()
 
   def take(count: Int)(implicit classTag: ClassTag[V]): Slice[V] = {
-    val slice = Slice.of[V](count)
+    val slice = Slice.allocate[V](count)
 
     @tailrec
     def doTake(nextOption: Option[(K, V)]): Slice[V] =
@@ -188,7 +188,7 @@ private[swaydb] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] priva
     }
 
   def toSlice[V2 >: V : ClassTag](size: Int): Slice[V2] = {
-    val slice = Slice.of[V2](size)
+    val slice = Slice.allocate[V2](size)
     skipList.values() forEach {
       new Consumer[V] {
         def accept(keyValue: V): Unit =

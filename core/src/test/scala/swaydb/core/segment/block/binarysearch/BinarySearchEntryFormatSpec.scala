@@ -49,7 +49,7 @@ class BinarySearchEntryFormatSpec extends ASegmentSpec {
                 largestMergedKeySize = 10
               )
 
-            val bytes = Slice.of[Byte](bytesRequired)
+            val bytes = Slice.allocate[Byte](bytesRequired)
 
             BinarySearchEntryFormat.Reference.write(
               indexOffset = indexOffset,

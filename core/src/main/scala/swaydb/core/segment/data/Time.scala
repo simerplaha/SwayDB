@@ -29,7 +29,7 @@ private[core] object Time {
   val successEmpty = IO.Right[Nothing, Time](empty)(IO.ExceptionHandler.Nothing)
 
   def apply(time: Long): Time = {
-    val slice = Slice.of[Byte](ByteSizeOf.varLong)
+    val slice = Slice.allocate[Byte](ByteSizeOf.varLong)
     ByteSlice.writeUnsignedLong(time, slice)
     new Time(slice)
   }

@@ -193,7 +193,7 @@ private[core] object ValueSerialiser {
 
     override def read(reader: ReaderBase): Slice[Value.Apply] = {
       val count = reader.readUnsignedInt()
-      reader.foldLeft(Slice.of[Value.Apply](count)) {
+      reader.foldLeft(Slice.allocate[Value.Apply](count)) {
         case (applies, reader) =>
           val id = reader.readUnsignedInt()
           val bytes = reader.readUnsignedIntSized()
@@ -348,7 +348,7 @@ private[core] object ValueSerialiser {
             val int = reader.readUnsignedInt()
             val tuplesCount = reader.readUnsignedInt()
 
-            val tuples = Slice.of[(Slice[Byte], Slice[Byte])](tuplesCount)
+            val tuples = Slice.allocate[(Slice[Byte], Slice[Byte])](tuplesCount)
 
             var i = 0
             while (i < tuplesCount) {
@@ -445,7 +445,7 @@ private[core] object ValueSerialiser {
 
   def writeBytes[T](value: T)(implicit serialiser: ValueSerialiser[T]): Slice[Byte] = {
     val bytesRequired = ValueSerialiser.bytesRequired(value)
-    val bytes = Slice.of[Byte](bytesRequired)
+    val bytes = Slice.allocate[Byte](bytesRequired)
     serialiser.write(value, bytes)
     bytes
   }

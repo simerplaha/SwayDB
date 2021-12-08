@@ -242,7 +242,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
     if (size == 0)
       Slice(self)
     else
-      group(Slice.of[Slice[T]](size), self, size)
+      group(Slice.allocate[Slice[T]](size), self, size)
   }
 
   def split[B >: T : ClassTag](blockSize: Int): Array[Slice[B]] = {
@@ -563,7 +563,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
   }
 
   def mapToSlice[B: ClassTag](f: T => B): Slice[B] = {
-    val slice = Slice.of[B](self.size)
+    val slice = Slice.allocate[B](self.size)
     val iterator = self.iterator
 
     while (iterator.hasNext)
@@ -583,7 +583,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
   }
 
   override def takeWhile(p: T => Boolean): This = {
-    val filtered = Slice.of[T](self.size)
+    val filtered = Slice.allocate[T](self.size)
     val iterator = self.iterator
 
     var continue = true
@@ -599,7 +599,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
   }
 
   def collectToSlice[B: ClassTag](pf: PartialFunction[T, B]): Slice[B] =
-    collectToSliceAndClose(Slice.of[B](self.size), pf)
+    collectToSliceAndClose(Slice.allocate[B](self.size), pf)
 
   /**
    * Collects but also inserts the [[head]] item which is NOT by the partial function.
@@ -607,7 +607,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
   def collectToSlice[B: ClassTag](head: B)(pf: PartialFunction[T, B]): Slice[B] = {
     val target =
       Slice
-        .of[B](self.size + 1)
+        .allocate[B](self.size + 1)
         .add(head)
 
     collectToSliceAndClose(target, pf)
@@ -627,7 +627,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
   }
 
   override def filterNot(p: T => Boolean): This = {
-    val filtered = Slice.of[T](self.size)
+    val filtered = Slice.allocate[T](self.size)
     val iterator = self.iterator
 
     while (iterator.hasNext) {
@@ -639,7 +639,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
   }
 
   override def filter(p: T => Boolean): This = {
-    val filtered = Slice.of[T](self.size)
+    val filtered = Slice.allocate[T](self.size)
     val iterator = self.iterator
 
     while (iterator.hasNext) {
@@ -659,7 +659,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
     } else if (this.size == 1) {
       Slice(newHead)
     } else {
-      val updatedSlice = Slice.of[A](this.size)
+      val updatedSlice = Slice.allocate[A](this.size)
       updatedSlice add newHead
       updatedSlice addAll this.dropHead()
     }
@@ -670,7 +670,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
     } else if (this.size == 1) {
       Slice(newLast)
     } else {
-      val updatedSlice = Slice.of[A](this.size)
+      val updatedSlice = Slice.allocate[A](this.size)
       updatedSlice addAll this.dropRight(1)
       updatedSlice add newLast
     }
@@ -680,7 +680,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
     if (index == -1) {
       throw new Exception(s"Item $target not found")
     } else {
-      val updatedSlice = Slice.of[A](this.size)
+      val updatedSlice = Slice.allocate[A](this.size)
       if (index != 0) updatedSlice addAll this.take(index)
       updatedSlice add update
       updatedSlice addAll this.take(index + 1, this.size - (index + 1))
@@ -720,7 +720,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
     } else if (self.isEmpty) {
       other
     } else {
-      val slice = Slice.of[B](size + other.size)
+      val slice = Slice.allocate[B](size + other.size)
       slice addAll self
       slice addAll other
     }
@@ -731,7 +731,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
     } else if (self.isEmpty) {
       Slice.wrap(other)
     } else {
-      val slice = Slice.of[B](size + other.length)
+      val slice = Slice.allocate[B](size + other.length)
       slice addAll self
       slice addAll other
     }
@@ -742,7 +742,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
     } else if (self.isEmpty) {
       Slice(other.get)
     } else {
-      val slice = Slice.of[B](size + 1)
+      val slice = Slice.allocate[B](size + 1)
       slice addAll self
       slice add other.get
     }
@@ -796,21 +796,21 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
     )
 
   @inline def append[B >: T : ClassTag](tail: Slice[B]): Slice[B] = {
-    val merged = Slice.of[B](self.size + tail.size)
+    val merged = Slice.allocate[B](self.size + tail.size)
     merged addAll self
     merged addAll tail
     merged
   }
 
   @inline def append[B >: T : ClassTag](last: B): Slice[B] = {
-    val merged = Slice.of[B](self.size + 1)
+    val merged = Slice.allocate[B](self.size + 1)
     merged addAll self
     merged add last
     merged
   }
 
   @inline def prepend[B >: T : ClassTag](head: B): Slice[B] = {
-    val merged = Slice.of[B](self.size + 1)
+    val merged = Slice.allocate[B](self.size + 1)
     merged add head
     merged addAll self
     merged
@@ -829,7 +829,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
     } else if (self.size == 1) {
       f(head)
     } else {
-      val result = Slice.of[Slice[B]](self.size)
+      val result = Slice.allocate[Slice[B]](self.size)
 
       this foreach {
         item =>
@@ -847,7 +847,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
         size += innerSlice.size
     }
 
-    val newSlice = Slice.of[B](size)
+    val newSlice = Slice.allocate[B](size)
 
     self foreach {
       innerSlice =>
@@ -910,7 +910,7 @@ final class SliceMut[+T](protected[this] override val array: Array[T],
     this
 
   override protected[this] def createEmpty: SliceMut[T] =
-    Slice.of[T](0)
+    Slice.allocate[T](0)
 
   override protected[this] def createNew(array: Array[T]): SliceMut[T] =
     Slice.wrap(array).asMut()
@@ -958,7 +958,7 @@ final class SliceMut[+T](protected[this] override val array: Array[T],
           this.copyAll(array.array, 0, array.length)
         } else {
           //TODO - core's code make sure that this does not occur often.
-          val newSlice = Slice.of[T]((this.size + array.length) * expandBy)
+          val newSlice = Slice.allocate[T]((this.size + array.length) * expandBy)
           newSlice addAll self
           newSlice addAll array.array.asInstanceOf[Array[T]]
         }
@@ -968,7 +968,7 @@ final class SliceMut[+T](protected[this] override val array: Array[T],
           addAll[T](items)
         } else {
           //TODO - core's code make sure that this does not occur often.
-          val newSlice = Slice.of[T]((this.size + items.size) * expandBy)
+          val newSlice = Slice.allocate[T]((this.size + items.size) * expandBy)
           newSlice addAll self
           newSlice addAll items
         }
@@ -980,7 +980,7 @@ final class SliceMut[+T](protected[this] override val array: Array[T],
         val buffer = ListBuffer.empty[T]
         buffer ++= items
 
-        val newSlice = Slice.of[T]((self.size + buffer.size) * expandBy)
+        val newSlice = Slice.allocate[T]((self.size + buffer.size) * expandBy)
 
         newSlice addAll self
         newSlice addAll buffer.toArray

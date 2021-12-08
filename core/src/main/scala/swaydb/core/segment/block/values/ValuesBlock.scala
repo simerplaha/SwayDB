@@ -44,7 +44,7 @@ private[core] case object ValuesBlock {
            builder: EntryWriter.Builder): Option[ValuesBlockState] = {
     val totalValuesSize = stats.totalValuesSize
     if (totalValuesSize > 0) {
-      val bytes = Slice.of[Byte](totalValuesSize)
+      val bytes = Slice.allocate[Byte](totalValuesSize)
       val state =
         new ValuesBlockState(
           compressibleBytes = bytes,

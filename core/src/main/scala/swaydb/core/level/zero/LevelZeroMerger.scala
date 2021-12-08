@@ -122,7 +122,7 @@ object LevelZeroMerger {
       state.setHasRangeToTrue() //set this before put so reads know to floor this skipList.
       state.skipList.put(insert.key, insert)
     } else {
-      val oldKeyValues = Slice.of[Memory](conflictingKeyValues.size)
+      val oldKeyValues = Slice.allocate[Memory](conflictingKeyValues.size)
 
       conflictingKeyValues foreach {
         case (_, keyValue) =>

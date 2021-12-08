@@ -84,7 +84,7 @@ private[core] object Block extends LazyLogging {
         Bytes.sizeOfUnsignedInt(bytes.size) +
         dataBlocksHeaderByteSize
 
-    val header = Slice.of[Byte](requiredByteSize)
+    val header = Slice.allocate[Byte](requiredByteSize)
 
     header addUnsignedInt (requiredByteSize - 1)
     header add BlockHeader.compressedBlockID
@@ -101,7 +101,7 @@ private[core] object Block extends LazyLogging {
   @inline def createUnCompressedHeaderBytes(dataBlocksHeaderByteSize: Int): SliceMut[Byte] = {
     val requiredBytes = headerSizeNoCompression + dataBlocksHeaderByteSize
 
-    val header = Slice.of[Byte](requiredBytes)
+    val header = Slice.allocate[Byte](requiredBytes)
 
     header addUnsignedInt (requiredBytes - 1)
     header add BlockHeader.uncompressedBlockId

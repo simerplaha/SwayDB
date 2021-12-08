@@ -34,7 +34,7 @@ private[block] object BinarySearchIndexBlockState {
           format = format
         )
 
-      val bytes = Slice.of[Byte](bytesRequired)
+      val bytes = Slice.allocate[Byte](bytesRequired)
 
       val state =
         new BinarySearchIndexBlockState(

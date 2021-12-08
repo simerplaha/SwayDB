@@ -38,7 +38,7 @@ object Serializer {
             if (valueBytes.isEmpty) {
               one
             } else {
-              val slice = Slice.of[Byte](valueBytes.size + 1)
+              val slice = Slice.allocate[Byte](valueBytes.size + 1)
               slice add 1
               slice addAll valueBytes
             }

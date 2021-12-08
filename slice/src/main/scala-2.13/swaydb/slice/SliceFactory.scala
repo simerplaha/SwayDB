@@ -26,7 +26,7 @@ class SliceFactory(maxSize: Int) extends ClassTagIterableFactory[Slice] {
     (newBuilder[A] ++= source).result()
 
   def empty[A](implicit evidence: ClassTag[A]): Slice[A] =
-    Slice.of[A](maxSize)
+    Slice.allocate[A](maxSize)
 
   def newBuilder[A](implicit evidence: ClassTag[A]): mutable.Builder[A, Slice[A]] =
     new SliceBuilder[A](maxSize)

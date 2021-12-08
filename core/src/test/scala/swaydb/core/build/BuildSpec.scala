@@ -143,7 +143,7 @@ class BuildSpec extends ACoreSpec {
 
                 val existsBytes = Effect.readAllBytes(file)
 
-                val bytesWithInvalidFormatId = Slice.of[Byte](existsBytes.size)
+                val bytesWithInvalidFormatId = Slice.allocate[Byte](existsBytes.size)
                 bytesWithInvalidFormatId addAll existsBytes.take(ByteSizeOf.long) //keep CRC
                 bytesWithInvalidFormatId add (Build.formatId + 1).toByte //change formatId
                 bytesWithInvalidFormatId addAll existsBytes.drop(ByteSizeOf.long + 1) //keep the rest

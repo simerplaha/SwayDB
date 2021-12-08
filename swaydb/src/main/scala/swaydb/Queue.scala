@@ -79,7 +79,7 @@ object Queue {
             bSerializer.write(data._2)
 
         Slice
-          .of[Byte](Bytes.sizeOfUnsignedLong(data._1) + Bytes.sizeOfUnsignedInt(valueBytes.size) + valueBytes.size)
+          .allocate[Byte](Bytes.sizeOfUnsignedLong(data._1) + Bytes.sizeOfUnsignedInt(valueBytes.size) + valueBytes.size)
           .addUnsignedLong(data._1)
           .addUnsignedInt(valueBytes.size)
           .addAll(valueBytes)

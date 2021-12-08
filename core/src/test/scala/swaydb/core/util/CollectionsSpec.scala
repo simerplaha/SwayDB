@@ -130,7 +130,7 @@ class CollectionsSpec extends AnyWordSpec with Matchers {
 
     "Slice" in {
       Benchmark("Slice benchmark") {
-        val buff = Slice.of[Int](count)
+        val buff = Slice.allocate[Int](count)
         (1 to count) foreach {
           i =>
             buff add i

@@ -25,10 +25,10 @@ import scala.reflect.ClassTag
 
 class SliceBuilder[A: ClassTag](maxSize: Int) extends mutable.Builder[A, Slice[A]] with Aggregator[A, Slice[A]] {
   //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-  protected var slice: SliceMut[A] = Slice.of[A](maxSize max 16)
+  protected var slice: SliceMut[A] = Slice.allocate[A](maxSize max 16)
 
   @inline def extendSlice(by: Int) = {
-    val extendedSlice = Slice.of[A](slice.size * by)
+    val extendedSlice = Slice.allocate[A](slice.size * by)
     extendedSlice addAll slice
     slice = extendedSlice
   }
@@ -49,7 +49,7 @@ class SliceBuilder[A: ClassTag](maxSize: Int) extends mutable.Builder[A, Slice[A
   }
 
   def clear(): Unit =
-    slice = Slice.of[A](slice.size)
+    slice = Slice.allocate[A](slice.size)
 
   def result(): Slice[A] =
     slice.close()

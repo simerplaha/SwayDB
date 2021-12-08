@@ -43,7 +43,7 @@ class SegmentSerialiserSpec extends ASegmentSpec {
           val keyValues = randomizedKeyValues(randomIntMax(100) max 1)
           val segment = TestSegment(keyValues)
 
-          val bytes = Slice.of[Byte](SegmentSerialiser.FormatA.bytesRequired(segment))
+          val bytes = Slice.allocate[Byte](SegmentSerialiser.FormatA.bytesRequired(segment))
 
           SegmentSerialiser.FormatA.write(
             segment = segment,

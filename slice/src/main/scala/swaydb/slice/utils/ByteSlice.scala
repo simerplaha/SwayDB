@@ -125,7 +125,7 @@ private[swaydb] trait ByteSlice {
                           charsets: Charset): Slice[Byte] = {
     val bytes = string.getBytes(charsets)
     Slice
-      .of[Byte](sizeOfUnsignedInt(bytes.length) + bytes.length)
+      .allocate[Byte](sizeOfUnsignedInt(bytes.length) + bytes.length)
       .addUnsignedInt(bytes.length)
       .addAll(bytes)
   }
@@ -185,7 +185,7 @@ private[swaydb] trait ByteSlice {
   }
 
   private[swaydb] def writeUnsignedIntNonZero(int: Int): Slice[Byte] = {
-    val slice = Slice.of[Byte](ByteSizeOf.varInt)
+    val slice = Slice.allocate[Byte](ByteSizeOf.varInt)
     writeUnsignedIntNonZero(int, slice)
     slice.close()
   }
@@ -291,7 +291,7 @@ private[swaydb] trait ByteSlice {
   }
 
   def writeUnsignedIntReversed(int: Int): Slice[Byte] = {
-    val slice = Slice.of[Byte](ByteSizeOf.varInt)
+    val slice = Slice.allocate[Byte](ByteSizeOf.varInt)
 
     slice.add((int & 0x7F).asInstanceOf[Byte])
 

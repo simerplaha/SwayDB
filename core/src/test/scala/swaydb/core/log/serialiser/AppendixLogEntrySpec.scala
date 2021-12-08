@@ -61,7 +61,7 @@ class AppendixLogEntrySpec extends ASegmentSpec {
           import AppendixLogEntryWriter.AppendixPutWriter
           val entry = LogEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
 
-          val slice = Slice.of[Byte](entry.entryBytesSize)
+          val slice = Slice.allocate[Byte](entry.entryBytesSize)
           entry writeTo slice
           slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -100,7 +100,7 @@ class AppendixLogEntrySpec extends ASegmentSpec {
           import AppendixLogEntryWriter.AppendixRemoveWriter
           val entry = LogEntry.Remove[Slice[Byte]](1)
 
-          val slice = Slice.of[Byte](entry.entryBytesSize)
+          val slice = Slice.allocate[Byte](entry.entryBytesSize)
           entry writeTo slice
           slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -147,7 +147,7 @@ class AppendixLogEntrySpec extends ASegmentSpec {
               LogEntry.Remove[Slice[Byte]](segment2.minKey) ++
               LogEntry.Put[Slice[Byte], Segment](segment5.minKey, segment5)
 
-          val slice = Slice.of[Byte](entry.entryBytesSize)
+          val slice = Slice.allocate[Byte](entry.entryBytesSize)
           entry writeTo slice
           slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 

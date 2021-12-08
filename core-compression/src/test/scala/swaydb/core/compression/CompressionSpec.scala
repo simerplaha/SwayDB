@@ -68,7 +68,7 @@ class CompressionSpec extends AnyWordSpec with Matchers {
 
     "successfully compress large byte array" in {
       val count = 10000
-      val slice = Slice.of[Byte]((count + 1) * ByteSizeOf.long)
+      val slice = Slice.allocate[Byte]((count + 1) * ByteSizeOf.long)
 
       val from = 1
       (from to (from + count)) map {

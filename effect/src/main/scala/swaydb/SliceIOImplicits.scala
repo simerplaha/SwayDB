@@ -93,7 +93,7 @@ object SliceIOImplicits {
                                                   failFast: Boolean = true): IO[E, Slice[R]] = {
       val it = iterable.iterator
       var failure: Option[IO.Left[E, Slice[R]]] = None
-      val results = Slice.of[R](iterable.size)
+      val results = Slice.allocate[R](iterable.size)
 
       while ((!failFast || failure.isEmpty) && it.hasNext) {
         block(it.next()) match {
@@ -119,7 +119,7 @@ object SliceIOImplicits {
                                 failFast: Boolean = true): Slice[R] = {
       val it = iterable.iterator
       var failure: Throwable = null
-      val successes = Slice.of[R](iterable.size)
+      val successes = Slice.allocate[R](iterable.size)
 
       while ((!failFast || failure == null) && it.hasNext) {
         try

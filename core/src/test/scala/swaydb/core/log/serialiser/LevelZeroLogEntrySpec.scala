@@ -52,7 +52,7 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
         import LevelZeroLogEntryWriter.Level0PutWriter
         val addEntry = LogEntry.Put[Slice[Byte], Memory.Put](1, put)
 
-        val slice = Slice.of[Byte](addEntry.entryBytesSize)
+        val slice = Slice.allocate[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -81,7 +81,7 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
         import LevelZeroLogEntryWriter.Level0RemoveWriter
         val entry = LogEntry.Put[Slice[Byte], Memory.Remove](1, remove)
 
-        val slice = Slice.of[Byte](entry.entryBytesSize)
+        val slice = Slice.allocate[Byte](entry.entryBytesSize)
         entry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -110,7 +110,7 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
         import LevelZeroLogEntryWriter.Level0UpdateWriter
         val addEntry = LogEntry.Put[Slice[Byte], Memory.Update](1, update)
 
-        val slice = Slice.of[Byte](addEntry.entryBytesSize)
+        val slice = Slice.allocate[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -139,7 +139,7 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
         import LevelZeroLogEntryWriter.Level0FunctionWriter
         val addEntry = LogEntry.Put[Slice[Byte], Memory.Function](1, function)
 
-        val slice = Slice.of[Byte](addEntry.entryBytesSize)
+        val slice = Slice.allocate[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -169,7 +169,7 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
 
         val entry = LogEntry.Put[Slice[Byte], Memory.Range](0, inputRange)
 
-        val slice = Slice.of[Byte](entry.entryBytesSize)
+        val slice = Slice.allocate[Byte](entry.entryBytesSize)
         entry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -198,7 +198,7 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
         import LevelZeroLogEntryWriter.Level0PendingApplyWriter
         val addEntry = LogEntry.Put[Slice[Byte], Memory.PendingApply](1, pendingApply)
 
-        val slice = Slice.of[Byte](addEntry.entryBytesSize)
+        val slice = Slice.allocate[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -258,7 +258,7 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
             LogEntry.Put[Slice[Byte], Memory.Range](10, range5) ++
             LogEntry.Put[Slice[Byte], Memory.Range](11, range6)
 
-        val slice = Slice.of[Byte](entry.entryBytesSize)
+        val slice = Slice.allocate[Byte](entry.entryBytesSize)
         entry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 

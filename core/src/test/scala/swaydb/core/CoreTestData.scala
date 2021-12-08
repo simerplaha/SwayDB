@@ -413,7 +413,7 @@ object CoreTestData {
   implicit class ToSlice[T: ClassTag](items: IterableOnce[T]) {
     def toSlice: Slice[T] = {
       val listItems = items.iterator.toList
-      val slice = Slice.of[T](listItems.size)
+      val slice = Slice.allocate[T](listItems.size)
       listItems foreach slice.add
       slice
     }
@@ -1190,7 +1190,7 @@ object CoreTestData {
     Random.shuffle(allBlockOps().to(List)).head
 
   def randomByteChunks(size: Int = 10, sizePerChunk: Int = 10): Slice[Slice[Byte]] = {
-    val slice = Slice.of[Slice[Byte]](size)
+    val slice = Slice.allocate[Slice[Byte]](size)
     (1 to size) foreach {
       _ =>
         slice add Slice.wrap(randomBytes(sizePerChunk))
@@ -1297,7 +1297,7 @@ object CoreTestData {
                       addExpiredPutDeadlines: Boolean = false,
                       addUpdateDeadlines: Boolean = false,
                       addRanges: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] = {
-    val slice = Slice.of[Memory](count * 50) //extra space because addRanges and random Groups can be added for Fixed and Range key-values in the same iteration.
+    val slice = Slice.allocate[Memory](count * 50) //extra space because addRanges and random Groups can be added for Fixed and Range key-values in the same iteration.
     //            var key = 1
     var key = startId getOrElse randomInt(minus = count)
     var iteration = 0
@@ -1625,7 +1625,7 @@ object CoreTestData {
     }
 
   def unexpiredPuts(keyValues: IterableOnce[KeyValue]): Slice[KeyValue.Put] = {
-    val slice = Slice.of[KeyValue.Put](keyValues.size)
+    val slice = Slice.allocate[KeyValue.Put](keyValues.size)
     keyValues foreach {
       keyValue =>
         keyValue.asPut foreach {
@@ -1690,7 +1690,7 @@ object CoreTestData {
                    deadline: Option[Deadline],
                    randomlyDropUpdates: Boolean)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] = {
     var keyUsed = keyValues.head.key.readInt() - 1
-    val updateSlice = Slice.of[Memory](keyValues.size)
+    val updateSlice = Slice.allocate[Memory](keyValues.size)
 
     keyValues foreach {
       keyValue =>
@@ -1886,7 +1886,7 @@ object CoreTestData {
         compressDuplicateValues = compressDuplicateValues,
         enableAccessPositionIndex = enableAccessPositionIndex,
         optimiseForReverseIteration = optimiseForReverseIteration,
-        bytes = Slice.of[Byte](allocateBytes)
+        bytes = Slice.allocate[Byte](allocateBytes)
       )
     builder.enablePrefixCompressionForCurrentWrite = enablePrefixCompressionForCurrentWrite
     builder
@@ -2002,7 +2002,7 @@ object CoreTestData {
   implicit class TransientSegmentImplicits(segment: TransientSegment.Persistent) {
 
     def flattenSegmentBytes: Slice[Byte] = {
-      val slice = Slice.of[Byte](segment.segmentSize)
+      val slice = Slice.allocate[Byte](segment.segmentSize)
 
       segment match {
         case segment: TransientSegment.OneOrRemoteRef =>

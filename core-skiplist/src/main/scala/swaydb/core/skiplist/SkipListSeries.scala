@@ -542,7 +542,7 @@ private[swaydb] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile
     }
 
   def toValuesSlice()(implicit classTag: ClassTag[V]): Slice[V] = {
-    val slice = Slice.of[V](self.size)
+    val slice = Slice.allocate[V](self.size)
 
     //use iterator to clear all removed key-values (null values). SkipListSeries is write optimised backed
     //by an Array so it cannot physically remove the key-value which would require reordering of the

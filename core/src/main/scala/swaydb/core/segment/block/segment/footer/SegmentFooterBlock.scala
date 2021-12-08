@@ -64,7 +64,7 @@ private[core] case object SegmentFooterBlock {
     SegmentFooterBlockState(
       footerSize = Block.minimumHeaderSize(false),
       createdInLevel = createdInLevel,
-      bytes = Slice.of[Byte](optimalBytesRequired),
+      bytes = Slice.allocate[Byte](optimalBytesRequired),
       keyValuesCount = keyValuesCount,
       rangeCount = rangesCount,
       updateCount = updateCount,

@@ -30,14 +30,14 @@ object Domain {
       data match {
         case User(name) =>
           Slice
-            .of[Byte](1000)
+            .allocate[Byte](1000)
             .addInt(1)
             .addStringUTF8(name)
             .close()
 
         case Product(name) =>
           Slice
-            .of[Byte](1000)
+            .allocate[Byte](1000)
             .addInt(2)
             .addStringUTF8(name)
             .close()

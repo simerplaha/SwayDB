@@ -45,7 +45,7 @@ class Level0LogEntrySpec extends AnyWordSpec with Matchers {
     "Write random entries" in {
       def assert[V <: Memory](addEntry: LogEntry.Put[Slice[Byte], V])(implicit writer: LogEntryWriter[LogEntry.Put[Slice[Byte], V]],
                                                                       reader: LogEntryReader[LogEntry.Put[Slice[Byte], V]]) = {
-        val slice = Slice.of[Byte](addEntry.entryBytesSize)
+        val slice = Slice.allocate[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -152,7 +152,7 @@ class Level0LogEntrySpec extends AnyWordSpec with Matchers {
           LogEntry.Put[Slice[Byte], Memory.Range](10, range5) ++
           LogEntry.Put[Slice[Byte], Memory.Range](11, range6)
 
-      val slice = Slice.of[Byte](entry.entryBytesSize)
+      val slice = Slice.allocate[Byte](entry.entryBytesSize)
       entry writeTo slice
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 

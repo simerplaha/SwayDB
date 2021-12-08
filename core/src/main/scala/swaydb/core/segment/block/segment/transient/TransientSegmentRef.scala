@@ -65,7 +65,7 @@ class TransientSegmentRef( //key info
                            val footerBlock: Slice[Byte]) {
 
   val (segmentBytesWithoutHeader, segmentSizeWithoutHeader): (Slice[Slice[Byte]], Int) = {
-    val allBytes = Slice.of[Slice[Byte]](12)
+    val allBytes = Slice.allocate[Slice[Byte]](12)
     var segmentSize = 0
 
     /**
@@ -162,7 +162,7 @@ class TransientSegmentRef( //key info
       None
 
   def flattenSegmentBytesWithoutHeader: Slice[Byte] = {
-    val slice = Slice.of[Byte](segmentSizeWithoutHeader)
+    val slice = Slice.allocate[Byte](segmentSizeWithoutHeader)
     segmentBytesWithoutHeader foreach (slice addAll _)
     assert(slice.isFull)
     slice
