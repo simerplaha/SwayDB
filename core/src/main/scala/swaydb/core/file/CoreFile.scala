@@ -434,5 +434,7 @@ private[core] class CoreFile(val path: Path,
     }
 
   override def hashCode(): Int =
-    MurmurHash3.stringHash(path.toString)
+  //This could be problematic if there is a case where a hashMap of opened
+  //file is required. Currently there is no such use-case.
+    path.hashCode()
 }
