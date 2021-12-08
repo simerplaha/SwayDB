@@ -144,10 +144,8 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
                                                              val blockCache: Option[BlockCacheState],
                                                              private[reader] val reader: Reader) extends BlockReaderBase {
 
-  override def moveTo(newPosition: Int): BlockRefReader[O] = {
+  override def moveTo(newPosition: Int): this.type =
     super.moveTo(newPosition)
-    this
-  }
 
   def transfer(position: Int, count: Int, transferTo: CoreFile): Unit =
     reader match {
@@ -173,12 +171,12 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
   def readFullBlockAndGetReader()(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     BlockRefReader(readFullBlock())
 
-  def copy(): BlockRefReader[O] =
-    new BlockRefReader(
+  def copy(): this.type =
+    new BlockRefReader[O](
       reader = reader.copy(),
       blockCache = blockCache,
       rootBlockRefOffset = rootBlockRefOffset,
       offset = offset
-    )
+    ).asInstanceOf[this.type]
 
 }

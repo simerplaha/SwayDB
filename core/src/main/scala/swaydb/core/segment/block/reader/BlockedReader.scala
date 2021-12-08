@@ -59,10 +59,8 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
   def offset: O =
     block.offset
 
-  override def moveTo(newPosition: Int): BlockedReader[O, B] = {
+  override def moveTo(newPosition: Int): this.type =
     super.moveTo(newPosition)
-    this
-  }
 
   def readAllAndGetReader()(implicit blockOps: BlockOps[O, B]): BlockedReader[O, B] = {
     val bytes = readFullBlock()
@@ -72,11 +70,11 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
     )
   }
 
-  override def copy(): BlockedReader[O, B] =
-    new BlockedReader(
+  override def copy(): this.type =
+    new BlockedReader[O, B](
       reader = reader.copy(),
       blockCache = blockCache,
       rootBlockRefOffset = rootBlockRefOffset,
       block = block
-    )
+    ).asInstanceOf[this.type]
 }

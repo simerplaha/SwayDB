@@ -17,9 +17,9 @@
 package swaydb.core.segment.serialiser
 
 import swaydb.core.segment.data.{Time, Value}
-import swaydb.core.util.Times._
 import swaydb.core.util.{Bytes, MinMax}
-import swaydb.slice.{ReaderBase, Slice, SliceMut, SliceOption, SliceReader}
+import swaydb.core.util.Times._
+import swaydb.slice.{Slice, SliceMut, SliceOption, SliceReader}
 import swaydb.utils.ByteSizeOf
 import swaydb.utils.Options.OptionsImplicits
 
@@ -33,7 +33,7 @@ private[core] sealed trait ValueSerialiser[T] {
 
   def write(value: T, bytes: SliceMut[Byte]): Unit
 
-  def read(reader: ReaderBase): T
+  def read(reader: SliceReader): T
 
   def read(bytes: Slice[Byte]): T =
     read(SliceReader(bytes))
@@ -43,7 +43,7 @@ private[core] sealed trait ValueSerialiser[T] {
 
 private[core] object ValueSerialiser {
 
-  def readDeadline(reader: ReaderBase): Option[Deadline] = {
+  def readDeadline(reader: SliceReader): Option[Deadline] = {
     val deadline = reader.readUnsignedLong()
     if (deadline == 0)
       None
@@ -51,7 +51,7 @@ private[core] object ValueSerialiser {
       deadline.toDeadlineOption
   }
 
-  def readTime(reader: ReaderBase): Time = {
+  def readTime(reader: SliceReader): Time = {
     val timeSize = reader.readUnsignedInt()
     if (timeSize == 0)
       Time.empty
@@ -59,7 +59,7 @@ private[core] object ValueSerialiser {
       Time(reader.read(timeSize))
   }
 
-  def readRemainingTime(reader: ReaderBase): Time = {
+  def readRemainingTime(reader: SliceReader): Time = {
     val remaining = reader.readRemaining()
     if (remaining.isEmpty)
       Time.empty
@@ -67,7 +67,7 @@ private[core] object ValueSerialiser {
       Time(remaining)
   }
 
-  def readValue(reader: ReaderBase): SliceOption[Byte] = {
+  def readValue(reader: SliceReader): SliceOption[Byte] = {
     val remaining = reader.readRemaining()
     if (remaining.isEmpty)
       Slice.Null
@@ -90,7 +90,7 @@ private[core] object ValueSerialiser {
         value.time.size +
         value.value.valueOrElseC(_.size, 0)
 
-    override def read(reader: ReaderBase): Value.Put = {
+    override def read(reader: SliceReader): Value.Put = {
       val deadline = readDeadline(reader)
       val time = readTime(reader)
       val value = readValue(reader)
@@ -113,7 +113,7 @@ private[core] object ValueSerialiser {
         value.time.size +
         value.value.valueOrElseC(_.size, 0)
 
-    override def read(reader: ReaderBase): Value.Update = {
+    override def read(reader: SliceReader): Value.Update = {
       val deadline = readDeadline(reader)
       val time = readTime(reader)
       val value = readValue(reader)
@@ -132,7 +132,7 @@ private[core] object ValueSerialiser {
       Bytes.sizeOfUnsignedLong(value.deadline.toNanos) +
         value.time.size
 
-    override def read(reader: ReaderBase): Value.Remove = {
+    override def read(reader: SliceReader): Value.Remove = {
       val deadline = readDeadline(reader)
       val time = readRemainingTime(reader)
       Value.Remove(deadline, time)
@@ -146,7 +146,7 @@ private[core] object ValueSerialiser {
     override def bytesRequired(value: Value.Function): Int =
       ValueSerialiser.bytesRequired((value.function, value.time.time))(TupleOfBytesSerialiser)
 
-    override def read(reader: ReaderBase): Value.Function = {
+    override def read(reader: SliceReader): Value.Function = {
       val (function, time) = ValueSerialiser.read[(Slice[Byte], Slice[Byte])](reader)
       Value.Function(function, Time(time))
     }
@@ -190,7 +190,7 @@ private[core] object ValueSerialiser {
           }
       }
 
-    override def read(reader: ReaderBase): Slice[Value.Apply] = {
+    override def read(reader: SliceReader): Slice[Value.Apply] = {
       val count = reader.readUnsignedInt()
       reader.foldLeft(Slice.allocate[Value.Apply](count)) {
         case (applies, reader) =>
@@ -223,7 +223,7 @@ private[core] object ValueSerialiser {
     override def bytesRequired(value: Value.PendingApply): Int =
       ValueSerialiser.bytesRequired(value.applies)
 
-    override def read(reader: ReaderBase): Value.PendingApply =
+    override def read(reader: SliceReader): Value.PendingApply =
       Value.PendingApply(ValueSerialiser.read[Slice[Value.Apply]](reader))
   }
 
@@ -246,7 +246,7 @@ private[core] object ValueSerialiser {
           size + Bytes.sizeOfUnsignedInt(valueBytes.size) + valueBytes.size
       }
 
-    override def read(reader: ReaderBase): Iterable[Slice[Byte]] =
+    override def read(reader: SliceReader): Iterable[Slice[Byte]] =
       reader.foldLeft(ListBuffer.empty[Slice[Byte]]) {
         case (result, reader) =>
           val size = reader.readUnsignedInt()
@@ -266,7 +266,7 @@ private[core] object ValueSerialiser {
     override def bytesRequired(value: (Slice[Byte], Slice[Byte])): Int =
       SeqOfBytesSerialiser.bytesRequired(Seq(value._1, value._2))
 
-    override def read(reader: ReaderBase): (Slice[Byte], Slice[Byte]) = {
+    override def read(reader: SliceReader): (Slice[Byte], Slice[Byte]) = {
       val bytes = SeqOfBytesSerialiser.read(reader)
       if (bytes.size != 2)
         throw new Exception(TupleOfBytesSerialiser.getClass.getSimpleName + s".read did not return a tuple. Size = ${bytes.size}")
@@ -302,7 +302,7 @@ private[core] object ValueSerialiser {
             value._1.size
       }
 
-    override def read(reader: ReaderBase): (Slice[Byte], SliceOption[Byte]) = {
+    override def read(reader: SliceReader): (Slice[Byte], SliceOption[Byte]) = {
       val id = reader.readUnsignedInt()
       if (id == 0) {
         val all = reader.readRemaining()
@@ -337,7 +337,7 @@ private[core] object ValueSerialiser {
       }
     }
 
-    override def read(reader: ReaderBase): mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]] = {
+    override def read(reader: SliceReader): mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]] = {
       val format = reader.get()
       if (format != formatId)
         throw new Exception(s"Invalid formatID: $format")
@@ -417,7 +417,7 @@ private[core] object ValueSerialiser {
           bytes addUnsignedInt 0
       }
 
-    override def read(reader: ReaderBase): Option[MinMax[Slice[Byte]]] = {
+    override def read(reader: SliceReader): Option[MinMax[Slice[Byte]]] = {
       val minIdSize = reader.readUnsignedInt()
       if (minIdSize == 0)
         None
@@ -442,22 +442,22 @@ private[core] object ValueSerialiser {
       }
   }
 
-  def writeBytes[T](value: T)(implicit serialiser: ValueSerialiser[T]): Slice[Byte] = {
+  @inline def writeBytes[T](value: T)(implicit serialiser: ValueSerialiser[T]): Slice[Byte] = {
     val bytesRequired = ValueSerialiser.bytesRequired(value)
     val bytes = Slice.allocate[Byte](bytesRequired)
     serialiser.write(value, bytes)
     bytes
   }
 
-  def write[T](value: T)(bytes: SliceMut[Byte])(implicit serialiser: ValueSerialiser[T]): Unit =
+  @inline def write[T](value: T)(bytes: SliceMut[Byte])(implicit serialiser: ValueSerialiser[T]): Unit =
     serialiser.write(value, bytes)
 
-  def read[T](value: Slice[Byte])(implicit serialiser: ValueSerialiser[T]): T =
+  @inline def read[T](value: Slice[Byte])(implicit serialiser: ValueSerialiser[T]): T =
     serialiser.read(value)
 
-  def read[T](reader: ReaderBase)(implicit serialiser: ValueSerialiser[T]): T =
+  @inline def read[T](reader: SliceReader)(implicit serialiser: ValueSerialiser[T]): T =
     serialiser.read(reader)
 
-  def bytesRequired[T](value: T)(implicit serialiser: ValueSerialiser[T]): Int =
+  @inline def bytesRequired[T](value: T)(implicit serialiser: ValueSerialiser[T]): Int =
     serialiser.bytesRequired(value)
 }

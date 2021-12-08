@@ -19,7 +19,7 @@ package swaydb.core.log.serialiser
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.data.{Memory, Time, Value}
 import swaydb.core.segment.serialiser.{RangeValueSerialiser, ValueSerialiser}
-import swaydb.slice.{ReaderBase, Slice}
+import swaydb.slice.{Slice, SliceReader}
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.Deadline
@@ -28,7 +28,7 @@ private[core] object LevelZeroLogEntryReader {
 
   implicit object Level0RemoveReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Remove]] {
 
-    override def read(reader: ReaderBase): LogEntry.Put[Slice[Byte], Memory.Remove] = {
+    override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Memory.Remove] = {
       val keyLength = reader.readUnsignedInt()
       val key: Slice[Byte] = reader.read(keyLength).cut()
       val timeLength = reader.readUnsignedInt()
@@ -41,7 +41,7 @@ private[core] object LevelZeroLogEntryReader {
 
   implicit object Level0PutReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Put]] {
 
-    override def read(reader: ReaderBase): LogEntry.Put[Slice[Byte], Memory.Put] = {
+    override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Memory.Put] = {
       val keyLength = reader.readUnsignedInt()
       val key: Slice[Byte] = reader.read(keyLength).cut()
       val timeLength = reader.readUnsignedInt()
@@ -57,7 +57,7 @@ private[core] object LevelZeroLogEntryReader {
 
   implicit object Level0UpdateReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Update]] {
 
-    override def read(reader: ReaderBase): LogEntry.Put[Slice[Byte], Memory.Update] = {
+    override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Memory.Update] = {
       val keyLength = reader.readUnsignedInt()
       val key: Slice[Byte] = reader.read(keyLength).cut()
       val timeLength = reader.readUnsignedInt()
@@ -73,7 +73,7 @@ private[core] object LevelZeroLogEntryReader {
 
   implicit object Level0FunctionReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Function]] {
 
-    override def read(reader: ReaderBase): LogEntry.Put[Slice[Byte], Memory.Function] = {
+    override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Memory.Function] = {
       val keyLength = reader.readUnsignedInt()
       val key: Slice[Byte] = reader.read(keyLength).cut()
       val timeLength = reader.readUnsignedInt()
@@ -87,7 +87,7 @@ private[core] object LevelZeroLogEntryReader {
 
   implicit object Level0RangeReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Range]] {
 
-    override def read(reader: ReaderBase): LogEntry.Put[Slice[Byte], Memory.Range] = {
+    override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Memory.Range] = {
       val fromKeyLength = reader.readUnsignedInt()
       val fromKey: Slice[Byte] = reader.read(fromKeyLength).cut()
       val toKeyLength = reader.readUnsignedInt()
@@ -102,7 +102,7 @@ private[core] object LevelZeroLogEntryReader {
 
   implicit object Level0PendingApplyReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.PendingApply]] {
 
-    override def read(reader: ReaderBase): LogEntry.Put[Slice[Byte], Memory.PendingApply] = {
+    override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Memory.PendingApply] = {
       val keyLength = reader.readUnsignedInt()
       val key: Slice[Byte] = reader.read(keyLength).cut()
       val valueLength = reader.readUnsignedInt()
@@ -121,7 +121,7 @@ private[core] object LevelZeroLogEntryReader {
       else
         previousEntryOrNull ++ nextEntry
 
-    override def read(reader: ReaderBase): LogEntry[Slice[Byte], Memory] =
+    override def read(reader: SliceReader): LogEntry[Slice[Byte], Memory] =
       reader.foldLeft(null: LogEntry[Slice[Byte], Memory]) {
         case (previousEntry, reader) => {
           val entryId = reader.get()

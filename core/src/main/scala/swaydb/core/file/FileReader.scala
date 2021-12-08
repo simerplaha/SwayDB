@@ -42,7 +42,7 @@ private[core] class FileReader(private val file: CoreFile) extends Reader with L
   override def size(): Int =
     file.fileSize()
 
-  def moveTo(newPosition: Int): FileReader = {
+  def moveTo(newPosition: Int): this.type = {
     position = newPosition max 0
     this
   }
@@ -53,20 +53,13 @@ private[core] class FileReader(private val file: CoreFile) extends Reader with L
   def hasAtLeast(size: Int): Boolean =
     (file.fileSize() - position) >= size
 
-  override def copy(): FileReader =
-    new FileReader(file = file)
+  override def copy(): this.type =
+    new FileReader(file = file).asInstanceOf[this.type]
 
   override def getPosition: Int = position
 
   def transfer(position: Int, count: Int, transferTo: CoreFile): Unit =
     file.transfer(position = position, count = count, transferTo = transferTo)
-
-  override def get() = {
-    val byte = file.get(position = position)
-
-    position += 1
-    byte
-  }
 
   override def read(size: Int): Slice[Byte] =
     if (size <= 0) {

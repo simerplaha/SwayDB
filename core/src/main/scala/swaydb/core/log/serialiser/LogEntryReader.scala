@@ -17,13 +17,13 @@
 package swaydb.core.log.serialiser
 
 import swaydb.core.log.LogEntry
-import swaydb.slice.{ReaderBase, Slice, SliceReader}
+import swaydb.slice.{Slice, SliceReader}
 
 import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for LogEntryReader of type ${T}")
 trait LogEntryReader[T <: LogEntry[_, _]] {
-  def read(reader: ReaderBase): T
+  def read(reader: SliceReader): T
 }
 
 object LogEntryReader {
@@ -31,6 +31,6 @@ object LogEntryReader {
   def read[T <: LogEntry[_, _]](bytes: Slice[Byte])(implicit serialiser: LogEntryReader[T]): T =
     serialiser.read(SliceReader(bytes))
 
-  def read[T <: LogEntry[_, _]](reader: ReaderBase)(implicit serialiser: LogEntryReader[T]): T =
+  def read[T <: LogEntry[_, _]](reader: SliceReader)(implicit serialiser: LogEntryReader[T]): T =
     serialiser.read(reader)
 }

@@ -17,12 +17,12 @@
 package swaydb.core.log.serialiser
 
 import swaydb.core.log.LogEntry
-import swaydb.slice.{ReaderBase, Slice}
+import swaydb.slice.{SliceReader, Slice}
 
 private[swaydb] object CounterLogEntryReader {
 
   implicit object CounterPutLogEntryReader extends LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]] {
-    override def read(reader: ReaderBase): LogEntry.Put[Slice[Byte], Slice[Byte]] = {
+    override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Slice[Byte]] = {
       val _ = reader.get()
       val keySize = reader.readUnsignedInt()
 

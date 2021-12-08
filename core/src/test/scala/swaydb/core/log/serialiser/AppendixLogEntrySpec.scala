@@ -19,17 +19,17 @@ package swaydb.core.log.serialiser
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.config.MMAP
+import swaydb.core.{TestForceSave, TestSweeper}
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
-import swaydb.core.log.{ALogSpec, LogEntry}
-import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.log.LogEntry
 import swaydb.core.segment.{ASegmentSpec, Segment, SegmentOption}
+import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{ACoreSpec, TestForceSave, TestSweeper}
-import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.serializers.Default._
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.{Slice, SliceOption, SliceReader}
 import swaydb.utils.OperatingSystem
 
 class AppendixLogEntrySpec extends ASegmentSpec {
@@ -65,10 +65,10 @@ class AppendixLogEntrySpec extends ASegmentSpec {
           slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
           import appendixReader.AppendixPutReader
-          LogEntryReader.read[LogEntry.Put[Slice[Byte], Segment]](SliceReader(slice.drop(1))) shouldBe entry
+          LogEntryReader.read[LogEntry.Put[Slice[Byte], Segment]](slice.drop(1)) shouldBe entry
 
           import appendixReader.AppendixReader
-          val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Segment]](SliceReader(slice))
+          val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Segment]](slice)
           readEntry shouldBe entry
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
@@ -104,10 +104,10 @@ class AppendixLogEntrySpec extends ASegmentSpec {
           slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
           import appendixReader.AppendixRemoveReader
-          LogEntryReader.read[LogEntry.Remove[Slice[Byte]]](SliceReader(slice.drop(1))).key shouldBe entry.key
+          LogEntryReader.read[LogEntry.Remove[Slice[Byte]]](slice.drop(1)).key shouldBe entry.key
 
           import appendixReader.AppendixReader
-          val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Segment]](SliceReader(slice))
+          val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Segment]](slice)
           readEntry shouldBe entry
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
@@ -151,7 +151,7 @@ class AppendixLogEntrySpec extends ASegmentSpec {
           slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
           import appendixReader.AppendixReader
-          val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Segment]](SliceReader(slice))
+          val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Segment]](slice)
           readEntry shouldBe entry
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)

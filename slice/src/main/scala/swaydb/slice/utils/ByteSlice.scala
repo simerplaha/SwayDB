@@ -77,9 +77,6 @@ private[swaydb] trait ByteSlice {
   def readLong(reader: ReaderBase): Long =
     readLong(reader.read(ByteSizeOf.long))
 
-  def readBoolean(reader: ReaderBase): Boolean =
-    reader.get() == 1
-
   def readBoolean(slice: SliceRO[Byte]): Boolean =
     slice.head == 1
 

@@ -20,13 +20,13 @@ import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
-import swaydb.core.segment.serialiser.ValueSerialiser.MinMaxSerialiser
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.serialiser.ValueSerialiser.MinMaxSerialiser
 import swaydb.core.util.Bytes
 import swaydb.effect.Effect
+import swaydb.slice.{MaxKey, Slice, SliceMut, SliceReader}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.{MaxKey, ReaderBase, Slice, SliceMut}
 import swaydb.utils.{ByteSizeOf, Extension}
 import swaydb.utils.Options.OptionsImplicits
 
@@ -40,7 +40,7 @@ private[core] sealed trait SegmentSerialiser {
   def write(value: Segment,
             bytes: SliceMut[Byte]): Unit
 
-  def read(reader: ReaderBase,
+  def read(reader: SliceReader,
            mmapSegment: MMAP.Segment,
            segmentRefCacheLife: SegmentRefCacheLife,
            checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -96,7 +96,7 @@ private[core] object SegmentSerialiser {
       MinMaxSerialiser.write(segment.minMaxFunctionId, bytes)
     }
 
-    def read(reader: ReaderBase,
+    def read(reader: SliceReader,
              mmapSegment: MMAP.Segment,
              segmentRefCacheLife: SegmentRefCacheLife,
              checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],

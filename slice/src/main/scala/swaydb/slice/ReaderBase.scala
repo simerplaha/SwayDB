@@ -20,12 +20,9 @@ import swaydb.slice.utils.ByteSlice
 import swaydb.utils.Maybe.Maybe
 
 import java.nio.charset.{Charset, StandardCharsets}
-import java.nio.file.Path
 import scala.annotation.tailrec
 
 trait ReaderBase { self =>
-
-  def get(): Byte
 
   def read(size: Int): Slice[Byte]
 
@@ -39,19 +36,16 @@ trait ReaderBase { self =>
 
   def getPosition: Int
 
-  def moveTo(position: Int): ReaderBase
+  def moveTo(position: Int): this.type
 
   def readRemaining(): Slice[Byte]
 
   def isFile: Boolean
 
-  def copy(): ReaderBase
+  def copy(): this.type
 
-  @inline def skip(skip: Int): ReaderBase =
+  @inline def skip(skip: Int): this.type =
     moveTo(getPosition + skip)
-
-  @inline def readBoolean(): Boolean =
-    ByteSlice.readBoolean(self)
 
   @inline def readInt(): Int =
     ByteSlice.readInt(self)
@@ -110,11 +104,11 @@ trait ReaderBase { self =>
   @inline def remaining(): Int =
     size() - getPosition
 
-  @inline def reset(): ReaderBase =
+  @inline def reset(): this.type =
     this moveTo 0
 
   @tailrec
-  final def foldLeft[R](result: R)(f: (R, ReaderBase) => R): R =
+  final def foldLeft[R](result: R)(f: (R, this.type) => R): R =
     if (hasMore)
       foldLeft(f(result, self))(f)
     else

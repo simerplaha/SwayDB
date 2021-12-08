@@ -43,7 +43,7 @@ private[block] trait BlockReaderBase extends ReaderBase with BlockCacheSource wi
   override def remaining(): Int =
     offset.size - position
 
-  def moveTo(position: Int) = {
+  def moveTo(position: Int): this.type = {
     this.position = position
     this
   }
@@ -62,27 +62,6 @@ private[block] trait BlockReaderBase extends ReaderBase with BlockCacheSource wi
 
   override def getPosition: Int =
     position
-
-  override def get(): Byte =
-    if (hasMore) {
-      val byte =
-        if (reader.isFile && blockCache.isDefined)
-          BlockCache.getOrSeek(
-            position = offset.start + position - rootBlockRefOffset.start,
-            size = 1,
-            source = this,
-            state = blockCache.get
-          ).head
-        else
-          reader
-            .moveTo(offset.start + position)
-            .get()
-
-      position += 1
-      byte
-    } else {
-      throw new Exception(s"Has no more bytes. Position: $position")
-    }
 
   override def read(size: Int): Slice[Byte] = {
     val remaining = this.remaining()

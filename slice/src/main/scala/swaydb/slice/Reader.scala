@@ -18,11 +18,11 @@ package swaydb.slice
 
 trait Reader extends ReaderBase {
 
-  def moveTo(position: Int): Reader
+  def moveTo(position: Int): this.type
 
-  override def copy(): Reader
+  override def copy(): this.type
 
-  override def skip(skip: Int): Reader =
+  override def skip(skip: Int): this.type =
     moveTo(getPosition + skip)
 
 }
