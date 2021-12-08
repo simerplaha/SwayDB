@@ -20,7 +20,7 @@ import swaydb.Benchmark
 import swaydb.config.ForceSave
 import swaydb.core.CoreTestData.randomBytesSlice
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCleaner
-import swaydb.core.{ACoreSpec, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestSweeper}
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._
 import swaydb.utils.OperatingSystem
@@ -46,7 +46,7 @@ class ForceSavePerformanceSpec extends ACoreSpec {
        * fastest: 0.009364 seconds
        */
 
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           var slowest: Double = Double.MinValue
           var quickest: Double = Double.MaxValue
@@ -93,7 +93,7 @@ class ForceSavePerformanceSpec extends ACoreSpec {
        * fastest: 0.008592 seconds
        */
 
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           var slowest: Double = Double.MinValue

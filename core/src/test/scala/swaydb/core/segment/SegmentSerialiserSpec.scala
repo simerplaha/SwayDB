@@ -18,11 +18,11 @@ package swaydb.core.segment
 
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core.file.reader.Reader
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.{ACoreSpec, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestSweeper}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
@@ -32,7 +32,7 @@ class SegmentSerialiserSpec extends ASegmentSpec {
 
   "serialise segment" in {
     runThis(100.times, log = true, "Test - Serialise segment") {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

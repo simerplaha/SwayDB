@@ -18,8 +18,8 @@ package swaydb.api.multimap
 
 import org.scalatest.OptionValues._
 import swaydb.api.TestBaseAPI
-import swaydb.core.TestCaseSweeper
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.serializers.Default._
 import swaydb.{Glass, MultiMap}
@@ -28,14 +28,14 @@ import swaydb.testkit.TestKit._
 class MultiMapPutSpec0 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass] =
+  override def newDB()(implicit sweeper: TestSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass] =
     swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir).sweep(_.delete())
 }
 
 class MultiMapPutSpec1 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass] =
+  override def newDB()(implicit sweeper: TestSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass] =
     swaydb.memory.MultiMap[Int, Int, String, Nothing, Glass]().sweep(_.delete())
 }
 
@@ -43,11 +43,11 @@ sealed trait MultiMapPutSpec extends TestBaseAPI {
 
   val keyValueCount: Int
 
-  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass]
+  def newDB()(implicit sweeper: TestSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass]
 
   "Root" should {
     "Initialise a RootMap & SubMap from Root" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val root = newDB()
@@ -74,7 +74,7 @@ sealed trait MultiMapPutSpec extends TestBaseAPI {
     }
 
     "Initialise a RootMap & 2 SubMaps from Root" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val root = newDB()
@@ -107,7 +107,7 @@ sealed trait MultiMapPutSpec extends TestBaseAPI {
     }
 
     "Initialise 2 RootMaps & 2 SubMaps under each SubMap" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val root = newDB()

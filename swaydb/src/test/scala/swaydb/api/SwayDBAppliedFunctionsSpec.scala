@@ -18,8 +18,8 @@ package swaydb.api
 
 import swaydb.PureFunctionScala._
 import swaydb.config.Functions
-import swaydb.core.TestCaseSweeper
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper
+import swaydb.core.TestSweeper._
 import swaydb.core.log.applied.AppliedFunctionsLog
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis.{eventual, runThis}
@@ -38,7 +38,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseAPI {
     "not create appliedFunctions map" when {
       "functions are disabled" in {
         runThis(times = repeatTest, log = true) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
 
               val dir = createRandomDir
@@ -56,7 +56,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseAPI {
     "create appliedFunctions map" when {
       "functions are enabled" in {
         runThis(times = repeatTest, log = true) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
 
               val dir = createRandomDir
@@ -81,7 +81,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseAPI {
   "store applied functions" when {
     "there is no data for the function to apply on" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val dir = createRandomDir
@@ -117,7 +117,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseAPI {
 
     "there is data for the function to apply" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val dir = createRandomDir
@@ -173,7 +173,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseAPI {
   "fail start" when {
     "applied function is missing" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val dir = createRandomDir
@@ -212,7 +212,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseAPI {
 
   "store large number of functions" in {
     runThis(times = repeatTest, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val dir = createRandomDir

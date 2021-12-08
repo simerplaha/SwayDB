@@ -67,7 +67,7 @@ sealed trait LevelRefreshSpec extends ALevelSpec with ALogSpec with MockFactory 
   "refresh" should {
     "remove expired key-values" in {
       runThis(5.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -106,7 +106,7 @@ sealed trait LevelRefreshSpec extends ALevelSpec with ALogSpec with MockFactory 
     }
 
     "update createdInLevel" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

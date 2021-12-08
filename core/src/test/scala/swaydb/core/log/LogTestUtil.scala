@@ -19,7 +19,7 @@ package swaydb.core.log
 import org.scalatest.matchers.should.Matchers._
 import swaydb.IOValues._
 import swaydb.config.MMAP
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
@@ -28,7 +28,7 @@ import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
 import swaydb.core.log.timer.Timer
 import swaydb.core.log.timer.Timer.PersistentTimer
-import swaydb.core.{TestCaseSweeper, TestExecutionContext}
+import swaydb.core.{TestSweeper, TestExecutionContext}
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
@@ -54,7 +54,7 @@ object LogTestUtil {
   implicit class ReopenLog[K, V, C <: LogCache[K, V]](log: PersistentLog[K, V, C]) {
     def reopen(implicit keyOrder: KeyOrder[K],
                reader: LogEntryReader[LogEntry[K, V]],
-               testCaseSweeper: TestCaseSweeper,
+               testCaseSweeper: TestSweeper,
                logCacheBuilder: LogCacheBuilder[C]) = {
       log.close()
 
@@ -97,7 +97,7 @@ object LogTestUtil {
                forceSaveApplier: ForceSaveApplier,
                writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]],
                reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]],
-               testCaseSweeper: TestCaseSweeper): PersistentCounterLog = {
+               testCaseSweeper: TestSweeper): PersistentCounterLog = {
       counter.close()
       ensureCleanedForWindows(counter.mmap)
 
@@ -115,7 +115,7 @@ object LogTestUtil {
                forceSaveApplier: ForceSaveApplier,
                writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]],
                reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]],
-               testCaseSweeper: TestCaseSweeper): PersistentTimer = {
+               testCaseSweeper: TestSweeper): PersistentTimer = {
       timer.close()
       ensureCleanedForWindows(timer.counter.mmap)
 

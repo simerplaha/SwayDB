@@ -18,8 +18,8 @@ package swaydb.api
 
 import swaydb.IOValues._
 import swaydb._
-import swaydb.core.TestCaseSweeper
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper
+import swaydb.core.TestSweeper._
 import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
@@ -30,7 +30,7 @@ class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value.sweep(_.delete().get)
 }
 
@@ -39,7 +39,7 @@ class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
 
   val keyValueCount: Int = 100000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value.sweep(_.delete().get)
 }
 
@@ -47,13 +47,13 @@ sealed trait SwayDBReverseSpec extends TestBaseAPI {
 
   val keyValueCount: Int
 
-  def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO]
+  def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO]
 
   implicit val bag = Bag.apiIO
 
   "Do reverse ordering" in {
     runThis(times = repeatTest, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val db = newDB()

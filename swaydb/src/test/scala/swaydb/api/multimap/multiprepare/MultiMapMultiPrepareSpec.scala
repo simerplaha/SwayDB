@@ -22,8 +22,8 @@ import swaydb.api.TestBaseAPI
 import swaydb.api.multimap.multiprepare.PrimaryKey._
 import swaydb.api.multimap.multiprepare.Row._
 import swaydb.api.multimap.multiprepare.Table._
-import swaydb.core.TestCaseSweeper
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper
+import swaydb.core.TestSweeper._
 import swaydb.multimap.MultiPrepare
 import swaydb.{Bag, Glass, Prepare}
 
@@ -34,7 +34,7 @@ class MultiMapMultiPrepareSpec extends TestBaseAPI {
 
   "transaction" when {
     "nested map hierarchy" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           implicit val bag = Bag.glass

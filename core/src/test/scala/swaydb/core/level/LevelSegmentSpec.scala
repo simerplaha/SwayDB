@@ -21,7 +21,7 @@ import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.config.storage.LevelStorage
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
@@ -75,7 +75,7 @@ sealed trait LevelSegmentSpec extends ALevelSpec with MockFactory {
   "writing Segments to single level" should {
     "succeed" when {
       "level is empty" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -90,7 +90,7 @@ sealed trait LevelSegmentSpec extends ALevelSpec with MockFactory {
 
       "level is non-empty" in {
         runThis(10.times, log = true) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -112,7 +112,7 @@ sealed trait LevelSegmentSpec extends ALevelSpec with MockFactory {
       }
 
       "writing multiple Segments to an empty Level" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -136,7 +136,7 @@ sealed trait LevelSegmentSpec extends ALevelSpec with MockFactory {
       }
 
       "writing multiple Segments to a non empty Level" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -165,7 +165,7 @@ sealed trait LevelSegmentSpec extends ALevelSpec with MockFactory {
 
       "distribute Segments to multiple directories based on the distribution ratio" in {
         if (isPersistentSpec) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -238,7 +238,7 @@ sealed trait LevelSegmentSpec extends ALevelSpec with MockFactory {
 
     "fail" when {
       "fail when writing a deleted segment" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -267,7 +267,7 @@ sealed trait LevelSegmentSpec extends ALevelSpec with MockFactory {
       "revert copy if merge fails" in {
         if (isPersistentSpec)
           runThis(10.times, log = true) {
-            TestCaseSweeper {
+            TestSweeper {
               implicit sweeper =>
 
                 val keyValues = randomKeyValues(100)(TestTimer.Empty).groupedSlice(10).toArray

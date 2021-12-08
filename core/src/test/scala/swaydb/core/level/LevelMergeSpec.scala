@@ -21,7 +21,7 @@ import org.scalatest.PrivateMethodTester
 import swaydb.IO
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.log.ALogSpec
@@ -65,7 +65,7 @@ sealed trait LevelMergeSpec extends ALevelSpec with MockFactory with PrivateMeth
   "level is empty" should {
     "write put key-values" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             //create a Level
             val level = TestLevel()
@@ -105,7 +105,7 @@ sealed trait LevelMergeSpec extends ALevelSpec with MockFactory with PrivateMeth
 
     "cleared update key-values" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val level = TestLevel()
 
@@ -144,7 +144,7 @@ sealed trait LevelMergeSpec extends ALevelSpec with MockFactory with PrivateMeth
   "level is non empty" should {
     "overwrite existing key-values" in new ALogSpec {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val level = TestLevel()
 
@@ -178,7 +178,7 @@ sealed trait LevelMergeSpec extends ALevelSpec with MockFactory with PrivateMeth
 
     "merge new key-values" in new ALevelSpec with ALogSpec {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val level = TestLevel()
 
@@ -223,7 +223,7 @@ sealed trait LevelMergeSpec extends ALevelSpec with MockFactory with PrivateMeth
 
     "seconds merge clears all existing key-values" in new ALogSpec {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val level = TestLevel()
 

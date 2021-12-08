@@ -20,7 +20,7 @@ import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.file.CoreFile
@@ -57,7 +57,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
   "Map" should {
     "initialise a memory level0" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryWriter._
 
@@ -92,7 +92,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "initialise a memory Appendix log" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import AppendixLogEntryWriter._
 
@@ -118,7 +118,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "initialise a persistent Level0 log and recover from it when it's empty" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -151,7 +151,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "initialise a persistent Appendix log and recover from it when it's empty" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import AppendixLogEntryWriter._
           import sweeper._
@@ -194,7 +194,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "initialise a persistent Level0 log and recover from it when it's contains data" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -254,7 +254,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "initialise a persistent Appendix log and recover from it when it's contains data" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -316,7 +316,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "initialise a Map that has two persistent Level0 log files (second file did not value deleted due to early JVM termination)" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -379,7 +379,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "initialise a Map that has two persistent Appendix log files (second file did not value deleted due to early JVM termination)" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -456,7 +456,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "fail initialise if the Map exists but recovery is not provided" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -495,7 +495,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
   "PersistentMap.recover" should {
     "recover from an empty PersistentMap folder" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -523,7 +523,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "recover from an existing PersistentMap folder" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -585,7 +585,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "recover from an existing PersistentMap folder when flushOnOverflow is true" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -676,7 +676,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "recover from an existing PersistentMap folder with empty memory log" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -721,7 +721,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
   "PersistentMap.nextFile" should {
     "creates a new file from the current file" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -773,7 +773,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     import LevelZeroLogEntryWriter._
 
     "fail if the WAL file is corrupted and and when dropCorruptedTailEntries = false" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
           val log =
@@ -815,7 +815,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "successfully recover partial data if WAL file is corrupted and when dropCorruptedTailEntries = true" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
           val log =
@@ -871,7 +871,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
   "PersistentMap.recovery on corruption" when {
     "there are two WAL files and the first file is corrupted" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -960,7 +960,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
   "PersistentMap.recovery on corruption" when {
     "there are two WAL files and the second file is corrupted" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -1047,7 +1047,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
   "Randomly inserting data into Map and recovering the Map" should {
     "result in the recovered Map to have the same skipList as the Map before recovery" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -1097,7 +1097,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
   "inserting data" when {
     "fileSize is too small that it overflows" should {
       "extend the fileSize & also log warn message" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             runThis(100.times, log = true) {
@@ -1158,7 +1158,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
   "reopening after each write" in {
     runThis(1.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._

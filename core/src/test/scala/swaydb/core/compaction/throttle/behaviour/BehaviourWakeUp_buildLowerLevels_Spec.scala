@@ -19,7 +19,7 @@ package swaydb.core.compaction.throttle.behaviour
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.level.{ALevelSpec, Level}
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestForceSave}
 import swaydb.utils.OperatingSystem
 
 
@@ -50,7 +50,7 @@ sealed trait BehaviourWakeUp_buildLowerLevels_Spec extends ALevelSpec {
   "build lower levels" when {
     "there are 2 levels" when {
       "lower level is the second level" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val level = TestLevel(nextLevel = Some(TestLevel()))
             val lowerLevel = level.nextLevel.get.shouldBeInstanceOf[Level]
@@ -64,7 +64,7 @@ sealed trait BehaviourWakeUp_buildLowerLevels_Spec extends ALevelSpec {
 
     "there are 3 levels" when {
       "lower level is the third level" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val level = TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel()))))
             val secondLevel = level.nextLevel.get.shouldBeInstanceOf[Level]
@@ -77,7 +77,7 @@ sealed trait BehaviourWakeUp_buildLowerLevels_Spec extends ALevelSpec {
       }
 
       "lower level is the second level" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val level = TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel()))))
             val secondLevel = level.nextLevel.get.shouldBeInstanceOf[Level]

@@ -68,7 +68,7 @@ sealed trait LevelCollapseSpec extends ALevelSpec {
   //    false
 
   "collapse small Segments to 50% of the size when the Segment's size was reduced by deleting 50% of it's key-values" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         import sweeper._
 
@@ -114,7 +114,7 @@ sealed trait LevelCollapseSpec extends ALevelSpec {
   "collapse all small Segments into one of the existing small Segments, if the Segment was reopened with a larger segment size" in {
     if (isPersistentSpec) //memory Level cannot be reopened.
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -160,7 +160,7 @@ sealed trait LevelCollapseSpec extends ALevelSpec {
   "clear expired key-values" in {
     //this test is similar as the above collapsing small Segment test.
     //Remove or expiring key-values should have the same result
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         import sweeper._
 
@@ -208,7 +208,7 @@ sealed trait LevelCollapseSpec extends ALevelSpec {
   }
 
   "update createdInLevel" in new ALogSpec {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         import sweeper._
 

@@ -26,7 +26,7 @@ import swaydb.core.log.LogTestUtil._
 import swaydb.core.log.counter.CounterLog
 import swaydb.core.log.serialiser.{CounterLogEntryReader, CounterLogEntryWriter, LogEntryReader, LogEntryWriter}
 import swaydb.core.segment.FunctionStore
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestForceSave}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.OperatingSystem
@@ -81,7 +81,7 @@ sealed trait TimerSpec extends ACoreSpec {
   "it" should {
 
     "write time sequentially" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

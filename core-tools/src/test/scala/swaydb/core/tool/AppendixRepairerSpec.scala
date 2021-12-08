@@ -24,7 +24,7 @@ import swaydb.config.repairAppendix.{AppendixRepairStrategy, OverlappingSegments
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestForceSave}
 import swaydb.core.level.ALevelSpec
 import swaydb.effect.Effect
 import swaydb.effect.Effect._
@@ -47,7 +47,7 @@ class AppendixRepairerSpec extends ALevelSpec {
 
   "AppendixRepair" should {
     "fail if the input path does not exist" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
           AppendixRepairer(nextLevelPath, AppendixRepairStrategy.ReportFailure).left.value.exception shouldBe a[NoSuchFileException]
@@ -56,7 +56,7 @@ class AppendixRepairerSpec extends ALevelSpec {
 
     "create new appendix file if all the Segments in the Level are non-overlapping Segments" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
             val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = MMAP.Off(TestForceSave.channel())))
@@ -81,7 +81,7 @@ class AppendixRepairerSpec extends ALevelSpec {
 
     "create empty appendix file if the Level is empty" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -115,7 +115,7 @@ class AppendixRepairerSpec extends ALevelSpec {
 
     "report duplicate Segments" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
             //create a Level with a sub-level and disable throttling so that compaction does not delete expired key-values
@@ -166,7 +166,7 @@ class AppendixRepairerSpec extends ALevelSpec {
     }
 
     "report overlapping min & max key Segments & delete newer overlapping Segment if KeepOld is selected" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
           //create empty Level

@@ -22,7 +22,7 @@ import swaydb.ActorConfig.QueueOrder
 import swaydb.PureFunctionScala._
 import swaydb.api.TestBaseAPI
 import swaydb.config.Functions
-import swaydb.core.TestCaseSweeper
+import swaydb.core.TestSweeper
 import swaydb.core.CoreTestData._
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Default._
@@ -68,7 +68,7 @@ trait SimulationSpec extends AnyWordSpec with TestBaseAPI with LazyLogging {
   override val keyValueCount: Int = 0
 
   def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
-              sweeper: TestCaseSweeper): swaydb.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO]
+              sweeper: TestSweeper): swaydb.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO]
 
   implicit val functions = Functions[PureFunction.Map[Long, Domain]]()
 
@@ -540,7 +540,7 @@ trait SimulationSpec extends AnyWordSpec with TestBaseAPI with LazyLogging {
     //    }
 
     "concurrently Create, Update, Read & Delete (CRUD) Products" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

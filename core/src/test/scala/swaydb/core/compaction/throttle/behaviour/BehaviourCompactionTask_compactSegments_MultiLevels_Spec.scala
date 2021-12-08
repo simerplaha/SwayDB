@@ -67,7 +67,7 @@ sealed trait BehaviourCompactionTask_compactSegments_MultiLevels_Spec extends AL
     "there are multi levels" should {
       "write data to lower level" when {
         "target Level is empty" in {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -138,7 +138,7 @@ sealed trait BehaviourCompactionTask_compactSegments_MultiLevels_Spec extends AL
         }
 
         "target Level is non empty" in {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 

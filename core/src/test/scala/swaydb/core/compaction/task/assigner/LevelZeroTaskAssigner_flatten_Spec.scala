@@ -48,7 +48,7 @@ class LevelZeroTaskAssigner_flatten_Spec extends ALevelSpec with ALogSpec with M
    */
   "random generation" in {
     runThis(5.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

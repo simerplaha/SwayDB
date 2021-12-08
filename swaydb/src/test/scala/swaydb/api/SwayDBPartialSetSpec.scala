@@ -18,8 +18,8 @@ package swaydb.api
 
 import org.scalatest.OptionValues._
 import swaydb.Glass
-import swaydb.core.TestCaseSweeper
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper
+import swaydb.core.TestSweeper._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
@@ -53,7 +53,7 @@ class SwayDBPartialSet_Persistent_Spec extends SwayDBPartialSetSpec {
 
   import SwayDBPartialSetSpec._
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass] =
+  override def newDB()(implicit sweeper: TestSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass] =
     swaydb.persistent.Set[(Int, Option[String]), Nothing, Glass](randomDir, logSize = 10.bytes).sweep(_.delete())
 }
 
@@ -61,7 +61,7 @@ class SwayDBPartialSet_Memory_Spec extends SwayDBPartialSetSpec {
 
   import SwayDBPartialSetSpec._
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass] =
+  override def newDB()(implicit sweeper: TestSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass] =
     swaydb.memory.Set[(Int, Option[String]), Nothing, Glass](logSize = 10.bytes).sweep(_.delete())
 }
 
@@ -69,11 +69,11 @@ trait SwayDBPartialSetSpec extends TestBaseAPI {
 
   val keyValueCount = 1000
 
-  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass]
+  def newDB()(implicit sweeper: TestSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass]
 
   "read partially ordered key-values" in {
     runThis(times = repeatTest, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val set = newDB()

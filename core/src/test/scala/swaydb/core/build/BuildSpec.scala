@@ -21,7 +21,7 @@ import swaydb.Exception.InvalidDirectoryType
 import swaydb.IOValues._
 import swaydb.config.DataType
 import swaydb.core.CoreTestData._
-import swaydb.core.{ACoreSpec, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestSweeper}
 import swaydb.effect.Effect
 import swaydb.slice.Slice
 import swaydb.utils.{ByteSizeOf, Extension}
@@ -34,7 +34,7 @@ class BuildSpec extends ACoreSpec {
 
   "write" should {
     "create a build.info file" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           DataType.all foreach {
             dataType =>
@@ -51,7 +51,7 @@ class BuildSpec extends ACoreSpec {
     }
 
     "fail if build.info already exists" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val folder = createRandomDir
           val file = Effect.createFile(folder.resolve(Build.fileName))
@@ -68,7 +68,7 @@ class BuildSpec extends ACoreSpec {
   "read" should {
     "return fresh" when {
       "the folder does not exist" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val folder = randomDir
@@ -78,7 +78,7 @@ class BuildSpec extends ACoreSpec {
       }
 
       "the folder exists but is empty" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val folder = createRandomDir
@@ -90,7 +90,7 @@ class BuildSpec extends ACoreSpec {
 
     "return NoBuildInfo" when {
       "non-empty folder exists without build.info file" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             Extension.all foreach {
               extension =>
@@ -112,7 +112,7 @@ class BuildSpec extends ACoreSpec {
 
     "fail" when {
       "invalid crc" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>
@@ -131,7 +131,7 @@ class BuildSpec extends ACoreSpec {
       }
 
       "invalid formatId" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>
@@ -164,7 +164,7 @@ class BuildSpec extends ACoreSpec {
   "validateOrCreate" should {
     "fail on an existing non-empty directories" when {
       "DisallowOlderVersions" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>
@@ -188,7 +188,7 @@ class BuildSpec extends ACoreSpec {
 
     "fail on an existing directory with different dataType" when {
       "DisallowOlderVersions" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             DataType.all foreach {
               invalidDataType =>
@@ -211,7 +211,7 @@ class BuildSpec extends ACoreSpec {
 
     "pass on empty directory" when {
       "DisallowOlderVersions" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>
@@ -229,7 +229,7 @@ class BuildSpec extends ACoreSpec {
 
     "pass on non existing directory" when {
       "DisallowOlderVersions" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>

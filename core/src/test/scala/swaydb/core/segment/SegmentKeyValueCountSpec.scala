@@ -21,7 +21,7 @@ import org.scalatest.concurrent.ScalaFutures
 import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.core.CoreTestData._
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
 import swaydb.core.level.ALevelSpec
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
@@ -63,7 +63,7 @@ sealed trait SegmentKeyValueCount extends ALevelSpec with ScalaFutures with Priv
 
     "return 1 when the Segment contains only 1 key-value" in {
       runThis(10.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             assertSegment(
@@ -81,7 +81,7 @@ sealed trait SegmentKeyValueCount extends ALevelSpec with ScalaFutures with Priv
 
     "return the number of randomly generated key-values where there are no Groups" in {
       runThis(10.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             assertSegment(
               keyValues = randomizedKeyValues(keyValuesCount),

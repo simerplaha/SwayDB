@@ -28,7 +28,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.data._
 import swaydb.core.segment.{ASegmentSpec, PersistentSegmentMany, PersistentSegmentOne}
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestTimer}
 import swaydb.effect.IOStrategy
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -52,7 +52,7 @@ class SegmentBlockInitialisationSpec extends ASegmentSpec {
     "not be created" when {
       "disabled" in {
         runThis(10.times) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -86,7 +86,7 @@ class SegmentBlockInitialisationSpec extends ASegmentSpec {
 
       "minimumNumberOfKeys is not met" in {
         runThis(10.times) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -122,7 +122,7 @@ class SegmentBlockInitialisationSpec extends ASegmentSpec {
     "partially created" when {
       "hashIndex is not perfect" in {
         runThis(1.times) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -186,7 +186,7 @@ class SegmentBlockInitialisationSpec extends ASegmentSpec {
     "fully be created" when {
       "perfect hashIndex" in {
         runThis(10.times) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -307,7 +307,7 @@ class SegmentBlockInitialisationSpec extends ASegmentSpec {
     "not be created" when {
       "falsePositive is high" in {
         runThis(10.times) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -338,7 +338,7 @@ class SegmentBlockInitialisationSpec extends ASegmentSpec {
 
       "minimum number of key is not met" in {
         runThis(10.times) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -369,7 +369,7 @@ class SegmentBlockInitialisationSpec extends ASegmentSpec {
 
       "key-values contain remove ranges" in {
         runThis(10.times) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -430,7 +430,7 @@ class SegmentBlockInitialisationSpec extends ASegmentSpec {
   "hashIndex" should {
     "not be created if minimum number is not met" in {
       runThis(10.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -469,7 +469,7 @@ class SegmentBlockInitialisationSpec extends ASegmentSpec {
 
     "cache everything" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -590,7 +590,7 @@ class SegmentBlockInitialisationSpec extends ASegmentSpec {
   "cacheBlocksOnCreate" when {
     "false" should {
       "not cache bytes" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -610,7 +610,7 @@ class SegmentBlockInitialisationSpec extends ASegmentSpec {
     "true" should {
       "cache blocks on initialisation and maintain reads on clear" in {
         runThis(100.times) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
 
               val keyValues = randomKeyValues(100)

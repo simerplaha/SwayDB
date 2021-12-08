@@ -19,8 +19,8 @@ package swaydb.api.multimap
 import org.scalatest.OptionValues._
 import swaydb.api.TestBaseAPI
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper._
-import swaydb.core.{TestCaseSweeper, TestExecutionContext}
+import swaydb.core.TestSweeper._
+import swaydb.core.{TestSweeper, TestExecutionContext}
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Default._
 import swaydb.slice.Slice
@@ -36,28 +36,28 @@ import swaydb.testkit.TestKit._
 class MultiMapSpecOLD0 extends MultiMapSpec_OLD {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
+  override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
     swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir).sweep(_.delete())
 }
 
 class MultiMapSpecOLD1 extends MultiMapSpec_OLD {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
+  override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
     swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir, logSize = 1.byte).sweep(_.delete())
 }
 
 class MultiMapSpecOLD2 extends MultiMapSpec_OLD {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
+  override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
     swaydb.memory.MultiMap[Int, Int, String, Nothing, Glass]().sweep(_.delete())
 }
 
 class MultiMapSpecOLD3 extends MultiMapSpec_OLD {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
+  override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
     swaydb.memory.MultiMap[Int, Int, String, Nothing, Glass](logSize = 1.byte).sweep(_.delete())
 }
 
@@ -69,7 +69,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
 
   val keyValueCount: Int
 
-  def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Glass]
+  def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass]
 
   implicit val bag = Bag.glass
 
@@ -79,7 +79,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
 
   "initialising" should {
     "create an empty rootMap" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -100,7 +100,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "create a non-empty rootMap" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -129,7 +129,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
 
     "create with childMap" in {
       runThis(times = 10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val rootMap = newDB()
@@ -185,7 +185,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
       implicit val ec = TestExecutionContext.executionContext
 
       runThis(10.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val rootMap = newDB()
@@ -217,7 +217,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "remove" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -244,7 +244,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
 
 
     "expire key" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -288,7 +288,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "expire range keys" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -339,7 +339,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "update range keys" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -374,7 +374,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "batch put" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -397,7 +397,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "batch update" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -430,7 +430,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "batch expire" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -463,7 +463,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "batchPut" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -478,7 +478,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "batchUpdate" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -495,7 +495,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "batchRemove" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -512,7 +512,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "batchExpire" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -531,7 +531,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "get" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -556,7 +556,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "value when sub map is removed" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val rootMap = newDB()
           rootMap.put((1, "one"), (2, "two"))
@@ -580,7 +580,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "getKey" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -605,7 +605,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "getKeyValue" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -630,7 +630,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
     }
 
     "keys" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val rootMap = newDB()
@@ -728,7 +728,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
   "SubMap" when {
     "children.init on a non existing map" should {
       "create a new childMap" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val root = newDB()
@@ -743,7 +743,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
 
     "children.init on a existing map" should {
       "replace existing map" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val root = newDB()
@@ -757,7 +757,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
       }
 
       "replace existing map and all it's entries" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val root = newDB()
@@ -781,7 +781,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseAPI {
       }
 
       "replace existing map and all it's entries and also all existing maps childMap and all their entries" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val root = newDB()
 

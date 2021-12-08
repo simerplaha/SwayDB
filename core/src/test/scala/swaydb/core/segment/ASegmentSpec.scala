@@ -12,7 +12,7 @@ import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.CoreTestData._
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.effect.{Dir, Effect}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -49,7 +49,7 @@ trait ASegmentSpec extends ACoreSpec {
               bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
               segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                                       sweeper: TestCaseSweeper,
+                                                                                                       sweeper: TestSweeper,
                                                                                                        ec: ExecutionContext = TestExecutionContext.executionContext): Segment = {
 
       val segmentNumber = Effect.numberFileId(path)._1 - 1
@@ -89,7 +89,7 @@ trait ASegmentSpec extends ACoreSpec {
             bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
             segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                      timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                                     sweeper: TestCaseSweeper,
+                                                                                                     sweeper: TestSweeper,
                                                                                                      ec: ExecutionContext = TestExecutionContext.executionContext): Segment = {
 
       val segmentNumber = Effect.numberFileId(path)._1 - 1
@@ -126,7 +126,7 @@ trait ASegmentSpec extends ACoreSpec {
                                                                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                       pathsDistributor: PathsDistributor,
                                                                                                       idGenerator: IDGenerator,
-                                                                                                      sweeper: TestCaseSweeper,
+                                                                                                      sweeper: TestSweeper,
                                                                                                       ec: ExecutionContext = TestExecutionContext.executionContext): Slice[Segment] = {
       import sweeper._
 
@@ -186,7 +186,7 @@ trait ASegmentSpec extends ACoreSpec {
                        binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random,
                        hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
                        bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                  sweeper: TestCaseSweeper,
+                                                                                                  sweeper: TestSweeper,
                                                                                                   segmentIO: SegmentReadIO = SegmentReadIO.random,
                                                                                                   ec: ExecutionContext = TestExecutionContext.executionContext) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")

@@ -18,27 +18,27 @@ package swaydb.stress.weather
 
 import swaydb.IO
 import swaydb.config.Atomic
-import swaydb.core.TestCaseSweeper
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper
+import swaydb.core.TestSweeper._
 import swaydb.serializers.Default._
 
 class Memory_NonAtomic_WeatherDataSpec extends WeatherDataSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper) =
+  override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.memory.Map[Int, WeatherData, Nothing, IO.ApiIO](atomic = Atomic.Off).get.sweep(_.delete().get)
 }
 
 class Memory_Atomic_WeatherDataSpec extends WeatherDataSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper) =
+  override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.memory.Map[Int, WeatherData, Nothing, IO.ApiIO](atomic = Atomic.On).get.sweep(_.delete().get)
 }
 
 class Memory_NonAtomic_MultiMap_WeatherDataSpec extends WeatherDataSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper) =
+  override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.memory.MultiMap[Int, Int, WeatherData, Nothing, IO.ApiIO](atomic = Atomic.Off).get.sweep(_.delete().get)
 }
 
 class Persistent_NonAtomic_WeatherDataSpec extends WeatherDataSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper) =
+  override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
@@ -53,7 +53,7 @@ class Persistent_NonAtomic_WeatherDataSpec extends WeatherDataSpec {
 }
 
 class Persistent_Atomic_WeatherDataSpec extends WeatherDataSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper) =
+  override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
@@ -68,7 +68,7 @@ class Persistent_Atomic_WeatherDataSpec extends WeatherDataSpec {
 }
 
 class Persistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper) =
+  override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.persistent.MultiMap[Int, Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
@@ -82,7 +82,7 @@ class Persistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
 }
 
 class Persistent_SetMap_WeatherDataSpec extends WeatherDataSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper) =
+  override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.persistent.SetMap[Int, WeatherData, IO.ApiIO](
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
@@ -96,13 +96,13 @@ class Persistent_SetMap_WeatherDataSpec extends WeatherDataSpec {
 }
 
 class Memory_SetMap_WeatherDataSpec extends WeatherDataSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper) =
+  override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.memory.SetMap[Int, WeatherData, IO.ApiIO]().get.sweep(_.delete().get)
 }
 
 class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
   //  override def newDB()(implicit sweeper: TestCaseSweeper) = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
-  override def newDB()(implicit sweeper: TestCaseSweeper) =
+  override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
       //      acceleration = Accelerator.brake(),
@@ -114,7 +114,7 @@ class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
 
 class EventuallyPersistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
   //  override def newDB()(implicit sweeper: TestCaseSweeper) = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
-  override def newDB()(implicit sweeper: TestCaseSweeper) =
+  override def newDB()(implicit sweeper: TestSweeper) =
     swaydb.eventually.persistent.MultiMap[Int, Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
       //      acceleration = Accelerator.brake(),

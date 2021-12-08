@@ -22,7 +22,7 @@ import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.PrivateMethodInvokers._
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.file.sweeper.FileSweeper
@@ -96,7 +96,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
     "create a Segment" in {
       runThis(100.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             assertSegment(
               keyValues =
@@ -141,7 +141,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
     "set minKey & maxKey to be Fixed if the last key-value is a Fixed key-value" in {
       runThis(50.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             assertSegment(
               keyValues =
@@ -163,7 +163,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
     "set minKey & maxKey to be Range if the last key-value is a Range key-value" in {
       runThis(50.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             assertSegment(
               keyValues = Slice(randomFixedKeyValue(0), randomRangeKeyValue(1, 10)),
@@ -179,11 +179,11 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
     }
 
     "un-slice Segment's minKey & maxKey and also un-slice cache key-values" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
           //set this MemorySweeper as root sweeper.
-          TestSweeper.createMemorySweeperMax().value.sweep()
+          CoreTestSweepers.createMemorySweeperMax().value.sweep()
 
           //assert that all key-values added to cache are not sub-slices.
           def assertCacheKeyValuesAreSliced(segment: Segment) = {
@@ -273,7 +273,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
     }
 
     "not create bloomFilter if the Segment has Remove range key-values or function key-values and set hasRange to true" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           //adjustSegmentConfig = false so that Many Segments do not get created.
 
@@ -317,7 +317,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
     "create bloomFilter if the Segment has no Remove range key-values but has update range key-values. And set hasRange to true" in {
       if (isPersistentSpec) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             assertSegment(
               keyValues =
@@ -377,7 +377,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
     }
 
     "set hasRange to true if the Segment contains Range key-values" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           def doAssert(keyValues: Slice[KeyValue], segment: Segment): Unit = {
             segment.hasRange shouldBe true
@@ -435,7 +435,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
       if (isMemorySpec) {
         //memory Segments do not check for overwrite. No tests required
       } else {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             assertSegment(
               keyValues =
@@ -465,10 +465,10 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
         //memory Segments cannot re-initialise Segments after shutdown.
       } else {
         runThis(10.times) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               //set this MemorySweeper as root sweeper.
-              TestSweeper.createKeyValueSweeperBlock().value.sweep()
+              CoreTestSweepers.createKeyValueSweeperBlock().value.sweep()
 
               assertSegment(
                 keyValues =
@@ -512,7 +512,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
         //memory Segments cannot re-initialise Segments after shutdown.
       } else {
         runThis(100.times, log = true) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -540,7 +540,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
       if (isMemorySpec) {
         //memory Segments do not value re-initialised
       } else {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             //memory-mapped files on windows get submitted to ByteBufferCleaner.
@@ -562,7 +562,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
   "deleteSegments" should {
     "delete multiple segments" in {
       runThis(100.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds).sweep()
@@ -595,7 +595,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
   "open a closed Segment on read and clear footer" in {
     runThis(10.times) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           //        implicit val fileSweeper = FileSweeper.Disabled
           implicit val blockCache: Option[BlockCacheState] = None
@@ -632,7 +632,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
   "fail read and write operations on a Segment that does not exists" when {
     def executeTest(gaped: Boolean): Unit =
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -738,7 +738,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
       //memory Segments do not value closed via
     } else {
       runThis(5.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             implicit val fileSweeper = FileSweeper(1, ActorConfig.TimeLoop("", 2.second, ec)).sweep()
 
@@ -784,11 +784,11 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
   "delete" should {
     "close the channel and delete the file" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           //set this MemorySweeper as root sweeper.
-          TestSweeper.createKeyValueSweeperBlock().value.sweep()
+          CoreTestSweepers.createKeyValueSweeperBlock().value.sweep()
 
           ByteBufferSweeper(messageReschedule = 0.seconds).sweep()
 
@@ -815,7 +815,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
   "copyTo" should {
     "copy the segment to a target path without deleting the original" in {
       if (isPersistentSpec) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val keyValues = randomizedKeyValues(keyValuesCount)
@@ -840,7 +840,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
   "copyToPersist" should {
     "copy the segment and persist it to disk" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
           val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
@@ -891,7 +891,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
     "copy the segment and persist it to disk when remove deletes is true" in {
       runThis(10.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -938,7 +938,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
     }
 
     "revert copy if Segment initialisation fails after copy" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -998,7 +998,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
     }
 
     "revert copy of Key-values if creating at least one Segment fails" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -1071,9 +1071,9 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
       //when a Segment is copied it's BlockCache bytes should still be accessible.
       if (isPersistentSpec)
         runThis(50.times, log = true) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
-              TestSweeper.createBlockCacheBlockSweeper().foreach(_.sweep())
+              CoreTestSweepers.createBlockCacheBlockSweeper().foreach(_.sweep())
 
               import sweeper._
 
@@ -1314,7 +1314,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
   "copyToMemory" should {
     "copy persistent segment and store it in Memory" in {
       runThis(100.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
             val keyValues = randomizedKeyValues(keyValuesCount)
@@ -1349,7 +1349,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
     "copy the segment and persist it to disk when removeDeletes is true" in {
       runThis(10.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -1391,7 +1391,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
   "put" should {
     "return None for empty byte arrays for values" in {
       runThis(10.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val keyValuesWithEmptyValues = ListBuffer.empty[Memory]
@@ -1454,7 +1454,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
     }
 
     "reopen closed channel" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -1488,7 +1488,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
     }
 
     "return a new segment with merged key values" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -1561,7 +1561,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
     "return multiple new segments with merged key values" when {
       def doTest(gaped: Boolean) =
         runThis(2.times, log = true) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -1651,7 +1651,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
         cancel("Test not need for Memory Segment")
       else
         runThis(10.times, log = true) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -1712,7 +1712,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
     }
 
     "return new segment with deleted KeyValues if all keys were deleted and removeDeletes is false" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -1765,7 +1765,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
     }
 
     "return new segment with updated KeyValues if all keys values were updated to None" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -1810,7 +1810,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
     "merge existing segment file with new KeyValues returning new segment file with updated KeyValues" in {
       runThis(10.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -1872,7 +1872,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
     "return no new segments if all the KeyValues in the Segment were deleted and if remove deletes is true" in {
       runThis(50.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -1913,7 +1913,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
     "slice Put range into slice with fromValue set to Remove" in {
       runThis(10.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -1951,7 +1951,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
     }
 
     "return 1 new segment with only 1 key-value if all the KeyValues in the Segment were deleted but 1" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -1995,7 +1995,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
     }
 
     "distribute new Segments to multiple folders equally" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -2073,7 +2073,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
   "refresh" should {
     "return new Segment with Removed key-values removed" in {
       if (isPersistentSpec) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val keyValues =
@@ -2103,7 +2103,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
     }
 
     "return no new Segments if all the key-values in the Segment were expired" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val keyValues1 = (1 to 100).map(key => randomPutKeyValue(key, deadline = Some(1.second.fromNow))).toSlice
@@ -2128,7 +2128,7 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
     "return all key-values when removeDeletes is false and when Segment was created in another Level" in {
       runThis(5.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val keyValues: Slice[Memory.Put] = (1 to 100).map(key => Memory.put(key, key, 1.second)).toSlice
@@ -2167,10 +2167,10 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
 
     "return all key-values when removeDeletes is false and when Segment was created in same Level" in {
       runThis(5.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
-            TestSweeper.createMemorySweeperMax().value.sweep()
+            CoreTestSweepers.createMemorySweeperMax().value.sweep()
 
             val keyValues: Slice[Memory.Put] = (1 to (randomIntMax(100000) max 2)).map(key => Memory.put(key, key, 1.second)).toSlice
 
@@ -2247,10 +2247,10 @@ sealed trait SegmentWriteSpec extends ALevelSpec {
      */
     "debugger for previous test-case" ignore {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
-            TestSweeper.createMemorySweeperMax().value.sweep()
+            CoreTestSweepers.createMemorySweeperMax().value.sweep()
 
             val keyValues: Slice[Memory.Put] = (1 to 2).map(key => Memory.put(key, Slice.Null)).toSlice
 

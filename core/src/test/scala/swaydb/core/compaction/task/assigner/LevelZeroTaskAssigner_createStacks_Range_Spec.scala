@@ -21,7 +21,7 @@ import swaydb.testkit.EitherValues._
 import swaydb.core.CoreTestData._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.segment.data.{Memory, Time, Value}
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestTimer}
 import swaydb.core.log.ALogSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -49,7 +49,7 @@ class LevelZeroTaskAssigner_createStacks_Range_Spec extends ALogSpec with MockFa
    * See the key-values in the comments to view the test inputs.
    */
   def createStacks(keyValues: Slice[Memory]*)(test: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] => Unit): Unit =
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         val logs: Iterable[LevelZeroLog] = keyValues.map(TestLog(_))
         val stacks = LevelZeroTaskAssigner.createStacks(logs)

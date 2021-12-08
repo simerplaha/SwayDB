@@ -24,7 +24,7 @@ import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
@@ -117,7 +117,7 @@ sealed trait LevelReadSomeSpec extends ALevelSpec with MockFactory {
                       //if test failed check merging all key-values result in the key returning none.
                       implicit val keyOrder = KeyOrder.default
                       implicit val timeOrder = TimeOrder.long
-                      TestCaseSweeper {
+                      TestSweeper {
                         implicit sweeper =>
                           import sweeper._
 

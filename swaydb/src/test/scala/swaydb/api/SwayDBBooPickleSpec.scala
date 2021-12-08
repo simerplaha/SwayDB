@@ -19,8 +19,8 @@ package swaydb.api
 import org.scalatest.OptionValues._
 import swaydb._
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.testkit.RunThis.runThis
 
@@ -45,7 +45,7 @@ class SwayDBBooPickleSpec extends TestBaseAPI {
 
     "remove all but first and last" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = swaydb.persistent.Map[User, Info, Nothing, Glass](randomDir).sweep(_.delete())

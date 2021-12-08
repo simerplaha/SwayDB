@@ -21,7 +21,7 @@ import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.data.Persistent
-import swaydb.core.{ACoreSpec, SegmentBlocks, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, SegmentBlocks, TestSweeper}
 import swaydb.core.segment.ASegmentSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -39,7 +39,7 @@ class HashIndexBlockSpec extends ASegmentSpec {
 
   "searching a segment" in {
     runThis(100.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

@@ -18,8 +18,8 @@ package swaydb.api.multimap
 
 import org.scalatest.OptionValues._
 import swaydb.api.TestBaseAPI
-import swaydb.core.TestCaseSweeper
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper
+import swaydb.core.TestSweeper._
 import swaydb.serializers.Serializer
 import swaydb.slice.Slice
 import swaydb.{Bag, Glass}
@@ -29,7 +29,7 @@ class NestedOptionValueSpec extends TestBaseAPI {
   implicit val bag = Bag.glass
 
   "Option[Option[V]]" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
 
         import swaydb.serializers.Default._
@@ -49,7 +49,7 @@ class NestedOptionValueSpec extends TestBaseAPI {
   }
 
   "Option[Empty[V]]" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
 
         sealed trait Value

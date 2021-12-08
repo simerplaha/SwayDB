@@ -27,7 +27,7 @@ import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.data.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestTimer}
 import swaydb.core.level.ALevelSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -44,7 +44,7 @@ import swaydb.testkit.TestKit._
  */
 class PersistentSegment_DefragGapSpec extends DefragGapSpec[PersistentSegment, PersistentSegmentOption, MergeStats.Persistent.Builder[Memory, ListBuffer]] {
 
-  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: TestCaseSweeper): PersistentSegment =
+  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: TestSweeper): PersistentSegment =
     TestSegment(keyValues).shouldBeInstanceOf[PersistentSegment]
 
   override def nullSegment: PersistentSegmentOption =
@@ -64,7 +64,7 @@ class MemorySegment_DefragGapSpec extends DefragGapSpec[MemorySegment, MemorySeg
 
   override def isMemorySpec = true
 
-  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: TestCaseSweeper): MemorySegment =
+  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: TestSweeper): MemorySegment =
     TestSegment(keyValues).shouldBeInstanceOf[MemorySegment]
 
   override def nullSegment: MemorySegmentOption =
@@ -84,14 +84,14 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
   implicit val timer = TestTimer.Empty
 
 
-  def testSegment(keyValues: Slice[Memory] = randomizedKeyValues())(implicit sweeper: TestCaseSweeper): SEG
+  def testSegment(keyValues: Slice[Memory] = randomizedKeyValues())(implicit sweeper: TestSweeper): SEG
   def nullSegment: NULL_SEG
   implicit def mergeStatsCreator: MergeStatsCreator[S]
   implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig): MergeStatsSizeCalculator[S]
 
   "add Segments" when {
     "there is no head MergeStats and no next and removeDeletes is false" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val segments: ListBuffer[SEG] = ListBuffer.range(1, 5).map(_ => testSegment())
@@ -124,7 +124,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
     }
 
     "there is head MergeStats but it is greater than segmentConfig.minSize" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
@@ -175,7 +175,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
     "there is head MergeStats but it is smaller than segmentConfig.minSize" in {
       //in this test the second PersistentSegmentOne should get merged into head stats.
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             //each segment has non removable key-values
@@ -261,7 +261,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
           cancel("TODO")
         else
           runThis(10.times, log = true) {
-            TestCaseSweeper {
+            TestSweeper {
               implicit sweeper =>
 
                 implicit val pathsDistributor: PathsDistributor = createPathDistributor
@@ -344,7 +344,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
           cancel("TODO")
         else
           runThis(10.times, log = true) {
-            TestCaseSweeper {
+            TestSweeper {
               implicit sweeper =>
 
                 implicit val pathsDistributor = createPathDistributor
@@ -426,7 +426,7 @@ sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeSt
   "expand Segment" when {
     "it contains removable key-values" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             implicit val pathsDistributor = createPathDistributor

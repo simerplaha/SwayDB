@@ -1,9 +1,9 @@
 package swaydb.core.file
 
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
 import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.file.reader.FileReader
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.effect.Effect
 import swaydb.slice.Slice
 import swaydb.utils.OperatingSystem
@@ -11,24 +11,26 @@ import swaydb.utils.OperatingSystem
 import java.nio.file.Path
 import scala.util.Random
 
-trait AFileSpec extends ACoreSpec {
+object AFileSpec {
 
-  def createFile(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): Path =
+  def createFile(bytes: Slice[Byte])(implicit sweeper: TestSweeper): Path = {
+    import sweeper._
     Effect.write(testClassDir.resolve(idGenerator.nextSegment).sweep(), bytes.toByteBufferWrap)
+  }
 
-  def createRandomFileReader(path: Path)(implicit sweeper: TestCaseSweeper): FileReader =
+  def createRandomFileReader(path: Path)(implicit sweeper: TestSweeper): FileReader =
     if (Random.nextBoolean())
       createMMAPFileReader(path)
     else
       createStandardFileFileReader(path)
 
-  def createFileReaders(path: Path)(implicit sweeper: TestCaseSweeper): List[FileReader] =
+  def createFileReaders(path: Path)(implicit sweeper: TestSweeper): List[FileReader] =
     List(
       createMMAPFileReader(path),
       createStandardFileFileReader(path)
     )
 
-  def createMMAPFileReader(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): FileReader =
+  def createMMAPFileReader(bytes: Slice[Byte])(implicit sweeper: TestSweeper): FileReader =
     createMMAPFileReader(createFile(bytes))
 
   /**
@@ -37,19 +39,21 @@ trait AFileSpec extends ACoreSpec {
   def createFiles(mmapPath: Path,
                   mmapBytes: Slice[Byte],
                   channelPath: Path,
-                  standardBytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): List[CoreFile] =
+                  standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): List[CoreFile] =
     List(
       createMMAPWriteAndRead(mmapPath, mmapBytes),
       createStandardWriteAndRead(channelPath, standardBytes)
     )
 
-  def createFiles(mmapBytes: Slice[Byte], standardBytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): List[CoreFile] =
+  def createFiles(mmapBytes: Slice[Byte], standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): List[CoreFile] = {
+    import sweeper._
     List(
       createMMAPWriteAndRead(randomFilePath, mmapBytes),
       createStandardWriteAndRead(randomFilePath, standardBytes)
     )
+  }
 
-  def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): CoreFile = {
+  def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestSweeper): CoreFile = {
     import sweeper._
 
     CoreFile.mmapWriteAndRead(
@@ -62,7 +66,7 @@ trait AFileSpec extends ACoreSpec {
     ).sweep()
   }
 
-  def createWriteableMMAPFile(path: Path, bufferSize: Int)(implicit sweeper: TestCaseSweeper): CoreFile = {
+  def createWriteableMMAPFile(path: Path, bufferSize: Int)(implicit sweeper: TestSweeper): CoreFile = {
     import sweeper._
 
     CoreFile.mmapInit(
@@ -75,7 +79,7 @@ trait AFileSpec extends ACoreSpec {
     ).sweep()
   }
 
-  def createWriteableStandardFile(path: Path)(implicit sweeper: TestCaseSweeper): CoreFile = {
+  def createWriteableStandardFile(path: Path)(implicit sweeper: TestSweeper): CoreFile = {
     import sweeper._
 
     CoreFile.standardWrite(
@@ -86,7 +90,7 @@ trait AFileSpec extends ACoreSpec {
     )
   }
 
-  def createStandardWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): CoreFile = {
+  def createStandardWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestSweeper): CoreFile = {
     import sweeper._
 
     val file =
@@ -107,7 +111,7 @@ trait AFileSpec extends ACoreSpec {
     ).sweep()
   }
 
-  def createMMAPFileReader(path: Path)(implicit sweeper: TestCaseSweeper): FileReader = {
+  def createMMAPFileReader(path: Path)(implicit sweeper: TestSweeper): FileReader = {
     import sweeper._
 
     val file =
@@ -121,10 +125,10 @@ trait AFileSpec extends ACoreSpec {
     new FileReader(file = file)
   }
 
-  def createStandardFileFileReader(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): FileReader =
+  def createStandardFileFileReader(bytes: Slice[Byte])(implicit sweeper: TestSweeper): FileReader =
     createStandardFileFileReader(createFile(bytes))
 
-  def createStandardFileFileReader(path: Path)(implicit sweeper: TestCaseSweeper): FileReader = {
+  def createStandardFileFileReader(path: Path)(implicit sweeper: TestSweeper): FileReader = {
     import sweeper._
 
     val file =
@@ -137,7 +141,8 @@ trait AFileSpec extends ACoreSpec {
     new FileReader(file = file)
   }
 
-  def createRandomFileReader(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): FileReader =
+  def createRandomFileReader(bytes: Slice[Byte])(implicit sweeper: TestSweeper): FileReader =
     createRandomFileReader(createFile(bytes))
 
 }
+

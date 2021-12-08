@@ -31,7 +31,7 @@ import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data.{Persistent, PersistentOption, Time}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.{SegmentSearcher, ThreadReadState}
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext}
+import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext}
 import swaydb.core.segment.ASegmentSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -113,7 +113,7 @@ class SegmentRefGetBehaviorSpec extends AnyWordSpec with Matchers with MockFacto
 
   "GET - Behaviour" in {
     runThis(10.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           implicit val ec = TestExecutionContext.executionContext
           implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None

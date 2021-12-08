@@ -26,7 +26,7 @@ import swaydb.core.log.{ALogSpec, LogEntry}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{ASegmentSpec, Segment, SegmentOption}
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -42,7 +42,7 @@ class AppendixLogEntrySpec extends ASegmentSpec {
   "LogEntryWriterAppendix & LogEntryReaderAppendix" should {
 
     "write Add segment" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -84,7 +84,7 @@ class AppendixLogEntrySpec extends ASegmentSpec {
     }
 
     "write Remove Segment" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -118,7 +118,7 @@ class AppendixLogEntrySpec extends ASegmentSpec {
     }
 
     "write and remove key-value" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import AppendixLogEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
           import sweeper._

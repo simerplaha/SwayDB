@@ -18,26 +18,26 @@ package swaydb.api.setmap
 
 import org.scalatest.OptionValues._
 import swaydb.Glass
-import swaydb.core.TestCaseSweeper._
-import swaydb.core.{ACoreSpec, TestCaseSweeper}
+import swaydb.core.TestSweeper._
+import swaydb.core.{ACoreSpec, TestSweeper}
 import swaydb.serializers.Default._
 
 class SetMapSpec0 extends SetMapSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Glass] =
+  override def newDB()(implicit sweeper: TestSweeper): swaydb.SetMap[Int, String, Glass] =
     swaydb.persistent.SetMap[Int, String, Glass](randomDir).sweep(_.delete())
 }
 
 class SetMapSpec3 extends SetMapSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Glass] =
+  override def newDB()(implicit sweeper: TestSweeper): swaydb.SetMap[Int, String, Glass] =
     swaydb.memory.SetMap[Int, String, Glass]().sweep(_.delete())
 }
 
 sealed trait SetMapSpec extends ACoreSpec {
 
-  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Glass]
+  def newDB()(implicit sweeper: TestSweeper): swaydb.SetMap[Int, String, Glass]
 
   "put" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
 
         val map = newDB()

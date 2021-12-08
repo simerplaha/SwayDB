@@ -22,7 +22,7 @@ import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
 import swaydb.core.level.ALevelSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -63,7 +63,7 @@ sealed trait SegmentHigherSpec extends ALevelSpec with ScalaFutures with Private
   "Segment.higher" should {
     "value the higher key from the segment that has only 1 Remove key" in {
       runThis(50.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             assertSegment(
               keyValues = Slice(randomFixedKeyValue(1)),
@@ -83,7 +83,7 @@ sealed trait SegmentHigherSpec extends ALevelSpec with ScalaFutures with Private
 
     "value the higher key from the segment that has only 1 Range key" in {
       runThis(50.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             assertSegment(
               keyValues = Slice(randomRangeKeyValue(1, 10)),
@@ -108,7 +108,7 @@ sealed trait SegmentHigherSpec extends ALevelSpec with ScalaFutures with Private
     }
 
     "value the higher from the segment when there are no Range key-values" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           //1, 2, 3
           assertSegment(
@@ -133,7 +133,7 @@ sealed trait SegmentHigherSpec extends ALevelSpec with ScalaFutures with Private
     "value the higher from the segment when there are Range key-values" in {
       //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
       runThis(1.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             assertSegment(
               keyValues = Slice(
@@ -203,7 +203,7 @@ sealed trait SegmentHigherSpec extends ALevelSpec with ScalaFutures with Private
     }
 
     "random" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           assertSegment(
             keyValues = randomizedKeyValues(keyValuesCount),

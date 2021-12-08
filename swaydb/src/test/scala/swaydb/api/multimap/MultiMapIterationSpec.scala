@@ -18,8 +18,8 @@ package swaydb.api.multimap
 
 import org.scalatest.OptionValues._
 import swaydb.api.TestBaseAPI
-import swaydb.core.TestCaseSweeper
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper
+import swaydb.core.TestSweeper._
 import swaydb.serializers.Default._
 import swaydb.utils.StorageUnits._
 import swaydb.{Bag, Glass, MultiMap}
@@ -27,28 +27,28 @@ import swaydb.{Bag, Glass, MultiMap}
 class MultiMapIterationSpec0 extends MultiMapIterationSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
+  override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
     swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir).sweep(_.delete())
 }
 
 class MultiMapIterationSpec1 extends MultiMapIterationSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
+  override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
     swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir, logSize = 1.byte).sweep(_.delete())
 }
 
 class MultiMapIterationSpec2 extends MultiMapIterationSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
+  override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
     swaydb.memory.MultiMap[Int, Int, String, Nothing, Glass]().sweep(_.delete())
 }
 
 class MultiMapIterationSpec3 extends MultiMapIterationSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
+  override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
     swaydb.memory.MultiMap[Int, Int, String, Nothing, Glass](logSize = 1.byte).sweep(_.delete())
 }
 
@@ -56,13 +56,13 @@ sealed trait MultiMapIterationSpec extends TestBaseAPI {
 
   val keyValueCount: Int
 
-  def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Glass]
+  def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass]
 
   implicit val bag = Bag.glass
 
   "Iteration" should {
     "exclude & include subMap by default" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val db = newDB()
@@ -86,7 +86,7 @@ sealed trait MultiMapIterationSpec extends TestBaseAPI {
 
   "Iteration" when {
     "the map contains 1 element" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val db = newDB()
@@ -119,7 +119,7 @@ sealed trait MultiMapIterationSpec extends TestBaseAPI {
     }
 
     "the map contains 2 elements" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val db = newDB()
@@ -152,7 +152,7 @@ sealed trait MultiMapIterationSpec extends TestBaseAPI {
     }
 
     "Sibling maps" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val db = newDB()
@@ -211,7 +211,7 @@ sealed trait MultiMapIterationSpec extends TestBaseAPI {
     }
 
     "nested maps" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val db = newDB()

@@ -20,8 +20,8 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.core.TestCaseSweeper._
-import swaydb.core.{TestCaseSweeper, TestExecutionContext}
+import swaydb.core.TestSweeper._
+import swaydb.core.{TestSweeper, TestExecutionContext}
 import swaydb.{IO, Scheduler}
 
 import scala.concurrent.duration._
@@ -56,7 +56,7 @@ class SchedulerSpec extends AnyWordSpec with Matchers with Eventually {
 
   "Delay.task" should {
     "run tasks and cancel tasks" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           @volatile var tasksExecuted = 0
@@ -85,7 +85,7 @@ class SchedulerSpec extends AnyWordSpec with Matchers with Eventually {
 
   "futureFromIO" should {
     "run in future and return result" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           @volatile var tryThread = ""
 
@@ -109,7 +109,7 @@ class SchedulerSpec extends AnyWordSpec with Matchers with Eventually {
 
   "future" should {
     "run in future" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           @volatile var futureThread = ""
 

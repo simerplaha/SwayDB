@@ -76,7 +76,7 @@ sealed trait LevelSpec extends ALevelSpec with MockFactory with PrivateMethodTes
     "create a lock file for only the root directory and not allow more locks" in {
       //memory databases do not perform locks
       if (isPersistentSpec) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val otherDirs = (0 to randomIntMax(5)) map (_ => Dir(randomDir, 1))
@@ -109,7 +109,7 @@ sealed trait LevelSpec extends ALevelSpec with MockFactory with PrivateMethodTes
 
   "apply" should {
     "create level" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val level = TestLevel()
 
@@ -141,7 +141,7 @@ sealed trait LevelSpec extends ALevelSpec with MockFactory with PrivateMethodTes
 
     "report error if appendix file and folder does not exists" in {
       if (isPersistentSpec) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -176,7 +176,7 @@ sealed trait LevelSpec extends ALevelSpec with MockFactory with PrivateMethodTes
       if (isMemorySpec) {
         // memory Level do not have uncommitted Segments
       } else {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -219,7 +219,7 @@ sealed trait LevelSpec extends ALevelSpec with MockFactory with PrivateMethodTes
 
   "largestSegmentId" should {
     "value the largest segment in the Level when the Level is not empty" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -232,7 +232,7 @@ sealed trait LevelSpec extends ALevelSpec with MockFactory with PrivateMethodTes
     }
 
     "return 0 when the Level is empty" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
@@ -245,7 +245,7 @@ sealed trait LevelSpec extends ALevelSpec with MockFactory with PrivateMethodTes
     import swaydb.core.log.serialiser.AppendixLogEntryWriter._
 
     "build LogEntry.Put map for the first created Segment" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val level = TestLevel()
 
@@ -260,7 +260,7 @@ sealed trait LevelSpec extends ALevelSpec with MockFactory with PrivateMethodTes
 
     "build LogEntry.Put map for the newly merged Segments and not add LogEntry.Remove map " +
       "for original Segment as it's minKey is replace by one of the new Segment" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val level = TestLevel()
 
@@ -282,7 +282,7 @@ sealed trait LevelSpec extends ALevelSpec with MockFactory with PrivateMethodTes
     }
 
     "build LogEntry.Put map for the newly merged Segments and also add Remove map entry for original map when all minKeys are unique" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val level = TestLevel()
 

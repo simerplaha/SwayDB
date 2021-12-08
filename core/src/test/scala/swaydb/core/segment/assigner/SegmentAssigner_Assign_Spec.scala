@@ -22,7 +22,7 @@ import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{ASegmentSpec, PersistentSegment, PersistentSegmentMany, PersistentSegmentOne, Segment}
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
 import swaydb.core.level.ALevelSpec
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
@@ -70,7 +70,7 @@ sealed trait SegmentAssigner_Assign_Spec extends ALevelSpec {
   "assign new Segment to Segment" when {
     "both have the same key values" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val segment = TestSegment.one()
 
@@ -133,7 +133,7 @@ sealed trait SegmentAssigner_Assign_Spec extends ALevelSpec {
 
     "there are two Segments and all have same key-values" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val keyValues = randomKeyValues(count = 1000, startId = Some(1)).groupedSlice(2)
             keyValues should have size 2
@@ -198,7 +198,7 @@ sealed trait SegmentAssigner_Assign_Spec extends ALevelSpec {
 
     "input Segment expands to all Segment" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val keyValues = randomKeyValues(count = 1000, startId = Some(1))
             val keyValuesGrouped = keyValues.groupedSlice(2)
@@ -258,7 +258,7 @@ sealed trait SegmentAssigner_Assign_Spec extends ALevelSpec {
 
     "Segment belongs to next Segment" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val keyValues = randomKeyValues(count = 1000, startId = Some(1)).groupedSlice(2)
             keyValues should have size 2
@@ -306,7 +306,7 @@ sealed trait SegmentAssigner_Assign_Spec extends ALevelSpec {
 
     "multiple input Segments have gaps" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val keyValues = randomKeyValues(count = 1000, startId = Some(1)).groupedSlice(10)
 
@@ -374,7 +374,7 @@ sealed trait SegmentAssigner_Assign_Spec extends ALevelSpec {
 
     "multiple input Segments have gaps Segments" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val keyValues = randomKeyValues(count = 100, startId = Some(1)).groupedSlice(10)
 
@@ -462,7 +462,7 @@ sealed trait SegmentAssigner_Assign_Spec extends ALevelSpec {
       "head Segments do not overlap" in {
         if (isPersistentSpec)
           runThis(10.times, log = true) {
-            TestCaseSweeper {
+            TestSweeper {
               implicit sweeper =>
                 implicit val pathsDistributor = createPathDistributor
 
@@ -498,7 +498,7 @@ sealed trait SegmentAssigner_Assign_Spec extends ALevelSpec {
       "tail Segments do not overlap" in {
         if (isPersistentSpec)
           runThis(10.times, log = true) {
-            TestCaseSweeper {
+            TestSweeper {
               implicit sweeper =>
                 implicit val pathsDistributor = createPathDistributor
 
@@ -534,7 +534,7 @@ sealed trait SegmentAssigner_Assign_Spec extends ALevelSpec {
       "head SegmentRef is a gap Segment" in {
         if (isPersistentSpec)
           runThis(10.times, log = true) {
-            TestCaseSweeper {
+            TestSweeper {
               implicit sweeper =>
                 implicit val pathsDistributor = createPathDistributor
 
@@ -570,7 +570,7 @@ sealed trait SegmentAssigner_Assign_Spec extends ALevelSpec {
       "last SegmentRef is a gap Segment" in {
         if (isPersistentSpec)
           runThis(10.times, log = true) {
-            TestCaseSweeper {
+            TestSweeper {
               implicit sweeper =>
                 implicit val pathsDistributor = createPathDistributor
 
@@ -606,7 +606,7 @@ sealed trait SegmentAssigner_Assign_Spec extends ALevelSpec {
       "mid SegmentRefs are gap Segment and there is only one Segment" in {
         if (isPersistentSpec)
           runThis(10.times, log = true) {
-            TestCaseSweeper {
+            TestSweeper {
               implicit sweeper =>
                 implicit val pathsDistributor = createPathDistributor
 
@@ -643,7 +643,7 @@ sealed trait SegmentAssigner_Assign_Spec extends ALevelSpec {
       "mid SegmentRefs are gap Segment between two Segments" in {
         if (isPersistentSpec)
           runThis(10.times, log = true) {
-            TestCaseSweeper {
+            TestSweeper {
               implicit sweeper =>
                 implicit val pathsDistributor = createPathDistributor
 
@@ -690,7 +690,7 @@ sealed trait SegmentAssigner_Assign_Spec extends ALevelSpec {
       "mid PersistentSegmentMany spreads onto next Segment" in {
         if (isPersistentSpec)
           runThis(10.times, log = true) {
-            TestCaseSweeper {
+            TestSweeper {
               implicit sweeper =>
                 implicit val pathsDistributor = createPathDistributor
 

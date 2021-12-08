@@ -27,7 +27,7 @@ import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.data.{Memory, Persistent, PersistentOption}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.SegmentSearcher
-import swaydb.core.{SegmentBlocks, ACoreSpec, TestCaseSweeper}
+import swaydb.core.{SegmentBlocks, ACoreSpec, TestSweeper}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -249,7 +249,7 @@ class SegmentSearcherSpec extends ASegmentSpec with MockFactory {
 
   "all searches" in {
     runThis(100.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

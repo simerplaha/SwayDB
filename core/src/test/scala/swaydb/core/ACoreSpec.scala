@@ -21,7 +21,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.config.MMAP
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.effect.Effect
 import swaydb.testkit.TestKit._
 import swaydb.utils.{IDGenerator, OperatingSystem}
@@ -57,11 +57,11 @@ trait ACoreSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll with Be
 
   def isPersistentSpec = !isMemorySpec
 
-  def randomDir(implicit sweeper: TestCaseSweeper) = testClassDir.resolve(s"${randomCharacters()}").sweep()
+  def randomDir(implicit sweeper: TestSweeper) = testClassDir.resolve(s"${randomCharacters()}").sweep()
 
-  def createRandomDir(implicit sweeper: TestCaseSweeper) = Effect.createDirectory(randomDir).sweep()
+  def createRandomDir(implicit sweeper: TestSweeper) = Effect.createDirectory(randomDir).sweep()
 
-  def randomFilePath(implicit sweeper: TestCaseSweeper) =
+  def randomFilePath(implicit sweeper: TestSweeper) =
     testClassDir.resolve(s"${randomCharacters()}.test").sweep()
 
   def nextId = idGenerator.next
@@ -71,7 +71,7 @@ trait ACoreSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll with Be
   def randomIntDirectory: Path =
     testClassDir.resolve(nextIntReversed.toString)
 
-  def createRandomIntDirectory(implicit sweeper: TestCaseSweeper): Path =
+  def createRandomIntDirectory(implicit sweeper: TestSweeper): Path =
     if (isPersistentSpec)
       Effect.createDirectoriesIfAbsent(randomIntDirectory).sweep()
     else

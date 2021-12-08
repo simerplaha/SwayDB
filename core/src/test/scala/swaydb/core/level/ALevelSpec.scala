@@ -5,7 +5,7 @@ import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.config.storage.{Level0Storage, LevelStorage}
-import swaydb.core.{CoreInitialiser, TestCaseSweeper, TestExecutionContext, TestForceSave, TestTimer}
+import swaydb.core.{CoreInitialiser, TestSweeper, TestExecutionContext, TestForceSave, TestTimer}
 import swaydb.core.compaction.{Compactor, CompactorCreator}
 import swaydb.core.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -24,7 +24,7 @@ import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.TestKit.{randomBoolean, randomIntMax, randomNextInt}
 import swaydb.IOValues._
 import swaydb.core.segment.{ASegmentSpec, PathsDistributor}
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.effect.{Dir, Effect}
 import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._
@@ -44,7 +44,7 @@ trait ALevelSpec extends ASegmentSpec {
   def createNextLevelPath: Path =
     Effect.createDirectoriesIfAbsent(nextLevelPath)
 
-  def createPathDistributor(implicit sweeper: TestCaseSweeper) =
+  def createPathDistributor(implicit sweeper: TestSweeper) =
     PathsDistributor(Seq(Dir(createNextLevelPath.sweep(), 1)), () => Seq.empty)
 
   def nextLevelPath: Path =
@@ -98,7 +98,7 @@ trait ALevelSpec extends ASegmentSpec {
               segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random2(deleteDelay = Duration.Zero, mmap = mmapSegments),
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                      sweeper: TestCaseSweeper): Level = {
+                                                      sweeper: TestSweeper): Level = {
       import sweeper._
 
       val level =
@@ -137,7 +137,7 @@ trait ALevelSpec extends ASegmentSpec {
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
               throttle: LevelZeroMeter => LevelZeroThrottle = _ => LevelZeroThrottle(Duration.Zero, 1))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                                        sweeper: TestCaseSweeper,
+                                                                                                        sweeper: TestSweeper,
                                                                                                         optimiseWrites: OptimiseWrites = OptimiseWrites.random,
                                                                                                         atomic: Atomic = Atomic.random): LevelZero = {
       import sweeper._
@@ -200,7 +200,7 @@ trait ALevelSpec extends ASegmentSpec {
 
     println("Starting levels")
 
-    implicit val levelSweeper: TestCaseSweeper = TestCaseSweeper()
+    implicit val levelSweeper: TestSweeper = TestSweeper()
     implicit val fileSweeper = levelSweeper.fileSweeper
 
     val level4 = TestLevel(throttle = levelThrottle)
@@ -367,7 +367,7 @@ trait ALevelSpec extends ASegmentSpec {
                               level3: Level,
                               assertAllLevels: LevelRef => Unit,
                               assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                 levelSweeper: TestCaseSweeper): Unit = {
+                                                                 levelSweeper: TestSweeper): Unit = {
     implicit val ec: ExecutionContext =
       TestExecutionContext.executionContext
 

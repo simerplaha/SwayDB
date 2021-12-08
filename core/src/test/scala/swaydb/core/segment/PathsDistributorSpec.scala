@@ -18,8 +18,8 @@ package swaydb.core.segment
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
-import swaydb.core.TestCaseSweeper._
-import swaydb.core.{ACoreSpec, TestCaseSweeper}
+import swaydb.core.TestSweeper._
+import swaydb.core.{ACoreSpec, TestSweeper}
 import swaydb.core.level.ALevelSpec
 import swaydb.effect
 import swaydb.effect.{Dir, Effect}
@@ -44,7 +44,7 @@ class PathsDistributorSpec extends ALevelSpec with MockFactory {
     }
 
     "return distributions and total Segments count when Segments are non-empty" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val path = createNextLevelPath.sweep()
           val path1 = Effect.createDirectoriesIfAbsent(path.resolve("1"))
@@ -201,7 +201,7 @@ class PathsDistributorSpec extends ALevelSpec with MockFactory {
     }
 
     "return paths based on the distribution ratio and update distribution when Segments are distributed unevenly" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val path = createNextLevelPath.sweep()
           val path1 = Effect.createDirectoriesIfAbsent(path.resolve("1"))

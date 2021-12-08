@@ -79,7 +79,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "belongsTo" should {
     "return true if the input key-value belong to the Segment else false when the Segment contains no Range key-value" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)))
 
@@ -109,7 +109,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
     }
 
     "return true if the input key-value belong to the Segment else false when the Segment's max key is a Range key-value" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)))
 
@@ -139,7 +139,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
     }
 
     "return true if the input key-value belong to the Segment else false when the Segment's min key is a Range key-value" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val segment = TestSegment(Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)))
 
@@ -169,7 +169,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
     }
 
     "for randomizedKeyValues" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(keyValuesCount + 1000))
           val segment = TestSegment(keyValues)
@@ -215,7 +215,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "rangeBelongsTo" should {
     "return true for overlapping KeyValues else false for Segments if the Segment's last key-value is not a Range" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)))
 
@@ -289,7 +289,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
     }
 
     "return true for overlapping KeyValues else false for Segments if the Segment's last key-value is a Range" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)))
 
@@ -414,7 +414,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "partitionOverlapping" should {
     "partition overlapping and non-overlapping Segments" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           //0-1, 2-3
           //         4-5, 6-7
@@ -464,7 +464,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "overlaps" should {
     "return true for overlapping Segments else false for Segments without Ranges" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           //0 1
           //    2 3
@@ -518,7 +518,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
     }
 
     "return true for overlapping Segments if the target Segment's maxKey is a Range key" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           //0 1
           //    2 3
@@ -606,7 +606,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "nonOverlapping and overlapping" should {
     "return non overlapping Segments" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           //0-1, 2-3
           //         4-5, 6-7
@@ -668,7 +668,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "tempMinMaxKeyValues" should {
     "return key-values with Segments min and max keys only" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           implicit def testTimer: TestTimer = TestTimer.Empty
 
@@ -697,7 +697,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "overlapsWithBusySegments" should {
     "return true or false if input Segments overlap or do not overlap with busy Segments respectively" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val targetSegments =
@@ -758,7 +758,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
     }
 
     "return true or false if input map overlap or do not overlap with busy Segments respectively" in new ALogSpec {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val targetSegments = {
@@ -823,7 +823,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
   "getAllKeyValues" should {
     "value KeyValues from multiple Segments" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val keyValues1 = randomizedKeyValues(keyValuesCount)
             val keyValues2 = randomizedKeyValues(keyValuesCount)
@@ -846,7 +846,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
     }
 
     "fail read if reading any one Segment fails for persistent Segments" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val keyValues1 = randomizedKeyValues(keyValuesCount)
           val keyValues2 = randomizedKeyValues(keyValuesCount)
@@ -876,7 +876,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
         if (isWindowsAndMMAPSegments())
           cancel("Test does not apply to Windows with MMAP files.")
         else
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               runThis(100.times, log = true) {
                 val keyValues1 = randomizedKeyValues(keyValuesCount)
@@ -921,7 +921,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
   "getAll" should {
     "read full index" in {
       if (isPersistentSpec)
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             runThis(10.times) {
               //ensure groups are not added because ones read their values are populated in memory
@@ -989,7 +989,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "getNearestDeadlineSegment" should {
     "return None deadline if non of the key-values in the Segments contains deadline" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           def segmentConfig(keyValuesCount: Int) =
             if (isPersistentSpec)
@@ -1014,7 +1014,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
     "return deadline if one of the Segments contains deadline" in {
       runThis(10.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val keyValues = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
 
@@ -1055,7 +1055,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
       implicit val ec = TestExecutionContext.executionContext
 
       runThis(10.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val keyValues1 = randomizedKeyValues(1000)
             val keyValues2 = randomizedKeyValues(1000)

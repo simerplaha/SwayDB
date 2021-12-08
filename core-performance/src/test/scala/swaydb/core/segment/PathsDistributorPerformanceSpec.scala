@@ -17,8 +17,8 @@
 package swaydb.core.segment
 
 import swaydb.IOValues._
-import swaydb.core.TestCaseSweeper._
-import swaydb.core.{ACoreSpec, TestCaseSweeper}
+import swaydb.core.TestSweeper._
+import swaydb.core.{ACoreSpec, TestSweeper}
 import swaydb.effect.{Dir, Effect}
 import swaydb.slice.order.KeyOrder
 import swaydb.{effect, Benchmark}
@@ -31,7 +31,7 @@ class PathsDistributorPerformanceSpec extends ALevelSpec {
   implicit val keyOrder = KeyOrder.default
 
   "PathsDistributorPerformanceSpec" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         val path = createNextLevelPath.sweep()
 

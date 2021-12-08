@@ -22,11 +22,11 @@ import swaydb.config.accelerate.Accelerator
 import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
 import swaydb.core.CommonAssertions._
 import swaydb.core.PrivateMethodInvokers._
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.segment.data.{Memory, MemoryOption, Value}
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
 import swaydb.effect.Effect._
 import swaydb.effect.Effect
 import swaydb.serializers.Default._
@@ -54,7 +54,7 @@ class LogsSpec extends ALogSpec {
   "Logs.persistent" should {
     "initialise and recover on reopen" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -110,7 +110,7 @@ class LogsSpec extends ALogSpec {
 
     "delete empty logs on recovery" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
             val path = createRandomDir
@@ -156,7 +156,7 @@ class LogsSpec extends ALogSpec {
 
   "Logs.memory" should {
     "initialise" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
           val log: Logs[Slice[Byte], Memory, LevelZeroLogCache] =
@@ -177,7 +177,7 @@ class LogsSpec extends ALogSpec {
 
   "Logs" should {
     "initialise a new log if the current log is full" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
           def test(logs: Logs[Slice[Byte], Memory, LevelZeroLogCache]) = {
@@ -217,7 +217,7 @@ class LogsSpec extends ALogSpec {
 
     "write a key value larger then the actual fileSize" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
             val largeValue = randomBytesSlice(1.mb)
@@ -295,7 +295,7 @@ class LogsSpec extends ALogSpec {
 
     "recover logs in newest to oldest order" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -362,7 +362,7 @@ class LogsSpec extends ALogSpec {
 
     "recover from existing logs" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -408,7 +408,7 @@ class LogsSpec extends ALogSpec {
 
     "fail recovery if one of the log is corrupted and recovery mode is ReportFailure" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
             val path = createRandomDir
@@ -447,7 +447,7 @@ class LogsSpec extends ALogSpec {
 
     "continue recovery if one of the log is corrupted and recovery mode is DropCorruptedTailEntries" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
             val path = createRandomDir
@@ -505,7 +505,7 @@ class LogsSpec extends ALogSpec {
     }
 
     "continue recovery if one of the log is corrupted and recovery mode is DropCorruptedTailEntriesAndLogs" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
           val path = createRandomDir
@@ -555,7 +555,7 @@ class LogsSpec extends ALogSpec {
     }
 
     "start a new Log if writing an entry fails" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
           val path = createRandomDir

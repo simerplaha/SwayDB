@@ -22,7 +22,7 @@ import swaydb.IO
 import swaydb.config.MMAP
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
@@ -63,7 +63,7 @@ sealed trait LevelRemoveSegmentSpec extends ALevelSpec with MockFactory with Pri
 
   "removeSegments" should {
     "remove segments from disk and remove them from appendix" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

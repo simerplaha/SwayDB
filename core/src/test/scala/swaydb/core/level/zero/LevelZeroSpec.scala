@@ -30,7 +30,7 @@ import swaydb.core.log.applied.AppliedFunctionsLog
 import swaydb.core.log.timer.Timer
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
 import swaydb.core.level.ALevelSpec
 import swaydb.effect.{Dir, Effect}
 import swaydb.serializers.Default._
@@ -79,7 +79,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
 
   "LevelZero" should {
     "initialise" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val nextLevel = TestLevel()
           val zero = TestLevelZero(Some(nextLevel))
@@ -99,7 +99,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
 
   "LevelZero.put" should {
     "write key-value" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           def assert(zero: LevelZero): Unit = {
             zero.put(1, "one").runRandomIO.value
@@ -116,7 +116,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
     }
 
     "write key-values that have empty bytes but the Slices are closed" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -145,7 +145,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
     }
 
     "not write empty key-value" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val zero = TestLevelZero(Some(TestLevel()))
           IO(zero.put(Slice.empty, Slice.empty)).left.value shouldBe a[IllegalArgumentException]
@@ -153,7 +153,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
     }
 
     "write empty values" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val zero = TestLevelZero(Some(TestLevel()))
           zero.put(1, Slice.empty).runRandomIO
@@ -163,7 +163,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
 
     "write large keys and values and reopen the database and re-read key-values" in {
       //approx 2 mb key and values
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val key1 = "a" + Random.nextString(750000): Slice[Byte]
           val key2 = "b" + Random.nextString(750000): Slice[Byte]
@@ -193,7 +193,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
     }
 
     "write keys only" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val zero = TestLevelZero(Some(TestLevel()))
 
@@ -210,7 +210,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
     }
 
     "batch write key-values" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val keyValues = randomIntKeyStringValues(keyValuesCount)
 
@@ -242,7 +242,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
 
   "LevelZero.remove" should {
     "remove key-values" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), logSize = 1.byte)
           val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(0))
@@ -266,7 +266,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
     }
 
     "batch remove key-values" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val keyValues = randomIntKeyStringValues(keyValuesCount)
           val zero = TestLevelZero(Some(TestLevel()))
@@ -285,7 +285,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
 
   "LevelZero.clear" should {
     "a database with single key-value" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), logSize = 1.byte)
           val keyValues = randomIntKeyStringValues(1)
@@ -306,7 +306,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
 
     "remove all key-values" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), logSize = 1.byte)
             val keyValues = randomIntKeyStringValues(randomIntMax(20) max keyValuesCount)
@@ -328,7 +328,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
   "LevelZero.head" should {
     "return the first key-value" in {
       //disable throttle
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), logSize = 1.byte)
 
@@ -362,7 +362,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
 
   "LevelZero.last" should {
     "return the last key-value" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val zero = TestLevelZero(Some(TestLevel()), logSize = 1.byte)
 
@@ -393,7 +393,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
 
   "LevelZero.remove range" should {
     "not allow from key to be > than to key" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val zero = TestLevelZero(Some(TestLevel()), logSize = 1.byte)
           IO(zero.remove(10, 1)).left.value.getMessage shouldBe "fromKey should be less than toKey."
@@ -404,7 +404,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
 
   "LevelZero.update range" should {
     "not allow from key to be > than to key" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val zero = TestLevelZero(Some(TestLevel()), logSize = 1.byte)
           IO(zero.update(10, 1, value = "value")).left.value.getMessage shouldBe "fromKey should be less than toKey."
@@ -419,7 +419,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
     "initiate" when {
       "timer is enabled" in {
         if (isPersistentSpec)
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               val zero = TestLevelZero(None, enableTimer = true)
               zero.path.folderId shouldBe 0
@@ -432,7 +432,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
               Effect.exists(appliedFunctionsPath) shouldBe true
           }
         else
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               val zero = TestLevelZero(None, enableTimer = true)
               zero.path.folderId shouldBe 0
@@ -447,7 +447,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
         if (isPersistentSpec)
           cancel("does not apply for in-memory")
         else
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
 
               val persistentLevel =
@@ -483,7 +483,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
     "not initiate" when {
       "timer is disabled" in {
         if (isPersistentSpec)
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               val zero = TestLevelZero(None, enableTimer = false)
               import Effect._
@@ -493,7 +493,7 @@ sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
               Effect.exists(timerPath) shouldBe false
           }
         else
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               val zero = TestLevelZero(None, enableTimer = false)
               import Effect._

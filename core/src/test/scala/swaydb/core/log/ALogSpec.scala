@@ -4,14 +4,14 @@ import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.segment.data.Memory
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._
 import swaydb.core.CoreTestData._
 import swaydb.IOValues._
-import TestCaseSweeper._
+import TestSweeper._
 import swaydb.effect.Effect
 
 import java.nio.file.Path
@@ -32,7 +32,7 @@ trait ALogSpec extends ACoreSpec {
               flushOnOverflow: Boolean = false,
               mmap: MMAP.Log = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                          timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                         sweeper: TestCaseSweeper): LevelZeroLog = {
+                                                                                         sweeper: TestSweeper): LevelZeroLog = {
       import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
       import sweeper._
 

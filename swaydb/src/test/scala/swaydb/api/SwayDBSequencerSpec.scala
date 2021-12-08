@@ -20,8 +20,8 @@ import org.scalatest.OptionValues._
 import swaydb.Bag.Implicits._
 import swaydb._
 import swaydb.config.sequencer.Sequencer
-import swaydb.core.TestCaseSweeper._
-import swaydb.core.{TestCaseSweeper, TestExecutionContext}
+import swaydb.core.TestSweeper._
+import swaydb.core.{TestSweeper, TestExecutionContext}
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis.FutureImplicits
 
@@ -29,7 +29,7 @@ import scala.concurrent.Future
 import scala.util.Try
 
 class SwayDBSequencerSpec0 extends SwayDBSequencerSpec {
-  def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
+  def newDB[BAG[+_]]()(implicit sweeper: TestSweeper,
                        sequencer: Sequencer[BAG],
                        bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
     swaydb.persistent.Map[Int, String, Nothing, BAG](randomDir).map(_.sweep(_.toBag[Glass].delete()))
@@ -41,7 +41,7 @@ class SwayDBSequencerSpec3 extends SwayDBSequencerSpec {
 
   override val keyValueCount: Int = 100
 
-  def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
+  def newDB[BAG[+_]]()(implicit sweeper: TestSweeper,
                        sequencer: Sequencer[BAG],
                        bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
     swaydb.memory.Map[Int, String, Nothing, BAG]().map(_.sweep(_.toBag[Glass].delete()))
@@ -49,14 +49,14 @@ class SwayDBSequencerSpec3 extends SwayDBSequencerSpec {
 
 sealed trait SwayDBSequencerSpec extends TestBaseAPI {
 
-  def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
+  def newDB[BAG[+_]]()(implicit sweeper: TestSweeper,
                        sequencer: Sequencer[BAG],
                        bag: Bag[BAG]): BAG[SetMapT[Int, String, BAG]]
 
   "Synchronised bags" should {
     "used Serial.Synchronised" when {
       "serial is null" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             def doTest[BAG[+_]](implicit bag: Bag.Sync[BAG]) = {
@@ -88,7 +88,7 @@ sealed trait SwayDBSequencerSpec extends TestBaseAPI {
   "Async bags" should {
     "use Serial.Thread" when {
       "serial is null" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             implicit val bag = Bag.future(TestExecutionContext.executionContext)
@@ -112,7 +112,7 @@ sealed trait SwayDBSequencerSpec extends TestBaseAPI {
     "convert" when {
       "Synchronised to" when {
         "Synchronised" in {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               implicit val sequencer: Sequencer[Glass] = null
               val map = newDB[Glass]()
@@ -127,7 +127,7 @@ sealed trait SwayDBSequencerSpec extends TestBaseAPI {
         }
 
         "SingleThread" in {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               implicit val sequencer: Sequencer[Glass] = null
               val map = newDB[Glass]()
@@ -145,7 +145,7 @@ sealed trait SwayDBSequencerSpec extends TestBaseAPI {
 
       "SingleThreaded to" when {
         "Synchronised" in {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
 
               implicit val bag = Bag.future(TestExecutionContext.executionContext)

@@ -5,7 +5,7 @@ import swaydb.ActorConfig
 import swaydb.IOValues._
 import swaydb.config.MemoryCache
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
@@ -17,7 +17,7 @@ import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.{ASegmentSpec, PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestTimer}
 import swaydb.effect.IOStrategy
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -46,7 +46,7 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
   "it" should {
     "return distinct Readers" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -89,7 +89,7 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
 
   "clear" should {
     "none all cached" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -128,7 +128,7 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
   "it" should {
     "not add un-cached blocks and readers to memory sweeper" in {
       runThis(10.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -212,7 +212,7 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
 
     "add cached blocks to memory sweeper" in {
       runThis(10.times) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             implicit val blockSweeper: Option[MemorySweeper.Block] =
               MemorySweeper(MemoryCache.ByteCacheOnly(4096, 50000.bytes, 600.mb, disableForSearchIO = false, ActorConfig.random(10.seconds)(TestExecutionContext.executionContext)))
@@ -322,7 +322,7 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
   "it" should {
     "cache sortedIndex and values blocks on readAll" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             //ensure Segment itself is not caching bytes.
             //disable compression so bytes do not get cached

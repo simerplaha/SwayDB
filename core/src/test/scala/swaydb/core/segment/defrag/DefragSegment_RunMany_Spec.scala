@@ -30,7 +30,7 @@ import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestTimer}
 import swaydb.core.level.ALevelSpec
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -52,7 +52,7 @@ class DefragSegment_RunMany_Spec extends ALevelSpec with MockFactory with Either
 
   "NO GAP - empty should result in empty" in {
     runThis(20.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -102,7 +102,7 @@ class DefragSegment_RunMany_Spec extends ALevelSpec with MockFactory with Either
 
   "NO GAP - randomly select key-values to merge" in {
     runThis(100.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

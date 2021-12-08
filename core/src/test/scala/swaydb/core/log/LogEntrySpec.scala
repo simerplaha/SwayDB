@@ -26,7 +26,7 @@ import swaydb.core.segment.data.{Memory, MemoryOption, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{ASegmentSpec, Segment, SegmentOption}
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -172,7 +172,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
     }
 
     "add Appendix single Put entry to skipList" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import AppendixLogEntryWriter._
           val segment = TestSegment(keyValues)
@@ -189,7 +189,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
     }
 
     "remove Appendix entry from skipList" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import AppendixLogEntryWriter._
           val segment = TestSegment(keyValues)
@@ -209,7 +209,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
     }
 
     "batch multiple appendix entries to skipList" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import AppendixLogEntryWriter._
 
@@ -256,7 +256,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
     }
 
     "write and read bytes for a single Appendix" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -304,7 +304,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
     }
 
     "write and read bytes for single Appendix entry" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -395,7 +395,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
     }
 
     "be written and read for Appendix" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

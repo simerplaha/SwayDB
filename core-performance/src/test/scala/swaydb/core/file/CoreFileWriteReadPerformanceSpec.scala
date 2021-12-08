@@ -17,7 +17,7 @@
 package swaydb.core.file
 
 import swaydb.Benchmark
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestSweeper}
+import swaydb.core.{ACoreSpec, TestSweeper, CoreTestSweepers}
 import swaydb.core.CoreTestData._
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
@@ -32,15 +32,15 @@ import scala.util.Random
 
 class CoreFileWriteReadPerformanceSpec extends ACoreSpec {
 
-  implicit val fileSweeper: FileSweeper = TestSweeper.createFileSweeper()
-  implicit val bufferCleaner: ByteBufferSweeperActor = TestSweeper.createBufferCleaner()
-  implicit val memorySweeper = TestSweeper.createMemorySweeperMax()
+  implicit val fileSweeper: FileSweeper = CoreTestSweepers.createFileSweeper()
+  implicit val bufferCleaner: ByteBufferSweeperActor = CoreTestSweepers.createBufferCleaner()
+  implicit val memorySweeper = CoreTestSweepers.createMemorySweeperMax()
   implicit val forceSave = ForceSaveApplier.On
 
   //  implicit def blockCache: Option[BlockCacheState] = TestSweeper.randomBlockCache
 
   "random access" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         val bytes = randomBytesSlice(20.mb)
 

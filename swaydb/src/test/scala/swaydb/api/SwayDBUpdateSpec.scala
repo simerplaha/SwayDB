@@ -20,8 +20,8 @@ import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb._
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper
+import swaydb.core.TestSweeper._
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis._
 
@@ -31,7 +31,7 @@ import swaydb.testkit.TestKit._
 class SwayDBUpdateSpec0 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value.sweep(_.delete().get)
 }
 
@@ -39,7 +39,7 @@ class SwayDBUpdateSpec1 extends SwayDBUpdateSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, logSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
@@ -47,14 +47,14 @@ class SwayDBUpdateSpec2 extends SwayDBUpdateSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](logSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBUpdateSpec3 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value.sweep(_.delete().get)
 }
 
@@ -62,14 +62,14 @@ class SwayDBUpdateSpec3 extends SwayDBUpdateSpec {
 class SwayDBUpdateSpec4 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
     generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir).get).sweep(_.delete().get)
 }
 
 class SwayDBUpdateSpec5 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
     generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get).sweep(_.delete().get)
 }
 
@@ -77,12 +77,12 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
   val keyValueCount: Int
 
-  def newDB()(implicit sweeper: TestCaseSweeper): MapT[Int, String, Nothing, IO.ApiIO]
+  def newDB()(implicit sweeper: TestSweeper): MapT[Int, String, Nothing, IO.ApiIO]
 
   "Updating" when {
     "Put" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -104,7 +104,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Put & Expire" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -137,7 +137,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Put & Remove" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -159,7 +159,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Put & Update" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -187,7 +187,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
   "Updating" when {
     "Remove" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -209,7 +209,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Remove & Put" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -236,7 +236,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Remove & Update" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -262,7 +262,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Remove & Expire" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -290,7 +290,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Remove & Remove" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -319,7 +319,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
   "Updating" when {
     "Update" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -340,7 +340,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Update & Put" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -368,7 +368,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Update & Update" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -395,7 +395,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Update & Expire" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -424,7 +424,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Update & Remove" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -453,7 +453,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
   "Updating" when {
     "Expire" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -479,7 +479,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Expire & Remove" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -508,7 +508,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Expire & Update" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -538,7 +538,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Expire & Expire" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -570,7 +570,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseAPI {
 
     "Expire & Put" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()

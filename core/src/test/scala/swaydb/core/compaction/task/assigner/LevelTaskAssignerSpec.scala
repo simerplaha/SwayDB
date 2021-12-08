@@ -25,7 +25,7 @@ import swaydb.core.CoreTestData._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data.Memory
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
 import swaydb.core.level.ALevelSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -65,7 +65,7 @@ sealed trait LevelTaskAssignerSpec extends ALevelSpec with MockFactory {
 
   "refresh" when {
     "Level is empty" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val level = TestLevel()
           LevelTaskAssigner.refresh(level) shouldBe empty
@@ -73,7 +73,7 @@ sealed trait LevelTaskAssignerSpec extends ALevelSpec with MockFactory {
     }
 
     "Level is non-empty but no deadline key-values" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -85,7 +85,7 @@ sealed trait LevelTaskAssignerSpec extends ALevelSpec with MockFactory {
     }
 
     "Level has unexpired key-values" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -97,7 +97,7 @@ sealed trait LevelTaskAssignerSpec extends ALevelSpec with MockFactory {
     }
 
     "Level has expired key-values" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -113,7 +113,7 @@ sealed trait LevelTaskAssignerSpec extends ALevelSpec with MockFactory {
 
   "collapse" when {
     "Level is empty" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val level = TestLevel()
           LevelTaskAssigner.collapse(level) shouldBe empty
@@ -121,7 +121,7 @@ sealed trait LevelTaskAssignerSpec extends ALevelSpec with MockFactory {
     }
 
     "Level is non-empty and contains only one Segment" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -138,7 +138,7 @@ sealed trait LevelTaskAssignerSpec extends ALevelSpec with MockFactory {
       if (isMemorySpec)
         cancel("Test not required for in-memory")
       else
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 

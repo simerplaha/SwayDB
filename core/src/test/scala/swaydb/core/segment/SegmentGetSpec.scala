@@ -21,11 +21,11 @@ import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.data._
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestSweeper}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, CoreTestSweepers}
 import swaydb.core.level.ALevelSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -71,7 +71,7 @@ sealed trait SegmentGetSpec extends ALevelSpec with ScalaFutures with PrivateMet
 
     "fixed key-value" in {
       runThis(100.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             assertSegment(
               keyValues = Slice(randomFixedKeyValue(1)),
@@ -106,7 +106,7 @@ sealed trait SegmentGetSpec extends ALevelSpec with ScalaFutures with PrivateMet
 
     "range-value" in {
       runThis(100.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             assertSegment(
               keyValues = Slice(randomRangeKeyValue(1, 10)),
@@ -158,7 +158,7 @@ sealed trait SegmentGetSpec extends ALevelSpec with ScalaFutures with PrivateMet
     }
 
     "value random key-values" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val keyValues = randomizedKeyValues(keyValuesCount)
           val segment = TestSegment(keyValues)
@@ -167,9 +167,9 @@ sealed trait SegmentGetSpec extends ALevelSpec with ScalaFutures with PrivateMet
     }
 
     "add cutd key-values to Segment's caches" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
-          TestSweeper.createMemorySweeperMax().value.sweep()
+          CoreTestSweepers.createMemorySweeperMax().value.sweep()
 
           assertSegment(
             keyValues = randomizedKeyValues(keyValuesCount),
@@ -201,7 +201,7 @@ sealed trait SegmentGetSpec extends ALevelSpec with ScalaFutures with PrivateMet
     }
 
     "add read key values to cache" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           runThis(20.times, log = true) {

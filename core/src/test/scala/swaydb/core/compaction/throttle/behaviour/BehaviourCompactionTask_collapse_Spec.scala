@@ -68,7 +68,7 @@ sealed trait BehaviourCompactionTask_collapse_Spec extends ALevelSpec {
 
   "succeed" in {
     runThis(10.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -103,7 +103,7 @@ sealed trait BehaviourCompactionTask_collapse_Spec extends ALevelSpec {
 
   "revert on failure" in {
     runThis(10.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

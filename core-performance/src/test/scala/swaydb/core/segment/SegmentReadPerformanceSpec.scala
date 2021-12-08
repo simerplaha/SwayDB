@@ -18,7 +18,7 @@ package swaydb.core.segment
 
 import swaydb.Benchmark
 import swaydb.config.SegmentRefCacheLife
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.segment.PathsDistributor
@@ -34,7 +34,7 @@ import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.entry.reader.PersistentReader
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestSweeper}
+import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, CoreTestSweepers}
 import swaydb.effect.{Dir, IOAction, IOStrategy}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -175,8 +175,8 @@ class SegmentReadPerformanceSpec extends ASegmentSpec {
         initialiseIteratorsInOneSeek = false
       )
 
-    implicit val fileSweeper = TestSweeper.createFileSweeper()
-    implicit val byteBufferSweeper = TestSweeper.createBufferCleaner()
+    implicit val fileSweeper = CoreTestSweepers.createFileSweeper()
+    implicit val byteBufferSweeper = CoreTestSweepers.createBufferCleaner()
     implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.On
     //        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeperMax
     //      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeper10
@@ -243,7 +243,7 @@ class SegmentReadPerformanceSpec extends ASegmentSpec {
   //  }
 
   "Get" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
 
         def assertGet(segment: Segment) = {
@@ -398,7 +398,7 @@ class SegmentReadPerformanceSpec extends ASegmentSpec {
   }
 
   "Higher" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         def assertHigher(segment: Segment) = {
           val readState = ThreadReadState.hashMap()
@@ -442,7 +442,7 @@ class SegmentReadPerformanceSpec extends ASegmentSpec {
   }
 
   "Lower" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
 
         val range = (1 until keyValues.size).reverse

@@ -19,63 +19,63 @@ package swaydb.api
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb._
-import swaydb.core.TestCaseSweeper
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper
+import swaydb.core.TestSweeper._
 import swaydb.serializers.Default._
 import swaydb.testkit.RunThis._
 
 import scala.concurrent.duration._
 
 class SwayDBGetSpec0 extends SwayDBGetSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir).right.value.sweep(_.delete().get)
 }
 
 class SwayDBGet_SetMap_Spec0 extends SwayDBGetSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): SetMap[Int, String, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): SetMap[Int, String, IO.ApiIO] =
     swaydb.persistent.SetMap[Int, String, IO.ApiIO](randomDir).right.value.sweep(_.delete().get)
 }
 
 class SwayDBGet_Eventually_Persistent_SetMap_Spec0 extends SwayDBGetSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): SetMap[Int, String, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): SetMap[Int, String, IO.ApiIO] =
     swaydb.eventually.persistent.SetMap[Int, String, IO.ApiIO](randomDir).right.value.sweep(_.delete().get)
 }
 
 class SwayDBGetSpec1 extends SwayDBGetSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, logSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBGetSpec2 extends SwayDBGetSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](logSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBGetSpec3 extends SwayDBGetSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value.sweep(_.delete().get)
 }
 
 class MultiMapGetSpec4 extends SwayDBGetSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): SetMapT[Int, String, IO.ApiIO] =
     generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir).get).sweep(_.delete().get)
 }
 
 class MultiMapGetSpec5 extends SwayDBGetSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestSweeper): SetMapT[Int, String, IO.ApiIO] =
     generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get).sweep(_.delete().get)
 }
 
 sealed trait SwayDBGetSpec extends TestBaseAPI {
 
-  def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, IO.ApiIO]
+  def newDB()(implicit sweeper: TestSweeper): SetMapT[Int, String, IO.ApiIO]
 
   override val keyValueCount: Int = 1000
 
   "SwayDB" should {
     "get" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val db = newDB()
 
@@ -100,7 +100,7 @@ sealed trait SwayDBGetSpec extends TestBaseAPI {
 
     "return empty for removed key-value" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val db = newDB()
 
@@ -135,7 +135,7 @@ sealed trait SwayDBGetSpec extends TestBaseAPI {
 
     "return empty for expired key-value" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val db = newDB()
 
@@ -173,7 +173,7 @@ sealed trait SwayDBGetSpec extends TestBaseAPI {
 
     "return empty for range expired key-value" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val db = newDB()
 

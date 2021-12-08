@@ -67,7 +67,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends ALevel
     "there are 2 levels" should {
       "write data to lower level" when {
         "target Level is empty" in {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -107,7 +107,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends ALevel
         }
 
         "target Level is non empty" in {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               import sweeper._
 
@@ -155,7 +155,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends ALevel
       "expire data" when {
         "target Level is empty" in {
           runThis(10.times, log = true) {
-            TestCaseSweeper {
+            TestSweeper {
               implicit sweeper =>
                 import sweeper._
 
@@ -202,7 +202,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends ALevel
 
         "target Level is non empty" in {
           runThis(20.times, log = true) {
-            TestCaseSweeper {
+            TestSweeper {
               implicit sweeper =>
                 import sweeper._
 
@@ -264,7 +264,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends ALevel
       "delete uncommitted Segment" when {
         "failure" in {
           runThis(5.times, log = true) {
-            TestCaseSweeper {
+            TestSweeper {
               implicit sweeper =>
                 import sweeper._
 

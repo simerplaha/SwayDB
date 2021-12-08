@@ -74,7 +74,7 @@ sealed trait LevelReadSpec extends ALevelSpec with MockFactory {
 
   "Level.mightContainKey" should {
     "return true for key-values that exists or else false (bloom filter test on reboot)" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -100,7 +100,7 @@ sealed trait LevelReadSpec extends ALevelSpec with MockFactory {
 
   "Level.takeSmallSegments" should {
     "filter smaller segments from a Level" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -129,7 +129,7 @@ sealed trait LevelReadSpec extends ALevelSpec with MockFactory {
 
   "Level.meter" should {
     "return Level stats" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -166,7 +166,7 @@ sealed trait LevelReadSpec extends ALevelSpec with MockFactory {
 
   "Level.meterFor" should {
     "forward request to the right level" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -212,7 +212,7 @@ sealed trait LevelReadSpec extends ALevelSpec with MockFactory {
     }
 
     "return None is Level does not exist" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

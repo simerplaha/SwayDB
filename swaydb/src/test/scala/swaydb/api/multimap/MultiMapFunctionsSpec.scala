@@ -20,8 +20,8 @@ import org.scalatest.OptionValues._
 import swaydb.PureFunctionScala._
 import swaydb.api.TestBaseAPI
 import swaydb.config.Functions
-import swaydb.core.TestCaseSweeper
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper
+import swaydb.core.TestSweeper._
 import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
@@ -32,25 +32,25 @@ import scala.concurrent.duration._
 
 class MultiMapFunctionsSpec0 extends MultiMapFunctionsSpec {
   override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
-                       sweeper: TestCaseSweeper) =
+                       sweeper: TestSweeper) =
     swaydb.persistent.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](dir = randomDir).sweep(_.delete())
 }
 
 class MultiMapFunctionsSpec1 extends MultiMapFunctionsSpec {
   override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
-                       sweeper: TestCaseSweeper) =
+                       sweeper: TestSweeper) =
     swaydb.persistent.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](dir = randomDir, logSize = 1.byte).sweep(_.delete())
 }
 
 class MultiMapFunctionsSpec2 extends MultiMapFunctionsSpec {
   override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
-                       sweeper: TestCaseSweeper) =
+                       sweeper: TestSweeper) =
     swaydb.memory.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass]().sweep(_.delete())
 }
 
 class MultiMapFunctionsSpec3 extends MultiMapFunctionsSpec {
   override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
-                       sweeper: TestCaseSweeper) =
+                       sweeper: TestSweeper) =
     swaydb.memory.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](logSize = 1.byte).sweep(_.delete())
 }
 
@@ -59,7 +59,7 @@ sealed trait MultiMapFunctionsSpec extends TestBaseAPI {
   val keyValueCount: Int = 30
 
   def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
-              sweeper: TestCaseSweeper): MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass]
+              sweeper: TestSweeper): MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass]
 
   implicit val bag = Bag.glass
 
@@ -85,7 +85,7 @@ sealed trait MultiMapFunctionsSpec extends TestBaseAPI {
     implicit val functions = Functions[PureFunction.Map[Int, String]](onKeyValueFunction, onValueFunction, onKeyFunction)
 
     "single" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val map = newDB()
@@ -108,7 +108,7 @@ sealed trait MultiMapFunctionsSpec extends TestBaseAPI {
     }
 
     "batch" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val map = newDB()

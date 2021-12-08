@@ -18,8 +18,8 @@ package swaydb.core.actor
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.TestCaseSweeper._
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext}
+import swaydb.core.TestSweeper._
+import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext}
 import swaydb.testkit.RunThis._
 import swaydb.{Actor, DefActor}
 
@@ -33,7 +33,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with ACoreSpec {
   "ActorWire" should {
 
     "process messages in order of arrival" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           class MyImpl(message: ListBuffer[Int]) {
@@ -65,7 +65,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with ACoreSpec {
     }
 
     "ask" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           object MyImpl {
@@ -84,7 +84,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with ACoreSpec {
     }
 
     "askFlatMap" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
 
@@ -104,7 +104,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with ACoreSpec {
     }
 
     "send" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
 
@@ -143,7 +143,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with ACoreSpec {
     }
 
     "scheduleAsk" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           class MyImpl(var invoked: Boolean = false) {
@@ -185,7 +185,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with ACoreSpec {
     }
 
     "scheduleAskFlatMap" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           class MyImpl(var invoked: Boolean = false) {
@@ -237,7 +237,7 @@ class DefActorSpec extends AnyWordSpec with Matchers with ACoreSpec {
     }
 
     "scheduleAskWithSelf" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           class MyImpl(var invoked: Boolean = false) {

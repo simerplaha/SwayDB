@@ -21,7 +21,7 @@ import org.scalatest.PrivateMethodTester
 import swaydb.IOValues._
 import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.level.zero.LevelZeroLogCache
@@ -71,7 +71,7 @@ sealed trait LevelMapSpec extends ALevelSpec with MockFactory with PrivateMethod
     import swaydb.core.log.serialiser.LevelZeroLogEntryReader._
     import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
 
-    def createTestMap()(implicit sweeper: TestCaseSweeper) = {
+    def createTestMap()(implicit sweeper: TestSweeper) = {
       import sweeper._
 
       implicit val optimiseWrites = OptimiseWrites.random
@@ -100,7 +100,7 @@ sealed trait LevelMapSpec extends ALevelSpec with MockFactory with PrivateMethod
 
     "succeed" when {
       "writing to an empty Level" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -122,7 +122,7 @@ sealed trait LevelMapSpec extends ALevelSpec with MockFactory with PrivateMethod
       }
 
       "writing to a non empty Level" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 

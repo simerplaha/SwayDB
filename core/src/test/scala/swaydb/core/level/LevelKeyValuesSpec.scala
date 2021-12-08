@@ -71,7 +71,7 @@ sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with Private
 
   "put KeyValues" should {
     "write a key-values to the Level" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -96,7 +96,7 @@ sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with Private
     }
 
     "return an empty level if all the key values in the Level were REMOVED and if Level is the only Level" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -131,7 +131,7 @@ sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with Private
     }
 
     "not return an empty level if all the key values in the Level were REMOVED but it has lower level" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -156,7 +156,7 @@ sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with Private
     }
 
     "return an empty level if all the key values in the Level were REMOVED by RANGE and if Level is the only Level" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -177,7 +177,7 @@ sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with Private
     }
 
     "not return an empty level if all the key values in the Level were REMOVED by RANGE but it has a lower Level" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -199,7 +199,7 @@ sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with Private
     }
 
     "return an empty level if all the key values in the Level were EXPIRED and if Level is the only Level" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -250,7 +250,7 @@ sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with Private
     }
 
     "not return an empty level if all the key values in the Level were EXPIRED and if Level has a lower Level" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -293,7 +293,7 @@ sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with Private
     }
 
     "return an empty level if all the key values in the Level were EXPIRED by RANGE and if Level is the only Level" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -326,7 +326,7 @@ sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with Private
     }
 
     "not return an empty level if all the key values in the Level were EXPIRED by RANGE and if Level has a last Level" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

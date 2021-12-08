@@ -20,11 +20,11 @@ import org.scalatest.OptionValues._
 import swaydb.{ActorConfig, Benchmark}
 import swaydb.config.MemoryCache
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext}
+import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext}
 import swaydb.slice.Slice
 import swaydb.slice.order.TimeOrder
 import swaydb.testkit.RunThis._
@@ -46,7 +46,7 @@ class SegmentMemorySweeperSpec extends ASegmentSpec {
   "PersistentSegment" should {
     "drop Group key-value only after it's been decompressed" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             //add key-values to the right of the group
             val keyValues = randomKeyValues(count = 1000, addUpdates = true, startId = Some(1))

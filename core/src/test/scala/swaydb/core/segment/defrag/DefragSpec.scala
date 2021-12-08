@@ -30,7 +30,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.data.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment.data.{KeyValue, Memory}
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice
@@ -45,7 +45,7 @@ import swaydb.testkit.TestKit._
  */
 class PersistentSegment_DefragSpec extends DefragSpec[PersistentSegment, PersistentSegmentOption, MergeStats.Persistent.Builder[Memory, ListBuffer]] {
 
-  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: TestCaseSweeper): PersistentSegment =
+  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: TestSweeper): PersistentSegment =
     TestSegment(keyValues).shouldBeInstanceOf[PersistentSegment]
 
   override def nullSegment: PersistentSegmentOption =
@@ -65,7 +65,7 @@ class MemorySegment_DefragSpec extends DefragSpec[MemorySegment, MemorySegmentOp
 
   override def isMemorySpec = true
 
-  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: TestCaseSweeper): MemorySegment =
+  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: TestSweeper): MemorySegment =
     TestSegment(keyValues).shouldBeInstanceOf[MemorySegment]
 
   override def nullSegment: MemorySegmentOption =
@@ -94,7 +94,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
   implicit def bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random
   implicit def segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 
-  def testSegment(keyValues: Slice[Memory] = randomizedKeyValues())(implicit sweeper: TestCaseSweeper): SEG
+  def testSegment(keyValues: Slice[Memory] = randomizedKeyValues())(implicit sweeper: TestSweeper): SEG
   def nullSegment: NULL_SEG
   implicit def mergeStatsCreator: MergeStatsCreator[S]
   implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig): MergeStatsSizeCalculator[S]
@@ -103,7 +103,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
     "there are no gaps" when {
       "removeDeletes = false" in {
         runThis(10.times, log = true) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
 
               //ignore pending apply, functions and ranges since they merge update key-values to a compressed format
@@ -133,7 +133,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
 
       "removeDeletes = true" in {
         runThis(10.times, log = true) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
               //add only updated key-values
               val segment = testSegment(keyValues = Slice(randomUpdateKeyValue(1), randomFunctionKeyValue(2), randomRemoveAny(3, 10)))
@@ -163,7 +163,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
     "there are no key-values to merge" when {
       "removeDeletes = false" in {
         runThis(10.times, log = true) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
 
               val keyValues = randomKeyValues(30).groupedSlice(3)
@@ -211,7 +211,7 @@ sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats
 
       "segmentSize is too small" in {
         runThis(10.times, log = true) {
-          TestCaseSweeper {
+          TestSweeper {
             implicit sweeper =>
 
               val keyValues = randomPutKeyValues(count = 10000, startId = Some(0), valueSize = 0, addPutDeadlines = false).groupedSlice(1000)

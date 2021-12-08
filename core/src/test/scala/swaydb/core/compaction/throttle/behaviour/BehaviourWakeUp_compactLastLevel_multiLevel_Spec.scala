@@ -25,7 +25,7 @@ import swaydb.core.compaction.throttle.LevelState
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.util.DefIO
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestForceSave}
 import swaydb.core.level.ALevelSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -64,7 +64,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends ALevelSpec
   "ignore compaction" when {
     "empty" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -92,7 +92,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends ALevelSpec
 
     "there is only one file with no expired key-values" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -146,7 +146,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends ALevelSpec
 
     "all segments are small but there are only 2 segments (minimum is 3)" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -213,7 +213,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends ALevelSpec
   "extend" when {
     "the level is cleaned up but nextCompactionDelay is overdue" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 

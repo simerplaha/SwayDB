@@ -17,8 +17,8 @@
 package swaydb.api.queue
 
 import org.scalatest.OptionValues._
-import swaydb.core.TestCaseSweeper._
-import swaydb.core.{ACoreSpec, TestCaseSweeper}
+import swaydb.core.TestSweeper._
+import swaydb.core.{ACoreSpec, TestSweeper}
 import swaydb.serializers.Default._
 import swaydb.{Benchmark, Glass, Queue}
 
@@ -30,21 +30,21 @@ import scala.util.Random
 
 class QueueSpec0 extends QueueSpec {
 
-  override def newQueue()(implicit sweeper: TestCaseSweeper): Queue[Int] =
+  override def newQueue()(implicit sweeper: TestSweeper): Queue[Int] =
     swaydb.persistent.Queue[Int, Glass](randomDir).sweep(_.delete())
 }
 
 class QueueSpec3 extends QueueSpec {
-  override def newQueue()(implicit sweeper: TestCaseSweeper): Queue[Int] =
+  override def newQueue()(implicit sweeper: TestSweeper): Queue[Int] =
     swaydb.memory.Queue[Int, Glass]().sweep(_.delete())
 }
 
 sealed trait QueueSpec extends ACoreSpec {
 
-  def newQueue()(implicit sweeper: TestCaseSweeper): Queue[Int]
+  def newQueue()(implicit sweeper: TestSweeper): Queue[Int]
 
   "push and pop" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
 
         val queue: Queue[Int] = newQueue()
@@ -58,7 +58,7 @@ sealed trait QueueSpec extends ACoreSpec {
   }
 
   "push and pop in FIFO manner" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
 
         val queue: Queue[Int] = newQueue()
@@ -72,7 +72,7 @@ sealed trait QueueSpec extends ACoreSpec {
   }
 
   "push, expire, pop & stream" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
 
         val queue: Queue[Int] = newQueue()
@@ -109,7 +109,7 @@ sealed trait QueueSpec extends ACoreSpec {
   }
 
   "concurrently process" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
 
         val queue: Queue[Int] = newQueue()
@@ -152,7 +152,7 @@ sealed trait QueueSpec extends ACoreSpec {
   }
 
   "concurrently process in batches" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
 
         val queue = newQueue()
@@ -185,7 +185,7 @@ sealed trait QueueSpec extends ACoreSpec {
   }
 
   "continue on restart" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
 
         val path = randomDir

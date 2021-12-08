@@ -20,9 +20,9 @@ import swaydb.IOValues._
 import swaydb.PureFunctionScala._
 import swaydb.config.Functions
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
-import swaydb.core.{ACoreSpec, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, TestSweeper}
 import swaydb.macros.Sealed
 import swaydb.serializers.Default._
 import swaydb.serializers.Serializer
@@ -65,7 +65,7 @@ class SwayDBFunctionSpec0 extends SwayDBFunctionSpec {
   def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
                     keySerializer: Serializer[K],
                     valueSerializer: Serializer[V],
-                    sweeper: TestCaseSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
+                    sweeper: TestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
     swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](randomDir).right.value.sweep(_.delete().get)
 }
 
@@ -74,7 +74,7 @@ class SwayDBFunctionSpec1 extends SwayDBFunctionSpec {
   def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
                     keySerializer: Serializer[K],
                     valueSerializer: Serializer[V],
-                    sweeper: TestCaseSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
+                    sweeper: TestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
     swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](randomDir, logSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
@@ -83,7 +83,7 @@ class SwayDBFunctionSpec2 extends SwayDBFunctionSpec {
   def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
                     keySerializer: Serializer[K],
                     valueSerializer: Serializer[V],
-                    sweeper: TestCaseSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
+                    sweeper: TestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
     swaydb.memory.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](logSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
@@ -92,7 +92,7 @@ class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
   def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
                     keySerializer: Serializer[K],
                     valueSerializer: Serializer[V],
-                    sweeper: TestCaseSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
+                    sweeper: TestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
     swaydb.memory.Map[K, V, PureFunction.Map[K, V], IO.ApiIO]().right.value.sweep(_.delete().get)
 }
 
@@ -112,7 +112,7 @@ sealed trait SwayDBFunctionSpec extends ACoreSpec {
   def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
                     keySerializer: Serializer[K],
                     valueSerializer: Serializer[V],
-                    sweeper: TestCaseSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO]
+                    sweeper: TestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO]
 
   "it" should {
 
@@ -121,7 +121,7 @@ sealed trait SwayDBFunctionSpec extends ACoreSpec {
 
     "perform concurrent atomic updates to a single key" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val db = newDB()
@@ -140,7 +140,7 @@ sealed trait SwayDBFunctionSpec extends ACoreSpec {
 
     "perform concurrent atomic updates to multiple keys" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val db = newDB()
 
@@ -168,7 +168,7 @@ sealed trait SwayDBFunctionSpec extends ACoreSpec {
 
     "batch commit updates" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val db = newDB()
 
@@ -193,7 +193,7 @@ sealed trait SwayDBFunctionSpec extends ACoreSpec {
 
     "Nothing should not update data" in {
       runThis(times = repeatTest, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val db = newDB()
 
@@ -240,7 +240,7 @@ sealed trait SwayDBFunctionSpec extends ACoreSpec {
     //test no change
     val onKeyValueDeadline: OnKeyValueDeadline[Key, Value] = (_, _, _) => Apply.Nothing
 
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
 
         implicit val functions = Functions(onKey, onKeyDeadline, onKeyValue, onValue, onValueDeadline, onKeyValueDeadline)

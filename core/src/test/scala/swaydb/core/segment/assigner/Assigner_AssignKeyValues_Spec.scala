@@ -23,7 +23,7 @@ import swaydb.core.CoreTestData._
 import swaydb.core.segment.{ASegmentSpec, Segment}
 import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
 import swaydb.core.level.ALevelSpec
 import swaydb.effect.Effect._
 import swaydb.serializers.Default._
@@ -75,7 +75,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   "assign new key-value to the Segment" when {
     "both have the same key values" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val keyValues = randomKeyValues(count = keyValueCount, startId = Some(1))
             val segment = TestSegment(keyValues)
@@ -102,7 +102,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
 
     "segment is assigned" in {
       runThis(10.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val segmentKeyValue = randomKeyValues(count = keyValueCount, startId = Some(0))
 
@@ -136,7 +136,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
 
   "assign KeyValues to the first Segment if there is only one Segment" when {
     "noGap" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val keyValues = randomizedKeyValues(10, startId = Some(0))
 
@@ -154,7 +154,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
 
     "gaps" in {
       runThis(5.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val headGap = randomizedKeyValues(100, startId = Some(0))
             val midKeyValues = randomizedKeyValues(100, startId = Some(headGap.nextKey(incrementBy = randomIntMax(2))))
@@ -179,7 +179,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "assign KeyValues to second Segment when none of the keys belong to the first Segment" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(2, 10, Value.FromValue.Null, Value.remove(10.seconds.fromNow))))
         val segment2 = TestSegment(Slice(Memory.put(10)))
@@ -203,7 +203,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "assign gap KeyValue to the first Segment if the first Segment already has a key-value assigned to it" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         val segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(2, 10)))
         val segment2 = TestSegment(Slice(randomFixedKeyValue(20)))
@@ -226,7 +226,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
 
   "assign gap KeyValue to the second Segment if the first Segment has no key-value assigned to it" in {
     runThis(10.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           val segment1KeyValues = Slice(randomFixedKeyValue(1), randomRangeKeyValue(2, 10))
           val segment2KeyValues = Slice(randomFixedKeyValue(20))
@@ -251,7 +251,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "assign gap Range KeyValue to all Segments that fall within the Range's toKey" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         // 1 - 10(exclusive)
         val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(2, 10, Value.FromValue.Null, Value.remove(None))))
@@ -284,7 +284,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "assign key value to the first segment when the key is the new smallest" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         val segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
         val segment2 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)))
@@ -300,7 +300,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "assign key value to the first segment and split out to other Segment when the key is the new smallest and the range spreads onto other Segments" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         val segment1 = TestSegment(Slice(Memory.put(1), Memory.put(2)))
         val segment2 = TestSegment(Slice(Memory.put(4), Memory.put(5)))
@@ -321,7 +321,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "debugger" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(26074, 26075, Value.FromValue.Null, Value.update(Slice.Null, None))))
         val segment2 = TestSegment(Slice(Memory.put(26075), Memory.Range(28122, 28123, Value.FromValue.Null, Value.update(Slice.Null, None))))
@@ -339,7 +339,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "assign key value to the last segment when the key is the new largest" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         val segment1 = TestSegment(Slice(Memory.put(1), Memory.put(2)))
         val segment2 = TestSegment(Slice(Memory.put(4), Memory.put(5)))
@@ -371,7 +371,7 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "assign all KeyValues to their target Segments" in {
-    TestCaseSweeper {
+    TestSweeper {
       implicit sweeper =>
         val keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3), randomFixedKeyValue(4), randomFixedKeyValue(5))
         val segment1 = TestSegment(Slice(randomFixedKeyValue(key = 1)))

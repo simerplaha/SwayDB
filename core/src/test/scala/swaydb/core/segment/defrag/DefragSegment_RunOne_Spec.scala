@@ -32,7 +32,7 @@ import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.{KeyValue, Memory}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{ASegmentSpec, PersistentSegment, Segment}
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestTimer}
 import swaydb.core.level.ALevelSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -57,7 +57,7 @@ class DefragSegment_RunOne_Spec extends ALevelSpec with MockFactory with EitherV
   "NO GAPS - no key-values to merge" should {
     "result in empty" in {
       runThis(20.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -99,7 +99,7 @@ class DefragSegment_RunOne_Spec extends ALevelSpec with MockFactory with EitherV
 
   "NO GAPS - Segment gets merged into itself own key-values" in {
     runThis(20.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -142,7 +142,7 @@ class DefragSegment_RunOne_Spec extends ALevelSpec with MockFactory with EitherV
 
   "Segment gets merged into itself and removeDeletes = true" in {
     runThis(20.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -199,7 +199,7 @@ class DefragSegment_RunOne_Spec extends ALevelSpec with MockFactory with EitherV
 
   "HEAD GAP only" in {
     runThis(20.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
           //all key-values are removable so it doesn't matter if it contains gaps or not, all key-values should get cleared.
@@ -252,7 +252,7 @@ class DefragSegment_RunOne_Spec extends ALevelSpec with MockFactory with EitherV
 
   "MULTIPLE HEAD GAPs" in {
     runThis(20.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
           //all key-values are removable so it doesn't matter if it contains gaps or not all key-values should get cleared.
@@ -313,7 +313,7 @@ class DefragSegment_RunOne_Spec extends ALevelSpec with MockFactory with EitherV
 
   "MULTIPLE HEAD and TAIL GAPs" in {
     runThis(20.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -381,7 +381,7 @@ class DefragSegment_RunOne_Spec extends ALevelSpec with MockFactory with EitherV
 
   "MULTIPLE HEAD and TAIL GAPs - that does not open mid segment" in {
     runThis(20.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -453,7 +453,7 @@ class DefragSegment_RunOne_Spec extends ALevelSpec with MockFactory with EitherV
 
   "MULTIPLE HEAD and TAIL GAPs - which might open mid segment" in {
     runThis(20.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

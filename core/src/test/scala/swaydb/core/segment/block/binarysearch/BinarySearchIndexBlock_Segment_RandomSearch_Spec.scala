@@ -23,7 +23,7 @@ import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
 import swaydb.core.segment.data.{Memory, Persistent, PersistentOption}
-import swaydb.core.{ACoreSpec, SegmentBlocks, TestCaseSweeper}
+import swaydb.core.{ACoreSpec, SegmentBlocks, TestSweeper}
 import swaydb.core.segment.ASegmentSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -41,7 +41,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends ASegmentSpec with
 
   val startId = 0
 
-  def genKeyValuesAndBlocks(keyValuesCount: Int = 10)(implicit testCaseSweeper: TestCaseSweeper): (Slice[Memory], SegmentBlocks) = {
+  def genKeyValuesAndBlocks(keyValuesCount: Int = 10)(implicit testCaseSweeper: TestSweeper): (Slice[Memory], SegmentBlocks) = {
     import testCaseSweeper._
     //  def genKeyValuesAndBlocks(keyValuesCount: Int = 50): (Slice[Memory], Blocks) = {
 
@@ -108,7 +108,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends ASegmentSpec with
     "search key-values" in {
 
       runThis(100.times, log = true, s"Running binary search test") {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
             val (keyValues, blocks) = genKeyValuesAndBlocks()
 
@@ -177,7 +177,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends ASegmentSpec with
 
     "search non existent key-values" in {
       runThis(100.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val (keyValues, blocks) = genKeyValuesAndBlocks()
@@ -236,7 +236,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends ASegmentSpec with
 
     "search higher for existing key-values" in {
       runThis(100.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val (keyValues, blocks) = genKeyValuesAndBlocks()
@@ -341,7 +341,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends ASegmentSpec with
 
     "search lower for existing key-values" in {
       runThis(100.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val (keyValues, blocks) = genKeyValuesAndBlocks()

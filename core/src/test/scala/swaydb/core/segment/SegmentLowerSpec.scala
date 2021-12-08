@@ -23,7 +23,7 @@ import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{ACoreSpec, TestCaseSweeper, TestForceSave}
+import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
 import swaydb.core.level.ALevelSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -66,7 +66,7 @@ sealed trait SegmentLowerSpec extends ALevelSpec with ScalaFutures with PrivateM
 
   "Segment.lower" should {
     "value the lower key from the segment that has only 1 fixed key-value" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           assertSegment(
             keyValues =
@@ -84,7 +84,7 @@ sealed trait SegmentLowerSpec extends ALevelSpec with ScalaFutures with PrivateM
     }
 
     "value the lower from the segment when there are no Range key-values" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           //1, 2, 3
           assertSegment(
@@ -112,7 +112,7 @@ sealed trait SegmentLowerSpec extends ALevelSpec with ScalaFutures with PrivateM
     "value the lower from the segment when there are Range key-values" in {
       //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
       runThis(100.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             assertSegment(
@@ -180,7 +180,7 @@ sealed trait SegmentLowerSpec extends ALevelSpec with ScalaFutures with PrivateM
     }
 
     "random" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           assertSegment(
             keyValues = randomizedKeyValues(keyValuesCount, addUpdates = true),

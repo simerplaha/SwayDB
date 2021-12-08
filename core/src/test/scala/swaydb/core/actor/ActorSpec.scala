@@ -21,8 +21,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.ActorConfig.QueueOrder
 import swaydb._
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper._
-import swaydb.core.{TestCaseSweeper, TestExecutionContext}
+import swaydb.core.TestSweeper._
+import swaydb.core.{TestSweeper, TestExecutionContext}
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
@@ -43,7 +43,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
   "it" should {
 
     "process messages in order of arrival" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val messageCount = 100000
@@ -72,7 +72,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     }
 
     "process all messages in any order when submitted concurrently" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val messageCount = 10000
@@ -102,7 +102,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     }
 
     "continue processing messages if execution of one message fails and has no recovery" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           case class State(processed: ListBuffer[Int])
@@ -126,7 +126,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     }
 
     "continue processing messages if execution of one message fails and has recovery" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           case class State(processed: ListBuffer[Int], recovered: ListBuffer[Int])
@@ -187,7 +187,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     //    }
 
     "stop processing messages on termination" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           case class State(processed: ConcurrentSkipListSet[Int], failed: ConcurrentSkipListSet[Int])
@@ -225,7 +225,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
   "timer" should {
 
     "process all messages after a fixed interval and terminate" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           case class State(processed: ListBuffer[Int])
@@ -257,7 +257,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
   "timerLoop" should {
 
     "continue processing incoming messages at the next specified interval" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           case class State(processed: ListBuffer[Int])
@@ -355,7 +355,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
 
     "not process message until overflow" when {
       "basic actor is used" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val state = State(new ConcurrentSkipListSet[Int](), new ConcurrentSkipListSet[Int]())
@@ -390,7 +390,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
 
   "timerCache" should {
     "not drop stash" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           @volatile var runs = 0
@@ -423,7 +423,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
 
   "timerLoopCache" should {
     "not drop stash" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           @volatile var checks = 0
@@ -458,7 +458,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     implicit val futureTag = Bag.future(ec)
 
     "ask" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           val actor =
@@ -511,7 +511,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
 
     "process all messages" when {
       "basic" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val actor = Actor[() => Any]("") {
@@ -524,7 +524,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       }
 
       "timer" in {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val actor = Actor.timer[() => Any]("", 0, 1.second) {
@@ -541,7 +541,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
   "terminateAndRecover" should {
     "do not apply recovery if no recovery function is specified" in {
       runThis(100.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             val queue = new ConcurrentLinkedDeque[Int]()
@@ -578,7 +578,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     }
 
     "apply recovery if recovery function is specified" in {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
 
           //Stores successful messages
@@ -642,7 +642,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
 
     "apply recovery on concurrent message does not result in duplicate messages" in {
       runThis(100.times, log = true) {
-        TestCaseSweeper {
+        TestSweeper {
           implicit sweeper =>
 
             // number of messages to send

@@ -20,7 +20,7 @@ import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.core._
 import swaydb.core.CoreTestData._
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.log.LogTestUtil._
 import swaydb.core.log.serialiser._
 import swaydb.core.log.ALogSpec
@@ -62,7 +62,7 @@ class CounterLogSpec extends ALogSpec {
 
   "fetch the next long" in {
     runThis(10.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -91,7 +91,7 @@ class CounterLogSpec extends ALogSpec {
 
   "initialise and reopen" in {
     runThis(10.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 

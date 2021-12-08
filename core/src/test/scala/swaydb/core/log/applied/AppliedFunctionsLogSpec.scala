@@ -18,7 +18,7 @@ package swaydb.core.log.applied
 
 import swaydb.IOValues._
 import swaydb.config.MMAP
-import swaydb.core.TestCaseSweeper._
+import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core._
 import swaydb.core.log.{ALogSpec, LogEntry}
@@ -41,7 +41,7 @@ class AppliedFunctionsLogSpec extends ACoreSpec {
 
   "initialise and reopen" in {
     runThis(10.times, log = true) {
-      TestCaseSweeper {
+      TestSweeper {
         implicit sweeper =>
           import sweeper._
 
