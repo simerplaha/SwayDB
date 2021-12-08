@@ -2,7 +2,6 @@ package swaydb.core.file
 
 import swaydb.core.{TestForceSave, TestSweeper, TestTuple2}
 import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
-import swaydb.core.file.reader.FileReader
 import swaydb.core.TestSweeper._
 import swaydb.effect.Effect
 import swaydb.slice.Slice

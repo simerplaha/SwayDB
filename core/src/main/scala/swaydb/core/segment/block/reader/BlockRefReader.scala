@@ -16,8 +16,7 @@
 
 package swaydb.core.segment.block.reader
 
-import swaydb.core.file.CoreFile
-import swaydb.core.file.reader.{FileReader, Reader}
+import swaydb.core.file.{CoreFile, FileReader}
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.segment.SegmentBlockOffset
 import swaydb.slice.{Reader, Slice, SliceReader}
@@ -32,7 +31,7 @@ private[core] object BlockRefReader {
       offset = offset,
       rootBlockRefOffset = offset,
       blockCache = blockCache,
-      reader = Reader(file)
+      reader = FileReader(file)
     )
   }
 
@@ -45,7 +44,7 @@ private[core] object BlockRefReader {
       offset = offset,
       rootBlockRefOffset = offset,
       blockCache = blockCache,
-      reader = Reader(file)
+      reader = FileReader(file)
     )
   }
 
@@ -59,7 +58,7 @@ private[core] object BlockRefReader {
       offset = SegmentBlockOffset(start, fileSize),
       rootBlockRefOffset = offset,
       blockCache = blockCache,
-      reader = Reader(file)
+      reader = FileReader(file)
     )
   }
 
@@ -70,7 +69,7 @@ private[core] object BlockRefReader {
       offset = offset,
       rootBlockRefOffset = offset,
       blockCache = None,
-      reader = Reader(bytes)
+      reader = SliceReader(bytes)
     )
   }
 

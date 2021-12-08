@@ -22,10 +22,9 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.OK
 import swaydb.core.CoreTestData._
-import swaydb.core.file.reader.Reader
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.slice.Slice
+import swaydb.slice.{Slice, SliceReader}
 import swaydb.testkit.RunThis._
 import swaydb.utils.StorageUnits._
 import swaydb.testkit.TestKit._
@@ -262,7 +261,7 @@ class BytesSpec extends AnyWordSpec with Matchers {
       val normalisedBytes = Bytes.normalise(appendHeader = header, bytes = bytes, toSize = header.size + bytes.size + 1)
       normalisedBytes should have size 16
 
-      val reader = Reader(normalisedBytes)
+      val reader = SliceReader(normalisedBytes)
       reader.readUnsignedInt() shouldBe Int.MaxValue
       val deNormalisedBytes = Bytes.deNormalise(reader.readRemaining())
       deNormalisedBytes shouldBe bytes
@@ -274,7 +273,7 @@ class BytesSpec extends AnyWordSpec with Matchers {
       val normalisedBytes = Bytes.normalise(appendHeader = header, bytes = bytes, toSize = header.size + bytes.size + 5)
       normalisedBytes should have size 20
 
-      val reader = Reader(normalisedBytes)
+      val reader = SliceReader(normalisedBytes)
       reader.readUnsignedInt() shouldBe Int.MaxValue
       val deNormalisedBytes = Bytes.deNormalise(reader.readRemaining())
       deNormalisedBytes shouldBe bytes

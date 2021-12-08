@@ -21,14 +21,13 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.TestTimer
-import swaydb.core.file.reader.Reader
 import swaydb.core.segment.data.{Memory, Persistent}
 import swaydb.core.segment.entry.id.MemoryToKeyValueIdBinder
 import swaydb.core.segment.entry.reader.PersistentParser
 import swaydb.core.segment.entry.writer._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.slice.Slice
+import swaydb.slice.{Slice, SliceReader}
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 
@@ -56,7 +55,7 @@ class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
           builder = builder
         )
 
-        val bytes = Reader(builder.bytes.close())
+        val bytes = SliceReader(builder.bytes.close())
 
         val parsedKeyValue =
           PersistentParser.parse(
@@ -143,7 +142,7 @@ class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
           builder = builder
         )
 
-        val sortedIndexReader = Reader(builder.bytes.close())
+        val sortedIndexReader = SliceReader(builder.bytes.close())
         val valueBytes: Slice[Byte] = previous.value.getOrElseC(Slice.empty) ++ next.value.getOrElseC(Slice.empty)
         val valuesReaderOrNull = if (valueBytes.isEmpty) null else buildSingleValueReader(valueBytes)
 

@@ -20,10 +20,9 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Log.ExceptionHandler
 import swaydb.IO
 import swaydb.ReaderBaseIOImplicits._
-import swaydb.core.file.reader.Reader
 import swaydb.core.log.{LogEntry, RecoveryResult}
 import swaydb.core.util.CRC32
-import swaydb.slice.Slice
+import swaydb.slice.{Slice, SliceReader}
 import swaydb.utils.ByteSizeOf
 
 private[core] object LogEntrySerialiser extends LazyLogging {
@@ -65,7 +64,7 @@ private[core] object LogEntrySerialiser extends LazyLogging {
    */
   def read[K, V](bytes: Slice[Byte],
                  dropCorruptedTailEntries: Boolean)(implicit logReader: LogEntryReader[LogEntry[K, V]]): IO[swaydb.Error.Log, RecoveryResult[Option[LogEntry[K, V]]]] =
-    Reader(bytes).foldLeftIO(RecoveryResult(Option.empty[LogEntry[K, V]], IO.unit)) {
+    SliceReader(bytes).foldLeftIO(RecoveryResult(Option.empty[LogEntry[K, V]], IO.unit)) {
       case (recovery, reader) =>
         IO(reader.hasAtLeast(ByteSizeOf.long)) match {
           case IO.Right(hasMore) =>
@@ -84,7 +83,7 @@ private[core] object LogEntrySerialiser extends LazyLogging {
                         //crc check.
                         if (crc == checkCRC) {
                           IO {
-                            val readLogEntry = logReader.read(Reader(payload))
+                            val readLogEntry = logReader.read(SliceReader(payload))
                             val nextEntry = recovery.item.map(_ ++ readLogEntry) orElse Some(readLogEntry)
                             RecoveryResult(nextEntry, recovery.result)
                           }

@@ -18,12 +18,11 @@ package swaydb.core.segment.block
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.compression.{CompressionInternal, DecompressorInternal}
-import swaydb.core.file.reader.Reader
-import swaydb.core.segment.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
+import swaydb.core.segment.block.reader.{BlockedReader, BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.transient.{TransientSegment, TransientSegmentRef}
 import swaydb.core.util.Bytes
 import swaydb.effect.IOAction
-import swaydb.slice.{ReaderBase, Slice, SliceMut}
+import swaydb.slice.{ReaderBase, Slice, SliceMut, SliceReader}
 import swaydb.utils.ByteSizeOf
 import swaydb.utils.Collections._
 
@@ -243,7 +242,7 @@ private[core] object Block extends LazyLogging {
 
   def readHeader[O <: BlockOffset](reader: BlockRefReader[O])(implicit blockOps: BlockOps[O, _]): BlockHeader[O] = {
     val (headerSize, headerSizeByteSize) = reader.readUnsignedIntWithByteSize()
-    val headerReader = Reader(reader.read(headerSize))
+    val headerReader = SliceReader(reader.read(headerSize))
     val formatID = headerReader.get()
 
     val compressionInfo =

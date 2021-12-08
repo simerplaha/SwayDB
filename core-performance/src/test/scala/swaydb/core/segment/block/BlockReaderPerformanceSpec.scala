@@ -73,7 +73,7 @@
 //     *
 //     *       - [[FileReader]] has the same performance as reading from the [[file]] directly.
 //     */
-//    //        val reader = Reader(bytes)
+//    //        val reader = SliceReader(bytes)
 //    val reader = BlockRefReader(readerFile)
 //    //    val reader = Reader(readerFile)
 //

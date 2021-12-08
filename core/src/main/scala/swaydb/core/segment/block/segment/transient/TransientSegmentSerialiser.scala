@@ -17,7 +17,6 @@
 package swaydb.core.segment.block.segment.transient
 
 import swaydb.core.file.CoreFile
-import swaydb.core.file.reader.Reader
 import swaydb.core.segment.serialiser.ValueSerialiser.MinMaxSerialiser
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
@@ -32,7 +31,7 @@ import swaydb.core.segment.data.{Memory, Persistent, Time, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.util.Bytes
-import swaydb.slice.{MaxKey, Slice}
+import swaydb.slice.{MaxKey, Slice, SliceReader}
 import swaydb.slice.order.KeyOrder
 import swaydb.utils.ByteSizeOf
 
@@ -152,7 +151,7 @@ object TransientSegmentSerialiser {
         range.fromKey
 
       case fixed: Persistent.Put =>
-        val reader = Reader(slice = fixed.getOrFetchValue.getC, position = 1)
+        val reader = SliceReader(slice = fixed.getOrFetchValue.getC, position = 1)
         reader.read(reader.readUnsignedInt())
 
       case keyValue =>
@@ -216,7 +215,7 @@ object TransientSegmentSerialiser {
                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentRef =
     range.fetchRangeValueUnsafe match {
       case Value.Update(value, deadline, time) =>
-        val valueReader = Reader(value.getC)
+        val valueReader = SliceReader(value.getC)
         val maxKeyId = valueReader.get()
         if (maxKeyId == 0) {
           val minKey = valueReader.skip(valueReader.readUnsignedInt()) //skipMinKey
@@ -320,7 +319,7 @@ object TransientSegmentSerialiser {
                                                                 segmentIO: SegmentReadIO,
                                                                 blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentRef = {
-    val valueReader = Reader(put.getOrFetchValue.getC)
+    val valueReader = SliceReader(put.getOrFetchValue.getC)
     val maxKeyId = valueReader.get()
     if (maxKeyId == 0) {
       val minKey = valueReader.read(valueReader.readUnsignedInt())

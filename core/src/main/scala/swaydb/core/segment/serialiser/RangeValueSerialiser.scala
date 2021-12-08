@@ -16,11 +16,10 @@
 
 package swaydb.core.segment.serialiser
 
-import swaydb.core.file.reader.Reader
 import swaydb.core.segment.data.Value
 import swaydb.core.segment.data.Value.{Put, Remove, Update}
 import swaydb.core.util.Bytes
-import swaydb.slice.{ReaderBase, Slice, SliceMut}
+import swaydb.slice.{ReaderBase, Slice, SliceMut, SliceReader}
 
 import scala.annotation.implicitNotFound
 
@@ -865,7 +864,7 @@ private[core] object RangeValueSerialiser {
       throw new Exception(s"Invalid ${RangeValueId.productPrefix}: $rangeId")
 
   def read(bytes: Slice[Byte]): (Value.FromValueOption, Value.RangeValue) = {
-    val reader = Reader(bytes)
+    val reader = SliceReader(bytes)
     val rangeId = reader.readUnsignedInt()
     read(rangeId, reader)
   }

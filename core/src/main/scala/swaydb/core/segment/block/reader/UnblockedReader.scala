@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.block.reader
 
-import swaydb.core.file.reader.{FileReader, Reader}
+import swaydb.core.file.FileReader
 import swaydb.core.segment.block.{Block, BlockCacheState, BlockOffset, BlockOps}
 import swaydb.slice.{Reader, Slice, SliceReader}
 
@@ -42,7 +42,7 @@ private[core] object UnblockedReader {
       block = emptyBlock,
       rootBlockRefOffset = emptyBlock.offset,
       blockCache = None,
-      reader = Reader.empty
+      reader = SliceReader(Slice.emptyBytes)
     )
   }
 
@@ -52,7 +52,7 @@ private[core] object UnblockedReader {
       block = block,
       rootBlockRefOffset = block.offset,
       blockCache = None,
-      reader = Reader(bytes)
+      reader = SliceReader(bytes)
     )
 
   def moveTo[O <: BlockOffset, B <: Block[O]](offset: O,

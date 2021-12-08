@@ -20,10 +20,9 @@ import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
-import swaydb.core.file.reader.Reader
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.{ACoreSpec, TestSweeper}
-import swaydb.slice.Slice
+import swaydb.slice.{Slice, SliceReader}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
@@ -54,7 +53,7 @@ class SegmentSerialiserSpec extends ASegmentSpec {
 
           val readSegment =
             SegmentSerialiser.FormatA.read(
-              reader = Reader(bytes),
+              reader = SliceReader(bytes),
               mmapSegment = MMAP.randomForSegment(),
               segmentRefCacheLife = randomSegmentRefCacheLife(),
               checkExists = segment.persistent

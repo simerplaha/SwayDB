@@ -16,11 +16,10 @@
 
 package swaydb.core.segment.serialiser
 
-import swaydb.core.file.reader.Reader
 import swaydb.core.segment.data.{Time, Value}
 import swaydb.core.util.Times._
 import swaydb.core.util.{Bytes, MinMax}
-import swaydb.slice.{ReaderBase, Slice, SliceMut, SliceOption}
+import swaydb.slice.{ReaderBase, Slice, SliceMut, SliceOption, SliceReader}
 import swaydb.utils.ByteSizeOf
 import swaydb.utils.Options.OptionsImplicits
 
@@ -37,7 +36,7 @@ private[core] sealed trait ValueSerialiser[T] {
   def read(reader: ReaderBase): T
 
   def read(bytes: Slice[Byte]): T =
-    read(Reader(bytes))
+    read(SliceReader(bytes))
 
   def bytesRequired(value: T): Int
 }
@@ -198,15 +197,15 @@ private[core] object ValueSerialiser {
           val id = reader.readUnsignedInt()
           val bytes = reader.readUnsignedIntSized()
           if (id == 0) {
-            val update = ValueSerialiser.read[Value.Update](Reader(bytes))
+            val update = ValueSerialiser.read[Value.Update](SliceReader(bytes))
             applies add update
             applies
           } else if (id == 1) {
-            val update = ValueSerialiser.read[Value.Function](Reader(bytes))
+            val update = ValueSerialiser.read[Value.Function](SliceReader(bytes))
             applies add update
             applies
           } else if (id == 2) {
-            val update = ValueSerialiser.read[Value.Remove](Reader(bytes))
+            val update = ValueSerialiser.read[Value.Remove](SliceReader(bytes))
             applies add update
             applies
           }

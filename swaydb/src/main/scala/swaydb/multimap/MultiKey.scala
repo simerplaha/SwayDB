@@ -16,10 +16,9 @@
 
 package swaydb.multimap
 
-import swaydb.core.file.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.serializers.Serializer
-import swaydb.slice.Slice
+import swaydb.slice.{Slice, SliceReader}
 import swaydb.slice.order.KeyOrder
 
 private[swaydb] sealed trait MultiKey[+C, +K] {
@@ -119,7 +118,7 @@ private[swaydb] object MultiKey {
         }
 
       override def read(slice: Slice[Byte]): MultiKey[T, K] = {
-        val reader = Reader(slice = slice)
+        val reader = SliceReader(slice)
         val mapId = reader.readUnsignedLong()
         val dataType = reader.get()
         if (dataType == MultiKey.start)

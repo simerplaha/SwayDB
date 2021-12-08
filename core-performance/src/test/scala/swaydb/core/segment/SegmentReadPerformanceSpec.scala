@@ -302,7 +302,7 @@
 //        //    val file = CoreFile.mmapRead(segment.path, randomIOStrategy(false), true).get
 //        //
 //        //
-//        //    val reader = Reader(file)
+//        //    val reader = FileReader(file)
 //        //
 //        //    Benchmark("") {
 //        //      (1 to 1000000) foreach {

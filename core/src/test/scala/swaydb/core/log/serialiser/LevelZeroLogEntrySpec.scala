@@ -24,7 +24,6 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
-import swaydb.core.file.reader.Reader
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.data.{Memory, MemoryOption}
 import swaydb.core.skiplist.SkipListConcurrent
@@ -32,7 +31,7 @@ import swaydb.core.{ACoreSpec, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.KeyOrder
-import swaydb.slice.{Slice, SliceOption}
+import swaydb.slice.{Slice, SliceOption, SliceReader}
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 import swaydb.utils.ByteSizeOf
@@ -57,10 +56,10 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
         import LevelZeroLogEntryReader.Level0PutReader
-        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Put]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Put]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
 
         import LevelZeroLogEntryReader.Level0Reader
-        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
         readEntry shouldBe addEntry
 
         val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -86,10 +85,10 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
         import LevelZeroLogEntryReader.Level0RemoveReader
-        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Remove]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe entry
+        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Remove]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe entry
 
         import LevelZeroLogEntryReader.Level0Reader
-        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
         readEntry shouldBe entry
 
         val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -115,10 +114,10 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
         import LevelZeroLogEntryReader.Level0UpdateReader
-        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Update]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Update]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
 
         import LevelZeroLogEntryReader.Level0Reader
-        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
         readEntry shouldBe addEntry
 
         val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -144,10 +143,10 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
         import LevelZeroLogEntryReader.Level0FunctionReader
-        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Function]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Function]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
 
         import LevelZeroLogEntryReader.Level0Reader
-        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
         readEntry shouldBe addEntry
 
         val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -174,10 +173,10 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
         import LevelZeroLogEntryReader.Level0RangeReader
-        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Range]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe entry
+        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Range]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe entry
 
         import LevelZeroLogEntryReader.Level0Reader
-        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
         readEntry shouldBe entry
 
         val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -203,10 +202,10 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
         import LevelZeroLogEntryReader.Level0PendingApplyReader
-        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.PendingApply]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.PendingApply]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
 
         import LevelZeroLogEntryReader.Level0Reader
-        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
         readEntry shouldBe addEntry
 
         val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -263,7 +262,7 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
         import LevelZeroLogEntryReader.Level0Reader
-        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
         readEntry shouldBe entry
 
         val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)

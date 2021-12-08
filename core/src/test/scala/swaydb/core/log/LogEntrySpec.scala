@@ -20,17 +20,16 @@ import swaydb.IOValues._
 import swaydb.config.MMAP
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
-import swaydb.core.file.reader.Reader
 import swaydb.core.log.serialiser._
 import swaydb.core.segment.data.{Memory, MemoryOption, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{ASegmentSpec, Segment, SegmentOption}
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestForceSave, TestSweeper, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.{Slice, SliceOption}
+import swaydb.slice.{Slice, SliceOption, SliceReader}
 import swaydb.utils.{ByteSizeOf, OperatingSystem}
 
 import scala.concurrent.duration._
@@ -383,7 +382,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps!
 
-      val readLogEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](Reader(bytes)).runRandomIO.right.value
+      val readLogEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(bytes)).runRandomIO.right.value
 
       val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       readLogEntry applyBatch skipList
@@ -447,7 +446,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
           entry writeTo bytes
           bytes.isFull shouldBe true //fully written! No gaps!
 
-          val readLogEntry = LogEntryReader.read[LogEntry[Slice[Byte], Segment]](Reader(bytes))
+          val readLogEntry = LogEntryReader.read[LogEntry[Slice[Byte], Segment]](SliceReader(bytes))
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
           readLogEntry applyBatch skipList

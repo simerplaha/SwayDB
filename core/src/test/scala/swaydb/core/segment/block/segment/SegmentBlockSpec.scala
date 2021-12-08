@@ -19,8 +19,7 @@
 //import org.scalatest.OptionValues._
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
-//import swaydb.core.file.reader.Reader
-//import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
+////import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 //import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 //import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 //import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}

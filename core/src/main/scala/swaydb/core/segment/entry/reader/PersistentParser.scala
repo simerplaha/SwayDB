@@ -16,7 +16,6 @@
 
 package swaydb.core.segment.entry.reader
 
-import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
@@ -24,7 +23,7 @@ import swaydb.core.segment.data.Persistent.Partial
 import swaydb.core.segment.data.{Persistent, PersistentOption}
 import swaydb.core.segment.entry.id.{KeyValueId, PersistentToKeyValueIdBinder}
 import swaydb.core.util.Bytes
-import swaydb.slice.Slice
+import swaydb.slice.{Slice, SliceReader}
 
 object PersistentParser {
 
@@ -39,7 +38,7 @@ object PersistentParser {
             hasAccessPositionIndex: Boolean,
             optimisedForReverseIteration: Boolean,
             valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock]): Persistent = {
-    val reader = Reader(tailBytes)
+    val reader = SliceReader(tailBytes)
 
     val headerKeyBytes = reader.read(headerInteger)
 
@@ -92,7 +91,7 @@ object PersistentParser {
                    tailBytes: Slice[Byte],
                    sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock]): Persistent.Partial = {
-    val tailReader = Reader(tailBytes)
+    val tailReader = SliceReader(tailBytes)
 
     val headerKeyBytes = tailReader.read(headerInteger)
 
@@ -201,7 +200,7 @@ object PersistentParser {
                    tailBytes: Slice[Byte],
                    sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock]): Persistent.Partial = {
-    val tailReader = Reader(tailBytes)
+    val tailReader = SliceReader(tailBytes)
 
     val headerKeyBytes = tailReader.read(headerInteger)
 

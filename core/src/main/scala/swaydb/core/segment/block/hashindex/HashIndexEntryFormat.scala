@@ -17,7 +17,6 @@
 package swaydb.core.segment.block.hashindex
 
 import swaydb.config.IndexFormat
-import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
@@ -25,7 +24,7 @@ import swaydb.core.segment.data.Persistent.Partial
 import swaydb.core.segment.data.{Memory, Persistent}
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.macros.Sealed
-import swaydb.slice.{Slice, SliceMut}
+import swaydb.slice.{Slice, SliceMut, SliceReader}
 import swaydb.utils.ByteSizeOf
 
 private[core] sealed trait HashIndexEntryFormat {
@@ -126,7 +125,7 @@ private[core] object HashIndexEntryFormat {
                             sortedIndex: UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock],
                             valuesOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock]): Persistent.Partial =
       try {
-        val reader = Reader(entry)
+        val reader = SliceReader(entry)
         val keySize = reader.readUnsignedInt()
         val entryKey = reader.read(keySize)
         val keyType = reader.get()

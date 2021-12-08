@@ -17,14 +17,13 @@
 package swaydb.core.segment.entry.reader
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.data.{Persistent, PersistentOption}
 import swaydb.core.segment.entry.id.PersistentToKeyValueIdBinder
 import swaydb.core.segment.entry.reader.base.BaseEntryReader
 import swaydb.core.util.Bytes
-import swaydb.slice.{ReaderBase, Slice, SliceOption}
+import swaydb.slice.{ReaderBase, Slice, SliceOption, SliceReader}
 import swaydb.utils.TupleOrNone
 
 object PersistentReader extends LazyLogging {
@@ -88,7 +87,7 @@ object PersistentReader extends LazyLogging {
                             optimisedForReverseIteration: Boolean,
                             valuesReaderOrNull: UnblockedReader[ValuesBlockOffset, ValuesBlock],
                             reader: Persistent.Reader[T])(implicit binder: PersistentToKeyValueIdBinder[T]): T = {
-    val tailReader = Reader(tailIndexEntry)
+    val tailReader = SliceReader(tailIndexEntry)
     val headerKeyBytes = tailReader.read(headerInteger)
     val keyValueId = tailReader.readUnsignedInt()
 

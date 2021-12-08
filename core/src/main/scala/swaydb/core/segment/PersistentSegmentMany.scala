@@ -21,42 +21,39 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.cache.{Cache, CacheNoIO}
-import swaydb.core.segment.io.SegmentCompactionIO
-import swaydb.core.file.reader.Reader
-import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.{CoreFile, FileReader, ForceSaveApplier}
 import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand}
-import swaydb.core.file.{CoreFile, ForceSaveApplier}
-import swaydb.core.segment.PathsDistributor
+import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.segment.assigner.Assignable
+import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.reader.BlockRefReader
-import swaydb.core.segment.block.segment.transient.{TransientSegment, TransientSegmentSerialiser}
 import swaydb.core.segment.block.segment.{SegmentBlockConfig, SegmentBlockOffset}
+import swaydb.core.segment.block.segment.transient.{TransientSegment, TransientSegmentSerialiser}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
-import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data._
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.defrag.DefragPersistentSegment
-import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.core.segment.io.{SegmentCompactionIO, SegmentReadIO}
 import swaydb.core.segment.ref.{SegmentRef, SegmentRefOption, SegmentRefReader}
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.skiplist.SkipListTreeMap
 import swaydb.core.util._
 import swaydb.effect.Effect
-import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, Slice, SliceOption}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.{Extension, IDGenerator}
 
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.jdk.CollectionConverters._
 
 private case object PersistentSegmentMany extends LazyLogging {
@@ -525,7 +522,7 @@ private case object PersistentSegmentMany extends LazyLogging {
                                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                    blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                    segmentIO: SegmentReadIO): SkipListTreeMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef] = {
-    val blockedReader = Reader(file).moveTo(1)
+    val blockedReader = FileReader(file).moveTo(1)
     val listSegmentSize = blockedReader.readUnsignedInt()
     val listSegment = blockedReader.read(listSegmentSize)
     val listSegmentRef = BlockRefReader[SegmentBlockOffset](listSegment)
@@ -632,7 +629,7 @@ private case object PersistentSegmentMany extends LazyLogging {
                                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                               blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                               segmentIO: SegmentReadIO): SegmentRef = {
-    val fileReader = Reader(file).moveTo(1)
+    val fileReader = FileReader(file).moveTo(1)
     val listSegmentSize = fileReader.readUnsignedInt()
 
     val listSegmentRef =

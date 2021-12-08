@@ -2,8 +2,7 @@ package swaydb.core.util
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.file.reader.Reader
-import swaydb.slice.Slice
+import swaydb.slice.{Slice, SliceReader}
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 import swaydb.utils.ByteSizeOf
@@ -38,7 +37,7 @@ class Bytes_ByteSliceAPI_Spec extends AnyWordSpec with Matchers {
             Bytes.writeInt(int, slice)
             slice.readInt() shouldBe int //from Slice
             Bytes.readInt(slice) shouldBe int //from slice
-            Bytes.readInt(Reader(slice)) shouldBe int //from reader
+            Bytes.readInt(SliceReader(slice)) shouldBe int //from reader
         }
     }
   }
@@ -52,7 +51,7 @@ class Bytes_ByteSliceAPI_Spec extends AnyWordSpec with Matchers {
             Bytes.writeLong(long, slice)
             slice.readLong() shouldBe long
             Bytes.readLong(slice) shouldBe long
-            Bytes.readLong(Reader(slice)) shouldBe long
+            Bytes.readLong(SliceReader(slice)) shouldBe long
         }
     }
   }
@@ -75,7 +74,7 @@ class Bytes_ByteSliceAPI_Spec extends AnyWordSpec with Matchers {
 
       booleans foreach (bool => slice.addBoolean(bool))
 
-      val reader = Reader(slice)
+      val reader = SliceReader(slice)
 
       booleans foreach {
         expectedBoolean =>
@@ -93,7 +92,7 @@ class Bytes_ByteSliceAPI_Spec extends AnyWordSpec with Matchers {
         slice.readString() shouldBe string
         Bytes.readString(slice, StandardCharsets.UTF_8) shouldBe string
 
-        Bytes.readString(Reader(slice), StandardCharsets.UTF_8) shouldBe string
+        Bytes.readString(SliceReader(slice), StandardCharsets.UTF_8) shouldBe string
       }
     }
 
@@ -108,7 +107,7 @@ class Bytes_ByteSliceAPI_Spec extends AnyWordSpec with Matchers {
         Bytes.writeString(string2, slice, StandardCharsets.UTF_8)
         val string2Size = slice.size - string1Size
 
-        val reader = Reader(slice)
+        val reader = SliceReader(slice)
 
         Bytes.readString(string1Size, reader, StandardCharsets.UTF_8) shouldBe string1
         Bytes.readString(string2Size, reader, StandardCharsets.UTF_8) shouldBe string2
@@ -167,7 +166,7 @@ class Bytes_ByteSliceAPI_Spec extends AnyWordSpec with Matchers {
               Bytes.writeUnsignedInt(int, slice)
           }
 
-          val reader = Reader(slice)
+          val reader = SliceReader(slice)
           range foreach {
             int =>
               reader.readUnsignedInt() shouldBe int
@@ -185,7 +184,7 @@ class Bytes_ByteSliceAPI_Spec extends AnyWordSpec with Matchers {
               Bytes.writeSignedInt(int, slice)
           }
 
-          val reader = Reader(slice)
+          val reader = SliceReader(slice)
           range foreach {
             int =>
               reader.readSignedInt() shouldBe int
@@ -203,7 +202,7 @@ class Bytes_ByteSliceAPI_Spec extends AnyWordSpec with Matchers {
               Bytes.writeUnsignedLong(long, slice)
           }
 
-          val reader = Reader(slice)
+          val reader = SliceReader(slice)
           range foreach {
             int =>
               reader.readUnsignedLong() shouldBe int
@@ -221,7 +220,7 @@ class Bytes_ByteSliceAPI_Spec extends AnyWordSpec with Matchers {
               Bytes.writeSignedLong(long, slice)
           }
 
-          val reader = Reader(slice)
+          val reader = SliceReader(slice)
           range foreach {
             int =>
               reader.readSignedLong() shouldBe int

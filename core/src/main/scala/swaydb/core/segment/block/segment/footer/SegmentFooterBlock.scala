@@ -16,7 +16,6 @@
 
 package swaydb.core.segment.block.segment.footer
 
-import swaydb.core.file.reader.Reader
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockOffset
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockOffset
@@ -27,7 +26,7 @@ import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockOffset
 import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.util.{Bytes, CRC32}
-import swaydb.slice.Slice
+import swaydb.slice.{Slice, SliceReader}
 import swaydb.utils.ByteSizeOf
 
 private[core] case object SegmentFooterBlock {
@@ -168,7 +167,7 @@ private[core] case object SegmentFooterBlock {
   def read(reader: UnblockedReader[SegmentBlockOffset, SegmentBlock]): SegmentFooterBlock = {
     val segmentBlockSize = reader.size
     val approximateFooterOffset = (segmentBlockSize - SegmentFooterBlock.optimalBytesRequired) max 0
-    val fullFooterBytes = Reader(reader.moveTo(approximateFooterOffset).readRemaining())
+    val fullFooterBytes = SliceReader(reader.moveTo(approximateFooterOffset).readRemaining())
     val footerOffsetAndCrc = fullFooterBytes.moveTo(fullFooterBytes.size - (ByteSizeOf.int + ByteSizeOf.long))
     val footerStartOffset = footerOffsetAndCrc.readInt()
     val expectedCRC = footerOffsetAndCrc.readLong()
@@ -186,7 +185,7 @@ private[core] case object SegmentFooterBlock {
   }
 
   def readCRCPassed(footerStartOffset: Int, footerSize: Int, footerBytes: Slice[Byte]) = {
-    val footerReader = Reader(footerBytes)
+    val footerReader = SliceReader(footerBytes)
     val formatId = footerReader.readUnsignedInt()
     if (formatId != SegmentBlock.formatId) {
       throw new Exception(s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}")

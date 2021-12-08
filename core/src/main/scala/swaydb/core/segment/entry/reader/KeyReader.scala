@@ -16,10 +16,9 @@
 
 package swaydb.core.segment.entry.reader
 
-import swaydb.core.file.reader.Reader
 import swaydb.core.segment.entry.id.KeyValueId
 import swaydb.core.util.Bytes
-import swaydb.slice.{Slice, SliceOption}
+import swaydb.slice.{Slice, SliceOption, SliceReader}
 
 object KeyReader {
 
@@ -27,7 +26,7 @@ object KeyReader {
                          previousKey: SliceOption[Byte]): Slice[Byte] =
     previousKey match {
       case previousKey: Slice[Byte] =>
-        val reader = Reader(headerKeyBytes)
+        val reader = SliceReader(headerKeyBytes)
         val commonBytes = reader.readUnsignedInt()
         val rightBytes = reader.readRemaining()
         Bytes.decompress(previousKey, rightBytes, commonBytes)

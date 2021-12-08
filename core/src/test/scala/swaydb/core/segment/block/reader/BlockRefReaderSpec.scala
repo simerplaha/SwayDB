@@ -19,8 +19,7 @@
 //import org.scalamock.scalatest.MockFactory
 //import swaydb.core.compression.CompressionInternal
 //import swaydb.core.CoreTestData._
-//import swaydb.core.file.reader.Reader
-//import swaydb.core.segment.block.segment.SegmentBlockOffset
+////import swaydb.core.segment.block.segment.SegmentBlockOffset
 //import swaydb.core.segment.block.values.ValuesBlockOffset
 //import swaydb.core.segment.block.values.ValuesBlockOffset.ValuesBlockOps
 //import swaydb.core.segment.block.{Block, BlockCache}
@@ -50,7 +49,7 @@
 //          //Reader: FileReader
 //          BlockRefReader[SegmentBlockOffset](fileReader: Reader, blockCache = blockCache).readRemaining() shouldBe bytes
 //          //Reader: SliceReader
-//          BlockRefReader[SegmentBlockOffset](Reader(bytes): Reader, blockCache = blockCache).readRemaining() shouldBe bytes
+//          BlockRefReader[SegmentBlockOffset](SliceReader(bytes): Reader, blockCache = blockCache).readRemaining() shouldBe bytes
 //      }
 //    }
 //  }

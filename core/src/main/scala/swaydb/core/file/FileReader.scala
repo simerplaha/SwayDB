@@ -14,13 +14,17 @@
  * limitations under the License.
  */
 
-package swaydb.core.file.reader
+package swaydb.core.file
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.file.CoreFile
 import swaydb.slice.{Reader, Slice, SliceRO}
 
 import java.nio.file.Path
+
+object FileReader {
+  @inline def apply(file: CoreFile) =
+    new FileReader(file)
+}
 
 private[core] class FileReader(val file: CoreFile) extends Reader with LazyLogging {
 

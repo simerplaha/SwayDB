@@ -23,7 +23,6 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
-import swaydb.core.file.reader.Reader
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.data.{Memory, MemoryOption}
 import swaydb.core.skiplist.SkipListConcurrent
@@ -31,7 +30,7 @@ import swaydb.core.{ACoreSpec, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.KeyOrder
-import swaydb.slice.{Slice, SliceOption}
+import swaydb.slice.{Slice, SliceOption, SliceReader}
 import swaydb.testkit.TestKit._
 import swaydb.utils.ByteSizeOf
 
@@ -49,10 +48,10 @@ class Level0LogEntrySpec extends AnyWordSpec with Matchers {
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
-        reader.read(Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+        reader.read(SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
 
         import LevelZeroLogEntryReader.Level0Reader
-        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
         readEntry shouldBe addEntry
 
         val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -157,7 +156,7 @@ class Level0LogEntrySpec extends AnyWordSpec with Matchers {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import LevelZeroLogEntryReader.Level0Reader
-      val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+      val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
       readEntry shouldBe entry
 
       val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)

@@ -25,7 +25,6 @@ import swaydb.IOValues._
 import swaydb.config.compaction.PushStrategy
 import swaydb.config.{Atomic, OptimiseWrites}
 import swaydb.core.CoreTestData._
-import swaydb.core.file.reader.{FileReader, Reader}
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
 import swaydb.core.level.zero.{LevelZero, LevelZeroLogCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
@@ -63,6 +62,7 @@ import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 import swaydb.utils.Aggregator
 import swaydb.{Bag, Error, Glass, IO}
+import swaydb.core.file.FileReader
 
 import java.nio.file.Paths
 import scala.annotation.tailrec
@@ -1454,11 +1454,11 @@ object CommonAssertions {
     }
 
   def readAll(bytes: Slice[Byte])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Slice[KeyValue]] =
-    readAll(Reader(bytes))
+    readAll(SliceReader(bytes))
 
   def readBlocks(bytes: Slice[Byte],
                  segmentIO: SegmentReadIO = SegmentReadIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] =
-    readBlocksFromReader(Reader(bytes), segmentIO)
+    readBlocksFromReader(SliceReader(bytes), segmentIO)
 
   def getSegmentBlockCache(keyValues: Slice[Memory],
                            valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
