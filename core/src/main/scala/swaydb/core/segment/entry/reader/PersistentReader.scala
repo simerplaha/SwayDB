@@ -23,7 +23,7 @@ import swaydb.core.segment.data.{Persistent, PersistentOption}
 import swaydb.core.segment.entry.id.PersistentToKeyValueIdBinder
 import swaydb.core.segment.entry.reader.base.BaseEntryReader
 import swaydb.core.util.Bytes
-import swaydb.slice.{ReaderBase, Slice, SliceOption, SliceReader}
+import swaydb.slice.{Slice, SliceOption, SliceReader}
 import swaydb.utils.TupleOrNone
 
 object PersistentReader extends LazyLogging {
@@ -114,7 +114,7 @@ object PersistentReader extends LazyLogging {
                             headerInteger: Int,
                             headerKeyBytes: Slice[Byte],
                             keyValueId: Int,
-                            tailReader: ReaderBase,
+                            tailReader: SliceReader,
                             previous: PersistentOption,
                             //sorted index stats
                             mightBeCompressed: Boolean,
@@ -229,7 +229,7 @@ object PersistentReader extends LazyLogging {
    */
   def calculateNextKeyValueOffsetAndSize(sortedIndexEndOffset: Int,
                                          previousKeyValueHeaderKeyBytes: Slice[Byte],
-                                         previousKeyValueIndexReader: ReaderBase,
+                                         previousKeyValueIndexReader: SliceReader,
                                          previousKeyValueIndexOffset: Int,
                                          normalisedByteSize: Int): (Int, Int) = {
     val bytesRead =

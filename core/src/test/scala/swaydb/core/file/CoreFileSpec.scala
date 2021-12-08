@@ -47,7 +47,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
           createFileReaders(right.path) foreach {
             reader =>
-              reader.readRemaining() shouldBe bytes1
+              reader.readRemaining() shouldBe bytes2
               getCoreFile(reader).readAll() shouldBe bytes2
           }
       }
