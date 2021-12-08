@@ -17,6 +17,7 @@
 package swaydb.core
 
 import org.scalatest.PrivateMethodTester._
+import swaydb.core.file.{CoreFile, FileReader}
 import swaydb.core.log.timer.Timer
 import swaydb.core.log.{Log, LogCache, Logs}
 import swaydb.core.queue.VolatileQueue
@@ -31,29 +32,22 @@ import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}
 
 object PrivateMethodInvokers {
 
-  def getLogs[K, V, C <: LogCache[K, V]](logs: Logs[K, V, C]): VolatileQueue[Log[K, V, C]] = {
-    val function = PrivateMethod[VolatileQueue[Log[K, V, C]]](Symbol("queue"))
-    logs.invokePrivate(function())
-  }
+  def getLogs[K, V, C <: LogCache[K, V]](logs: Logs[K, V, C]): VolatileQueue[Log[K, V, C]] =
+    logs invokePrivate PrivateMethod[VolatileQueue[Log[K, V, C]]](Symbol("queue"))()
 
-  def getTimer[K, V, C <: LogCache[K, V]](logs: Logs[K, V, C]): Timer = {
-    val function = PrivateMethod[Timer](Symbol("timer"))
-    logs.invokePrivate(function())
-  }
+  def getTimer[K, V, C <: LogCache[K, V]](logs: Logs[K, V, C]): Timer =
+    logs invokePrivate PrivateMethod[Timer](Symbol("timer"))()
 
-  def getJavaMap[K, OV, V <: OV](maps: HashedMap.Concurrent[K, OV, V]): ConcurrentHashMap[K, V] = {
-    val function = PrivateMethod[ConcurrentHashMap[K, V]](Symbol("map"))
-    maps.invokePrivate(function())
-  }
+  def getJavaMap[K, OV, V <: OV](maps: HashedMap.Concurrent[K, OV, V]): ConcurrentHashMap[K, V] =
+    maps invokePrivate PrivateMethod[ConcurrentHashMap[K, V]](Symbol("map"))()
 
-  def getSegmentsCache(segment: PersistentSegment): ConcurrentSkipListMap[Slice[Byte], SegmentRef] = {
-    val function = PrivateMethod[ConcurrentSkipListMap[Slice[Byte], SegmentRef]](Symbol("segmentsCache"))
-    segment.invokePrivate(function())
-  }
+  def getSegmentsCache(segment: PersistentSegment): ConcurrentSkipListMap[Slice[Byte], SegmentRef] =
+    segment invokePrivate PrivateMethod[ConcurrentSkipListMap[Slice[Byte], SegmentRef]](Symbol("segmentsCache"))()
 
-  def getAtomicLong(generator: IDGenerator): AtomicLong = {
-    val function = PrivateMethod[AtomicLong](Symbol("atomicID"))
-    generator.invokePrivate(function())
-  }
+  def getCoreFile(reader: FileReader): CoreFile =
+    reader invokePrivate PrivateMethod[CoreFile](Symbol("file"))()
+
+  def getAtomicLong(generator: IDGenerator): AtomicLong =
+    generator invokePrivate PrivateMethod[AtomicLong](Symbol("atomicID"))()
 
 }

@@ -26,9 +26,12 @@ object FileReader {
     new FileReader(file)
 }
 
-private[core] class FileReader(val file: CoreFile) extends Reader with LazyLogging {
+private[core] class FileReader(private val file: CoreFile) extends Reader with LazyLogging {
 
   private var position: Int = 0
+
+  final override def isFile: Boolean =
+    true
 
   def path: Path =
     file.path
@@ -45,7 +48,7 @@ private[core] class FileReader(val file: CoreFile) extends Reader with LazyLoggi
   }
 
   def hasMore: Boolean =
-    position < size
+    position < size()
 
   def hasAtLeast(size: Int): Boolean =
     (file.fileSize() - position) >= size
@@ -96,7 +99,4 @@ private[core] class FileReader(val file: CoreFile) extends Reader with LazyLoggi
 
   override def readRemaining(): Slice[Byte] =
     read(remaining())
-
-  final override val isFile: Boolean =
-    true
 }

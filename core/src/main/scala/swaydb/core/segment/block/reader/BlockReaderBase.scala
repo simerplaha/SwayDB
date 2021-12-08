@@ -29,8 +29,6 @@ private[block] trait BlockReaderBase extends ReaderBase with BlockCacheSource wi
 
   def offset: BlockOffset
 
-  def path = reader.path
-
   def blockCache: Option[BlockCacheState]
 
   //start offset BlockRefReader. BlockCache uses this to maintain
@@ -87,7 +85,7 @@ private[block] trait BlockReaderBase extends ReaderBase with BlockCacheSource wi
     }
 
   override def read(size: Int): Slice[Byte] = {
-    val remaining = this.remaining
+    val remaining = this.remaining()
     if (remaining <= 0) {
       Slice.emptyBytes
     } else {
@@ -112,7 +110,7 @@ private[block] trait BlockReaderBase extends ReaderBase with BlockCacheSource wi
   }
 
   override def read(size: Int, blockSize: Int): SliceRO[Byte] = {
-    val remaining = this.remaining
+    val remaining = this.remaining()
     if (remaining <= 0) {
       Slice.emptyBytes
     } else {

@@ -97,7 +97,7 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
   def underlyingArraySizeOrReaderSize: Int =
     reader match {
       case reader: FileReader =>
-        reader.size
+        reader.size()
 
       case SliceReader(slice, _) =>
         slice.underlyingArraySize

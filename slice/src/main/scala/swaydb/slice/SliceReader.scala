@@ -16,15 +16,14 @@
 
 package swaydb.slice
 
-import java.nio.file.Paths
-
 /**
  * http://www.swaydb.io/slice/byte-slice
  */
 case class SliceReader(slice: Slice[Byte],
                        private var position: Int = 0) extends Reader {
 
-  def path = Paths.get(this.productPrefix)
+  final override def isFile: Boolean =
+    false
 
   override def size(): Int =
     slice.size
@@ -72,7 +71,5 @@ case class SliceReader(slice: Slice[Byte],
 
   override def readRemaining(): Slice[Byte] =
     read(remaining())
-
-  override def isFile: Boolean = false
 
 }

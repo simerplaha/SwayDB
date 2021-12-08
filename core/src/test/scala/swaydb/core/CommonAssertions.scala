@@ -63,6 +63,7 @@ import swaydb.testkit.TestKit._
 import swaydb.utils.Aggregator
 import swaydb.{Bag, Error, Glass, IO}
 import swaydb.core.file.FileReader
+import swaydb.core.PrivateMethodInvokers.getCoreFile
 
 import java.nio.file.Paths
 import scala.annotation.tailrec
@@ -1575,7 +1576,7 @@ object CommonAssertions {
       blockRef =
         reader match {
           case reader: FileReader =>
-            BlockRefReader(reader.file, BlockCache.forSearch(reader.size, blockCacheMemorySweeper))
+            BlockRefReader(getCoreFile(reader), BlockCache.forSearch(reader.size(), blockCacheMemorySweeper))
 
           case SliceReader(slice, position) =>
             BlockRefReader[SegmentBlockOffset](slice.drop(position))

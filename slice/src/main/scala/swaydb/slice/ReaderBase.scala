@@ -25,8 +25,6 @@ import scala.annotation.tailrec
 
 trait ReaderBase { self =>
 
-  def path: Path
-
   def get(): Byte
 
   def read(size: Int): Slice[Byte]

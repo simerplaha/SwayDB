@@ -21,6 +21,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CoreTestData._
 import swaydb.core.TestSweeper
 import swaydb.core.file.AFileSpec._
+import swaydb.core.PrivateMethodInvokers.getCoreFile
 import swaydb.effect.Effect
 import swaydb.slice.Slice
 import swaydb.testkit.TestKit._
@@ -40,12 +41,14 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
           createFileReaders(left.path) foreach {
             reader =>
-              reader.file.readAll() shouldBe bytes1
+              reader.readRemaining() shouldBe bytes1
+              getCoreFile(reader).readAll() shouldBe bytes1
           }
 
           createFileReaders(right.path) foreach {
             reader =>
-              reader.file.readAll() shouldBe bytes2
+              reader.readRemaining() shouldBe bytes1
+              getCoreFile(reader).readAll() shouldBe bytes2
           }
       }
     }
@@ -65,8 +68,8 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
             file =>
               createFileReaders(file.path) foreach {
                 reader =>
-                  reader.file.readAll() shouldBe Slice.emptyBytes
-                  reader.file.close()
+                  getCoreFile(reader).readAll() shouldBe Slice.emptyBytes
+                  getCoreFile(reader).close()
               }
           }
 
