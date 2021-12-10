@@ -52,9 +52,9 @@ class LevelSpec1 extends LevelSpec {
 
 class LevelSpec2 extends LevelSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
+  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
+  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
+  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
 }
 
 class LevelSpec3 extends LevelSpec {
@@ -199,9 +199,9 @@ sealed trait LevelSpec extends ALevelSpec with MockFactory with PrivateMethodTes
                 //deleteUncommittedSegments will also be invoked on Levels with cleared and closed Segments there will never be
                 //memory-mapped. So disable mmap in this test specially for windows which does not allow deleting memory-mapped files without
                 //clearing the MappedByteBuffer.
-                TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.channel())))
-                TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.channel())))
-                TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.channel())))
+                TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.standard())))
+                TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.standard())))
+                TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.standard())))
                 currentSegmentId + 3
             }
             //every level folder has 3 uncommitted Segments plus 1 valid Segment

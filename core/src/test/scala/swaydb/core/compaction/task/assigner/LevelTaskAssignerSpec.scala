@@ -48,9 +48,9 @@ class LevelTaskAssignerSpec1 extends LevelTaskAssignerSpec {
 
 class LevelTaskAssignerSpec2 extends LevelTaskAssignerSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
+  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
+  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
+  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
 }
 
 class LevelTaskAssignerSpec3 extends LevelTaskAssignerSpec {

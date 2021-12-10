@@ -79,7 +79,7 @@ object CoreFileTestKit {
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
-      forceSave = TestForceSave.channel()
+      forceSave = TestForceSave.standard()
     )
   }
 
@@ -91,7 +91,7 @@ object CoreFileTestKit {
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
-        forceSave = TestForceSave.channel()
+        forceSave = TestForceSave.standard()
       ).sweep()
 
     file.append(bytes)

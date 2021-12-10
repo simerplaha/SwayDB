@@ -44,9 +44,9 @@ class LevelReadSomeSpec1 extends LevelReadSomeSpec {
 
 class LevelReadSomeSpec2 extends LevelReadSomeSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
+  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
+  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
+  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
 }
 
 class LevelReadSomeSpec3 extends LevelReadSomeSpec {

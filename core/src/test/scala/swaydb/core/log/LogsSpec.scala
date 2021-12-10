@@ -455,7 +455,7 @@ class LogsSpec extends ALogSpec {
             val logs =
               Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 path = path,
-                mmap = MMAP.Off(TestForceSave.channel()),
+                mmap = MMAP.Off(TestForceSave.standard()),
                 fileSize = 50.bytes,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
@@ -513,7 +513,7 @@ class LogsSpec extends ALogSpec {
           val logs =
             Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               path = path,
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               fileSize = 50.bytes,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.ReportFailure
@@ -563,7 +563,7 @@ class LogsSpec extends ALogSpec {
           val logs =
             Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               path = path,
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               fileSize = 100.bytes,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.ReportFailure

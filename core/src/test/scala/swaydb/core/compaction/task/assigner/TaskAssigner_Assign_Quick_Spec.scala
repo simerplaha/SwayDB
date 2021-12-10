@@ -44,9 +44,9 @@ class TaskAssigner_run_Spec1 extends TaskAssigner_run_Spec {
 
 class TaskAssigner_run_Spec2 extends TaskAssigner_run_Spec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
+  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
+  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
+  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
 }
 
 class TaskAssigner_run_Spec3 extends TaskAssigner_run_Spec {

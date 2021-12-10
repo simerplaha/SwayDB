@@ -1912,13 +1912,13 @@ object CoreTestData {
       else if (Random.nextBoolean())
         MMAP.ReadOnly(OperatingSystem.isWindows)
       else
-        MMAP.Off(TestForceSave.channel())
+        MMAP.Off(TestForceSave.standard())
 
     def randomForLog(): MMAP.Log =
       if (Random.nextBoolean())
         MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
       else
-        MMAP.Off(TestForceSave.channel())
+        MMAP.Off(TestForceSave.standard())
   }
 
   implicit class AssignablesImplicits(keyValues: ListBuffer[Assignable]) {

@@ -160,7 +160,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.channel()
+              forceSave = TestForceSave.standard()
             )
 
           //above onOpen is also invoked
@@ -493,7 +493,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
                 path = randomFilePath(),
                 fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                 autoClose = true,
-                forceSave = TestForceSave.channel()
+                forceSave = TestForceSave.standard()
               ).sweep()
 
             Seq(mmapFile, standardFile) foreach {
@@ -659,7 +659,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.channel()
+              forceSave = TestForceSave.standard()
             )
 
           file.append(bytes)
@@ -713,7 +713,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.channel()
+              forceSave = TestForceSave.standard()
             )
 
           file.append(bytes(0))
@@ -867,7 +867,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.channel()
+              forceSave = TestForceSave.standard()
             )
 
           file.append(Slice.emptyBytes)
@@ -931,7 +931,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.channel()
+              forceSave = TestForceSave.standard()
             )
 
           file.append(bytes)
@@ -971,7 +971,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.channel()
+              forceSave = TestForceSave.standard()
             )
 
           file.append(bytes)
@@ -1024,7 +1024,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.channel()
+              forceSave = TestForceSave.standard()
             )
 
           file.append(bytes)

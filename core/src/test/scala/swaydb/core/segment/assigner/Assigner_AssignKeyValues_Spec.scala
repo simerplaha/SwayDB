@@ -55,9 +55,9 @@ class Segment_AssignerAssignKeyValues_Spec2 extends Assigner_AssignKeyValues_Spe
   val keyValueCount = 100
 
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
+  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
+  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
+  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
 }
 
 class Segment_AssignerAssignKeyValues_Spec3 extends Assigner_AssignKeyValues_Spec {

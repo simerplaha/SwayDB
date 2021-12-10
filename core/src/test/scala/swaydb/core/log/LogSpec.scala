@@ -129,7 +129,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -173,7 +173,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val log =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false, fileSize = 1.mb,
               dropCorruptedTailEntries = false
             ).item.sweep()
@@ -233,7 +233,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -277,7 +277,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val log =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -327,7 +327,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val map1 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -341,7 +341,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val map2 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -360,7 +360,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val map1Recovered =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -408,7 +408,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val map1 =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -421,7 +421,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val map2 =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -439,7 +439,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val map1Recovered =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
               folder = map1.path,
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -467,7 +467,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb
             ).sweep()
@@ -476,7 +476,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           assertThrows[FileAlreadyExistsException] {
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.path,
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb
             ).sweep()
@@ -485,7 +485,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           //recovers because the recovery is provided
           Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
             folder = log.path,
-            mmap = MMAP.Off(TestForceSave.channel()),
+            mmap = MMAP.Off(TestForceSave.standard()),
             flushOnOverflow = false,
             fileSize = 1.mb,
             dropCorruptedTailEntries = false
@@ -508,7 +508,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val file =
             PersistentLog.recover[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               fileSize = 4.mb,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -564,7 +564,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val recoveredFile =
             PersistentLog.recover[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.path,
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               fileSize = 4.mb,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -704,7 +704,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val file =
             PersistentLog.recover[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.path,
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               fileSize = 4.mb,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -741,7 +741,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val currentFile =
             PersistentLog.recover[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               fileSize = 4.mb,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -750,7 +750,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val nextFile =
             PersistentLog.nextFile[Slice[Byte], Memory, LevelZeroLogCache](
               currentFile = currentFile,
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               size = 4.mb,
               cache = cache
             ).sweep()
@@ -781,7 +781,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = false
@@ -799,7 +799,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
             assertThrows[IllegalStateException] {
               Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 folder = log.currentFilePath.getParent,
-                mmap = MMAP.Off(TestForceSave.channel()),
+                mmap = MMAP.Off(TestForceSave.standard()),
                 flushOnOverflow = false,
                 fileSize = 4.mb,
                 dropCorruptedTailEntries = false
@@ -823,7 +823,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = false
@@ -842,7 +842,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val recoveredMap =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.currentFilePath.getParent,
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = true
@@ -860,7 +860,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val recoveredMap2 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = recoveredMap.currentFilePath.getParent,
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = true
@@ -882,7 +882,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val map1 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -895,7 +895,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val map2 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -922,7 +922,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           assertThrows[IllegalStateException] {
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -936,7 +936,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val recoveredMapWith0LogCorrupted =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = true
@@ -971,7 +971,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val map1 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -984,7 +984,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val map2 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -1010,7 +1010,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           assertThrows[IllegalStateException] {
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -1024,7 +1024,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val recoveredMapWith0LogCorrupted =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
-              mmap = MMAP.Off(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = true

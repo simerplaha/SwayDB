@@ -42,9 +42,9 @@ class SegmentKeyValueCount1 extends SegmentKeyValueCount {
 class SegmentKeyValueCount2 extends SegmentKeyValueCount {
   val keyValuesCount = 1000
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
+  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
+  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
+  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
 }
 
 class SegmentKeyValueCount3 extends SegmentKeyValueCount {

@@ -47,9 +47,9 @@ class BehaviourCompactionTask_compactSegments_MultiLevels_Spec1 extends Behaviou
 
 class BehaviourCompactionTask_compactSegments_MultiLevels_Spec2 extends BehaviourCompactionTask_compactSegments_MultiLevels_Spec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
+  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
+  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
+  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
 }
 
 class BehaviourCompactionTask_compactSegments_MultiLevels_Spec3 extends BehaviourCompactionTask_compactSegments_MultiLevels_Spec {

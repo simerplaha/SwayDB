@@ -34,9 +34,9 @@ class BehaviourWakeUp_buildLowerLevels_Spec1 extends BehaviourWakeUp_buildLowerL
 
 class BehaviourWakeUp_buildLowerLevels_Spec2 extends BehaviourWakeUp_buildLowerLevels_Spec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
+  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
+  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
+  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
 }
 
 class BehaviourWakeUp_buildLowerLevels_Spec3 extends BehaviourWakeUp_buildLowerLevels_Spec {
