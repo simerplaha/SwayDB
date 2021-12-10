@@ -23,7 +23,20 @@ Small footprint: around 7.1 MB jar size.
 
 **Status**: Under testing & performance optimisations. See [project status](#Project-status).
 
+**Branches**: This is the `development/unstable` branch.
+See [`master`](https://github.com/simerplaha/SwayDB/tree/master) for stable version.
+
 [Documentation](http://swaydb.io)
+
+# Sponsors
+
+Thank you [Jetbrains](https://www.jetbrains.com/?from=SwayDB)
+& [JProfiler](https://www.ej-technologies.com/products/jprofiler/overview.html)
+for full-featured open-source licences to their awesome development
+tools! [[Become a sponsor](https://github.com/sponsors/simerplaha)]
+
+<div><a href="https://www.jetbrains.com/?from=SwayDB" target="_blank"><img src="/docs/jetbrains.png" alt="Jetbrains support" height="150"/></a></div>
+<div><a href="https://www.ej-technologies.com/products/jprofiler/overview.html" target="_blank"><img src="/docs/jprofiler_logo.png" alt="JProfiler support"/></a></div>
 
 ## Overview
 
@@ -115,20 +128,3 @@ that are required before becoming production ready.
   and APIs.
 - [SwayDB.benchmark](https://github.com/simerplaha/SwayDB.benchmark) - Performance benchmarks.
 - [SwayDB.website](https://github.com/simerplaha/SwayDB.website) - Website code.
-
-# Sponsors
-
-Thank you [Jetbrains](https://www.jetbrains.com/?from=SwayDB)
-& [JProfiler](https://www.ej-technologies.com/products/jprofiler/overview.html)
-for full featured open-source licences to their awesome development tools.
-
-<table>
-    <tr>
-        <td>
-            <a href="https://www.jetbrains.com/?from=SwayDB" target="_blank"><img src="/docs/jetbrains.png" alt="Jetbrains support" height="150" border="10" /></a>
-        </td>
-        <td>
-            <a href="https://www.ej-technologies.com/products/jprofiler/overview.html" target="_blank"><img src="/docs/jprofiler_logo.png" alt="JProfiler support" border="10" /></a>
-        </td>
-    </tr>
-</table>
