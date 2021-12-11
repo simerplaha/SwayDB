@@ -1,4 +1,4 @@
-# <img src="docs/logo.png" align = "right"/> SwayDB [![Slack Chat][slack-badge]][slack-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Build status][build-badge]][build-link] [![Maven central][maven-badge]][maven-link]
+# <img src="docs/swaydb_logo.png" align = "right"/> SwayDB [![Slack Chat][slack-badge]][slack-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Build status][build-badge]][build-link] [![Maven central][maven-badge]][maven-link]
 
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 
@@ -16,14 +16,34 @@
 
 [build-link]: https://github.com/simerplaha/SwayDB/actions
 
-Non-blocking **persistent** and **in-memory** key-value storage engine for the JVM with no external core
+**Persistent** and **in-memory** key-value storage engine for the JVM aimed at high performance & resource efficiency.
+
+**Small footprint**: around 7.1 MB jar size. No external core
 dependency ([#307](https://github.com/simerplaha/SwayDB/issues/307)).
 
-Small footprint: around 7.1 MB jar size.
+**Scalable on a single machine**: Distribute data on multiple local SSDs. Allocate single or multiple `Threads`
+for reads, caching & compaction.
+
+**Branches**: This is the `master` branch. See [`develop`](https://github.com/simerplaha/SwayDB/tree/develop) for
+latest (unstable).
 
 **Status**: Under testing & performance optimisations. See [project status](#Project-status).
 
 [Documentation](http://swaydb.io)
+
+# Sponsors
+
+Thank you [JetBrains](https://www.jetbrains.com/?from=SwayDB)
+& [JProfiler](https://www.ej-technologies.com/products/jprofiler/overview.html)
+for full-featured open-source licences to their awesome development tools!
+
+<table>
+  <tr>
+    <td><a href="https://www.jetbrains.com/?from=SwayDB" target="_blank"><img src="/docs/jetbrains_logo.png" alt="Jetbrains support"/></a></td>
+    <td><a href="https://www.ej-technologies.com/products/jprofiler/overview.html" target="_blank"><img src="/docs/jprofiler_logo.png" alt="JProfiler support"/></a></td>
+    <td><a href="https://github.com/sponsors/simerplaha" target="_blank">[Become a sponsor]</a></td>
+  </tr>
+</table>
 
 ## Overview
 
@@ -33,7 +53,7 @@ Small footprint: around 7.1 MB jar size.
 - Atomic updates and inserts with `Transaction` API.
 - **Non-blocking core** with configurable APIs for blocking, non-blocking and/or reactive use-cases.
 - Single or multiple disks persistent, in-memory or eventually persistent.
-- [Streams](http://swaydb.io/api/stream/?language=java) - Asnc & sync forward and reverse data streaming/iteration.
+- [Streams](http://swaydb.io/api/stream/?language=java) - Async & sync forward and reverse data streaming/iteration.
 - TTL - non-blocking, non-polling asynchronous auto [expiring](http://swaydb.io/api/expire/?language=java) key-values.
 - Range operations to update, remove & expire a range of key-values.
 - Key only iterations (Lazily fetched values).
@@ -55,10 +75,9 @@ Highly configurable to suit **different workloads**. Some known use-cases are:
 
 ## Quick start
 
-- [Java - Quick start](http://swaydb.io/quick-start/?language=java&data-type=map&functions=off).
-- [Scala - Quick start](http://swaydb.io/quick-start/?language=scala&data-type=map&functions=off).
+- [Java - Quick start](http://swaydb.io/quick-start/?language=java&data-type=map&functions=off)
+- [Scala - Quick start](http://swaydb.io/quick-start/?language=scala&data-type=map&functions=off)
 - [Kotlin - Quick start](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src/main/kotlin/quickstart/QuickStartMapSimple.kt)
-  .
 
 ## Contributing
 
@@ -96,11 +115,12 @@ foundation's [COC](https://www.apache.org/foundation/policies/conduct.html).
 
 Under testing & performance optimisations.
 
-Your feedback and review is very important to get to production. Please get involved via chat, issues or email which is
-on my [profile](https://github.com/simerplaha).
+Your feedback and support is very important to get to production. Please get involved
+via [chat](https://gitter.im/SwayDB-chat/Lobby), [discussion](https://github.com/simerplaha/SwayDB/discussions),
+[issues](https://github.com/simerplaha/SwayDB/issues)
+or by [becoming a sponsor](https://github.com/sponsors/simerplaha).
 
-Undergoing testing & performance optimisations. Future releases might not be backward compatible until we are production
-ready.
+Future releases might not be backward compatible until we are production ready.
 
 See tasks labelled [Production release](https://github.com/simerplaha/SwayDB/labels/Production%20release)
 that are required before becoming production ready.
@@ -114,21 +134,3 @@ that are required before becoming production ready.
 - [SwayDB.scala.examples](https://github.com/simerplaha/SwayDB.scala.examples) - Scala examples demonstrating features
   and APIs.
 - [SwayDB.benchmark](https://github.com/simerplaha/SwayDB.benchmark) - Performance benchmarks.
-- [SwayDB.website](https://github.com/simerplaha/SwayDB.website) - Website code.
-
-# Sponsors
-
-Thank you [Jetbrains](https://www.jetbrains.com/?from=SwayDB)
-& [JProfiler](https://www.ej-technologies.com/products/jprofiler/overview.html)
-for full featured open-source licences to their awesome development tools.
-
-<table>
-    <tr>
-        <td>
-            <a href="https://www.jetbrains.com/?from=SwayDB" target="_blank"><img src="/docs/jetbrains.png" alt="Jetbrains support" height="150" border="10" /></a>
-        </td>
-        <td>
-            <a href="https://www.ej-technologies.com/products/jprofiler/overview.html" target="_blank"><img src="/docs/jprofiler_logo.png" alt="JProfiler support" border="10" /></a>
-        </td>
-    </tr>
-</table>
