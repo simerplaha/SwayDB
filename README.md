@@ -16,15 +16,15 @@
 
 [build-link]: https://github.com/simerplaha/SwayDB/actions
 
-Non-blocking **persistent** and **in-memory** key-value storage engine for the JVM with no external core
+**Persistent** and **in-memory** key-value storage engine for the JVM with no external core
 dependency ([#307](https://github.com/simerplaha/SwayDB/issues/307)).
 
 Small footprint: around 7.1 MB jar size.
 
 **Status**: Under testing & performance optimisations. See [project status](#Project-status).
 
-**Branches**: This is the `development/unstable` branch.
-See [`master`](https://github.com/simerplaha/SwayDB/tree/master) for stable version.
+**Branches**: This is the `development` branch. See [`master`](https://github.com/simerplaha/SwayDB/tree/master) for
+stable version.
 
 [Documentation](http://swaydb.io)
 
@@ -68,10 +68,9 @@ Highly configurable to suit **different workloads**. Some known use-cases are:
 
 ## Quick start
 
-- [Java - Quick start](http://swaydb.io/quick-start/?language=java&data-type=map&functions=off).
-- [Scala - Quick start](http://swaydb.io/quick-start/?language=scala&data-type=map&functions=off).
+- [Java - Quick start](http://swaydb.io/quick-start/?language=java&data-type=map&functions=off)
+- [Scala - Quick start](http://swaydb.io/quick-start/?language=scala&data-type=map&functions=off)
 - [Kotlin - Quick start](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src/main/kotlin/quickstart/QuickStartMapSimple.kt)
-  .
 
 ## Contributing
 
@@ -109,11 +108,12 @@ foundation's [COC](https://www.apache.org/foundation/policies/conduct.html).
 
 Under testing & performance optimisations.
 
-Your feedback and review is very important to get to production. Please get involved via chat, issues or email which is
-on my [profile](https://github.com/simerplaha).
+Your feedback and support is very important to get to production. Please get involved
+via [chat](https://gitter.im/SwayDB-chat/Lobby), [discussion](https://github.com/simerplaha/SwayDB/discussions),
+[issues](https://github.com/simerplaha/SwayDB/issues)
+or by [becoming a sponsor](https://github.com/sponsors/simerplaha).
 
-Undergoing testing & performance optimisations. Future releases might not be backward compatible until we are production
-ready.
+Future releases might not be backward compatible until we are production ready.
 
 See tasks labelled [Production release](https://github.com/simerplaha/SwayDB/labels/Production%20release)
 that are required before becoming production ready.
@@ -127,4 +127,3 @@ that are required before becoming production ready.
 - [SwayDB.scala.examples](https://github.com/simerplaha/SwayDB.scala.examples) - Scala examples demonstrating features
   and APIs.
 - [SwayDB.benchmark](https://github.com/simerplaha/SwayDB.benchmark) - Performance benchmarks.
-- [SwayDB.website](https://github.com/simerplaha/SwayDB.website) - Website code.
