@@ -101,11 +101,11 @@ class MMAPFileSpec extends AnyWordSpec with Matchers with MockFactory {
                   () => {
                     //copy file to another path
                     val path2 = Effect.copy(path, randomFilePath())
-                    Slice(Effect.readAllBytes(path2)) shouldBe bytes
+                    Slice.wrap(Effect.readAllBytes(path2)) shouldBe bytes
                   },
                   () =>
                     //read all the bytes from disk and they exist
-                    Slice(Effect.readAllBytes(path)) shouldBe bytes
+                    Slice.wrap(Effect.readAllBytes(path)) shouldBe bytes
                 ).runThisRandomly
               }
 
@@ -142,7 +142,7 @@ class MMAPFileSpec extends AnyWordSpec with Matchers with MockFactory {
                   forcedAgain.get() shouldBe false
 
                 //read bytes from disk and they should exist.
-                Slice(Effect.readAllBytes(path)) shouldBe bytes
+                Slice.wrap(Effect.readAllBytes(path)) shouldBe bytes
               }
             }
         }

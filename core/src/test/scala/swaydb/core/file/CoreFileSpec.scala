@@ -168,10 +168,9 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           file.isOpen shouldBe true
           file.append(bytes)
 
-
           assertThrows[NonReadableChannelException](file.readAll())
           assertThrows[NonReadableChannelException](file.read(position = 0, size = 1))
-          assertThrows[NonReadableChannelException](file.getSkipCache(position = 0))
+          assertThrows[NonReadableChannelException](file.get(position = 0))
 
           //closing the channel and reopening it will open it in read only mode
           file.close()
@@ -220,11 +219,12 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
           Effect.write(testFile, bytes.toByteBufferWrap)
 
-          val readFile = CoreFile.standardRead(
-            path = testFile,
-            fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-            autoClose = true
-          )
+          val readFile =
+            CoreFile.standardRead(
+              path = testFile,
+              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+              autoClose = true
+            )
 
           //reading a file should load the file lazily
           readFile.isFileDefined shouldBe false
@@ -250,7 +250,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           //read bytes one by one
           (0 until bytes.size) foreach {
             index =>
-              readFile.getSkipCache(position = index) shouldBe bytes(index)
+              readFile.get(position = index) shouldBe bytes(index)
           }
           readFile.isOpen shouldBe true
       }
@@ -449,14 +449,14 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
       TestSweeper {
         implicit sweeper =>
           import sweeper._
-          IO {
+          assertThrows[swaydb.Exception.NoSuchFile] {
             CoreFile.mmapRead(
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows
             )
-          }.left.get shouldBe a[swaydb.Exception.NoSuchFile]
+          }
       }
     }
   }
@@ -533,7 +533,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           val testFile = randomFilePath()
           Effect.write(to = testFile, bytes = Slice.wrap(randomBytes()).toByteBufferWrap)
 
-          IO {
+          assertThrows[FileAlreadyExistsException] {
             CoreFile.mmapInit(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
@@ -542,7 +542,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               deleteAfterClean = OperatingSystem.isWindows,
               forceSave = TestForceSave.mmap()
             )
-          }.left.get shouldBe a[FileAlreadyExistsException]
+          }
       }
     }
   }
@@ -734,6 +734,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               file.readAll() shouldBe expectedAllBytes
               file.close()
           }
+
           CoreFile.mmapRead(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),

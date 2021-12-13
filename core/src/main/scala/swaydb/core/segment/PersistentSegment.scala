@@ -324,7 +324,7 @@ private[core] object PersistentSegment extends LazyLogging {
           )
       }
 
-    val formatId = file.getSkipCache(position = 0)
+    val formatId = file.get(position = 0)
 
     val segment =
       if (formatId == PersistentSegmentOne.formatId)

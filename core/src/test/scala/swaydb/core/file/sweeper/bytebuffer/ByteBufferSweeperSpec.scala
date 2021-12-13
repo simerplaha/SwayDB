@@ -112,7 +112,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
               file =>
                 Future {
                   while (timeout.hasTimeLeft())
-                    file.getSkipCache(position = 0).runRandomIO.value shouldBe bytes.head
+                    file.get(position = 0).runRandomIO.value shouldBe bytes.head
                 }
             }
 

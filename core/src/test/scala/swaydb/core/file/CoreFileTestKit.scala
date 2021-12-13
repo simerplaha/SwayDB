@@ -29,7 +29,10 @@ object CoreFileTestKit {
       createStandardFileFileReader(path)
 
   def createFileReaders(path: Path)(implicit sweeper: TestSweeper): TestTuple2[FileReader] =
-    TestTuple2(createMMAPFileReader(path), createStandardFileFileReader(path))
+    TestTuple2(
+      left = createMMAPFileReader(path),
+      right = createStandardFileFileReader(path)
+    )
 
   def createMMAPFileReader(bytes: Slice[Byte])(implicit sweeper: TestSweeper): FileReader =
     createMMAPFileReader(createFile(bytes))
@@ -41,10 +44,16 @@ object CoreFileTestKit {
                   mmapBytes: Slice[Byte],
                   channelPath: Path,
                   standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): TestTuple2[CoreFile] =
-    TestTuple2(createMMAPWriteAndRead(mmapPath, mmapBytes), createStandardWriteAndRead(channelPath, standardBytes))
+    TestTuple2(
+      left = createMMAPWriteAndRead(mmapPath, mmapBytes),
+      right = createStandardWriteAndRead(channelPath, standardBytes)
+    )
 
   def createFiles(mmapBytes: Slice[Byte], standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): TestTuple2[CoreFile] =
-    TestTuple2(createMMAPWriteAndRead(randomFilePath(), mmapBytes), createStandardWriteAndRead(randomFilePath(), standardBytes))
+    TestTuple2(
+      left = createMMAPWriteAndRead(randomFilePath(), mmapBytes),
+      right = createStandardWriteAndRead(randomFilePath(), standardBytes)
+    )
 
   def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestSweeper): CoreFile = {
     import sweeper._

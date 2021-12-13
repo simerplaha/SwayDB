@@ -112,8 +112,7 @@ private[core] object CoreFile extends LazyLogging {
                     autoClose: Boolean,
                     forceSave: ForceSave.StandardFiles)(implicit fileSweeper: FileSweeper,
                                                         bufferCleaner: ByteBufferSweeperActor,
-                                                        forceSaveApplier: ForceSaveApplier): CoreFile = {
-    val file = StandardFile.write(path, forceSave)
+                                                        forceSaveApplier: ForceSaveApplier): CoreFile =
     new CoreFile(
       path = path,
       memoryMapped = false,
@@ -125,12 +124,11 @@ private[core] object CoreFile extends LazyLogging {
           filePath = path,
           memoryMapped = false,
           deleteAfterClean = false,
-          file = Some(file),
+          file = Some(StandardFile.write(path, forceSave)),
           fileOpenIOStrategy = fileOpenIOStrategy,
           autoClose = autoClose
         )
     )
-  }
 
   def standardRead(path: Path,
                    fileOpenIOStrategy: IOStrategy.ThreadSafe,
@@ -397,9 +395,6 @@ private[core] class CoreFile(val path: Path,
     )
 
   def get(position: Int): Byte =
-    cache.value(()).get.get(position)
-
-  def getSkipCache(position: Int): Byte =
     cache.value(()).get.get(position)
 
   def readAll(): Slice[Byte] =
