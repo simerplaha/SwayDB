@@ -16,10 +16,13 @@
 
 [build-link]: https://github.com/simerplaha/SwayDB/actions
 
-**Persistent** and **in-memory** key-value storage engine for the JVM with no external core
+**Persistent** and **in-memory** key-value storage engine for the JVM aimed at high performance & resource efficiency.
+
+**Small footprint**: around 7.1 MB jar size. No external core
 dependency ([#307](https://github.com/simerplaha/SwayDB/issues/307)).
 
-Small footprint: around 7.1 MB jar size.
+**Scalable on a single machine**: Distribute data on multiple local SSDs. Allocate single or multiple `Threads`
+for reads, caching & compaction.
 
 **Status**: Under testing & performance optimisations. See [project status](#Project-status).
 
@@ -46,7 +49,7 @@ tools! [[Become a sponsor](https://github.com/sponsors/simerplaha)]
 - Atomic updates and inserts with `Transaction` API.
 - **Non-blocking core** with configurable APIs for blocking, non-blocking and/or reactive use-cases.
 - Single or multiple disks persistent, in-memory or eventually persistent.
-- [Streams](http://swaydb.io/api/stream/?language=java) - Asnc & sync forward and reverse data streaming/iteration.
+- [Streams](http://swaydb.io/api/stream/?language=java) - Async & sync forward and reverse data streaming/iteration.
 - TTL - non-blocking, non-polling asynchronous auto [expiring](http://swaydb.io/api/expire/?language=java) key-values.
 - Range operations to update, remove & expire a range of key-values.
 - Key only iterations (Lazily fetched values).

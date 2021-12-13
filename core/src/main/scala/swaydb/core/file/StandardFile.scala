@@ -30,26 +30,22 @@ import java.util.concurrent.atomic.AtomicBoolean
 private object StandardFile {
 
   def write(path: Path,
-            forceSave: ForceSave.StandardFiles)(implicit forceSaveApplier: ForceSaveApplier): StandardFile = {
-    val channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
+            forceSave: ForceSave.StandardFiles)(implicit forceSaveApplier: ForceSaveApplier): StandardFile =
     new StandardFile(
       path = path,
       mode = StandardOpenOption.WRITE,
-      channel = channel,
+      channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW),
       forceSave = forceSave
     )
-  }
 
   def read(path: Path)(implicit forceSaveApplier: ForceSaveApplier): StandardFile =
-    if (Effect.exists(path)) {
-      val channel = FileChannel.open(path, StandardOpenOption.READ)
+    if (Effect.exists(path))
       new StandardFile(
         path = path,
         mode = StandardOpenOption.READ,
-        channel = channel,
+        channel = FileChannel.open(path, StandardOpenOption.READ),
         forceSave = ForceSave.Off
       )
-    }
     else
       throw swaydb.Exception.NoSuchFile(path)
 }
@@ -59,14 +55,12 @@ private class StandardFile(val path: Path,
                            private[file] val channel: FileChannel,
                            forceSave: ForceSave.StandardFiles)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with CoreFileType {
 
-  //Force is applied on files after they are marked immutable so it only needs
-  //to be invoked once.
-  private val forced = {
+  //Force is applied on files after they are marked immutable so it only needs to be invoked once.
+  private val forced =
     if (forceSave.enableForReadOnlyMode)
       new AtomicBoolean(false)
     else
       new AtomicBoolean(mode == StandardOpenOption.READ)
-  }
 
   def close(): Unit = {
     forceSaveApplied.beforeClose(this, forceSave)
