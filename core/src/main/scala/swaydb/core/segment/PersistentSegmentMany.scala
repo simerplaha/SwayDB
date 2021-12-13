@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.config.{MMAP, SegmentRefCacheLife}
-import swaydb.core.cache.{Cache, CacheNoIO}
+import swaydb.core.cache.{Cache, CacheUnsafe}
 import swaydb.core.file.{CoreFile, FileReader, ForceSaveApplier}
 import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand}
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
@@ -176,7 +176,7 @@ private case object PersistentSegmentMany extends LazyLogging {
         None
 
     val listSegmentCache =
-      Cache.noIO[Unit, SegmentRef](synchronised = true, stored = true, initial = listSegment) {
+      Cache.unsafe[Unit, SegmentRef](synchronised = true, stored = true, initial = listSegment) {
         (_, _) =>
           initListSegment(
             file = file,
@@ -340,7 +340,7 @@ private case object PersistentSegmentMany extends LazyLogging {
       }
 
     val listSegmentCache =
-      Cache.noIO[Unit, SegmentRef](synchronised = true, stored = true, initial = copiedFromListSegmentCache) {
+      Cache.unsafe[Unit, SegmentRef](synchronised = true, stored = true, initial = copiedFromListSegmentCache) {
         (_, _) =>
           //NOTE - the counts are incorrect here. They are segment level counts instead of listSegment levels.
           //       but listSegment's stats are not used. ListSegment is just for reference.
@@ -475,7 +475,7 @@ private case object PersistentSegmentMany extends LazyLogging {
     val listSegmentCreatedInLevel = listSegmentFooter.createdInLevel
 
     val listSegmentCache =
-      Cache.noIO[Unit, SegmentRef](synchronised = true, stored = true, initial = None) {
+      Cache.unsafe[Unit, SegmentRef](synchronised = true, stored = true, initial = None) {
         case (_, _) =>
           initListSegment(
             file = file,
@@ -677,7 +677,7 @@ private case class PersistentSegmentMany(file: CoreFile,
                                          putCount: Int,
                                          putDeadlineCount: Int,
                                          keyValueCount: Int,
-                                         listSegmentCache: CacheNoIO[Unit, SegmentRef],
+                                         listSegmentCache: CacheUnsafe[Unit, SegmentRef],
                                          segmentRefCacheLife: SegmentRefCacheLife,
                                          private val segmentsCache: ConcurrentSkipListMap[Slice[Byte], SegmentRef])(implicit keyOrders: SegmentKeyOrders,
                                                                                                                     timeOrder: TimeOrder[Slice[Byte]],

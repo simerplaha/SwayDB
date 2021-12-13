@@ -71,7 +71,7 @@ private[core] object CoreFile extends LazyLogging {
       }
 
     val cache =
-      Cache.io[swaydb.Error.IO, Error.OpeningFile, Unit, CoreFileType](
+      Cache[swaydb.Error.IO, Error.OpeningFile, Unit, CoreFileType](
         //force the cache to be cacheOnAccess regardless of what's configured.
         //This is also needed because only a single thread can close or delete a
         //file using clearApply and stored cached is required otherwise this will lead

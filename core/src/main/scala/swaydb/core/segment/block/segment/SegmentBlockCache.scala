@@ -124,7 +124,7 @@ private[core] class SegmentBlockCache private(path: Path,
    */
   def buildBlockInfoCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
                                                            resourceName: String)(implicit blockOps: BlockOps[O, B]): Cache[swaydb.Error.Segment, BlockRefReader[O], B] =
-    Cache.io[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockRefReader[O], B](
+    Cache[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockRefReader[O], B](
       strategy = blockIO(IOAction.ReadDataOverview),
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName")),
       initial = None
@@ -146,7 +146,7 @@ private[core] class SegmentBlockCache private(path: Path,
 
   def buildBlockInfoCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
                                                                    resourceName: String)(implicit blockOps: BlockOps[O, B]): Cache[swaydb.Error.Segment, Option[BlockRefReader[O]], Option[B]] =
-    Cache.io[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockRefReader[O]], Option[B]](
+    Cache[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockRefReader[O]], Option[B]](
       strategy = blockIO(IOAction.ReadDataOverview),
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName")),
       initial = None
@@ -342,7 +342,7 @@ private[core] class SegmentBlockCache private(path: Path,
     .copy()
 
   private[block] val footerBlockCache =
-    Cache.io[swaydb.Error.Segment, swaydb.Error.ReservedResource, UnblockedReader[SegmentBlockOffset, SegmentBlock], SegmentFooterBlock](
+    Cache[swaydb.Error.Segment, swaydb.Error.ReservedResource, UnblockedReader[SegmentBlockOffset, SegmentBlock], SegmentFooterBlock](
       strategy = segmentFooterBlockIO(IOAction.ReadDataOverview),
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: footerBlockCache")),
       initial = footerCacheable

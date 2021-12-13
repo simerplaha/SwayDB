@@ -27,7 +27,7 @@ private[swaydb] object Cache {
 
   final case class Null[-I]() extends CacheOrNull[Nothing, I, Nothing]
 
-  def valueIO[E: IO.ExceptionHandler, I, B](output: B): Cache[E, I, B] =
+  def value[E: IO.ExceptionHandler, I, B](output: B): Cache[E, I, B] =
     new Cache[E, I, B] {
       override def getOrFetch(input: => I): IO[E, B] =
         IO(output)
@@ -57,9 +57,9 @@ private[swaydb] object Cache {
   //        IO(ValuesBlock.emptyUnblocked)
   //    }
 
-  def concurrentIO[E: IO.ExceptionHandler, I, O](synchronised: Boolean,
-                                                 stored: Boolean,
-                                                 initial: Option[O])(fetch: (I, Cache[E, I, O]) => IO[E, O]): Cache[E, I, O] =
+  def concurrent[E: IO.ExceptionHandler, I, O](synchronised: Boolean,
+                                               stored: Boolean,
+                                               initial: Option[O])(fetch: (I, Cache[E, I, O]) => IO[E, O]): Cache[E, I, O] =
     new SynchronisedIO[E, I, O](
       fetch = fetch,
       lazyIO =
@@ -70,9 +70,9 @@ private[swaydb] object Cache {
         )
     )
 
-  def reservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recoverable, I, O](stored: Boolean,
-                                                                                      reserveError: ER,
-                                                                                      initial: Option[O])(fetch: (I, Cache[E, I, O]) => IO[E, O]): Cache[E, I, O] =
+  def reserved[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recoverable, I, O](stored: Boolean,
+                                                                                    reserveError: ER,
+                                                                                    initial: Option[O])(fetch: (I, Cache[E, I, O]) => IO[E, O]): Cache[E, I, O] =
     new ReservedIO[E, ER, I, O](
       fetch = fetch,
       error = reserveError,
@@ -84,10 +84,10 @@ private[swaydb] object Cache {
         )
     )
 
-  def noIO[I, O](synchronised: Boolean,
-                 stored: Boolean,
-                 initial: Option[O])(fetch: (I, CacheNoIO[I, O]) => O): CacheNoIO[I, O] =
-    new CacheNoIO[I, O](
+  def unsafe[I, O](synchronised: Boolean,
+                   stored: Boolean,
+                   initial: Option[O])(fetch: (I, CacheUnsafe[I, O]) => O): CacheUnsafe[I, O] =
+    new CacheUnsafe[I, O](
       fetch = fetch,
       lazyValue =
         Lazy.value(
@@ -97,26 +97,26 @@ private[swaydb] object Cache {
         )
     )
 
-  def io[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recoverable, I, O](strategy: IOStrategy,
-                                                                              reserveError: => ER,
-                                                                              initial: Option[O])(fetch: (I, Cache[E, I, O]) => IO[E, O]): Cache[E, I, O] =
+  def apply[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recoverable, I, O](strategy: IOStrategy,
+                                                                                 reserveError: => ER,
+                                                                                 initial: Option[O])(fetch: (I, Cache[E, I, O]) => IO[E, O]): Cache[E, I, O] =
     strategy match {
       case IOStrategy.ConcurrentIO(cacheOnAccess) =>
-        Cache.concurrentIO[E, I, O](
+        Cache.concurrent[E, I, O](
           synchronised = false,
           initial = initial,
           stored = cacheOnAccess
         )(fetch)
 
       case IOStrategy.SynchronisedIO(cacheOnAccess) =>
-        Cache.concurrentIO[E, I, O](
+        Cache.concurrent[E, I, O](
           synchronised = true,
           initial = initial,
           stored = cacheOnAccess
         )(fetch)
 
       case IOStrategy.AsyncIO(cacheOnAccess) =>
-        Cache.reservedIO[E, ER, I, O](
+        Cache.reserved[E, ER, I, O](
           stored = cacheOnAccess,
           initial = initial,
           reserveError = reserveError
@@ -128,7 +128,7 @@ private[swaydb] object Cache {
                                                                                       reserveError: => ER)(onInitialSet: (O, Cache[E, I, O]) => Unit = (_: O, _: Cache[E, I, O]) => ())(fetch: (I, Cache[E, I, O]) => IO[E, O]): Cache[E, I, O] = {
 
     def innerCache(ioStrategy: IOStrategy, initial: Option[O]): Cache[E, I, O] =
-      Cache.io[E, ER, I, O](
+      Cache.apply[E, ER, I, O](
         strategy = ioStrategy,
         reserveError = reserveError,
         initial = initial
@@ -144,7 +144,7 @@ private[swaydb] object Cache {
       }
 
     val cache =
-      Cache.noIO[I, Cache[E, I, O]](synchronised = true, stored = true, initial = initialInner) {
+      Cache.unsafe[I, Cache[E, I, O]](synchronised = true, stored = true, initial = initialInner) {
         (i, _) =>
           val ioStrategy: IOStrategy = FunctionSafe.safe((_: I) => IOStrategy.SynchronisedIO(false), strategy)(i)
           innerCache(ioStrategy, None)
@@ -171,7 +171,7 @@ private[swaydb] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] ext
    * before clearing.
    *
    * This currently is only implemented for [[IOStrategy.ThreadSafe]] io strategies
-   * and is being used when closing [[swaydb.core.file.CoreFile]]s.
+   * and is being used when closing core files.
    */
   def clearApply[F >: E : IO.ExceptionHandler, T](f: Option[O] => IO[F, T]): IO[F, T]
 
@@ -266,7 +266,7 @@ private[swaydb] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] ext
     }
 }
 
-private class DeferredIO[E: IO.ExceptionHandler, -I, +B](cache: CacheNoIO[I, Cache[E, I, B]]) extends Cache[E, I, B] {
+private class DeferredIO[E: IO.ExceptionHandler, -I, +B](cache: CacheUnsafe[I, Cache[E, I, B]]) extends Cache[E, I, B] {
 
   override def isStored: Boolean =
     cache.isStored
@@ -391,7 +391,7 @@ private class ReservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recov
  * Caches a value on read. Used for IO operations where the output does not change.
  * For example: A file's size.
  */
-private[swaydb] class CacheNoIO[-I, +O](fetch: (I, CacheNoIO[I, O]) => O, lazyValue: LazyValue[O]) {
+private[swaydb] class CacheUnsafe[-I, +O](fetch: (I, CacheUnsafe[I, O]) => O, lazyValue: LazyValue[O]) {
 
   def isStored: Boolean =
     lazyValue.stored

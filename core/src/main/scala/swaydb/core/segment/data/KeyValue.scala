@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.data
 
-import swaydb.core.cache.{Cache, CacheNoIO}
+import swaydb.core.cache.{Cache, CacheUnsafe}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
@@ -1024,7 +1024,7 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          Cache.noIO[ValuesBlockOffset, SliceOption[Byte]](synchronised = true, stored = true, initial = None) {
+          Cache.unsafe[ValuesBlockOffset, SliceOption[Byte]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (offset.size == 0)
                 Slice.Null
@@ -1049,7 +1049,7 @@ private[core] object Persistent {
 
   case class Put(private var _key: Slice[Byte],
                  deadline: Option[Deadline],
-                 private val valueCache: CacheNoIO[ValuesBlockOffset, SliceOption[Byte]],
+                 private val valueCache: CacheUnsafe[ValuesBlockOffset, SliceOption[Byte]],
                  private var _time: Time,
                  nextIndexOffset: Int,
                  nextKeySize: Int,
@@ -1131,7 +1131,7 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          Cache.noIO[ValuesBlockOffset, SliceOption[Byte]](synchronised = true, stored = true, initial = None) {
+          Cache.unsafe[ValuesBlockOffset, SliceOption[Byte]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (offset.size == 0)
                 Slice.Null
@@ -1156,7 +1156,7 @@ private[core] object Persistent {
 
   case class Update(private var _key: Slice[Byte],
                     deadline: Option[Deadline],
-                    private val valueCache: CacheNoIO[ValuesBlockOffset, SliceOption[Byte]],
+                    private val valueCache: CacheUnsafe[ValuesBlockOffset, SliceOption[Byte]],
                     private var _time: Time,
                     nextIndexOffset: Int,
                     nextKeySize: Int,
@@ -1291,7 +1291,7 @@ private[core] object Persistent {
       new Function(
         _key = key,
         valueCache =
-          Cache.noIO[ValuesBlockOffset, Slice[Byte]](synchronised = true, stored = true, initial = None) {
+          Cache.unsafe[ValuesBlockOffset, Slice[Byte]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (valuesReaderOrNull == null)
                 throw new Exception("ValuesBlock is undefined.")
@@ -1313,7 +1313,7 @@ private[core] object Persistent {
   }
 
   case class Function(private var _key: Slice[Byte],
-                      private val valueCache: CacheNoIO[ValuesBlockOffset, Slice[Byte]],
+                      private val valueCache: CacheUnsafe[ValuesBlockOffset, Slice[Byte]],
                       private var _time: Time,
                       nextIndexOffset: Int,
                       nextKeySize: Int,
@@ -1382,7 +1382,7 @@ private[core] object Persistent {
         _time = time,
         deadline = deadline,
         valueCache =
-          Cache.noIO[ValuesBlockOffset, Slice[Value.Apply]](synchronised = true, stored = true, initial = None) {
+          Cache.unsafe[ValuesBlockOffset, Slice[Value.Apply]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (valuesReaderOrNull == null) {
                 throw new Exception("ValuesBlock is undefined.")
@@ -1410,7 +1410,7 @@ private[core] object Persistent {
   case class PendingApply(private var _key: Slice[Byte],
                           private var _time: Time,
                           deadline: Option[Deadline],
-                          valueCache: CacheNoIO[ValuesBlockOffset, Slice[Value.Apply]],
+                          valueCache: CacheUnsafe[ValuesBlockOffset, Slice[Value.Apply]],
                           nextIndexOffset: Int,
                           nextKeySize: Int,
                           indexOffset: Int,
@@ -1517,7 +1517,7 @@ private[core] object Persistent {
         _fromKey = fromKey,
         _toKey = toKey,
         valueCache =
-          Cache.noIO[ValuesBlockOffset, (Value.FromValueOption, Value.RangeValue)](synchronised = true, stored = true, initial = None) {
+          Cache.unsafe[ValuesBlockOffset, (Value.FromValueOption, Value.RangeValue)](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (valuesReaderOrNull == null) {
                 throw new Exception("ValuesBlock is undefined.")
@@ -1546,7 +1546,7 @@ private[core] object Persistent {
 
   case class Range private(private var _fromKey: Slice[Byte],
                            private var _toKey: Slice[Byte],
-                           valueCache: CacheNoIO[ValuesBlockOffset, (Value.FromValueOption, Value.RangeValue)],
+                           valueCache: CacheUnsafe[ValuesBlockOffset, (Value.FromValueOption, Value.RangeValue)],
                            nextIndexOffset: Int,
                            nextKeySize: Int,
                            indexOffset: Int,

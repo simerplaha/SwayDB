@@ -18,7 +18,7 @@ package swaydb
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO.ExceptionHandler
-import swaydb.core.cache.CacheNoIO
+import swaydb.core.cache.CacheUnsafe
 
 import scala.concurrent.ExecutionContext
 
@@ -29,7 +29,7 @@ class ActorHooks[-T, S](val name: String,
                         weigher: T => Int,
                         cached: Boolean,
                         execution: (T, Actor[T, S]) => Unit,
-                        scheduler: CacheNoIO[Unit, Scheduler],
+                        scheduler: CacheUnsafe[Unit, Scheduler],
                         interval: Option[Interval],
                         preTerminate: Option[Actor[T, S] => Unit],
                         postTerminate: Option[Actor[T, S] => Unit],

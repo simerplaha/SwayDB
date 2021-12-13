@@ -20,7 +20,7 @@ import swaydb.{ActorConfig, ActorRef, Bag}
 import swaydb.ActorConfig.QueueOrder
 import swaydb.Bag.Implicits._
 import swaydb.config.FileCache
-import swaydb.core.cache.CacheNoIO
+import swaydb.core.cache.CacheUnsafe
 
 import java.nio.file.Path
 import scala.collection.mutable
@@ -58,7 +58,7 @@ private[swaydb] case object FileSweeper extends LazyLogging {
     override def deleter: ActorRef[FileSweeperCommand.Delete, Unit] = throw new Exception(s"No deleter Actor for ${FileSweeper.productPrefix}.${this.productPrefix}")
   }
 
-  implicit class FileSweeperActorImplicits(cache: CacheNoIO[Unit, FileSweeper]) {
+  implicit class FileSweeperActorImplicits(cache: CacheUnsafe[Unit, FileSweeper]) {
     @inline def fetch: FileSweeper =
       this.cache.getOrFetch(())
   }

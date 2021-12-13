@@ -79,7 +79,7 @@ private[core] object BlockCache extends LazyLogging {
     }
 
     val map =
-      Cache.noIO[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]](synchronised = true, stored = true, initial = None) {
+      Cache.unsafe[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]](synchronised = true, stored = true, initial = None) {
         case (_, _) =>
           HashedMap.concurrent[Long, SliceOption[Byte], Slice[Byte]](
             nullValue = Slice.Null,

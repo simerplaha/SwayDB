@@ -18,7 +18,7 @@ package swaydb.core.segment.cache.sweeper
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.config.MemoryCache
-import swaydb.core.cache.CacheNoIO
+import swaydb.core.cache.CacheUnsafe
 import swaydb.core.segment.data.Persistent
 import swaydb.core.skiplist.SkipList
 import swaydb.slice.{Slice, SliceOption}
@@ -142,7 +142,7 @@ private[core] object MemorySweeper extends LazyLogging {
 
     def add(key: Long,
             value: Slice[Byte],
-            map: CacheNoIO[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]]): Unit =
+            map: CacheUnsafe[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]]): Unit =
       if (actor.isDefined) {
         actor.get send new MemorySweeperCommand.SweepBlockCache(
           key = key,

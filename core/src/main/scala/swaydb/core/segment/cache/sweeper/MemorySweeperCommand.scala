@@ -1,6 +1,6 @@
 package swaydb.core.segment.cache.sweeper
 
-import swaydb.core.cache.CacheNoIO
+import swaydb.core.cache.CacheUnsafe
 import swaydb.core.segment.data.Persistent
 import swaydb.core.skiplist.SkipList
 import swaydb.slice.{Slice, SliceOption}
@@ -27,7 +27,7 @@ protected object MemorySweeperCommand {
 
   private[sweeper] class SweepBlockCache(val key: Long,
                                          val valueSize: Int,
-                                         val map: CacheNoIO[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]]) extends MemorySweeperCommand
+                                         val map: CacheUnsafe[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]]) extends MemorySweeperCommand
 
   def weigher(command: MemorySweeperCommand): Int =
     command match {

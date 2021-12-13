@@ -72,7 +72,7 @@ class KeyMatcherSpec extends ASegmentSpec {
      */
 
     val noneRangeValueCache =
-      Cache.noIO[ValuesBlockOffset, (FromValueOption, Value.RangeValue)](false, false, None) {
+      Cache.unsafe[ValuesBlockOffset, (FromValueOption, Value.RangeValue)](false, false, None) {
         (_, _) =>
           fail("")
       }

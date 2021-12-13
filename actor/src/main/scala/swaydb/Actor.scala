@@ -19,7 +19,7 @@ package swaydb
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorConfig.QueueOrder
 import swaydb.Bag.Implicits._
-import swaydb.core.cache.{Cache, CacheNoIO}
+import swaydb.core.cache.{Cache, CacheUnsafe}
 import swaydb.effect.Reserve
 import swaydb.utils.{AtomicThreadLocalBoolean, FunctionSafe, Options}
 
@@ -170,7 +170,7 @@ object Actor {
       weigher = _ => 1,
       cached = false,
       execution = execution,
-      scheduler = Cache.noIO[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
+      scheduler = Cache.unsafe[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
       interval = None,
       preTerminate = None,
       postTerminate = None,
@@ -201,7 +201,7 @@ object Actor {
       weigher = FunctionSafe.safe((_: T) => 1, weigher),
       cached = true,
       execution = execution,
-      scheduler = Cache.noIO[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
+      scheduler = Cache.unsafe[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
       interval = None,
       preTerminate = None,
       postTerminate = None,
@@ -238,7 +238,7 @@ object Actor {
       weigher = _ => 1,
       cached = false,
       execution = execution,
-      scheduler = Cache.noIO[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
+      scheduler = Cache.unsafe[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
       interval = Some(new Interval(interval, false)),
       preTerminate = None,
       postTerminate = None,
@@ -272,7 +272,7 @@ object Actor {
       weigher = weigher,
       cached = true,
       execution = execution,
-      scheduler = Cache.noIO[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
+      scheduler = Cache.unsafe[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
       interval = Some(new Interval(interval, false)),
       preTerminate = None,
       postTerminate = None,
@@ -312,7 +312,7 @@ object Actor {
       weigher = _ => 1,
       cached = false,
       execution = execution,
-      scheduler = Cache.noIO[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
+      scheduler = Cache.unsafe[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
       interval = Some(new Interval(interval, true)),
       preTerminate = None,
       postTerminate = None,
@@ -346,7 +346,7 @@ object Actor {
       weigher = weigher,
       cached = true,
       execution = execution,
-      scheduler = Cache.noIO[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
+      scheduler = Cache.unsafe[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
       interval = Some(new Interval(interval, true)),
       preTerminate = None,
       postTerminate = None,
@@ -400,7 +400,7 @@ class Actor[-T, S] private[swaydb](val name: String,
                                    weigher: T => Int,
                                    cached: Boolean,
                                    execution: (T, Actor[T, S]) => Unit,
-                                   scheduler: CacheNoIO[Unit, Scheduler],
+                                   scheduler: CacheUnsafe[Unit, Scheduler],
                                    interval: Option[Interval],
                                    preTerminate: Option[Actor[T, S] => Unit],
                                    postTerminate: Option[Actor[T, S] => Unit],

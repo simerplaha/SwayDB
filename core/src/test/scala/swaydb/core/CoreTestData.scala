@@ -1853,7 +1853,7 @@ object CoreTestData {
   }
 
   def buildSingleValueCache(bytes: Slice[Byte]): Cache[swaydb.Error.Segment, ValuesBlockOffset, UnblockedReader[ValuesBlockOffset, ValuesBlock]] =
-    Cache.concurrentIO[swaydb.Error.Segment, ValuesBlockOffset, UnblockedReader[ValuesBlockOffset, ValuesBlock]](randomBoolean(), randomBoolean(), None) {
+    Cache.concurrent[swaydb.Error.Segment, ValuesBlockOffset, UnblockedReader[ValuesBlockOffset, ValuesBlock]](randomBoolean(), randomBoolean(), None) {
       (offset, _) =>
         IO[Nothing, UnblockedReader[ValuesBlockOffset, ValuesBlock]](
           UnblockedReader(

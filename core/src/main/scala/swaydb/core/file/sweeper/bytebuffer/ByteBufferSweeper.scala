@@ -21,7 +21,7 @@ import swaydb.ActorConfig.QueueOrder
 import swaydb.Bag.Implicits._
 import swaydb.Error.IO.ExceptionHandler
 import swaydb._
-import swaydb.core.cache.{Cache, CacheNoIO}
+import swaydb.core.cache.{Cache, CacheUnsafe}
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCleaner.Cleaner
 import swaydb.effect.Effect
 import swaydb.utils.English
@@ -39,7 +39,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
 
   val className = this.productPrefix
 
-  type ByteBufferSweeperActor = CacheNoIO[Unit, ActorRef[ByteBufferCommand, State]]
+  type ByteBufferSweeperActor = CacheUnsafe[Unit, ActorRef[ByteBufferCommand, State]]
 
   implicit class ByteBufferSweeperActorImplicits(cache: ByteBufferSweeperActor) {
     @inline def actor(): ActorRef[ByteBufferCommand, State] =
@@ -384,7 +384,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
   def apply(maxDeleteRetries: Int = 5,
             messageReschedule: FiniteDuration = 5.seconds)(implicit executionContext: ExecutionContext,
                                                            actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ByteBufferSweeperActor =
-    Cache.noIO[Unit, ActorRef[ByteBufferCommand, State]](synchronised = true, stored = true, initial = None) {
+    Cache.unsafe[Unit, ActorRef[ByteBufferCommand, State]](synchronised = true, stored = true, initial = None) {
       (_, _) =>
         logger.info(s"Starting ${this.productPrefix} for memory-mapped files.")
         createActor(

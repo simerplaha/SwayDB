@@ -43,7 +43,7 @@ class CachePerformanceSpec extends AnyWordSpec with Matchers {
 
   "reading concurrentIO" when {
     "stored & concurrent" in {
-      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](false, true, None)((int, self) => IO.Right(int))
+      val cache = Cache.concurrent[swaydb.Error.Segment, Int, Int](false, true, None)((int, self) => IO.Right(int))
 
       Benchmark("reading stored") {
         range foreach {
@@ -61,7 +61,7 @@ class CachePerformanceSpec extends AnyWordSpec with Matchers {
     }
 
     "stored & synchronised" in {
-      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](true, true, None)((int, self) => IO.Right(int))
+      val cache = Cache.concurrent[swaydb.Error.Segment, Int, Int](true, true, None)((int, self) => IO.Right(int))
 
       Benchmark("reading stored") {
         range foreach {
@@ -79,7 +79,7 @@ class CachePerformanceSpec extends AnyWordSpec with Matchers {
     }
 
     "not stored" in {
-      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](false, false, None)((int, self) => IO.Right(int))
+      val cache = Cache.concurrent[swaydb.Error.Segment, Int, Int](false, false, None)((int, self) => IO.Right(int))
 
       Benchmark("reading not stored") {
         range foreach {

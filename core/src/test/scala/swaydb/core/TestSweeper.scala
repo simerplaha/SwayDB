@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.{ActorRef, Bag, DefActor, Glass, Scheduler}
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.CoreTestSweepers._
-import swaydb.core.cache.{Cache, CacheNoIO}
+import swaydb.core.cache.{Cache, CacheUnsafe}
 import swaydb.core.file.{CoreFile, ForceSaveApplier}
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
@@ -279,15 +279,15 @@ object TestSweeper extends LazyLogging {
 
 class TestSweeper(val testName: String = s"TEST${TestSweeper.testNumber.incrementAndGet()}",
                   @BeanProperty protected var deleteFiles: Boolean = true,
-                  private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeper.On]] = ListBuffer(Cache.noIO[Unit, FileSweeper.On](true, true, None)((_, _) => createFileSweeper())),
-                  private val cleaners: ListBuffer[CacheNoIO[Unit, ByteBufferSweeperActor]] = ListBuffer(Cache.noIO[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner())),
-                  private val compactionIOActors: ListBuffer[CacheNoIO[Unit, SegmentCompactionIO.Actor]] = ListBuffer(Cache.noIO[Unit, SegmentCompactionIO.Actor](true, true, None)((_, _) => SegmentCompactionIO.create()(TestExecutionContext.executionContext))),
-                  private val blockCaches: ListBuffer[CacheNoIO[Unit, Option[BlockCacheState]]] = ListBuffer(Cache.noIO[Unit, Option[BlockCacheState]](true, true, None)((_, _) => createBlockCacheRandom())),
-                  private val allMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.All]]] = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.All]](true, true, None)((_, _) => createMemorySweeperMax())),
-                  private val keyValueMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.KeyValue]]] = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.KeyValue]](true, true, None)((_, _) => createMemorySweeperRandom())),
-                  private val blockMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.Block]]] = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.Block]](true, true, None)((_, _) => createMemoryBlockSweeper())),
-                  private val cacheMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.Cache]]] = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.Cache]](true, true, None)((_, _) => createRandomCacheSweeper())),
-                  private val schedulers: ListBuffer[CacheNoIO[Unit, Scheduler]] = ListBuffer(Cache.noIO[Unit, Scheduler](true, true, None)((_, _) => Scheduler()(DefaultExecutionContext.sweeperEC))),
+                  private val fileSweepers: ListBuffer[CacheUnsafe[Unit, FileSweeper.On]] = ListBuffer(Cache.unsafe[Unit, FileSweeper.On](true, true, None)((_, _) => createFileSweeper())),
+                  private val cleaners: ListBuffer[CacheUnsafe[Unit, ByteBufferSweeperActor]] = ListBuffer(Cache.unsafe[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner())),
+                  private val compactionIOActors: ListBuffer[CacheUnsafe[Unit, SegmentCompactionIO.Actor]] = ListBuffer(Cache.unsafe[Unit, SegmentCompactionIO.Actor](true, true, None)((_, _) => SegmentCompactionIO.create()(TestExecutionContext.executionContext))),
+                  private val blockCaches: ListBuffer[CacheUnsafe[Unit, Option[BlockCacheState]]] = ListBuffer(Cache.unsafe[Unit, Option[BlockCacheState]](true, true, None)((_, _) => createBlockCacheRandom())),
+                  private val allMemorySweepers: ListBuffer[CacheUnsafe[Unit, Option[MemorySweeper.All]]] = ListBuffer(Cache.unsafe[Unit, Option[MemorySweeper.All]](true, true, None)((_, _) => createMemorySweeperMax())),
+                  private val keyValueMemorySweepers: ListBuffer[CacheUnsafe[Unit, Option[MemorySweeper.KeyValue]]] = ListBuffer(Cache.unsafe[Unit, Option[MemorySweeper.KeyValue]](true, true, None)((_, _) => createMemorySweeperRandom())),
+                  private val blockMemorySweepers: ListBuffer[CacheUnsafe[Unit, Option[MemorySweeper.Block]]] = ListBuffer(Cache.unsafe[Unit, Option[MemorySweeper.Block]](true, true, None)((_, _) => createMemoryBlockSweeper())),
+                  private val cacheMemorySweepers: ListBuffer[CacheUnsafe[Unit, Option[MemorySweeper.Cache]]] = ListBuffer(Cache.unsafe[Unit, Option[MemorySweeper.Cache]](true, true, None)((_, _) => createRandomCacheSweeper())),
+                  private val schedulers: ListBuffer[CacheUnsafe[Unit, Scheduler]] = ListBuffer(Cache.unsafe[Unit, Scheduler](true, true, None)((_, _) => Scheduler()(DefaultExecutionContext.sweeperEC))),
                   private val levels: ListBuffer[LevelRef] = ListBuffer.empty,
                   private val segments: ListBuffer[Segment] = ListBuffer.empty,
                   private val mapFiles: ListBuffer[Log[_, _, _]] = ListBuffer.empty,
@@ -353,20 +353,20 @@ class TestSweeper(val testName: String = s"TEST${TestSweeper.testNumber.incremen
     file
   }
 
-  private def removeReplaceOptionalCache[I, O](sweepers: ListBuffer[CacheNoIO[I, Option[O]]], replace: O): O = {
+  private def removeReplaceOptionalCache[I, O](sweepers: ListBuffer[CacheUnsafe[I, Option[O]]], replace: O): O = {
     if (sweepers.lastOption.exists(_.get().isEmpty))
       sweepers.remove(0)
 
-    val cache = Cache.noIO[I, Option[O]](true, true, Some(Some(replace)))((_, _) => Some(replace))
+    val cache = Cache.unsafe[I, Option[O]](true, true, Some(Some(replace)))((_, _) => Some(replace))
     sweepers += cache
     replace
   }
 
-  private def removeReplaceCache[I, O](sweepers: ListBuffer[CacheNoIO[I, O]], replace: O): O = {
+  private def removeReplaceCache[I, O](sweepers: ListBuffer[CacheUnsafe[I, O]], replace: O): O = {
     if (sweepers.lastOption.exists(_.get().isEmpty))
       sweepers.remove(0)
 
-    val cache = Cache.noIO[I, O](true, true, Some(replace))((_, _) => replace)
+    val cache = Cache.unsafe[I, O](true, true, Some(replace))((_, _) => replace)
     sweepers += cache
     replace
   }
