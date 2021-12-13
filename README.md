@@ -21,7 +21,7 @@
 **Small footprint**: around 7.1 MB jar size. No external core
 dependency ([#307](https://github.com/simerplaha/SwayDB/issues/307)).
 
-**Scalable on a single machine**: Distribute data on multiple local SSDs. Allocate single or multiple `Threads`
+**Scalable on a single machine**: Distribute data to multiple local SSDs. Allocate single or multiple `Threads`
 for reads, caching & compaction.
 
 **Status**: Under testing & performance optimisations. See [project status](#Project-status).
