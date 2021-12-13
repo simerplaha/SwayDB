@@ -43,7 +43,7 @@ private[block] trait BlockReaderBase extends ReaderBase with BlockCacheSource wi
   override def remaining(): Int =
     offset.size - position
 
-  def moveTo(position: Int): this.type = {
+  def moveTo(position: Int): BlockReaderBase = {
     this.position = position
     this
   }

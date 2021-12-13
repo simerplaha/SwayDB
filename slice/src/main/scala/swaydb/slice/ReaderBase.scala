@@ -36,16 +36,18 @@ trait ReaderBase { self =>
 
   def getPosition: Int
 
-  def moveTo(position: Int): this.type
+  def moveTo(position: Int): ReaderBase
 
   def readRemaining(): Slice[Byte]
 
   def isFile: Boolean
 
-  def copy(): this.type
+  def copy(): ReaderBase
 
-  @inline def skip(skip: Int): this.type =
+  @inline def skip(skip: Int): this.type = {
     moveTo(getPosition + skip)
+    this
+  }
 
   @inline def readInt(): Int =
     ByteSlice.readInt(self)
@@ -104,7 +106,7 @@ trait ReaderBase { self =>
   @inline def remaining(): Int =
     size() - getPosition
 
-  @inline def reset(): this.type =
+  @inline def reset(): ReaderBase =
     this moveTo 0
 
   @tailrec

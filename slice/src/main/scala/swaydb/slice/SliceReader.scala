@@ -49,7 +49,7 @@ case class SliceReader(slice: Slice[Byte],
       Slices(bytes.split(blockSize))
     }
 
-  def moveTo(newPosition: Int): this.type = {
+  def moveTo(newPosition: Int): SliceReader = {
     position = newPosition max 0
     this
   }
@@ -69,8 +69,8 @@ case class SliceReader(slice: Slice[Byte],
   override def getPosition: Int =
     position
 
-  override def copy(): this.type =
-    SliceReader(slice).asInstanceOf[this.type]
+  override def copy(): SliceReader =
+    SliceReader(slice)
 
   override def readRemaining(): Slice[Byte] =
     read(remaining())

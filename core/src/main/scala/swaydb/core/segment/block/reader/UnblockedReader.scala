@@ -103,8 +103,10 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
         slice.underlyingArraySize
     }
 
-  override def moveTo(newPosition: Int): this.type =
+  override def moveTo(newPosition: Int): UnblockedReader[O, B] = {
     super.moveTo(newPosition)
+    this
+  }
 
   def readAllAndGetReader()(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] = {
     val bytes = readFullBlock()
@@ -114,11 +116,11 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
     )
   }
 
-  def copy(): this.type =
+  def copy(): UnblockedReader[O, B] =
     new UnblockedReader[O, B](
       block = block,
       blockCache = blockCache,
       rootBlockRefOffset = rootBlockRefOffset,
       reader = reader.copy()
-    ).asInstanceOf[this.type]
+    )
 }
