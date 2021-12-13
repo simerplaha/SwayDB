@@ -67,7 +67,7 @@ private[core] object CoreFile extends LazyLogging {
           }
 
         override def isOpen: Boolean =
-          self.getIO().exists(_.exists(_.isOpen))
+          self.state().exists(_.exists(_.isOpen))
       }
 
     val cache =
@@ -404,10 +404,10 @@ private[core] class CoreFile(val path: Path,
 
   //memory files are never closed, if it's memory file return true.
   def isOpen: Boolean =
-    cache.getIO().exists(_.exists(_.isOpen))
+    cache.state().exists(_.exists(_.isOpen))
 
   def isFileDefined: Boolean =
-    cache.getIO().isDefined
+    cache.state().isDefined
 
   def isLoaded(): Boolean =
     file().isLoaded()

@@ -107,7 +107,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
     "always return initial value" in {
       val cache: Cache[swaydb.Error.Segment, Unit, Int] = Cache.valueIO(10)
       cache.isCached shouldBe true
-      cache.getIO should contain(IO.Right(10))
+      cache.state() should contain(IO.Right(10))
       runThisParallel(100.times) {
         cache.value(()).get shouldBe 10
       }
@@ -126,28 +126,28 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         initialValue foreach {
           initialValue =>
             cache.isCached shouldBe true
-            cache.getIO().get.get shouldBe initialValue
+            cache.state().get.get shouldBe initialValue
             cache.clear()
         }
 
         cache.isCached shouldBe false
 
-        cache.getIO() shouldBe empty
+        cache.state() shouldBe empty
 
         //getOrElse on un-cached should set the cache
         cache.getOrElse(IO(111)) shouldBe IO(111)
         cache.isCached shouldBe false // still not cached
-        cache.getIO() shouldBe empty //still not cached
+        cache.state() shouldBe empty //still not cached
         mock.expects() returning IO(123)
 
         cache.value(()) shouldBe IO.Right(123)
         cache.isCached shouldBe true
-        cache.getIO() shouldBe Some(IO.Right(123))
+        cache.state() shouldBe Some(IO.Right(123))
         cache.value(()) shouldBe IO.Right(123) //value again mock function is not invoked again
         cache.getOrElse(fail()) shouldBe IO.Right(123)
 
         val mapNotStoredCache = cache.map(int => IO(int + 1))
-        mapNotStoredCache.getIO() shouldBe Some(IO.Right(124))
+        mapNotStoredCache.state() shouldBe Some(IO.Right(124))
         mapNotStoredCache.value(fail()) shouldBe IO.Right(124)
         mapNotStoredCache.value(fail()) shouldBe IO.Right(124)
         mapNotStoredCache.isCached shouldBe cache.isCached
@@ -161,7 +161,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         val flatMapStoredCache = cache.flatMap(Cache.concurrentIO(Random.nextBoolean(), stored = true, None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO(int + 2)))
         flatMapStoredCache.value(()) shouldBe IO.Right(125)
         flatMapStoredCache.value(fail()) shouldBe IO.Right(125)
-        flatMapStoredCache.getIO() shouldBe Some(IO.Right(125))
+        flatMapStoredCache.state() shouldBe Some(IO.Right(125))
 
         val flatMapNotStoredCache =
           cache flatMap {
@@ -176,7 +176,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         flatMapNotStoredCache.value(()) shouldBe IO.Right(126)
         flatMapNotStoredCache.value(fail()) shouldBe IO.Right(126)
         //stored is false but get() will apply the value function fetching the value from parent cache.
-        flatMapNotStoredCache.getIO() shouldBe Some(IO.Right(126))
+        flatMapNotStoredCache.state() shouldBe Some(IO.Right(126))
 
         //getOrElse on cached is not invoked on new value
         cache.getOrElse(fail()) shouldBe IO(123)
@@ -194,7 +194,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
 
         flatMapStoredCache.clear()
         flatMapStoredCache.isCached shouldBe false
-        flatMapStoredCache.getIO() shouldBe empty
+        flatMapStoredCache.state() shouldBe empty
       }
 
       runTestForAllCombinations(doTest)
@@ -277,7 +277,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         //since cache is populated value will not be fetched
         flatMapCache1.value(fail()) shouldBe IO(112) //value is not invoked since value is already set.
         //since cache is populated value will not be fetched
-        flatMapCache1.getIO().get.get shouldBe 112
+        flatMapCache1.state().get.get shouldBe 112
 
         cache.clear()
         cache.isCached shouldBe false
@@ -308,10 +308,10 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         //child caches are fetched above but since they are already populated
         //root cache's value should still remaing cleared
         cache.isCached shouldBe false
-        cache.getIO() shouldBe empty
+        cache.state() shouldBe empty
 
-        flatMapCache1.getIO().get.get shouldBe 112
-        flatMapCache2.getIO().get.get shouldBe 224
+        flatMapCache1.state().get.get shouldBe 112
+        flatMapCache2.state().get.get shouldBe 224
 
         cache.isCached shouldBe false
       }

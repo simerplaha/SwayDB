@@ -41,7 +41,7 @@ private[swaydb] object Cache {
       override def clear(): Unit =
         ()
 
-      override def getIO(): Option[IO.Right[E, B]] =
+      override def state(): Option[IO.Right[E, B]] =
         Option(IO.Right(output))
 
       override def getOrElse[F >: E : IO.ExceptionHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
@@ -163,8 +163,8 @@ private[swaydb] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] ext
   def isCached: Boolean
   def isStored: Boolean
   def clear(): Unit
-  def getIO(): Option[IO.Right[E, O]]
-  def get(): Option[O] = getIO().map(_.get)
+  def state(): Option[IO.Right[E, O]]
+  def get(): Option[O] = state().map(_.get)
 
   /**
    * Atomically applies the function to the stored value
@@ -178,7 +178,7 @@ private[swaydb] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] ext
   def getOrElse[F >: E : IO.ExceptionHandler, B >: O](f: => IO[F, B]): IO[F, B]
 
   def getSomeOrElse[F >: E : IO.ExceptionHandler, B >: O](f: => IO[F, Option[B]]): IO[F, Option[B]] =
-    getIO().map(_.toOptionValue) getOrElse f
+    state().map(_.toOptionValue) getOrElse f
 
   /**
    * An adapter function that applies the map function to the input on each invocation.
@@ -198,10 +198,10 @@ private[swaydb] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] ext
         self.isStored
 
       override def getOrElse[FF >: F : IO.ExceptionHandler, BB >: B](f: => IO[FF, BB]): IO[FF, BB] =
-        getIO() getOrElse f
+        state() getOrElse f
 
-      override def getIO(): Option[IO.Right[F, B]] =
-        self.getIO() flatMap {
+      override def state(): Option[IO.Right[F, B]] =
+        self.state() flatMap {
           success =>
             success.flatMap(f) match {
               case success: IO.Right[F, B] =>
@@ -241,9 +241,9 @@ private[swaydb] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] ext
        * If [[next]] is not already cached see if [[self]] is cached
        * and send it's value to [[next]]'s cache to populate.
        */
-      override def getIO(): Option[IO.Right[F, B]] =
-        next.getIO() orElse {
-          self.getIO() flatMap {
+      override def state(): Option[IO.Right[F, B]] =
+        next.state() orElse {
+          self.state() flatMap {
             value =>
               next.value(value.get) match {
                 case success @ IO.Right(_) =>
@@ -290,15 +290,15 @@ private class DeferredIO[E: IO.ExceptionHandler, -I, +B](cache: CacheNoIO[I, Cac
     cache.get() exists (_.isCached)
 
   override def getOrElse[F >: E : IO.ExceptionHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
-    getIO() getOrElse f
+    state() getOrElse f
 
   override def clear(): Unit = {
     cache.get() foreach (_.clear())
     cache.clear()
   }
 
-  override def getIO(): Option[IO.Right[E, B]] =
-    cache.get().flatMap(_.getIO())
+  override def state(): Option[IO.Right[E, B]] =
+    cache.get().flatMap(_.state())
 
   override def clearApply[F >: E : IO.ExceptionHandler, T](f: Option[B] => IO[F, T]): IO[F, T] =
     ??? //TODO - currently not used.
@@ -322,7 +322,7 @@ private class SynchronisedIO[E: IO.ExceptionHandler, -I, +B](fetch: (I, Cache[E,
   override def clear(): Unit =
     lazyIO.clear()
 
-  override def getIO(): Option[IO.Right[E, B]] =
+  override def state(): Option[IO.Right[E, B]] =
     lazyIO.get()
 
   override def clearApply[F >: E : IO.ExceptionHandler, T](f: Option[B] => IO[F, T]): IO[F, T] =
@@ -372,7 +372,7 @@ private class ReservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recov
   override def clear() =
     lazyIO.clear()
 
-  override def getIO(): Option[IO.Right[E, O]] =
+  override def state(): Option[IO.Right[E, O]] =
     lazyIO.get()
 
   override def clearApply[F >: E : IO.ExceptionHandler, T](f: Option[O] => IO[F, T]): IO[F, T] =
@@ -417,9 +417,9 @@ private[swaydb] class CacheNoIO[-I, +O](fetch: (I, CacheNoIO[I, O]) => O, lazyVa
   def getOrElse[OO >: O](f: => OO): OO =
     lazyValue getOrElse f
 
-  def get() =
+  def get(): Option[O] =
     lazyValue.get()
 
-  def clear() =
+  def clear(): Unit =
     lazyValue.clear()
 }

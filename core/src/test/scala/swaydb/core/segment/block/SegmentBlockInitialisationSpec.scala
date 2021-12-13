@@ -78,7 +78,7 @@ class SegmentBlockInitialisationSpec extends ASegmentSpec {
                 )
               blocks.createBinarySearchIndexReaderOrNull() shouldBe null
               blocks.binarySearchIndexReaderCacheOrNull.isCached shouldBe true
-              blocks.binarySearchIndexReaderCacheOrNull.getIO() shouldBe Some(IO(null))
+              blocks.binarySearchIndexReaderCacheOrNull.state() shouldBe Some(IO(null))
               blocks.createBinarySearchIndexReaderOrNull() shouldBe null
           }
         }
