@@ -231,7 +231,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
 
           val command = ByteBufferCommand.Clean(buffer, () => false, forced, path, forceSave)
 
-          val cleanResult = ByteBufferSweeper.initCleanerAndPerformClean(ByteBufferSweeper.State.init, buffer, command)
+          val cleanResult = ByteBufferSweeper.initCleanerAndPerformClean(ByteBufferSweeper.State.empty(), buffer, command)
           cleanResult shouldBe a[IO.Right[_, _]]
           cleanResult.value.cleaner shouldBe defined
 
