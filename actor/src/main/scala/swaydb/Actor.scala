@@ -435,7 +435,7 @@ class Actor[-T, S] private[swaydb](val name: String,
     queue.size
 
   override def send(message: T, delay: FiniteDuration): TimerTask =
-    scheduler.value(()).task(delay)(self send message)
+    scheduler.getOrFetch(()).task(delay)(self send message)
 
   @inline private def stashMessage(message: T): Long = {
     //message weight cannot be <= 0 as that could lead to messages in queue with empty weight.
@@ -543,7 +543,7 @@ class Actor[-T, S] private[swaydb](val name: String,
                 if (currentStashed > 0 || isTimerLoop) {
                   //reduce stash capacity to eventually processed stashed messages.
                   val nextTask =
-                    scheduler.value(()).task(interval.delay) {
+                    scheduler.getOrFetch(()).task(interval.delay) {
                       //clear the existing task so that next one gets scheduled/
                       this.task = None
                       //get the current weight during the schedule.
@@ -803,7 +803,7 @@ class Actor[-T, S] private[swaydb](val name: String,
     }
 
   def terminateAfter(timeout: FiniteDuration): ActorRef[T, S] = {
-    scheduler.value(()).task(timeout)(this.terminate[Future]())
+    scheduler.getOrFetch(()).task(timeout)(this.terminate[Future]())
     this
   }
 

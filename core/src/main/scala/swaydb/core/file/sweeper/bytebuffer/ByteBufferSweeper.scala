@@ -43,7 +43,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
 
   implicit class ByteBufferSweeperActorImplicits(cache: ByteBufferSweeperActor) {
     @inline def actor(): ActorRef[ByteBufferCommand, State] =
-      this.cache.value(())
+      this.cache.getOrFetch(())
   }
 
   object State {

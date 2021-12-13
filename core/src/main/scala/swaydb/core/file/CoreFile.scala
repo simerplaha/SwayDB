@@ -322,7 +322,7 @@ private[core] class CoreFile(val path: Path,
     Effect.exists(path)
 
   @inline private def file(): CoreFileType =
-    cache.value(()).get
+    cache.getOrFetch(()).get
 
   def delete(): Unit =
     cache.clearApply {

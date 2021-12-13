@@ -29,7 +29,7 @@ private[swaydb] object Cache {
 
   def valueIO[E: IO.ExceptionHandler, I, B](output: B): Cache[E, I, B] =
     new Cache[E, I, B] {
-      override def value(input: => I): IO[E, B] =
+      override def getOrFetch(input: => I): IO[E, B] =
         IO(output)
 
       override def isCached: Boolean =
@@ -159,7 +159,7 @@ private[swaydb] object Cache {
  * For example: A file's size.
  */
 private[swaydb] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] extends CacheOrNull[E, I, O] with LazyLogging { self =>
-  def value(input: => I): IO[E, O]
+  def getOrFetch(input: => I): IO[E, O]
   def isCached: Boolean
   def isStored: Boolean
   def clear(): Unit
@@ -188,8 +188,8 @@ private[swaydb] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] ext
    */
   def map[F >: E : IO.ExceptionHandler, B](f: O => IO[F, B]): Cache[F, I, B] =
     new Cache[F, I, B] {
-      override def value(input: => I): IO[F, B] =
-        self.value(input).flatMap(f)
+      override def getOrFetch(input: => I): IO[F, B] =
+        self.getOrFetch(input).flatMap(f)
 
       override def isCached: Boolean =
         self.isCached
@@ -225,8 +225,8 @@ private[swaydb] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] ext
 
   def flatMap[F >: E : IO.ExceptionHandler, B](next: Cache[F, O, B]): Cache[F, I, B] =
     new Cache[F, I, B] {
-      override def value(input: => I): IO[F, B] =
-        getOrElse(self.value(input).flatMap(next.value(_)))
+      override def getOrFetch(input: => I): IO[F, B] =
+        getOrElse(self.getOrFetch(input).flatMap(next.getOrFetch(_)))
 
       override def isCached: Boolean =
         self.isCached || next.isCached
@@ -245,7 +245,7 @@ private[swaydb] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] ext
         next.state() orElse {
           self.state() flatMap {
             value =>
-              next.value(value.get) match {
+              next.getOrFetch(value.get) match {
                 case success @ IO.Right(_) =>
                   Some(success)
 
@@ -271,7 +271,7 @@ private class DeferredIO[E: IO.ExceptionHandler, -I, +B](cache: CacheNoIO[I, Cac
   override def isStored: Boolean =
     cache.isStored
 
-  override def value(input: => I): IO[E, B] = {
+  override def getOrFetch(input: => I): IO[E, B] = {
     //ensure that i is not executed multiple times.
     var executed: I = null.asInstanceOf[I]
 
@@ -283,7 +283,7 @@ private class DeferredIO[E: IO.ExceptionHandler, -I, +B](cache: CacheNoIO[I, Cac
         executed
       }
 
-    cache.value(fetch).value(fetch)
+    cache.getOrFetch(fetch).getOrFetch(fetch)
   }
 
   override def isCached: Boolean =
@@ -310,7 +310,7 @@ private class SynchronisedIO[E: IO.ExceptionHandler, -I, +B](fetch: (I, Cache[E,
   def isStored: Boolean =
     lazyIO.stored
 
-  override def value(input: => I): IO[E, B] =
+  override def getOrFetch(input: => I): IO[E, B] =
     lazyIO getOrSet fetch(input, this)
 
   override def getOrElse[F >: E : IO.ExceptionHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
@@ -358,7 +358,7 @@ private class ReservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recov
     else
       IO.Left[F, T](error)
 
-  override def value(input: => I): IO[E, O] =
+  override def getOrFetch(input: => I): IO[E, O] =
     lazyIO getOrElse reserveAndExecute {
       lazyIO getOrElse (lazyIO set fetch(input, this)) //check if it's set again in the block.
     }
@@ -396,7 +396,7 @@ private[swaydb] class CacheNoIO[-I, +O](fetch: (I, CacheNoIO[I, O]) => O, lazyVa
   def isStored: Boolean =
     lazyValue.stored
 
-  def value(input: => I): O =
+  def getOrFetch(input: => I): O =
     lazyValue getOrSet fetch(input, this)
 
   def applyOrFetchApply[E: IO.ExceptionHandler, T](apply: O => IO[E, T], fetch: => IO[E, I]): IO[E, T] =
@@ -407,7 +407,7 @@ private[swaydb] class CacheNoIO[-I, +O](fetch: (I, CacheNoIO[I, O]) => O, lazyVa
       case None =>
         fetch flatMap {
           input =>
-            apply(value(input))
+            apply(getOrFetch(input))
         }
     }
 

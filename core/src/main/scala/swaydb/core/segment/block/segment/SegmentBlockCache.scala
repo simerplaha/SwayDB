@@ -262,7 +262,7 @@ private[core] class SegmentBlockCache private(path: Path,
 
   private[block] def createSegmentBlockReader(): UnblockedReader[SegmentBlockOffset, SegmentBlock] =
     segmentReaderCache
-      .getOrElse(segmentReaderCache value BlockedReader(segmentBlockRef.copy()))
+      .getOrElse(segmentReaderCache getOrFetch BlockedReader(segmentBlockRef.copy()))
       .get
       .copy()
 
@@ -274,7 +274,7 @@ private[core] class SegmentBlockCache private(path: Path,
         val offset = getOffset(footer)
         offset match {
           case Some(offset) =>
-            cache value
+            cache getOrFetch
               Some(
                 BlockRefReader.moveTo(
                   offset = offset,
@@ -284,7 +284,7 @@ private[core] class SegmentBlockCache private(path: Path,
               )
 
           case None =>
-            cache value None
+            cache getOrFetch None
         }
       }
       .get
@@ -293,7 +293,7 @@ private[core] class SegmentBlockCache private(path: Path,
                                                 offset: SegmentFooterBlock => O)(implicit blockOps: BlockOps[O, B]): B =
     cache
       .getOrElse {
-        cache.value {
+        cache.getOrFetch {
           val footer = getFooter()
           val segmentReader = createSegmentBlockReader()
           BlockRefReader.moveTo(
@@ -313,10 +313,10 @@ private[core] class SegmentBlockCache private(path: Path,
         .getOrElse {
           getBlock match {
             case Some(block) =>
-              cache value Some(BlockedReader(block, createSegmentBlockReader()))
+              cache getOrFetch Some(BlockedReader(block, createSegmentBlockReader()))
 
             case None =>
-              cache value None
+              cache getOrFetch None
           }
         }.get
 
@@ -330,7 +330,7 @@ private[core] class SegmentBlockCache private(path: Path,
                                                     getBlock: => B): UnblockedReader[O, B] = {
     cache
       .getOrElse {
-        cache.value(
+        cache.getOrFetch(
           BlockedReader(
             block = getBlock,
             reader = createSegmentBlockReader()
@@ -440,7 +440,7 @@ private[core] class SegmentBlockCache private(path: Path,
 
   def getFooter(): SegmentFooterBlock =
     footerBlockCache
-      .getOrElse(footerBlockCache.value(createSegmentBlockReader()))
+      .getOrElse(footerBlockCache.getOrFetch(createSegmentBlockReader()))
       .get
 
   def getHashIndex(): Option[HashIndexBlock] =

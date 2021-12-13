@@ -48,14 +48,14 @@ class CachePerformanceSpec extends AnyWordSpec with Matchers {
       Benchmark("reading stored") {
         range foreach {
           i =>
-            cache.value(i) shouldBe IO.Right(1)
+            cache.getOrFetch(i) shouldBe IO.Right(1)
         }
       }
 
       Benchmark("reading stored concurrently") {
         range.par foreach {
           i =>
-            cache.value(i) shouldBe IO.Right(1)
+            cache.getOrFetch(i) shouldBe IO.Right(1)
         }
       }
     }
@@ -66,14 +66,14 @@ class CachePerformanceSpec extends AnyWordSpec with Matchers {
       Benchmark("reading stored") {
         range foreach {
           i =>
-            cache.value(i) shouldBe IO.Right(1)
+            cache.getOrFetch(i) shouldBe IO.Right(1)
         }
       }
 
       Benchmark("reading stored concurrently") {
         range.par foreach {
           i =>
-            cache.value(i) shouldBe IO.Right(1)
+            cache.getOrFetch(i) shouldBe IO.Right(1)
         }
       }
     }
@@ -84,14 +84,14 @@ class CachePerformanceSpec extends AnyWordSpec with Matchers {
       Benchmark("reading not stored") {
         range foreach {
           i =>
-            cache.value(i) shouldBe IO.Right(i)
+            cache.getOrFetch(i) shouldBe IO.Right(i)
         }
       }
 
       Benchmark("reading not stored concurrently") {
         range.par foreach {
           i =>
-            cache.value(i) shouldBe IO.Right(i)
+            cache.getOrFetch(i) shouldBe IO.Right(i)
         }
       }
     }

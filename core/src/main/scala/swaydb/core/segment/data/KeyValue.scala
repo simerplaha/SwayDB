@@ -1081,7 +1081,7 @@ private[core] object Persistent {
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
     override def getOrFetchValue: SliceOption[Byte] =
-      valueCache.value(ValuesBlockOffset(valueOffset, valueLength))
+      valueCache.getOrFetch(ValuesBlockOffset(valueOffset, valueLength))
 
     override def isValueCached: Boolean =
       valueCache.isCached
@@ -1188,7 +1188,7 @@ private[core] object Persistent {
       valueCache.isCached
 
     def getOrFetchValue: SliceOption[Byte] =
-      valueCache.value(ValuesBlockOffset(valueOffset, valueLength))
+      valueCache.getOrFetch(ValuesBlockOffset(valueOffset, valueLength))
 
     override def toFromValue(): Value.Update =
       Value.Update(
@@ -1339,7 +1339,7 @@ private[core] object Persistent {
       valueCache.isCached
 
     def getOrFetchFunction: Slice[Byte] =
-      valueCache.value(ValuesBlockOffset(valueOffset, valueLength))
+      valueCache.getOrFetch(ValuesBlockOffset(valueOffset, valueLength))
 
     override def toFromValue(): Value.Function =
       Value.Function(
@@ -1435,10 +1435,10 @@ private[core] object Persistent {
       valueCache.isCached
 
     override def getOrFetchApplies: Slice[Value.Apply] =
-      valueCache.value(ValuesBlockOffset(valueOffset, valueLength))
+      valueCache.getOrFetch(ValuesBlockOffset(valueOffset, valueLength))
 
     override def toFromValue(): Value.PendingApply = {
-      val applies = valueCache.value(ValuesBlockOffset(valueOffset, valueLength))
+      val applies = valueCache.getOrFetch(ValuesBlockOffset(valueOffset, valueLength))
       Value.PendingApply(applies)
     }
 
@@ -1576,7 +1576,7 @@ private[core] object Persistent {
       fetchFromAndRangeValueUnsafe._1
 
     def fetchFromAndRangeValueUnsafe: (Value.FromValueOption, Value.RangeValue) =
-      valueCache.value(ValuesBlockOffset(valueOffset, valueLength))
+      valueCache.getOrFetch(ValuesBlockOffset(valueOffset, valueLength))
 
     override def toMemory(): Memory.Range = {
       val (fromValue, rangeValue) = fetchFromAndRangeValueUnsafe

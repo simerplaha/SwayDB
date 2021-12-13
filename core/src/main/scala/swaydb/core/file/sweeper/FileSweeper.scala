@@ -60,7 +60,7 @@ private[swaydb] case object FileSweeper extends LazyLogging {
 
   implicit class FileSweeperActorImplicits(cache: CacheNoIO[Unit, FileSweeper]) {
     @inline def fetch: FileSweeper =
-      this.cache.value(())
+      this.cache.getOrFetch(())
   }
 
   def apply(fileCache: FileCache): Option[FileSweeper] =

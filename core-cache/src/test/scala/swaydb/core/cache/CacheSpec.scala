@@ -109,7 +109,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
       cache.isCached shouldBe true
       cache.state() should contain(IO.Right(10))
       runThisParallel(100.times) {
-        cache.value(()).get shouldBe 10
+        cache.getOrFetch(()).get shouldBe 10
       }
     }
   }
@@ -140,16 +140,16 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         cache.state() shouldBe empty //still not cached
         mock.expects() returning IO(123)
 
-        cache.value(()) shouldBe IO.Right(123)
+        cache.getOrFetch(()) shouldBe IO.Right(123)
         cache.isCached shouldBe true
         cache.state() shouldBe Some(IO.Right(123))
-        cache.value(()) shouldBe IO.Right(123) //value again mock function is not invoked again
+        cache.getOrFetch(()) shouldBe IO.Right(123) //value again mock function is not invoked again
         cache.getOrElse(fail()) shouldBe IO.Right(123)
 
         val mapNotStoredCache = cache.map(int => IO(int + 1))
         mapNotStoredCache.state() shouldBe Some(IO.Right(124))
-        mapNotStoredCache.value(fail()) shouldBe IO.Right(124)
-        mapNotStoredCache.value(fail()) shouldBe IO.Right(124)
+        mapNotStoredCache.getOrFetch(fail()) shouldBe IO.Right(124)
+        mapNotStoredCache.getOrFetch(fail()) shouldBe IO.Right(124)
         mapNotStoredCache.isCached shouldBe cache.isCached
 
         //        val mapStoredCache = cache.mapConcurrentStored(int => IO(int + 5))
@@ -159,8 +159,8 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         //        mapStoredCache.isCached shouldBe cache.isCached
 
         val flatMapStoredCache = cache.flatMap(Cache.concurrentIO(Random.nextBoolean(), stored = true, None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO(int + 2)))
-        flatMapStoredCache.value(()) shouldBe IO.Right(125)
-        flatMapStoredCache.value(fail()) shouldBe IO.Right(125)
+        flatMapStoredCache.getOrFetch(()) shouldBe IO.Right(125)
+        flatMapStoredCache.getOrFetch(fail()) shouldBe IO.Right(125)
         flatMapStoredCache.state() shouldBe Some(IO.Right(125))
 
         val flatMapNotStoredCache =
@@ -173,8 +173,8 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
                 IO(int + 3)
             }
           }
-        flatMapNotStoredCache.value(()) shouldBe IO.Right(126)
-        flatMapNotStoredCache.value(fail()) shouldBe IO.Right(126)
+        flatMapNotStoredCache.getOrFetch(()) shouldBe IO.Right(126)
+        flatMapNotStoredCache.getOrFetch(fail()) shouldBe IO.Right(126)
         //stored is false but get() will apply the value function fetching the value from parent cache.
         flatMapNotStoredCache.state() shouldBe Some(IO.Right(126))
 
@@ -214,22 +214,22 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         cache.isCached shouldBe false
 
         //failure
-        cache.value(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
+        cache.getOrFetch(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
         cache.isCached shouldBe false
 
         val mapCache = cache.map(int => IO(int))
-        mapCache.value(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
-        mapCache.value(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
+        mapCache.getOrFetch(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
+        mapCache.getOrFetch(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
 
         val flatMapCache = cache.flatMap(Cache.concurrentIO(Random.nextBoolean(), Random.nextBoolean(), None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO(int + 1)))
-        flatMapCache.value(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
-        flatMapCache.value(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
+        flatMapCache.getOrFetch(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
+        flatMapCache.getOrFetch(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
 
         //success
         mock.expects() returning IO(123)
-        cache.value(()) shouldBe IO.Right(123) //value again mock function is not invoked again
-        mapCache.value(()) shouldBe IO.Right(123)
-        flatMapCache.value(()) shouldBe IO.Right(124)
+        cache.getOrFetch(()) shouldBe IO.Right(123) //value again mock function is not invoked again
+        mapCache.getOrFetch(()) shouldBe IO.Right(123)
+        flatMapCache.getOrFetch(()) shouldBe IO.Right(124)
         cache.isCached shouldBe true
         cache.isCached shouldBe true
         cache.clear()
@@ -261,7 +261,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         cache.isCached shouldBe false
 
         mock.expects() returning IO(111)
-        cache.map(int => IO(int)).value(()) shouldBe IO(111)
+        cache.map(int => IO(int)).getOrFetch(()) shouldBe IO(111)
 
         cache.isCached shouldBe true
 
@@ -275,7 +275,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
           )
 
         //since cache is populated value will not be fetched
-        flatMapCache1.value(fail()) shouldBe IO(112) //value is not invoked since value is already set.
+        flatMapCache1.getOrFetch(fail()) shouldBe IO(112) //value is not invoked since value is already set.
         //since cache is populated value will not be fetched
         flatMapCache1.state().get.get shouldBe 112
 
@@ -292,8 +292,8 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
             )((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO(int + 2))
           }
 
-        flatMapCache2.value(()) shouldBe IO(224)
-        flatMapCache2.value(fail()) shouldBe IO(224)
+        flatMapCache2.getOrFetch(()) shouldBe IO(224)
+        flatMapCache2.getOrFetch(fail()) shouldBe IO(224)
 
         cache.isCached shouldBe true
         //on cached value fail() is not invoked.
@@ -302,8 +302,8 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         cache.clear()
         cache.isCached shouldBe false
 
-        flatMapCache1.value(fail()) shouldBe IO(112)
-        flatMapCache2.value(fail()) shouldBe IO(224)
+        flatMapCache1.getOrFetch(fail()) shouldBe IO(112)
+        flatMapCache2.getOrFetch(fail()) shouldBe IO(224)
 
         //child caches are fetched above but since they are already populated
         //root cache's value should still remaing cleared
@@ -338,18 +338,18 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         val exception = IO.failed("Kaboom!").exception
 
         mock.expects() returning IO.failed(exception) repeat 2.times
-        cache.map(IO(_)).value(()).left.get shouldBe swaydb.Error.Fatal(exception)
+        cache.map(IO(_)).getOrFetch(()).left.get shouldBe swaydb.Error.Fatal(exception)
         cache.isCached shouldBe false
         cache.flatMap {
           Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](true, swaydb.Error.ReservedResource(Reserve.free(name = "test")), None) {
             (int, _: Cache[swaydb.Error.Segment, Int, Int]) =>
               IO.Right(int + 1)
           }
-        }.value(()).left.get shouldBe swaydb.Error.Fatal(exception)
+        }.getOrFetch(()).left.get shouldBe swaydb.Error.Fatal(exception)
         cache.isCached shouldBe false
 
         mock.expects() returning IO(222)
-        cache.flatMap(Cache.concurrentIO(Random.nextBoolean(), true, None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO.Right(int + 1))).value(()) shouldBe IO.Right(223)
+        cache.flatMap(Cache.concurrentIO(Random.nextBoolean(), true, None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO.Right(int + 1))).getOrFetch(()) shouldBe IO.Right(223)
         cache.isCached shouldBe true
       }
 
@@ -358,18 +358,18 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
 
     "clear all flatMapped caches" in {
       val cache = Cache.concurrentIO[swaydb.Error.Segment, Unit, Int](Random.nextBoolean(), true, None)((_, self) => IO(1))
-      cache.value(()) shouldBe IO.Right(1)
+      cache.getOrFetch(()) shouldBe IO.Right(1)
       cache.isCached shouldBe true
 
       val nestedCache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](Random.nextBoolean(), true, None)((int, self) => IO(int + 1))
 
       val flatMapCache = cache.flatMap(nestedCache)
-      flatMapCache.value(()) shouldBe IO.Right(2)
+      flatMapCache.getOrFetch(()) shouldBe IO.Right(2)
       flatMapCache.isCached shouldBe true
       nestedCache.isCached shouldBe true
 
       val mapCache = flatMapCache.map(int => IO(int + 1))
-      mapCache.value(()) shouldBe IO.Right(3)
+      mapCache.getOrFetch(()) shouldBe IO.Right(3)
       mapCache.isCached shouldBe true
 
       mapCache.clear()
@@ -470,7 +470,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
               simpleCache
 
           if (blockIO) {
-            cache.value(())
+            cache.getOrFetch(())
             cache.clear()
           }
 
@@ -479,7 +479,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
             Future.sequence {
               (1 to 100) map {
                 _ =>
-                  Future().flatMap(_ => cache.value(()).toFuture)
+                  Future().flatMap(_ => cache.getOrFetch(()).toFuture)
               }
             }
 
@@ -521,11 +521,11 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
 
         cache.isCached shouldBe false
 
-        cache.value(()) shouldBe 1
+        cache.getOrFetch(()) shouldBe 1
 
         (1 to 1000).par foreach {
           _ =>
-            cache.value(()) shouldBe 1
+            cache.getOrFetch(()) shouldBe 1
         }
 
         cache.isCached shouldBe true
@@ -533,7 +533,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         cache.clear()
         cache.isCached shouldBe false
 
-        cache.value(()) should not be 1
+        cache.getOrFetch(()) should not be 1
         cache.isCached shouldBe true
       }
 
@@ -588,7 +588,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
       "cache is populated" in {
         runThis(10.times, log = true) {
           val cache = createCache()
-          cache.value(()) shouldBe IO.Right(1)
+          cache.getOrFetch(()) shouldBe IO.Right(1)
 
           //fails and does not clear the cache
           cache.clearApply(_ => IO(throw new Exception("kaboom!"))).left.get.exception.getMessage shouldBe "kaboom!"
@@ -607,7 +607,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
           cache.isCached shouldBe false
           cache.isStored shouldBe true
 
-          cache.value(()) shouldBe IO.Right(1)
+          cache.getOrFetch(()) shouldBe IO.Right(1)
           cache.isCached shouldBe true
         }
       }

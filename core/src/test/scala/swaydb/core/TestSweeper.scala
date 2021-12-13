@@ -308,20 +308,20 @@ class TestSweeper(val testName: String = s"TEST${TestSweeper.testNumber.incremen
     Effect.createDirectoriesIfAbsent(testDirPath)
 
   implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.On
-  implicit lazy val fileSweeper: FileSweeper.On = fileSweepers.head.value(())
-  implicit lazy val cleaner: ByteBufferSweeperActor = cleaners.head.value(())
-  implicit lazy val blockCache: Option[BlockCacheState] = blockCaches.head.value(())
-  implicit lazy val compactionIOActor: SegmentCompactionIO.Actor = compactionIOActors.head.value(())
+  implicit lazy val fileSweeper: FileSweeper.On = fileSweepers.head.getOrFetch(())
+  implicit lazy val cleaner: ByteBufferSweeperActor = cleaners.head.getOrFetch(())
+  implicit lazy val blockCache: Option[BlockCacheState] = blockCaches.head.getOrFetch(())
+  implicit lazy val compactionIOActor: SegmentCompactionIO.Actor = compactionIOActors.head.getOrFetch(())
 
   //MemorySweeper.All can also be set which means other sweepers will search for dedicated sweepers first and
   //if not found then the head from allMemorySweeper is fetched.
-  private def allMemorySweeper(): Option[MemorySweeper.All] = allMemorySweepers.head.value(())
+  private def allMemorySweeper(): Option[MemorySweeper.All] = allMemorySweepers.head.getOrFetch(())
   //if dedicated sweepers are not supplied then fetch from sweepers of type All (which enables all sweeper types).
-  implicit lazy val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = keyValueMemorySweepers.head.value(()) orElse allMemorySweeper()
-  implicit lazy val blockSweeperCache: Option[MemorySweeper.Block] = blockMemorySweepers.head.value(()) orElse allMemorySweeper()
-  implicit lazy val cacheMemorySweeper: Option[MemorySweeper.Cache] = cacheMemorySweepers.head.value(()) orElse allMemorySweeper()
+  implicit lazy val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = keyValueMemorySweepers.head.getOrFetch(()) orElse allMemorySweeper()
+  implicit lazy val blockSweeperCache: Option[MemorySweeper.Block] = blockMemorySweepers.head.getOrFetch(()) orElse allMemorySweeper()
+  implicit lazy val cacheMemorySweeper: Option[MemorySweeper.Cache] = cacheMemorySweepers.head.getOrFetch(()) orElse allMemorySweeper()
 
-  implicit lazy val scheduler = schedulers.head.value(())
+  implicit lazy val scheduler = schedulers.head.getOrFetch(())
 
   def sweepLevel[T <: LevelRef](levelRef: T): T = {
     levels += levelRef

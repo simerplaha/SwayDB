@@ -747,7 +747,7 @@ private case class PersistentSegmentMany(file: CoreFile,
     new Iterator[SegmentRef] {
       //TODO - do not read sortedIndexBlock if the SegmentRef is already cached in-memory.
       var nextRef: SegmentRef = _
-      val listSegment = listSegmentCache.value(())
+      val listSegment = listSegmentCache.getOrFetch(())
       val iter = listSegment.iterator(initialiseIteratorsInOneSeek)
       var nextInvoked = false
 
@@ -899,7 +899,7 @@ private case class PersistentSegmentMany(file: CoreFile,
   }
 
   def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean = {
-    val listSegment = listSegmentCache.value(())
+    val listSegment = listSegmentCache.getOrFetch(())
 
     listSegment.get(key, threadState) match {
       case _: Persistent =>
@@ -931,7 +931,7 @@ private case class PersistentSegmentMany(file: CoreFile,
     if (floorOrNull != null && SegmentRefReader.contains(key, floorOrNull.getValue)) {
       floorOrNull.getValue.get(key, threadState)
     } else {
-      val listSegment = listSegmentCache.value(())
+      val listSegment = listSegmentCache.getOrFetch(())
 
       listSegment.get(key, threadState) match {
         case persistent: Persistent =>
@@ -949,7 +949,7 @@ private case class PersistentSegmentMany(file: CoreFile,
     if (lowerOrNull != null && SegmentRefReader.containsLower(key, lowerOrNull.getValue)) {
       lowerOrNull.getValue.lower(key, threadState)
     } else {
-      val listSegment = listSegmentCache.value(())
+      val listSegment = listSegmentCache.getOrFetch(())
 
       listSegment.lower(key, threadState) match {
         case persistent: Persistent =>
@@ -962,7 +962,7 @@ private case class PersistentSegmentMany(file: CoreFile,
   }
 
   private def higherFromListSegment(key: Slice[Byte], threadState: ThreadReadState): PersistentOption = {
-    val listSegment = listSegmentCache.value(())
+    val listSegment = listSegmentCache.getOrFetch(())
 
     listSegment.higher(key, threadState) match {
       case segmentKeyValue: Persistent =>

@@ -43,13 +43,13 @@ object BlockCacheIO {
       else
         bytes match {
           case bytes: Slice[Byte] =>
-            val map = state.mapCache.value(())
+            val map = state.mapCache.getOrFetch(())
             map.put(keyPosition, bytes)
             state.sweeper.add(keyPosition, bytes, state.mapCache)
             bytes
 
           case bytes: Slices[Byte] =>
-            val map = state.mapCache.value(())
+            val map = state.mapCache.getOrFetch(())
             var index = 0
             var position = keyPosition
             while (index < bytes.slices.length) {

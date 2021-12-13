@@ -135,7 +135,7 @@ private[core] object BlockCache extends LazyLogging {
                         state: BlockCacheState,
                         blockCacheIO: BlockCacheIO): SliceRO[Byte] = {
     val keyPosition = seekPosition(position, state)
-    state.mapCache.value(()).get(keyPosition) match {
+    state.mapCache.getOrFetch(()).get(keyPosition) match {
       case fromCache: Slice[Byte] =>
         //        println(s"Memory seek size: $size")
         //        memorySeeks += 1
