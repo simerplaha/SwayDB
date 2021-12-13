@@ -153,7 +153,7 @@ object TestSweeper extends LazyLogging {
         actor.closer.receiveAllForce[Glass, Unit](_ => ())
         actor.deleter.receiveAllForce[Glass, Unit](_ => ())
     })
-    sweeper.cleaners.foreach(_.get().foreach(_.actor.receiveAllForce[Glass, Unit](_ => ())))
+    sweeper.cleaners.foreach(_.get().foreach(_.actor().receiveAllForce[Glass, Unit](_ => ())))
     sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Glass, Unit](_ => ())))))
   }
 

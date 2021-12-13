@@ -1790,8 +1790,8 @@ object CommonAssertions {
       implicit val ec = TestExecutionContext.executionContext
       implicit val bag = Bag.future
       logs.close().value
-      logs.bufferCleaner.actor.receiveAllForce[Glass, Unit](_ => ())
-      (logs.bufferCleaner.actor ask ByteBufferCommand.IsTerminated[Unit]).await(10.seconds)
+      logs.bufferCleaner.actor().receiveAllForce[Glass, Unit](_ => ())
+      (logs.bufferCleaner.actor() ask ByteBufferCommand.IsTerminated[Unit]).await(10.seconds)
     }
   }
 

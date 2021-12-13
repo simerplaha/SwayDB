@@ -333,7 +333,7 @@ private[core] class CoreFile(val path: Path,
           //If the file is already closed, then delete it from disk.
           //memory files are never closed so the first statement will always be executed for memory files.
           if (deleteAfterClean)
-            bufferCleaner.actor send ByteBufferCommand.DeleteFile(path)
+            bufferCleaner.actor() send ByteBufferCommand.DeleteFile(path)
           else
             file.delete()
         }
@@ -341,7 +341,7 @@ private[core] class CoreFile(val path: Path,
       case None =>
         IO {
           if (deleteAfterClean)
-            bufferCleaner.actor send ByteBufferCommand.DeleteFile(path)
+            bufferCleaner.actor() send ByteBufferCommand.DeleteFile(path)
           else
             Effect.deleteIfExists(path)
         }
@@ -366,17 +366,17 @@ private[core] class CoreFile(val path: Path,
   }
 
   def append(slice: Slice[Byte]) =
-    cache.value(()).get.append(slice)
+    file().append(slice)
 
   def appendBatch(slice: Array[Slice[Byte]]) =
-    cache.value(()).get.appendBatch(slice)
+    file().appendBatch(slice)
 
   def read(position: Int,
            size: Int): Slice[Byte] =
     if (size == 0)
       Slice.emptyBytes
     else
-      cache.value(()).get.read(position = position, size = size)
+      file().read(position = position, size = size)
 
   def read(position: Int,
            size: Int,
@@ -384,7 +384,7 @@ private[core] class CoreFile(val path: Path,
     if (size == 0)
       Slice.emptyBytes //no need to have this as global val because core never asks for 0 size
     else
-      cache.value(()).get.read(position = position, size = size, blockSize = blockSize)
+      file().read(position = position, size = size, blockSize = blockSize)
 
   def transfer(position: Int, count: Int, transferTo: CoreFile): Int =
     file().transfer(
@@ -394,13 +394,13 @@ private[core] class CoreFile(val path: Path,
     )
 
   def get(position: Int): Byte =
-    cache.value(()).get.get(position)
+    file().get(position)
 
   def readAll(): Slice[Byte] =
-    cache.value(()).get.readAll()
+    file().readAll()
 
   def fileSize(): Int =
-    cache.value(()).get.size
+    file().size
 
   //memory files are never closed, if it's memory file return true.
   def isOpen: Boolean =
@@ -410,13 +410,13 @@ private[core] class CoreFile(val path: Path,
     cache.getIO().isDefined
 
   def isLoaded(): Boolean =
-    cache.value(()).get.isLoaded()
+    file().isLoaded()
 
   def isFull(): Boolean =
-    cache.value(()).get.isFull()
+    file().isFull()
 
   def forceSave(): Unit =
-    cache.value(()).get.forceSave()
+    file().forceSave()
 
   override def equals(that: Any): Boolean =
     that match {

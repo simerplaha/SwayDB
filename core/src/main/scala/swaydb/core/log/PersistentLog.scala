@@ -364,7 +364,7 @@ protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
       //instead invoke close (which will also call ByteBufferCleaner for closing)
       // and then submit delete to ByteBufferCleaner actor.
       currentFile.close()
-      bufferCleaner.actor send ByteBufferCommand.DeleteFolder(path, currentFile.path)
+      bufferCleaner.actor() send ByteBufferCommand.DeleteFolder(path, currentFile.path)
     } else {
       //else delete immediately.
       currentFile.delete()

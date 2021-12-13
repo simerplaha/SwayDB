@@ -157,7 +157,7 @@ private class MMAPFile(val path: Path,
       //TO-DO: Use Option here instead. Test using Option does not have read performance impact.
       buffer = null
 
-      cleaner.actor send
+      cleaner.actor() send
         ByteBufferCommand.Clean(
           buffer = swapBuffer,
           hasReference = hasReference _,
@@ -349,7 +349,7 @@ private class MMAPFile(val path: Path,
     watchNullPointer {
       close()
       if (deleteAfterClean)
-        cleaner.actor send ByteBufferCommand.DeleteFile(path)
+        cleaner.actor() send ByteBufferCommand.DeleteFile(path)
       else
         Effect.delete(path)
     }

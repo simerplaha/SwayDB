@@ -278,9 +278,9 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
                 ForceSaveApplier.On
 
             //clean first
-            cleaner.actor send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
+            cleaner.actor() send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
             //and then delete
-            cleaner.actor send ByteBufferCommand.DeleteFile(filePath)
+            cleaner.actor() send ByteBufferCommand.DeleteFile(filePath)
 
             //file is eventually deleted but the folder is not deleted
             eventual(2.minutes) {
@@ -296,7 +296,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
               forced.get() shouldBe false
 
             //state should be cleared
-            cleaner.actor.ask(ByteBufferCommand.IsAllClean[Unit]).await(1.minute)
+            cleaner.actor().ask(ByteBufferCommand.IsAllClean[Unit]).await(1.minute)
         }
       }
 
@@ -322,8 +322,8 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
                 ForceSaveApplier.On
 
             //delete first this will result is delete reschedule on windows.
-            cleaner.actor send ByteBufferCommand.DeleteFile(filePath)
-            cleaner.actor send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
+            cleaner.actor() send ByteBufferCommand.DeleteFile(filePath)
+            cleaner.actor() send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
 
             //file is eventually deleted but the folder is not deleted
             eventual(2.minutes) {
@@ -339,7 +339,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
               forced.get() shouldBe false
 
             //state should be cleared
-            cleaner.actor.ask(ByteBufferCommand.IsAllClean[Unit]).await(1.minute)
+            cleaner.actor().ask(ByteBufferCommand.IsAllClean[Unit]).await(1.minute)
         }
       }
     }
@@ -367,9 +367,9 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
                 ForceSaveApplier.On
 
             //clean first
-            cleaner.actor send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
+            cleaner.actor() send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
             //and then delete
-            cleaner.actor send ByteBufferCommand.DeleteFolder(folderPath, filePath)
+            cleaner.actor() send ByteBufferCommand.DeleteFolder(folderPath, filePath)
 
             eventual(2.minutes) {
               Effect.exists(folderPath) shouldBe false
@@ -384,7 +384,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
               forced.get() shouldBe false
 
             //state should be cleared
-            cleaner.actor.ask(ByteBufferCommand.IsAllClean[Unit]).await(1.minute)
+            cleaner.actor().ask(ByteBufferCommand.IsAllClean[Unit]).await(1.minute)
         }
       }
 
@@ -410,8 +410,8 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
                 ForceSaveApplier.On
 
             //delete first this will result is delete reschedule on windows.
-            cleaner.actor send ByteBufferCommand.DeleteFolder(folderPath, filePath)
-            cleaner.actor send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
+            cleaner.actor() send ByteBufferCommand.DeleteFolder(folderPath, filePath)
+            cleaner.actor() send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
 
             eventual(2.minutes) {
               Effect.exists(folderPath) shouldBe false
@@ -426,7 +426,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
               forced.get() shouldBe false
 
             //state should be cleared
-            cleaner.actor.ask(ByteBufferCommand.IsAllClean[Unit]).await(1.minute)
+            cleaner.actor().ask(ByteBufferCommand.IsAllClean[Unit]).await(1.minute)
         }
       }
     }
@@ -438,9 +438,9 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
 
             implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(0, 1.seconds).sweep()
 
-            (cleaner.actor ask ByteBufferCommand.IsClean(Paths.get("somePath"))).await(1.minute) shouldBe true
+            (cleaner.actor() ask ByteBufferCommand.IsClean(Paths.get("somePath"))).await(1.minute) shouldBe true
 
-            cleaner.actor.terminate[Glass]()
+            cleaner.actor().terminate[Glass]()
         }
       }
 
@@ -468,14 +468,14 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
 
             val hasReference = new AtomicBoolean(true)
             //clean will get rescheduled first.
-            cleaner.actor send ByteBufferCommand.Clean(buffer, hasReference.get, forced, filePath, forceSave)
+            cleaner.actor() send ByteBufferCommand.Clean(buffer, hasReference.get, forced, filePath, forceSave)
             //since this is the second message and clean is rescheduled this will get processed.
-            (cleaner.actor ask ByteBufferCommand.IsClean(filePath)).await(10.seconds) shouldBe false
+            (cleaner.actor() ask ByteBufferCommand.IsClean(filePath)).await(10.seconds) shouldBe false
 
             hasReference.set(false)
             //eventually clean is executed
             eventual(5.seconds) {
-              (cleaner.actor ask ByteBufferCommand.IsClean(filePath)).await(10.seconds) shouldBe true
+              (cleaner.actor() ask ByteBufferCommand.IsClean(filePath)).await(10.seconds) shouldBe true
             }
 
             if (alreadyForced)
@@ -485,7 +485,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
             else
               forced.get() shouldBe false
 
-            cleaner.actor.isEmpty shouldBe true
+            cleaner.actor().isEmpty shouldBe true
         }
       }
 
@@ -507,8 +507,8 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
 
               runThis(randomIntMax(10) max 1) {
                 Seq(
-                  () => cleaner.actor send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier),
-                  () => cleaner.actor send ByteBufferCommand.DeleteFolder(filePath, filePath)
+                  () => cleaner.actor() send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier),
+                  () => cleaner.actor() send ByteBufferCommand.DeleteFolder(filePath, filePath)
                 ).runThisRandomly
               }
 
@@ -523,7 +523,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
 
               //also randomly terminate
               if (Random.nextDouble() < 0.0001)
-                cleaner.actor.terminate()
+                cleaner.actor().terminate()
 
               filePath
             }
@@ -535,11 +535,11 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
             eventual(2.minutes) {
               //ByteBufferCleaner is a timer Actor with 5.seconds interval so await enough
               //seconds for the Actor to process stashed request/command.
-              (cleaner.actor ask ByteBufferCommand.IsAllClean[Unit]).await(30.seconds) shouldBe true
+              (cleaner.actor() ask ByteBufferCommand.IsAllClean[Unit]).await(30.seconds) shouldBe true
             }
 
             //execute all pending Delete commands.
-            cleaner.actor.receiveAllForce[Glass, Unit](_ => ())
+            cleaner.actor().receiveAllForce[Glass, Unit](_ => ())
 
             //there might me some delete messages waiting to be scheduled.
             eventual(1.minute) {
@@ -556,11 +556,11 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
 
             implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(messageReschedule = 2.seconds).sweep()
 
-            cleaner.actor.terminate()
-            cleaner.actor.isTerminated shouldBe true
+            cleaner.actor().terminate()
+            cleaner.actor().isTerminated shouldBe true
 
             //its terminates and there are no clean commands so this returns true.
-            (cleaner.actor ask ByteBufferCommand.IsTerminated[Unit]).await(2.seconds) shouldBe true
+            (cleaner.actor() ask ByteBufferCommand.IsTerminated[Unit]).await(2.seconds) shouldBe true
         }
       }
 
@@ -587,8 +587,8 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
               //randomly submit clean and delete in any order and random number of times.
               runThis(randomIntMax(100) max 1) {
                 Seq(
-                  () => runThis(randomIntMax(10) max 1)(cleaner.actor send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(forceSaveApplier)),
-                  () => runThis(randomIntMax(10) max 1)(cleaner.actor send ByteBufferCommand.DeleteFolder(filePath, filePath))
+                  () => runThis(randomIntMax(10) max 1)(cleaner.actor() send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(forceSaveApplier)),
+                  () => runThis(randomIntMax(10) max 1)(cleaner.actor() send ByteBufferCommand.DeleteFolder(filePath, filePath))
                 ).runThisRandomly
               }
 
@@ -610,11 +610,11 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
 
             //execute all pending Delete commands.
             eventual(1.minute) {
-              cleaner.actor.terminateAndRecover[Future, Unit](_ => ()).await(1.minute)
+              cleaner.actor().terminateAndRecover[Future, Unit](_ => ()).await(1.minute)
             }
 
             eventual(1.minute) {
-              (cleaner.actor ask ByteBufferCommand.IsTerminated[Unit]).await(2.seconds) shouldBe true
+              (cleaner.actor() ask ByteBufferCommand.IsTerminated[Unit]).await(2.seconds) shouldBe true
             }
 
             //there might be some delete messages waiting to be scheduled.

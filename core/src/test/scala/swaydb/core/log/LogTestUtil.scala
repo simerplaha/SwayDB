@@ -45,7 +45,7 @@ object LogTestUtil {
   //was previously opened as MMAP file (in a test) then it cannot be deleted without clean.
   def ensureCleanedForWindows(mmap: MMAP.Log)(implicit bufferCleaner: ByteBufferSweeperActor): Unit =
     if (OperatingSystem.isWindows && mmap.isMMAP) {
-      val cleaner = bufferCleaner.actor
+      val cleaner = bufferCleaner.actor()
       val state = cleaner.receiveAllForce[Glass, State](state => state)
       eventual(30.seconds)(state.pendingClean.isEmpty shouldBe true)
     }
@@ -86,7 +86,7 @@ object LogTestUtil {
 
       implicit val ec = TestExecutionContext.executionContext
       implicit val bag = Bag.future
-      val isShut = (log.bufferCleaner.actor ask ByteBufferCommand.IsTerminated[Unit]).await(10.seconds)
+      val isShut = (log.bufferCleaner.actor() ask ByteBufferCommand.IsTerminated[Unit]).await(10.seconds)
       assert(isShut, "Is not shut")
     }
   }

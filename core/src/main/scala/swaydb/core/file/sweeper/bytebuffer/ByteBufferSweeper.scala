@@ -42,7 +42,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
   type ByteBufferSweeperActor = CacheNoIO[Unit, ActorRef[ByteBufferCommand, State]]
 
   implicit class ByteBufferSweeperActorImplicits(cache: ByteBufferSweeperActor) {
-    @inline def actor: ActorRef[ByteBufferCommand, State] =
+    @inline def actor(): ActorRef[ByteBufferCommand, State] =
       this.cache.value(())
   }
 
@@ -92,7 +92,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
             bag match {
               case _: Bag.Sync[BAG] =>
                 //The bag is blocking. Check for termination using Await.
-                implicit val ec: ExecutionContext = sweeper.actor.executionContext
+                implicit val ec: ExecutionContext = sweeper.actor().executionContext
                 val future = actor ask ByteBufferCommand.IsTerminated(resubmitted = false)
                 val isCleaned = Await.result(future, 30.seconds)
                 prepareResponse(isCleaned)
