@@ -22,7 +22,7 @@ import swaydb.slice.{Slice, SliceRO}
 import java.nio.channels.WritableByteChannel
 import java.nio.file.Path
 
-private[file] trait CoreFileType extends FileSweeperItem {
+private trait CoreFileType extends FileSweeperItem {
 
   val path: Path
 

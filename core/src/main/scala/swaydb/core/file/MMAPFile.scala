@@ -333,10 +333,10 @@ private class MMAPFile(val path: Path,
   override def readAll(): Slice[Byte] =
     watchNullPointer(read(0, Effect.getIntFileSizeOrFail(channel)))
 
-  override def isOpen() =
+  override def isOpen(): Boolean =
     watchNullPointer(channel.isOpen())
 
-  override def memoryMapped =
+  override def memoryMapped: Boolean =
     true
 
   override def isLoaded(): Boolean =
