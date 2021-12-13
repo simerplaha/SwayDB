@@ -327,7 +327,7 @@ private class MMAPFile(val path: Path,
       buffer.get(position)
     }
 
-  override def size: Int =
+  override def size(): Int =
     watchNullPointer(Effect.getIntFileSizeOrFail(channel))
 
   override def readAll(): Slice[Byte] =

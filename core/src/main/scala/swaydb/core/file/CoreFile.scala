@@ -400,7 +400,7 @@ private[core] class CoreFile(val path: Path,
     file().readAll()
 
   def fileSize(): Int =
-    file().size
+    file().size()
 
   //memory files are never closed, if it's memory file return true.
   def isOpen: Boolean =

@@ -42,7 +42,7 @@ private trait CoreFileType extends FileSweeperItem {
 
   def readAll(): Slice[Byte]
 
-  def size: Int
+  def size(): Int
 
   def append(slice: Slice[Byte]): Unit
 

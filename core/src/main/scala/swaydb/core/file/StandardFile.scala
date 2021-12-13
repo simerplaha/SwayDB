@@ -142,7 +142,7 @@ private class StandardFile(val path: Path,
     Slice.wrap(bytes)
   }
 
-  def size: Int =
+  def size(): Int =
     Effect.getIntFileSizeOrFail(channel)
 
   override def isOpen: Boolean =
