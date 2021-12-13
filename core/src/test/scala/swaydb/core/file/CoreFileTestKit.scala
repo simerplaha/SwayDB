@@ -11,7 +11,15 @@ import swaydb.utils.OperatingSystem
 import java.nio.file.Path
 import scala.util.Random
 
+import org.scalatest.PrivateMethodTester._
+
 object CoreFileTestKit {
+
+  private[file] def invokePrivateFunction_file(coreFile: CoreFile): CoreFileType =
+    coreFile invokePrivate PrivateMethod[CoreFileType](Symbol("file"))()
+
+  def invokePrivateFunction_file(reader: FileReader): CoreFile =
+    reader invokePrivate PrivateMethod[CoreFile](Symbol("file"))()
 
   def randomFilePath()(implicit sweeper: TestSweeper): Path =
     sweeper.testDir().resolve(s"${randomCharacters()}.test").sweep()

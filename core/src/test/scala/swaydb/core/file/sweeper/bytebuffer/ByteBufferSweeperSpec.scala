@@ -23,7 +23,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.{ActorConfig, Bag, Glass, IO}
 import swaydb.IOValues._
 import swaydb.core.{TestExecutionContext, TestForceSave, TestSweeper}
-import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.CoreTestData._
 import swaydb.core.TestSweeper._
 import swaydb.core.file.{CoreFile, ForceSaveApplier, MMAPFile}
@@ -35,6 +34,7 @@ import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 import swaydb.utils.OperatingSystem
 import swaydb.Bag.Async
+import swaydb.core.CommonAssertions.{randomThreadSafeIOStrategy, _}
 
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
@@ -69,7 +69,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
               bytes = Array(randomBytesSlice())
             )
 
-          val innerFile = file.file().asInstanceOf[MMAPFile]
+          val innerFile = invokePrivateFunction_file(file).shouldBeInstanceOf[MMAPFile]
 
           fileSweeper.closer.terminateAndRecover[Glass, Unit](_ => ())
           fileSweeper.deleter.terminateAndRecover[Glass, Unit](_ => ())

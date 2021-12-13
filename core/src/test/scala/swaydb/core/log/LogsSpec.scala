@@ -21,7 +21,7 @@ import swaydb.IOValues._
 import swaydb.config.accelerate.Accelerator
 import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
 import swaydb.core.CommonAssertions._
-import swaydb.core.PrivateMethodInvokers._
+import swaydb.core.CorePrivateMethodTester._
 import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core.level.zero.LevelZeroLogCache

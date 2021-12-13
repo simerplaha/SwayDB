@@ -24,7 +24,7 @@ import swaydb.config.MMAP
 import swaydb.config.compaction.LevelThrottle
 import swaydb.config.storage.LevelStorage
 import swaydb.core.CommonAssertions._
-import swaydb.core.PrivateMethodInvokers._
+import swaydb.core.CorePrivateMethodTester._
 import swaydb.core.CoreTestData._
 import swaydb.core.log.applied.AppliedFunctionsLog
 import swaydb.core.log.timer.Timer

@@ -17,29 +17,28 @@
 package swaydb.core.file
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.{Error, IO}
 import swaydb.Error.IO.ExceptionHandler
 import swaydb.config.ForceSave
 import swaydb.core.cache.Cache
+import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand, FileSweeperItem}
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand, FileSweeperItem}
 import swaydb.effect.{Effect, IOStrategy, Reserve}
 import swaydb.slice.{Slice, SliceRO}
-import swaydb.{Error, IO}
 
 import java.nio.file.Path
-import scala.util.hashing.MurmurHash3
 
 private[core] object CoreFile extends LazyLogging {
 
-  def fileCache(filePath: Path,
-                memoryMapped: Boolean,
-                deleteAfterClean: Boolean,
-                fileOpenIOStrategy: IOStrategy.ThreadSafe,
-                file: Option[CoreFileType],
-                autoClose: Boolean)(implicit fileSweeper: FileSweeper,
-                                    bufferCleaner: ByteBufferSweeperActor,
-                                    forceSaveApplier: ForceSaveApplier) = {
+  private def fileCache(filePath: Path,
+                        memoryMapped: Boolean,
+                        deleteAfterClean: Boolean,
+                        fileOpenIOStrategy: IOStrategy.ThreadSafe,
+                        file: Option[CoreFileType],
+                        autoClose: Boolean)(implicit fileSweeper: FileSweeper,
+                                            bufferCleaner: ByteBufferSweeperActor,
+                                            forceSaveApplier: ForceSaveApplier): Cache[Error.IO, Unit, CoreFileType] = {
 
     //We need to create a single FileSweeperItem that can be
     //re-submitted to fileSweeper every time this file requires a close Actor request.
@@ -322,7 +321,7 @@ private[core] class CoreFile(val path: Path,
   def existsOnDisk(): Boolean =
     Effect.exists(path)
 
-  @inline def file(): CoreFileType =
+  @inline private def file(): CoreFileType =
     cache.value(()).get
 
   def delete(): Unit =

@@ -22,15 +22,14 @@ import swaydb.core.{TestForceSave, TestSweeper}
 import swaydb.core.CoreTestData._
 import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.CommonAssertions._
-import swaydb.core.PrivateMethodInvokers._
 import swaydb.effect.Effect
 import swaydb.slice.{Slice, Slices}
 import swaydb.testkit.TestKit._
 import swaydb.utils.OperatingSystem
 import swaydb.utils.PipeOps._
 import swaydb.IO
+import swaydb.core.TestSweeper._
 import swaydb.testkit.RunThis._
-import TestSweeper._
 
 import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
 import java.nio.file.FileAlreadyExistsException
@@ -50,13 +49,13 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           createFileReaders(left.path) foreach {
             reader =>
               reader.readRemaining() shouldBe bytes1
-              getCoreFile(reader).readAll() shouldBe bytes1
+              invokePrivateFunction_file(reader).readAll() shouldBe bytes1
           }
 
           createFileReaders(right.path) foreach {
             reader =>
               reader.readRemaining() shouldBe bytes2
-              getCoreFile(reader).readAll() shouldBe bytes2
+              invokePrivateFunction_file(reader).readAll() shouldBe bytes2
           }
       }
     }
@@ -76,8 +75,8 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
             file =>
               createFileReaders(file.path) foreach {
                 reader =>
-                  getCoreFile(reader).readAll() shouldBe Slice.emptyBytes
-                  getCoreFile(reader).close()
+                  invokePrivateFunction_file(reader).readAll() shouldBe Slice.emptyBytes
+                  invokePrivateFunction_file(reader).close()
               }
           }
 

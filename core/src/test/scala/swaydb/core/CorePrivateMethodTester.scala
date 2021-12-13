@@ -17,20 +17,18 @@
 package swaydb.core
 
 import org.scalatest.PrivateMethodTester._
-import swaydb.core.file.{CoreFile, FileReader}
-import swaydb.core.log.timer.Timer
 import swaydb.core.log.{Log, LogCache, Logs}
+import swaydb.core.log.timer.Timer
 import swaydb.core.queue.VolatileQueue
 import swaydb.core.segment.PersistentSegment
 import swaydb.core.segment.ref.SegmentRef
-import swaydb.utils.IDGenerator
 import swaydb.slice.Slice
-import swaydb.utils.HashedMap
+import swaydb.utils.{HashedMap, IDGenerator}
 
-import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}
+import java.util.concurrent.atomic.AtomicLong
 
-object PrivateMethodInvokers {
+object CorePrivateMethodTester {
 
   def getLogs[K, V, C <: LogCache[K, V]](logs: Logs[K, V, C]): VolatileQueue[Log[K, V, C]] =
     logs invokePrivate PrivateMethod[VolatileQueue[Log[K, V, C]]](Symbol("queue"))()
@@ -43,9 +41,6 @@ object PrivateMethodInvokers {
 
   def getSegmentsCache(segment: PersistentSegment): ConcurrentSkipListMap[Slice[Byte], SegmentRef] =
     segment invokePrivate PrivateMethod[ConcurrentSkipListMap[Slice[Byte], SegmentRef]](Symbol("segmentsCache"))()
-
-  def getCoreFile(reader: FileReader): CoreFile =
-    reader invokePrivate PrivateMethod[CoreFile](Symbol("file"))()
 
   def getAtomicLong(generator: IDGenerator): AtomicLong =
     generator invokePrivate PrivateMethod[AtomicLong](Symbol("atomicID"))()
