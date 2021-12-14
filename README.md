@@ -24,22 +24,26 @@ dependency ([#307](https://github.com/simerplaha/SwayDB/issues/307)).
 **Scalable on a single machine**: Distribute data to multiple local SSDs. Allocate single or multiple `Threads`
 for reads, caching & compaction.
 
-**Status**: Under testing & performance optimisations. See [project status](#Project-status).
-
 **Branches**: This is the `development` branch. See [`master`](https://github.com/simerplaha/SwayDB/tree/master) for
 stable version.
+
+**Status**: Under testing & performance optimisations. See [project status](#Project-status).
 
 [Documentation](http://swaydb.io)
 
 # Sponsors
 
-Thank you [Jetbrains](https://www.jetbrains.com/?from=SwayDB)
+Thank you [JetBrains](https://www.jetbrains.com/?from=SwayDB)
 & [JProfiler](https://www.ej-technologies.com/products/jprofiler/overview.html)
-for full-featured open-source licences to their awesome development
-tools! [[Become a sponsor](https://github.com/sponsors/simerplaha)]
+for full-featured open-source licences to their awesome development tools!
 
-<div><a href="https://www.jetbrains.com/?from=SwayDB" target="_blank"><img src="/docs/jetbrains.png" alt="Jetbrains support" height="150"/></a></div>
-<div><a href="https://www.ej-technologies.com/products/jprofiler/overview.html" target="_blank"><img src="/docs/jprofiler_logo.png" alt="JProfiler support"/></a></div>
+<table>
+<tr>
+<td><a href="https://www.jetbrains.com/?from=SwayDB" target="_blank"><img src="/docs/jetbrains.png" alt="Jetbrains support" height="150"/></a></td>
+<td><a href="https://www.ej-technologies.com/products/jprofiler/overview.html" target="_blank"><img src="/docs/jprofiler_logo.png" alt="JProfiler support"/></a></td>
+<td><a href="https://github.com/sponsors/simerplaha" target="_blank">[Become a sponsor]</a></td>
+</tr>
+</table>
 
 ## Overview
 
