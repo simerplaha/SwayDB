@@ -1065,6 +1065,7 @@ class Slices[A](val slices: Array[Slice[A]])(override implicit val classTag: Cla
     var slot = fromIndex / blockSize //starting slot
     var slotIndex = fromIndex % blockSize //starting slot's index
 
+    //TODO use Array instead of buffer
     val buffer = ListBuffer.empty[Slice[A]] //collect slices in a buffer
     var taken = 0
     while (taken < count && slot < slices.length) {
@@ -1079,7 +1080,7 @@ class Slices[A](val slices: Array[Slice[A]])(override implicit val classTag: Cla
     if (buffer.length == 1)
       buffer.head
     else
-      Slices(buffer.toArray)
+      Slices(buffer.toArray) //TODO remove toArray
   }
 
   def append(right: SliceRO[A]): Slices[A] =
