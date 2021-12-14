@@ -25,7 +25,7 @@ sealed trait CacheOrNull[+E, -I, +O]
 
 private[swaydb] object Cache {
 
-  final case class Null[-I]() extends CacheOrNull[Nothing, I, Nothing]
+  case object Null extends CacheOrNull[Nothing, Any, Nothing]
 
   def value[E: IO.ExceptionHandler, I, B](output: B): Cache[E, I, B] =
     new Cache[E, I, B] {

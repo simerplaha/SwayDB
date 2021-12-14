@@ -365,10 +365,10 @@ private[core] class CoreFile(val path: Path,
     copiedPath
   }
 
-  def append(slice: Slice[Byte]) =
+  def append(slice: Slice[Byte]): Unit =
     file().append(slice)
 
-  def appendBatch(slice: Array[Slice[Byte]]) =
+  def appendBatch(slice: Array[Slice[Byte]]): Unit =
     file().appendBatch(slice)
 
   def read(position: Int,

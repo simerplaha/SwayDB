@@ -30,17 +30,17 @@ import scala.util.Try
  * [[Glass]] can be used to disable effect types.
  */
 sealed trait Bag[BAG[_]] { thisBag =>
-  def unit: BAG[Unit]
-  def none[A]: BAG[Option[A]]
-  def apply[A](a: => A): BAG[A]
-  def foreach[A](a: BAG[A])(f: A => Unit): Unit
-  def map[A, B](a: BAG[A])(f: A => B): BAG[B]
-  def transform[A, B](a: BAG[A])(f: A => B): BAG[B]
-  def flatMap[A, B](fa: BAG[A])(f: A => BAG[B]): BAG[B]
-  def flatten[A](fa: BAG[BAG[A]]): BAG[A]
-  def success[A](value: A): BAG[A]
-  def failure[A](exception: Throwable): BAG[A]
-  def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): BAG[A]
+  @inline def unit: BAG[Unit]
+  @inline def none[A]: BAG[Option[A]]
+  @inline def apply[A](a: => A): BAG[A]
+  @inline def foreach[A](a: BAG[A])(f: A => Unit): Unit
+  @inline def map[A, B](a: BAG[A])(f: A => B): BAG[B]
+  @inline def transform[A, B](a: BAG[A])(f: A => B): BAG[B]
+  @inline def flatMap[A, B](fa: BAG[A])(f: A => BAG[B]): BAG[B]
+  @inline def flatten[A](fa: BAG[BAG[A]]): BAG[A]
+  @inline def success[A](value: A): BAG[A]
+  @inline def failure[A](exception: Throwable): BAG[A]
+  @inline def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): BAG[A]
 
   /**
    * For Async [[Bag]]s [[apply]] will always run asynchronously but to cover
@@ -64,16 +64,16 @@ sealed trait Bag[BAG[_]] { thisBag =>
   @inline def andThen[A, B](fa: BAG[A])(f: => B): BAG[B] =
     flatMap(fa)(_ => apply(f))
 
-  def safe[A](f: => BAG[A]): BAG[A] =
+  @inline def safe[A](f: => BAG[A]): BAG[A] =
     flatMap(unit) {
       _ =>
         f
     }
 
-  def getOrElseOption[A, B >: A](fa: BAG[Option[A]])(orElse: => B): BAG[B] =
+  @inline def getOrElseOption[A, B >: A](fa: BAG[Option[A]])(orElse: => B): BAG[B] =
     map(fa)(_.getOrElse(orElse))
 
-  def getOrElseOptionFlatten[A, B >: A](fa: BAG[Option[A]])(orElse: => BAG[B]): BAG[B] =
+  @inline def getOrElseOptionFlatten[A, B >: A](fa: BAG[Option[A]])(orElse: => BAG[B]): BAG[B] =
     flatMap(fa) {
       case Some(value) =>
         success(value)
@@ -82,10 +82,10 @@ sealed trait Bag[BAG[_]] { thisBag =>
         orElse
     }
 
-  def orElseOption[A, B >: A](fa: BAG[Option[A]])(orElse: => Option[B]): BAG[Option[B]] =
+  @inline def orElseOption[A, B >: A](fa: BAG[Option[A]])(orElse: => Option[B]): BAG[Option[B]] =
     map(fa)(_.orElse(orElse))
 
-  def orElseOptionFlatten[A, B >: A](fa: BAG[Option[A]])(orElse: => BAG[Option[B]]): BAG[Option[B]] =
+  @inline def orElseOptionFlatten[A, B >: A](fa: BAG[Option[A]])(orElse: => BAG[Option[B]]): BAG[Option[B]] =
     flatMap(fa) {
       case some @ Some(_) =>
         success(some)
@@ -94,7 +94,7 @@ sealed trait Bag[BAG[_]] { thisBag =>
         orElse
     }
 
-  def filter[A](a: BAG[A])(f: A => Boolean): BAG[A] =
+  @inline def filter[A](a: BAG[A])(f: A => Boolean): BAG[A] =
     flatMap(a) {
       value =>
         if (f(value))
@@ -163,16 +163,16 @@ object Bag extends LazyLogging {
       @inline final def withFilter(p: A => Boolean): WithFilter = new WithFilter(fa, p)
 
       final class WithFilter(a: BAG[A], p: A => Boolean) {
-        def map[U](f: A => U): BAG[U] =
+        @inline def map[U](f: A => U): BAG[U] =
           bag.map(bag.filter[A](a)(p))(f)
 
-        def flatMap[U](f: A => BAG[U]): BAG[U] =
+        @inline def flatMap[U](f: A => BAG[U]): BAG[U] =
           bag.flatMap(bag.filter(a)(p))(f)
 
-        def foreach(f: A => Unit): Unit =
+        @inline def foreach(f: A => Unit): Unit =
           bag.foreach(bag.filter(a)(p))(f)
 
-        def withFilter(b: BAG[A], q: A => Boolean): WithFilter =
+        @inline def withFilter(b: BAG[A], q: A => Boolean): WithFilter =
           new WithFilter(b, x => p(x) && q(x))
       }
     }
@@ -229,22 +229,22 @@ object Bag extends LazyLogging {
   }
 
   trait Sync[BAG[_]] extends Bag[BAG] { self =>
-    def isSuccess[A](a: BAG[A]): Boolean
-    def isFailure[A](a: BAG[A]): Boolean
-    def exception[A](a: BAG[A]): Option[Throwable]
-    def getOrElse[A, B >: A](a: BAG[A])(b: => B): B
-    def getUnsafe[A](a: BAG[A]): A
-    def orElse[A, B >: A](a: BAG[A])(b: BAG[B]): BAG[B]
-    def recover[A, B >: A](fa: BAG[A])(pf: PartialFunction[Throwable, B]): BAG[B]
-    def recoverWith[A, B >: A](fa: BAG[A])(pf: PartialFunction[Throwable, BAG[B]]): BAG[B]
+    @inline def isSuccess[A](a: BAG[A]): Boolean
+    @inline def isFailure[A](a: BAG[A]): Boolean
+    @inline def exception[A](a: BAG[A]): Option[Throwable]
+    @inline def getOrElse[A, B >: A](a: BAG[A])(b: => B): B
+    @inline def getUnsafe[A](a: BAG[A]): A
+    @inline def orElse[A, B >: A](a: BAG[A])(b: BAG[B]): BAG[B]
+    @inline def recover[A, B >: A](fa: BAG[A])(pf: PartialFunction[Throwable, B]): BAG[B]
+    @inline def recoverWith[A, B >: A](fa: BAG[A])(pf: PartialFunction[Throwable, BAG[B]]): BAG[B]
 
   }
 
   trait Async[BAG[_]] extends Bag[BAG] { self =>
-    def fromPromise[A](a: Promise[A]): BAG[A]
-    def complete[A](promise: Promise[A], a: BAG[A]): Unit
-    def executionContext: ExecutionContext
-    def fromFuture[A](a: Future[A]): BAG[A]
+    @inline def fromPromise[A](a: Promise[A]): BAG[A]
+    @inline def complete[A](promise: Promise[A], a: BAG[A]): Unit
+    @inline def executionContext: ExecutionContext
+    @inline def fromFuture[A](a: Future[A]): BAG[A]
   }
 
 
@@ -259,8 +259,8 @@ object Bag extends LazyLogging {
      * async closed files during reads etc.
      */
     trait Retryable[BAG[_]] extends Bag.Async[BAG] { self =>
-      def isComplete[A](a: BAG[A]): Boolean
-      def isIncomplete[A](a: BAG[A]): Boolean =
+      @inline def isComplete[A](a: BAG[A]): Boolean
+      @inline def isIncomplete[A](a: BAG[A]): Boolean =
         !isComplete(a)
     }
   }
@@ -270,60 +270,60 @@ object Bag extends LazyLogging {
       override val unit: IO.ThrowableIO[Unit] =
         IO.unit
 
-      override def none[A]: IO.ThrowableIO[Option[A]] =
+      @inline override def none[A]: IO.ThrowableIO[Option[A]] =
         IO.none
 
-      override def apply[A](a: => A): IO.ThrowableIO[A] =
+      @inline override def apply[A](a: => A): IO.ThrowableIO[A] =
         IO(a)
 
-      def isSuccess[A](a: IO.ThrowableIO[A]): Boolean =
+      @inline def isSuccess[A](a: IO.ThrowableIO[A]): Boolean =
         a.isRight
 
-      def isFailure[A](a: IO.ThrowableIO[A]): Boolean =
+      @inline def isFailure[A](a: IO.ThrowableIO[A]): Boolean =
         a.isLeft
 
-      override def map[A, B](a: IO.ThrowableIO[A])(f: A => B): IO.ThrowableIO[B] =
+      @inline override def map[A, B](a: IO.ThrowableIO[A])(f: A => B): IO.ThrowableIO[B] =
         a.map(f)
 
-      override def transform[A, B](a: ThrowableIO[A])(f: A => B): ThrowableIO[B] =
+      @inline override def transform[A, B](a: ThrowableIO[A])(f: A => B): ThrowableIO[B] =
         a.transform(f)
 
-      override def foreach[A](a: IO.ThrowableIO[A])(f: A => Unit): Unit =
+      @inline override def foreach[A](a: IO.ThrowableIO[A])(f: A => Unit): Unit =
         a.foreach(f)
 
-      override def flatMap[A, B](fa: IO.ThrowableIO[A])(f: A => IO.ThrowableIO[B]): IO.ThrowableIO[B] =
+      @inline override def flatMap[A, B](fa: IO.ThrowableIO[A])(f: A => IO.ThrowableIO[B]): IO.ThrowableIO[B] =
         fa.flatMap(f)
 
-      override def success[A](value: A): IO.ThrowableIO[A] =
+      @inline override def success[A](value: A): IO.ThrowableIO[A] =
         IO.Right(value)
 
-      override def failure[A](exception: Throwable): IO.ThrowableIO[A] =
+      @inline override def failure[A](exception: Throwable): IO.ThrowableIO[A] =
         IO.failed(exception)
 
-      override def exception[A](a: IO.ThrowableIO[A]): Option[Throwable] =
+      @inline override def exception[A](a: IO.ThrowableIO[A]): Option[Throwable] =
         a.left.toOption
 
-      override def getOrElse[A, B >: A](a: IO.ThrowableIO[A])(b: => B): B =
+      @inline override def getOrElse[A, B >: A](a: IO.ThrowableIO[A])(b: => B): B =
         a.getOrElse(b)
 
-      override def getUnsafe[A](a: ThrowableIO[A]): A =
+      @inline override def getUnsafe[A](a: ThrowableIO[A]): A =
         a.get
 
-      override def orElse[A, B >: A](a: IO.ThrowableIO[A])(b: IO.ThrowableIO[B]): IO.ThrowableIO[B] =
+      @inline override def orElse[A, B >: A](a: IO.ThrowableIO[A])(b: IO.ThrowableIO[B]): IO.ThrowableIO[B] =
         a.orElse(b)
 
-      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): IO.ThrowableIO[A] =
+      @inline override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): IO.ThrowableIO[A] =
         IO[Throwable, A](a.get)
 
-      override def suspend[B](f: => ThrowableIO[B]): ThrowableIO[B] =
+      @inline override def suspend[B](f: => ThrowableIO[B]): ThrowableIO[B] =
         f
-      override def flatten[A](fa: ThrowableIO[ThrowableIO[A]]): ThrowableIO[A] =
+      @inline override def flatten[A](fa: ThrowableIO[ThrowableIO[A]]): ThrowableIO[A] =
         fa.flatten
 
-      override def recover[A, B >: A](fa: ThrowableIO[A])(pf: PartialFunction[Throwable, B]): ThrowableIO[B] =
+      @inline override def recover[A, B >: A](fa: ThrowableIO[A])(pf: PartialFunction[Throwable, B]): ThrowableIO[B] =
         fa.recover(pf)
 
-      override def recoverWith[A, B >: A](fa: ThrowableIO[A])(pf: PartialFunction[Throwable, ThrowableIO[B]]): ThrowableIO[B] =
+      @inline override def recoverWith[A, B >: A](fa: ThrowableIO[A])(pf: PartialFunction[Throwable, ThrowableIO[B]]): ThrowableIO[B] =
         fa.recoverWith(pf)
     }
 
@@ -332,60 +332,60 @@ object Bag extends LazyLogging {
 
       implicit val exceptionHandler = swaydb.Error.API.ExceptionHandler
 
-      override def isSuccess[A](a: ApiIO[A]): Boolean =
+      @inline override def isSuccess[A](a: ApiIO[A]): Boolean =
         a.isRight
 
-      override def isFailure[A](a: ApiIO[A]): Boolean =
+      @inline override def isFailure[A](a: ApiIO[A]): Boolean =
         a.isLeft
 
-      override def exception[A](a: ApiIO[A]): Option[Throwable] =
+      @inline override def exception[A](a: ApiIO[A]): Option[Throwable] =
         a.left.toOption.map(_.exception)
 
-      override def getOrElse[A, B >: A](a: ApiIO[A])(b: => B): B =
+      @inline override def getOrElse[A, B >: A](a: ApiIO[A])(b: => B): B =
         a.getOrElse(b)
 
-      override def getUnsafe[A](a: ApiIO[A]): A =
+      @inline override def getUnsafe[A](a: ApiIO[A]): A =
         a.get
 
-      override def orElse[A, B >: A](a: ApiIO[A])(b: ApiIO[B]): ApiIO[B] =
+      @inline override def orElse[A, B >: A](a: ApiIO[A])(b: ApiIO[B]): ApiIO[B] =
         a.orElse(b)
 
-      override def unit: ApiIO[Unit] =
+      @inline override def unit: ApiIO[Unit] =
         IO.unit
 
-      override def none[A]: ApiIO[Option[A]] =
+      @inline override def none[A]: ApiIO[Option[A]] =
         IO.none
 
-      override def apply[A](a: => A): ApiIO[A] =
+      @inline override def apply[A](a: => A): ApiIO[A] =
         IO(a)
 
-      override def foreach[A](a: ApiIO[A])(f: A => Unit): Unit =
+      @inline override def foreach[A](a: ApiIO[A])(f: A => Unit): Unit =
         a.foreach(f)
 
-      override def map[A, B](a: ApiIO[A])(f: A => B): ApiIO[B] =
+      @inline override def map[A, B](a: ApiIO[A])(f: A => B): ApiIO[B] =
         a.map(f)
 
-      override def transform[A, B](a: ApiIO[A])(f: A => B): ApiIO[B] =
+      @inline override def transform[A, B](a: ApiIO[A])(f: A => B): ApiIO[B] =
         a.transform(f)
 
-      override def flatMap[A, B](fa: ApiIO[A])(f: A => ApiIO[B]): ApiIO[B] =
+      @inline override def flatMap[A, B](fa: ApiIO[A])(f: A => ApiIO[B]): ApiIO[B] =
         fa.flatMap(f)
 
-      override def success[A](value: A): ApiIO[A] =
+      @inline override def success[A](value: A): ApiIO[A] =
         IO.Right(value)
 
-      override def failure[A](exception: Throwable): ApiIO[A] =
+      @inline override def failure[A](exception: Throwable): ApiIO[A] =
         IO.failed(exception)
 
-      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): ApiIO[A] =
+      @inline override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): ApiIO[A] =
         IO[swaydb.Error.API, A](a.get)
 
-      override def suspend[B](f: => ApiIO[B]): ApiIO[B] =
+      @inline override def suspend[B](f: => ApiIO[B]): ApiIO[B] =
         f
-      override def flatten[A](fa: ApiIO[ApiIO[A]]): ApiIO[A] =
+      @inline override def flatten[A](fa: ApiIO[ApiIO[A]]): ApiIO[A] =
         fa.flatten
 
-      override def recover[A, B >: A](fa: ApiIO[A])(pf: PartialFunction[Throwable, B]): ApiIO[B] =
+      @inline override def recover[A, B >: A](fa: ApiIO[A])(pf: PartialFunction[Throwable, B]): ApiIO[B] =
         fa match {
           case right @ IO.Right(_) =>
             right
@@ -394,7 +394,7 @@ object Bag extends LazyLogging {
             IO(pf.apply(value.exception))
         }
 
-      override def recoverWith[A, B >: A](fa: ApiIO[A])(pf: PartialFunction[Throwable, ApiIO[B]]): ApiIO[B] =
+      @inline override def recoverWith[A, B >: A](fa: ApiIO[A])(pf: PartialFunction[Throwable, ApiIO[B]]): ApiIO[B] =
         fa match {
           case right @ IO.Right(_) =>
             right
@@ -410,61 +410,61 @@ object Bag extends LazyLogging {
 
       val none: scala.util.Success[Option[Nothing]] = scala.util.Success(None)
 
-      override def isSuccess[A](a: Try[A]): Boolean =
+      @inline override def isSuccess[A](a: Try[A]): Boolean =
         a.isSuccess
 
-      override def isFailure[A](a: Try[A]): Boolean =
+      @inline override def isFailure[A](a: Try[A]): Boolean =
         a.isFailure
 
-      override def exception[A](a: Try[A]): Option[Throwable] =
+      @inline override def exception[A](a: Try[A]): Option[Throwable] =
         a.failed.toOption
 
-      override def getOrElse[A, B >: A](a: Try[A])(b: => B): B =
+      @inline override def getOrElse[A, B >: A](a: Try[A])(b: => B): B =
         a.getOrElse(b)
 
-      override def getUnsafe[A](a: Try[A]): A =
+      @inline override def getUnsafe[A](a: Try[A]): A =
         a.get
 
-      override def orElse[A, B >: A](a: Try[A])(b: Try[B]): Try[B] =
+      @inline override def orElse[A, B >: A](a: Try[A])(b: Try[B]): Try[B] =
         a.orElse(b)
 
-      override def none[A]: Try[Option[A]] =
+      @inline override def none[A]: Try[Option[A]] =
         none
 
-      override def apply[A](a: => A): Try[A] =
+      @inline override def apply[A](a: => A): Try[A] =
         Try(a)
 
-      override def foreach[A](a: Try[A])(f: A => Unit): Unit =
+      @inline override def foreach[A](a: Try[A])(f: A => Unit): Unit =
         a.foreach(f)
 
-      override def map[A, B](a: Try[A])(f: A => B): Try[B] =
+      @inline override def map[A, B](a: Try[A])(f: A => B): Try[B] =
         a.map(f)
 
-      override def transform[A, B](a: Try[A])(f: A => B): Try[B] =
+      @inline override def transform[A, B](a: Try[A])(f: A => B): Try[B] =
         a.transform(a => Try(f(a)), exception => scala.util.Failure(exception))
 
-      override def flatMap[A, B](fa: Try[A])(f: A => Try[B]): Try[B] =
+      @inline override def flatMap[A, B](fa: Try[A])(f: A => Try[B]): Try[B] =
         fa.flatMap(f)
 
-      override def success[A](value: A): Try[A] =
+      @inline override def success[A](value: A): Try[A] =
         scala.util.Success(value)
 
-      override def failure[A](exception: Throwable): Try[A] =
+      @inline override def failure[A](exception: Throwable): Try[A] =
         scala.util.Failure(exception)
 
-      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Try[A] =
+      @inline override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Try[A] =
         a.toTry
 
-      override def suspend[B](f: => Try[B]): Try[B] =
+      @inline override def suspend[B](f: => Try[B]): Try[B] =
         f
 
-      override def flatten[A](fa: Try[Try[A]]): Try[A] =
+      @inline override def flatten[A](fa: Try[Try[A]]): Try[A] =
         fa.flatten
 
-      override def recover[A, B >: A](fa: Try[A])(pf: PartialFunction[Throwable, B]): Try[B] =
+      @inline override def recover[A, B >: A](fa: Try[A])(pf: PartialFunction[Throwable, B]): Try[B] =
         fa.recover(pf)
 
-      override def recoverWith[A, B >: A](fa: Try[A])(pf: PartialFunction[Throwable, Try[B]]): Try[B] =
+      @inline override def recoverWith[A, B >: A](fa: Try[A])(pf: PartialFunction[Throwable, Try[B]]): Try[B] =
         fa.recoverWith(pf)
     }
 
@@ -516,55 +516,55 @@ object Bag extends LazyLogging {
   implicit def future(implicit ec: ExecutionContext): Bag.Async.Retryable[Future] =
     new Async.Retryable[Future] { self =>
 
-      override def executionContext: ExecutionContext =
+      @inline override def executionContext: ExecutionContext =
         ec
 
       override val unit: Future[Unit] =
         Future.unit
 
-      override def none[A]: Future[Option[A]] =
+      @inline override def none[A]: Future[Option[A]] =
         Future.successful(None)
 
-      override def apply[A](a: => A): Future[A] =
+      @inline override def apply[A](a: => A): Future[A] =
         Future(a)
 
-      override def map[A, B](a: Future[A])(f: A => B): Future[B] =
+      @inline override def map[A, B](a: Future[A])(f: A => B): Future[B] =
         a.map(f)
 
-      override def transform[A, B](a: Future[A])(f: A => B): Future[B] =
+      @inline override def transform[A, B](a: Future[A])(f: A => B): Future[B] =
         a.transform(f, throwable => throwable)
 
-      override def flatMap[A, B](fa: Future[A])(f: A => Future[B]): Future[B] =
+      @inline override def flatMap[A, B](fa: Future[A])(f: A => Future[B]): Future[B] =
         fa.flatMap(f)
 
-      override def success[A](value: A): Future[A] =
+      @inline override def success[A](value: A): Future[A] =
         Future.successful(value)
 
-      override def failure[A](exception: Throwable): Future[A] =
+      @inline override def failure[A](exception: Throwable): Future[A] =
         Future.failed(exception)
 
-      override def foreach[A](a: Future[A])(f: A => Unit): Unit =
+      @inline override def foreach[A](a: Future[A])(f: A => Unit): Unit =
         a.foreach(f)
 
-      def fromPromise[A](a: Promise[A]): Future[A] =
+      @inline def fromPromise[A](a: Promise[A]): Future[A] =
         a.future
 
-      override def complete[A](promise: Promise[A], a: Future[A]): Unit =
+      @inline override def complete[A](promise: Promise[A], a: Future[A]): Unit =
         promise tryCompleteWith a
 
-      def isComplete[A](a: Future[A]): Boolean =
+      @inline def isComplete[A](a: Future[A]): Boolean =
         a.isCompleted
 
-      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Future[A] =
+      @inline override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Future[A] =
         a.toFuture
 
-      override def fromFuture[A](a: Future[A]): Future[A] =
+      @inline override def fromFuture[A](a: Future[A]): Future[A] =
         a
 
-      override def suspend[B](f: => Future[B]): Future[B] =
+      @inline override def suspend[B](f: => Future[B]): Future[B] =
         f
 
-      override def flatten[A](fa: Future[Future[A]]): Future[A] =
+      @inline override def flatten[A](fa: Future[Future[A]]): Future[A] =
         fa.flatten
     }
 }

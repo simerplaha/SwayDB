@@ -793,10 +793,10 @@ private case class PersistentSegmentMany(file: CoreFile,
   def isOpen: Boolean =
     file.isOpen
 
-  def isFileDefined =
+  def isFileDefined: Boolean =
     file.isFileDefined
 
-  def delete(delay: FiniteDuration) = {
+  def delete(delay: FiniteDuration): Unit = {
     val deadline = delay.fromNow
     if (deadline.isOverdue())
       this.delete()

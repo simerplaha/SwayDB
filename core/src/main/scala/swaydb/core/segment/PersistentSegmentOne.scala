@@ -277,7 +277,7 @@ private case class PersistentSegmentOne(file: CoreFile,
   def isOpen: Boolean =
     file.isOpen
 
-  def isFileDefined =
+  def isFileDefined: Boolean =
     file.isFileDefined
 
   def delete(delay: FiniteDuration): Unit = {
