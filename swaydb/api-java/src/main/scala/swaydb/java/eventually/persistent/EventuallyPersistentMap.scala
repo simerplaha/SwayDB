@@ -16,7 +16,6 @@
 
 package swaydb.java.eventually.persistent
 
-import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.CompactionConfig
 import swaydb.config._
 import swaydb.configs.level.DefaultExecutionContext

@@ -18,13 +18,13 @@ package swaydb.core.tool
 
 import swaydb.Glass
 import swaydb.IOValues._
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
 import swaydb.config.compaction.LevelThrottle
 import swaydb.config.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
-import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestForceSave}
+import swaydb.core.{ACoreSpec, TestExecutionContext, TestSweeper}
 import swaydb.core.level.ALevelSpec
 import swaydb.effect.Effect
 import swaydb.effect.Effect._

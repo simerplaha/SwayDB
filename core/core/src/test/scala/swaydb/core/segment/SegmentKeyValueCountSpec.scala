@@ -19,9 +19,9 @@ package swaydb.core.segment
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.IOValues._
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
 import swaydb.core.CoreTestData._
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
+import swaydb.core.{ACoreSpec, TestSweeper}
 import swaydb.core.level.ALevelSpec
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._

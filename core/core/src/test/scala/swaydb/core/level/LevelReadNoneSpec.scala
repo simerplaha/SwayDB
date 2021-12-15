@@ -17,19 +17,18 @@
 package swaydb.core.level
 
 import swaydb.IOValues._
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{ACoreSpec, TestForceSave}
-import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
-import swaydb.utils.OperatingSystem
 import swaydb.testkit.TestKit._
+import swaydb.utils.OperatingSystem
 
 class LevelReadNoneSpec0 extends LevelReadNoneSpec
 

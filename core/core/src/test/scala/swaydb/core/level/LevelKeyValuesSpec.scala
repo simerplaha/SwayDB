@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IO
 import swaydb.IOValues._
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core._

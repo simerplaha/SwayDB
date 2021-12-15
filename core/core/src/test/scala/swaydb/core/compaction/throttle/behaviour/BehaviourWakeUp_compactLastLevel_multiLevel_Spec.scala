@@ -17,25 +17,25 @@
 package swaydb.core.compaction.throttle.behaviour
 
 import swaydb.IO
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
 import swaydb.config.compaction.LevelThrottle
+import swaydb.core.{TestExecutionContext, TestSweeper}
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.compaction.throttle.LevelState
+import swaydb.core.level.ALevelSpec
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.util.DefIO
-import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestForceSave}
-import swaydb.core.level.ALevelSpec
-import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
-import swaydb.testkit.TestKit._
 
 class BehaviourWakeUp_compactLastLevel_multiLevel_Spec0 extends BehaviourWakeUp_compactLastLevel_multiLevel_Spec
 

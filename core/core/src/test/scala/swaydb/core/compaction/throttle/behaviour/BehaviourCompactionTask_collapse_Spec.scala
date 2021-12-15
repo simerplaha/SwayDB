@@ -17,7 +17,7 @@
 package swaydb.core.compaction.throttle.behaviour
 
 import swaydb.IO
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core._

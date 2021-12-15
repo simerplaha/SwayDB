@@ -24,7 +24,6 @@ import swaydb.IOValues._
 import swaydb.core.compression.CompressionInternal
 import swaydb.core.compression.CompressionTestGen._
 import swaydb.config._
-import swaydb.config.accelerate.Accelerator
 import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.config.storage.{Level0Storage, LevelStorage}
 import swaydb.core.CommonAssertions._
@@ -74,6 +73,7 @@ import swaydb.testkit.TestKit._
 import swaydb.utils.StorageUnits._
 import swaydb.utils.{Aggregator, FiniteDurations, IDGenerator, OperatingSystem}
 import swaydb.{ActorConfig, Error, Glass, IO}
+import swaydb.config.accelerate.Accelerator
 
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicInteger

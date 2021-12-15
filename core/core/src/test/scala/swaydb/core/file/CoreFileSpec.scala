@@ -18,7 +18,7 @@ package swaydb.core.file
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.{TestForceSave, TestSweeper}
+import swaydb.core.TestSweeper
 import swaydb.core.CoreTestData._
 import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.CommonAssertions._
@@ -28,6 +28,7 @@ import swaydb.testkit.TestKit._
 import swaydb.utils.OperatingSystem
 import swaydb.utils.PipeOps._
 import swaydb.IO
+import swaydb.config.TestForceSave
 import swaydb.core.TestSweeper._
 import swaydb.testkit.RunThis._
 

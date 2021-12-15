@@ -17,15 +17,15 @@
 package swaydb.core.log
 
 import swaydb.IOValues._
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.log.serialiser._
-import swaydb.core.segment.data.{SegmentKeyOrders, Memory, MemoryOption, Value}
+import swaydb.core.segment.data.{Memory, MemoryOption, SegmentKeyOrders, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{ASegmentSpec, Segment, SegmentOption}
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{ACoreSpec, TestForceSave, TestSweeper, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.order.{KeyOrder, TimeOrder}

@@ -1,6 +1,6 @@
 package swaydb.core.file
 
-import swaydb.core.{TestForceSave, TestSweeper, TestTuple2}
+import swaydb.core.TestSweeper
 import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.TestSweeper._
 import swaydb.effect.Effect
@@ -10,8 +10,9 @@ import swaydb.utils.OperatingSystem
 
 import java.nio.file.Path
 import scala.util.Random
-
 import org.scalatest.PrivateMethodTester._
+import swaydb.config.TestForceSave
+import swaydb.testkit.Tuple2Iterable
 
 object CoreFileTestKit {
 
@@ -36,8 +37,8 @@ object CoreFileTestKit {
     else
       createStandardFileFileReader(path)
 
-  def createFileReaders(path: Path)(implicit sweeper: TestSweeper): TestTuple2[FileReader] =
-    TestTuple2(
+  def createFileReaders(path: Path)(implicit sweeper: TestSweeper): Tuple2Iterable[FileReader] =
+    Tuple2Iterable(
       left = createMMAPFileReader(path),
       right = createStandardFileFileReader(path)
     )
@@ -51,20 +52,20 @@ object CoreFileTestKit {
   def createFiles(mmapPath: Path,
                   mmapBytes: Slice[Byte],
                   channelPath: Path,
-                  standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): TestTuple2[CoreFile] =
-    TestTuple2(
+                  standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): Tuple2Iterable[CoreFile] =
+    Tuple2Iterable(
       left = createMMAPWriteableReadable(mmapPath, mmapBytes),
       right = createStandardWriteableReadable(channelPath, standardBytes)
     )
 
-  def createFiles(bytes: Slice[Byte])(implicit sweeper: TestSweeper): TestTuple2[CoreFile] =
+  def createFiles(bytes: Slice[Byte])(implicit sweeper: TestSweeper): Tuple2Iterable[CoreFile] =
     createFiles(
       mmapBytes = bytes,
       standardBytes = bytes
     )
 
-  def createFiles(mmapBytes: Slice[Byte], standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): TestTuple2[CoreFile] =
-    TestTuple2(
+  def createFiles(mmapBytes: Slice[Byte], standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): Tuple2Iterable[CoreFile] =
+    Tuple2Iterable(
       left = createMMAPWriteableReadable(randomFilePath(), mmapBytes),
       right = createStandardWriteableReadable(randomFilePath(), standardBytes)
     )

@@ -17,13 +17,13 @@
 package swaydb.core.segment.assigner
 
 import org.scalatest.OptionValues._
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.{ASegmentSpec, Segment}
 import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestTimer}
 import swaydb.core.level.ALevelSpec
 import swaydb.effect.Effect._
 import swaydb.serializers.Default._

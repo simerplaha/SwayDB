@@ -16,9 +16,9 @@
 
 package swaydb.config.builder
 
-import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.LevelZeroThrottle
 import swaydb.config._
+import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.utils.Java.JavaFunction
 
 import java.nio.file.Path

@@ -17,7 +17,6 @@
 package swaydb.java
 
 import swaydb.Glass
-import swaydb.config.accelerate.LevelZeroMeter
 import swaydb.config.compaction.LevelMeter
 
 import java.nio.file.Path

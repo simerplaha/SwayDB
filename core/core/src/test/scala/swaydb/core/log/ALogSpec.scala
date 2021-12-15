@@ -1,10 +1,10 @@
 package swaydb.core.log
 
-import swaydb.config.{Atomic, MMAP, OptimiseWrites}
+import swaydb.config.{Atomic, MMAP, OptimiseWrites, TestForceSave}
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.segment.data.Memory
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
+import swaydb.core.{ACoreSpec, TestSweeper}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.OperatingSystem

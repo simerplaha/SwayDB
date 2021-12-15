@@ -16,8 +16,8 @@
 
 package swaydb.core.log.timer
 
-import swaydb.config.MMAP
-import swaydb.core.{ACoreSpec, TestExecutionContext, TestForceSave, TestSweeper}
+import swaydb.config.{MMAP, TestForceSave}
+import swaydb.core.{ACoreSpec, TestExecutionContext, TestSweeper}
 import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor

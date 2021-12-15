@@ -17,9 +17,9 @@
 package swaydb.configs.level
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.{LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.config._
+import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 
 import scala.concurrent.duration._
 

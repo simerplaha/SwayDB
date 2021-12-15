@@ -19,13 +19,13 @@ package swaydb.core.segment
 import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.data._
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, CoreTestSweepers}
+import swaydb.core.{ACoreSpec, CoreTestSweepers, TestSweeper}
 import swaydb.core.level.ALevelSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._

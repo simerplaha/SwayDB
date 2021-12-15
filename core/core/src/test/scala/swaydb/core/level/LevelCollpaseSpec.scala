@@ -19,7 +19,7 @@ package swaydb.core.level
 import org.scalatest.OptionValues._
 import swaydb.IO
 import swaydb.IOValues._
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core._

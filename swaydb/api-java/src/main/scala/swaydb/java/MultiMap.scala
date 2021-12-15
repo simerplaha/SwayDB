@@ -16,7 +16,6 @@
 
 package swaydb.java
 
-import swaydb.config.accelerate.LevelZeroMeter
 import swaydb.config.compaction.LevelMeter
 import swaydb.java.KeyVal._
 import swaydb.java.util.Java._

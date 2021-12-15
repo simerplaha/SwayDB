@@ -16,10 +16,10 @@
 
 package swaydb.core.compaction.throttle.behaviour
 
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
+import swaydb.core.{TestExecutionContext, TestSweeper}
 import swaydb.core.CommonAssertions._
 import swaydb.core.level.{ALevelSpec, Level}
-import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestForceSave}
 import swaydb.utils.OperatingSystem
 
 

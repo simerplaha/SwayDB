@@ -17,14 +17,14 @@
 package swaydb.core.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
 import swaydb.config.compaction.PushStrategy
 import swaydb.core.CoreTestData._
 import swaydb.core.compaction.task.CompactionTask
 import swaydb.core.level.{ALevelSpec, Level}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.data.Memory
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.slice.Slice

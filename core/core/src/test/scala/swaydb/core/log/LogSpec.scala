@@ -18,7 +18,7 @@ package swaydb.core.log
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
-import swaydb.config.{Atomic, MMAP, OptimiseWrites}
+import swaydb.config.{Atomic, MMAP, OptimiseWrites, TestForceSave}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
@@ -29,7 +29,7 @@ import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.log.LogTestUtil._
 import swaydb.core.log.serialiser._
 import swaydb.core.segment.{ASegmentSpec, Segment}
-import swaydb.core.segment.data.{SegmentKeyOrders, Memory, MemoryOption, Value}
+import swaydb.core.segment.data.{Memory, MemoryOption, SegmentKeyOrders, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.effect.Effect._

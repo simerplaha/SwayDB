@@ -1,11 +1,10 @@
 package swaydb.core.level
 
 import swaydb.{DefActor, Glass, IO}
-import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
-import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode, TestForceSave}
 import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 import swaydb.config.storage.{Level0Storage, LevelStorage}
-import swaydb.core.{CoreInitialiser, TestExecutionContext, TestForceSave, TestSweeper, TestTimer}
+import swaydb.core.{CoreInitialiser, TestExecutionContext, TestSweeper, TestTimer}
 import swaydb.core.compaction.{Compactor, CompactorCreator}
 import swaydb.core.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -17,12 +16,13 @@ import swaydb.core.CommonAssertions.randomPushStrategy
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
-import swaydb.core.segment.data.{SegmentKeyOrders, Memory}
+import swaydb.core.segment.data.{Memory, SegmentKeyOrders}
 import swaydb.core.CoreTestData._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.TestKit.{randomBoolean, randomIntMax, randomNextInt}
 import swaydb.IOValues._
+import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.core.segment.{ASegmentSpec, PathsDistributor}
 import swaydb.core.TestSweeper._
 import swaydb.core.file.sweeper.FileSweeper

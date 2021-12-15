@@ -20,7 +20,8 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
-import swaydb.core.{TestForceSave, TestSweeper}
+import swaydb.config.TestForceSave
+import swaydb.core.TestSweeper
 import swaydb.core.CoreTestData._
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCleaner
 import swaydb.core.file.CoreFileTestKit._

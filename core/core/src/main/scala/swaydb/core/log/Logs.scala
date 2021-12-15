@@ -18,7 +18,6 @@ package swaydb.core.log
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Log.ExceptionHandler
-import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.{MMAP, RecoveryMode}
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
@@ -32,6 +31,7 @@ import swaydb.SliceIOImplicits._
 import swaydb.slice.order.KeyOrder
 import swaydb.utils.DropIterator
 import swaydb.{Error, IO}
+import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 
 import java.nio.file.Path
 import scala.annotation.tailrec

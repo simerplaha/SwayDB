@@ -18,8 +18,8 @@ package swaydb.core.log.serialiser
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
-import swaydb.config.MMAP
-import swaydb.core.{TestForceSave, TestSweeper}
+import swaydb.config.{MMAP, TestForceSave}
+import swaydb.core.TestSweeper
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
 import swaydb.core.log.LogEntry

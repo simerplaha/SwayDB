@@ -19,10 +19,10 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IO
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec,  TestSweeper, TestTimer}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._

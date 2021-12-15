@@ -19,23 +19,23 @@ package swaydb.core.compaction.task.assigner
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import swaydb.IO
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
+import swaydb.core.{TestSweeper, TestTimer}
 import swaydb.core.CommonAssertions._
 import swaydb.core.CoreTestData._
+import swaydb.core.level.ALevelSpec
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data.Memory
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
-import swaydb.core.level.ALevelSpec
-import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
+import swaydb.testkit.TestKit._
 import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
-import swaydb.testkit.TestKit._
 
 class LevelTaskAssignerSpec0 extends LevelTaskAssignerSpec
 

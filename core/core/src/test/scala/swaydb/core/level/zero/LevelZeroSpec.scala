@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import swaydb.IO
 import swaydb.IOValues._
-import swaydb.config.MMAP
+import swaydb.config.{MMAP, TestForceSave}
 import swaydb.config.compaction.LevelThrottle
 import swaydb.config.storage.LevelStorage
 import swaydb.core.CommonAssertions._
@@ -30,7 +30,7 @@ import swaydb.core.log.applied.AppliedFunctionsLog
 import swaydb.core.log.timer.Timer
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
+import swaydb.core.{ACoreSpec, TestSweeper, TestTimer}
 import swaydb.core.level.ALevelSpec
 import swaydb.effect.{Dir, Effect}
 import swaydb.serializers.Default._

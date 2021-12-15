@@ -19,7 +19,7 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IOValues._
-import swaydb.config.{Atomic, MMAP, OptimiseWrites}
+import swaydb.config.{Atomic, MMAP, OptimiseWrites, TestForceSave}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestSweeper._
 import swaydb.core.CoreTestData._
