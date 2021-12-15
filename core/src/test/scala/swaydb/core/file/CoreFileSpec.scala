@@ -57,7 +57,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           //      } repeat 3.times
 
           val file =
-            CoreFile.standardWrite(
+            CoreFile.standardWritable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -86,7 +86,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
           file.close()
 
-          CoreFile.standardRead(
+          CoreFile.standardReadable(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -121,7 +121,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           Effect.write(testFile, bytes.toByteBufferWrap)
 
           val readFile =
-            CoreFile.standardRead(
+            CoreFile.standardReadable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true
@@ -139,7 +139,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           //writing fails since the file is readonly
           assertThrows[NonWritableChannelException](readFile.append(bytes))
           //data remain unchanged
-          CoreFile.standardRead(
+          CoreFile.standardReadable(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -162,7 +162,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
         implicit sweeper =>
           import sweeper._
           assertThrows[swaydb.Exception.NoSuchFile] {
-            CoreFile.standardRead(
+            CoreFile.standardReadable(
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true
@@ -190,7 +190,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           //      } repeat 3.times
 
           val file =
-            CoreFile.mmapWriteAndRead(
+            CoreFile.mmapWriteableReadable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -229,7 +229,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           file.close()
 
           //open read only buffer
-          CoreFile.mmapRead(
+          CoreFile.mmapReadable(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
@@ -254,7 +254,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           bytes.size shouldBe 2
 
           IO {
-            CoreFile.mmapWriteAndRead(
+            CoreFile.mmapWriteableReadable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -273,7 +273,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           val testFile = randomFilePath()
           val bytes = randomBytesSlice()
 
-          CoreFile.mmapWriteAndRead(
+          CoreFile.mmapWriteableReadable(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
@@ -283,7 +283,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           ).close()
 
           IO {
-            CoreFile.mmapWriteAndRead(
+            CoreFile.mmapWriteableReadable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -294,7 +294,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           }.left.get shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
 
           //file remains unchanged
-          CoreFile.mmapRead(
+          CoreFile.mmapReadable(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
@@ -319,7 +319,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           Effect.write(testFile, bytes.toByteBufferWrap)
 
           val readFile =
-            CoreFile.mmapRead(
+            CoreFile.mmapReadable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -351,7 +351,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
         implicit sweeper =>
           import sweeper._
           assertThrows[swaydb.Exception.NoSuchFile] {
-            CoreFile.mmapRead(
+            CoreFile.mmapReadable(
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -380,7 +380,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
             }
 
             val mmapFile =
-              CoreFile.mmapInit(
+              CoreFile.mmapEmptyWriteableReadable(
                 path = randomFilePath(),
                 fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                 bufferSize = bufferSize,
@@ -390,7 +390,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               ).sweep()
 
             val standardFile =
-              CoreFile.standardWrite(
+              CoreFile.standardWritable(
                 path = randomFilePath(),
                 fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                 autoClose = true,
@@ -435,7 +435,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           Effect.write(to = testFile, bytes = Slice.wrap(randomBytes()).toByteBufferWrap)
 
           assertThrows[FileAlreadyExistsException] {
-            CoreFile.mmapInit(
+            CoreFile.mmapEmptyWriteableReadable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               bufferSize = 10,
@@ -605,7 +605,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           val bytes = randomBytesSlice()
 
           val file =
-            CoreFile.mmapInit(
+            CoreFile.mmapEmptyWriteableReadable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               bufferSize = bytes.size,
@@ -654,7 +654,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           val bytes = randomBytesSlice()
 
           val file =
-            CoreFile.standardWrite(
+            CoreFile.standardWritable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -679,7 +679,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           val bytes = randomBytesSlice()
 
           val file =
-            CoreFile.mmapInit(
+            CoreFile.mmapEmptyWriteableReadable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               bufferSize = bytes.size,
@@ -708,7 +708,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           val bytes = List(randomBytesSlice(), randomBytesSlice(), randomBytesSlice())
 
           val file =
-            CoreFile.standardWrite(
+            CoreFile.standardWritable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -724,7 +724,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
           val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
-          CoreFile.standardRead(
+          CoreFile.standardReadable(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -734,7 +734,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               file.close()
           }
 
-          CoreFile.mmapRead(
+          CoreFile.mmapReadable(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
@@ -758,7 +758,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
           val allBytesSize = bytes.foldLeft(0)(_ + _.size)
           val file =
-            CoreFile.mmapInit(
+            CoreFile.mmapEmptyWriteableReadable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               bufferSize = allBytesSize,
@@ -779,7 +779,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           file.close() //close
 
           //reopen
-          CoreFile.mmapRead(
+          CoreFile.mmapReadable(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
@@ -790,7 +790,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               file.close()
           }
 
-          CoreFile.standardRead(
+          CoreFile.standardReadable(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -811,7 +811,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           val allBytesSize = bytes.foldLeft(0)(_ + _.size)
 
           val file =
-            CoreFile.mmapInit(
+            CoreFile.mmapEmptyWriteableReadable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               bufferSize = bytes.head.size,
@@ -834,7 +834,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           file.close() //close
 
           //reopen
-          CoreFile.mmapRead(
+          CoreFile.mmapReadable(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
@@ -845,7 +845,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               file.close()
           }
 
-          CoreFile.standardRead(
+          CoreFile.standardReadable(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -863,7 +863,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           import sweeper._
 
           val file =
-            CoreFile.standardWrite(
+            CoreFile.standardWritable(
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -872,7 +872,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
           file.append(Slice.emptyBytes)
 
-          CoreFile.standardRead(
+          CoreFile.standardReadable(
             path = file.path,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -891,7 +891,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           import sweeper._
 
           val file =
-            CoreFile.mmapInit(
+            CoreFile.mmapEmptyWriteableReadable(
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               bufferSize = 100,
@@ -904,7 +904,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           file.readAll() shouldBe Slice.fill(file.fileSize())(0)
           file.close()
 
-          CoreFile.mmapRead(
+          CoreFile.mmapReadable(
             path = file.path,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
@@ -927,7 +927,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           val bytes = randomBytesSlice(100)
 
           val file =
-            CoreFile.standardWrite(
+            CoreFile.standardWritable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -939,7 +939,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
           file.close()
 
-          val readFile = CoreFile.standardRead(
+          val readFile = CoreFile.standardReadable(
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -967,7 +967,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           val bytes = randomBytesSlice(100)
 
           val file =
-            CoreFile.standardWrite(
+            CoreFile.standardWritable(
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -989,7 +989,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           import sweeper._
 
           val file =
-            CoreFile.mmapWriteAndRead(
+            CoreFile.mmapWriteableReadable(
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -1020,7 +1020,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           val bytes = randomBytesSlice(100)
 
           val file =
-            CoreFile.standardWrite(
+            CoreFile.standardWritable(
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -1032,7 +1032,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           val targetFile = randomFilePath()
           file.copyTo(targetFile) shouldBe targetFile
 
-          CoreFile.standardRead(
+          CoreFile.standardReadable(
             path = targetFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true
@@ -1053,7 +1053,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           val bytes = randomBytesSlice(100)
 
           val file =
-            CoreFile.mmapInit(
+            CoreFile.mmapEmptyWriteableReadable(
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               bufferSize = bytes.size,
@@ -1069,7 +1069,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           val targetFile = randomFilePath()
           file.copyTo(targetFile) shouldBe targetFile
 
-          CoreFile.standardRead(
+          CoreFile.standardReadable(
             path = targetFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true

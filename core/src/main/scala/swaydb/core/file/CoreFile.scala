@@ -86,12 +86,12 @@ private[core] object CoreFile extends LazyLogging {
           IO {
             val file =
               if (memoryMapped)
-                MMAPFile.read(
+                MMAPFile.readable(
                   path = filePath,
                   deleteAfterClean = deleteAfterClean
                 )
               else
-                StandardFile.read(path = filePath)
+                StandardFile.readable(path = filePath)
 
             if (autoClose)
               fileSweeper send FileSweeperCommand.CloseFileItem(closer)
@@ -106,12 +106,12 @@ private[core] object CoreFile extends LazyLogging {
     cache
   }
 
-  def standardWrite(path: Path,
-                    fileOpenIOStrategy: IOStrategy.ThreadSafe,
-                    autoClose: Boolean,
-                    forceSave: ForceSave.StandardFiles)(implicit fileSweeper: FileSweeper,
-                                                        bufferCleaner: ByteBufferSweeperActor,
-                                                        forceSaveApplier: ForceSaveApplier): CoreFile =
+  def standardWritable(path: Path,
+                       fileOpenIOStrategy: IOStrategy.ThreadSafe,
+                       autoClose: Boolean,
+                       forceSave: ForceSave.StandardFiles)(implicit fileSweeper: FileSweeper,
+                                                           bufferCleaner: ByteBufferSweeperActor,
+                                                           forceSaveApplier: ForceSaveApplier): CoreFile =
     new CoreFile(
       path = path,
       memoryMapped = false,
@@ -123,18 +123,18 @@ private[core] object CoreFile extends LazyLogging {
           filePath = path,
           memoryMapped = false,
           deleteAfterClean = false,
-          file = Some(StandardFile.write(path, forceSave)),
+          file = Some(StandardFile.writeable(path, forceSave)),
           fileOpenIOStrategy = fileOpenIOStrategy,
           autoClose = autoClose
         )
     )
 
-  def standardRead(path: Path,
-                   fileOpenIOStrategy: IOStrategy.ThreadSafe,
-                   autoClose: Boolean,
-                   checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
-                                                bufferCleaner: ByteBufferSweeperActor,
-                                                forceSaveApplier: ForceSaveApplier): CoreFile =
+  def standardReadable(path: Path,
+                       fileOpenIOStrategy: IOStrategy.ThreadSafe,
+                       autoClose: Boolean,
+                       checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
+                                                    bufferCleaner: ByteBufferSweeperActor,
+                                                    forceSaveApplier: ForceSaveApplier): CoreFile =
     if (checkExists && Effect.notExists(path))
       throw swaydb.Exception.NoSuchFile(path)
     else
@@ -155,14 +155,14 @@ private[core] object CoreFile extends LazyLogging {
           )
       )
 
-  def mmapWriteAndRead(path: Path,
-                       fileOpenIOStrategy: IOStrategy.ThreadSafe,
-                       autoClose: Boolean,
-                       deleteAfterClean: Boolean,
-                       forceSave: ForceSave.MMAPFiles,
-                       bytes: Array[Slice[Byte]])(implicit fileSweeper: FileSweeper,
-                                                  bufferCleaner: ByteBufferSweeperActor,
-                                                  forceSaveApplier: ForceSaveApplier): CoreFile = {
+  def mmapWriteableReadable(path: Path,
+                            fileOpenIOStrategy: IOStrategy.ThreadSafe,
+                            autoClose: Boolean,
+                            deleteAfterClean: Boolean,
+                            forceSave: ForceSave.MMAPFiles,
+                            bytes: Array[Slice[Byte]])(implicit fileSweeper: FileSweeper,
+                                                       bufferCleaner: ByteBufferSweeperActor,
+                                                       forceSaveApplier: ForceSaveApplier): CoreFile = {
     val totalWritten =
       bytes.foldLeft(0) { //do not write bytes if the Slice has empty bytes.
         case (written, bytes) =>
@@ -173,7 +173,7 @@ private[core] object CoreFile extends LazyLogging {
       }
 
     val file =
-      mmapInit(
+      mmapEmptyWriteableReadable(
         path = path,
         fileOpenIOStrategy = fileOpenIOStrategy,
         bufferSize = totalWritten,
@@ -186,20 +186,20 @@ private[core] object CoreFile extends LazyLogging {
     file
   }
 
-  def mmapWriteAndRead(path: Path,
-                       fileOpenIOStrategy: IOStrategy.ThreadSafe,
-                       autoClose: Boolean,
-                       deleteAfterClean: Boolean,
-                       forceSave: ForceSave.MMAPFiles,
-                       bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
-                                           bufferCleaner: ByteBufferSweeperActor,
-                                           forceSaveApplier: ForceSaveApplier): CoreFile =
+  def mmapWriteableReadable(path: Path,
+                            fileOpenIOStrategy: IOStrategy.ThreadSafe,
+                            autoClose: Boolean,
+                            deleteAfterClean: Boolean,
+                            forceSave: ForceSave.MMAPFiles,
+                            bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
+                                                bufferCleaner: ByteBufferSweeperActor,
+                                                forceSaveApplier: ForceSaveApplier): CoreFile =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull) {
       throw swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size)
     } else {
       val file =
-        mmapInit(
+        mmapEmptyWriteableReadable(
           path = path,
           fileOpenIOStrategy = fileOpenIOStrategy,
           bufferSize = bytes.size,
@@ -212,13 +212,13 @@ private[core] object CoreFile extends LazyLogging {
       file
     }
 
-  def mmapRead(path: Path,
-               fileOpenIOStrategy: IOStrategy.ThreadSafe,
-               autoClose: Boolean,
-               deleteAfterClean: Boolean,
-               checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
-                                            bufferCleaner: ByteBufferSweeperActor,
-                                            forceSaveApplier: ForceSaveApplier): CoreFile =
+  def mmapReadable(path: Path,
+                   fileOpenIOStrategy: IOStrategy.ThreadSafe,
+                   autoClose: Boolean,
+                   deleteAfterClean: Boolean,
+                   checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
+                                                bufferCleaner: ByteBufferSweeperActor,
+                                                forceSaveApplier: ForceSaveApplier): CoreFile =
     if (checkExists && Effect.notExists(path)) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -240,17 +240,17 @@ private[core] object CoreFile extends LazyLogging {
       )
     }
 
-  def mmapWriteAndReadTransfer(path: Path,
-                               fileOpenIOStrategy: IOStrategy.ThreadSafe,
-                               autoClose: Boolean,
-                               deleteAfterClean: Boolean,
-                               forceSave: ForceSave.MMAPFiles,
-                               bufferSize: Int,
-                               transfer: CoreFile => Unit)(implicit fileSweeper: FileSweeper,
-                                                           bufferCleaner: ByteBufferSweeperActor,
-                                                           forceSaveApplier: ForceSaveApplier): CoreFile = {
+  def mmapWriteableReadableTransfer(path: Path,
+                                    fileOpenIOStrategy: IOStrategy.ThreadSafe,
+                                    autoClose: Boolean,
+                                    deleteAfterClean: Boolean,
+                                    forceSave: ForceSave.MMAPFiles,
+                                    bufferSize: Int,
+                                    transfer: CoreFile => Unit)(implicit fileSweeper: FileSweeper,
+                                                                bufferCleaner: ByteBufferSweeperActor,
+                                                                forceSaveApplier: ForceSaveApplier): CoreFile = {
     val file =
-      mmapInit(
+      mmapEmptyWriteableReadable(
         path = path,
         fileOpenIOStrategy = fileOpenIOStrategy,
         bufferSize = bufferSize,
@@ -271,16 +271,16 @@ private[core] object CoreFile extends LazyLogging {
     file
   }
 
-  def mmapInit(path: Path,
-               fileOpenIOStrategy: IOStrategy.ThreadSafe,
-               bufferSize: Int,
-               autoClose: Boolean,
-               deleteAfterClean: Boolean,
-               forceSave: ForceSave.MMAPFiles)(implicit fileSweeper: FileSweeper,
-                                               bufferCleaner: ByteBufferSweeperActor,
-                                               forceSaveApplier: ForceSaveApplier): CoreFile = {
+  def mmapEmptyWriteableReadable(path: Path,
+                                 fileOpenIOStrategy: IOStrategy.ThreadSafe,
+                                 bufferSize: Int,
+                                 autoClose: Boolean,
+                                 deleteAfterClean: Boolean,
+                                 forceSave: ForceSave.MMAPFiles)(implicit fileSweeper: FileSweeper,
+                                                                 bufferCleaner: ByteBufferSweeperActor,
+                                                                 forceSaveApplier: ForceSaveApplier): CoreFile = {
     val file =
-      MMAPFile.write(
+      MMAPFile.writeableReadable(
         path = path,
         bufferSize = bufferSize,
         deleteAfterClean = deleteAfterClean,

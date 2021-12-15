@@ -60,7 +60,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
             FileSweeper(1, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext)).sweep()
 
           val file: CoreFile =
-            CoreFile.mmapWriteAndRead(
+            CoreFile.mmapWriteableReadable(
               path = randomDir(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
@@ -95,7 +95,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
           val files =
             (1 to 10) map {
               _ =>
-                CoreFile.mmapWriteAndRead(
+                CoreFile.mmapWriteableReadable(
                   path = randomDir(),
                   fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                   autoClose = true,

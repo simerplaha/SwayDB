@@ -262,7 +262,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                                                             forceSaveApplier: ForceSaveApplier): CoreFile =
     mmap match {
       case MMAP.On(deleteAfterClean, forceSave) => //if both read and writes are mmaped. Keep the file open.
-        CoreFile.mmapWriteAndReadTransfer(
+        CoreFile.mmapWriteableReadableTransfer(
           path = path,
           fileOpenIOStrategy = segmentReadIO.fileOpenIO,
           autoClose = true,
@@ -274,7 +274,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
 
       case MMAP.ReadOnly(deleteAfterClean) =>
         val standardWrite =
-          CoreFile.standardWrite(
+          CoreFile.standardWritable(
             path = path,
             fileOpenIOStrategy = segmentReadIO.fileOpenIO,
             autoClose = true,
@@ -292,7 +292,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
 
         standardWrite.close()
 
-        CoreFile.mmapRead(
+        CoreFile.mmapReadable(
           path = standardWrite.path,
           fileOpenIOStrategy = segmentReadIO.fileOpenIO,
           autoClose = true,
@@ -301,7 +301,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
 
       case _: MMAP.Off =>
         val standardWrite =
-          CoreFile.standardWrite(
+          CoreFile.standardWritable(
             path = path,
             fileOpenIOStrategy = segmentReadIO.fileOpenIO,
             autoClose = true,
@@ -319,7 +319,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
 
         standardWrite.close()
 
-        CoreFile.standardRead(
+        CoreFile.standardReadable(
           path = standardWrite.path,
           fileOpenIOStrategy = segmentReadIO.fileOpenIO,
           autoClose = true

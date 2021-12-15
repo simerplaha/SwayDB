@@ -139,8 +139,8 @@ object IO {
    */
   type BootIO[+T] = IO[Error.Boot, T]
 
-  val unit: IO.Right[Nothing, Unit] = IO.Right(())(IO.ExceptionHandler.Nothing)
-  val none: IO.Right[Nothing, Option[Nothing]] = IO.Right(None)(IO.ExceptionHandler.Nothing)
+  final val unit: IO.Right[Nothing, Unit] = IO.Right(())(IO.ExceptionHandler.Nothing)
+  final val none: IO.Right[Nothing, Option[Nothing]] = IO.Right(None)(IO.ExceptionHandler.Nothing)
 
   @inline final def tryOrNone[A](block: => A): Option[A] =
     try

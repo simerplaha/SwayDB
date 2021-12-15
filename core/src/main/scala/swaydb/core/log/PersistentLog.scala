@@ -112,7 +112,7 @@ protected object PersistentLog extends LazyLogging {
                                forceSaveApplier: ForceSaveApplier): CoreFile =
     memoryMapped match {
       case MMAP.On(deleteAfterClean, forceSave) =>
-        CoreFile.mmapInit(
+        CoreFile.mmapEmptyWriteableReadable(
           path = folder.resolve(0.toLogFileId),
           fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
           bufferSize = fileSize,
@@ -122,7 +122,7 @@ protected object PersistentLog extends LazyLogging {
         )
 
       case MMAP.Off(forceSave) =>
-        CoreFile.standardWrite(
+        CoreFile.standardWritable(
           path = folder.resolve(0.toLogFileId),
           fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
           autoClose = false,
@@ -147,7 +147,7 @@ protected object PersistentLog extends LazyLogging {
       files mapRecover {
         path =>
           logger.info(s"$path: Recovering key-values with dropCorruptedTailEntries set as $dropCorruptedTailEntries.")
-          val file = CoreFile.standardRead(path, IOStrategy.SynchronisedIO(true), autoClose = false)
+          val file = CoreFile.standardReadable(path, IOStrategy.SynchronisedIO(true), autoClose = false)
           val bytes = file.readAll()
           val recovery = LogEntrySerialiser.read[K, V](bytes, dropCorruptedTailEntries).get
 
@@ -240,7 +240,7 @@ protected object PersistentLog extends LazyLogging {
     val newFile =
       mmap match {
         case MMAP.On(deleteAfterClean, forceSave) =>
-          CoreFile.mmapInit(
+          CoreFile.mmapEmptyWriteableReadable(
             path = nextPath,
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
             bufferSize = bytes.size + size,
@@ -250,7 +250,7 @@ protected object PersistentLog extends LazyLogging {
           )
 
         case MMAP.Off(forceSave) =>
-          CoreFile.standardWrite(
+          CoreFile.standardWritable(
             path = nextPath,
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
             autoClose = false,

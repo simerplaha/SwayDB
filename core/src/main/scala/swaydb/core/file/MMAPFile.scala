@@ -32,11 +32,11 @@ import scala.annotation.tailrec
 
 private object MMAPFile {
 
-  def write(path: Path,
-            bufferSize: Int,
-            deleteAfterClean: Boolean,
-            forceSave: ForceSave.MMAPFiles)(implicit cleaner: ByteBufferSweeperActor,
-                                            forceSaveApplier: ForceSaveApplier): MMAPFile =
+  def writeableReadable(path: Path,
+                        bufferSize: Int,
+                        deleteAfterClean: Boolean,
+                        forceSave: ForceSave.MMAPFiles)(implicit cleaner: ByteBufferSweeperActor,
+                                                        forceSaveApplier: ForceSaveApplier): MMAPFile =
     MMAPFile(
       path = path,
       channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW),
@@ -46,9 +46,9 @@ private object MMAPFile {
       forceSave = forceSave
     )
 
-  def read(path: Path,
-           deleteAfterClean: Boolean)(implicit cleaner: ByteBufferSweeperActor,
-                                      forceSaveApplier: ForceSaveApplier): MMAPFile = {
+  def readable(path: Path,
+               deleteAfterClean: Boolean)(implicit cleaner: ByteBufferSweeperActor,
+                                          forceSaveApplier: ForceSaveApplier): MMAPFile = {
     val channel = FileChannel.open(path, StandardOpenOption.READ)
 
     MMAPFile(

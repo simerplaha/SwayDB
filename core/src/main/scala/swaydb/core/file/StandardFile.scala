@@ -29,8 +29,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 private object StandardFile {
 
-  def write(path: Path,
-            forceSave: ForceSave.StandardFiles)(implicit forceSaveApplier: ForceSaveApplier): StandardFile =
+  def writeable(path: Path,
+                forceSave: ForceSave.StandardFiles)(implicit forceSaveApplier: ForceSaveApplier): StandardFile =
     new StandardFile(
       path = path,
       mode = StandardOpenOption.WRITE,
@@ -38,7 +38,7 @@ private object StandardFile {
       forceSave = forceSave
     )
 
-  def read(path: Path)(implicit forceSaveApplier: ForceSaveApplier): StandardFile =
+  def readable(path: Path)(implicit forceSaveApplier: ForceSaveApplier): StandardFile =
     if (Effect.exists(path))
       new StandardFile(
         path = path,

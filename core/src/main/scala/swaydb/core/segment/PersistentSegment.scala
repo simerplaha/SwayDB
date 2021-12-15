@@ -170,7 +170,7 @@ private[core] object PersistentSegment extends LazyLogging {
     val file =
       mmap match {
         case _: MMAP.On | _: MMAP.ReadOnly =>
-          CoreFile.mmapRead(
+          CoreFile.mmapReadable(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
             autoClose = true,
@@ -179,7 +179,7 @@ private[core] object PersistentSegment extends LazyLogging {
           )
 
         case _: MMAP.Off =>
-          CoreFile.standardRead(
+          CoreFile.standardReadable(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
             autoClose = true,
@@ -307,7 +307,7 @@ private[core] object PersistentSegment extends LazyLogging {
     val file =
       mmap match {
         case _: MMAP.On | _: MMAP.ReadOnly =>
-          CoreFile.mmapRead(
+          CoreFile.mmapReadable(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
             autoClose = false,
@@ -316,7 +316,7 @@ private[core] object PersistentSegment extends LazyLogging {
           )
 
         case _: MMAP.Off =>
-          CoreFile.standardRead(
+          CoreFile.standardReadable(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
             autoClose = false,

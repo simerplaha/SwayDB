@@ -70,7 +70,7 @@ class CoreFileWriteReadPerformanceSpec extends ACoreSpec {
         //        mmapFile.close()
 
         val standardFile =
-          CoreFile.standardRead(
+          CoreFile.standardReadable(
             path = Effect.write(path, bytes.toByteBufferWrap),
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
             autoClose = true

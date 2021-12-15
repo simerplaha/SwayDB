@@ -66,7 +66,7 @@ object CoreFileTestKit {
   def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestSweeper): CoreFile = {
     import sweeper._
 
-    CoreFile.mmapWriteAndRead(
+    CoreFile.mmapWriteableReadable(
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
@@ -79,7 +79,7 @@ object CoreFileTestKit {
   def createWriteableMMAPFile(path: Path, bufferSize: Int)(implicit sweeper: TestSweeper): CoreFile = {
     import sweeper._
 
-    CoreFile.mmapInit(
+    CoreFile.mmapEmptyWriteableReadable(
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
@@ -92,7 +92,7 @@ object CoreFileTestKit {
   def createWriteableStandardFile(path: Path)(implicit sweeper: TestSweeper): CoreFile = {
     import sweeper._
 
-    CoreFile.standardWrite(
+    CoreFile.standardWritable(
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
@@ -104,7 +104,7 @@ object CoreFileTestKit {
     import sweeper._
 
     val file =
-      CoreFile.standardWrite(
+      CoreFile.standardWritable(
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
@@ -114,7 +114,7 @@ object CoreFileTestKit {
     file.append(bytes)
     file.close()
 
-    CoreFile.standardRead(
+    CoreFile.standardReadable(
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true
@@ -125,7 +125,7 @@ object CoreFileTestKit {
     import sweeper._
 
     val file =
-      CoreFile.mmapRead(
+      CoreFile.mmapReadable(
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
@@ -142,7 +142,7 @@ object CoreFileTestKit {
     import sweeper._
 
     val file =
-      CoreFile.standardRead(
+      CoreFile.standardReadable(
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true
