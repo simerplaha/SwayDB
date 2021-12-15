@@ -15,10 +15,10 @@ import org.scalatest.PrivateMethodTester._
 
 object CoreFileTestKit {
 
-  private[file] def invokePrivateFunction_file(coreFile: CoreFile): CoreFileType =
+  private[file] def invokePrivate_file(coreFile: CoreFile): CoreFileType =
     coreFile invokePrivate PrivateMethod[CoreFileType](Symbol("file"))()
 
-  def invokePrivateFunction_file(reader: FileReader): CoreFile =
+  def invokePrivate_file(reader: FileReader): CoreFile =
     reader invokePrivate PrivateMethod[CoreFile](Symbol("file"))()
 
   def randomFilePath()(implicit sweeper: TestSweeper): Path =

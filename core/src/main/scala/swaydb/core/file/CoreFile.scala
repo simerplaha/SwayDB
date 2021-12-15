@@ -167,7 +167,7 @@ private[core] object CoreFile extends LazyLogging {
       bytes.foldLeft(0) { //do not write bytes if the Slice has empty bytes.
         case (written, bytes) =>
           if (!bytes.isFull)
-            throw swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size)
+            throw swaydb.Exception.FailedToWriteAllBytes(0, bytes.allocatedSize, bytes.size)
           else
             written + bytes.size
       }
@@ -183,37 +183,6 @@ private[core] object CoreFile extends LazyLogging {
       )
 
     file.appendBatch(bytes)
-    file
-  }
-
-  def mmapWriteAndReadTransfer(path: Path,
-                               fileOpenIOStrategy: IOStrategy.ThreadSafe,
-                               autoClose: Boolean,
-                               deleteAfterClean: Boolean,
-                               forceSave: ForceSave.MMAPFiles,
-                               bufferSize: Int,
-                               transfer: CoreFile => Unit)(implicit fileSweeper: FileSweeper,
-                                                           bufferCleaner: ByteBufferSweeperActor,
-                                                           forceSaveApplier: ForceSaveApplier): CoreFile = {
-    val file =
-      mmapInit(
-        path = path,
-        fileOpenIOStrategy = fileOpenIOStrategy,
-        bufferSize = bufferSize,
-        autoClose = autoClose,
-        forceSave = forceSave,
-        deleteAfterClean = deleteAfterClean
-      )
-
-    try
-      transfer(file)
-    catch {
-      case throwable: Throwable =>
-        logger.error(s"Failed to write MMAP file with applier. Closing file: $path", throwable)
-        file.close()
-        throw throwable
-    }
-
     file
   }
 
@@ -270,6 +239,37 @@ private[core] object CoreFile extends LazyLogging {
           )
       )
     }
+
+  def mmapWriteAndReadTransfer(path: Path,
+                               fileOpenIOStrategy: IOStrategy.ThreadSafe,
+                               autoClose: Boolean,
+                               deleteAfterClean: Boolean,
+                               forceSave: ForceSave.MMAPFiles,
+                               bufferSize: Int,
+                               transfer: CoreFile => Unit)(implicit fileSweeper: FileSweeper,
+                                                           bufferCleaner: ByteBufferSweeperActor,
+                                                           forceSaveApplier: ForceSaveApplier): CoreFile = {
+    val file =
+      mmapInit(
+        path = path,
+        fileOpenIOStrategy = fileOpenIOStrategy,
+        bufferSize = bufferSize,
+        autoClose = autoClose,
+        forceSave = forceSave,
+        deleteAfterClean = deleteAfterClean
+      )
+
+    try
+      transfer(file)
+    catch {
+      case throwable: Throwable =>
+        logger.error(s"Failed to write MMAP file with applier. Closing file: $path", throwable)
+        file.close()
+        throw throwable
+    }
+
+    file
+  }
 
   def mmapInit(path: Path,
                fileOpenIOStrategy: IOStrategy.ThreadSafe,

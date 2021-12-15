@@ -69,7 +69,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
               bytes = Array(randomBytesSlice())
             )
 
-          val innerFile = invokePrivateFunction_file(file).shouldBeInstanceOf[MMAPFile]
+          val innerFile = invokePrivate_file(file).shouldBeInstanceOf[MMAPFile]
 
           fileSweeper.closer.terminateAndRecover[Glass, Unit](_ => ())
           fileSweeper.deleter.terminateAndRecover[Glass, Unit](_ => ())

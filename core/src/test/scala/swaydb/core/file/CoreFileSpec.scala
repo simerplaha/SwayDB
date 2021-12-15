@@ -37,104 +37,6 @@ import java.nio.ReadOnlyBufferException
 
 class CoreFileSpec extends AnyWordSpec with Matchers {
 
-  "write" should {
-    "write bytes to a File" in {
-      TestSweeper(times = 10) {
-        implicit sweeper =>
-          val bytes1 = Slice.wrap(randomBytes(100))
-          val bytes2 = Slice.wrap(randomBytes(100))
-
-          val (left, right) = createFiles(bytes1, bytes2).toTuple
-
-          createFileReaders(left.path) foreach {
-            reader =>
-              reader.readRemaining() shouldBe bytes1
-              invokePrivateFunction_file(reader).readAll() shouldBe bytes1
-          }
-
-          createFileReaders(right.path) foreach {
-            reader =>
-              reader.readRemaining() shouldBe bytes2
-              invokePrivateFunction_file(reader).readAll() shouldBe bytes2
-          }
-      }
-    }
-
-    "write empty bytes to a File" in {
-      TestSweeper {
-        implicit sweeper =>
-          //This test might log NullPointerException because cleaner is being
-          //invoked a MappedByteBuffer which is empty. This is a valid test
-          //but does not occur in reality. If a file (Segment or Map) are empty
-          //then they are not created which would only occur if all key-values
-          //from that file were removed.
-          val files = createFiles(Slice.emptyBytes, Slice.emptyBytes)
-          files.foreach(_.existsOnDisk() shouldBe true)
-
-          files foreach {
-            file =>
-              createFileReaders(file.path) foreach {
-                reader =>
-                  invokePrivateFunction_file(reader).readAll() shouldBe Slice.emptyBytes
-                  invokePrivateFunction_file(reader).close()
-              }
-          }
-
-          //ensure that file exists
-          files.exists(file => Effect.notExists(file.path)) shouldBe false
-      }
-    }
-
-    "write partially written bytes" in {
-      TestSweeper {
-        implicit sweeper =>
-          //size is 10 but only 2 bytes were written
-          val incompleteBytes = Slice.allocate[Byte](10)
-          incompleteBytes.addUnsignedInt(1)
-          incompleteBytes.addUnsignedInt(2)
-          incompleteBytes.size shouldBe 2
-
-          val bytes = incompleteBytes.close()
-
-          val files = createFiles(bytes, bytes)
-
-          files foreach {
-            file =>
-              bytes shouldBe Slice.wrap(Effect.readAllBytes(file.path))
-              bytes shouldBe file.readAll()
-          }
-      }
-    }
-
-    "fail to write if the file already exists" in {
-      TestSweeper {
-        implicit sweeper =>
-
-          val bytes = randomBytesSlice()
-
-          val mmap = createMMAPWriteAndRead(randomFilePath(), bytes)
-          val standard = createStandardWriteAndRead(randomFilePath(), bytes)
-
-          val files = List(mmap, standard)
-
-          files foreach {
-            file =>
-              //creating the same file again should fail
-              assertThrows[FileAlreadyExistsException](createMMAPWriteAndRead(file.path, randomBytesSlice()))
-              assertThrows[FileAlreadyExistsException](createStandardWriteAndRead(file.path, randomBytesSlice()))
-          }
-
-          //flush
-          files.foreach(_.close())
-
-          files foreach {
-            file =>
-              file.readAll() shouldBe bytes
-          }
-      }
-    }
-  }
-
   "standardWrite" should {
     "initialise a StandardFile for writing and not reading and invoke the onOpen function on open" in {
       TestSweeper {
@@ -541,6 +443,104 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               deleteAfterClean = OperatingSystem.isWindows,
               forceSave = TestForceSave.mmap()
             )
+          }
+      }
+    }
+  }
+
+  "write" should {
+    "write bytes to a File" in {
+      TestSweeper(times = 10) {
+        implicit sweeper =>
+          val bytes1 = Slice.wrap(randomBytes(100))
+          val bytes2 = Slice.wrap(randomBytes(100))
+
+          val (left, right) = createFiles(bytes1, bytes2).toTuple
+
+          createFileReaders(left.path) foreach {
+            reader =>
+              reader.readRemaining() shouldBe bytes1
+              invokePrivate_file(reader).readAll() shouldBe bytes1
+          }
+
+          createFileReaders(right.path) foreach {
+            reader =>
+              reader.readRemaining() shouldBe bytes2
+              invokePrivate_file(reader).readAll() shouldBe bytes2
+          }
+      }
+    }
+
+    "write empty bytes to a File" in {
+      TestSweeper {
+        implicit sweeper =>
+          //This test might log NullPointerException because cleaner is being
+          //invoked a MappedByteBuffer which is empty. This is a valid test
+          //but does not occur in reality. If a file (Segment or Map) are empty
+          //then they are not created which would only occur if all key-values
+          //from that file were removed.
+          val files = createFiles(Slice.emptyBytes, Slice.emptyBytes)
+          files.foreach(_.existsOnDisk() shouldBe true)
+
+          files foreach {
+            file =>
+              createFileReaders(file.path) foreach {
+                reader =>
+                  invokePrivate_file(reader).readAll() shouldBe Slice.emptyBytes
+                  invokePrivate_file(reader).close()
+              }
+          }
+
+          //ensure that file exists
+          files.exists(file => Effect.notExists(file.path)) shouldBe false
+      }
+    }
+
+    "write partially written bytes" in {
+      TestSweeper {
+        implicit sweeper =>
+          //size is 10 but only 2 bytes were written
+          val incompleteBytes = Slice.allocate[Byte](10)
+          incompleteBytes.addUnsignedInt(1)
+          incompleteBytes.addUnsignedInt(2)
+          incompleteBytes.size shouldBe 2
+
+          val bytes = incompleteBytes.close()
+
+          val files = createFiles(bytes, bytes)
+
+          files foreach {
+            file =>
+              bytes shouldBe Slice.wrap(Effect.readAllBytes(file.path))
+              bytes shouldBe file.readAll()
+          }
+      }
+    }
+
+    "fail to write if the file already exists" in {
+      TestSweeper {
+        implicit sweeper =>
+
+          val bytes = randomBytesSlice()
+
+          val mmap = createMMAPWriteAndRead(randomFilePath(), bytes)
+          val standard = createStandardWriteAndRead(randomFilePath(), bytes)
+
+          val files = List(mmap, standard)
+
+          files foreach {
+            file =>
+              //creating the same file again should fail
+              assertThrows[FileAlreadyExistsException](createMMAPWriteAndRead(file.path, randomBytesSlice()))
+              assertThrows[FileAlreadyExistsException](createStandardWriteAndRead(file.path, randomBytesSlice()))
+          }
+
+          //flush
+          files.foreach(_.close())
+
+          files foreach {
+            file =>
+              file.readAll() shouldBe bytes
           }
       }
     }
@@ -1212,7 +1212,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
             createFiles(bytes, bytes) foreach {
               file =>
                 //blockSize is 9 so expect 12 slices to get created with the last slice being of size 1
-                val slices = file.read(0, bytes.size, 9).asInstanceOf[Slices[Byte]].slices
+                val slices = file.read(0, bytes.size, 9).shouldBeInstanceOf[Slices[Byte]].slices
                 slices should have size 12
 
                 slices.indices foreach {

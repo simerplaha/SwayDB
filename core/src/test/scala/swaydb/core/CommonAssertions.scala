@@ -1576,7 +1576,7 @@ object CommonAssertions {
         reader match {
           case reader: FileReader =>
             import swaydb.core.file.CoreFileTestKit._
-            BlockRefReader(invokePrivateFunction_file(reader), BlockCache.forSearch(reader.size(), blockCacheMemorySweeper))
+            BlockRefReader(invokePrivate_file(reader), BlockCache.forSearch(reader.size(), blockCacheMemorySweeper))
 
           case SliceReader(slice, position) =>
             BlockRefReader[SegmentBlockOffset](slice.drop(position))
