@@ -31,7 +31,7 @@ import scala.jdk.CollectionConverters._
 sealed trait PersistentConfig
 
 /**
- * http://swaydb.io#configuring-levels
+ * https://swaydb.io#configuring-levels
  */
 object ConfigWizard {
 

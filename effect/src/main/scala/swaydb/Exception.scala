@@ -17,6 +17,7 @@
 package swaydb
 
 import swaydb.effect.Reserve
+import swaydb.utils.English
 
 import java.lang
 import java.nio.channels.OverlappingFileLockException
@@ -81,20 +82,14 @@ object Exception {
   /**
    * Report missing functions.
    */
-  def pluralFunction(size: Int) =
-    if (size == 1)
-      "function"
-    else
-      "functions"
-
-  def listMissingFunctions(functions: Iterable[String]) =
+  @inline private def listMissingFunctions(functions: Iterable[String]): String =
     if (functions.size <= maxFunctionsToLog)
       s"""List(${functions.take(maxFunctionsToLog).map(id => s""""$id"""").mkString(", ")})"""
     else
       s"""List(${functions.take(maxFunctionsToLog).map(id => s""""$id"""").mkString("", ", ", ", ...")})"""
 
-  def missingFunctionsMessage(functions: Iterable[String]) =
-    s"Missing ${functions.size} ${pluralFunction(functions.size)}. ${listMissingFunctions(functions)}" + {
+  @inline private def missingFunctionsMessage(functions: Iterable[String]): String =
+    s"Missing ${functions.size} ${English.plural(functions.size, "function")}. ${listMissingFunctions(functions)}" + {
       if (functions.size > maxFunctionsToLog)
         s". See this exception's 'functions' value for a list of missing functions. " +
           s"Or set 'clearAppliedFunctionsOnBoot = true' to clear already applied functions."
@@ -114,7 +109,7 @@ object Exception {
    * @param functionId the id of the missing function.
    */
   case class FunctionNotFound(functionId: String)
-    extends Exception(s"Function with id '$functionId' not found. Make sure the function is added to the instance. See documentation http://swaydb.io/.")
+    extends Exception(s"Function with id '$functionId' not found. Make sure the function is added to the instance. See documentation https://swaydb.io/.")
       with SwayDBException
 
   case class OverlappingFileLock(exception: OverlappingFileLockException)

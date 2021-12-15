@@ -29,7 +29,7 @@ import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
 
 /**
- * Documentation - http://swaydb.io/
+ * Documentation - https://swaydb.io/
  */
 case class Set[A, F](asScala: swaydb.Set[A, F, Glass])(implicit evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) extends Source[A, A] {
 

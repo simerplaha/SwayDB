@@ -35,7 +35,7 @@ object Accelerator {
     )
 
   /**
-   * http://swaydb.io/configuring-levels/acceleration
+   * https://swaydb.io/configuring-levels/acceleration
    */
   private def nextLogSize(mapCount: Int,
                           increaseLogSizeBy: Int,
@@ -47,7 +47,7 @@ object Accelerator {
       (level0Meter.currentLogSize * increaseLogSizeBy) min maxLogSize
 
   /**
-   * http://swaydb.io/configuring-levels/acceleration/brake
+   * https://swaydb.io/configuring-levels/acceleration/brake
    */
   def brake(increaseLogSizeOnMapCount: Int = 4,
             increaseLogSizeBy: Int = 2,
@@ -79,7 +79,7 @@ object Accelerator {
     NoBrakesBuilder.builder()
 
   /**
-   * http://swaydb.io/configuring-levels/acceleration/noBrakes
+   * https://swaydb.io/configuring-levels/acceleration/noBrakes
    */
 
   def noBrakes(onMapCount: Int = 6,
@@ -105,7 +105,7 @@ object Accelerator {
 }
 
 /**
- * http://swaydb.io/configuring-levels/acceleration
+ * https://swaydb.io/configuring-levels/acceleration
  */
 case class Accelerator(nextLogSize: Int,
                        brake: Option[Brake])

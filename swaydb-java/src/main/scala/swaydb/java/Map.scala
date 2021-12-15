@@ -32,7 +32,7 @@ import scala.concurrent.duration
 import scala.jdk.CollectionConverters._
 
 /**
- * Documentation - http://swaydb.io/
+ * Documentation - https://swaydb.io/
  */
 case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Glass])(implicit evd: F <:< PureFunction.Map[K, V]) extends swaydb.java.MapT[K, V, F] {
 

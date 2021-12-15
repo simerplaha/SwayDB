@@ -34,7 +34,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 /**
  * Map database API.
  *
- * For documentation check - http://swaydb.io/
+ * For documentation check - https://swaydb.io/
  */
 case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit val keySerializer: Serializer[K],
                                                                      val valueSerializer: Serializer[V],

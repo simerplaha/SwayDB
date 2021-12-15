@@ -76,16 +76,16 @@ private[core] object CoreInitialiser extends LazyLogging {
     }
 
   /**
-   * Initialises Core/Levels. To see full documentation for each input parameter see the website - http://swaydb.io/configurations/.
+   * Initialises Core/Levels. To see full documentation for each input parameter see the website - https://swaydb.io/configurations/.
    *
    * @param config           configuration used for initialisations which is created via [[ConfigWizard]]
    * @param enableTimer      if true initialises the timer folder. This is only required if the database has functions enabled.
    * @param cacheKeyValueIds if true, will cache the 3000+ key-values in-memory instead of performing binary search for each search key-value id.
    *                         Set this to true to boost performance and reduce IOps.
-   * @param fileCache        Controls when files are closed & deleted. See the configuration documentation - http://swaydb.io/configurations/fileCache/
+   * @param fileCache        Controls when files are closed & deleted. See the configuration documentation - https://swaydb.io/configurations/fileCache/
    * @param threadStateCache Each thread is assigned a small cache to boost read performance. This can be optionally enabled. See
-   *                         http://swaydb.io/configurations/threadStateCache/
-   * @param memoryCache      Configures how in-memory caches should process read bytes and parsed key-values. See - http://swaydb.io/configurations/memoryCache/
+   *                         https://swaydb.io/configurations/threadStateCache/
+   * @param memoryCache      Configures how in-memory caches should process read bytes and parsed key-values. See - https://swaydb.io/configurations/memoryCache/
    * @param keyOrder         Defines the sort order for keys. See documentation on website.
    * @param timeOrder        Defines the order in which a single key-value's updates are applied.
    * @param functionStore    Stores all registered functions.

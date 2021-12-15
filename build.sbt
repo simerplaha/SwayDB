@@ -78,7 +78,7 @@ val publishSettings = Seq[Setting[_]](
   publishLocal := {},
   sonatypeProjectHosting := Some(GitHubHosting("simerplaha", "SwayDB", "simer.j@gmail.com")),
   developers := List(
-    Developer(id = "simerplaha", name = "Simer JS Plaha", email = "simer.j@gmail.com", url = url("http://swaydb.io"))
+    Developer(id = "simerplaha", name = "Simer JS Plaha", email = "simer.j@gmail.com", url = url("https://swaydb.io"))
   ),
   scalacOptions ++= scalaOptions,
   publishTo := sonatypePublishTo.value,

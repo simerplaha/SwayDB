@@ -33,7 +33,7 @@ import scala.concurrent.duration
 import scala.jdk.CollectionConverters._
 
 /**
- * Documentation - http://swaydb.io/
+ * Documentation - https://swaydb.io/
  */
 case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Glass])(implicit evd: F <:< PureFunction.Map[K, V]) extends MapT[K, V, F] {
 

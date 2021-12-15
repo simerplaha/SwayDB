@@ -30,7 +30,7 @@ import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
 
 /**
- * Documentation - http://swaydb.io/
+ * Documentation - https://swaydb.io/
  */
 case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Glass]) extends SetMapT[K, V] {
 
