@@ -219,9 +219,9 @@ private[core] object CoreFile extends LazyLogging {
                    checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                                 bufferCleaner: ByteBufferSweeperActor,
                                                 forceSaveApplier: ForceSaveApplier): CoreFile =
-    if (checkExists && Effect.notExists(path)) {
+    if (checkExists && Effect.notExists(path))
       throw swaydb.Exception.NoSuchFile(path)
-    } else {
+    else
       new CoreFile(
         path = path,
         memoryMapped = true,
@@ -238,7 +238,6 @@ private[core] object CoreFile extends LazyLogging {
             autoClose = autoClose
           )
       )
-    }
 
   def mmapWriteableReadableTransfer(path: Path,
                                     fileOpenIOStrategy: IOStrategy.ThreadSafe,

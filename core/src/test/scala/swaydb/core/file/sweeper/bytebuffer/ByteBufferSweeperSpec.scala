@@ -51,33 +51,31 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
   implicit val futureBag: Async.Retryable[Future] = Bag.future
 
   "clear a MMAP file" in {
-    runThis(10.times, log = true) {
-      TestSweeper {
-        implicit sweeper =>
-          import sweeper._
+    TestSweeper(10.times) {
+      implicit sweeper =>
+        import sweeper._
 
-          implicit val fileSweeper: FileSweeper =
-            FileSweeper(1, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext)).sweep()
+        implicit val fileSweeper: FileSweeper =
+          FileSweeper(1, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext)).sweep()
 
-          val file: CoreFile =
-            CoreFile.mmapWriteableReadable(
-              path = randomDir(),
-              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-              autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows(),
-              forceSave = TestForceSave.mmap(),
-              bytes = Array(randomBytesSlice())
-            )
+        val file: CoreFile =
+          CoreFile.mmapWriteableReadable(
+            path = randomDir(),
+            fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+            autoClose = true,
+            deleteAfterClean = OperatingSystem.isWindows(),
+            forceSave = TestForceSave.mmap(),
+            bytes = Array(randomBytesSlice())
+          )
 
-          val innerFile = invokePrivate_file(file).shouldBeInstanceOf[MMAPFile]
+        val innerFile = invokePrivate_file(file).shouldBeInstanceOf[MMAPFile]
 
-          fileSweeper.closer.terminateAndRecover[Glass, Unit](_ => ())
-          fileSweeper.deleter.terminateAndRecover[Glass, Unit](_ => ())
+        fileSweeper.closer.terminateAndRecover[Glass, Unit](_ => ())
+        fileSweeper.deleter.terminateAndRecover[Glass, Unit](_ => ())
 
-          eventual(2.seconds) {
-            innerFile.isBufferEmpty shouldBe true
-          }
-      }
+        eventual(2.seconds) {
+          innerFile.isBufferEmpty shouldBe true
+        }
     }
   }
 
