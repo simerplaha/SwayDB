@@ -136,7 +136,7 @@ def commonDependencies(scalaVersion: String) =
 
 lazy val SwayDB =
   (project in file("."))
-    .settings(name := "SwayDB-source")
+    .settings(name := "swaydb")
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(`swaydb-scala`)
@@ -161,6 +161,7 @@ lazy val SwayDB =
 
 lazy val testkit =
   project
+    .in(file("swaydb/testkit"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
@@ -172,6 +173,7 @@ lazy val testkit =
 
 lazy val utils =
   project
+    .in(file("swaydb/utils"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -179,6 +181,7 @@ lazy val utils =
 
 lazy val effect =
   project
+    .in(file("swaydb/effect"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -186,7 +189,7 @@ lazy val effect =
 
 lazy val core =
   project
-    .in(file("core"))
+    .in(file("swaydb/core"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -208,6 +211,7 @@ lazy val core =
 
 lazy val `core-interop` =
   project
+    .in(file("swaydb/core-interop"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -222,6 +226,7 @@ lazy val `core-interop` =
 
 lazy val `core-skiplist` =
   project
+    .in(file("swaydb/core-skiplist"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -235,6 +240,7 @@ lazy val `core-skiplist` =
 
 lazy val `core-series` =
   project
+    .in(file("swaydb/core-series"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -246,6 +252,7 @@ lazy val `core-series` =
 
 lazy val `core-queue` =
   project
+    .in(file("swaydb/core-queue"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -253,6 +260,7 @@ lazy val `core-queue` =
 
 lazy val slice =
   project
+    .in(file("swaydb/slice"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -260,6 +268,7 @@ lazy val slice =
 
 lazy val actor =
   project
+    .in(file("swaydb/actor"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -267,6 +276,7 @@ lazy val actor =
 
 lazy val stream =
   project
+    .in(file("swaydb/stream"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -274,6 +284,7 @@ lazy val stream =
 
 lazy val `core-cache` =
   project
+    .in(file("swaydb/core-cache"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -285,6 +296,7 @@ lazy val `core-cache` =
 
 lazy val `swaydb-scala` =
   project
+    .in(file("swaydb/swaydb-scala"))
     .settings(name := "scala")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -307,30 +319,35 @@ lazy val `swaydb-scala` =
 
 lazy val configs =
   project
+    .in(file("swaydb/configs"))
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(`core-interop`)
 
 lazy val serializers =
   project
+    .in(file("swaydb/serializers"))
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(slice)
 
 lazy val `core-stress` =
   project
+    .in(file("swaydb/core-stress"))
     .settings(commonSettings)
     .settings(libraryDependencies ++= testDependencies(scalaVersion.value))
     .dependsOn(core)
 
 lazy val `core-performance` =
   project
+    .in(file("swaydb/core-performance"))
     .settings(commonSettings)
     .settings(libraryDependencies ++= testDependencies(scalaVersion.value))
     .dependsOn(core)
 
 lazy val `core-compression` =
   project
+    .in(file("swaydb/core-compression"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
@@ -343,6 +360,7 @@ lazy val `core-compression` =
 
 lazy val macros =
   project
+    .in(file("swaydb/macros"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -350,6 +368,7 @@ lazy val macros =
 
 lazy val stress =
   project
+    .in(file("swaydb/stress"))
     .settings(commonSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(core, configs)
@@ -357,6 +376,7 @@ lazy val stress =
 
 lazy val `core-tools` =
   project
+    .in(file("swaydb/core-tools"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -367,6 +387,7 @@ lazy val `core-tools` =
  */
 lazy val `x-interop-monix` =
   project
+    .in(file("swaydb/x-interop-monix"))
     .settings(name := "monix")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -375,6 +396,7 @@ lazy val `x-interop-monix` =
 
 lazy val `x-interop-zio` =
   project
+    .in(file("swaydb/x-interop-zio"))
     .settings(name := "zio")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -383,7 +405,8 @@ lazy val `x-interop-zio` =
 
 lazy val `x-interop-cats-effect` =
   project
-    .settings(name := "cats-effect")
+    .in(file("swaydb/x-interop-cats-effect"))
+    .settings(name := "x-interop-cats-effect")
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies += "org.typelevel" %% "cats-effect" % catsEffectVersion)
@@ -394,6 +417,7 @@ lazy val `x-interop-cats-effect` =
  */
 lazy val `x-interop-boopickle` =
   project
+    .in(file("swaydb/x-interop-boopickle"))
     .settings(name := "boopickle")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -402,6 +426,7 @@ lazy val `x-interop-boopickle` =
 
 lazy val tools =
   project
+    .in(file("swaydb/tools"))
     .settings(name := "tools")
     .settings(commonSettings)
     .settings(publishSettings)

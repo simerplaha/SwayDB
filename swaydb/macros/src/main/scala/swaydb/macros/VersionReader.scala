@@ -49,7 +49,7 @@ object VersionReader {
         s"Failed to project root directory. $rootDirectory."
       )
 
-    val filePath = Paths.get(rootDirectory).resolve("version.sbt")
+    val filePath = Paths.get(rootDirectory).getParent.resolve("version.sbt")
     if (Files.notExists(filePath))
       c.abort(
         c.enclosingPosition,
