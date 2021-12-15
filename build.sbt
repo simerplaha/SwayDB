@@ -390,7 +390,7 @@ lazy val `core-tools` =
 
 lazy val `interop-monix` =
   project
-    .in(file("swaydb/interop/monix"))
+    .in(file("swaydb/x-interop-monix"))
     .settings(name := "monix")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -399,7 +399,7 @@ lazy val `interop-monix` =
 
 lazy val `interop-zio` =
   project
-    .in(file("swaydb/interop/zio"))
+    .in(file("swaydb/x-interop-zio"))
     .settings(name := "zio")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -408,7 +408,7 @@ lazy val `interop-zio` =
 
 lazy val `interop-cats-effect` =
   project
-    .in(file("swaydb/interop/cats-effect"))
+    .in(file("swaydb/x-interop-cats-effect"))
     .settings(name := "cats-effect")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -420,7 +420,7 @@ lazy val `interop-cats-effect` =
  */
 lazy val `interop-boopickle` =
   project
-    .in(file("swaydb/interop/boopickle"))
+    .in(file("swaydb/x-interop-boopickle"))
     .settings(name := "boopickle")
     .settings(commonSettings)
     .settings(publishSettings)
