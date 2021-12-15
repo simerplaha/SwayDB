@@ -1,4 +1,4 @@
-# <img src="docs/logo.png" align = "right"/> SwayDB [![Slack Chat][slack-badge]][slack-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Build status][build-badge]][build-link] [![Maven central][maven-badge]][maven-link]
+# <img src="docs/swaydb_logo.png" align = "right"/> SwayDB [![Slack Chat][slack-badge]][slack-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Build status][build-badge]][build-link] [![Maven central][maven-badge]][maven-link]
 
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 
@@ -38,11 +38,11 @@ Thank you [JetBrains](https://www.jetbrains.com/?from=SwayDB)
 for full-featured open-source licences to their awesome development tools!
 
 <table>
-<tr>
-<td><a href="https://www.jetbrains.com/?from=SwayDB" target="_blank"><img src="/docs/jetbrains.png" alt="Jetbrains support" height="150"/></a></td>
-<td><a href="https://www.ej-technologies.com/products/jprofiler/overview.html" target="_blank"><img src="/docs/jprofiler_logo.png" alt="JProfiler support"/></a></td>
-<td><a href="https://github.com/sponsors/simerplaha" target="_blank">[Become a sponsor]</a></td>
-</tr>
+  <tr>
+    <td><a href="https://www.jetbrains.com/?from=SwayDB" target="_blank"><img src="/docs/jetbrains_logo.png" alt="Jetbrains support"/></a></td>
+    <td><a href="https://www.ej-technologies.com/products/jprofiler/overview.html" target="_blank"><img src="/docs/jprofiler_logo.png" alt="JProfiler support"/></a></td>
+    <td><a href="https://github.com/sponsors/simerplaha" target="_blank">[Become a sponsor]</a></td>
+  </tr>
 </table>
 
 ## Overview
