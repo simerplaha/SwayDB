@@ -139,7 +139,7 @@ lazy val SwayDB =
     .settings(name := "SwayDB-source")
     .settings(commonSettings)
     .settings(publishSettings)
-    .dependsOn(swaydb)
+    .dependsOn(`swaydb-scala`)
     .aggregate(
       actor,
       utils,
@@ -149,7 +149,7 @@ lazy val SwayDB =
       `core-interop`,
       `core-compression`,
       stream,
-      swaydb,
+      `swaydb-scala`,
       //      `swaydb-java`,
       configs,
       serializers,
@@ -283,8 +283,9 @@ lazy val `core-cache` =
       testkit % Test
     )
 
-lazy val swaydb =
+lazy val `swaydb-scala` =
   project
+    .settings(name := "scala")
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -295,6 +296,14 @@ lazy val swaydb =
       core % "test->test;compile->compile",
       `x-interop-boopickle` % Test
     )
+
+//lazy val `swaydb-java` =
+//  project
+//    .settings(name := "java")
+//    .settings(commonSettings)
+//    .settings(publishSettings)
+//    .settings(libraryDependencies ++= commonJavaDependencies)
+//    .dependsOn(swaydb)
 
 lazy val configs =
   project
@@ -344,15 +353,7 @@ lazy val stress =
     .settings(commonSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(core, configs)
-    .dependsOn(swaydb, core % Test)
-
-//lazy val `swaydb-java` =
-//  project
-//    .settings(name := "java")
-//    .settings(commonSettings)
-//    .settings(publishSettings)
-//    .settings(libraryDependencies ++= commonJavaDependencies)
-//    .dependsOn(swaydb)
+    .dependsOn(`swaydb-scala`, core % Test)
 
 lazy val `core-tools` =
   project
@@ -405,4 +406,4 @@ lazy val tools =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(swaydb, `core-tools`)
+    .dependsOn(`swaydb-scala`, `core-tools`)
