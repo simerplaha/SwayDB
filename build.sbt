@@ -208,7 +208,7 @@ lazy val core =
 
 lazy val `core-interop` =
   project
-    .in(file("core/core-interop"))
+    .in(file("core/interop"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -223,7 +223,7 @@ lazy val `core-interop` =
 
 lazy val `core-skiplist` =
   project
-    .in(file("core/core-skiplist"))
+    .in(file("core/skiplist"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -237,7 +237,7 @@ lazy val `core-skiplist` =
 
 lazy val `core-series` =
   project
-    .in(file("core/core-series"))
+    .in(file("core/series"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -249,7 +249,7 @@ lazy val `core-series` =
 
 lazy val `core-queue` =
   project
-    .in(file("core/core-queue"))
+    .in(file("core/queue"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -278,7 +278,7 @@ lazy val stream =
 
 lazy val `core-cache` =
   project
-    .in(file("core/core-cache"))
+    .in(file("core/cache"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -315,21 +315,21 @@ lazy val serializers =
 
 lazy val `core-stress` =
   project
-    .in(file("core/core-stress"))
+    .in(file("core/stress"))
     .settings(commonSettings)
     .settings(libraryDependencies ++= testDependencies(scalaVersion.value))
     .dependsOn(core)
 
 lazy val `core-performance` =
   project
-    .in(file("core/core-performance"))
+    .in(file("core/performance"))
     .settings(commonSettings)
     .settings(libraryDependencies ++= testDependencies(scalaVersion.value))
     .dependsOn(core)
 
 lazy val `core-compression` =
   project
-    .in(file("core/core-compression"))
+    .in(file("core/compression"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
@@ -364,7 +364,7 @@ lazy val stress =
 
 lazy val `core-tools` =
   project
-    .in(file("core/core-tools"))
+    .in(file("core/tools"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -376,7 +376,7 @@ lazy val `core-tools` =
 
 lazy val `x-interop-monix` =
   project
-    .in(file("x-interop/x-interop-monix"))
+    .in(file("x-interop/monix"))
     .settings(name := "monix")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -385,7 +385,7 @@ lazy val `x-interop-monix` =
 
 lazy val `x-interop-zio` =
   project
-    .in(file("x-interop/x-interop-zio"))
+    .in(file("x-interop/zio"))
     .settings(name := "zio")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -394,7 +394,7 @@ lazy val `x-interop-zio` =
 
 lazy val `x-interop-cats-effect` =
   project
-    .in(file("x-interop/x-interop-cats-effect"))
+    .in(file("x-interop/cats-effect"))
     .settings(name := "cats-effect")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -406,7 +406,7 @@ lazy val `x-interop-cats-effect` =
  */
 lazy val `x-interop-boopickle` =
   project
-    .in(file("x-interop/x-interop-boopickle"))
+    .in(file("x-interop/boopickle"))
     .settings(name := "boopickle")
     .settings(commonSettings)
     .settings(publishSettings)
