@@ -1,6 +1,6 @@
 package swaydb.core.segment.block
 
-import swaydb.core.compression.DecompressorInternal
+import swaydb.core.compression.CoreDecompressor
 import swaydb.utils.SomeOrNone
 
 /**
@@ -20,13 +20,13 @@ case object BlockCompressionInfo {
       throw new Exception(s"${BlockCompressionInfo.productPrefix} is ${Null.productPrefix}")
   }
 
-  @inline def apply(decompressor: DecompressorInternal,
+  @inline def apply(decompressor: CoreDecompressor,
                     decompressedLength: Int): BlockCompressionInfo =
     new BlockCompressionInfo(decompressor, decompressedLength)
 
 }
 
-class BlockCompressionInfo(val decompressor: DecompressorInternal,
+class BlockCompressionInfo(val decompressor: CoreDecompressor,
                            val decompressedLength: Int) extends BlockCompressionInfoOption {
   override def isNoneS: Boolean = false
   override def getS: BlockCompressionInfo = this

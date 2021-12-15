@@ -16,17 +16,17 @@
 
 package swaydb.core.compression
 
-import swaydb.core.compression.CompressionInternal.{LZ4, Snappy, UnCompressed}
+import swaydb.core.compression.CoreCompression.{LZ4, Snappy, UnCompressed}
 import swaydb.config.compression.{DecompressorId, LZ4Instance}
 
 import scala.util.Random
 
 object CompressionTestGen {
 
-  implicit class CompressionImplicits(internal: CompressionInternal.type) {
+  implicit class CompressionImplicits(internal: CoreCompression.type) {
     def random(minCompressionPercentage: Double = Double.MinValue) =
       if (Random.nextBoolean())
-        LZ4(CompressorInternal.randomLZ4(minCompressionSavingsPercent = minCompressionPercentage), DecompressorInternal.randomLZ4())
+        LZ4(CoreCompressor.randomLZ4(minCompressionSavingsPercent = minCompressionPercentage), CoreDecompressor.randomLZ4())
       else if (Random.nextBoolean())
         Snappy(minCompressionPercentage = minCompressionPercentage)
       else
@@ -42,25 +42,25 @@ object CompressionTestGen {
       Snappy(minCompressionPercentage = minCompressionPercentage)
 
     def randomLZ4(minCompressionPercentage: Double = Double.MinValue) =
-      LZ4(CompressorInternal.randomLZ4(minCompressionSavingsPercent = minCompressionPercentage), DecompressorInternal.randomLZ4())
+      LZ4(CoreCompressor.randomLZ4(minCompressionSavingsPercent = minCompressionPercentage), CoreDecompressor.randomLZ4())
   }
 
-  implicit class CompressorImplicits(internal: CompressorInternal.type) {
+  implicit class CompressorImplicits(internal: CoreCompressor.type) {
 
-    def randomLZ4(minCompressionSavingsPercent: Double = Double.MinValue): CompressorInternal.LZ4 =
-      CompressorInternal(
+    def randomLZ4(minCompressionSavingsPercent: Double = Double.MinValue): CoreCompressor.LZ4 =
+      CoreCompressor(
         instance = LZ4Instance.random(),
         compressor = swaydb.config.compression.LZ4Compressor.random(minCompressionSavingsPercent = minCompressionSavingsPercent)
       )
   }
 
-  implicit class DecompressorImplicits(internal: DecompressorInternal.type) {
+  implicit class DecompressorImplicits(internal: CoreDecompressor.type) {
 
-    def random(): DecompressorInternal =
-      DecompressorInternal(DecompressorId.randomIntId())
+    def random(): CoreDecompressor =
+      CoreDecompressor(DecompressorId.randomIntId())
 
-    def randomLZ4(): DecompressorInternal.LZ4 =
-      DecompressorInternal(DecompressorId.randomLZ4Id())
+    def randomLZ4(): CoreDecompressor.LZ4 =
+      CoreDecompressor(DecompressorId.randomLZ4Id())
   }
 
 }

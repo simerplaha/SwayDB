@@ -28,7 +28,7 @@ import scala.util.Random
 
 class CompressionSpec extends AnyWordSpec with Matchers {
 
-  private def assertSuccessfulCompression(compression: CompressionInternal) = {
+  private def assertSuccessfulCompression(compression: CoreCompression) = {
     val string = "12345-12345-12345-12345" * Math.abs(Random.nextInt(99) + 1)
     val bytes: Slice[Byte] = string
     val compressedBytes: Slice[Byte] = compression.compressor.compress(bytes).get
@@ -37,7 +37,7 @@ class CompressionSpec extends AnyWordSpec with Matchers {
     decompressedString shouldBe string
   }
 
-  private def assertUnsuccessfulCompression(compression: CompressionInternal) = {
+  private def assertUnsuccessfulCompression(compression: CoreCompression) = {
     val string = "12345-12345-12345-12345" * Math.abs(Random.nextInt(99) + 1)
     val bytes: Slice[Byte] = string
     compression.compressor.compress(bytes) shouldBe empty
@@ -47,21 +47,21 @@ class CompressionSpec extends AnyWordSpec with Matchers {
 
     "successfully compress bytes" when {
       "UnCompressed" in {
-        assertSuccessfulCompression(CompressionInternal.UnCompressed)
+        assertSuccessfulCompression(CoreCompression.UnCompressed)
       }
 
       "Snappy" in {
-        assertSuccessfulCompression(CompressionInternal.Snappy(minCompressionPercentage = 10))
+        assertSuccessfulCompression(CoreCompression.Snappy(minCompressionPercentage = 10))
       }
 
       "LZ4" in {
         (1 to 100) foreach {
           _ =>
-            val compressor = CompressorInternal.randomLZ4(minCompressionSavingsPercent = 10)
-            val decompressor = DecompressorInternal.randomLZ4()
+            val compressor = CoreCompressor.randomLZ4(minCompressionSavingsPercent = 10)
+            val decompressor = CoreDecompressor.randomLZ4()
             //            println("compressor: " + compressor)
             //            println("decompressor: " + decompressor)
-            assertSuccessfulCompression(CompressionInternal.LZ4(compressor, decompressor))
+            assertSuccessfulCompression(CoreCompression.LZ4(compressor, decompressor))
         }
       }
     }
@@ -76,11 +76,11 @@ class CompressionSpec extends AnyWordSpec with Matchers {
           slice addAll Slice.writeLong(long)
       }
 
-      val compressor = CompressorInternal.randomLZ4(minCompressionSavingsPercent = 20)
+      val compressor = CoreCompressor.randomLZ4(minCompressionSavingsPercent = 20)
 
       def doCompression() = {
         val compressedBytes = compressor.compress(slice).get
-        CompressorInternal.isCompressionSatisfied(20, compressedBytes.size, slice.size, compressor.getClass.getSimpleName) shouldBe true
+        CoreCompressor.isCompressionSatisfied(20, compressedBytes.size, slice.size, compressor.getClass.getSimpleName) shouldBe true
         compressedBytes.size should be < slice.size
       }
 
@@ -92,17 +92,17 @@ class CompressionSpec extends AnyWordSpec with Matchers {
 
     "return None" when {
       "Snappy" in {
-        assertUnsuccessfulCompression(CompressionInternal.Snappy(minCompressionPercentage = 100))
+        assertUnsuccessfulCompression(CoreCompression.Snappy(minCompressionPercentage = 100))
       }
 
       "LZ4" in {
         (1 to 100) foreach {
           _ =>
-            val compressor = CompressorInternal.randomLZ4(minCompressionSavingsPercent = 100)
-            val decompressor = DecompressorInternal.randomLZ4()
+            val compressor = CoreCompressor.randomLZ4(minCompressionSavingsPercent = 100)
+            val decompressor = CoreDecompressor.randomLZ4()
             //            println("compressor: " + compressor)
             //            println("decompressor: " + decompressor)
-            assertUnsuccessfulCompression(CompressionInternal.LZ4(compressor, decompressor))
+            assertUnsuccessfulCompression(CoreCompression.LZ4(compressor, decompressor))
         }
       }
     }
@@ -114,10 +114,10 @@ class CompressionSpec extends AnyWordSpec with Matchers {
       "lz4" in {
         (1 to 100) foreach {
           _ =>
-            val compressed = CompressorInternal.randomLZ4().compress(10, bytes).get
+            val compressed = CoreCompressor.randomLZ4().compress(10, bytes).get
             compressed.take(10) foreach (_ shouldBe 0.toByte)
 
-            val decompressedBytes = DecompressorInternal.randomLZ4().decompress(compressed.drop(10), bytes.size)
+            val decompressedBytes = CoreDecompressor.randomLZ4().decompress(compressed.drop(10), bytes.size)
             decompressedBytes shouldBe bytes
         }
       }
@@ -125,10 +125,10 @@ class CompressionSpec extends AnyWordSpec with Matchers {
       "snappy" in {
         (1 to 100) foreach {
           _ =>
-            val compressed = CompressorInternal.Snappy(Int.MinValue).compress(10, bytes).get
+            val compressed = CoreCompressor.Snappy(Int.MinValue).compress(10, bytes).get
             compressed.take(10) foreach (_ shouldBe 0.toByte)
 
-            val decompressedBytes = DecompressorInternal.Snappy.decompress(compressed.drop(10), bytes.size)
+            val decompressedBytes = CoreDecompressor.Snappy.decompress(compressed.drop(10), bytes.size)
             decompressedBytes shouldBe bytes
         }
       }
@@ -136,10 +136,10 @@ class CompressionSpec extends AnyWordSpec with Matchers {
       "UnCompressed" in {
         (1 to 100) foreach {
           _ =>
-            val compressed = CompressorInternal.UnCompressed.compress(10, bytes).get
+            val compressed = CoreCompressor.UnCompressed.compress(10, bytes).get
             compressed.take(10) foreach (_ shouldBe 0.toByte)
 
-            val decompressedBytes = DecompressorInternal.UnCompressed.decompress(compressed.drop(10), bytes.size)
+            val decompressedBytes = CoreDecompressor.UnCompressed.decompress(compressed.drop(10), bytes.size)
             decompressedBytes shouldBe bytes
         }
       }

@@ -18,7 +18,7 @@ package swaydb.core.segment.serialiser
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.compression.CompressionInternal
+import swaydb.core.compression.CoreCompression
 import swaydb.core.compression.CompressionTestGen._
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.serialiser.ValueSerialiser.IntMapListBufferSerialiser
@@ -77,7 +77,7 @@ class ValueSerialiserSpec extends AnyWordSpec with Matchers {
 
     optimalBytes should be >= bytes.size //calculated bytes should always return enough space for range filter bytes to be written.
 
-    println("Compressed size: " + CompressionInternal.randomLZ4().compressor.compress(bytes).get.size)
+    println("Compressed size: " + CoreCompression.randomLZ4().compressor.compress(bytes).get.size)
 
     IntMapListBufferSerialiser.read(bytes) shouldBe map.map {
       case (key, value) =>

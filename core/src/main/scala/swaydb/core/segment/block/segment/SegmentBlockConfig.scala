@@ -1,7 +1,7 @@
 package swaydb.core.segment.block.segment
 
 import swaydb.Compression
-import swaydb.core.compression.CompressionInternal
+import swaydb.core.compression.CoreCompression
 import swaydb.config.{MMAP, SegmentConfig, SegmentRefCacheLife, UncompressedBlockInfo}
 import swaydb.effect.{IOAction, IOStrategy}
 
@@ -51,7 +51,7 @@ object SegmentBlockConfig {
         uncompressedBlockInfo =>
           Try(compressions(uncompressedBlockInfo))
             .getOrElse(Seq.empty)
-            .map(CompressionInternal.apply)
+            .map(CoreCompression.apply)
             .toSeq
     )
 
@@ -65,7 +65,7 @@ object SegmentBlockConfig {
                                   initialiseIteratorsInOneSeek: Boolean,
                                   mmap: MMAP.Segment,
                                   deleteDelay: FiniteDuration,
-                                  compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): SegmentBlockConfig =
+                                  compressions: UncompressedBlockInfo => Iterable[CoreCompression]): SegmentBlockConfig =
     new SegmentBlockConfig(
       fileOpenIOStrategy = fileOpenIOStrategy,
       blockIOStrategy = blockIOStrategy,
@@ -91,7 +91,7 @@ class SegmentBlockConfig private(val fileOpenIOStrategy: IOStrategy.ThreadSafe,
                                  val initialiseIteratorsInOneSeek: Boolean,
                                  val mmap: MMAP.Segment,
                                  val deleteDelay: FiniteDuration,
-                                 val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
+                                 val compressions: UncompressedBlockInfo => Iterable[CoreCompression]) {
 
   val isDeleteEventually: Boolean =
     deleteDelay.fromNow.hasTimeLeft()

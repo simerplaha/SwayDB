@@ -1,6 +1,6 @@
 package swaydb.core.segment.block.sortedindex
 
-import swaydb.core.compression.CompressionInternal
+import swaydb.core.compression.CoreCompression
 import swaydb.config.UncompressedBlockInfo
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.FunctionSafe
@@ -36,8 +36,8 @@ object SortedIndexBlockConfig {
       enablePrefixCompression = enable.prefixCompression.enabled && !enable.prefixCompression.normaliseIndexForBinarySearch,
       compressions =
         FunctionSafe.safe(
-          default = (_: UncompressedBlockInfo) => Iterable.empty[CompressionInternal],
-          function = enable.compressions(_: UncompressedBlockInfo) map CompressionInternal.apply
+          default = (_: UncompressedBlockInfo) => Iterable.empty[CoreCompression],
+          function = enable.compressions(_: UncompressedBlockInfo) map CoreCompression.apply
         )
     )
 
@@ -48,7 +48,7 @@ object SortedIndexBlockConfig {
             enableAccessPositionIndex: Boolean,
             optimiseForReverseIteration: Boolean,
             normaliseIndex: Boolean,
-            compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): SortedIndexBlockConfig =
+            compressions: UncompressedBlockInfo => Iterable[CoreCompression]): SortedIndexBlockConfig =
     new SortedIndexBlockConfig(
       ioStrategy = ioStrategy,
       shouldPrefixCompress = if (normaliseIndex || !enablePrefixCompression) _ => false else shouldPrefixCompress,
@@ -71,7 +71,7 @@ class SortedIndexBlockConfig private(val ioStrategy: IOAction => IOStrategy,
                                      val enablePrefixCompression: Boolean,
                                      val optimiseForReverseIteration: Boolean,
                                      val normaliseIndex: Boolean,
-                                     val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
+                                     val compressions: UncompressedBlockInfo => Iterable[CoreCompression]) {
 
   def copy(ioStrategy: IOAction => IOStrategy = ioStrategy,
            shouldPrefixCompress: Int => Boolean = shouldPrefixCompress,
@@ -79,7 +79,7 @@ class SortedIndexBlockConfig private(val ioStrategy: IOAction => IOStrategy,
            normaliseIndex: Boolean = normaliseIndex,
            enablePrefixCompression: Boolean = enablePrefixCompression,
            optimiseForReverseIteration: Boolean = optimiseForReverseIteration,
-           compressions: UncompressedBlockInfo => Iterable[CompressionInternal] = compressions) =
+           compressions: UncompressedBlockInfo => Iterable[CoreCompression] = compressions) =
   //do not use new here. Submit this to the apply function to that rules for creating the config gets applied.
     SortedIndexBlockConfig(
       ioStrategy = ioStrategy,

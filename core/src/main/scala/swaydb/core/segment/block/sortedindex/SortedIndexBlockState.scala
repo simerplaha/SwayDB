@@ -1,6 +1,6 @@
 package swaydb.core.segment.block.sortedindex
 
-import swaydb.core.compression.CompressionInternal
+import swaydb.core.compression.CoreCompression
 import swaydb.config.UncompressedBlockInfo
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.entry.writer.EntryWriter
@@ -41,7 +41,7 @@ private[block] class SortedIndexBlockState(var compressibleBytes: SliceMut[Byte]
                                            var optimiseForReverseIteration: Boolean,
                                            val compressDuplicateRangeValues: Boolean,
                                            val normaliseIndex: Boolean,
-                                           val compressions: UncompressedBlockInfo => Iterable[CompressionInternal],
+                                           val compressions: UncompressedBlockInfo => Iterable[CoreCompression],
                                            val secondaryIndexEntries: ListBuffer[SortedIndexBlockSecondaryIndexEntry],
                                            val indexEntries: ListBuffer[Slice[Byte]],
                                            val builder: EntryWriter.Builder) {

@@ -1,6 +1,6 @@
 package swaydb.core.segment.block.binarysearch
 
-import swaydb.core.compression.CompressionInternal
+import swaydb.core.compression.CoreCompression
 import swaydb.config.UncompressedBlockInfo
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock.optimalBytesRequired
 import swaydb.slice.{Slice, SliceMut}
@@ -14,7 +14,7 @@ private[block] object BinarySearchIndexBlockState {
             uniqueValuesCount: Int,
             isFullIndex: Boolean,
             minimumNumberOfKeys: Int,
-            compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Option[BinarySearchIndexBlockState] =
+            compressions: UncompressedBlockInfo => Iterable[CoreCompression]): Option[BinarySearchIndexBlockState] =
     if (uniqueValuesCount < minimumNumberOfKeys) {
       None
     } else {
@@ -65,7 +65,7 @@ private[block] class BinarySearchIndexBlockState(val format: BinarySearchEntryFo
                                                  var compressibleBytes: SliceMut[Byte],
                                                  val cacheableBytes: Slice[Byte],
                                                  var header: Slice[Byte],
-                                                 val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
+                                                 val compressions: UncompressedBlockInfo => Iterable[CoreCompression]) {
 
   def blockSize: Int =
     header.size + compressibleBytes.size

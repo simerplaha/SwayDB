@@ -1,6 +1,6 @@
 package swaydb.core.segment.block
 
-import swaydb.core.compression.CompressionInternal
+import swaydb.core.compression.CoreCompression
 import swaydb.core.ACoreSpec
 import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.reader.BlockRefReader
@@ -356,7 +356,7 @@ class BlockSpec extends ASegmentSpec {
 
       val segmentBytes = compressedBytes.headerBytes ++ compressedBytes.compressedBytes.getC
 
-      if (compression == CompressionInternal.UnCompressed)
+      if (compression == CoreCompression.UnCompressed)
         segmentBytes shouldBe compressedBytes.headerBytes ++ dataBytes
       else
         segmentBytes.size should be < dataBytes.size

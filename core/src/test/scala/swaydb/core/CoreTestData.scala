@@ -21,7 +21,7 @@ import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IOValues._
-import swaydb.core.compression.CompressionInternal
+import swaydb.core.compression.CoreCompression
 import swaydb.core.compression.CompressionTestGen._
 import swaydb.config._
 import swaydb.config.accelerate.Accelerator
@@ -533,7 +533,7 @@ object CoreTestData {
     def random2(fileOpenIOStrategy: IOStrategy.ThreadSafe = randomThreadSafeIOStrategy(),
                 blockIOStrategy: IOAction => IOStrategy = _ => randomIOStrategy(),
                 cacheBlocksOnCreate: Boolean = randomBoolean(),
-                compressions: UncompressedBlockInfo => Iterable[CompressionInternal] = _ => randomCompressionsOrEmpty(),
+                compressions: UncompressedBlockInfo => Iterable[CoreCompression] = _ => randomCompressionsOrEmpty(),
                 maxKeyValuesPerSegment: Int = randomIntMax(1000000),
                 deleteDelay: FiniteDuration = randomFiniteDuration(),
                 mmap: MMAP.Segment = MMAP.randomForSegment(),
@@ -1032,31 +1032,31 @@ object CoreTestData {
     else
       Memory.Update(key, value, deadline, testTimer.next)
 
-  def randomCompression(minCompressionPercentage: Double = Double.MinValue): CompressionInternal =
-    CompressionInternal.random(minCompressionPercentage = minCompressionPercentage)
+  def randomCompression(minCompressionPercentage: Double = Double.MinValue): CoreCompression =
+    CoreCompression.random(minCompressionPercentage = minCompressionPercentage)
 
-  def randomCompressionLZ4OrSnappy(minCompressionPercentage: Double = Double.MinValue): CompressionInternal =
-    CompressionInternal.randomLZ4OrSnappy(minCompressionPercentage = minCompressionPercentage)
+  def randomCompressionLZ4OrSnappy(minCompressionPercentage: Double = Double.MinValue): CoreCompression =
+    CoreCompression.randomLZ4OrSnappy(minCompressionPercentage = minCompressionPercentage)
 
-  def randomCompressionSnappy(minCompressionPercentage: Double = Double.MinValue): CompressionInternal =
-    CompressionInternal.randomSnappy(minCompressionPercentage = minCompressionPercentage)
+  def randomCompressionSnappy(minCompressionPercentage: Double = Double.MinValue): CoreCompression =
+    CoreCompression.randomSnappy(minCompressionPercentage = minCompressionPercentage)
 
-  def randomCompressionLZ4(minCompressionPercentage: Double = Double.MinValue): CompressionInternal =
-    CompressionInternal.randomLZ4(minCompressionPercentage = minCompressionPercentage)
+  def randomCompressionLZ4(minCompressionPercentage: Double = Double.MinValue): CoreCompression =
+    CoreCompression.randomLZ4(minCompressionPercentage = minCompressionPercentage)
 
-  def randomCompressions(minCompressionPercentage: Double = Double.MinValue): Iterable[CompressionInternal] =
+  def randomCompressions(minCompressionPercentage: Double = Double.MinValue): Iterable[CoreCompression] =
     (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage))
 
-  def randomCompressionsOrEmpty(minCompressionPercentage: Double = Double.MinValue): Iterable[CompressionInternal] =
+  def randomCompressionsOrEmpty(minCompressionPercentage: Double = Double.MinValue): Iterable[CoreCompression] =
     eitherOne(
       Seq.empty,
       randomCompressions(minCompressionPercentage)
     )
 
-  def randomCompressionsLZ4OrSnappy(minCompressionPercentage: Double = Double.MinValue): Iterable[CompressionInternal] =
+  def randomCompressionsLZ4OrSnappy(minCompressionPercentage: Double = Double.MinValue): Iterable[CoreCompression] =
     (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage))
 
-  def randomCompressionsLZ4OrSnappyOrEmpty(minCompressionPercentage: Double = Double.MinValue): Iterable[CompressionInternal] =
+  def randomCompressionsLZ4OrSnappyOrEmpty(minCompressionPercentage: Double = Double.MinValue): Iterable[CoreCompression] =
     eitherOne(
       Seq.empty,
       randomCompressionsLZ4OrSnappy(minCompressionPercentage)

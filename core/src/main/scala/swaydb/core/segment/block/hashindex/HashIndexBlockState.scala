@@ -1,6 +1,6 @@
 package swaydb.core.segment.block.hashindex
 
-import swaydb.core.compression.CompressionInternal
+import swaydb.core.compression.CoreCompression
 import swaydb.config.UncompressedBlockInfo
 import swaydb.core.util.CRC32
 import swaydb.slice.{Slice, SliceMut}
@@ -18,7 +18,7 @@ private[block] final class HashIndexBlockState(var hit: Int,
                                                var compressibleBytes: SliceMut[Byte],
                                                val cacheableBytes: Slice[Byte],
                                                var header: Slice[Byte],
-                                               val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
+                                               val compressions: UncompressedBlockInfo => Iterable[CoreCompression]) {
 
   def blockSize: Int =
     header.size + compressibleBytes.size

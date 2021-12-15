@@ -17,7 +17,7 @@
 package swaydb.core.segment.block.bloomfilter
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.compression.CompressionInternal
+import swaydb.core.compression.CoreCompression
 import swaydb.config.UncompressedBlockInfo
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
@@ -58,7 +58,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
   private def apply(numberOfKeys: Int,
                     falsePositiveRate: Double,
                     updateMaxProbe: Int => Int,
-                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): BloomFilterBlockState = {
+                    compressions: UncompressedBlockInfo => Iterable[CoreCompression]): BloomFilterBlockState = {
     val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
     val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits, updateMaxProbe) max 1
 
@@ -167,7 +167,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
   def init(numberOfKeys: Int,
            falsePositiveRate: Double,
            updateMaxProbe: Int => Int,
-           compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Option[BloomFilterBlockState] =
+           compressions: UncompressedBlockInfo => Iterable[CoreCompression]): Option[BloomFilterBlockState] =
     if (numberOfKeys <= 0 || falsePositiveRate <= 0.0 || falsePositiveRate >= 1)
       None
     else

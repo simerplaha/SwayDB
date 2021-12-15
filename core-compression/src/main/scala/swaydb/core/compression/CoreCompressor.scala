@@ -26,7 +26,7 @@ import swaydb.slice.Slice
 
 import java.nio.ByteBuffer
 
-private[swaydb] sealed trait CompressorInternal {
+private[swaydb] sealed trait CoreCompressor {
   val minCompressionPercentage: Double
 
   def compress(slice: Slice[Byte]): Option[Slice[Byte]]
@@ -34,10 +34,10 @@ private[swaydb] sealed trait CompressorInternal {
   def compress(emptyHeadSpace: Int, slice: Slice[Byte]): Option[Slice[Byte]]
 }
 
-private[swaydb] object CompressorInternal extends LazyLogging {
+private[swaydb] object CoreCompressor extends LazyLogging {
 
   def apply(instance: swaydb.config.compression.LZ4Instance,
-            compressor: swaydb.config.compression.LZ4Compressor): CompressorInternal.LZ4 =
+            compressor: swaydb.config.compression.LZ4Compressor): CoreCompressor.LZ4 =
     lz4Compressor(
       compressor = compressor,
       factory = lz4Factory(instance)
@@ -55,17 +55,17 @@ private[swaydb] object CompressorInternal extends LazyLogging {
     }
 
   private def lz4Compressor(compressor: swaydb.config.compression.LZ4Compressor,
-                            factory: LZ4Factory): CompressorInternal.LZ4 =
+                            factory: LZ4Factory): CoreCompressor.LZ4 =
     compressor match {
       case Fast(minCompressionPercentage) =>
-        CompressorInternal.LZ4(minCompressionPercentage, factory.fastCompressor())
+        CoreCompressor.LZ4(minCompressionPercentage, factory.fastCompressor())
 
       case High(minCompressionPercentage, compressionLevel) =>
         compressionLevel match {
           case Some(compressionLevel) =>
-            CompressorInternal.LZ4(minCompressionPercentage, factory.highCompressor(compressionLevel))
+            CoreCompressor.LZ4(minCompressionPercentage, factory.highCompressor(compressionLevel))
           case None =>
-            CompressorInternal.LZ4(minCompressionPercentage, factory.highCompressor())
+            CoreCompressor.LZ4(minCompressionPercentage, factory.highCompressor())
         }
     }
 
@@ -87,7 +87,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
   }
 
   private[swaydb] case class LZ4(minCompressionPercentage: Double,
-                                 compressor: LZ4Compressor) extends CompressorInternal {
+                                 compressor: LZ4Compressor) extends CoreCompressor {
 
     final val compressionName = this.productPrefix
 
@@ -115,7 +115,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
     }
   }
 
-  private[swaydb] case object UnCompressed extends CompressorInternal {
+  private[swaydb] case object UnCompressed extends CoreCompressor {
 
     final val compressionName = this.productPrefix
 
@@ -130,7 +130,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
     }
   }
 
-  private[swaydb] case class Snappy(minCompressionPercentage: Double) extends CompressorInternal {
+  private[swaydb] case class Snappy(minCompressionPercentage: Double) extends CoreCompressor {
 
     final val compressionName = this.productPrefix
 

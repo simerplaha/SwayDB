@@ -24,7 +24,7 @@ import swaydb.slice.Slice
 /**
  * Internal types that have 1 to 1 mapping with the more configurable swaydb.Decompressor types.
  */
-private[swaydb] sealed trait DecompressorInternal {
+private[swaydb] sealed trait CoreDecompressor {
 
   val id: Int
 
@@ -32,11 +32,11 @@ private[swaydb] sealed trait DecompressorInternal {
                  decompressLength: Int): Slice[Byte]
 }
 
-private[swaydb] object DecompressorInternal {
+private[swaydb] object CoreDecompressor {
 
-  private[swaydb] sealed trait LZ4 extends DecompressorInternal
+  private[swaydb] sealed trait LZ4 extends CoreDecompressor
 
-  def apply(id: Int): DecompressorInternal =
+  def apply(id: Int): CoreDecompressor =
     DecompressorId(id) match {
       case Some(id) =>
         apply(id)
@@ -46,8 +46,8 @@ private[swaydb] object DecompressorInternal {
     }
 
   def apply(instance: LZ4Instance,
-            decompressor: LZ4Decompressor): DecompressorInternal.LZ4 =
-    DecompressorInternal(
+            decompressor: LZ4Decompressor): CoreDecompressor.LZ4 =
+    CoreDecompressor(
       id =
         decompressorId(
           lz4Instance = instance,
@@ -72,16 +72,16 @@ private[swaydb] object DecompressorInternal {
       //@formatter:on
     }
 
-  def apply(id: DecompressorId): DecompressorInternal =
+  def apply(id: DecompressorId): CoreDecompressor =
     id match {
       //@formatter:off
       case DecompressorId.Snappy.Default =>         Snappy
       case DecompressorId.UnCompressed =>           UnCompressed
-      case id: DecompressorId.LZ4DecompressorId =>  DecompressorInternal(id)
+      case id: DecompressorId.LZ4DecompressorId =>  CoreDecompressor(id)
       //@formatter:on
     }
 
-  def apply(id: DecompressorId.LZ4DecompressorId): DecompressorInternal.LZ4 =
+  def apply(id: DecompressorId.LZ4DecompressorId): CoreDecompressor.LZ4 =
     id match {
       //@formatter:off
       case DecompressorId.LZ4FastestInstance.FastDecompressor =>      LZ4Fast(id.id, LZ4Factory.fastestInstance().fastDecompressor())
@@ -98,7 +98,7 @@ private[swaydb] object DecompressorInternal {
     }
 
   private[swaydb] case class LZ4Fast(id: Int,
-                                     decompressor: LZ4FastDecompressor) extends DecompressorInternal.LZ4 {
+                                     decompressor: LZ4FastDecompressor) extends CoreDecompressor.LZ4 {
 
     override def decompress(slice: Slice[Byte],
                             decompressLength: Int): Slice[Byte] =
@@ -106,14 +106,14 @@ private[swaydb] object DecompressorInternal {
   }
 
   private[swaydb] case class LZ4Safe(id: Int,
-                                     decompressor: LZ4SafeDecompressor) extends DecompressorInternal.LZ4 {
+                                     decompressor: LZ4SafeDecompressor) extends CoreDecompressor.LZ4 {
 
     override def decompress(slice: Slice[Byte],
                             decompressLength: Int): Slice[Byte] =
       Slice.wrap(decompressor.decompress(slice.toArray, decompressLength))
   }
 
-  private[swaydb] case object UnCompressed extends DecompressorInternal {
+  private[swaydb] case object UnCompressed extends CoreDecompressor {
 
     override val id: Int = DecompressorId.UnCompressed.id
 
@@ -122,7 +122,7 @@ private[swaydb] object DecompressorInternal {
       slice
   }
 
-  private[swaydb] case object Snappy extends DecompressorInternal {
+  private[swaydb] case object Snappy extends CoreDecompressor {
 
     override val id: Int = DecompressorId.Snappy.Default.id
 

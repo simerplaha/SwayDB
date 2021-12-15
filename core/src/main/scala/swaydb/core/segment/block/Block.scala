@@ -17,7 +17,7 @@
 package swaydb.core.segment.block
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.compression.{CompressionInternal, DecompressorInternal}
+import swaydb.core.compression.{CoreCompression, CoreDecompressor}
 import swaydb.core.segment.block.reader.{BlockedReader, BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.segment.transient.{TransientSegment, TransientSegmentRef}
 import swaydb.core.util.Bytes
@@ -75,7 +75,7 @@ private[core] object Block extends LazyLogging {
    */
   def createCompressedHeaderBytes(bytes: Slice[Byte],
                                   dataBlocksHeaderByteSize: Int,
-                                  compression: CompressionInternal): SliceMut[Byte] = {
+                                  compression: CoreCompression): SliceMut[Byte] = {
     val requiredByteSize =
       ByteSizeOf.byte + //headerSize
         ByteSizeOf.byte + //formatId
@@ -124,7 +124,7 @@ private[core] object Block extends LazyLogging {
    */
   def compress(bytes: Slice[Byte],
                dataBlocksHeaderByteSize: Int,
-               compressions: Iterable[CompressionInternal],
+               compressions: Iterable[CoreCompression],
                blockName: String): BlockCompressionResult =
     compressions.untilSome(_.compressor.compress(bytes)) match {
       case Some((compressedBytes, compression)) =>
@@ -154,7 +154,7 @@ private[core] object Block extends LazyLogging {
     }
 
   def block(segment: TransientSegmentRef,
-            compressions: Iterable[CompressionInternal],
+            compressions: Iterable[CoreCompression],
             blockName: String): TransientSegment.One =
     if (compressions.isEmpty) {
       logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${segment.segmentSizeWithoutHeader}.bytes uncompressed.")
@@ -229,7 +229,7 @@ private[core] object Block extends LazyLogging {
                                   reader: SliceReader): BlockCompressionInfoOption =
     if (formatID == BlockHeader.compressedBlockID)
       new BlockCompressionInfo(
-        decompressor = DecompressorInternal(reader.readUnsignedInt()),
+        decompressor = CoreDecompressor(reader.readUnsignedInt()),
         decompressedLength = reader.readUnsignedInt()
       )
     else if (formatID == BlockHeader.uncompressedBlockId)

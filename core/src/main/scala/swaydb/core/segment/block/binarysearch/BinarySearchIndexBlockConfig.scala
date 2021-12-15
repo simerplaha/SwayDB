@@ -1,6 +1,6 @@
 package swaydb.core.segment.block.binarysearch
 
-import swaydb.core.compression.CompressionInternal
+import swaydb.core.compression.CoreCompression
 import swaydb.config.UncompressedBlockInfo
 import swaydb.effect.{IOAction, IOStrategy}
 import swaydb.utils.FunctionSafe
@@ -41,8 +41,8 @@ object BinarySearchIndexBlockConfig {
           ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
           compressions =
             FunctionSafe.safe(
-              default = _ => Seq.empty[CompressionInternal],
-              function = enable.compression(_) map CompressionInternal.apply
+              default = _ => Seq.empty[CoreCompression],
+              function = enable.compression(_) map CoreCompression.apply
             )
         )
 
@@ -56,8 +56,8 @@ object BinarySearchIndexBlockConfig {
           ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
           compressions =
             FunctionSafe.safe(
-              default = _ => Seq.empty[CompressionInternal],
-              function = enable.compression(_) map CompressionInternal.apply
+              default = _ => Seq.empty[CoreCompression],
+              function = enable.compression(_) map CoreCompression.apply
             )
         )
     }
@@ -69,4 +69,4 @@ case class BinarySearchIndexBlockConfig(enabled: Boolean,
                                         searchSortedIndexDirectlyIfPossible: Boolean,
                                         fullIndex: Boolean,
                                         ioStrategy: IOAction => IOStrategy,
-                                        compressions: UncompressedBlockInfo => Iterable[CompressionInternal])
+                                        compressions: UncompressedBlockInfo => Iterable[CoreCompression])
