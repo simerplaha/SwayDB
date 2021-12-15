@@ -208,6 +208,7 @@ lazy val core =
 
 lazy val `core-interop` =
   project
+    .in(file("core/core-interop"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -222,6 +223,7 @@ lazy val `core-interop` =
 
 lazy val `core-skiplist` =
   project
+    .in(file("core/core-skiplist"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -235,6 +237,7 @@ lazy val `core-skiplist` =
 
 lazy val `core-series` =
   project
+    .in(file("core/core-series"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -246,6 +249,7 @@ lazy val `core-series` =
 
 lazy val `core-queue` =
   project
+    .in(file("core/core-queue"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -274,6 +278,7 @@ lazy val stream =
 
 lazy val `core-cache` =
   project
+    .in(file("core/core-cache"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -310,18 +315,21 @@ lazy val serializers =
 
 lazy val `core-stress` =
   project
+    .in(file("core/core-stress"))
     .settings(commonSettings)
     .settings(libraryDependencies ++= testDependencies(scalaVersion.value))
     .dependsOn(core)
 
 lazy val `core-performance` =
   project
+    .in(file("core/core-performance"))
     .settings(commonSettings)
     .settings(libraryDependencies ++= testDependencies(scalaVersion.value))
     .dependsOn(core)
 
 lazy val `core-compression` =
   project
+    .in(file("core/core-compression"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
@@ -356,6 +364,7 @@ lazy val stress =
 
 lazy val `core-tools` =
   project
+    .in(file("core/core-tools"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
