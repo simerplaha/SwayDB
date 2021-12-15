@@ -144,7 +144,7 @@ lazy val SwayDB =
       actor,
       utils,
       effect,
-      core,
+      `core-boot`,
       `core-cache`,
       `core-config`,
       `core-compression`,
@@ -187,9 +187,38 @@ lazy val effect =
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(slice, utils, testkit % Test)
 
-lazy val core =
+lazy val `core-tests` =
   project
-    .in(file("core/core"))
+    .in(file("core/tests"))
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(
+      actor,
+      slice,
+      effect,
+      utils,
+      `core-boot`,
+      `core-compaction`,
+      `core-level`,
+      `core-file`,
+      `core-log`,
+      `core-segment`,
+      `core-util`,
+      `core-config`,
+      `core-queue`,
+      `core-cache`,
+      `core-compression`,
+      `core-skiplist`,
+      testkit % Test,
+      macros % "test->test;compile-internal",
+      configs % Test,
+      serializers % Test
+    )
+
+lazy val `core-boot` =
+  project
+    .in(file("core/boot"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -239,7 +268,6 @@ lazy val `core-log` =
       configs % Test,
       serializers % Test
     )
-
 
 lazy val `core-compaction` =
   project
@@ -447,7 +475,7 @@ lazy val `swaydb-api-scala` =
       serializers,
       configs,
       stream,
-      core % "test->test;compile->compile",
+      `core-tests` % "test->test;compile->compile",
       `interop-boopickle` % Test
     )
 
@@ -479,14 +507,14 @@ lazy val `core-stress` =
     .in(file("core/stress"))
     .settings(commonSettings)
     .settings(libraryDependencies ++= testDependencies(scalaVersion.value))
-    .dependsOn(core)
+    .dependsOn(`core-boot`)
 
 lazy val `core-performance` =
   project
     .in(file("core/performance"))
     .settings(commonSettings)
     .settings(libraryDependencies ++= testDependencies(scalaVersion.value))
-    .dependsOn(core)
+    .dependsOn(`core-tests`)
 
 lazy val `core-compression` =
   project
@@ -514,8 +542,8 @@ lazy val stress =
     .in(file("swaydb/stress"))
     .settings(commonSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(core, configs)
-    .dependsOn(`swaydb-api-scala`, core % Test)
+    .dependsOn(`core-boot`, configs)
+    .dependsOn(`swaydb-api-scala`, `core-tests` % Test)
 
 
 lazy val `core-tools` =
@@ -524,7 +552,7 @@ lazy val `core-tools` =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(core)
+    .dependsOn(`core-boot`, `core-level`, `core-segment`, `core-log`, `core-tests` % Test)
 
 /**
  * Support modules - Effect
