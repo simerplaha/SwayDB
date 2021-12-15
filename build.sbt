@@ -139,7 +139,7 @@ lazy val SwayDB =
     .settings(name := "SwayDB-source")
     .settings(commonSettings)
     .settings(publishSettings)
-    .dependsOn(`swaydb-scala-api`)
+    .dependsOn(`swaydb-api-scala`)
     .aggregate(
       actor,
       utils,
@@ -149,8 +149,8 @@ lazy val SwayDB =
       `core-config`,
       `core-compression`,
       stream,
-      `swaydb-scala-api`,
-      //      `swaydb-java-api`,
+      `swaydb-api-scala`,
+      //      `swaydb-api-java`,
       configs,
       serializers,
       `interop-boopickle`,
@@ -294,10 +294,10 @@ lazy val `core-cache` =
       testkit % Test
     )
 
-lazy val `swaydb-scala-api` =
+lazy val `swaydb-api-scala` =
   project
-    .in(file("swaydb/scala-api"))
-    .settings(name := "scala-api")
+    .in(file("swaydb/api-scala"))
+    .settings(name := "api-scala")
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -309,14 +309,14 @@ lazy val `swaydb-scala-api` =
       `interop-boopickle` % Test
     )
 
-//lazy val `swaydb-java-api` =
+//lazy val `swaydb-api-java` =
 //  project
-//    .in(file("swaydb/java-api"))
-//    .settings(name := "java-api")
+//    .in(file("swaydb/api-java"))
+//    .settings(name := "api-java")
 //    .settings(commonSettings)
 //    .settings(publishSettings)
 //    .settings(libraryDependencies ++= commonJavaDependencies)
-//    .dependsOn(`swaydb-scala-api`)
+//    .dependsOn(`swaydb-api-scala`)
 
 lazy val configs =
   project
@@ -373,7 +373,7 @@ lazy val stress =
     .settings(commonSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(core, configs)
-    .dependsOn(`swaydb-scala-api`, core % Test)
+    .dependsOn(`swaydb-api-scala`, core % Test)
 
 
 lazy val `core-tools` =
@@ -434,4 +434,4 @@ lazy val tools =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(`swaydb-scala-api`, `core-tools`)
+    .dependsOn(`swaydb-api-scala`, `core-tools`)
