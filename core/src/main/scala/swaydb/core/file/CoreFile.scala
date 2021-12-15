@@ -196,7 +196,7 @@ private[core] object CoreFile extends LazyLogging {
                                                 forceSaveApplier: ForceSaveApplier): CoreFile =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull) {
-      throw swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size)
+      throw swaydb.Exception.FailedToWriteAllBytes(0, bytes.allocatedSize, bytes.size)
     } else {
       val file =
         mmapEmptyWriteableReadable(
