@@ -146,7 +146,7 @@ lazy val SwayDB =
       effect,
       core,
       `core-cache`,
-      `core-interop`,
+      `core-config`,
       `core-compression`,
       stream,
       `swaydb-scala-api`,
@@ -198,7 +198,7 @@ lazy val core =
       slice,
       effect,
       utils,
-      `core-interop`,
+      `core-config`,
       `core-queue`,
       `core-cache`,
       `core-compression`,
@@ -209,9 +209,9 @@ lazy val core =
       serializers % Test
     )
 
-lazy val `core-interop` =
+lazy val `core-config` =
   project
-    .in(file("core/interop"))
+    .in(file("core/config"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -323,7 +323,7 @@ lazy val configs =
     .in(file("swaydb/configs"))
     .settings(commonSettings)
     .settings(publishSettings)
-    .dependsOn(`core-interop`)
+    .dependsOn(`core-config`)
 
 lazy val serializers =
   project
@@ -357,7 +357,7 @@ lazy val `core-compression` =
           :+ "org.lz4" % "lz4-java" % lz4Version
           :+ "org.xerial.snappy" % "snappy-java" % snappyVersion
     )
-    .dependsOn(`core-interop`, serializers % Test)
+    .dependsOn(`core-config`, serializers % Test)
 
 lazy val macros =
   project
