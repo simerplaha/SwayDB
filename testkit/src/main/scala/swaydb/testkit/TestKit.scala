@@ -83,14 +83,26 @@ object TestKit {
     else
       option
 
-  def anyOrder[T](left: => T, right: => T): Unit =
-    if (Random.nextBoolean()) {
-      left
-      right
-    } else {
-      right
-      left
-    }
+  def anyOrder[T](one: => T, two: => T): List[T] =
+    Random.shuffle(List(() => one, () => two)).map(_ ())
+
+  def anyOrder[T](one: => T, two: => T, three: => T): List[T] =
+    Random.shuffle(List(() => one, () => two, () => three)).map(_ ())
+
+  def anyOrder[T](one: => T, two: => T, three: => T, four: => T): List[T] =
+    Random.shuffle(List(() => one, () => two, () => three, () => four)).map(_ ())
+
+  def anyOrder[T](one: => T, two: => T, three: T, four: => T, five: => T): List[T] =
+    Random.shuffle(List(() => one, () => two, () => three, () => four, () => five)).map(_ ())
+
+  def anyOrder[T](one: => T, two: => T, three: T, four: => T, five: => T, six: => T): List[T] =
+    Random.shuffle(List(() => one, () => two, () => three, () => four, () => five, () => six)).map(_ ())
+
+  def maybe[T](left: => T): Option[T] =
+    if (randomBoolean())
+      Some(left)
+    else
+      None
 
   def eitherOne[T](left: => T, mid: => T, right: => T): T =
     Random.shuffle(Seq(() => left, () => mid, () => right)).head()

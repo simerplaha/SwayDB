@@ -37,420 +37,437 @@ import java.nio.ReadOnlyBufferException
 
 class CoreFileSpec extends AnyWordSpec with Matchers {
 
-  "standardWrite" should {
-    "initialise a StandardFile for writing and not reading and invoke the onOpen function on open" in {
-      TestSweeper {
-        implicit sweeper =>
-          import sweeper._
-
-          val testFile = randomFilePath()
-          val bytes = randomBytesSlice()
-
-          //      //opening a file should trigger the onOpen function
-          //      implicit val fileSweeper = mock[FileSweeper]
-          //
-          //      fileSweeper.close _ expects * onCall {
-          //        coreFile: FileSweeperItem =>
-          //          coreFile.path shouldBe testFile
-          //          coreFile.isOpen shouldBe true
-          //          ()
-          //      } repeat 3.times
-
-          val file =
-            CoreFile.standardWritable(
-              path = testFile,
-              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-              autoClose = true,
-              forceSave = TestForceSave.standard()
-            )
-
-          //above onOpen is also invoked
-          file.isFileDefined shouldBe true //file is set
-          file.isOpen shouldBe true
-          file.append(bytes)
-
-          assertThrows[NonReadableChannelException](file.readAll())
-          assertThrows[NonReadableChannelException](file.read(position = 0, size = 1))
-          assertThrows[NonReadableChannelException](file.get(position = 0))
-
-          //closing the channel and reopening it will open it in read only mode
-          file.close()
-          file.isFileDefined shouldBe false
-          file.isOpen shouldBe false
-          file.readAll() shouldBe bytes //read
-          //above onOpen is also invoked
-          file.isFileDefined shouldBe true
-          file.isOpen shouldBe true
-          //cannot write to a reopened file channel. Ones closed! It cannot be reopened for writing.
-          assertThrows[NonWritableChannelException](file.append(bytes))
-
-          file.close()
-
-          CoreFile.standardReadable(
-            path = testFile,
-            fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-            autoClose = true
-          ) ==> {
-            file =>
-              file.readAll() shouldBe bytes
-              file.close()
-          }
-        //above onOpen is also invoked
-      }
-    }
-  }
-
-  "standardRead" should {
-    "initialise a StandardFile for reading only" in {
-      TestSweeper {
-        implicit sweeper =>
-          import sweeper._
-
-          val testFile = randomFilePath()
-          val bytes = randomBytesSlice()
-
-          //      //opening a file should trigger the onOpen function
-          //      implicit val fileSweeper = mock[FileSweeper]
-          //      fileSweeper.close _ expects * onCall {
-          //        coreFile: FileSweeperItem =>
-          //          coreFile.path shouldBe testFile
-          //          coreFile.isOpen shouldBe true
-          //          ()
-          //      } repeat 3.times
-
-          Effect.write(testFile, bytes.toByteBufferWrap)
-
-          val readFile =
-            CoreFile.standardReadable(
-              path = testFile,
-              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-              autoClose = true
-            )
-
-          //reading a file should load the file lazily
-          readFile.isFileDefined shouldBe false
-          readFile.isOpen shouldBe false
-          //reading the opens the file
-          readFile.readAll() shouldBe bytes
-          //file is now opened
-          readFile.isFileDefined shouldBe true
-          readFile.isOpen shouldBe true
-
-          //writing fails since the file is readonly
-          assertThrows[NonWritableChannelException](readFile.append(bytes))
-          //data remain unchanged
-          CoreFile.standardReadable(
-            path = testFile,
-            fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-            autoClose = true
-          ).readAll() shouldBe bytes
-
-          readFile.close()
-          readFile.isOpen shouldBe false
-          readFile.isFileDefined shouldBe false
-          //read bytes one by one
-          (0 until bytes.size) foreach {
-            index =>
-              readFile.get(position = index) shouldBe bytes(index)
-          }
-          readFile.isOpen shouldBe true
-      }
-    }
-
-    "fail initialisation if the file does not exists" in {
-      TestSweeper {
-        implicit sweeper =>
-          import sweeper._
-          assertThrows[swaydb.Exception.NoSuchFile] {
-            CoreFile.standardReadable(
-              path = randomFilePath(),
-              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-              autoClose = true
-            )
-          }
-      }
-    }
-  }
-
-  "mmapWriteAndRead" should {
-    "write bytes to a File, extend the buffer on overflow and reopen it for reading via mmapRead" in {
-      TestSweeper {
-        implicit sweeper =>
-          import sweeper._
-          val testFile = randomFilePath()
-          val bytes = Slice.wrap("bytes one".getBytes())
-
-          //      //opening a file should trigger the onOpen function
-          //      implicit val fileSweeper = mock[FileSweeper]
-          //      fileSweeper.close _ expects * onCall {
-          //        coreFile: FileSweeperItem =>
-          //          coreFile.path shouldBe testFile
-          //          coreFile.isOpen shouldBe true
-          //          ()
-          //      } repeat 3.times
-
-          val file =
-            CoreFile.mmapWriteableReadable(
-              path = testFile,
-              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-              autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows,
-              forceSave = TestForceSave.mmap(),
-              bytes = bytes
-            )
-
-          file.readAll() shouldBe bytes
-          file.isFull() shouldBe true
-
-          //overflow bytes
-          val bytes2 = Slice.wrap("bytes two".getBytes())
-          file.append(bytes2)
-          file.isFull() shouldBe true //complete fit - no extra bytes
-
-          //overflow bytes
-          val bytes3 = Slice.wrap("bytes three".getBytes())
-          file.append(bytes3)
-          file.isFull() shouldBe true //complete fit - no extra bytes
-
-          val expectedBytes = bytes ++ bytes2 ++ bytes3
-
-          file.readAll() shouldBe expectedBytes
-
-          //close buffer
-          file.close()
-          file.isFileDefined shouldBe false
-          file.isOpen shouldBe false
-          file.readAll() shouldBe expectedBytes
-          file.isFileDefined shouldBe true
-          file.isOpen shouldBe true
-
-          //writing fails since the file is now readonly
-          assertThrows[ReadOnlyBufferException](file.append(bytes))
-          file.close()
-
-          //open read only buffer
-          CoreFile.mmapReadable(
-            path = testFile,
-            fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-            autoClose = true,
-            deleteAfterClean = OperatingSystem.isWindows
-          ) ==> {
-            file =>
-              file.readAll() shouldBe expectedBytes
-              file.close()
-          }
-      }
-    }
-
-    "fail write if the slice is partially written" in {
-      TestSweeper {
-        implicit sweeper =>
-          import sweeper._
-          val testFile = randomFilePath()
-          val bytes = Slice.allocate[Byte](10)
-          bytes.addUnsignedInt(1)
-          bytes.addUnsignedInt(2)
-
-          bytes.size shouldBe 2
-
-          IO {
-            CoreFile.mmapWriteableReadable(
-              path = testFile,
-              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-              autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows,
-              forceSave = TestForceSave.mmap(),
-              bytes = bytes
-            )
-          }.left.get shouldBe swaydb.Exception.FailedToWriteAllBytes(0, 2, bytes.size)
-      }
-    }
-
-    "fail to write if the file already exists" in {
-      TestSweeper {
-        implicit sweeper =>
-          import sweeper._
-          val testFile = randomFilePath()
-          val bytes = randomBytesSlice()
-
-          CoreFile.mmapWriteableReadable(
-            path = testFile,
-            fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-            autoClose = true,
-            deleteAfterClean = OperatingSystem.isWindows,
-            forceSave = TestForceSave.mmap(),
-            bytes = bytes
-          ).close()
-
-          IO {
-            CoreFile.mmapWriteableReadable(
-              path = testFile,
-              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-              autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows,
-              forceSave = TestForceSave.mmap(),
-              bytes = bytes
-            )
-          }.left.get shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
-
-          //file remains unchanged
-          CoreFile.mmapReadable(
-            path = testFile,
-            fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-            autoClose = true,
-            deleteAfterClean = OperatingSystem.isWindows
-          ) ==> {
-            file =>
-              file.readAll() shouldBe bytes
-              file.close()
-          }
-      }
-    }
-  }
-
-  "mmapRead" should {
-    "open an existing file for reading" in {
-      TestSweeper {
-        implicit sweeper =>
-          import sweeper._
-          val testFile = randomFilePath()
-          val bytes = Slice.wrap("bytes one".getBytes())
-
-          Effect.write(testFile, bytes.toByteBufferWrap)
-
-          val readFile =
-            CoreFile.mmapReadable(
-              path = testFile,
-              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-              autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows
-            )
-
-          def doRead = {
-            readFile.isFileDefined shouldBe false //reading a file should load the file lazily
-            readFile.isOpen shouldBe false
-            readFile.readAll() shouldBe bytes
-            readFile.isFileDefined shouldBe true
-            readFile.isOpen shouldBe true
-          }
-
-          doRead
-
-          //close and read again
-          readFile.close()
-          doRead
-
-          assertThrows[FileAlreadyExistsException](Effect.write(testFile, bytes.toByteBufferWrap)) //creating the same file again should fail
-
-          readFile.close()
-      }
-    }
-
-    "fail to read if the file does not exists" in {
-      TestSweeper {
-        implicit sweeper =>
-          import sweeper._
-          assertThrows[swaydb.Exception.NoSuchFile] {
-            CoreFile.mmapReadable(
-              path = randomFilePath(),
-              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-              autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows
-            )
-          }
-      }
-    }
-  }
-
-  "open a file for writing and handle BufferOverflow" in {
-    runThisNumbered(10.times, log = true) {
-      testNumber =>
-        TestSweeper {
+  "StandardFile" when {
+    "standardWritable" should {
+      "initialise a StandardFile for write only" in {
+        TestSweeper(3.times) {
           implicit sweeper =>
             import sweeper._
-            val bytes1 = Slice.wrap("bytes one".getBytes())
-            val bytes2 = Slice.wrap("bytes two".getBytes())
-            val bytes3 = Slice.wrap("bytes three".getBytes())
-            val bytes4 = Slice.wrap("bytes four".getBytes())
 
-            val bufferSize = {
-              //also randomly add partial or full byte size of byte4 to assert BufferOverflow is extended
-              //even only partially written buffer.
-              bytes1.size + bytes2.size + bytes3.size + (bytes4.size / (randomIntMax(3) max 1))
-            }
+            val testFile = randomFilePath()
+            val bytes = randomBytesSlice()
 
-            val mmapFile =
-              CoreFile.mmapEmptyWriteableReadable(
-                path = randomFilePath(),
-                fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-                bufferSize = bufferSize,
-                autoClose = true,
-                deleteAfterClean = OperatingSystem.isWindows,
-                forceSave = TestForceSave.mmap()
-              ).sweep()
-
-            val standardFile =
+            val file =
               CoreFile.standardWritable(
-                path = randomFilePath(),
+                path = testFile,
                 fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                 autoClose = true,
                 forceSave = TestForceSave.standard()
-              ).sweep()
+              )
 
-            Seq(mmapFile, standardFile) foreach {
+            //the file is open
+            file.isFileDefined shouldBe true //file is set
+            file.isOpen shouldBe true
+            file.append(bytes)
+
+            //cannot read the file
+            anyOrder(
+              assertThrows[NonReadableChannelException](file.readAll()),
+              assertThrows[NonReadableChannelException](file.read(position = 0, size = 1)),
+              assertThrows[NonReadableChannelException](file.get(position = 0))
+            )
+
+            //closing the channel and reopening it will open it in read only mode
+            file.close()
+            file.isFileDefined shouldBe false
+            file.isOpen shouldBe false
+            file.readAll() shouldBe bytes //read
+
+            //above onOpen is also invoked
+            file.isFileDefined shouldBe true
+            file.isOpen shouldBe true
+
+            //cannot write to a reopened file channel. Ones closed! It cannot be reopened for writing.
+            anyOrder(
+              assertThrows[NonWritableChannelException](file.append(bytes)),
+              assertThrows[FileAlreadyExistsException] {
+                CoreFile.standardWritable(
+                  path = testFile,
+                  fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                  autoClose = true,
+                  forceSave = TestForceSave.standard()
+                )
+              }
+            )
+
+            file.close()
+
+            CoreFile.standardReadable(
+              path = testFile,
+              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+              autoClose = true
+            ) ==> {
               file =>
-                //Either use batch append or singular appends.
-                if (testNumber % 2 == 0) {
-                  //bytes4 will cause buffer overflow.
-                  file.appendBatch(Array(bytes1, bytes2, bytes3, bytes4))
-                  if (file.memoryMapped) file.isFull() shouldBe true
-                } else {
-                  file.append(bytes1)
-                  file.isFull() shouldBe false
-                  file.append(bytes2)
-                  file.isFull() shouldBe false
-                  file.append(bytes3)
-                  //          file.isFull() shouldBe true
-                  file.append(bytes4) //overflow write, buffer gets extended
-                  if (file.memoryMapped) file.isFull() shouldBe true
-                }
+                file.readAll() shouldBe bytes
+                file.close()
+            }
+          //above onOpen is also invoked
+        }
+      }
 
-                val allBytes = bytes1 ++ bytes2 ++ bytes3 ++ bytes4
+      "fail is file already exists" in {
+        TestSweeper(3.times) {
+          implicit sweeper =>
+            import sweeper._
 
-                if (file.memoryMapped)
-                  file.readAll() shouldBe allBytes
-                else
-                  Effect.readAllBytes(standardFile.path) shouldBe allBytes.toArray
+            val testFile = randomFilePath()
+            val bytes = randomBytesSlice()
+
+            def createFile() =
+              CoreFile.standardWritable(
+                path = testFile,
+                fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                autoClose = true,
+                forceSave = TestForceSave.standard()
+              )
+
+            val file = createFile()
+            file.isOpen shouldBe true
+
+            assertThrows[NonReadableChannelException](file.readAll()) //cannot read
+            assertThrows[FileAlreadyExistsException](createFile()) //create new file fails
+        }
+      }
+    }
+
+    "standardReadable" should {
+      "initialise a StandardFile for read only" in {
+        TestSweeper {
+          implicit sweeper =>
+            import sweeper._
+
+            val testFile = randomFilePath()
+            val bytes = randomBytesSlice()
+
+            Effect.write(testFile, bytes.toByteBufferWrap)
+
+            val readFile =
+              CoreFile.standardReadable(
+                path = testFile,
+                fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                autoClose = true
+              )
+
+            //reading a file should load the file lazily
+            readFile.isFileDefined shouldBe false
+            readFile.isOpen shouldBe false
+            //reading the opens the file
+            readFile.readAll() shouldBe bytes
+            //file is now opened
+            readFile.isFileDefined shouldBe true
+            readFile.isOpen shouldBe true
+
+            //writing fails since the file is readonly
+            assertThrows[NonWritableChannelException](readFile.append(bytes))
+            //data remain unchanged
+            CoreFile.standardReadable(
+              path = testFile,
+              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+              autoClose = true
+            ).readAll() shouldBe bytes
+
+            readFile.close()
+            readFile.isOpen shouldBe false
+            readFile.isFileDefined shouldBe false
+            //read bytes one by one
+            (0 until bytes.size) foreach {
+              index =>
+                readFile.get(position = index) shouldBe bytes(index)
+            }
+            readFile.isOpen shouldBe true
+        }
+      }
+
+      "fail initialisation if the file does not exists" in {
+        TestSweeper {
+          implicit sweeper =>
+            import sweeper._
+            assertThrows[swaydb.Exception.NoSuchFile] {
+              CoreFile.standardReadable(
+                path = randomFilePath(),
+                fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                autoClose = true
+              )
             }
         }
+      }
     }
   }
 
-  "mmapInit" should {
-    "fail to initialise if it already exists" in {
-      TestSweeper {
-        implicit sweeper =>
-          import sweeper._
-          val testFile = randomFilePath()
-          Effect.write(to = testFile, bytes = Slice.wrap(randomBytes()).toByteBufferWrap)
+  "MMAPFile" when {
+    "mmapWriteableReadable" should {
+      "write bytes to a File, extend the buffer on overflow and reopen it for reading via mmapRead" in {
+        TestSweeper {
+          implicit sweeper =>
+            import sweeper._
+            val testFile = randomFilePath()
+            val bytes = Slice.wrap("bytes one".getBytes())
 
-          assertThrows[FileAlreadyExistsException] {
-            CoreFile.mmapEmptyWriteableReadable(
+            val file =
+              CoreFile.mmapWriteableReadable(
+                path = testFile,
+                fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                autoClose = true,
+                deleteAfterClean = OperatingSystem.isWindows,
+                forceSave = TestForceSave.mmap(),
+                bytes = bytes
+              )
+
+            file.readAll() shouldBe bytes
+            file.isFull() shouldBe true
+
+            //overflow bytes
+            val bytes2 = Slice.wrap("bytes two".getBytes())
+            file.append(bytes2)
+            file.isFull() shouldBe true //complete fit - no extra bytes
+
+            //overflow bytes
+            val bytes3 = Slice.wrap("bytes three".getBytes())
+            file.append(bytes3)
+            file.isFull() shouldBe true //complete fit - no extra bytes
+
+            val expectedBytes = bytes ++ bytes2 ++ bytes3
+
+            file.readAll() shouldBe expectedBytes
+
+            //close buffer
+            file.close()
+            file.isFileDefined shouldBe false
+            file.isOpen shouldBe false
+            file.readAll() shouldBe expectedBytes
+            file.isFileDefined shouldBe true
+            file.isOpen shouldBe true
+
+            //writing fails since the file is now readonly
+            assertThrows[ReadOnlyBufferException](file.append(bytes))
+            file.close()
+
+            //open read only buffer
+            CoreFile.mmapReadable(
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-              bufferSize = 10,
+              autoClose = true,
+              deleteAfterClean = OperatingSystem.isWindows
+            ) ==> {
+              file =>
+                file.readAll() shouldBe expectedBytes
+                file.close()
+            }
+        }
+      }
+
+      "fail write if the slice is partially written" in {
+        TestSweeper {
+          implicit sweeper =>
+            import sweeper._
+            val testFile = randomFilePath()
+
+            val bytes = Slice.allocate[Byte](10)
+            bytes.addUnsignedInt(1)
+            bytes.addUnsignedInt(2)
+            bytes.size shouldBe 2
+            bytes.isOriginalFullSlice shouldBe false
+
+            intercept[swaydb.Exception.FailedToWriteAllBytes] {
+              CoreFile.mmapWriteableReadable(
+                path = testFile,
+                fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                autoClose = true,
+                deleteAfterClean = OperatingSystem.isWindows,
+                forceSave = TestForceSave.mmap(),
+                bytes = bytes
+              )
+            } shouldBe swaydb.Exception.FailedToWriteAllBytes(0, 10, 2)
+        }
+      }
+
+      "fail to write if the file already exists" in {
+        TestSweeper {
+          implicit sweeper =>
+            import sweeper._
+            val testFile = randomFilePath()
+            val bytes = randomBytesSlice()
+
+            CoreFile.mmapWriteableReadable(
+              path = testFile,
+              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows,
-              forceSave = TestForceSave.mmap()
-            )
+              forceSave = TestForceSave.mmap(),
+              bytes = bytes
+            ).close()
+
+            //creating the same file again should fail
+            assertThrows[FileAlreadyExistsException] {
+              CoreFile.mmapWriteableReadable(
+                path = testFile,
+                fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                autoClose = true,
+                deleteAfterClean = OperatingSystem.isWindows,
+                forceSave = TestForceSave.mmap(),
+                bytes = bytes
+              )
+            }
+
+            //file remains unchanged
+            CoreFile.mmapReadable(
+              path = testFile,
+              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+              autoClose = true,
+              deleteAfterClean = OperatingSystem.isWindows
+            ) ==> {
+              file =>
+                file.readAll() shouldBe bytes
+                file.close()
+            }
+        }
+      }
+    }
+
+    "mmapReadable" should {
+      "open an existing file for reading" in {
+        TestSweeper {
+          implicit sweeper =>
+            import sweeper._
+            val testFile = randomFilePath()
+            val bytes = Slice.writeString(randomString)
+
+            Effect.write(testFile, bytes.toByteBufferWrap)
+
+            val readFile =
+              CoreFile.mmapReadable(
+                path = testFile,
+                fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                autoClose = true,
+                deleteAfterClean = OperatingSystem.isWindows
+              )
+
+            def doRead() = {
+              readFile.isFileDefined shouldBe false //reading a file should load the file lazily
+              readFile.isOpen shouldBe false
+              readFile.readAll() shouldBe bytes
+              readFile.isFileDefined shouldBe true
+              readFile.isOpen shouldBe true
+            }
+
+            doRead()
+
+            //close and read again
+            readFile.close()
+            doRead()
+
+            assertThrows[FileAlreadyExistsException](Effect.write(testFile, bytes.toByteBufferWrap)) //creating the same file again should fail
+
+            readFile.close()
+        }
+      }
+
+      "fail to read if the file does not exists" in {
+        TestSweeper {
+          implicit sweeper =>
+            import sweeper._
+            assertThrows[swaydb.Exception.NoSuchFile] {
+              CoreFile.mmapReadable(
+                path = randomFilePath(),
+                fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                autoClose = true,
+                deleteAfterClean = OperatingSystem.isWindows
+              )
+            }
+        }
+      }
+    }
+
+    "open a file for writing and handle BufferOverflow" in {
+      runThisNumbered(10.times, log = true) {
+        testNumber =>
+          TestSweeper {
+            implicit sweeper =>
+              import sweeper._
+              val bytes1 = Slice.wrap("bytes one".getBytes())
+              val bytes2 = Slice.wrap("bytes two".getBytes())
+              val bytes3 = Slice.wrap("bytes three".getBytes())
+              val bytes4 = Slice.wrap("bytes four".getBytes())
+
+              val bufferSize = {
+                //also randomly add partial or full byte size of byte4 to assert BufferOverflow is extended
+                //even only partially written buffer.
+                bytes1.size + bytes2.size + bytes3.size + (bytes4.size / (randomIntMax(3) max 1))
+              }
+
+              val mmapFile =
+                CoreFile.mmapEmptyWriteableReadable(
+                  path = randomFilePath(),
+                  fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                  bufferSize = bufferSize,
+                  autoClose = true,
+                  deleteAfterClean = OperatingSystem.isWindows,
+                  forceSave = TestForceSave.mmap()
+                ).sweep()
+
+              val standardFile =
+                CoreFile.standardWritable(
+                  path = randomFilePath(),
+                  fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                  autoClose = true,
+                  forceSave = TestForceSave.standard()
+                ).sweep()
+
+              Seq(mmapFile, standardFile) foreach {
+                file =>
+                  //Either use batch append or singular appends.
+                  if (testNumber % 2 == 0) {
+                    //bytes4 will cause buffer overflow.
+                    file.appendBatch(Array(bytes1, bytes2, bytes3, bytes4))
+                    if (file.memoryMapped) file.isFull() shouldBe true
+                  } else {
+                    file.append(bytes1)
+                    file.isFull() shouldBe false
+                    file.append(bytes2)
+                    file.isFull() shouldBe false
+                    file.append(bytes3)
+                    //          file.isFull() shouldBe true
+                    file.append(bytes4) //overflow write, buffer gets extended
+                    if (file.memoryMapped) file.isFull() shouldBe true
+                  }
+
+                  val allBytes = bytes1 ++ bytes2 ++ bytes3 ++ bytes4
+
+                  if (file.memoryMapped)
+                    file.readAll() shouldBe allBytes
+                  else
+                    Effect.readAllBytes(standardFile.path) shouldBe allBytes.toArray
+              }
           }
+      }
+    }
+
+    "mmapInit" should {
+      "fail to initialise if it already exists" in {
+        TestSweeper {
+          implicit sweeper =>
+            import sweeper._
+            val testFile = randomFilePath()
+            Effect.write(to = testFile, bytes = Slice.wrap(randomBytes()).toByteBufferWrap)
+
+            assertThrows[FileAlreadyExistsException] {
+              CoreFile.mmapEmptyWriteableReadable(
+                path = testFile,
+                fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                bufferSize = 10,
+                autoClose = true,
+                deleteAfterClean = OperatingSystem.isWindows,
+                forceSave = TestForceSave.mmap()
+              )
+            }
+        }
       }
     }
   }
 
   "write" should {
     "write bytes to a File" in {
-      TestSweeper(times = 10) {
+      TestSweeper(repeat = 10) {
         implicit sweeper =>
           val bytes1 = Slice.wrap(randomBytes(100))
           val bytes2 = Slice.wrap(randomBytes(100))
@@ -560,7 +577,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     //          ()
     //      } repeat 5.times
     //
-    //      val file = CoreFile.standardWrite(
+    //      val file = CoreFile.standardWritable(
     //        path = testFile,
     //        ioStrategy = randomIOStrategy(cacheOnAccess = true),
     //        blockCacheFileId = idGenerator.nextID,

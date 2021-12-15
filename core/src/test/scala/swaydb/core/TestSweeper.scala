@@ -157,9 +157,9 @@ object TestSweeper extends LazyLogging {
     sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Glass, Unit](_ => ())))))
   }
 
-  def apply(times: Int, log: Boolean = true)(code: TestSweeper => Unit): Unit = {
+  def apply(repeat: Int, log: Boolean = true)(code: TestSweeper => Unit): Unit = {
     import swaydb.testkit.RunThis._
-    runThis(times, log)(TestSweeper[Unit](s"TEST${testNumber.incrementAndGet()}")(code))
+    runThis(repeat, log)(TestSweeper[Unit](s"TEST${testNumber.incrementAndGet()}")(code))
   }
 
   def apply[T](code: TestSweeper => T): T =
