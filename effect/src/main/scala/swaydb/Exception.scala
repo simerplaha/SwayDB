@@ -34,18 +34,49 @@ object Exception {
 
   val maxFunctionsToLog = 2
 
-  case class Busy(error: Error.Recoverable) extends Exception("Is busy")
-  case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Exception(s"Failed to open file $file")
-  case class NoSuchFile(file: Path) extends Exception(s"No such file $file")
+  /**
+   * Known [[Exception]]s that can occur within SwayDB.
+   *
+   * Exceptions only occur in extreme cases for reporting a corruption, an operation-system issue
+   * or a bug. Core does not willingly rely on exceptions to implement a logic.
+   */
+  sealed trait SwayDBException extends Throwable
 
-  case class ReservedResource(reserve: Reserve[Unit]) extends Exception("ReservedResource is busy.")
-  case class NullMappedByteBuffer(exception: Exception, reserve: Reserve[Unit]) extends Exception(exception)
+  case class Busy(error: Error.Recoverable)
+    extends Exception("Is busy")
+      with SwayDBException
 
-  case object OverlappingPushSegment extends Exception("Contains overlapping busy Segments")
-  case object NoSegmentsRemoved extends Exception("No Segments Removed")
-  case object NotSentToNextLevel extends Exception("Not sent to next Level")
+  case class OpeningFile(file: Path, reserve: Reserve[Unit])
+    extends Exception(s"Failed to open file $file")
+      with SwayDBException
 
-  case class InvalidAccessException(message: String, cause: Throwable) extends Exception(message, cause)
+  case class NoSuchFile(file: Path)
+    extends Exception(s"No such file $file")
+      with SwayDBException
+
+  case class ReservedResource(reserve: Reserve[Unit])
+    extends Exception("ReservedResource is busy.")
+      with SwayDBException
+
+  case class NullMappedByteBuffer(exception: Exception, reserve: Reserve[Unit])
+    extends Exception(exception)
+      with SwayDBException
+
+  case object OverlappingPushSegment
+    extends Exception("Contains overlapping busy Segments")
+      with SwayDBException
+
+  case object NoSegmentsRemoved
+    extends Exception("No Segments Removed")
+      with SwayDBException
+
+  case object NotSentToNextLevel
+    extends Exception("Not sent to next Level")
+      with SwayDBException
+
+  case class InvalidAccessException(message: String, cause: Throwable)
+    extends Exception(message, cause)
+      with SwayDBException
 
   /**
    * Report missing functions.
@@ -71,7 +102,7 @@ object Exception {
         "."
     }
 
-  case class MissingFunctions(functions: Iterable[String]) extends Exception(missingFunctionsMessage(functions)) {
+  case class MissingFunctions(functions: Iterable[String]) extends Exception(missingFunctionsMessage(functions)) with SwayDBException {
     def asJava: lang.Iterable[String] =
       functions.asJava
   }
@@ -82,35 +113,66 @@ object Exception {
    *
    * @param functionId the id of the missing function.
    */
-  case class FunctionNotFound(functionId: String) extends Exception(s"Function with id '$functionId' not found. Make sure the function is added to the instance. See documentation http://swaydb.io/.")
-  case class OverlappingFileLock(exception: OverlappingFileLockException) extends Exception("Failed to get directory lock.")
-  case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int) extends Exception(s"Failed to write all bytes written: $written, expected : $expected, bytesSize: $bytesSize")
-  case class CannotCopyInMemoryFiles(file: Path) extends Exception(s"Cannot copy in-memory files $file")
-  case class SegmentFileMissing(path: Path) extends Exception(s"$path: Segment file missing.")
+  case class FunctionNotFound(functionId: String)
+    extends Exception(s"Function with id '$functionId' not found. Make sure the function is added to the instance. See documentation http://swaydb.io/.")
+      with SwayDBException
+
+  case class OverlappingFileLock(exception: OverlappingFileLockException)
+    extends Exception("Failed to get directory lock.")
+      with SwayDBException
+
+  case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int)
+    extends Exception(s"Failed to write all bytes written: $written, expected : $expected, bytesSize: $bytesSize")
+      with SwayDBException
+
+  case class CannotCopyInMemoryFiles(file: Path)
+    extends Exception(s"Cannot copy in-memory files $file")
+      with SwayDBException
+
+  case class SegmentFileMissing(path: Path)
+    extends Exception(s"$path: Segment file missing.")
+      with SwayDBException
 
   object InvalidBaseId {
     def apply(id: Int): InvalidBaseId =
       new InvalidBaseId(id, null) //null = there is no parent cause.
   }
-  case class InvalidBaseId(id: Int, cause: Throwable) extends Exception(s"Invalid keyValueId: $id.", cause)
+  case class InvalidBaseId(id: Int, cause: Throwable)
+    extends Exception(s"Invalid keyValueId: $id.", cause)
+      with SwayDBException
 
-  case class InvalidDataId(id: Int, message: String = "") extends Exception(s"Invalid data id: $id. $message")
+  case class InvalidDataId(id: Int, message: String = "")
+    extends Exception(s"Invalid data id: $id. $message")
+      with SwayDBException
 
-  case class NotAnIntFile(path: Path) extends Exception
-  case class UnknownExtension(path: Path) extends Exception
+  case class NotAnIntFile(path: Path)
+    extends SwayDBException
 
-  case class GetOnIncompleteDeferredFutureIO(reserve: Reserve[Unit]) extends Exception("Get invoked on in-complete Future within Deferred IO.")
+  case class UnknownExtension(path: Path)
+    extends SwayDBException
 
-  case class InvalidDirectoryType(invalidType: String, expected: String) extends Exception(s"Invalid data type $invalidType for the directory of type $expected.")
-  case class MissingMultiMapGenFolder(path: Path) extends Exception(s"Missing multimap gen file or folder: $path")
+  case class GetOnIncompleteDeferredFutureIO(reserve: Reserve[Unit])
+    extends Exception("Get invoked on in-complete Future within Deferred IO.")
+      with SwayDBException
+
+  case class InvalidDirectoryType(invalidType: String, expected: String)
+    extends Exception(s"Invalid data type $invalidType for the directory of type $expected.")
+      with SwayDBException
+
+  case class MissingMultiMapGenFolder(path: Path)
+    extends Exception(s"Missing multimap gen file or folder: $path")
+      with SwayDBException
 
   case class IncompatibleVersions(previous: String, current: String)
-    extends Exception(
-      s"Incompatible versions! SwayDB v$current is not compatible with files created by v$previous. Use a different directory."
-    )
+    extends Exception(s"Incompatible versions! SwayDB v$current is not compatible with files created by v$previous. Use a different directory.")
+      with SwayDBException
 
-  case class MissingBuildInfo(buildInfoFileName: String, version: String) extends Exception(s"Missing $buildInfoFileName file. This directory might be an incompatible older version of SwayDB. Current version: v$version.")
+  case class MissingBuildInfo(buildInfoFileName: String, version: String)
+    extends Exception(s"Missing $buildInfoFileName file. This directory might be an incompatible older version of SwayDB. Current version: v$version.")
+      with SwayDBException
 
-  case class InvalidLevelReservation(message: String) extends Exception(message)
+  case class InvalidLevelReservation(message: String)
+    extends Exception(message)
+      with SwayDBException
 
 }
