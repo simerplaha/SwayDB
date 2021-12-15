@@ -198,10 +198,152 @@ lazy val core =
       slice,
       effect,
       utils,
+      `core-compaction`,
+      `core-level`,
+      `core-file`,
+      `core-log`,
+      `core-segment`,
+      `core-util`,
       `core-config`,
       `core-queue`,
       `core-cache`,
       `core-compression`,
+      `core-skiplist`,
+      testkit % Test,
+      macros % "test->test;compile-internal",
+      configs % Test,
+      serializers % Test
+    )
+
+lazy val `core-log` =
+  project
+    .in(file("core/log"))
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(
+      actor,
+      slice,
+      effect,
+      utils,
+      `core-segment`,
+      `core-file`,
+      `core-util`,
+      `core-config`,
+      `core-queue`,
+      `core-cache`,
+      `core-compression`,
+      `core-skiplist`,
+      testkit % Test,
+      macros % "test->test;compile-internal",
+      configs % Test,
+      serializers % Test
+    )
+
+
+lazy val `core-compaction` =
+  project
+    .in(file("core/compaction"))
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(
+      actor,
+      slice,
+      effect,
+      utils,
+      `core-level`,
+      `core-config`,
+      `core-queue`,
+      `core-cache`,
+      `core-compression`,
+      `core-skiplist`,
+      testkit % Test,
+      macros % "test->test;compile-internal",
+      configs % Test,
+      serializers % Test
+    )
+
+lazy val `core-level` =
+  project
+    .in(file("core/level"))
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(
+      actor,
+      slice,
+      effect,
+      utils,
+      `core-log`,
+      `core-segment`,
+      `core-config`,
+      `core-queue`,
+      `core-cache`,
+      `core-compression`,
+      `core-skiplist`,
+      testkit % Test,
+      macros % "test->test;compile-internal",
+      configs % Test,
+      serializers % Test
+    )
+
+lazy val `core-file` =
+  project
+    .in(file("core/file"))
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(
+      slice,
+      effect,
+      utils,
+      `core-config`,
+      `core-cache`,
+      testkit % Test,
+      macros % "test->test;compile-internal",
+      configs % Test,
+      serializers % Test
+    )
+
+lazy val `core-segment` =
+  project
+    .in(file("core/segment"))
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(
+      actor,
+      slice,
+      effect,
+      utils,
+      `core-file`,
+      `core-util`,
+      `core-config`,
+      `core-queue`,
+      `core-cache`,
+      `core-compression`,
+      `core-skiplist`,
+      testkit % Test,
+      macros % "test->test;compile-internal",
+      configs % Test,
+      serializers % Test
+    )
+
+lazy val `core-util` =
+  project
+    .in(file("core/util"))
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(
+      actor,
+      slice,
+      effect,
+      utils,
+      `core-config`,
+      `core-queue`,
+      `core-cache`,
       `core-skiplist`,
       testkit % Test,
       macros % "test->test;compile-internal",
