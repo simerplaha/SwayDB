@@ -308,14 +308,14 @@ class EffectSpec extends AnyWordSpec with Matchers {
         //0.067924621 seconds
         //4.mb
         //0.057647201 seconds & 0.047565694 seconds
-        val groupedPath = Benchmark("groupBytes")(Effect.write(randomFilePath(), groupBytes.mapToSlice(_.toByteBufferWrap)))
+        val groupedPath = Benchmark("groupBytes")(Effect.write(randomFilePath(), groupBytes.mapToSlice(_.toByteBufferWrap())))
         Slice.wrap(Effect.readAllBytes(groupedPath)) shouldBe flattenBytes
 
         //20.mb
         //0.077162871 seconds
         //4.mb
         //0.05330862 seconds & 0.045989919 seconds
-        val flattenedPath = Benchmark("flattenBytes")(Effect.write(randomFilePath(), flattenBytes.toByteBufferWrap))
+        val flattenedPath = Benchmark("flattenBytes")(Effect.write(randomFilePath(), flattenBytes.toByteBufferWrap()))
         Slice.wrap(Effect.readAllBytes(flattenedPath)) shouldBe flattenBytes
     }
   }

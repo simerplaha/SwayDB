@@ -46,9 +46,9 @@ class Segment_AssignerAssignKeyValues_Spec1 extends Assigner_AssignKeyValues_Spe
   val keyValueCount = 100
 
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
 }
 
 class Segment_AssignerAssignKeyValues_Spec2 extends Assigner_AssignKeyValues_Spec {

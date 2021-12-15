@@ -43,9 +43,9 @@ class SegmentGetSpec0 extends SegmentGetSpec {
 class SegmentGetSpec1 extends SegmentGetSpec {
   val keyValuesCount = 1000
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
 }
 
 class SegmentGetSpec2 extends SegmentGetSpec {

@@ -295,7 +295,7 @@ object CoreTestData {
                   nextLevel: Option[NextLevel] = level.nextLevel)(implicit sweeper: TestSweeper): IO[swaydb.Error.Level, Level] = {
 
       val closeResult =
-        if (OperatingSystem.isWindows && level.hasMMAP)
+        if (OperatingSystem.isWindows() && level.hasMMAP)
           IO {
             level.close[Glass]()
           }
@@ -338,7 +338,7 @@ object CoreTestData {
                clearAppliedFunctionsOnBoot: Boolean = false)(implicit timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                              sweeper: TestSweeper): LevelZero = {
 
-      if (OperatingSystem.isWindows && level.hasMMAP)
+      if (OperatingSystem.isWindows() && level.hasMMAP)
         level.close[Glass]()
 
       val reopened =
@@ -357,7 +357,7 @@ object CoreTestData {
                   clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
                   storage =
                     Level0Storage.Persistent(
-                      mmap = MMAP.on(OperatingSystem.isWindows, forceSave = TestForceSave.mmap()),
+                      mmap = MMAP.on(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap()),
                       dir = level.path.getParent,
                       recovery = RecoveryMode.ReportFailure
                     ),
@@ -561,13 +561,13 @@ object CoreTestData {
 
   def randomStringOption: Option[Slice[Byte]] =
     if (randomBoolean())
-      Some(randomString)
+      Some(randomString())
     else
       None
 
   def randomStringSliceOptional: SliceOption[Byte] =
     if (randomBoolean())
-      randomString
+      randomString()
     else
       Slice.Null
 
@@ -579,7 +579,7 @@ object CoreTestData {
 
   def randomPutKeyValue(key: Slice[Byte],
                         value: SliceOption[Byte] = randomStringSliceOptional,
-                        deadline: Option[Deadline] = randomDeadlineOption)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put =
+                        deadline: Option[Deadline] = randomDeadlineOption())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put =
     Memory.Put(
       key = key,
       value = value,
@@ -597,11 +597,11 @@ object CoreTestData {
 
   def randomUpdateKeyValue(key: Slice[Byte],
                            value: SliceOption[Byte] = randomStringSliceOptional,
-                           deadline: Option[Deadline] = randomDeadlineOption)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Update =
+                           deadline: Option[Deadline] = randomDeadlineOption())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Update =
     Memory.Update(key, value, deadline, testTimer.next)
 
   def randomRemoveKeyValue(key: Slice[Byte],
-                           deadline: Option[Deadline] = randomDeadlineOption)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Remove =
+                           deadline: Option[Deadline] = randomDeadlineOption())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Remove =
     Memory.Remove(key, deadline, testTimer.next)
 
   def randomRemoveAny(from: Slice[Byte],
@@ -690,7 +690,7 @@ object CoreTestData {
   def randomPendingApplyKeyValue(key: Slice[Byte],
                                  max: Int = 5,
                                  value: SliceOption[Byte] = randomStringSliceOptional,
-                                 deadline: Option[Deadline] = randomDeadlineOption,
+                                 deadline: Option[Deadline] = randomDeadlineOption(),
                                  functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                                  includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()) =
     Memory.PendingApply(
@@ -867,7 +867,7 @@ object CoreTestData {
   }
 
   def randomApply(value: SliceOption[Byte] = randomStringSliceOptional,
-                  deadline: Option[Deadline] = randomDeadlineOption,
+                  deadline: Option[Deadline] = randomDeadlineOption(),
                   addRemoves: Boolean = randomBoolean(),
                   functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                   includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()) =
@@ -888,7 +888,7 @@ object CoreTestData {
 
   def randomApplies(max: Int = 5,
                     value: SliceOption[Byte] = randomStringSliceOptional,
-                    deadline: Option[Deadline] = randomDeadlineOption,
+                    deadline: Option[Deadline] = randomDeadlineOption(),
                     addRemoves: Boolean = randomBoolean(),
                     functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                     includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Value.Apply] =
@@ -925,7 +925,7 @@ object CoreTestData {
                               value: SliceOption[Byte] = randomStringSliceOptional,
                               fromValue: FromValueOption = randomFromValueOption(),
                               rangeValue: RangeValue = randomRangeValue(),
-                              deadline: Option[Deadline] = randomDeadlineOption,
+                              deadline: Option[Deadline] = randomDeadlineOption(),
                               time: Time = Time.empty,
                               functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                               includePendingApply: Boolean = true,
@@ -955,7 +955,7 @@ object CoreTestData {
 
   def randomFixedTransientKeyValue(key: Slice[Byte],
                                    value: SliceOption[Byte] = randomStringSliceOptional,
-                                   deadline: Option[Deadline] = randomDeadlineOption,
+                                   deadline: Option[Deadline] = randomDeadlineOption(),
                                    time: Time = Time.empty,
                                    functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                                    includePendingApply: Boolean = true,
@@ -1004,7 +1004,7 @@ object CoreTestData {
 
   def randomFixedKeyValue(key: Slice[Byte],
                           value: SliceOption[Byte] = randomStringSliceOptional,
-                          deadline: Option[Deadline] = randomDeadlineOption,
+                          deadline: Option[Deadline] = randomDeadlineOption(),
                           functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                           includePendingApply: Boolean = true,
                           includeFunctions: Boolean = true,
@@ -1103,7 +1103,7 @@ object CoreTestData {
       None
 
   def randomFromValueOption(value: SliceOption[Byte] = randomStringSliceOptional,
-                            deadline: Option[Deadline] = randomDeadlineOption,
+                            deadline: Option[Deadline] = randomDeadlineOption(),
                             functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                             addRemoves: Boolean = randomBoolean(),
                             addPut: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): FromValueOption =
@@ -1141,7 +1141,7 @@ object CoreTestData {
 
   def randomFromValue(value: SliceOption[Byte] = randomStringSliceOptional,
                       addRemoves: Boolean = randomBoolean(),
-                      deadline: Option[Deadline] = randomDeadlineOption,
+                      deadline: Option[Deadline] = randomDeadlineOption(),
                       functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                       addPut: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.FromValue =
     if (addPut && randomBoolean())
@@ -1150,7 +1150,7 @@ object CoreTestData {
       randomRangeValue(value = value, addRemoves = addRemoves, functionOutput = functionOutput, deadline = deadline)
 
   def randomRangeValue(value: SliceOption[Byte] = randomStringSliceOptional,
-                       deadline: Option[Deadline] = randomDeadlineOption,
+                       deadline: Option[Deadline] = randomDeadlineOption(),
                        functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                        addRemoves: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.RangeValue =
     if (addRemoves && randomBoolean())
@@ -1321,7 +1321,7 @@ object CoreTestData {
             randomDeadlineOption(addExpiredPutDeadlines)
           else
             None
-        val rangeValueDeadline = if (addRemoveDeadlines || addUpdateDeadlines) randomDeadlineOption else None
+        val rangeValueDeadline = if (addRemoveDeadlines || addUpdateDeadlines) randomDeadlineOption() else None
         slice add randomRangeKeyValue(
           from = key,
           to = toKey,
@@ -1337,7 +1337,7 @@ object CoreTestData {
         slice add
           randomRemoveKeyValue(
             key = key: Slice[Byte],
-            deadline = if (addRemoveDeadlines) randomDeadlineOption else None
+            deadline = if (addRemoveDeadlines) randomDeadlineOption() else None
           )
         key = key + 1
       } else if (addUpdates && randomBoolean()) {
@@ -1345,7 +1345,7 @@ object CoreTestData {
         slice add
           randomUpdateKeyValue(
             key = key: Slice[Byte],
-            deadline = if (addUpdateDeadlines) randomDeadlineOption else None,
+            deadline = if (addUpdateDeadlines) randomDeadlineOption() else None,
             value = valueBytes
           )
         key = key + 1
@@ -1360,7 +1360,7 @@ object CoreTestData {
         slice add
           randomPendingApplyKeyValue(
             key = key: Slice[Byte],
-            deadline = if (addUpdateDeadlines) randomDeadlineOption else None,
+            deadline = if (addUpdateDeadlines) randomDeadlineOption() else None,
             value = valueBytes
           )
         key = key + 1
@@ -1908,15 +1908,15 @@ object CoreTestData {
   implicit class MMAPImplicits(mmap: MMAP.type) {
     def randomForSegment(): MMAP.Segment =
       if (Random.nextBoolean())
-        MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
+        MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap())
       else if (Random.nextBoolean())
-        MMAP.ReadOnly(OperatingSystem.isWindows)
+        MMAP.ReadOnly(OperatingSystem.isWindows())
       else
         MMAP.Off(TestForceSave.standard())
 
     def randomForLog(): MMAP.Log =
       if (Random.nextBoolean())
-        MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
+        MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap())
       else
         MMAP.Off(TestForceSave.standard())
   }

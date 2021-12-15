@@ -50,7 +50,7 @@ object Default {
       Slice.wrap(ByteBuffer.allocate(ByteSizeOf.char).putChar(data).array())
 
     override def read(slice: Slice[Byte]): Char =
-      slice.toByteBufferWrap.getChar
+      slice.toByteBufferWrap().getChar
   }
 
   implicit object DoubleSerializer extends Serializer[Double] {
@@ -58,7 +58,7 @@ object Default {
       Slice.wrap(ByteBuffer.allocate(ByteSizeOf.double).putDouble(data).array())
 
     override def read(slice: Slice[Byte]): Double =
-      slice.toByteBufferWrap.getDouble
+      slice.toByteBufferWrap().getDouble
   }
 
   implicit object FloatSerializer extends Serializer[Float] {
@@ -66,7 +66,7 @@ object Default {
       Slice.wrap(ByteBuffer.allocate(ByteSizeOf.float).putFloat(data).array())
 
     override def read(slice: Slice[Byte]): Float =
-      slice.toByteBufferWrap.getFloat
+      slice.toByteBufferWrap().getFloat
   }
 
   implicit object ShortSerializer extends Serializer[Short] {
@@ -75,7 +75,7 @@ object Default {
     }
 
     override def read(slice: Slice[Byte]): Short =
-      slice.toByteBufferWrap.getShort
+      slice.toByteBufferWrap().getShort
   }
 
   implicit object StringSerializer extends Serializer[String] {

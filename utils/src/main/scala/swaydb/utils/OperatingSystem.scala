@@ -26,23 +26,23 @@ object OperatingSystem {
   case object Mac extends OperatingSystem
   case object Other extends OperatingSystem
 
-  def isWindows: Boolean =
+  def isWindows(): Boolean =
     get() == OperatingSystem.Windows
 
-  def isNotWindows: Boolean =
-    !isWindows
+  def isNotWindows(): Boolean =
+    !isWindows()
 
-  def isMac: Boolean =
+  def isMac(): Boolean =
     get() == OperatingSystem.Mac
 
-  def isNotMac: Boolean =
-    !isMac
+  def isNotMac(): Boolean =
+    !isMac()
 
-  def isOther: Boolean =
+  def isOther(): Boolean =
     get() == OperatingSystem.Other
 
-  def isNotOther: Boolean =
-    !isOther
+  def isNotOther(): Boolean =
+    !isOther()
 
   def get(): OperatingSystem =
     operatingSystem getOrElse getFromProperty()

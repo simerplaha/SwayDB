@@ -139,7 +139,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
             val testFile = randomFilePath()
             val bytes = randomBytesSlice()
 
-            Effect.write(testFile, bytes.toByteBufferWrap)
+            Effect.write(testFile, bytes.toByteBufferWrap())
 
             val readFile =
               CoreFile.standardReadable(
@@ -201,14 +201,14 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           implicit sweeper =>
             import sweeper._
             val testFile = randomFilePath()
-            val bytes = Slice.wrap("bytes one".getBytes())
+            val bytes = Slice.writeString("bytes one")
 
             val file =
               CoreFile.mmapWriteableReadable(
                 path = testFile,
                 fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                 autoClose = true,
-                deleteAfterClean = OperatingSystem.isWindows,
+                deleteAfterClean = OperatingSystem.isWindows(),
                 forceSave = TestForceSave.mmap(),
                 bytes = bytes
               )
@@ -247,7 +247,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows
+              deleteAfterClean = OperatingSystem.isWindows()
             ) ==> {
               file =>
                 file.readAll() shouldBe expectedBytes
@@ -273,7 +273,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
                 path = testFile,
                 fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                 autoClose = true,
-                deleteAfterClean = OperatingSystem.isWindows,
+                deleteAfterClean = OperatingSystem.isWindows(),
                 forceSave = TestForceSave.mmap(),
                 bytes = bytes
               )
@@ -292,7 +292,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows(),
               forceSave = TestForceSave.mmap(),
               bytes = bytes
             ).close()
@@ -303,7 +303,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
                 path = testFile,
                 fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                 autoClose = true,
-                deleteAfterClean = OperatingSystem.isWindows,
+                deleteAfterClean = OperatingSystem.isWindows(),
                 forceSave = TestForceSave.mmap(),
                 bytes = bytes
               )
@@ -314,7 +314,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows
+              deleteAfterClean = OperatingSystem.isWindows()
             ) ==> {
               file =>
                 file.readAll() shouldBe bytes
@@ -330,16 +330,16 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           implicit sweeper =>
             import sweeper._
             val testFile = randomFilePath()
-            val bytes = Slice.writeString(randomString)
+            val bytes = Slice.writeString(randomString())
 
-            Effect.write(testFile, bytes.toByteBufferWrap)
+            Effect.write(testFile, bytes.toByteBufferWrap())
 
             val readFile =
               CoreFile.mmapReadable(
                 path = testFile,
                 fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                 autoClose = true,
-                deleteAfterClean = OperatingSystem.isWindows
+                deleteAfterClean = OperatingSystem.isWindows()
               )
 
             def doRead() = {
@@ -356,7 +356,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
             readFile.close()
             doRead()
 
-            assertThrows[FileAlreadyExistsException](Effect.write(testFile, bytes.toByteBufferWrap)) //creating the same file again should fail
+            assertThrows[FileAlreadyExistsException](Effect.write(testFile, bytes.toByteBufferWrap())) //creating the same file again should fail
 
             readFile.close()
         }
@@ -371,7 +371,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
                 path = randomFilePath(),
                 fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                 autoClose = true,
-                deleteAfterClean = OperatingSystem.isWindows
+                deleteAfterClean = OperatingSystem.isWindows()
               )
             }
         }
@@ -401,7 +401,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
                   fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                   bufferSize = bufferSize,
                   autoClose = true,
-                  deleteAfterClean = OperatingSystem.isWindows,
+                  deleteAfterClean = OperatingSystem.isWindows(),
                   forceSave = TestForceSave.mmap()
                 ).sweep()
 
@@ -448,7 +448,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
           implicit sweeper =>
             import sweeper._
             val testFile = randomFilePath()
-            Effect.write(to = testFile, bytes = Slice.wrap(randomBytes()).toByteBufferWrap)
+            Effect.write(to = testFile, bytes = Slice.wrap(randomBytes()).toByteBufferWrap())
 
             assertThrows[FileAlreadyExistsException] {
               CoreFile.mmapEmptyWriteableReadable(
@@ -456,7 +456,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
                 fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                 bufferSize = 10,
                 autoClose = true,
-                deleteAfterClean = OperatingSystem.isWindows,
+                deleteAfterClean = OperatingSystem.isWindows(),
                 forceSave = TestForceSave.mmap()
               )
             }
@@ -627,7 +627,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               bufferSize = bytes.size,
               autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows(),
               forceSave = TestForceSave.mmap()
             )
 
@@ -701,7 +701,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               bufferSize = bytes.size,
               autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows(),
               forceSave = TestForceSave.mmap()
             )
 
@@ -755,7 +755,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
-            deleteAfterClean = OperatingSystem.isWindows
+            deleteAfterClean = OperatingSystem.isWindows()
           ) ==> {
             file =>
               file.readAll() shouldBe expectedAllBytes
@@ -780,7 +780,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               bufferSize = allBytesSize,
               autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows(),
               forceSave = TestForceSave.mmap()
             )
 
@@ -800,7 +800,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
-            deleteAfterClean = OperatingSystem.isWindows
+            deleteAfterClean = OperatingSystem.isWindows()
           ) ==> {
             file =>
               file.readAll() shouldBe expectedAllBytes
@@ -833,7 +833,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               bufferSize = bytes.head.size,
               autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows(),
               forceSave = TestForceSave.mmap()
             )
 
@@ -855,7 +855,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
-            deleteAfterClean = OperatingSystem.isWindows
+            deleteAfterClean = OperatingSystem.isWindows()
           ) ==> {
             file =>
               file.readAll() shouldBe expectedAllBytes
@@ -913,7 +913,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               bufferSize = 100,
               autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows(),
               forceSave = TestForceSave.mmap()
             )
 
@@ -925,7 +925,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
             path = file.path,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
-            deleteAfterClean = OperatingSystem.isWindows
+            deleteAfterClean = OperatingSystem.isWindows()
           ) ==> {
             file2 =>
               file2.readAll() shouldBe Slice.fill(file.fileSize())(0)
@@ -1010,7 +1010,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows(),
               forceSave = TestForceSave.mmap(),
               bytes = randomBytesSlice()
             ).sweep()
@@ -1019,7 +1019,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
           file.delete()
 
-          if (OperatingSystem.isWindows)
+          if (OperatingSystem.isWindows())
             sweeper.receiveAll()
 
           file.existsOnDisk() shouldBe false
@@ -1075,7 +1075,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               bufferSize = bytes.size,
               autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows(),
               forceSave = TestForceSave.mmap()
             )
 
@@ -1114,7 +1114,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   //              path = testFile,
   //              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
   //              autoClose = true,
-  //              deleteAfterClean = OperatingSystem.isWindows,
+  //              deleteAfterClean = OperatingSystem.isWindows(),
   //              blockCacheFileId = idGenerator.nextID,
   //              bytes = bytes
   //            )

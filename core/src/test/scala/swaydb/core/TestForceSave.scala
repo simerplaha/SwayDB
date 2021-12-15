@@ -49,7 +49,7 @@ object TestForceSave {
    * @return current set [[ForceSave]] setting for MMAP files for Windows.
    */
   def mmap(): ForceSave.MMAPFiles =
-    if (OperatingSystem.isWindows && Random.nextDouble() >= double)
+    if (OperatingSystem.isWindows() && Random.nextDouble() >= double)
       ForceSave.Off
     else if (Random.nextBoolean())
       ForceSave.BeforeClean(
@@ -70,7 +70,7 @@ object TestForceSave {
    * @return current set [[ForceSave]] setting for Channel files for Windows.
    */
   def standard(): ForceSave.StandardFiles =
-    if (OperatingSystem.isWindows && Random.nextDouble() >= double)
+    if (OperatingSystem.isWindows() && Random.nextDouble() >= double)
       ForceSave.Off
     else if (Random.nextBoolean())
       ForceSave.BeforeClose(

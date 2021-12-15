@@ -43,7 +43,7 @@ class RemoveMergerSpec extends AnyWordSpec with Matchers {
           val key = randomStringOption
 
           //new but has older time than oldKeyValue
-          val newKeyValue = Memory.remove(key, randomDeadlineOption)
+          val newKeyValue = Memory.remove(key, randomDeadlineOption())
 
           //oldKeyValue but it has a newer time.
           val oldKeyValue = randomFixedKeyValue(key = key)

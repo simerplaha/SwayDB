@@ -45,9 +45,9 @@
 //
 //class LevelSegmentSpec1 extends LevelSegmentSpec {
 //  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
 //}
 //
 //class LevelSegmentSpec2 extends LevelSegmentSpec {
@@ -180,7 +180,7 @@
 //                  dir.resolve(5.toString).files(Extension.Seg) should have size 30
 //                }
 //
-//                if (OperatingSystem.isWindows)
+//                if (OperatingSystem.isWindows())
 //                  eventual(10.seconds) {
 //                    sweeper.receiveAll()
 //                    assert()

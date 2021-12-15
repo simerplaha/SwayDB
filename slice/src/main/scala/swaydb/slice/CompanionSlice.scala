@@ -427,15 +427,15 @@ trait CompanionSlice extends SliceBuildFrom {
     @inline def createReader(): SliceReader =
       SliceReader(self)
 
-    @inline def toByteBufferWrap: ByteBuffer =
+    @inline def toByteBufferWrap(): ByteBuffer =
       ByteBuffer.wrap(self.unsafeInnerByteArray, self.fromOffset, self.size)
 
-    @inline def toByteBufferDirect: ByteBuffer =
+    @inline def toByteBufferDirect(): ByteBuffer =
       ByteBuffer
         .allocateDirect(self.size)
         .put(self.unsafeInnerByteArray, 0, self.size)
 
-    @inline def toByteArrayInputStream: ByteArrayInputStream =
+    @inline def toByteArrayInputStream(): ByteArrayInputStream =
       new ByteArrayInputStream(self.unsafeInnerByteArray, self.fromOffset, self.size)
   }
 

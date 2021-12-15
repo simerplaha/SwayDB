@@ -35,9 +35,9 @@ class BehaviourCompactionTask_refresh_Spec0 extends BehaviourCompactionTask_refr
 
 //class BehaviourCompactionTask_refresh_Spec1 extends BehaviourCompactionTask_refresh_Spec {
 //  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
 //}
 //
 //class BehaviourCompactionTask_refresh_Spec2 extends BehaviourCompactionTask_refresh_Spec {

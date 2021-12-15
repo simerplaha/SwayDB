@@ -41,9 +41,9 @@ class BehaviourWakeUp_compactLastLevel_multiLevel_Spec0 extends BehaviourWakeUp_
 
 class BehaviourWakeUp_compactLastLevel_multiLevel_Spec1 extends BehaviourWakeUp_compactLastLevel_multiLevel_Spec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
 }
 
 class BehaviourWakeUp_compactLastLevel_multiLevel_Spec2 extends BehaviourWakeUp_compactLastLevel_multiLevel_Spec {
@@ -99,7 +99,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends ALevelSpec
             val keyValues =
               Slice.range(1, 6) mapToSlice {
                 key =>
-                  randomPutKeyValue(key, randomString, someOrNone(1.hour.fromNow))
+                  randomPutKeyValue(key, randomString(), someOrNone(1.hour.fromNow))
               }
 
             //second level
@@ -153,7 +153,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends ALevelSpec
             val keyValues =
               Slice.range(1, 15) mapToSlice {
                 key =>
-                  randomPutKeyValue(key, randomString, someOrNone(1.hour.fromNow))
+                  randomPutKeyValue(key, randomString(), someOrNone(1.hour.fromNow))
               }
 
             val testSegments = keyValues.grouped(2).map(TestSegment(_)).toList
@@ -220,7 +220,7 @@ sealed trait BehaviourWakeUp_compactLastLevel_multiLevel_Spec extends ALevelSpec
             val keyValues =
               Slice.range(1, 15) mapToSlice {
                 key =>
-                  randomPutKeyValue(key, randomString, someOrNone(1.hour.fromNow))
+                  randomPutKeyValue(key, randomString(), someOrNone(1.hour.fromNow))
               }
 
             //create Segments

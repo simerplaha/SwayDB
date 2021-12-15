@@ -74,7 +74,7 @@
 //          bufferSize = bytes.size * 50,
 //          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
 //          autoClose = false,
-//          deleteAfterClean = OperatingSystem.isWindows
+//          deleteAfterClean = OperatingSystem.isWindows()
 //        ).runRandomIO.right.value
 //
 //      Benchmark("write 1 million key values to a MMAPlFile") {
@@ -96,7 +96,7 @@
 //          bufferSize = bytes.size * 50,
 //          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
 //          autoClose = false,
-//          deleteAfterClean = OperatingSystem.isWindows
+//          deleteAfterClean = OperatingSystem.isWindows()
 //        ).runRandomIO.right.value
 //
 //      Benchmark("write 1 million key values to a MMAPlFile concurrently") {

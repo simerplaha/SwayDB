@@ -27,7 +27,7 @@ object CoreFileTestKit {
   def createFile(bytes: Slice[Byte])(implicit sweeper: TestSweeper): Path =
     Effect.write(
       to = sweeper.testDir().resolve(sweeper.idGenerator.nextSegment),
-      bytes = bytes.toByteBufferWrap
+      bytes = bytes.toByteBufferWrap()
     ).sweep()
 
   def createRandomFileReader(path: Path)(implicit sweeper: TestSweeper): FileReader =
@@ -70,7 +70,7 @@ object CoreFileTestKit {
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
-      deleteAfterClean = OperatingSystem.isWindows,
+      deleteAfterClean = OperatingSystem.isWindows(),
       forceSave = TestForceSave.mmap(),
       bytes = bytes
     ).sweep()
@@ -83,7 +83,7 @@ object CoreFileTestKit {
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
-      deleteAfterClean = OperatingSystem.isWindows,
+      deleteAfterClean = OperatingSystem.isWindows(),
       forceSave = TestForceSave.mmap(),
       bufferSize = bufferSize
     ).sweep()
@@ -129,7 +129,7 @@ object CoreFileTestKit {
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
-        deleteAfterClean = OperatingSystem.isWindows
+        deleteAfterClean = OperatingSystem.isWindows()
       ).sweep()
 
     new FileReader(file = file)

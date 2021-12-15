@@ -106,7 +106,7 @@ class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
 
       val previous = randomizedKeyValues(count = 1).head
       val duplicateValues = if (Random.nextBoolean()) previous.value else randomStringSliceOptional
-      val duplicateDeadline = if (Random.nextBoolean()) previous.deadline else randomDeadlineOption
+      val duplicateDeadline = if (Random.nextBoolean()) previous.deadline else randomDeadlineOption()
       val next =
         eitherOne(
           randomFixedKeyValue(

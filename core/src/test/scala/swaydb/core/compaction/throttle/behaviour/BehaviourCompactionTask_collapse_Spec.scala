@@ -43,9 +43,9 @@ class BehaviourCompactionTask_collapse_Spec0 extends BehaviourCompactionTask_col
 
 class BehaviourCompactionTask_collapse_Spec1 extends BehaviourCompactionTask_collapse_Spec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
 }
 
 class BehaviourCompactionTask_collapse_Spec2 extends BehaviourCompactionTask_collapse_Spec {

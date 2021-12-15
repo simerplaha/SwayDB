@@ -64,7 +64,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
               path = randomDir(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              deleteAfterClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows(),
               forceSave = TestForceSave.mmap(),
               bytes = Array(randomBytesSlice())
             )
@@ -99,7 +99,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
                   path = randomDir(),
                   fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                   autoClose = true,
-                  deleteAfterClean = OperatingSystem.isWindows,
+                  deleteAfterClean = OperatingSystem.isWindows(),
                   forceSave = TestForceSave.mmap(),
                   bytes = bytes
                 )

@@ -88,7 +88,7 @@ object Build extends LazyLogging {
 
       Effect.createDirectoriesIfAbsent(folder)
       logger.debug(s"Writing build.info - v${buildInfo.version.version}")
-      Effect.write(file, slice.toByteBufferWrap)
+      Effect.write(file, slice.toByteBufferWrap())
     }
 
   def read[E: IO.ExceptionHandler](folder: Path): IO[E, Build] =

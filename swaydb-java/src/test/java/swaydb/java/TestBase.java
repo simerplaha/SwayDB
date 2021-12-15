@@ -28,7 +28,7 @@ public abstract class TestBase {
 
   public Path testFileDirectory() {
     Path projectDirectory;
-    if (OperatingSystem.isWindows()) {
+    if (OperatingSystem.isWindows()()) {
       projectDirectory = Paths.get(projectTargetFolder.substring(1)).getParent().getParent();
     } else {
       projectDirectory = Paths.get(projectTargetFolder).getParent().getParent();

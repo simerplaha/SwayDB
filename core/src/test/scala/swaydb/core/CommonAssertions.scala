@@ -938,7 +938,7 @@ object CommonAssertions {
 
         Effect.write(
           to = Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"),
-          bytes = Slice.writeString(data.mkString("\n")).toByteBufferWrap
+          bytes = Slice.writeString(data.mkString("\n")).toByteBufferWrap()
         )
 
         dump(nextLevel)
@@ -948,7 +948,7 @@ object CommonAssertions {
 
         Effect.write(
           to = Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"),
-          bytes = Slice.writeString(data.mkString("\n")).toByteBufferWrap
+          bytes = Slice.writeString(data.mkString("\n")).toByteBufferWrap()
         )
     }
 

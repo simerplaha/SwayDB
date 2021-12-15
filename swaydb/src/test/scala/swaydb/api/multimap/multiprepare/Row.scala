@@ -38,6 +38,6 @@ object Row {
       Slice.wrap(Pickle.intoBytes(data).array())
 
     override def read(slice: Slice[Byte]): Row =
-      Unpickle[Row].fromBytes(slice.toByteBufferWrap)
+      Unpickle[Row].fromBytes(slice.toByteBufferWrap())
   }
 }

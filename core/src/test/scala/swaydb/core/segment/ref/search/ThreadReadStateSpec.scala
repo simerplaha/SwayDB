@@ -32,7 +32,7 @@ class ThreadReadStateSpec extends AnyWordSpec with Matchers {
 
         (1 to 100) foreach {
           _ =>
-            state.getSegmentState(Paths.get(randomString)) shouldBe SegmentReadState.Null
+            state.getSegmentState(Paths.get(randomString())) shouldBe SegmentReadState.Null
         }
       }
 
@@ -42,7 +42,7 @@ class ThreadReadStateSpec extends AnyWordSpec with Matchers {
         val keys =
           (1 to 100) map {
             _ =>
-              val key = Paths.get(randomString)
+              val key = Paths.get(randomString())
               state.setSegmentState(key, null)
               key
           }

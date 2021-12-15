@@ -40,7 +40,7 @@ trait ALevelSpec extends ASegmentSpec {
 
   def levelFoldersCount = 0
 
-  def level0MMAP: MMAP.Log = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
+  def level0MMAP: MMAP.Log = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap())
 
   def createNextLevelPath: Path =
     Effect.createDirectoriesIfAbsent(nextLevelPath)

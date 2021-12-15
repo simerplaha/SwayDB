@@ -31,7 +31,7 @@ trait ALogSpec extends ACoreSpec {
               fileSize: Int = 4.mb,
               path: Path = testLogFile,
               flushOnOverflow: Boolean = false,
-              mmap: MMAP.Log = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+              mmap: MMAP.Log = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                          timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                          sweeper: TestSweeper): LevelZeroLog = {
       import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._

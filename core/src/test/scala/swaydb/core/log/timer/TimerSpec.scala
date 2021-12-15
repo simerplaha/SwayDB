@@ -44,7 +44,7 @@ class PersistentTimerSpec extends TimerSpec {
                            reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]]): Timer =
     Timer.persistent(
       path = path,
-      mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
+      mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
       mod = 100,
       fileSize = 1000
     ).get

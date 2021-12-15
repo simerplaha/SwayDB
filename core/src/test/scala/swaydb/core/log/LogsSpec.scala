@@ -78,7 +78,7 @@ class LogsSpec extends ALogSpec {
             //since the size of the Log is 1.mb and entries are too small. No flushing will value executed and there should only be one folder.
             path.folders.map(_.folderId) should contain only 0
 
-            if (logs.mmap.hasMMAP && OperatingSystem.isWindows) {
+            if (logs.mmap.hasMMAP && OperatingSystem.isWindows()) {
               logs.close().value
               sweeper.receiveAll()
             }
@@ -124,7 +124,7 @@ class LogsSpec extends ALogSpec {
                 recovery = RecoveryMode.ReportFailure
               ).value
 
-            if (logs.mmap.hasMMAP && OperatingSystem.isWindows) {
+            if (logs.mmap.hasMMAP && OperatingSystem.isWindows()) {
               logs.close().value
               sweeper.receiveAll()
             }
@@ -146,7 +146,7 @@ class LogsSpec extends ALogSpec {
             reopen.logsCount shouldBe 1
             //since the old log is empty, it should value deleted
 
-            if (reopen.mmap.hasMMAP && OperatingSystem.isWindows)
+            if (reopen.mmap.hasMMAP && OperatingSystem.isWindows())
               sweeper.receiveAll()
 
             currentLogsPath.exists shouldBe false
@@ -264,7 +264,7 @@ class LogsSpec extends ALogSpec {
                 ).value
               )
 
-            if (originalLogs.mmap.hasMMAP && OperatingSystem.isWindows)
+            if (originalLogs.mmap.hasMMAP && OperatingSystem.isWindows())
               originalLogs.ensureClose()
 
             //in memory
@@ -321,7 +321,7 @@ class LogsSpec extends ALogSpec {
             getLogs(logs).iterator.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
             logs.last().value.pathOption.value.folderId shouldBe 0
 
-            if (logs.mmap.hasMMAP && OperatingSystem.isWindows) {
+            if (logs.mmap.hasMMAP && OperatingSystem.isWindows()) {
               logs.close().value
               sweeper.receiveAll()
             }
@@ -340,7 +340,7 @@ class LogsSpec extends ALogSpec {
             recovered1.write(_ => LogEntry.Put[Slice[Byte], Memory.Remove](6, Memory.remove(6)))
             recovered1.last().value.pathOption.value.folderId shouldBe 0
 
-            if (recovered1.mmap.hasMMAP && OperatingSystem.isWindows) {
+            if (recovered1.mmap.hasMMAP && OperatingSystem.isWindows()) {
               recovered1.close().value
               sweeper.receiveAll()
             }
@@ -381,7 +381,7 @@ class LogsSpec extends ALogSpec {
             logs.write(_ => LogEntry.Put(2, Memory.put(2)))
             logs.write(_ => LogEntry.Put[Slice[Byte], Memory](1, Memory.remove(1)))
 
-            if (logs.mmap.hasMMAP && OperatingSystem.isWindows) {
+            if (logs.mmap.hasMMAP && OperatingSystem.isWindows()) {
               logs.close().value
               sweeper.receiveAll()
             }
@@ -426,7 +426,7 @@ class LogsSpec extends ALogSpec {
             logs.write(_ => LogEntry.Put(2, Memory.put(2)))
             logs.write(_ => LogEntry.Put[Slice[Byte], Memory](3, Memory.remove(3)))
 
-            if (logs.mmap.hasMMAP && OperatingSystem.isWindows) {
+            if (logs.mmap.hasMMAP && OperatingSystem.isWindows()) {
               logs.close().value
               sweeper.receiveAll()
             }

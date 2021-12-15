@@ -61,7 +61,7 @@ class ForceSavePerformanceSpec extends ACoreSpec {
             val channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
             val buffer = channel.map(MapMode.READ_WRITE, 0, bytes.size)
 
-            buffer.put(bytes.toByteBufferWrap)
+            buffer.put(bytes.toByteBufferWrap())
 
             val newTime =
               Benchmark.time(s"Force save memory-mapped file") {
@@ -108,7 +108,7 @@ class ForceSavePerformanceSpec extends ACoreSpec {
 
             val channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
 
-            Effect.writeUnclosed(channel, bytes.toByteBufferWrap)
+            Effect.writeUnclosed(channel, bytes.toByteBufferWrap())
 
             val newTime =
               Benchmark.time(s"Force save memory-mapped file") {

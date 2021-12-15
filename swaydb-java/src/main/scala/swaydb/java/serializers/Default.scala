@@ -61,7 +61,7 @@ object Default {
       DoubleSerializer.write(data).cast
 
     override def read(slice: Slice[java.lang.Byte]): java.lang.Double =
-      slice.toByteBufferWrap.getDouble
+      slice.toByteBufferWrap().getDouble
   }
 
   def floatSerializer(): Serializer[java.lang.Float] = JavaFloatSerializer

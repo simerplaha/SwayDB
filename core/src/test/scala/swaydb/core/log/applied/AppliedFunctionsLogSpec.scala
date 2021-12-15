@@ -62,7 +62,7 @@ class AppliedFunctionsLogSpec extends ACoreSpec {
           val functionIds =
             (1 to (randomIntMax(1000) max 10)) map {
               i =>
-                val functionId = randomString
+                val functionId = randomString()
                 map.writeSync(LogEntry.Put(functionId, Slice.Null)) shouldBe true
                 functionId
             }

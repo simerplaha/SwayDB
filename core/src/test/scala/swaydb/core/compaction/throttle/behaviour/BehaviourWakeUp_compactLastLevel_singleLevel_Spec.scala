@@ -40,9 +40,9 @@ class BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec0 extends Behavio
 
 class BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec1 extends BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
 }
 
 class BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec2 extends BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec {
@@ -97,7 +97,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends A
             val keyValues =
               Slice.range(1, 6) mapToSlice {
                 key =>
-                  randomPutKeyValue(key, randomString, someOrNone(1.hour.fromNow))
+                  randomPutKeyValue(key, randomString(), someOrNone(1.hour.fromNow))
               }
 
             val level =
@@ -140,7 +140,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends A
             val keyValues =
               Slice.range(1, 6) mapToSlice {
                 key =>
-                  randomPutKeyValue(key, randomString, someOrNone(1.hour.fromNow))
+                  randomPutKeyValue(key, randomString(), someOrNone(1.hour.fromNow))
               }
 
             val level =
@@ -183,7 +183,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends A
             val keyValues =
               Slice.range(1, 15) mapToSlice {
                 key =>
-                  randomPutKeyValue(key, randomString, someOrNone(1.hour.fromNow))
+                  randomPutKeyValue(key, randomString(), someOrNone(1.hour.fromNow))
               }
 
             val testSegments = keyValues.grouped(2).map(TestSegment(_)).toList
@@ -240,7 +240,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends A
             val keyValues =
               Slice.range(1, 15) mapToSlice {
                 key =>
-                  randomPutKeyValue(key, randomString, someOrNone(1.hour.fromNow))
+                  randomPutKeyValue(key, randomString(), someOrNone(1.hour.fromNow))
               }
 
             //create Segments
@@ -298,7 +298,7 @@ sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends A
               Slice.range(1, 15) mapToSlice {
                 key =>
                   val deadline = if (key % 5 == 0) Some(expiredDeadline()) else None
-                  randomPutKeyValue(key, randomString, deadline)
+                  randomPutKeyValue(key, randomString(), deadline)
               }
 
             //create Segments

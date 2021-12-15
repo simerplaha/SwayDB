@@ -24,7 +24,7 @@ private[core] object CRC32 {
 
   def forBytes(bytes: Slice[Byte]): Long = {
     val checksum = new java.util.zip.CRC32
-    checksum.update(bytes.toByteBufferWrap)
+    checksum.update(bytes.toByteBufferWrap())
     checksum.getValue
   }
 }

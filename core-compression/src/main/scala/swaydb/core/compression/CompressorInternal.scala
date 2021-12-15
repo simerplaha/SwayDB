@@ -100,7 +100,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
     def compress(emptyHeadSpace: Int, slice: Slice[Byte]): Option[Slice[Byte]] = {
       val maxCompressLength = compressor.maxCompressedLength(slice.size)
       val compressedBuffer = ByteBuffer.allocate(maxCompressLength + emptyHeadSpace)
-      val compressedBytes = compressor.compress(slice.toByteBufferWrap, slice.fromOffset, slice.size, compressedBuffer, emptyHeadSpace, maxCompressLength)
+      val compressedBytes = compressor.compress(slice.toByteBufferWrap(), slice.fromOffset, slice.size, compressedBuffer, emptyHeadSpace, maxCompressLength)
 
       if (isCompressionSatisfied(minCompressionPercentage, compressedBytes, slice.size, compressionName))
         Some(

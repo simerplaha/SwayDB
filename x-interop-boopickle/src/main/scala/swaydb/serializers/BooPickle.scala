@@ -31,6 +31,6 @@ object BooPickle {
       }
 
       override def read(slice: Slice[Byte]): A =
-        Unpickle[A].fromBytes(slice.toByteBufferWrap)
+        Unpickle[A].fromBytes(slice.toByteBufferWrap())
     }
 }

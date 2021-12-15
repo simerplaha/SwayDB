@@ -40,7 +40,7 @@ trait ACoreSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll with Be
   private val projectTargetFolder = getClass.getClassLoader.getResource("").getPath
 
   val projectDirectory =
-    if (OperatingSystem.isWindows)
+    if (OperatingSystem.isWindows())
       Paths.get(projectTargetFolder.drop(1)).getParent.getParent
     else
       Paths.get(projectTargetFolder).getParent.getParent
@@ -51,7 +51,7 @@ trait ACoreSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll with Be
 
   val testClassDirPath = testFileDirectory.resolve(this.getClass.getSimpleName)
 
-  def appendixStorageMMAP: MMAP.Log = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
+  def appendixStorageMMAP: MMAP.Log = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap())
 
   def isMemorySpec = false
 

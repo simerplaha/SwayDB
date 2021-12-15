@@ -188,7 +188,7 @@ private class MMAPFile(val path: Path,
       try
         watchNullPointer[Unit] {
           while (currentIndex < slices.length) {
-            buffer.put(slices(currentIndex).toByteBufferWrap)
+            buffer.put(slices(currentIndex).toByteBufferWrap())
             currentIndex += 1
           }
         }
@@ -223,7 +223,7 @@ private class MMAPFile(val path: Path,
   @tailrec
   final def append(slice: Slice[Byte]): Unit =
     try
-      watchNullPointer[Unit](buffer.put(slice.toByteBufferWrap))
+      watchNullPointer[Unit](buffer.put(slice.toByteBufferWrap()))
     catch {
       case ex: BufferOverflowException =>
         watchNullPointer {

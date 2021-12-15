@@ -64,7 +64,7 @@ object TestSweeper extends LazyLogging {
     getClass.getClassLoader.getResource("").getPath
 
   val projectFolder: Path =
-    if (OperatingSystem.isWindows)
+    if (OperatingSystem.isWindows())
       Paths.get(projectTargetFolder.drop(1)).getParent.getParent
     else
       Paths.get(projectTargetFolder).getParent.getParent

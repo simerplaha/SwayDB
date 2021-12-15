@@ -40,9 +40,9 @@ class LevelMapSpec0 extends LevelMapSpec
 
 class LevelMapSpec1 extends LevelMapSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
 }
 
 class LevelMapSpec2 extends LevelMapSpec {
@@ -81,7 +81,7 @@ sealed trait LevelMapSpec extends ALevelSpec with MockFactory with PrivateMethod
         if (isPersistentSpec)
           Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
             folder = randomIntDirectory,
-            mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
+            mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
             flushOnOverflow = true,
             fileSize = 1.mb,
             dropCorruptedTailEntries = false

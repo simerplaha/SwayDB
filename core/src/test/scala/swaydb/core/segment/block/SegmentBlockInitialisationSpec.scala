@@ -388,14 +388,14 @@ class SegmentBlockInitialisationSpec extends ASegmentSpec {
                     rangeValue =
                       eitherOne(
                         randomFunctionValue(),
-                        Value.Remove(randomDeadlineOption, Time.empty),
+                        Value.Remove(randomDeadlineOption(), Time.empty),
                         Value.PendingApply(
                           eitherOne(
                             Slice(randomFunctionValue()),
-                            Slice(Value.Remove(randomDeadlineOption, Time.empty)),
+                            Slice(Value.Remove(randomDeadlineOption(), Time.empty)),
                             Slice(
                               randomFunctionValue(),
-                              Value.Remove(randomDeadlineOption, Time.empty)
+                              Value.Remove(randomDeadlineOption(), Time.empty)
                             )
                           )
                         )

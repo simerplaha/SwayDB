@@ -62,7 +62,7 @@ class AppendixRepairerSpec extends ALevelSpec {
             val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = MMAP.Off(TestForceSave.standard())))
             level.put(randomizedKeyValues(10000)).value
 
-            if (level.hasMMAP && OperatingSystem.isWindows)
+            if (level.hasMMAP && OperatingSystem.isWindows())
               level.close[Glass]()
 
             level.segmentsCount() should be > 2
@@ -88,7 +88,7 @@ class AppendixRepairerSpec extends ALevelSpec {
             //create empty Level
             val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = MMAP.Off(TestForceSave.standard())))
 
-            if (level.hasMMAP && OperatingSystem.isWindows) {
+            if (level.hasMMAP && OperatingSystem.isWindows()) {
               level.close[Glass]()
               eventual(10.seconds) {
                 sweeper.receiveAll()
@@ -128,7 +128,7 @@ class AppendixRepairerSpec extends ALevelSpec {
             val keyValues = randomizedKeyValues(1000)
             level.put(keyValues).value
 
-            if (level.hasMMAP && OperatingSystem.isWindows)
+            if (level.hasMMAP && OperatingSystem.isWindows())
               level.close[Glass]()
 
             level.segmentsCount() should be > 2
@@ -183,7 +183,7 @@ class AppendixRepairerSpec extends ALevelSpec {
           level.segmentsCount() should be > 2
           val segmentsBeforeRepair = level.segments()
 
-          if (level.hasMMAP && OperatingSystem.isWindows) {
+          if (level.hasMMAP && OperatingSystem.isWindows()) {
             level.close[Glass]()
             sweeper.receiveAll()
           }
@@ -199,7 +199,7 @@ class AppendixRepairerSpec extends ALevelSpec {
                 val overlappingSegment = TestSegment(keyValuesToOverlap, segmentConfig = SegmentBlockConfig.random(mmap = MMAP.Off(TestForceSave.standard())))
                 Effect.copy(overlappingSegment.path, overlappingLevelSegmentPath)
                 overlappingSegment.close() //gotta close the new segment create after it's copied over.
-                if (level.hasMMAP && OperatingSystem.isWindows)
+                if (level.hasMMAP && OperatingSystem.isWindows())
                   sweeper.receiveAll()
               }
 

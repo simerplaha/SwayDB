@@ -37,11 +37,8 @@ object TestKit {
   def randomFiniteDuration(maxSeconds: Int = 10): FiniteDuration =
     new FiniteDuration(randomIntMax(maxSeconds), TimeUnit.SECONDS)
 
-  def randomString: String =
+  def randomString(): String =
     randomCharacters()
-
-  def randomDeadlineOption: Option[Deadline] =
-    randomDeadlineOption()
 
   def randomDeadlineOption(expired: Boolean = randomBoolean()): Option[Deadline] =
     if (randomBoolean())

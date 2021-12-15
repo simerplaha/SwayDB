@@ -65,7 +65,7 @@ object DefaultConfigs {
   def mmap(): MMAP.On =
     MMAP.On(
       deleteAfterClean =
-        OperatingSystem.isWindows,
+        OperatingSystem.isWindows(),
       forceSave =
         ForceSave.BeforeClean(
           enableBeforeCopy = false,

@@ -229,13 +229,13 @@ sealed trait SwayDBFunctionSpec extends ACoreSpec {
     implicit val valueSerializer = swaydb.serializers.BooPickle[Value]
 
     //test head should have 1
-    val onKey: OnKey[Key, Value] = _ => Apply.Update(Value(1 + randomString))
+    val onKey: OnKey[Key, Value] = _ => Apply.Update(Value(1 + randomString()))
     //test head should have 2
     val onKeyDeadline: OnKeyDeadline[Key, Value] = (key, _) => Apply.Update(Value(2 + " " + key.int + " set key"))
     //test head should have 3
-    val onKeyValue: OnKeyValue[Key, Value] = (key, value) => Apply.Update(Value(3 + " " + value.someValue + " " + randomString))
+    val onKeyValue: OnKeyValue[Key, Value] = (key, value) => Apply.Update(Value(3 + " " + value.someValue + " " + randomString()))
     //test head should have 4
-    val onValue: OnValue[Value] = value => Apply.Update(Value(4 + " " + value.someValue + " " + randomString))
+    val onValue: OnValue[Value] = value => Apply.Update(Value(4 + " " + value.someValue + " " + randomString()))
     //test head should have original value but deadline is set
     val onValueDeadline: OnValueDeadline[Value] = (_, deadline) => Apply.Expire(deadline.map(_ + 10.seconds).getOrElse(10.seconds.fromNow))
     //test no change

@@ -117,16 +117,16 @@ class Level0LogEntrySpec extends AnyWordSpec with Matchers {
       import LevelZeroLogEntryWriter.{Level0PutWriter, Level0RangeWriter, Level0RemoveWriter, Level0UpdateWriter}
       import swaydb.Error.Log.ExceptionHandler
 
-      val put1 = Memory.put(1, randomStringOption, randomDeadlineOption)
-      val put2 = Memory.put(2, randomStringOption, randomDeadlineOption)
-      val put3 = Memory.put(3, randomStringOption, randomDeadlineOption)
-      val put4 = Memory.put(4, randomStringOption, randomDeadlineOption)
-      val put5 = Memory.put(5, randomStringOption, randomDeadlineOption)
+      val put1 = Memory.put(1, randomStringOption, randomDeadlineOption())
+      val put2 = Memory.put(2, randomStringOption, randomDeadlineOption())
+      val put3 = Memory.put(3, randomStringOption, randomDeadlineOption())
+      val put4 = Memory.put(4, randomStringOption, randomDeadlineOption())
+      val put5 = Memory.put(5, randomStringOption, randomDeadlineOption())
 
-      val remove1 = Memory.remove(1, randomDeadlineOption)
-      val remove2 = Memory.remove(2, randomDeadlineOption)
+      val remove1 = Memory.remove(1, randomDeadlineOption())
+      val remove2 = Memory.remove(2, randomDeadlineOption())
 
-      val update1 = Memory.update(3, randomStringOption, randomDeadlineOption)
+      val update1 = Memory.update(3, randomStringOption, randomDeadlineOption())
 
       val range1 = randomRangeKeyValue(6, 7)
       val range2 = randomRangeKeyValue(7, 8)

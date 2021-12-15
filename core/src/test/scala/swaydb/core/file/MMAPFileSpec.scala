@@ -56,22 +56,22 @@ class MMAPFileSpec extends AnyWordSpec with Matchers with MockFactory {
                 val readWriteBuff = readWriteChannel.map(MapMode.READ_WRITE, 0, bytes.size)
                 //save bytes to the channel randomly in groups of small slices or one large slice
                 eitherOne(
-                  readWriteBuff.put(bytes.toByteBufferWrap),
+                  readWriteBuff.put(bytes.toByteBufferWrap()),
                   bytes.groupedSlice(randomIntMax(10000) max 1).foreach {
                     slice =>
-                      readWriteBuff.put(slice.toByteBufferWrap)
+                      readWriteBuff.put(slice.toByteBufferWrap())
                   },
                   bytes.groupedSlice(randomIntMax(1000) max 1).foreach {
                     slice =>
-                      readWriteBuff.put(slice.toByteBufferWrap)
+                      readWriteBuff.put(slice.toByteBufferWrap())
                   },
                   bytes.groupedSlice(randomIntMax(100) max 1).foreach {
                     slice =>
-                      readWriteBuff.put(slice.toByteBufferWrap)
+                      readWriteBuff.put(slice.toByteBufferWrap())
                   },
                   bytes.groupedSlice(randomIntMax(10) max 1).foreach {
                     slice =>
-                      readWriteBuff.put(slice.toByteBufferWrap)
+                      readWriteBuff.put(slice.toByteBufferWrap())
                   }
                 )
 

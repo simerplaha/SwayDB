@@ -53,7 +53,7 @@ class AppendixLogEntrySpec extends ASegmentSpec {
             AppendixLogEntryReader(
               mmapSegment =
                 MMAP.On(
-                  deleteAfterClean = OperatingSystem.isWindows,
+                  deleteAfterClean = OperatingSystem.isWindows(),
                   forceSave = TestForceSave.mmap()
                 ),
               segmentRefCacheLife = randomSegmentRefCacheLife()
@@ -92,7 +92,7 @@ class AppendixLogEntrySpec extends ASegmentSpec {
           val appendixReader = AppendixLogEntryReader(
             mmapSegment =
               MMAP.On(
-                deleteAfterClean = OperatingSystem.isWindows,
+                deleteAfterClean = OperatingSystem.isWindows(),
                 forceSave = TestForceSave.mmap()
               ),
             segmentRefCacheLife = randomSegmentRefCacheLife()
@@ -127,7 +127,7 @@ class AppendixLogEntrySpec extends ASegmentSpec {
           val appendixReader = AppendixLogEntryReader(
             mmapSegment =
               MMAP.On(
-                deleteAfterClean = OperatingSystem.isWindows,
+                deleteAfterClean = OperatingSystem.isWindows(),
                 forceSave = TestForceSave.mmap()
               ),
             segmentRefCacheLife = randomSegmentRefCacheLife()

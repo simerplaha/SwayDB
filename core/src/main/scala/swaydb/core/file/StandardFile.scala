@@ -68,7 +68,7 @@ private class StandardFile(val path: Path,
   }
 
   def append(slice: Slice[Byte]): Unit =
-    Effect.writeUnclosed(channel, slice.toByteBufferWrap)
+    Effect.writeUnclosed(channel, slice.toByteBufferWrap())
 
   def appendBatch(slices: Array[Slice[Byte]]): Unit = {
     var totalBytes = 0
@@ -78,7 +78,7 @@ private class StandardFile(val path: Path,
     while (index < slices.length) {
       val slice = slices(index)
       totalBytes += slice.size
-      buffers(index) = slice.toByteBufferWrap
+      buffers(index) = slice.toByteBufferWrap()
       index += 1
     }
 

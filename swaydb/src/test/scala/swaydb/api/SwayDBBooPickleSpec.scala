@@ -54,8 +54,8 @@ class SwayDBBooPickleSpec extends TestBaseAPI {
             val keyValues =
               (1 to 10000) map {
                 _ =>
-                  val key = User(randomString, randomIntMax(), randomString, eitherOne(None, Some(randomString)))
-                  val value = Info(randomString, randomString, Address(randomIntMax() * Random.nextDouble()))
+                  val key = User(randomString(), randomIntMax(), randomString(), eitherOne(None, Some(randomString())))
+                  val value = Info(randomString(), randomString(), Address(randomIntMax() * Random.nextDouble()))
                   db.put(key, value)
                   (key, value)
               }

@@ -46,7 +46,7 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
 
     "write Put key value" in {
       runThis(100.times) {
-        val put = Memory.put(1, randomStringOption, randomDeadlineOption)
+        val put = Memory.put(1, randomStringOption, randomDeadlineOption())
 
         import LevelZeroLogEntryWriter.Level0PutWriter
         val addEntry = LogEntry.Put[Slice[Byte], Memory.Put](1, put)
@@ -75,7 +75,7 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
 
     "write remove key-value" in {
       runThis(100.times) {
-        val remove = Memory.remove(1, randomDeadlineOption)
+        val remove = Memory.remove(1, randomDeadlineOption())
 
         import LevelZeroLogEntryWriter.Level0RemoveWriter
         val entry = LogEntry.Put[Slice[Byte], Memory.Remove](1, remove)
@@ -104,7 +104,7 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
 
     "write Update key value" in {
       runThis(100.times) {
-        val update = Memory.update(1, randomStringOption, randomDeadlineOption)
+        val update = Memory.update(1, randomStringOption, randomDeadlineOption())
 
         import LevelZeroLogEntryWriter.Level0UpdateWriter
         val addEntry = LogEntry.Put[Slice[Byte], Memory.Update](1, update)
@@ -223,16 +223,16 @@ class LevelZeroLogEntrySpec extends AnyWordSpec with Matchers {
       runThis(100.times) {
         import LevelZeroLogEntryWriter.{Level0PutWriter, Level0RangeWriter, Level0RemoveWriter, Level0UpdateWriter}
 
-        val put1 = Memory.put(1, randomStringOption, randomDeadlineOption)
-        val put2 = Memory.put(2, randomStringOption, randomDeadlineOption)
-        val put3 = Memory.put(3, randomStringOption, randomDeadlineOption)
-        val put4 = Memory.put(4, randomStringOption, randomDeadlineOption)
-        val put5 = Memory.put(5, randomStringOption, randomDeadlineOption)
+        val put1 = Memory.put(1, randomStringOption, randomDeadlineOption())
+        val put2 = Memory.put(2, randomStringOption, randomDeadlineOption())
+        val put3 = Memory.put(3, randomStringOption, randomDeadlineOption())
+        val put4 = Memory.put(4, randomStringOption, randomDeadlineOption())
+        val put5 = Memory.put(5, randomStringOption, randomDeadlineOption())
 
-        val remove1 = Memory.remove(1, randomDeadlineOption)
-        val remove2 = Memory.remove(2, randomDeadlineOption)
+        val remove1 = Memory.remove(1, randomDeadlineOption())
+        val remove2 = Memory.remove(2, randomDeadlineOption())
 
-        val update1 = Memory.update(3, randomStringOption, randomDeadlineOption)
+        val update1 = Memory.update(3, randomStringOption, randomDeadlineOption())
 
         val range1 = randomRangeKeyValue(6, 7)
         val range2 = randomRangeKeyValue(7, 8)

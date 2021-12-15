@@ -65,9 +65,9 @@
 //
 //class SegmentWriteSpec1 extends SegmentWriteSpec {
 //  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
 //}
 //
 //class SegmentWriteSpec2 extends SegmentWriteSpec {
@@ -285,32 +285,32 @@
 //          }
 //
 //          assertSegment(
-//            keyValues = Slice(Memory.put(0), Memory.Range(1, 10, FromValue.Null, Value.remove(randomDeadlineOption, Time.empty))),
+//            keyValues = Slice(Memory.put(0), Memory.Range(1, 10, FromValue.Null, Value.remove(randomDeadlineOption(), Time.empty))),
 //            ensureOneSegmentOnly = true,
 //            assert = doAssert
 //          )
 //
 //          assertSegment(
-//            keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.remove(None, Time.empty), Value.remove(randomDeadlineOption, Time.empty))),
+//            keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.remove(None, Time.empty), Value.remove(randomDeadlineOption(), Time.empty))),
 //            ensureOneSegmentOnly = true,
 //            assert = doAssert
 //          )
 //
 //          assertSegment(
-//            keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.update(Slice.Null, randomDeadlineOption, Time.empty), Value.remove(randomDeadlineOption, Time.empty))),
+//            keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.update(Slice.Null, randomDeadlineOption(), Time.empty), Value.remove(randomDeadlineOption(), Time.empty))),
 //            ensureOneSegmentOnly = true,
 //            assert = doAssert
 //          )
 //
 //          assertSegment(
-//            keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.put(1, randomDeadlineOption, Time.empty), Value.remove(randomDeadlineOption, Time.empty))),
+//            keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.put(1, randomDeadlineOption(), Time.empty), Value.remove(randomDeadlineOption(), Time.empty))),
 //            ensureOneSegmentOnly = true,
 //            assert = doAssert
 //          )
 //      }
 //
 //      //      assertSegment(
-//      //        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.PendingApply(Some(1), randomDeadlineOption, Time.empty)), Value.remove(randomDeadlineOption, Time.empty))),
+//      //        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.PendingApply(Some(1), randomDeadlineOption(), Time.empty)), Value.remove(randomDeadlineOption(), Time.empty))),
 //      //        assert = doAssert
 //      //      )
 //    }
@@ -321,7 +321,7 @@
 //          implicit sweeper =>
 //            assertSegment(
 //              keyValues =
-//                Slice(Memory.put(0), Memory.put(1, 1), Memory.remove(2, randomDeadlineOption)),
+//                Slice(Memory.put(0), Memory.put(1, 1), Memory.remove(2, randomDeadlineOption())),
 //
 //              bloomFilterConfig =
 //                BloomFilterBlockConfig(
@@ -348,7 +348,7 @@
 //
 //            assertSegment(
 //              keyValues =
-//                Slice(Memory.put(0), Memory.Range(1, 10, FromValue.Null, Value.update(10, randomDeadlineOption))),
+//                Slice(Memory.put(0), Memory.Range(1, 10, FromValue.Null, Value.update(10, randomDeadlineOption()))),
 //
 //              bloomFilterConfig =
 //                BloomFilterBlockConfig(
@@ -1056,7 +1056,7 @@
 //          }
 //
 //          //process all delete requests
-//          if (OperatingSystem.isWindows)
+//          if (OperatingSystem.isWindows())
 //            eventual(1.minute) {
 //              sweeper.receiveAll()
 //              pathDistributor.next.files(Extension.Seg) shouldBe filesBeforeCopy
@@ -1698,7 +1698,7 @@
 //              def assertFinalFiles() = segment.path.getParent.files(Extension.Seg) should contain only(segment.path, segmentToFailPut.path)
 //
 //              //if windows execute all stashed actor messages
-//              if (OperatingSystem.isWindows)
+//              if (OperatingSystem.isWindows())
 //                eventual(10.seconds) {
 //                  sweeper.receiveAll()
 //                  assertFinalFiles()

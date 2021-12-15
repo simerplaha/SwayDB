@@ -141,7 +141,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val recovered =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.path,
-              mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -162,7 +162,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
             AppendixLogEntryReader(
               mmapSegment =
                 MMAP.On(
-                  deleteAfterClean = OperatingSystem.isWindows,
+                  deleteAfterClean = OperatingSystem.isWindows(),
                   forceSave = TestForceSave.mmap()
                 ),
               segmentRefCacheLife = randomSegmentRefCacheLife()
@@ -184,7 +184,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val recovered =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
               folder = log.path,
-              mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -222,7 +222,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
             assertReads(recovered)
 
-            if (recovered.mmap.isMMAP && OperatingSystem.isWindows) {
+            if (recovered.mmap.isMMAP && OperatingSystem.isWindows()) {
               recovered.close()
               sweeper.receiveAll()
             }
@@ -263,7 +263,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val appendixReader = AppendixLogEntryReader(
             mmapSegment =
               MMAP.On(
-                deleteAfterClean = OperatingSystem.isWindows,
+                deleteAfterClean = OperatingSystem.isWindows(),
                 forceSave = TestForceSave.mmap()
               ),
             segmentRefCacheLife = randomSegmentRefCacheLife()
@@ -303,7 +303,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
             recovered.cache.get(2).toOptionS shouldBe empty
             recovered.close()
 
-            if (recovered.mmap.isMMAP && OperatingSystem.isWindows)
+            if (recovered.mmap.isMMAP && OperatingSystem.isWindows())
               sweeper.receiveAll()
 
             recovered
@@ -389,7 +389,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
             AppendixLogEntryReader(
               mmapSegment =
                 MMAP.On(
-                  deleteAfterClean = OperatingSystem.isWindows,
+                  deleteAfterClean = OperatingSystem.isWindows(),
                   forceSave = TestForceSave.mmap()
                 ),
               segmentRefCacheLife = randomSegmentRefCacheLife()
@@ -535,7 +535,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = false
@@ -556,7 +556,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
           //PersistentMap.recover below will delete this mmap file which on Windows
           //requires this log to be closed and cleaned before deleting.
-          if (OperatingSystem.isWindows) {
+          if (OperatingSystem.isWindows()) {
             log.close()
             sweeper.receiveAll()
           }
@@ -597,7 +597,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
               flushOnOverflow = true,
               fileSize = 1.byte,
               dropCorruptedTailEntries = false
@@ -616,7 +616,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           log.path.resolveSibling(3.toLogFileId).exists shouldBe false //3.log gets deleted
           log.path.resolveSibling(4.toLogFileId).exists shouldBe false //4.log gets deleted
 
-          if (OperatingSystem.isWindows) {
+          if (OperatingSystem.isWindows()) {
             log.close()
             sweeper.receiveAll()
           }
@@ -627,7 +627,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val recoveredFile =
             PersistentLog.recover[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.path,
-              mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
               fileSize = 1.byte,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -646,7 +646,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           cache.skipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
           cache.skipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
 
-          if (OperatingSystem.isWindows) {
+          if (OperatingSystem.isWindows()) {
             recoveredFile.close()
             sweeper.receiveAll()
           }
@@ -656,7 +656,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val recoveredFile2 =
             PersistentLog.recover[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.path,
-              mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
               fileSize = 1.byte,
               cache = cache2,
               dropCorruptedTailEntries = false
@@ -688,7 +688,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = false
@@ -697,7 +697,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           log.currentFilePath.fileId shouldBe(0, Extension.Log)
           log.close()
 
-          if (OperatingSystem.isWindows)
+          if (OperatingSystem.isWindows())
             sweeper.receiveAll()
 
           val cache = LevelZeroLogCache.builder.create()

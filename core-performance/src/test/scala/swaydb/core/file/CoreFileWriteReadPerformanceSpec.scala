@@ -71,10 +71,11 @@ class CoreFileWriteReadPerformanceSpec extends ACoreSpec {
 
         val standardFile =
           CoreFile.standardReadable(
-            path = Effect.write(path, bytes.toByteBufferWrap),
+            path = Effect.write(path, bytes.toByteBufferWrap()),
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
             autoClose = true
           )
+
         val reader = BlockRefReader(file = standardFile, blockCache = blockCache)
 
         val bytesToRead = 4098
@@ -154,7 +155,7 @@ class CoreFileWriteReadPerformanceSpec extends ACoreSpec {
   //      Benchmark("raw channel") {
   //        bytes.foldLeft(0) {
   //          case (position, bytes) =>
-  //            channel.write(bytes.toByteBufferWrap, position)
+  //            channel.write(bytes.toByteBufferWrap(), position)
   //            position + bytes.size
   //        }
   //      }
@@ -189,7 +190,7 @@ class CoreFileWriteReadPerformanceSpec extends ACoreSpec {
   //       * Round 3: 0.542235514 seconds
   //       */
   //
-  //      val mmapFile = CoreFile.mmapInit(randomFilePath(), IOStrategy.ConcurrentIO(true), bytes.size * chunkSize, autoClose = true, deleteAfterClean = OperatingSystem.isWindows, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val mmapFile = CoreFile.mmapInit(randomFilePath(), IOStrategy.ConcurrentIO(true), bytes.size * chunkSize, autoClose = true, deleteAfterClean = OperatingSystem.isWindows(), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      Benchmark("mmap write Benchmark") {
   //        bytes foreach mmapFile.append
   //      }
@@ -227,7 +228,7 @@ class CoreFileWriteReadPerformanceSpec extends ACoreSpec {
   //       * Round 2: 0.965750206 seconds
   //       * Round 3: 1.044735106 seconds
   //       */
-  //      val mmapFile = CoreFile.mmapRead(file.path, autoClose = true, deleteAfterClean = OperatingSystem.isWindows, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val mmapFile = CoreFile.mmapRead(file.path, autoClose = true, deleteAfterClean = OperatingSystem.isWindows(), ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //      Benchmark("mmap value Benchmark") {
   //        bytes.indices foreach {
   //          index =>
@@ -275,7 +276,7 @@ class CoreFileWriteReadPerformanceSpec extends ACoreSpec {
   //       * Round 2: 0.54580672 seconds
   //       * Round 3: 0.463990916 seconds
   //       */
-  //      val mmapFile = CoreFile.mmapRead(file.path, autoClose = true, deleteAfterClean = OperatingSystem.isWindows, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+  //      val mmapFile = CoreFile.mmapRead(file.path, autoClose = true, deleteAfterClean = OperatingSystem.isWindows(), ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
   //
   //      Benchmark("mmap read Benchmark") {
   //        bytes.foldLeft(0) {

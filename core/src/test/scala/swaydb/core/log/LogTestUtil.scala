@@ -44,7 +44,7 @@ object LogTestUtil {
   //using FileChannel, and flushes it's content to a new file deleting the old File. But if it's
   //was previously opened as MMAP file (in a test) then it cannot be deleted without clean.
   def ensureCleanedForWindows(mmap: MMAP.Log)(implicit bufferCleaner: ByteBufferSweeperActor): Unit =
-    if (OperatingSystem.isWindows && mmap.isMMAP) {
+    if (OperatingSystem.isWindows() && mmap.isMMAP) {
       val cleaner = bufferCleaner.actor()
       val state = cleaner.receiveAllForce[Glass, State](state => state)
       eventual(30.seconds)(state.pendingClean.isEmpty shouldBe true)

@@ -45,9 +45,9 @@ class LevelSpec0 extends LevelSpec
 
 class LevelSpec1 extends LevelSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
 }
 
 class LevelSpec2 extends LevelSpec {
@@ -152,7 +152,7 @@ sealed trait LevelSpec extends ALevelSpec with MockFactory with PrivateMethodTes
 
             level.put(segment).value
 
-            if (segment.isMMAP && OperatingSystem.isWindows) {
+            if (segment.isMMAP && OperatingSystem.isWindows()) {
               level.close[Glass]()
               sweeper.receiveAll()
             }

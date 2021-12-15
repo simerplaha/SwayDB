@@ -42,6 +42,6 @@ object Table {
       Slice.wrap(Pickle.intoBytes(data).array())
 
     override def read(slice: Slice[Byte]): Table =
-      Unpickle[Table].fromBytes(slice.toByteBufferWrap)
+      Unpickle[Table].fromBytes(slice.toByteBufferWrap())
   }
 }

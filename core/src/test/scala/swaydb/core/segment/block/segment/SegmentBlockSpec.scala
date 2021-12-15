@@ -289,7 +289,7 @@
 //                    fromKey = 20,
 //                    toKey = 21,
 //                    fromValue = randomFromValueOption(),
-//                    rangeValue = Value.remove(randomDeadlineOption)
+//                    rangeValue = Value.remove(randomDeadlineOption())
 //                  )
 //                )
 //

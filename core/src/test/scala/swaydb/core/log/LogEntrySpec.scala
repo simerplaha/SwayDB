@@ -264,7 +264,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
             AppendixLogEntryReader(
               mmapSegment =
                 MMAP.On(
-                  deleteAfterClean = OperatingSystem.isWindows,
+                  deleteAfterClean = OperatingSystem.isWindows(),
                   forceSave = TestForceSave.mmap()
                 ),
               segmentRefCacheLife = randomSegmentRefCacheLife()
@@ -312,7 +312,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
             AppendixLogEntryReader(
               mmapSegment =
                 MMAP.On(
-                  deleteAfterClean = OperatingSystem.isWindows,
+                  deleteAfterClean = OperatingSystem.isWindows(),
                   forceSave = TestForceSave.mmap()
                 ),
               segmentRefCacheLife = randomSegmentRefCacheLife()
@@ -403,7 +403,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
             AppendixLogEntryReader(
               mmapSegment =
                 MMAP.On(
-                  deleteAfterClean = OperatingSystem.isWindows,
+                  deleteAfterClean = OperatingSystem.isWindows(),
                   forceSave = TestForceSave.mmap()
                 ),
               segmentRefCacheLife = randomSegmentRefCacheLife()

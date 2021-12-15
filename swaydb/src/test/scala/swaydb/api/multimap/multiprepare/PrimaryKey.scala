@@ -40,6 +40,6 @@ object PrimaryKey {
       Slice.wrap(Pickle.intoBytes(data).array())
 
     override def read(slice: Slice[Byte]): PrimaryKey =
-      Unpickle[PrimaryKey].fromBytes(slice.toByteBufferWrap)
+      Unpickle[PrimaryKey].fromBytes(slice.toByteBufferWrap())
   }
 }

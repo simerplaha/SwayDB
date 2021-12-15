@@ -25,10 +25,10 @@ import scala.concurrent.ExecutionContext
 
 trait ASegmentSpec extends ACoreSpec {
 
-  def mmapSegments: MMAP.Segment = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
+  def mmapSegments: MMAP.Segment = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap())
 
   def isWindowsAndMMAPSegments(): Boolean =
-    OperatingSystem.isWindows && mmapSegments.mmapReads && mmapSegments.mmapWrites
+    OperatingSystem.isWindows() && mmapSegments.mmapReads && mmapSegments.mmapWrites
 
   def nextSegmentId: String = ??? //idGenerator.nextSegment
 

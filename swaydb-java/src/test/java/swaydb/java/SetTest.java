@@ -463,7 +463,7 @@ abstract class SetTest extends TestBase {
 //
 //        @Override
 //        public MyKey read(ByteSlice slice) {
-//          ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(slice.toByteBufferWrap().array(), slice.fromOffset(), slice.size());
+//          ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(slice.toByteBufferWrap()().array(), slice.fromOffset(), slice.size());
 //          try {
 //            ObjectInputStream oos = new ObjectInputStream(byteArrayInputStream);
 //            return (MyKey) oos.readObject();
