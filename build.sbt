@@ -189,7 +189,7 @@ lazy val effect =
 
 lazy val core =
   project
-    .in(file("core"))
+    .in(file("core/core"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
