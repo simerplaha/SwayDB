@@ -373,8 +373,10 @@ lazy val `core-tools` =
 /**
  * Support modules - Effect
  */
+
 lazy val `x-interop-monix` =
   project
+    .in(file("x-interop/x-interop-monix"))
     .settings(name := "monix")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -383,6 +385,7 @@ lazy val `x-interop-monix` =
 
 lazy val `x-interop-zio` =
   project
+    .in(file("x-interop/x-interop-zio"))
     .settings(name := "zio")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -391,6 +394,7 @@ lazy val `x-interop-zio` =
 
 lazy val `x-interop-cats-effect` =
   project
+    .in(file("x-interop/x-interop-cats-effect"))
     .settings(name := "cats-effect")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -402,6 +406,7 @@ lazy val `x-interop-cats-effect` =
  */
 lazy val `x-interop-boopickle` =
   project
+    .in(file("x-interop/x-interop-boopickle"))
     .settings(name := "boopickle")
     .settings(commonSettings)
     .settings(publishSettings)
