@@ -161,7 +161,7 @@ class PathsDistributorSpec extends ALevelSpec with MockFactory {
 
       (1 to 100) foreach {
         _ =>
-          distributor.next shouldBe ("1": Path)
+          distributor.next() shouldBe ("1": Path)
       }
     }
 
@@ -188,7 +188,7 @@ class PathsDistributorSpec extends ALevelSpec with MockFactory {
           //expect 6 calls which would equally return the next path from the queue. After the last a new queue is started.
           (1 to 6) foreach {
             i =>
-              val next = distributor.next
+              val next = distributor.next()
               if (i == 6 || i == 5 || i == 4) {
                 next shouldBe ("3": Path)
               } else if (i == 2 || i == 3) {
@@ -224,12 +224,12 @@ class PathsDistributorSpec extends ALevelSpec with MockFactory {
           distributor.queuedPaths.toList shouldBe List[Path](path1, path2, path2, path3, path3, path3)
 
           //first batch
-          distributor.next shouldBe path1
-          distributor.next shouldBe path2
-          distributor.next shouldBe path2
-          distributor.next shouldBe path3
-          distributor.next shouldBe path3
-          distributor.next shouldBe path3
+          distributor.next() shouldBe path1
+          distributor.next() shouldBe path2
+          distributor.next() shouldBe path2
+          distributor.next() shouldBe path3
+          distributor.next() shouldBe path3
+          distributor.next() shouldBe path3
 
           //second batch, where each Path has 1 Segment = a total of 3 Segments. Distribution ratio for path2 is 2 and but it contains only 1 Segment.
           segments.expects() returning
@@ -239,16 +239,16 @@ class PathsDistributorSpec extends ALevelSpec with MockFactory {
               TestSegment(path = path3.resolve("3.seg")).runRandomIO.right.value
             )
           //a total of 3 Segments but path2 was expected to have 2 Segments which it does not so the distribution returns path2 to be filled.
-          distributor.next shouldBe path2
+          distributor.next() shouldBe path2
 
           //third batch. Distribution is fixed, goes back to returning normal paths based on the default distribution ratio.
           segments.expects() returning Seq()
-          distributor.next shouldBe path1
-          distributor.next shouldBe path2
-          distributor.next shouldBe path2
-          distributor.next shouldBe path3
-          distributor.next shouldBe path3
-          distributor.next shouldBe path3
+          distributor.next() shouldBe path1
+          distributor.next() shouldBe path2
+          distributor.next() shouldBe path2
+          distributor.next() shouldBe path3
+          distributor.next() shouldBe path3
+          distributor.next() shouldBe path3
 
           //4ht batch, path3 contains none but path1 and path2 have one Segment.
           segments.expects() returning
@@ -261,9 +261,9 @@ class PathsDistributorSpec extends ALevelSpec with MockFactory {
               TestSegment(path = path2.resolve("222222.seg")).runRandomIO.right.value
             )
           //a total 6 Segments which path3 is empty, here the path3 gets filled before going back to normal
-          distributor.next shouldBe path3
-          distributor.next shouldBe path3
-          distributor.next shouldBe path3
+          distributor.next() shouldBe path3
+          distributor.next() shouldBe path3
+          distributor.next() shouldBe path3
 
           //5th batch. Distribution is fixed all Paths contains equally distributed Segments based on distribution ration.
           segments.expects() returning
@@ -276,12 +276,12 @@ class PathsDistributorSpec extends ALevelSpec with MockFactory {
               TestSegment(path = path3.resolve("3333.seg")).runRandomIO.right.value
             )
           // goes back to returning normal paths based on the default distribution ratio.
-          distributor.next shouldBe path1
-          distributor.next shouldBe path2
-          distributor.next shouldBe path2
-          distributor.next shouldBe path3
-          distributor.next shouldBe path3
-          distributor.next shouldBe path3
+          distributor.next() shouldBe path1
+          distributor.next() shouldBe path2
+          distributor.next() shouldBe path2
+          distributor.next() shouldBe path3
+          distributor.next() shouldBe path3
+          distributor.next() shouldBe path3
       }
     }
   }

@@ -29,12 +29,12 @@ private[swaydb] object IDGenerator {
 private[swaydb] class IDGenerator(initial: Long) {
   private val atomicID = new AtomicLong(initial)
 
-  def next: Long =
+  def nextId(): Long =
     atomicID.incrementAndGet()
 
-  def current: Long =
+  def currentId(): Long =
     atomicID.get()
 
-  def nextSegment: String =
-    s"$next.${Extension.Seg.toString}"
+  def nextSegmentId(): String =
+    s"${nextId()}.${Extension.Seg.toString}"
 }

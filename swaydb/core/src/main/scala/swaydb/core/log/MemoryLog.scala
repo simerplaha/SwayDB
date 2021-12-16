@@ -29,7 +29,7 @@ protected class MemoryLog[K, V, C <: LogCache[K, V]](val cache: C,
   var skipListKeyValuesMaxCount: Int = 0
 
   override val uniqueFileNumber: Long =
-    Log.uniqueFileNumberGenerator.next
+    Log.uniqueFileNumberGenerator.nextId()
 
   override def writeSync(entry: LogEntry[K, V]): Boolean =
     synchronized(writeNoSync(entry))

@@ -450,7 +450,7 @@ private[core] object PersistentSegment extends LazyLogging {
                                    segmentIO: SegmentReadIO,
                                    idGenerator: IDGenerator,
                                    forceSaveApplier: ForceSaveApplier): PersistentSegment = {
-    val nextPath = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
+    val nextPath = pathsDistributor.next().resolve(IDGenerator.segment(idGenerator.nextId()))
 
     segment.copyTo(nextPath)
 

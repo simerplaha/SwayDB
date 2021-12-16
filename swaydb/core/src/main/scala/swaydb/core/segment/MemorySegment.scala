@@ -129,7 +129,7 @@ private[core] object MemorySegment {
         }
 
       def createSegment() = {
-        val path = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
+        val path = pathsDistributor.next().resolve(IDGenerator.segment(idGenerator.nextId()))
 
         //Note: Memory key-values can be received from Persistent Segments in which case it's important that
         //all byte arrays are cut before writing them to Memory Segment.

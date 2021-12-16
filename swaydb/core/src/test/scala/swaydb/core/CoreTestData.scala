@@ -184,7 +184,7 @@ object CoreTestData {
 
       //      def fetchNextPath = {
       //        val segmentId = level.segmentIDGenerator.nextID
-      //        val path = level.pathDistributor.next.resolve(IDGenerator.segmentId(segmentId))
+      //        val path = level.pathDistributor.next().resolve(IDGenerator.segmentId(segmentId))
       //        (segmentId, path)
       //      }
 

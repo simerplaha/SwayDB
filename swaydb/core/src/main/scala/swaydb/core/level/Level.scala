@@ -1247,7 +1247,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .mapS(_.segmentNumber)
 
   override def stateId: Long =
-    segmentIDGenerator.current
+    segmentIDGenerator.currentId()
 
   override def nextCompactionDelay: FiniteDuration =
     throttle(meter).compactionDelay

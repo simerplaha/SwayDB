@@ -107,7 +107,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
               //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
               throw new Exception("Empty key-values submitted to persistent Segment.")
             } else {
-              val path = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
+              val path = pathsDistributor.next().resolve(IDGenerator.segment(idGenerator.nextId()))
 
               segment match {
                 case segment: TransientSegment.One =>

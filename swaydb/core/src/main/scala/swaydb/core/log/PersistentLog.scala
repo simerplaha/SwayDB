@@ -287,9 +287,9 @@ protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
   private var allowedPostFlushEntriesBeforeWarn: Long = 0
 
   override val uniqueFileNumber: Long =
-    Log.uniqueFileNumberGenerator.next
+    Log.uniqueFileNumberGenerator.nextId()
 
-  def currentFilePath =
+  def currentFilePath: Path =
     currentFile.path
 
   override def writeSync(logEntry: LogEntry[K, V]): Boolean =

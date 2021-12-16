@@ -77,7 +77,7 @@ class PathsDistributorPerformanceSpec extends ALevelSpec {
         Benchmark("Benchmark PathsDistributor") {
           (1 to 10000) foreach {
             _ =>
-              distributor.next
+              distributor.next()
           }
         }
     }

@@ -122,7 +122,7 @@ sealed trait BehaviourCompactionTask_refresh_Spec extends ALevelSpec {
           if (isMemorySpec)
             level.segments().last.delete()
           else
-            TestSegment(path = level.rootPath.resolve(s"${level.segmentIDGenerator.current + 1}.seg"))
+            TestSegment(path = level.rootPath.resolve(s"${level.segmentIDGenerator.currentId() + 1}.seg"))
 
           BehaviourCompactionTask.refresh(task, level).awaitFailureInf shouldBe a[Exception]
 

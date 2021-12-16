@@ -956,8 +956,8 @@
 //
 //          pathDistributor.dirs.foreach(_.path.sweep())
 //
-//          val segmentNumber = idGenerator.next
-//          val conflictingPath = pathDistributor.next.resolve(IDGenerator.segment(segmentNumber))
+//          val segmentNumber = idGenerator.next()
+//          val conflictingPath = pathDistributor.next().resolve(IDGenerator.segment(segmentNumber))
 //          Effect.createFile(conflictingPath).sweep() //path already taken.
 //
 //          implicit val segmentIDGenerator: IDGenerator = IDGenerator(segmentNumber - 1)
@@ -1027,9 +1027,9 @@
 //
 //          pathDistributor.dirs.foreach(_.path.sweep())
 //
-//          val segmentNumber = idGenerator.next
+//          val segmentNumber = idGenerator.next()
 //
-//          Effect.createFile(pathDistributor.next.resolve(IDGenerator.segment(segmentNumber + 4))).sweep() //path already taken.
+//          Effect.createFile(pathDistributor.next().resolve(IDGenerator.segment(segmentNumber + 4))).sweep() //path already taken.
 //
 //          levelStorage.dirs foreach {
 //            dir =>
@@ -1037,7 +1037,7 @@
 //              IO(Effect.createFile(dir.path.resolve(IDGenerator.segment(segmentNumber + 4))).sweep()) //path already taken.
 //          }
 //
-//          val filesBeforeCopy = pathDistributor.next.files(Extension.Seg)
+//          val filesBeforeCopy = pathDistributor.next().files(Extension.Seg)
 //          filesBeforeCopy.size shouldBe 1
 //
 //          assertThrows[FileAlreadyExistsException] {
@@ -1059,10 +1059,10 @@
 //          if (OperatingSystem.isWindows())
 //            eventual(1.minute) {
 //              sweeper.receiveAll()
-//              pathDistributor.next.files(Extension.Seg) shouldBe filesBeforeCopy
+//              pathDistributor.next().files(Extension.Seg) shouldBe filesBeforeCopy
 //            }
 //          else
-//            pathDistributor.next.files(Extension.Seg) shouldBe filesBeforeCopy
+//            pathDistributor.next().files(Extension.Seg) shouldBe filesBeforeCopy
 //
 //      }
 //    }

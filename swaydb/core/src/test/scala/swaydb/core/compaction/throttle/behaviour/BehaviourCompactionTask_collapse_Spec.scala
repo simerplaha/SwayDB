@@ -127,7 +127,7 @@ sealed trait BehaviourCompactionTask_collapse_Spec extends ALevelSpec {
             val levelReopen = level.reopen(segmentSize = Int.MaxValue)
             val task = CompactionTask.CollapseSegments(source = levelReopen, segments = levelReopen.segments())
 
-            TestSegment(path = levelReopen.rootPath.resolve(s"${levelReopen.segmentIDGenerator.current + 1}.seg"))
+            TestSegment(path = levelReopen.rootPath.resolve(s"${levelReopen.segmentIDGenerator.currentId() + 1}.seg"))
             BehaviourCompactionTask.collapse(task, levelReopen).awaitFailureInf shouldBe a[FileAlreadyExistsException]
 
             level.segmentsCount() shouldBe segments.size

@@ -137,13 +137,13 @@ private[core] class PathsDistributor(val dirs: Seq[Dir],
 
   import PathsDistributor._
 
-  private val queue = new ConcurrentLinkedDeque[Path](distributePaths)
+  private val queue = new ConcurrentLinkedDeque[Path](distributePaths())
 
   //disallows concurrently performing distribution
   private val distributionReserve = Reserve.free[Unit](s"Distributing paths reserve. Directories: ${dirs.size}")
 
   @tailrec
-  final def next: Path =
+  final def next(): Path =
     if (dirs.size == 1)
       dirs.head.path
     else
@@ -154,18 +154,18 @@ private[core] class PathsDistributor(val dirs: Seq[Dir],
         case None =>
           if (Reserve.compareAndSet(Options.unit, distributionReserve)) {
             try
-              queue.addAll(distributePaths)
+              queue.addAll(distributePaths())
             finally
               Reserve.setFree(distributionReserve)
 
-            next
+            next()
           } else {
             Reserve.blockUntilFree(distributionReserve)
-            next
+            next()
           }
       }
 
-  private def distributePaths: util.List[Path] = {
+  private def distributePaths(): util.List[Path] = {
     val (distributions, totalSize) = getDistributions(dirs, segments)
     val distributionResult = distribute(totalSize, distributions)
     val paths: Seq[Path] =
@@ -182,19 +182,19 @@ private[core] class PathsDistributor(val dirs: Seq[Dir],
       dirs.flatMap(dir => Array.fill(dir.distributionRatio)(dir.path)).asJava
   }
 
-  def headOption =
+  def headOption: Option[Dir] =
     dirs.headOption
 
-  def tail =
+  def tail: Seq[Dir] =
     dirs.tail
 
-  def head =
+  def head: Dir =
     dirs.head
 
-  def headPath =
+  def headPath: Path =
     dirs.head.path
 
-  def last =
+  def last: Dir =
     dirs.last
 
   def addPriorityPath(path: Path): PathsDistributor = {
@@ -202,7 +202,7 @@ private[core] class PathsDistributor(val dirs: Seq[Dir],
     this
   }
 
-  def queuedPaths =
+  def queuedPaths: Iterable[Path] =
     queue.asScala
 
   override def toString: String =

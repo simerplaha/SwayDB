@@ -311,7 +311,7 @@ sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends ALevel
                     segment
                   } else {
                     //for persistent expect
-                    TestSegment(path = targetLevel.rootPath.resolve(s"${targetLevel.segmentIDGenerator.current + 1}.seg"))
+                    TestSegment(path = targetLevel.rootPath.resolve(s"${targetLevel.segmentIDGenerator.currentId() + 1}.seg"))
                   }
 
                 //Create a Segment file in the Level's folder giving it the Level's next SegmentId so that it fails

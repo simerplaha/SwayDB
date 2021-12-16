@@ -28,14 +28,14 @@ protected object DeadlineAndFunctionId {
   val empty: DeadlineAndFunctionId =
     apply(None, None)
 
-  def apply(deadline: Option[Deadline],
-            minMaxFunctionId: Option[MinMax[Slice[Byte]]]): DeadlineAndFunctionId =
+  @inline def apply(deadline: Option[Deadline],
+                    minMaxFunctionId: Option[MinMax[Slice[Byte]]]): DeadlineAndFunctionId =
     new DeadlineAndFunctionId(
       nearestDeadline = deadline,
       minMaxFunctionId = minMaxFunctionId
     )
 
-  def apply(keyValues: Iterable[KeyValue]): DeadlineAndFunctionId =
+  @inline def apply(keyValues: Iterable[KeyValue]): DeadlineAndFunctionId =
     keyValues.foldLeft(DeadlineAndFunctionId.empty) {
       case (minMax, keyValue) =>
         apply(

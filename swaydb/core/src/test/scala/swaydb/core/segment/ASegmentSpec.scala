@@ -30,7 +30,7 @@ trait ASegmentSpec extends ACoreSpec {
   def isWindowsAndMMAPSegments(): Boolean =
     OperatingSystem.isWindows() && mmapSegments.mmapReads && mmapSegments.mmapWrites
 
-  def nextSegmentId: String = ??? //idGenerator.nextSegment
+  def nextSegmentId: String = ??? //idGenerator.nextSegment()
 
   def testSegmentFile: Path =
     if (isMemorySpec)

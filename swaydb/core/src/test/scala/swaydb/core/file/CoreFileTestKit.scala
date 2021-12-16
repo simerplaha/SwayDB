@@ -26,7 +26,7 @@ object CoreFileTestKit {
 
   def createFile(bytes: Slice[Byte])(implicit sweeper: TestSweeper): Path =
     Effect.write(
-      to = sweeper.testDir().resolve(sweeper.idGenerator.nextSegment),
+      to = sweeper.testDir().resolve(sweeper.idGenerator.nextSegmentId()),
       bytes = bytes.toByteBufferWrap()
     ).sweep()
 
