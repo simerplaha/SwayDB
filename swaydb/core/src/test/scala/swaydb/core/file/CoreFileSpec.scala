@@ -34,10 +34,11 @@ import swaydb.testkit.RunThis._
 import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
 import java.nio.file.FileAlreadyExistsException
 import java.nio.ReadOnlyBufferException
+import swaydb.macros.FunctionNameMacro.functionName
 
 class CoreFileSpec extends AnyWordSpec with Matchers {
 
-  "standardWritable" should {
+  functionName(CoreFile.standardWritable(???, ???, ???, ???)(???, ???, ???)) should {
     "initialise a StandardFile for write only" in {
       TestSweeper(3.times) {
         implicit sweeper =>
