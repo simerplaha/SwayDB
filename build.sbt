@@ -153,10 +153,10 @@ lazy val SwayDB =
       //      `swaydb-java`,
       configs,
       serializers,
-      `x-interop-boopickle`,
-      `x-interop-monix`,
-      `x-interop-zio`,
-      `x-interop-cats-effect`
+      `interop-boopickle`,
+      `interop-monix`,
+      `interop-zio`,
+      `interop-cats-effect`
     )
 
 lazy val testkit =
@@ -297,7 +297,6 @@ lazy val `core-cache` =
 lazy val `swaydb-scala` =
   project
     .in(file("swaydb/swaydb-scala"))
-    .settings(name := "scala")
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
@@ -306,12 +305,11 @@ lazy val `swaydb-scala` =
       configs,
       stream,
       core % "test->test;compile->compile",
-      `x-interop-boopickle` % Test
+      `interop-boopickle` % Test
     )
 
 //lazy val `swaydb-java` =
 //  project
-//    .settings(name := "java")
 //    .settings(commonSettings)
 //    .settings(publishSettings)
 //    .settings(libraryDependencies ++= commonJavaDependencies)
@@ -385,28 +383,25 @@ lazy val `core-tools` =
 /**
  * Support modules - Effect
  */
-lazy val `x-interop-monix` =
+lazy val `interop-monix` =
   project
-    .in(file("swaydb/x-interop-monix"))
-    .settings(name := "monix")
+    .in(file("swaydb/interop-monix"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies += "io.monix" %% "monix" % monixVersion)
     .dependsOn(effect)
 
-lazy val `x-interop-zio` =
+lazy val `interop-zio` =
   project
-    .in(file("swaydb/x-interop-zio"))
-    .settings(name := "zio")
+    .in(file("swaydb/interop-zio"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies += "dev.zio" %% "zio" % zioVersion)
     .dependsOn(effect)
 
-lazy val `x-interop-cats-effect` =
+lazy val `interop-cats-effect` =
   project
-    .in(file("swaydb/x-interop-cats-effect"))
-    .settings(name := "x-interop-cats-effect")
+    .in(file("swaydb/interop-cats-effect"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies += "org.typelevel" %% "cats-effect" % catsEffectVersion)
@@ -415,10 +410,9 @@ lazy val `x-interop-cats-effect` =
 /**
  * Support modules - Serialisers.
  */
-lazy val `x-interop-boopickle` =
+lazy val `interop-boopickle` =
   project
-    .in(file("swaydb/x-interop-boopickle"))
-    .settings(name := "boopickle")
+    .in(file("swaydb/interop-boopickle"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies += "io.suzaku" %% "boopickle" % boopickleVersion)
@@ -427,7 +421,6 @@ lazy val `x-interop-boopickle` =
 lazy val tools =
   project
     .in(file("swaydb/tools"))
-    .settings(name := "tools")
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
