@@ -19,7 +19,7 @@
 //import org.scalatest.OptionValues._
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.OK
 //import swaydb.core.CoreTestData._
 //import swaydb.serializers.Default._
@@ -131,7 +131,7 @@
 //      mergedBytes.size shouldBe 12
 //      mergedBytes.isFull shouldBe true
 //
-//      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.right.value
+//      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.get
 //
 //      (readBytes1, readBytes2) shouldBe ((bytes1, bytes2))
 //      readBytes1.isFull shouldBe true
@@ -146,7 +146,7 @@
 //      mergedBytes.size should be < (bytes1.size + bytes2.size)
 //      mergedBytes.isFull shouldBe true
 //
-//      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.right.value
+//      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.get
 //
 //      (readBytes1, readBytes2) shouldBe ((bytes1, bytes2))
 //      readBytes1.isFull shouldBe true
@@ -159,7 +159,7 @@
 //      mergedBytes.size should be < (bytes.size + bytes.size)
 //      mergedBytes.isFull shouldBe true
 //
-//      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.right.value
+//      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.get
 //
 //      (readBytes1, readBytes2) shouldBe ((bytes, bytes))
 //      readBytes1.isFull shouldBe true
@@ -188,7 +188,7 @@
 //      val individualMergedSizes = individuallyCompressedBytes.foldLeft(0)(_ + _.size)
 //      individualMergedSizes shouldBe 120.bytes //results in 120.bytes which is smaller then without compression
 //      //uncompress
-//      individuallyCompressedBytes.map(Bytes.decompressJoin).map(_.runRandomIO.right.value).toList shouldBe keys
+//      individuallyCompressedBytes.map(Bytes.decompressJoin).map(_.runRandomIO.get).toList shouldBe keys
 //
 //      //merge each (fromKey, toKey) pair with previous key-values merged bytes. This is should returns is higher compressed keys.
 //      val mergedCompressedKeys: Slice[Byte] =
@@ -212,7 +212,7 @@
 //        val sliceReverse = Bytes.writeUnsignedIntReversed(intToWrite)
 //        sliceReverse shouldBe Slice.wrap(slice.toList.reverse.toArray)
 //
-//        Bytes.readLastUnsignedInt(sliceReverse).runRandomIO.right.value shouldBe ((intToWrite, slice.size))
+//        Bytes.readLastUnsignedInt(sliceReverse).runRandomIO.get shouldBe ((intToWrite, slice.size))
 //    }
 //  }
 //

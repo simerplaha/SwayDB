@@ -16,7 +16,7 @@
 ////
 ////package swaydb.core.level
 ////
-////import swaydb.IOValues._
+////import swaydb.effect.IOValues._
 ////import swaydb.testkit.RunThis._
 ////import swaydb.core.{TestBase, TestSweeper}
 ////import swaydb.core.TestData._
@@ -180,14 +180,14 @@
 ////      deleteDelay = Duration.Zero
 ////    )
 ////
-////  level.put(keyValues).runRandomIO.right.value
+////  level.put(keyValues).runRandomIO.get
 ////
 ////  def reopenLevel() = {
 ////    println("Re-opening Level")
 ////    level.segments().foreach {
 ////      segment =>
 ////        segment.clearCachedKeyValues()
-////        segment.close.runRandomIO.right.value
+////        segment.close.runRandomIO.get
 ////    }
 ////    level = level.reopen
 ////  }

@@ -120,7 +120,7 @@
 ////  //    level.segmentsInLevelZero().foreach {
 ////  //      segment =>
 ////  //        segment.clearCachedKeyValues()
-////  //        segment.close.runRandomIO.right.value
+////  //        segment.close.runRandomIO.get
 ////  //    }
 ////  //    level = level.reopen
 ////  //  }

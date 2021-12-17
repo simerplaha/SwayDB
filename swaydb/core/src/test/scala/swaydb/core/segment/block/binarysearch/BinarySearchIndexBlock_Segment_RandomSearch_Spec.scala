@@ -17,7 +17,7 @@
 //
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.OptionValues._
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.segment.block.segment.SegmentBlockConfig

@@ -18,7 +18,7 @@
 //
 //import org.scalatest.OptionValues._
 //import swaydb.Exception.InvalidDirectoryType
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb._
 //import swaydb.config.DataType
 //import swaydb.core.TestSweeper._

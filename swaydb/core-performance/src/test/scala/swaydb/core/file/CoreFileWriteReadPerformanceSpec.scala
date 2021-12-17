@@ -60,10 +60,10 @@
 //        //            autoClose = true,
 //        //            deleteAfterClean = false,
 //        //            forceSave = ForceSave.Off
-//        //          ).runRandomIO.right.value
+//        //          ).runRandomIO.get
 //        //
-//        //        mmapFile.append(bytes).runRandomIO.right.value
-//        //        mmapFile.isFull.runRandomIO.right.value shouldBe true
+//        //        mmapFile.append(bytes).runRandomIO.get
+//        //        mmapFile.isFull.runRandomIO.get shouldBe true
 //        //        val reader = BlockRefReader(mmapFile)
 //
 //        //        mmapFile.forceSave()
@@ -170,17 +170,17 @@
 //  //       * Round 2: 1.328009528 seconds
 //  //       * Round 3: 1.3148811 seconds
 //  //       */
-//  //      val standardFile = CoreFile.standardWrite(randomFilePath(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//  //      val standardFile = CoreFile.standardWrite(randomFilePath(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
 //  //      Benchmark("FileChannel write Benchmark") {
 //  //        bytes foreach standardFile.append
 //  //      }
 //  //
 //  //      //check all the bytes were written
-//  //      val readStandardFile = CoreFile.standardRead(standardFile.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
-//  //      readStandardFile.fileSize.runRandomIO.right.value shouldBe bytes.size * chunkSize
+//  //      val readStandardFile = CoreFile.standardRead(standardFile.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
+//  //      readStandardFile.fileSize.runRandomIO.get shouldBe bytes.size * chunkSize
 //  //      Effect.readAll(standardFile.path) shouldBe flattenBytes
-//  //      standardFile.close().runRandomIO.right.value
-//  //      readStandardFile.close().runRandomIO.right.value
+//  //      standardFile.close().runRandomIO.get
+//  //      readStandardFile.close().runRandomIO.get
 //  //
 //  //      /**
 //  //       * Benchmark memory mapped files write
@@ -190,20 +190,20 @@
 //  //       * Round 3: 0.542235514 seconds
 //  //       */
 //  //
-//  //      val mmapFile = CoreFile.mmapInit(randomFilePath(), IOStrategy.ConcurrentIO(true), bytes.size * chunkSize, autoClose = true, deleteAfterClean = OperatingSystem.isWindows(), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//  //      val mmapFile = CoreFile.mmapInit(randomFilePath(), IOStrategy.ConcurrentIO(true), bytes.size * chunkSize, autoClose = true, deleteAfterClean = OperatingSystem.isWindows(), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
 //  //      Benchmark("mmap write Benchmark") {
 //  //        bytes foreach mmapFile.append
 //  //      }
-//  //      mmapFile.fileSize.runRandomIO.right.value shouldBe bytes.size * chunkSize
-//  //      mmapFile.close.runRandomIO.right.value
+//  //      mmapFile.fileSize.runRandomIO.get shouldBe bytes.size * chunkSize
+//  //      mmapFile.close.runRandomIO.get
 //  //      Effect.readAll(mmapFile.path) shouldBe flattenBytes
 //  //    }
 //  //
 //  //    "Get performance" in {
 //  //      val bytes = randomBytes(chunkSize)
-//  //      val file = CoreFile.standardWrite(randomFilePath(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//  //      val file = CoreFile.standardWrite(randomFilePath(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
 //  //      file.append(Slice(bytes))
-//  //      file.close().runRandomIO.right.value
+//  //      file.close().runRandomIO.get
 //  //
 //  //      /**
 //  //       * Benchmark file channel read
@@ -212,14 +212,14 @@
 //  //       * Round 3: 1.842739196 seconds
 //  //       */
 //  //
-//  //      val standardFile = CoreFile.standardRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//  //      val standardFile = CoreFile.standardRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
 //  //      Benchmark("FileChannel value Benchmark") {
 //  //        bytes.indices foreach {
 //  //          index =>
-//  //            standardFile.get(index).runRandomIO.right.value shouldBe bytes(index)
+//  //            standardFile.get(index).runRandomIO.get shouldBe bytes(index)
 //  //        }
 //  //      }
-//  //      standardFile.close().runRandomIO.right.value
+//  //      standardFile.close().runRandomIO.get
 //  //
 //  //      /**
 //  //       * Benchmark memory mapped file read
@@ -228,14 +228,14 @@
 //  //       * Round 2: 0.965750206 seconds
 //  //       * Round 3: 1.044735106 seconds
 //  //       */
-//  //      val mmapFile = CoreFile.mmapRead(file.path, autoClose = true, deleteAfterClean = OperatingSystem.isWindows(), ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//  //      val mmapFile = CoreFile.mmapRead(file.path, autoClose = true, deleteAfterClean = OperatingSystem.isWindows(), ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
 //  //      Benchmark("mmap value Benchmark") {
 //  //        bytes.indices foreach {
 //  //          index =>
-//  //            mmapFile.get(index).runRandomIO.right.value shouldBe bytes(index)
+//  //            mmapFile.get(index).runRandomIO.get shouldBe bytes(index)
 //  //        }
 //  //      }
-//  //      mmapFile.close.runRandomIO.right.value
+//  //      mmapFile.close.runRandomIO.get
 //  //    }
 //  //
 //  //    "Read 1 million bytes in chunks of 250.bytes performance" in {
@@ -247,9 +247,9 @@
 //  //          allBytes addAll bytes
 //  //          bytes
 //  //      }
-//  //      val file = CoreFile.standardWrite(randomFilePath(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
-//  //      bytes foreach (file.append(_).runRandomIO.right.value)
-//  //      file.close().runRandomIO.right.value
+//  //      val file = CoreFile.standardWrite(randomFilePath(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
+//  //      bytes foreach (file.append(_).runRandomIO.get)
+//  //      file.close().runRandomIO.get
 //  //
 //  //      /**
 //  //       * Benchmark file channel read
@@ -258,7 +258,7 @@
 //  //       * Round 3: 0.819253382 seconds
 //  //       */
 //  //
-//  //      val standardFile = CoreFile.standardRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//  //      val standardFile = CoreFile.standardRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
 //  //      Benchmark("FileChannel read Benchmark") {
 //  //        bytes.foldLeft(0) {
 //  //          case (index, byteSlice) =>
@@ -267,7 +267,7 @@
 //  //            index + chunkSize
 //  //        }
 //  //      }
-//  //      standardFile.close().runRandomIO.right.value
+//  //      standardFile.close().runRandomIO.get
 //  //
 //  //      /**
 //  //       * Benchmark memory mapped file read
@@ -276,7 +276,7 @@
 //  //       * Round 2: 0.54580672 seconds
 //  //       * Round 3: 0.463990916 seconds
 //  //       */
-//  //      val mmapFile = CoreFile.mmapRead(file.path, autoClose = true, deleteAfterClean = OperatingSystem.isWindows(), ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//  //      val mmapFile = CoreFile.mmapRead(file.path, autoClose = true, deleteAfterClean = OperatingSystem.isWindows(), ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
 //  //
 //  //      Benchmark("mmap read Benchmark") {
 //  //        bytes.foldLeft(0) {
@@ -302,7 +302,7 @@
 //  //            index + chunkSize
 //  //        }
 //  //      }
-//  //      mmapFile.close.runRandomIO.right.value
+//  //      mmapFile.close.runRandomIO.get
 //  //    }
 //  //  }
 //}

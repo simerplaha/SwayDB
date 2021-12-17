@@ -19,7 +19,7 @@
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.PrivateMethodTester
 //import swaydb.IO
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MMAP
 //import swaydb.core.CoreTestData._
 //import swaydb.core._
@@ -73,13 +73,13 @@
 //
 //            val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.byte, mmap = mmapSegments))
 //            val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0))(TestTimer.Empty)
-//            level.put(keyValues).runRandomIO.right.value
+//            level.put(keyValues).runRandomIO.get
 //            //dispatch another put request so that existing Segment gets split
-//            level.put(Slice(keyValues.head)).runRandomIO.right.value
+//            level.put(Slice(keyValues.head)).runRandomIO.get
 //            level.segmentsCount() should be >= 1
 //
 //            //expire all key-values
-//            level.put(Slice(Memory.Range(0, Int.MaxValue, Value.FromValue.Null, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).runRandomIO.right.value
+//            level.put(Slice(Memory.Range(0, Int.MaxValue, Value.FromValue.Null, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).runRandomIO.get
 //            level.segmentFilesInAppendix should be > 1
 //
 //            sleep(3.seconds)

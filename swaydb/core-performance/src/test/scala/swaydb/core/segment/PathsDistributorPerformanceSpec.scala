@@ -16,7 +16,7 @@
 ////
 ////package swaydb.core.segment
 ////
-////import swaydb.IOValues._
+////import swaydb.effect.IOValues._
 ////import swaydb.core.TestSweeper._
 ////import swaydb.core.{ACoreSpec, TestSweeper}
 ////import swaydb.effect.{Dir, Effect}
@@ -48,8 +48,8 @@
 ////
 ////        //randomly create Segments in different paths to have an un-even distribution in each folder
 ////        def randomlyDistributeSegments(): Iterable[Segment] = {
-////          val segment = TestSegment(path = randomPath).runRandomIO.right.value
-////          segment.close.runRandomIO.right.value
+////          val segment = TestSegment(path = randomPath).runRandomIO.get
+////          segment.close.runRandomIO.get
 ////          Array.fill(10)(segment)
 ////        }
 ////

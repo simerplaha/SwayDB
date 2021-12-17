@@ -19,7 +19,7 @@
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.OptionValues._
 //import swaydb.IO
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MMAP
 //import swaydb.config.compaction.LevelThrottle
 //import swaydb.config.storage.LevelStorage
@@ -204,9 +204,9 @@
 //          zero.get("one", ThreadReadState.random).getPut.getOrFetchValue.toOptionC shouldBe empty
 //          zero.get("two", ThreadReadState.random).getPut.getOrFetchValue.toOptionC shouldBe empty
 //
-//          zero.contains("one", ThreadReadState.random).runRandomIO.right.value shouldBe true
-//          zero.contains("two", ThreadReadState.random).runRandomIO.right.value shouldBe true
-//          zero.contains("three", ThreadReadState.random).runRandomIO.right.value shouldBe false
+//          zero.contains("one", ThreadReadState.random).runRandomIO.get shouldBe true
+//          zero.contains("two", ThreadReadState.random).runRandomIO.get shouldBe true
+//          zero.contains("three", ThreadReadState.random).runRandomIO.get shouldBe false
 //      }
 //    }
 //
@@ -220,7 +220,7 @@
 //
 //          assertGet(keyValues, zero)
 //
-//          zero.keyValueCount.runRandomIO.right.value shouldBe keyValues.size
+//          zero.keyValueCount.runRandomIO.get shouldBe keyValues.size
 //      }
 //    }
 //

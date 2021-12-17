@@ -19,7 +19,7 @@
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.PrivateMethodTester
 //import swaydb.IO
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MMAP
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
@@ -78,8 +78,8 @@
 //          val level = TestLevel()
 //
 //          val keyValues = randomPutKeyValues(startId = Some(1))
-//          level.put(keyValues).runRandomIO.right.value
-//          level.put(Slice(keyValues.head)).runRandomIO.right.value
+//          level.put(keyValues).runRandomIO.get
+//          level.put(Slice(keyValues.head)).runRandomIO.get
 //
 //          level.segments() foreach {
 //            segment =>
@@ -138,7 +138,7 @@
 //          val level = TestLevel(nextLevel = Some(TestLevel()))
 //
 //          val keyValues = randomPutKeyValues()
-//          level.put(keyValues).runRandomIO.right.value
+//          level.put(keyValues).runRandomIO.get
 //
 //          val deleteKeyValues = Slice.allocate[Memory](keyValues.size)
 //          keyValues foreach {
@@ -146,11 +146,11 @@
 //              deleteKeyValues add Memory.remove(keyValue.key)
 //          }
 //
-//          level.put(deleteKeyValues).runRandomIO.right.value
+//          level.put(deleteKeyValues).runRandomIO.get
 //          level.isEmpty shouldBe false
 //          keyValues foreach {
 //            keyValue =>
-//              level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+//              level.get(keyValue.key, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
 //          }
 //      }
 //    }
@@ -163,9 +163,9 @@
 //          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 //
 //          val keyValues = randomPutKeyValues(keyValuesCount)
-//          level.put(keyValues).runRandomIO.right.value
+//          level.put(keyValues).runRandomIO.get
 //
-//          level.put(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, Value.FromValue.Null, Value.remove(None)))).runRandomIO.right.value
+//          level.put(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, Value.FromValue.Null, Value.remove(None)))).runRandomIO.get
 //          level.segmentFilesInAppendix shouldBe 0
 //
 //          level.isEmpty shouldBe true
@@ -184,10 +184,10 @@
 //          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
 //
 //          val keyValues = randomPutKeyValues(keyValuesCount)
-//          level.put(keyValues).runRandomIO.right.value
+//          level.put(keyValues).runRandomIO.get
 //          val segmentsCountBeforeRemove = level.segmentFilesInAppendix
 //
-//          level.put(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, Value.FromValue.Null, Value.remove(None)))).runRandomIO.right.value
+//          level.put(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, Value.FromValue.Null, Value.remove(None)))).runRandomIO.get
 //          level.segmentFilesInAppendix shouldBe segmentsCountBeforeRemove
 //
 //          level.isEmpty shouldBe false
@@ -206,7 +206,7 @@
 //          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 //
 //          val keyValues = randomPutKeyValues(keyValuesCount)
-//          level.put(keyValues).runRandomIO.right.value
+//          level.put(keyValues).runRandomIO.get
 //
 //          val deleteKeyValues = Slice.allocate[Memory](keyValues.size * 2)
 //          keyValues foreach {
@@ -223,7 +223,7 @@
 //
 //          level.nextLevel shouldBe empty
 //
-//          level.put(deleteKeyValues).runRandomIO.right.value
+//          level.put(deleteKeyValues).runRandomIO.get
 //
 //          sleep(2.seconds)
 //
@@ -235,7 +235,7 @@
 //          //expired key-values return empty after 2.seconds
 //          keyValues foreach {
 //            keyValue =>
-//              level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+//              level.get(keyValue.key, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
 //          }
 //
 //          level.segmentFilesInAppendix shouldBe 0
@@ -257,7 +257,7 @@
 //          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
 //
 //          val keyValues = randomPutKeyValues(keyValuesCount)
-//          level.put(keyValues).runRandomIO.right.value
+//          level.put(keyValues).runRandomIO.get
 //
 //          val deleteKeyValues = Slice.allocate[Memory](keyValues.size * 2)
 //          keyValues foreach {
@@ -272,12 +272,12 @@
 //              deleteKeyValues add Memory.remove(id, randomly(expiredDeadline()))
 //          }
 //
-//          level.put(deleteKeyValues).runRandomIO.right.value
+//          level.put(deleteKeyValues).runRandomIO.get
 //
 //          //expired key-values return empty.
 //          keyValues foreach {
 //            keyValue =>
-//              level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+//              level.get(keyValue.key, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
 //          }
 //
 //          //sleep for 2.seconds and Segments should still exists.
@@ -300,15 +300,15 @@
 //          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 //
 //          val keyValues = randomPutKeyValues(keyValuesCount)
-//          level.put(keyValues).runRandomIO.right.value
+//          level.put(keyValues).runRandomIO.get
 //
-//          level.put(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, Value.FromValue.Null, Value.remove(2.seconds.fromNow)))).runRandomIO.right.value
+//          level.put(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, Value.FromValue.Null, Value.remove(2.seconds.fromNow)))).runRandomIO.get
 //
 //          //expired key-values return empty after 2.seconds
 //          eventual(5.seconds) {
 //            keyValues foreach {
 //              keyValue =>
-//                level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+//                level.get(keyValue.key, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
 //            }
 //          }
 //
@@ -333,15 +333,15 @@
 //          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
 //
 //          val keyValues = randomPutKeyValues(keyValuesCount)
-//          level.put(keyValues).runRandomIO.right.value
+//          level.put(keyValues).runRandomIO.get
 //
-//          level.put(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, Value.FromValue.Null, Value.remove(2.seconds.fromNow)))).runRandomIO.right.value
+//          level.put(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, Value.FromValue.Null, Value.remove(2.seconds.fromNow)))).runRandomIO.get
 //
 //          //expired key-values return empty after 2.seconds
 //          eventual(5.seconds) {
 //            keyValues foreach {
 //              keyValue =>
-//                level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+//                level.get(keyValue.key, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
 //            }
 //          }
 //

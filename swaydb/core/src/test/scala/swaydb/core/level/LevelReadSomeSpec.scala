@@ -19,7 +19,7 @@
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.exceptions.TestFailedException
 //import swaydb.IO
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MMAP
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
@@ -105,12 +105,12 @@
 //                  val (gotValue, gotDeadline) =
 //                    level.get(update.key, ThreadReadState.random).toOptionPut.runRandomIO.map {
 //                      case Some(put) =>
-//                        val value = put.getOrFetchValue.runRandomIO.right.value
+//                        val value = put.getOrFetchValue.runRandomIO.get
 //                        (value, put.deadline)
 //
 //                      case None =>
 //                        (None, None)
-//                    }.runRandomIO.right.value
+//                    }.runRandomIO.get
 //
 //                  Try(gotValue shouldBe updatedValue) match {
 //                    case Failure(testException: TestFailedException) =>
@@ -122,12 +122,12 @@
 //                          import sweeper._
 //
 //                          val level: Level = TestLevel()
-//                          level.put(level2KeyValues).runRandomIO.right.value
-//                          level.put(level1KeyValues).runRandomIO.right.value
-//                          level.put(level0KeyValues).runRandomIO.right.value
+//                          level.put(level2KeyValues).runRandomIO.get
+//                          level.put(level1KeyValues).runRandomIO.get
+//                          level.put(level0KeyValues).runRandomIO.get
 //
 //                          //if after merging into a single Level the result is not empty then print all the failed exceptions.
-//                          Try(IO.Defer(level.get(update.key, ThreadReadState.random).toOptionPut).runIO.runRandomIO.right.value shouldBe empty).failed foreach {
+//                          Try(IO.Defer(level.get(update.key, ThreadReadState.random).toOptionPut).runIO.runRandomIO.get shouldBe empty).failed foreach {
 //                            exception =>
 //                              exception.printStackTrace()
 //                              throw testException

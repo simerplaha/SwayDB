@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package swaydb
+package swaydb.effect
 
+import swaydb.IO
 
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
 import scala.util.Random
 
 trait IOValues {
@@ -38,19 +39,6 @@ trait IOValues {
 
     def runRandomIO: IO[L, R] =
       IO.Defer(io.get).runRandomIO
-  }
-
-  implicit class IOImplicits[E, T](io: IO[E, T]) {
-    def value: T =
-      io.get
-  }
-
-  implicit class IOEitherImplicits[E, L, R](io: IO[E, Either[L, R]]) {
-    def rightValue: R =
-      io.get.right.get
-
-    def leftValue: L =
-      io.get.left.get
   }
 
   implicit class DeferredIOImplicits[L: IO.ExceptionHandler, R](io: => IO.Defer[L, R]) {

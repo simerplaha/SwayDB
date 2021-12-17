@@ -18,7 +18,7 @@
 //
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.segment.data.Memory
 //import swaydb.serializers.Default._
@@ -44,7 +44,7 @@
 //      minKey shouldBe last.key
 //      maxKey shouldBe MaxKey.Fixed(last.key)
 //
-//      KeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((last.key, MaxKey.Fixed(last.key)))
+//      KeyCompressor.decompress(compressedKey).runRandomIO.get shouldBe ((last.key, MaxKey.Fixed(last.key)))
 //    }
 //  }
 //
@@ -62,7 +62,7 @@
 //      minKey shouldBe head.key
 //      maxKey shouldBe MaxKey.Fixed(last.key)
 //
-//      KeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((head.key, MaxKey.Fixed(last.key)))
+//      KeyCompressor.decompress(compressedKey).runRandomIO.get shouldBe ((head.key, MaxKey.Fixed(last.key)))
 //    }
 //  }
 //
@@ -79,7 +79,7 @@
 //      minKey shouldBe last.key
 //      maxKey shouldBe MaxKey.Range(last.fromKey, last.toKey)
 //
-//      KeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((last.key, MaxKey.Range(last.fromKey, last.toKey)))
+//      KeyCompressor.decompress(compressedKey).runRandomIO.get shouldBe ((last.key, MaxKey.Range(last.fromKey, last.toKey)))
 //    }
 //  }
 //
@@ -97,7 +97,7 @@
 //      minKey shouldBe head.key
 //      maxKey shouldBe MaxKey.Range(last.fromKey, last.toKey)
 //
-//      KeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((head.key, MaxKey.Range(last.fromKey, last.toKey)))
+//      KeyCompressor.decompress(compressedKey).runRandomIO.get shouldBe ((head.key, MaxKey.Range(last.fromKey, last.toKey)))
 //    }
 //  }
 //}

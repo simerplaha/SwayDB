@@ -18,7 +18,7 @@
 //
 //import org.scalatest.OptionValues._
 //import swaydb.IO
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MMAP
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
@@ -75,7 +75,7 @@
 //        //disable throttling so that it does not automatically collapse small Segments
 //        val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments, deleteDelay = Duration.Zero))
 //        val keyValues = randomPutKeyValues(1000, addPutDeadlines = false, startId = Some(0))(TestTimer.Empty)
-//        level.put(keyValues).runRandomIO.right.value
+//        level.put(keyValues).runRandomIO.get
 //
 //        val segmentCountBeforeDelete = level.segmentsCount()
 //        segmentCountBeforeDelete > 1 shouldBe true
@@ -94,7 +94,7 @@
 //              }
 //          }
 //        //delete half of the key values which will create small Segments
-//        level.put(Slice.wrap(deleteEverySecond.toArray)).runRandomIO.right.value
+//        level.put(Slice.wrap(deleteEverySecond.toArray)).runRandomIO.get
 //
 //        level.collapse(level.segments(), removeDeletedRecords = false).awaitInf match {
 //          case LevelCollapseResult.Empty =>
@@ -128,7 +128,7 @@
 //            level.put(keyValues) shouldBe IO.unit
 //
 //            level.segmentsCount() > 1 shouldBe true
-//            level.closeNoSweep().runRandomIO.right.value
+//            level.closeNoSweep().runRandomIO.get
 //
 //            //reopening the Level will make the Segments unreadable.
 //            //reopen the Segments
@@ -167,7 +167,7 @@
 //        val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 //        val expiryAt = 5.seconds.fromNow
 //        val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addPutDeadlines = false)(TestTimer.Empty)
-//        level.put(keyValues).runRandomIO.right.value
+//        level.put(keyValues).runRandomIO.get
 //        val segmentCountBeforeDelete = level.segmentsCount()
 //        segmentCountBeforeDelete > 1 shouldBe true
 //
@@ -184,11 +184,11 @@
 //          }
 //
 //        //delete half of the key values which will create small Segments
-//        level.put(Slice.wrap(expireEverySecond.toArray)).runRandomIO.right.value
+//        level.put(Slice.wrap(expireEverySecond.toArray)).runRandomIO.get
 //        keyValues.zipWithIndex foreach {
 //          case (keyValue, index) =>
 //            if (index % 2 == 0)
-//              level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut.value.deadline should contain(expiryAt + index.millisecond)
+//              level.get(keyValue.key, ThreadReadState.random).runRandomIO.get.toOptionPut.value.deadline should contain(expiryAt + index.millisecond)
 //        }
 //
 //        sleep(20.seconds)

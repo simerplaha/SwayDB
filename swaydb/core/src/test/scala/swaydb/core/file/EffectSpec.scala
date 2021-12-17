@@ -19,7 +19,7 @@
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.{Benchmark, IO}
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.TestSweeper
 //import swaydb.core.file.CoreFileTestKit._
@@ -36,9 +36,9 @@
 //  "fileId" should {
 //
 //    "value the file id" in {
-//      Effect.numberFileId(Paths.get("/one/1.log")).runRandomIO.right.value shouldBe(1, Extension.Log)
-//      Effect.numberFileId(Paths.get("/one/two/10.log")).runRandomIO.right.value shouldBe(10, Extension.Log)
-//      Effect.numberFileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.right.value shouldBe(1000, Extension.Seg)
+//      Effect.numberFileId(Paths.get("/one/1.log")).runRandomIO.get shouldBe(1, Extension.Log)
+//      Effect.numberFileId(Paths.get("/one/two/10.log")).runRandomIO.get shouldBe(10, Extension.Log)
+//      Effect.numberFileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.get shouldBe(1000, Extension.Seg)
 //    }
 //
 //    "fail if the file's name is not an integer" in {
@@ -48,7 +48,7 @@
 //
 //    "fail if the file has invalid extension" in {
 //      val path = Paths.get("/one/1.txt")
-//      IO(Effect.numberFileId(path)).left.runRandomIO.right.value shouldBe swaydb.Exception.UnknownExtension(path)
+//      IO(Effect.numberFileId(path)).left.runRandomIO.get shouldBe swaydb.Exception.UnknownExtension(path)
 //    }
 //  }
 //
@@ -62,9 +62,9 @@
 //
 //  "incrementFileId" should {
 //    "return a new file path with incremented file id" in {
-//      Effect.incrementFileId(Paths.get("/one/1.log")).runRandomIO.right.value shouldBe Paths.get("/one/2.log")
-//      Effect.incrementFileId(Paths.get("/one/two/10.log")).runRandomIO.right.value shouldBe Paths.get("/one/two/11.log")
-//      Effect.incrementFileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.right.value shouldBe Paths.get("/one/two/three/1001.seg")
+//      Effect.incrementFileId(Paths.get("/one/1.log")).runRandomIO.get shouldBe Paths.get("/one/2.log")
+//      Effect.incrementFileId(Paths.get("/one/two/10.log")).runRandomIO.get shouldBe Paths.get("/one/two/11.log")
+//      Effect.incrementFileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.get shouldBe Paths.get("/one/two/three/1001.seg")
 //    }
 //  }
 //
@@ -96,7 +96,7 @@
 //
 //          actual.foreach {
 //            path =>
-//              Effect.createFile(path).runRandomIO.right.value
+//              Effect.createFile(path).runRandomIO.get
 //          }
 //
 //          val expect =

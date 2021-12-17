@@ -19,7 +19,7 @@
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.OK
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
@@ -123,7 +123,7 @@
 //                  oldKeyValue.copy(value = value, deadline = deadline.orElse(oldKeyValue.deadline), time = newKeyValue.time)
 //              }
 //            else
-//              Memory.PendingApply(key = key, applies = Slice(oldKeyValue.toFromValue().runRandomIO.right.value, newKeyValue.toFromValue().runRandomIO.right.value))
+//              Memory.PendingApply(key = key, applies = Slice(oldKeyValue.toFromValue().runRandomIO.get, newKeyValue.toFromValue().runRandomIO.get))
 //
 //          assertMerge(
 //            newKeyValue = newKeyValue,
@@ -155,7 +155,7 @@
 //              assertMerge(
 //                newKeyValue = newKeyValue,
 //                oldKeyValue = oldKeyValue,
-//                expected = Memory.PendingApply(Slice.emptyBytes, Slice(oldKeyValue.toFromValue().runRandomIO.right.value, newKeyValue.toFromValue().runRandomIO.right.value)),
+//                expected = Memory.PendingApply(Slice.emptyBytes, Slice(oldKeyValue.toFromValue().runRandomIO.get, newKeyValue.toFromValue().runRandomIO.get)),
 //                lastLevel = None
 //              )
 //          }
@@ -178,7 +178,7 @@
 //              assertMerge(
 //                newKeyValue = newKeyValue,
 //                oldKeyValue = oldKeyValue,
-//                expected = Memory.PendingApply(1, Slice(oldKeyValue.toFromValue().runRandomIO.right.value, newKeyValue.toFromValue().runRandomIO.right.value)),
+//                expected = Memory.PendingApply(1, Slice(oldKeyValue.toFromValue().runRandomIO.get, newKeyValue.toFromValue().runRandomIO.get)),
 //                lastLevel = None
 //              )
 //          }

@@ -16,7 +16,7 @@
 //
 //package swaydb.core.log.counter
 //
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MMAP
 //import swaydb.core._
 //import swaydb.core.CoreTestData._

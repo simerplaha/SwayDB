@@ -20,7 +20,7 @@
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.IO
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.log.LogEntry
@@ -48,10 +48,10 @@
 //        addEntry writeTo slice
 //        slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 //
-//        reader.read(SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+//        reader.read(SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.get shouldBe addEntry
 //
 //        import LevelZeroLogEntryReader.Level0Reader
-//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
+//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.get
 //        readEntry shouldBe addEntry
 //
 //        val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -156,7 +156,7 @@
 //      slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 //
 //      import LevelZeroLogEntryReader.Level0Reader
-//      val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
+//      val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.get
 //      readEntry shouldBe entry
 //
 //      val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -183,7 +183,7 @@
 //      //write skip list to bytes should result in the same skip list as before
 //      import LevelZeroLogEntryWriter.Level0LogEntryPutWriter
 //      val bytes = LogEntrySerialiser.write[Slice[Byte], Memory](skipList.iterator)
-//      val recoveryResult = LogEntrySerialiser.read[Slice[Byte], Memory](bytes, false).runRandomIO.right.value
+//      val recoveryResult = LogEntrySerialiser.read[Slice[Byte], Memory](bytes, false).runRandomIO.get
 //      recoveryResult.result shouldBe IO.unit
 //
 //      val readEntries = recoveryResult.item.value

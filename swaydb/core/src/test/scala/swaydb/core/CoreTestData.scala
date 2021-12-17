@@ -20,7 +20,7 @@
 //import org.scalatest.matchers.should.Matchers._
 //import swaydb.Error.Segment.ExceptionHandler
 //import swaydb.IO.ExceptionHandler.Nothing
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.compression.CoreCompression
 //import swaydb.core.compression.CompressionTestKit._
 //import swaydb.config._

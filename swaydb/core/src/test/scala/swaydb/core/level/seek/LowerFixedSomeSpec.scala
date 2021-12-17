@@ -20,7 +20,7 @@
 //import org.scalatest.OptionValues
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.level.LevelSeek
 //import swaydb.core.segment.data.merge.FixedMerger
@@ -107,7 +107,7 @@
 //          next.lower            _ expects (1: Slice[Byte], *)  returning lowerKeyValue
 //          //@formatter:on
 //        }
-//        Lower(1: Slice[Byte]).runRandomIO.right.value.value shouldBe expected.right.value
+//        Lower(1: Slice[Byte]).runRandomIO.get.value shouldBe expected.right.value
 //      }
 //    }
 //
@@ -145,7 +145,7 @@
 //          }
 //          //@formatter:on
 //        }
-//        Lower(2: Slice[Byte]).runRandomIO.right.value.value shouldBe expected
+//        Lower(2: Slice[Byte]).runRandomIO.get.value shouldBe expected
 //      }
 //    }
 //
@@ -167,7 +167,7 @@
 //          next.lower            _ expects (2: Slice[Byte], *) returning lowerKeyValue
 //          //@formatter:on
 //        }
-//        Lower(2: Slice[Byte]).runRandomIO.right.value.value shouldBe lowerKeyValue
+//        Lower(2: Slice[Byte]).runRandomIO.get.value shouldBe lowerKeyValue
 //      }
 //    }
 //  }

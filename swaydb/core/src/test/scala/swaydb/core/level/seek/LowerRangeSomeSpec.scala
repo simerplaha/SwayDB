@@ -22,7 +22,7 @@
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.Error.Segment.ExceptionHandler
 //import swaydb.IO
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.level.LevelSeek
@@ -70,7 +70,7 @@
 //              next.lower            _ expects (key: Slice[Byte], *)  returning lowerLower
 //              //@formatter:on
 //            }
-//            Lower(key: Slice[Byte]).runRandomIO.right.value.value shouldBe expected.right.value
+//            Lower(key: Slice[Byte]).runRandomIO.get.value shouldBe expected.right.value
 //        }
 //      }
 //    }
@@ -93,7 +93,7 @@
 //        //if fromValue is defined it will be merged with lower else lower is returned
 //        val expected =
 //          IO(upperLevel.fetchFromOrElseRangeValueUnsafe)
-//            .map(currentFromValue => FixedMerger(currentFromValue.toMemory(0), lowerLevel).runRandomIO.right.value)
+//            .map(currentFromValue => FixedMerger(currentFromValue.toMemory(0), lowerLevel).runRandomIO.get)
 //            .getOrElse(lowerLevel)
 //
 //        inSequence {
@@ -102,7 +102,7 @@
 //          next.lower            _ expects (1: Slice[Byte], *)    returning lowerLevel
 //          //@formatter:on
 //        }
-//        Lower(1: Slice[Byte]).runRandomIO.right.value.value shouldBe expected
+//        Lower(1: Slice[Byte]).runRandomIO.get.value shouldBe expected
 //      }
 //    }
 //
@@ -127,7 +127,7 @@
 //              next.lower            _ expects (key: Slice[Byte], *)  returning lowerLower
 //              //@formatter:on
 //            }
-//            Lower(key: Slice[Byte]).runRandomIO.right.value.value shouldBe lowerLower
+//            Lower(key: Slice[Byte]).runRandomIO.get.value shouldBe lowerLower
 //        }
 //      }
 //    }
@@ -148,7 +148,7 @@
 //            val currentRangeValue = randomUpdateRangeValue()
 //            val lowerLower = randomPutKeyValue(9, deadline = None)
 //
-//            val expected = FixedMerger(currentRangeValue.toMemory(9), lowerLower).runRandomIO.right.value
+//            val expected = FixedMerger(currentRangeValue.toMemory(9), lowerLower).runRandomIO.get
 //
 //            inSequence {
 //              //@formatter:off
@@ -178,7 +178,7 @@
 //            val lowerLower = randomPutKeyValue(1, deadline = None)
 //            val rangeValue = randomRangeValue(addRemoves = false, deadline = randomDeadlineOption(false), functionOutput = randomFunctionOutput(false, false))
 //
-//            val expected = FixedMerger(rangeValue.toMemory(1), lowerLower).runRandomIO.right.value
+//            val expected = FixedMerger(rangeValue.toMemory(1), lowerLower).runRandomIO.get
 //
 //            inSequence {
 //              //@formatter:off
@@ -186,7 +186,7 @@
 //              next.lower            _ expects (key: Slice[Byte], *)  returning lowerLower
 //              //@formatter:on
 //            }
-//            Lower(key: Slice[Byte]).runRandomIO.right.value.value shouldBe expected
+//            Lower(key: Slice[Byte]).runRandomIO.get.value shouldBe expected
 //        }
 //      }
 //    }
@@ -212,7 +212,7 @@
 //              next.lower            _ expects (key: Slice[Byte], *)  returning randomPutKeyValue(eitherOne[Int](0, 1), deadline = None)
 //              //@formatter:on
 //            }
-//            Lower(key: Slice[Byte]).runRandomIO.right.value.value shouldBe put.toMemory(1)
+//            Lower(key: Slice[Byte]).runRandomIO.get.value shouldBe put.toMemory(1)
 //        }
 //      }
 //    }

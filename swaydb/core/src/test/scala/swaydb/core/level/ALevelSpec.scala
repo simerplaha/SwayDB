@@ -22,7 +22,7 @@
 //import swaydb.slice.Slice
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.testkit.TestKit.{randomBoolean, randomIntMax, randomNextInt}
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.segment.{ASegmentSpec, PathsDistributor}
 //import swaydb.core.TestSweeper._
 //import swaydb.core.file.sweeper.FileSweeper
@@ -379,13 +379,13 @@
 //      SegmentCompactionIO.create().sweep()
 //
 //    println("level3.putKeyValues")
-//    if (level3KeyValues.nonEmpty) level3.put(level3KeyValues).runRandomIO.right.value
+//    if (level3KeyValues.nonEmpty) level3.put(level3KeyValues).runRandomIO.get
 //    println("level2.putKeyValues")
-//    if (level2KeyValues.nonEmpty) level2.put(level2KeyValues).runRandomIO.right.value
+//    if (level2KeyValues.nonEmpty) level2.put(level2KeyValues).runRandomIO.get
 //    println("level1.putKeyValues")
-//    if (level1KeyValues.nonEmpty) level1.put(level1KeyValues).runRandomIO.right.value
+//    if (level1KeyValues.nonEmpty) level1.put(level1KeyValues).runRandomIO.get
 //    println("level0.putKeyValues")
-//    if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).runRandomIO.right.value
+//    if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).runRandomIO.get
 //    import swaydb.testkit.RunThis._
 //
 //    Seq(

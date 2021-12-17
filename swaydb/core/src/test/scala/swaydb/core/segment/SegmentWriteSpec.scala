@@ -18,7 +18,7 @@
 ////
 ////import org.scalatest.OptionValues.convertOptionToValuable
 ////import swaydb.Error.Segment.ExceptionHandler
-////import swaydb.IOValues._
+////import swaydb.effect.IOValues._
 ////import swaydb.config.MMAP
 ////import swaydb.core.CommonAssertions._
 ////import swaydb.core.PrivateMethodInvokers._
@@ -280,8 +280,8 @@
 ////          def doAssert(keyValues: Slice[KeyValue], segment: Segment) = {
 ////            segment.hasBloomFilter() shouldBe false
 ////            assertBloom(keyValues, segment)
-////            segment.hasRange.runRandomIO.right.value shouldBe true
-////            segment.close.runRandomIO.right.value
+////            segment.hasRange.runRandomIO.get shouldBe true
+////            segment.close.runRandomIO.get
 ////          }
 ////
 ////          assertSegment(
@@ -334,15 +334,15 @@
 ////
 ////              assert =
 ////                (keyValues, segment) => {
-////                  segment.hasBloomFilter().runRandomIO.right.value shouldBe true
-////                  segment.hasRange.runRandomIO.right.value shouldBe false
+////                  segment.hasBloomFilter().runRandomIO.get shouldBe true
+////                  segment.hasRange.runRandomIO.get shouldBe false
 ////
 ////                  segment.rangeCount shouldBe 0
 ////                  segment.updateCount shouldBe 1
 ////                  segment.putCount shouldBe 2
 ////                  segment.putDeadlineCount shouldBe 0
 ////
-////                  segment.close.runRandomIO.right.value
+////                  segment.close.runRandomIO.get
 ////                }
 ////            )
 ////
@@ -361,15 +361,15 @@
 ////
 ////              assert =
 ////                (keyValues, segment) => {
-////                  segment.hasBloomFilter().runRandomIO.right.value shouldBe true
-////                  segment.hasRange.runRandomIO.right.value shouldBe true
+////                  segment.hasBloomFilter().runRandomIO.get shouldBe true
+////                  segment.hasRange.runRandomIO.get shouldBe true
 ////
 ////                  segment.rangeCount shouldBe 1
 ////                  segment.updateCount shouldBe 0
 ////                  segment.putCount shouldBe 1
 ////                  segment.putDeadlineCount shouldBe 0
 ////
-////                  segment.close.runRandomIO.right.value
+////                  segment.close.runRandomIO.get
 ////                }
 ////            )
 ////        }
@@ -451,7 +451,7 @@
 ////                  val readState = ThreadReadState.random
 ////                  failedKV foreach {
 ////                    keyValue =>
-////                      segment.get(keyValue.key, readState).runRandomIO.right.value.toOption shouldBe empty
+////                      segment.get(keyValue.key, readState).runRandomIO.get.toOption shouldBe empty
 ////                  }
 ////                  assertBloom(keyValues, segment)
 ////                }
@@ -495,7 +495,7 @@
 ////                    segment.isKeyValueCacheEmpty shouldBe false
 ////
 ////                    assertBloom(keyValues, segment)
-////                    segment.close.runRandomIO.right.value
+////                    segment.close.runRandomIO.get
 ////                    segment.isOpen shouldBe false
 ////                    segment.isFileDefined shouldBe false
 ////

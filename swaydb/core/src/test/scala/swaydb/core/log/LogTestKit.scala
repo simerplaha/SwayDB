@@ -10,7 +10,7 @@ import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.slice.order.KeyOrder
-import swaydb.IOValues._
+import swaydb.effect.IOValues._
 import swaydb.testkit.RunThis._
 
 import scala.concurrent.duration._
@@ -36,7 +36,7 @@ object LogTestKit {
     def ensureClose(): Unit = {
       implicit val ec = TestExecutionContext.executionContext
       implicit val bag = Bag.future
-      logs.close().value
+      logs.close().get
       logs.bufferCleaner.actor().receiveAllForce[Glass, Unit](_ => ())
       (logs.bufferCleaner.actor() ask ByteBufferCommand.IsTerminated[Unit]).await(10.seconds)
     }

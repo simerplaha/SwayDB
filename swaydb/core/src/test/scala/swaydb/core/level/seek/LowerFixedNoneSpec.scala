@@ -20,7 +20,7 @@
 //import org.scalatest.OptionValues
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.level.LevelSeek
 //import swaydb.core.segment.data.KeyValue

@@ -20,7 +20,7 @@
 //import org.scalatest.OptionValues
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.level.LevelSeek
 //import swaydb.core.segment.data.merge.FixedMerger
@@ -60,7 +60,7 @@
 //          next.higher           _ expects (0: Slice[Byte], *)  returning KeyValue.Put.Null
 //          //@formatter:on
 //        }
-//        Higher(0: Slice[Byte]).runRandomIO.right.value.value shouldBe put
+//        Higher(0: Slice[Byte]).runRandomIO.get.value shouldBe put
 //      }
 //    }
 //
@@ -82,7 +82,7 @@
 //          next.higher           _ expects (0: Slice[Byte], *)  returning put
 //          //@formatter:on
 //        }
-//        Higher(0: Slice[Byte]).runRandomIO.right.value.value shouldBe put
+//        Higher(0: Slice[Byte]).runRandomIO.get.value shouldBe put
 //      }
 //    }
 //
@@ -106,7 +106,7 @@
 //          next.higher           _ expects (0: Slice[Byte], *)  returning lowerKeyValue
 //          //@formatter:on
 //        }
-//        Higher(0: Slice[Byte]).runRandomIO.right.value.value shouldBe expected.right.value
+//        Higher(0: Slice[Byte]).runRandomIO.get.value shouldBe expected.right.value
 //      }
 //    }
 //
@@ -144,7 +144,7 @@
 //          }
 //          //@formatter:on
 //        }
-//        Higher(0: Slice[Byte]).runRandomIO.right.value.value shouldBe expected
+//        Higher(0: Slice[Byte]).runRandomIO.get.value shouldBe expected
 //      }
 //    }
 //
@@ -166,7 +166,7 @@
 //          next.higher           _ expects (0: Slice[Byte], *)  returning lowerKeyValue
 //          //@formatter:on
 //        }
-//        Higher(0: Slice[Byte]).runRandomIO.right.value.value shouldBe lowerKeyValue
+//        Higher(0: Slice[Byte]).runRandomIO.get.value shouldBe lowerKeyValue
 //      }
 //    }
 //  }

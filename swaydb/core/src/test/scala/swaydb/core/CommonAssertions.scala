@@ -22,7 +22,7 @@
 //import org.scalatest.matchers.should.Matchers._
 //import swaydb.{Bag, Error, Glass, IO}
 //import swaydb.Error.Segment.ExceptionHandler
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.{Atomic, OptimiseWrites}
 //import swaydb.config.compaction.PushStrategy
 //import swaydb.core.CoreTestData._

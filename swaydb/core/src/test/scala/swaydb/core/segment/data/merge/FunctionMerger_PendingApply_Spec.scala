@@ -18,7 +18,7 @@
 //
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.TestTimer
@@ -51,7 +51,7 @@
 //          //new but has older time than oldKeyValue
 //          val newKeyValue = randomFunctionKeyValue(key = key)
 //
-//          val expected = FixedMerger(newKeyValue, apply.toMemory(key)).runRandomIO.right.value
+//          val expected = FixedMerger(newKeyValue, apply.toMemory(key)).runRandomIO.get
 //
 //          //          println(s"newKeyValue: $newKeyValue")
 //          //          println(s"old apply: $apply")

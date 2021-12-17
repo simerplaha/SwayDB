@@ -17,7 +17,7 @@
 //package swaydb.core.tool
 //
 //import swaydb.Glass
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MMAP
 //import swaydb.config.compaction.LevelThrottle
 //import swaydb.config.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}

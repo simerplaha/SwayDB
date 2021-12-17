@@ -16,7 +16,7 @@
 //
 //package swaydb.api
 //
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.PureFunctionScala._
 //import swaydb.config.Functions
 //import swaydb.core.CommonAssertions._

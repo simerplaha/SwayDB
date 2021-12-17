@@ -20,7 +20,7 @@
 //import org.scalatest.concurrent.ScalaFutures
 //import swaydb.Error.Segment.ExceptionHandler
 //import swaydb.IO
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MMAP
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._

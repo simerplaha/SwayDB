@@ -19,7 +19,7 @@
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.level.LevelSeek
 //import swaydb.core.segment.data.KeyValue
@@ -60,7 +60,7 @@
 //                current.lower         _ expects (0: Slice[Byte], *)    returning LevelSeek.None
 //                //@formatter:on
 //              }
-//              Lower(key: Slice[Byte]).runRandomIO.right.value shouldBe empty
+//              Lower(key: Slice[Byte]).runRandomIO.get shouldBe empty
 //          }
 //        }
 //      }
@@ -86,7 +86,7 @@
 //                current.lower         _ expects (0: Slice[Byte], *)    returning LevelSeek.None
 //                //@formatter:on
 //              }
-//              Lower(key: Slice[Byte]).runRandomIO.right.value shouldBe empty
+//              Lower(key: Slice[Byte]).runRandomIO.get shouldBe empty
 //          }
 //        }
 //      }
@@ -114,7 +114,7 @@
 //                current.lower         _ expects (1: Slice[Byte], *)    returning LevelSeek.None
 //                //@formatter:on
 //              }
-//              Lower(key: Slice[Byte]).runRandomIO.right.value shouldBe empty
+//              Lower(key: Slice[Byte]).runRandomIO.get shouldBe empty
 //          }
 //        }
 //      }
@@ -138,7 +138,7 @@
 //                current.lower         _ expects (1: Slice[Byte], *)    returning LevelSeek.None
 //                //@formatter:on
 //              }
-//              Lower(key: Slice[Byte]).runRandomIO.right.value shouldBe empty
+//              Lower(key: Slice[Byte]).runRandomIO.get shouldBe empty
 //          }
 //        }
 //      }
@@ -160,7 +160,7 @@
 //            current.lower         _ expects (1: Slice[Byte], *)    returning LevelSeek.None
 //            //@formatter:on
 //          }
-//          Lower(12: Slice[Byte]).runRandomIO.right.value shouldBe empty
+//          Lower(12: Slice[Byte]).runRandomIO.get shouldBe empty
 //        }
 //      }
 //    }

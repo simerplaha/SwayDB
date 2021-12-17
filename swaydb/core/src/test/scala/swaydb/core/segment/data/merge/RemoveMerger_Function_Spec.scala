@@ -18,7 +18,7 @@
 //
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.TestTimer
@@ -51,7 +51,7 @@
 //            if (newKeyValue.deadline.isEmpty)
 //              newKeyValue
 //            else
-//              Memory.PendingApply(key = key, Slice(oldKeyValue.toFromValue().runRandomIO.right.value, newKeyValue.toFromValue().runRandomIO.right.value))
+//              Memory.PendingApply(key = key, Slice(oldKeyValue.toFromValue().runRandomIO.get, newKeyValue.toFromValue().runRandomIO.get))
 //
 //          assertMerge(
 //            newKeyValue = newKeyValue,

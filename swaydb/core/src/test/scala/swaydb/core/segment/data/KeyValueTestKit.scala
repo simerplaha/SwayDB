@@ -8,7 +8,7 @@ import swaydb.serializers._
 import swaydb.serializers.Default._
 import swaydb.slice.{MaxKey, Slice, SliceOption}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.IOValues._
+import swaydb.effect.IOValues._
 import swaydb.core.log.serialiser.LogEntryWriter
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.{data, CoreFunctionStore}
@@ -73,8 +73,8 @@ object KeyValueTestKit {
             case keyValue: Memory.Function =>
               Some(keyValue.getOrFetchFunction)
             case keyValue: Memory.PendingApply =>
-              val bytes = Slice.allocate[Byte](ValueSerialiser.bytesRequired(keyValue.getOrFetchApplies.runRandomIO.right.value))
-              ValueSerialiser.write(keyValue.getOrFetchApplies.runRandomIO.right.value)(bytes)
+              val bytes = Slice.allocate[Byte](ValueSerialiser.bytesRequired(keyValue.getOrFetchApplies.runRandomIO.get))
+              ValueSerialiser.write(keyValue.getOrFetchApplies.runRandomIO.get)(bytes)
               Some(bytes)
             case keyValue: Memory.Remove =>
               None
@@ -87,16 +87,16 @@ object KeyValueTestKit {
         case keyValue: Persistent =>
           keyValue match {
             case keyValue: Persistent.Put =>
-              keyValue.getOrFetchValue.runRandomIO.right.value.toOptionC
+              keyValue.getOrFetchValue.runRandomIO.get.toOptionC
 
             case keyValue: Persistent.Update =>
-              keyValue.getOrFetchValue.runRandomIO.right.value.toOptionC
+              keyValue.getOrFetchValue.runRandomIO.get.toOptionC
 
             case keyValue: Persistent.Function =>
-              Some(keyValue.getOrFetchFunction.runRandomIO.right.value)
+              Some(keyValue.getOrFetchFunction.runRandomIO.get)
 
             case keyValue: Persistent.PendingApply =>
-              val applies = keyValue.getOrFetchApplies.runRandomIO.right.value
+              val applies = keyValue.getOrFetchApplies.runRandomIO.get
 
               applies.forall(_.isCut) shouldBe true
 
@@ -108,7 +108,7 @@ object KeyValueTestKit {
               None
 
             case range: Persistent.Range =>
-              val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe.runRandomIO.right.value
+              val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe.runRandomIO.get
               fromValue.forallS(_.isCut) shouldBe true
               rangeValue.isCut shouldBe true
 
@@ -274,7 +274,7 @@ object KeyValueTestKit {
   }
 
   def assertNotSliced(keyValue: KeyValue): Unit =
-    IO(assertSliced(keyValue)).left.runRandomIO.right.value
+    IO(assertSliced(keyValue)).left.runRandomIO.get
 
   def assertSliced(value: Value): Unit =
     value match {
@@ -342,28 +342,28 @@ object KeyValueTestKit {
           case put @ Persistent.Put(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            put.getOrFetchValue.runRandomIO.right.value.toOptionC.shouldBeSliced()
+            put.getOrFetchValue.runRandomIO.get.toOptionC.shouldBeSliced()
 
           case updated @ Persistent.Update(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            updated.getOrFetchValue.runRandomIO.right.value.toOptionC.shouldBeSliced()
+            updated.getOrFetchValue.runRandomIO.get.toOptionC.shouldBeSliced()
 
           case function @ Persistent.Function(_key, lazyFunctionReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            function.getOrFetchFunction.runRandomIO.right.value.shouldBeSliced()
+            function.getOrFetchFunction.runRandomIO.get.shouldBeSliced()
 
           case pendingApply @ Persistent.PendingApply(_key, _time, deadline, lazyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            pendingApply.getOrFetchApplies.runRandomIO.right.value foreach assertSliced
+            pendingApply.getOrFetchApplies.runRandomIO.get foreach assertSliced
 
           case range @ Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _fromKey.shouldBeSliced()
             _toKey.shouldBeSliced()
-            range.fetchFromValueUnsafe.runRandomIO.right.value foreachS assertSliced
-            assertSliced(range.fetchRangeValueUnsafe.runRandomIO.right.value)
+            range.fetchFromValueUnsafe.runRandomIO.get foreachS assertSliced
+            assertSliced(range.fetchRangeValueUnsafe.runRandomIO.get)
         }
     }
 
@@ -448,16 +448,16 @@ object KeyValueTestKit {
     )
 
   def randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): RangeValue = {
-    val value = randomRemoveOrUpdateOrFunctionRemove(Slice.emptyBytes, addFunctions).toRangeValue().runRandomIO.right.value
+    val value = randomRemoveOrUpdateOrFunctionRemove(Slice.emptyBytes, addFunctions).toRangeValue().runRandomIO.get
     //println(value)
     value
   }
 
   def randomRemoveFunctionValue()(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.Function =
-    randomFunctionKeyValue(Slice.emptyBytes, SegmentFunctionOutput.Remove).toRangeValue().runRandomIO.right.value
+    randomFunctionKeyValue(Slice.emptyBytes, SegmentFunctionOutput.Remove).toRangeValue().runRandomIO.get
 
   def randomFunctionValue(output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.Function =
-    randomFunctionKeyValue(Slice.emptyBytes, SegmentFunctionOutput.Remove).toRangeValue().runRandomIO.right.value
+    randomFunctionKeyValue(Slice.emptyBytes, SegmentFunctionOutput.Remove).toRangeValue().runRandomIO.get
 
   def randomRemoveOrUpdateOrFunctionRemoveValueOption(addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Option[RangeValue] =
     eitherOne(

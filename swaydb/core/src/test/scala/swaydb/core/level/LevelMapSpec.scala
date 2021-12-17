@@ -18,7 +18,7 @@
 //
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.PrivateMethodTester
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.TestSweeper._
@@ -85,7 +85,7 @@
 //            flushOnOverflow = true,
 //            fileSize = 1.mb,
 //            dropCorruptedTailEntries = false
-//          ).runRandomIO.right.value.item.sweep()
+//          ).runRandomIO.get.item.sweep()
 //        else
 //          Log.memory[Slice[Byte], Memory, LevelZeroLogCache]()
 //
@@ -116,7 +116,7 @@
 //            //deleted key-values do not exist.
 //            deletedKeyValues foreach {
 //              deleted =>
-//                level.get(deleted.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+//                level.get(deleted.key, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
 //            }
 //        }
 //      }
@@ -140,16 +140,16 @@
 //                  Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"), Memory.remove("four", randomly(expiredDeadline()))
 //                ).sorted(keyOrder.on[KeyValue](_.key)))
 //
-//            level.put(sortedExistingKeyValues).runRandomIO.right.value
+//            level.put(sortedExistingKeyValues).runRandomIO.get
 //
 //            //put a new map
 //            level.putMap(map).get
 //            assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
 //
-//            level.get("one", ThreadReadState.random).runRandomIO.right.value.getPut shouldBe existingKeyValues(0)
-//            level.get("two", ThreadReadState.random).runRandomIO.right.value.getPut shouldBe existingKeyValues(1)
-//            level.get("three", ThreadReadState.random).runRandomIO.right.value.getPut shouldBe existingKeyValues(2)
-//            level.get("four", ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+//            level.get("one", ThreadReadState.random).runRandomIO.get.getPut shouldBe existingKeyValues(0)
+//            level.get("two", ThreadReadState.random).runRandomIO.get.getPut shouldBe existingKeyValues(1)
+//            level.get("three", ThreadReadState.random).runRandomIO.get.getPut shouldBe existingKeyValues(2)
+//            level.get("four", ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
 //        }
 //      }
 //    }

@@ -21,7 +21,7 @@
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.Error.Log.ExceptionHandler
 //import swaydb.IO
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.log.LogEntry
@@ -56,10 +56,10 @@
 //        slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 //
 //        import LevelZeroLogEntryReader.Level0PutReader
-//        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Put]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+//        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Put]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.get shouldBe addEntry
 //
 //        import LevelZeroLogEntryReader.Level0Reader
-//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
+//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.get
 //        readEntry shouldBe addEntry
 //
 //        val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -85,10 +85,10 @@
 //        slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 //
 //        import LevelZeroLogEntryReader.Level0RemoveReader
-//        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Remove]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe entry
+//        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Remove]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.get shouldBe entry
 //
 //        import LevelZeroLogEntryReader.Level0Reader
-//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
+//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.get
 //        readEntry shouldBe entry
 //
 //        val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -114,10 +114,10 @@
 //        slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 //
 //        import LevelZeroLogEntryReader.Level0UpdateReader
-//        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Update]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+//        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Update]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.get shouldBe addEntry
 //
 //        import LevelZeroLogEntryReader.Level0Reader
-//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
+//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.get
 //        readEntry shouldBe addEntry
 //
 //        val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -143,10 +143,10 @@
 //        slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 //
 //        import LevelZeroLogEntryReader.Level0FunctionReader
-//        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Function]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+//        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Function]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.get shouldBe addEntry
 //
 //        import LevelZeroLogEntryReader.Level0Reader
-//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
+//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.get
 //        readEntry shouldBe addEntry
 //
 //        val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -173,10 +173,10 @@
 //        slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 //
 //        import LevelZeroLogEntryReader.Level0RangeReader
-//        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Range]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe entry
+//        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Range]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.get shouldBe entry
 //
 //        import LevelZeroLogEntryReader.Level0Reader
-//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
+//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.get
 //        readEntry shouldBe entry
 //
 //        val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -202,10 +202,10 @@
 //        slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 //
 //        import LevelZeroLogEntryReader.Level0PendingApplyReader
-//        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.PendingApply]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+//        LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.PendingApply]](SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.get shouldBe addEntry
 //
 //        import LevelZeroLogEntryReader.Level0Reader
-//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
+//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.get
 //        readEntry shouldBe addEntry
 //
 //        val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -262,7 +262,7 @@
 //        slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 //
 //        import LevelZeroLogEntryReader.Level0Reader
-//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
+//        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.get
 //        readEntry shouldBe entry
 //
 //        val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -289,7 +289,7 @@
 //        //write skip list to bytes should result in the same skip list as before
 //        import LevelZeroLogEntryWriter.Level0LogEntryPutWriter
 //        val bytes = LogEntrySerialiser.write[Slice[Byte], Memory](skipList.iterator)
-//        val recoveryResult = LogEntrySerialiser.read[Slice[Byte], Memory](bytes, false).runRandomIO.right.value
+//        val recoveryResult = LogEntrySerialiser.read[Slice[Byte], Memory](bytes, false).runRandomIO.get
 //        recoveryResult.result shouldBe IO.unit
 //
 //        val readEntries = recoveryResult.item.value

@@ -2,7 +2,7 @@
 //
 //import org.scalatest.OptionValues._
 //import swaydb.ActorConfig
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MemoryCache
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.TestSweeper._
@@ -66,12 +66,12 @@
 //              _ =>
 //                Seq(
 //                  () => blockCache.getFooter().runRandomIO.get,
-//                  () => segmentBlockReader add blockCache.createSegmentBlockReader().runRandomIO.right.value,
-//                  () => sortedIndexReader add blockCache.createSortedIndexReader().runRandomIO.right.value,
-//                  () => Option(blockCache.createBinarySearchIndexReaderOrNull().runRandomIO.right.value).foreach(reader => binarySearchIndexReader.add(reader)),
-//                  () => Option(blockCache.createBloomFilterReaderOrNull().runRandomIO.right.value).foreach(reader => bloomFilterReader.add(reader)),
-//                  () => Option(blockCache.createHashIndexReaderOrNull().runRandomIO.right.value).foreach(reader => hashIndexReader.add(reader)),
-//                  () => Option(blockCache.createValuesReaderOrNull().runRandomIO.right.value).foreach(reader => valuesReader.add(reader)),
+//                  () => segmentBlockReader add blockCache.createSegmentBlockReader().runRandomIO.get,
+//                  () => sortedIndexReader add blockCache.createSortedIndexReader().runRandomIO.get,
+//                  () => Option(blockCache.createBinarySearchIndexReaderOrNull().runRandomIO.get).foreach(reader => binarySearchIndexReader.add(reader)),
+//                  () => Option(blockCache.createBloomFilterReaderOrNull().runRandomIO.get).foreach(reader => bloomFilterReader.add(reader)),
+//                  () => Option(blockCache.createHashIndexReaderOrNull().runRandomIO.get).foreach(reader => hashIndexReader.add(reader)),
+//                  () => Option(blockCache.createValuesReaderOrNull().runRandomIO.get).foreach(reader => valuesReader.add(reader)),
 //                  () => eitherOne(blockCache.clear(), ())
 //                ).runThisRandomlyInParallel
 //            }
@@ -101,12 +101,12 @@
 //          val readers: Seq[() => Object] =
 //            Seq(
 //              () => blockCache.getFooter().runRandomIO.get,
-//              () => blockCache.createSegmentBlockReader().runRandomIO.right.value,
-//              () => blockCache.createSortedIndexReader().runRandomIO.right.value,
-//              () => blockCache.createBinarySearchIndexReaderOrNull().runRandomIO.right.value,
-//              () => blockCache.createBloomFilterReaderOrNull().runRandomIO.right.value,
-//              () => blockCache.createHashIndexReaderOrNull().runRandomIO.right.value,
-//              () => blockCache.createValuesReaderOrNull().runRandomIO.right.value
+//              () => blockCache.createSegmentBlockReader().runRandomIO.get,
+//              () => blockCache.createSortedIndexReader().runRandomIO.get,
+//              () => blockCache.createBinarySearchIndexReaderOrNull().runRandomIO.get,
+//              () => blockCache.createBloomFilterReaderOrNull().runRandomIO.get,
+//              () => blockCache.createHashIndexReaderOrNull().runRandomIO.get,
+//              () => blockCache.createValuesReaderOrNull().runRandomIO.get
 //            )
 //
 //          runThis(100.times) {

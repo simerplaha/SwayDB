@@ -20,7 +20,7 @@
 //import org.scalatest.OptionValues
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.segment.data.merge.{FixedMerger, FunctionMerger, PendingApplyMerger}
@@ -109,7 +109,7 @@
 //          )
 //
 //        val put = randomPutKeyValue(1, deadline = randomDeadlineOption(expired = false))
-//        val expect = FunctionMerger(function, put).runRandomIO.right.value
+//        val expect = FunctionMerger(function, put).runRandomIO.get
 //
 //        getFromCurrentLevel.get _ expects(1: Slice[Byte], *) returning function
 //        getFromNextLevel.get _ expects(1: Slice[Byte], *) returning put
@@ -139,7 +139,7 @@
 //        val put =
 //          randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 //
-//        val expected = PendingApplyMerger(pendingApply, put).runRandomIO.right.value
+//        val expected = PendingApplyMerger(pendingApply, put).runRandomIO.get
 //
 //        getFromCurrentLevel.get _ expects(1: Slice[Byte], *) returning pendingApply
 //        getFromNextLevel.get _ expects(1: Slice[Byte], *) returning put
@@ -182,10 +182,10 @@
 //              )
 //          )
 //
-//        val range = randomRangeKeyValue(1, 10, eitherOne(Value.FromValue.Null, functionValue.toRangeValue().runRandomIO.right.value), functionValue.toRangeValue().runRandomIO.right.value)
+//        val range = randomRangeKeyValue(1, 10, eitherOne(Value.FromValue.Null, functionValue.toRangeValue().runRandomIO.get), functionValue.toRangeValue().runRandomIO.get)
 //        val put = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 //
-//        val expected = FixedMerger(functionValue, put).runRandomIO.right.value
+//        val expected = FixedMerger(functionValue, put).runRandomIO.get
 //
 //        getFromCurrentLevel.get _ expects(1: Slice[Byte], *) returning range
 //        //next level can return anything it will be removed.

@@ -16,7 +16,7 @@
 //
 //package swaydb.core.log
 //
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MMAP
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
@@ -214,10 +214,10 @@
 //          import AppendixLogEntryWriter._
 //
 //          val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
-//          val segment1 = TestSegment().runRandomIO.right.value
-//          val segment2 = TestSegment().runRandomIO.right.value
-//          val segment3 = TestSegment().runRandomIO.right.value
-//          val segment4 = TestSegment().runRandomIO.right.value
+//          val segment1 = TestSegment().runRandomIO.get
+//          val segment2 = TestSegment().runRandomIO.get
+//          val segment3 = TestSegment().runRandomIO.get
+//          val segment4 = TestSegment().runRandomIO.get
 //
 //          val entry =
 //            (LogEntry.Put[Slice[Byte], Segment](1, segment1): LogEntry[Slice[Byte], Segment]) ++
@@ -251,8 +251,8 @@
 //      entry writeTo bytes
 //      bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 //
-//      LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Put]](bytes.drop(ByteSizeOf.byte)).runRandomIO.right.value shouldBe entry
-//      LogEntryReader.read[LogEntry[Slice[Byte], Memory]](bytes).runRandomIO.right.value shouldBe entry
+//      LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Put]](bytes.drop(ByteSizeOf.byte)).runRandomIO.get shouldBe entry
+//      LogEntryReader.read[LogEntry[Slice[Byte], Memory]](bytes).runRandomIO.get shouldBe entry
 //    }
 //
 //    "write and read bytes for a single Appendix" in {
@@ -281,8 +281,8 @@
 //          entry writeTo bytes
 //          bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 //
-//          LogEntryReader.read[LogEntry.Put[Slice[Byte], Segment]](bytes.drop(1)).runRandomIO.right.value shouldBe entry
-//          LogEntryReader.read[LogEntry[Slice[Byte], Segment]](bytes).runRandomIO.right.value shouldBe entry
+//          LogEntryReader.read[LogEntry.Put[Slice[Byte], Segment]](bytes.drop(1)).runRandomIO.get shouldBe entry
+//          LogEntryReader.read[LogEntry[Slice[Byte], Segment]](bytes).runRandomIO.get shouldBe entry
 //      }
 //    }
 //  }
@@ -299,8 +299,8 @@
 //      entry writeTo bytes
 //      bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 //
-//      LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Remove]](bytes.drop(ByteSizeOf.byte)).runRandomIO.right.value shouldBe entry
-//      LogEntryReader.read[LogEntry[Slice[Byte], Memory]](bytes).runRandomIO.right.value shouldBe entry
+//      LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Remove]](bytes.drop(ByteSizeOf.byte)).runRandomIO.get shouldBe entry
+//      LogEntryReader.read[LogEntry[Slice[Byte], Memory]](bytes).runRandomIO.get shouldBe entry
 //    }
 //
 //    "write and read bytes for single Appendix entry" in {
@@ -331,8 +331,8 @@
 //          entry writeTo bytes
 //          bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 //
-//          LogEntryReader.read[LogEntry.Remove[Slice[Byte]]](bytes.drop(1)).runRandomIO.right.value.key shouldBe entry.key
-//          LogEntryReader.read[LogEntry[Slice[Byte], Segment]](bytes).runRandomIO.right.value shouldBe entry
+//          LogEntryReader.read[LogEntry.Remove[Slice[Byte]]](bytes.drop(1)).runRandomIO.get.key shouldBe entry.key
+//          LogEntryReader.read[LogEntry[Slice[Byte], Segment]](bytes).runRandomIO.get shouldBe entry
 //      }
 //    }
 //  }
@@ -355,7 +355,7 @@
 //      entry writeTo bytes
 //      bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 //
-//      LogEntryReader.read[LogEntry[Slice[Byte], Memory]](bytes).runRandomIO.right.value shouldBe entry
+//      LogEntryReader.read[LogEntry[Slice[Byte], Memory]](bytes).runRandomIO.get shouldBe entry
 //    }
 //  }
 //
@@ -383,7 +383,7 @@
 //      entry writeTo bytes
 //      bytes.isFull shouldBe true //fully written! No gaps!
 //
-//      val readLogEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(bytes)).runRandomIO.right.value
+//      val readLogEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(bytes)).runRandomIO.get
 //
 //      val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 //      readLogEntry applyBatch skipList

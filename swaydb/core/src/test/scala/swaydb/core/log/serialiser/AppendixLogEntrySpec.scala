@@ -17,7 +17,7 @@
 //package swaydb.core.log.serialiser
 //
 //import org.scalatest.OptionValues._
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MMAP
 //import swaydb.core.{TestForceSave, TestSweeper}
 //import swaydb.core.CommonAssertions._

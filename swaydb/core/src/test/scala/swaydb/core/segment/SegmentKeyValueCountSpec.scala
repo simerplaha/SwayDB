@@ -18,7 +18,7 @@
 //
 //import org.scalatest.PrivateMethodTester
 //import org.scalatest.concurrent.ScalaFutures
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MMAP
 //import swaydb.core.CoreTestData._
 //import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
@@ -72,7 +72,7 @@
 //              assert =
 //                (keyValues, segment) => {
 //                  keyValues should have size 1
-//                  segment.keyValueCount.runRandomIO.right.value shouldBe keyValues.size
+//                  segment.keyValueCount.runRandomIO.get shouldBe keyValues.size
 //                }
 //            )
 //        }
@@ -88,7 +88,7 @@
 //
 //              assert =
 //                (keyValues, segment) => {
-//                  segment.keyValueCount.runRandomIO.right.value shouldBe keyValues.size
+//                  segment.keyValueCount.runRandomIO.get shouldBe keyValues.size
 //                }
 //            )
 //        }

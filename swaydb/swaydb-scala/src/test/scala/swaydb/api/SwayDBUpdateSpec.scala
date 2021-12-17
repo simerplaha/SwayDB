@@ -17,7 +17,7 @@
 //package swaydb.api
 //
 //import org.scalatest.OptionValues._
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb._
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.TestSweeper

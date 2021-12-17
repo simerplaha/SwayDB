@@ -19,7 +19,7 @@
 ////import org.scalamock.scalatest.MockFactory
 ////import swaydb.Error.Segment.ExceptionHandler
 ////import swaydb.IO
-////import swaydb.IOValues._
+////import swaydb.effect.IOValues._
 ////import swaydb.core.CommonAssertions._
 ////import swaydb.core.TestData._
 ////import swaydb.core.segment.data.Memory

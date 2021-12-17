@@ -17,7 +17,7 @@
 package swaydb.core.log
 
 import org.scalatest.matchers.should.Matchers._
-import swaydb.IOValues._
+import swaydb.effect.IOValues._
 import swaydb.config.MMAP
 import swaydb.core.TestSweeper._
 import swaydb.core.file.ForceSaveApplier
@@ -72,7 +72,7 @@ object LogTestUtil {
         flushOnOverflow = log.flushOnOverflow,
         fileSize = log.fileSize,
         dropCorruptedTailEntries = false
-      ).runRandomIO.right.value.item.sweep()
+      ).runRandomIO.get.item.sweep()
     }
   }
 
@@ -107,7 +107,7 @@ object LogTestUtil {
         fileSize = counter.fileSize,
         mmap = MMAP.randomForLog(),
         mod = counter.mod
-      ).value.sweep()
+      ).get.sweep()
     }
   }
 
@@ -126,7 +126,7 @@ object LogTestUtil {
           mmap = MMAP.randomForLog(),
           mod = timer.counter.mod,
           fileSize = timer.counter.fileSize
-        ).value
+        ).get
 
       newTimer.counter.sweep()
 

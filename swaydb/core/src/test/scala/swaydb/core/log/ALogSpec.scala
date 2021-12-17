@@ -10,7 +10,7 @@
 //import swaydb.utils.OperatingSystem
 //import swaydb.utils.StorageUnits._
 //import swaydb.core.CoreTestData._
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import TestSweeper._
 //import swaydb.effect.Effect
 //
@@ -52,7 +52,7 @@
 //            mmap = mmap,
 //            flushOnOverflow = flushOnOverflow,
 //            fileSize = fileSize
-//          ).runRandomIO.right.value
+//          ).runRandomIO.get
 //
 //      keyValues foreach {
 //        keyValue =>

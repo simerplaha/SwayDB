@@ -17,7 +17,7 @@
 //package swaydb.core.log
 //
 //import org.scalatest.OptionValues._
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.TestData._
 //import swaydb.core.file.sweeper.FileSweeper
@@ -60,7 +60,7 @@
 //      def testWrite(mmapPersistentLevelAppendixLogs Maps[Slice[Byte], Memory]) = {
 //        keyValues foreach {
 //          keyValue =>
-//            maps.write(time => LogEntry.Put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))).runRandomIO.right.value
+//            maps.write(time => LogEntry.Put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))).runRandomIO.get
 //        }
 //      }
 //
@@ -77,11 +77,11 @@
 //      val dir1 = Effect.createDirectoryIfAbsent(testDir.resolve(1.toString))
 //      val dir2 = Effect.createDirectoryIfAbsent(testDir.resolve(2.toString))
 //
-//      val map1 = Maps.persistent[Slice[Byte], Memory](dir1, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).runRandomIO.right.value
+//      val map1 = Maps.persistent[Slice[Byte], Memory](dir1, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).runRandomIO.get
 //      testWrite(map1)
 //      testRead(map1)
 //
-//      val map2 = Maps.persistent[Slice[Byte], Memory](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).runRandomIO.right.value
+//      val map2 = Maps.persistent[Slice[Byte], Memory](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).runRandomIO.get
 //      testWrite(map2)
 //      testRead(map2)
 //
@@ -90,21 +90,21 @@
 //      testRead(map3)
 //
 //      def reopen = {
-//        val open1 = Maps.persistent[Slice[Byte], Memory](dir1, mmap = false, 1.byte, acceleration, RecoveryMode.ReportFailure).runRandomIO.right.value
+//        val open1 = Maps.persistent[Slice[Byte], Memory](dir1, mmap = false, 1.byte, acceleration, RecoveryMode.ReportFailure).runRandomIO.get
 //        testRead(open1)
-//        val open2 = Maps.persistent[Slice[Byte], Memory](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).runRandomIO.right.value
+//        val open2 = Maps.persistent[Slice[Byte], Memory](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).runRandomIO.get
 //        testRead(open2)
 //
-//        open1.close.runRandomIO.right.value
-//        open2.close.runRandomIO.right.value
+//        open1.close.runRandomIO.get
+//        open2.close.runRandomIO.get
 //      }
 //
 //      reopen
 //      reopen //reopen again
 //
-//      map1.close.runRandomIO.right.value
-//      map2.close.runRandomIO.right.value
-//      map2.close.runRandomIO.right.value
+//      map1.close.runRandomIO.get
+//      map2.close.runRandomIO.get
+//      map2.close.runRandomIO.get
 //
 //      println("total number of maps recovered: " + dir1.folders.size)
 //    }

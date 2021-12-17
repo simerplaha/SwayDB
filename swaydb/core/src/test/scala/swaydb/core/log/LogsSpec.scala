@@ -17,7 +17,7 @@
 //package swaydb.core.log
 //
 //import org.scalatest.OptionValues._
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.accelerate.Accelerator
 //import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
 //import swaydb.core.CommonAssertions._

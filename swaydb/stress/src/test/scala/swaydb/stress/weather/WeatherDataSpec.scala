@@ -18,7 +18,7 @@
 //
 //import com.typesafe.scalalogging.LazyLogging
 //import org.scalatest.Assertion
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.{ACoreSpec, TestSweeper}
 //import swaydb.testkit.RunThis._
@@ -119,7 +119,7 @@
 //            key < (startFrom + 100)
 //        }
 //
-//    took.materialize.runRandomIO.right.value should have size 100
+//    took.materialize.runRandomIO.get should have size 100
 //    took.head.get.get._1 shouldBe startFrom
 //    took.last.get.get._1 shouldBe (startFrom + 99)
 //  }
@@ -152,7 +152,7 @@
 //            if (key % 10000 == 0)
 //              println(s"mapRight: key = $key")
 //            key
-//        }.materialize.runRandomIO.right.value
+//        }.materialize.runRandomIO.get
 //
 //    val expected = (0 until 100) map (startFrom - _)
 //    took should have size 100
@@ -167,7 +167,7 @@
 //          if (key % 10000 == 0)
 //            println(s"take: key = $key")
 //          key
-//      }.materialize.runRandomIO.right.value shouldBe (1 to 100)
+//      }.materialize.runRandomIO.get shouldBe (1 to 100)
 //
 //    db
 //      .fromOrAfter(0)
@@ -177,7 +177,7 @@
 //          if (key % 10000 == 0)
 //            println(s"take: key = $key")
 //          key
-//      }.materialize.runRandomIO.right.value shouldBe (1 to 100)
+//      }.materialize.runRandomIO.get shouldBe (1 to 100)
 //  }
 //
 //  def doDrop(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
@@ -189,7 +189,7 @@
 //          if (key % 10000 == 0)
 //            println(s"take: key = $key")
 //          key
-//      }.materialize.runRandomIO.right.value shouldBe (keyValueCount - 100 to keyValueCount)
+//      }.materialize.runRandomIO.get shouldBe (keyValueCount - 100 to keyValueCount)
 //
 //  def doTakeRight(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
 //    db
@@ -201,7 +201,7 @@
 //          if (key % 10000 == 0)
 //            println(s"take: key = $key")
 //          key
-//      }.materialize.runRandomIO.right.value shouldBe (keyValueCount - 99 to keyValueCount).reverse
+//      }.materialize.runRandomIO.get shouldBe (keyValueCount - 99 to keyValueCount).reverse
 //
 //  def doCount(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
 //    db.count.get should be >= keyValueCount

@@ -17,7 +17,7 @@
 //package swaydb.core.segment.data.merge
 //
 //import org.scalatest.wordspec.AnyWordSpec
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.TestTimer
@@ -198,7 +198,7 @@
 //              fromKey = 10,
 //              toKey = 15,
 //              fromValue = from,
-//              rangeValue = ValueMerger(newKeyValue.rangeValue: Value.RangeValue, oldKeyValue.rangeValue: Value.RangeValue).runRandomIO.right.value
+//              rangeValue = ValueMerger(newKeyValue.rangeValue: Value.RangeValue, oldKeyValue.rangeValue: Value.RangeValue).runRandomIO.get
 //            ),
 //            Memory.Range(
 //              fromKey = 15,

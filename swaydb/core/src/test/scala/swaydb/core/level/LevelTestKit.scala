@@ -19,7 +19,7 @@ import swaydb.testkit.TestKit.randomBoolean
 import swaydb.core.segment.data.KeyValueTestKit._
 import TestSweeper._
 import swaydb.config.CoreConfigTestKit._
-import swaydb.IOValues._
+import swaydb.effect.IOValues._
 import swaydb.core.log.LogTestKit.SliceKeyValueImplicits
 import swaydb.utils.StorageUnits._
 
@@ -146,7 +146,7 @@ object LevelTestKit {
         segmentSize = segmentSize,
         throttle = throttle,
         nextLevel = nextLevel
-      ).right.value
+      ).get
 
     def tryReopen(segmentSize: Int = level.minSegmentSize,
                   throttle: LevelMeter => LevelThrottle = level.throttle,
@@ -227,7 +227,8 @@ object LevelTestKit {
                 ).map(_.sweep())
             }
         }
-      reopened.value
+
+      reopened.get
     }
 
     def putKeyValues(keyValues: Iterable[KeyValue]): IO[swaydb.Error.Level, Unit] =

@@ -16,7 +16,7 @@
 ////
 ////package swaydb.core.log
 ////
-////import swaydb.IOValues._
+////import swaydb.effect.IOValues._
 ////import swaydb.core.CommonAssertions._
 ////import swaydb.core.TestData._
 ////import swaydb.core.file.sweeper.FileSweeper
@@ -57,7 +57,7 @@
 ////            maps.write {
 ////              time =>
 ////                LogEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))(Level0PutWriter)
-////            }.runRandomIO.right.value
+////            }.runRandomIO.get
 ////        }
 ////
 ////      def testRead(maps: Maps[Slice[Byte], Memory]) =
@@ -69,7 +69,7 @@
 ////
 ////      val dir1 = Effect.createDirectoryIfAbsent(testDir.resolve(1.toString))
 ////
-////      val map1 = Maps.persistent[Slice[Byte], Memory](dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).runRandomIO.right.value
+////      val map1 = Maps.persistent[Slice[Byte], Memory](dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).runRandomIO.get
 ////      Benchmark(s"MMAP = true - writing ${keyValues.size} keys") {
 ////        testWrite(map1)
 ////      }
@@ -78,7 +78,7 @@
 ////      }
 ////
 ////      val dir2 = Effect.createDirectoryIfAbsent(testDir.resolve(2.toString))
-////      val map2 = Maps.persistent[Slice[Byte], Memory](dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).runRandomIO.right.value
+////      val map2 = Maps.persistent[Slice[Byte], Memory](dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).runRandomIO.get
 ////      Benchmark(s"MMAP = false - writing ${keyValues.size} keys") {
 ////        testWrite(map2)
 ////      }
@@ -95,9 +95,9 @@
 ////        testRead(map3)
 ////      }
 ////
-////      map1.close.runRandomIO.right.value
-////      map2.close.runRandomIO.right.value
-////      map3.close.runRandomIO.right.value
+////      map1.close.runRandomIO.get
+////      map2.close.runRandomIO.get
+////      map3.close.runRandomIO.get
 ////    }
 ////  }
 ////}

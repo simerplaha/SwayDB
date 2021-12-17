@@ -21,7 +21,7 @@
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.{ActorConfig, Bag, Glass, IO}
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.{TestExecutionContext, TestForceSave, TestSweeper}
 //import swaydb.core.CoreTestData._
 //import swaydb.core.TestSweeper._

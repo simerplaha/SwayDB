@@ -16,7 +16,7 @@ import swaydb.effect.EffectTestKit._
 import swaydb.slice.{Reader, Slice, SliceReader}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.TestKit.{randomBoolean, randomIntMax, someOrNone}
-import swaydb.IOValues._
+import swaydb.effect.IOValues._
 import swaydb.config.compaction.PushStrategy
 import swaydb.core.segment.block.{Block, BlockCache}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig, BloomFilterBlockOffset, BloomFilterBlockState}
@@ -323,7 +323,7 @@ object SegmentTestKit {
       }
 
     def shouldHaveSameKeyValuesAs(expected: Iterable[Segment]): Unit =
-      actual.flatMap(_.iterator(randomBoolean())).runRandomIO.right.value shouldBe expected.flatMap(_.iterator(randomBoolean())).runRandomIO.right.value
+      actual.flatMap(_.iterator(randomBoolean())).runRandomIO.get shouldBe expected.flatMap(_.iterator(randomBoolean())).runRandomIO.get
   }
 
   implicit class SegmentImplicits(actual: Segment) {
@@ -356,13 +356,13 @@ object SegmentTestKit {
       actual.segmentNumber shouldBe expected.segmentNumber
       actual.getClass shouldBe expected.getClass
       if (!ignoreReads)
-        assertReads(Slice.from(expected.iterator(randomBoolean()), expected.keyValueCount).runRandomIO.right.value, actual)
+        assertReads(Slice.from(expected.iterator(randomBoolean()), expected.keyValueCount).runRandomIO.get, actual)
     }
 
     def shouldContainAll(keyValues: Slice[KeyValue]): Unit =
       keyValues.foreach {
         keyValue =>
-          actual.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.getUnsafe shouldBe keyValue
+          actual.get(keyValue.key, ThreadReadState.random).runRandomIO.get.getUnsafe shouldBe keyValue
       }
   }
 
@@ -383,11 +383,11 @@ object SegmentTestKit {
       if (index > keyValues.size - 1) {
         //end
       } else if (index == 0) {
-        level.lower(keyValues(0).key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+        level.lower(keyValues(0).key, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
         assertLowers(index + 1)
       } else {
         try {
-          val lower = level.lower(keyValues(index).key, ThreadReadState.random).runRandomIO.right.value.toOptionPut
+          val lower = level.lower(keyValues(index).key, ThreadReadState.random).runRandomIO.get.toOptionPut
 
           val expectedLowerKeyValue =
             (0 until index).reverse collectFirst {
@@ -398,7 +398,7 @@ object SegmentTestKit {
           if (lower.nonEmpty) {
             expectedLowerKeyValue shouldBe defined
             lower.get.key shouldBe expectedLowerKeyValue.get.key
-            lower.get.getOrFetchValue.runRandomIO.right.value shouldBe expectedLowerKeyValue.get.getOrFetchValue.asSliceOption()
+            lower.get.getOrFetchValue.runRandomIO.get shouldBe expectedLowerKeyValue.get.getOrFetchValue.asSliceOption()
           } else {
             expectedLowerKeyValue shouldBe empty
           }
@@ -436,7 +436,7 @@ object SegmentTestKit {
           sortedIndexReader = blocks.sortedIndexReader.copy(),
           valuesReaderOrNull = blocks.valuesReader.map(_.copy()).orNull,
           hasRange = blocks.footer.hasRange
-        ).runRandomIO.right.value.getS shouldBe keyValue
+        ).runRandomIO.get.getS shouldBe keyValue
     }
   }
 
@@ -459,7 +459,7 @@ object SegmentTestKit {
                   segment: Segment) = {
     keyValues.par.count {
       keyValue =>
-        IO.Defer(segment.mightContainKey(keyValue.key, ThreadReadState.random)).runRandomIO.right.value
+        IO.Defer(segment.mightContainKey(keyValue.key, ThreadReadState.random)).runRandomIO.get
     } shouldBe keyValues.size
 
     if (segment.hasBloomFilter() || segment.memory)
@@ -484,14 +484,14 @@ object SegmentTestKit {
   def assertBloomNotContains(bloomFilterReader: UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]) =
     (1 to 1000).par.count {
       _ =>
-        BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader.copy()).runRandomIO.right.value
+        BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader.copy()).runRandomIO.get
     } should be <= 300
 
   def assertBloomNotContains(segment: Segment) =
     if (segment.hasBloomFilter())
       (1 to 1000).par.count {
         _ =>
-          segment.mightContainKey(randomBytesSlice(100), ThreadReadState.random).runRandomIO.right.value
+          segment.mightContainKey(randomBytesSlice(100), ThreadReadState.random).runRandomIO.get
       } should be < 1000
 
   def assertBloomNotContains(bloom: BloomFilterBlockState)(implicit ec: ExecutionContext = TestExecutionContext.executionContext) =
@@ -500,7 +500,7 @@ object SegmentTestKit {
       BloomFilterBlock.mightContain(
         comparableKey = randomBytesSlice(randomIntMax(1000) min 100),
         reader = bloomFilter.copy()
-      ).runRandomIO.right.value shouldBe false
+      ).runRandomIO.get shouldBe false
     }
 
   def assertReads(keyValues: Slice[KeyValue],
@@ -510,7 +510,7 @@ object SegmentTestKit {
   }
 
   def assertAllSegmentsCreatedInLevel(level: Level) =
-    level.segments() foreach (_.createdInLevel.runRandomIO.right.value shouldBe level.levelNumber)
+    level.segments() foreach (_.createdInLevel.runRandomIO.get shouldBe level.levelNumber)
 
   def assertReads(keyValues: Iterable[KeyValue],
                   level: LevelRef) = {
@@ -541,7 +541,7 @@ object SegmentTestKit {
     keyValues foreach {
       keyValue =>
         try {
-          val actual = level.getFromThisLevel(keyValue.key, ThreadReadState.random).runRandomIO.right.value.getUnsafe
+          val actual = level.getFromThisLevel(keyValue.key, ThreadReadState.random).runRandomIO.get.getUnsafe
           actual.getOrFetchValue shouldBe keyValue.getOrFetchValue
         } catch {
           case ex: Exception =>
@@ -565,7 +565,7 @@ object SegmentTestKit {
                                          blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
 
     //read fullIndex
-    readAll(segmentReader.copy()).runRandomIO.right.value shouldBe keyValues
+    readAll(segmentReader.copy()).runRandomIO.get shouldBe keyValues
     //    //find each KeyValue using all Matchers
     assertGet(keyValues, segmentReader.copy())
     assertLower(keyValues, segmentReader.copy())
@@ -603,7 +603,7 @@ object SegmentTestKit {
         //        if (intKey % 1000 == 0)
         //          println("Get: " + intKey)
         try
-          IO.Defer(segment.get(keyValue.key, ThreadReadState.random)).runRandomIO.value.getUnsafe shouldBe keyValue
+          IO.Defer(segment.get(keyValue.key, ThreadReadState.random)).runRandomIO.get.getUnsafe shouldBe keyValue
         catch {
           case exception: Exception =>
             println(s"Failed to get: ${keyValue.key.readInt()}")
@@ -705,7 +705,7 @@ object SegmentTestKit {
     keyValues foreach {
       keyValue =>
         try
-          level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+          level.get(keyValue.key, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
         catch {
           case ex: Exception =>
             println(
@@ -721,41 +721,41 @@ object SegmentTestKit {
                     level: LevelZero) =
     keyValues.par foreach {
       keyValue =>
-        level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe None
+        level.get(keyValue.key, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe None
     }
 
   def assertGetNone(keys: Range,
                     level: LevelRef) =
     keys.par foreach {
       key =>
-        level.get(Slice.writeInt(key), ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+        level.get(Slice.writeInt(key), ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
     }
 
   def assertGetNone(keys: List[Int],
                     level: LevelRef) =
     keys.par foreach {
       key =>
-        level.get(Slice.writeInt(key), ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+        level.get(Slice.writeInt(key), ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
     }
 
   def assertGetNoneButLast(keyValues: Iterable[KeyValue],
                            level: LevelRef) = {
     keyValues.dropRight(1).par foreach {
       keyValue =>
-        level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+        level.get(keyValue.key, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
     }
 
     keyValues
       .lastOption
       .map(_.key)
-      .flatMap(level.get(_, ThreadReadState.random).runRandomIO.right.value.toOptionPut.map(_.toMemory())) shouldBe keyValues.lastOption
+      .flatMap(level.get(_, ThreadReadState.random).runRandomIO.get.toOptionPut.map(_.toMemory())) shouldBe keyValues.lastOption
   }
 
   def assertGetNoneFromThisLevelOnly(keyValues: Iterable[KeyValue],
                                      level: Level) =
     keyValues foreach {
       keyValue =>
-        level.getFromThisLevel(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOption shouldBe empty
+        level.getFromThisLevel(keyValue.key, ThreadReadState.random).runRandomIO.get.toOption shouldBe empty
     }
 
   /**
@@ -772,7 +772,7 @@ object SegmentTestKit {
       keyValue =>
         try {
           //          println(keyValue.key.readInt())
-          level.higher(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+          level.higher(keyValue.key, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
           //          println
         } catch {
           case ex: Exception =>
@@ -794,7 +794,7 @@ object SegmentTestKit {
     keyValuesToAssert foreach {
       keyValue =>
         try {
-          level.lower(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+          level.lower(keyValue.key, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
         } catch {
           case ex: Exception =>
             println(
@@ -830,7 +830,7 @@ object SegmentTestKit {
               binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReaderOrNull = blocks.valuesReader.orNull
-            ).runRandomIO.right.value.toOption shouldBe empty
+            ).runRandomIO.get.toOption shouldBe empty
 
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
               key =>
@@ -842,7 +842,7 @@ object SegmentTestKit {
                   binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
                   sortedIndexReader = blocks.sortedIndexReader,
                   valuesReaderOrNull = blocks.valuesReader.orNull
-                ).runRandomIO.right.value.getUnsafe shouldBe range
+                ).runRandomIO.get.getUnsafe shouldBe range
             }
 
           case _ =>
@@ -854,7 +854,7 @@ object SegmentTestKit {
               binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReaderOrNull = blocks.valuesReader.orNull
-            ).runRandomIO.right.value.toOption shouldBe empty
+            ).runRandomIO.get.toOption shouldBe empty
         }
         assertLowers(index + 1)
       } else {
@@ -869,7 +869,7 @@ object SegmentTestKit {
               binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReaderOrNull = blocks.valuesReader.orNull
-            ).runRandomIO.right.value.getUnsafe shouldBe expectedLowerKeyValue
+            ).runRandomIO.get.getUnsafe shouldBe expectedLowerKeyValue
 
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
               key =>
@@ -881,7 +881,7 @@ object SegmentTestKit {
                   binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
                   sortedIndexReader = blocks.sortedIndexReader,
                   valuesReaderOrNull = blocks.valuesReader.orNull
-                ).runRandomIO.right.value.getUnsafe shouldBe range
+                ).runRandomIO.get.getUnsafe shouldBe range
             }
 
           case _ =>
@@ -893,7 +893,7 @@ object SegmentTestKit {
               binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReaderOrNull = blocks.valuesReader.orNull
-            ).runRandomIO.right.value.getUnsafe shouldBe expectedLowerKeyValue
+            ).runRandomIO.get.getUnsafe shouldBe expectedLowerKeyValue
         }
 
         assertLowers(index + 1)
@@ -936,7 +936,7 @@ object SegmentTestKit {
       } else if (index == 0) {
         val actualKeyValue = keyValues(index)
         //        println(s"Lower: ${actualKeyValue.key.readInt()}")
-        IO.Defer(segment.lower(actualKeyValue.key, ThreadReadState.random)).runRandomIO.right.value.toOption shouldBe empty
+        IO.Defer(segment.lower(actualKeyValue.key, ThreadReadState.random)).runRandomIO.get.toOption shouldBe empty
         assertLowers(index + 1)
       } else {
         val expectedLower = keyValues(index - 1)
@@ -945,7 +945,7 @@ object SegmentTestKit {
         //        if (intKey % 100 == 0)
         //          println(s"Lower: $intKey")
         try {
-          val lower = IO.Defer(segment.lower(keyValue.key, ThreadReadState.random)).runRandomIO.right.value.getUnsafe
+          val lower = IO.Defer(segment.lower(keyValue.key, ThreadReadState.random)).runRandomIO.get.getUnsafe
           lower shouldBe expectedLower
         } catch {
           case x: Exception =>
@@ -961,7 +961,7 @@ object SegmentTestKit {
 
   def assertHigher(keyValues: Slice[KeyValue],
                    segment: Segment): Unit =
-    assertHigher(keyValues, getHigher = key => IO(IO.Defer(segment.higher(key, ThreadReadState.random)).runRandomIO.right.value.toOption))
+    assertHigher(keyValues, getHigher = key => IO(IO.Defer(segment.higher(key, ThreadReadState.random)).runRandomIO.get.toOption))
 
   /**
    * Asserts that all key-values are returned in order when fetching higher in sequence.
@@ -975,11 +975,11 @@ object SegmentTestKit {
     def assertLast(keyValue: KeyValue) =
       keyValue match {
         case range: KeyValue.Range =>
-          getHigher(range.fromKey).runRandomIO.right.value.value shouldBe range
-          getHigher(range.toKey).runRandomIO.right.value shouldBe empty
+          getHigher(range.fromKey).runRandomIO.get.value shouldBe range
+          getHigher(range.toKey).runRandomIO.get shouldBe empty
 
         case keyValue =>
-          getHigher(keyValue.key).runRandomIO.right.value shouldBe empty
+          getHigher(keyValue.key).runRandomIO.get shouldBe empty
       }
 
     //assert higher if the currently's read key-value is NOT the last key-value
@@ -989,14 +989,14 @@ object SegmentTestKit {
       keyValue match {
         case range: KeyValue.Range =>
           try
-            getHigher(range.fromKey).runRandomIO.right.value.value shouldBe range
+            getHigher(range.fromKey).runRandomIO.get.value shouldBe range
           catch {
             case exception: Exception =>
               exception.printStackTrace()
-              getHigher(range.fromKey).runRandomIO.right.value.value shouldBe range
+              getHigher(range.fromKey).runRandomIO.get.value shouldBe range
               throw exception
           }
-          val toKeyHigher = getHigher(range.toKey).runRandomIO.right.value
+          val toKeyHigher = getHigher(range.toKey).runRandomIO.get
           //suppose this keyValue is Range (1 - 10), second is Put(10), third is Put(11), higher on Range's toKey(10) will return 11 and not 10.
           //but 10 will be return if the second key-value was a range key-value.
           //if the toKey is equal to expected higher's key, then the higher is the next 3rd key.
@@ -1017,7 +1017,7 @@ object SegmentTestKit {
                   catch {
                     case exception: Exception =>
                       exception.printStackTrace()
-                      val toKeyHigher = getHigher(range.toKey).runRandomIO.right.value
+                      val toKeyHigher = getHigher(range.toKey).runRandomIO.get
                       throw exception
                   }
               else
@@ -1026,13 +1026,13 @@ object SegmentTestKit {
                 catch {
                   case exception: Exception =>
                     exception.printStackTrace()
-                    val toKeyHigher = getHigher(range.toKey).runRandomIO.right.value
+                    val toKeyHigher = getHigher(range.toKey).runRandomIO.get
                     throw exception
                 }
           }
 
         case _ =>
-          Try(getHigher(keyValue.key).runRandomIO.right.value.value shouldBe next) recover {
+          Try(getHigher(keyValue.key).runRandomIO.get.value shouldBe next) recover {
             case _: TestFailedException =>
               unexpiredPuts(Slice(next)) should have size 0
           } get
@@ -1342,9 +1342,9 @@ object SegmentTestKit {
           case (newer, older) =>
             count += 1
             //merge as though applies were normal fixed key-values. The result should be the same.
-            FixedMerger(newer, older.toMemory(newKeyValue.key)).runRandomIO.right.value match {
+            FixedMerger(newer, older.toMemory(newKeyValue.key)).runRandomIO.get match {
               case newPendingApply: KeyValue.PendingApply =>
-                val resultApplies = newPendingApply.getOrFetchApplies.runRandomIO.right.value.reverse.toList ++ reveredApplied.drop(count)
+                val resultApplies = newPendingApply.getOrFetchApplies.runRandomIO.get.reverse.toList ++ reveredApplied.drop(count)
                 val result =
                   if (resultApplies.size == 1)
                     resultApplies.head.toMemory(newKeyValue.key)
@@ -1398,10 +1398,10 @@ object SegmentTestKit {
     }
 
     def reopen: PersistentSegment =
-      tryReopen.runRandomIO.right.value
+      tryReopen.runRandomIO.get
 
     def reopen(path: Path): PersistentSegment =
-      tryReopen(path).runRandomIO.right.value
+      tryReopen(path).runRandomIO.get
 
     def get(key: Slice[Byte]): KeyValueOption =
       segment.get(key, ThreadReadState.random)
@@ -1690,7 +1690,7 @@ object SegmentTestKit {
               segmentConfig = segmentConfig
             ).awaitInf.output
 
-          putResult.persist(pathDistributor).value
+          putResult.persist(pathDistributor).get
       }
   }
 

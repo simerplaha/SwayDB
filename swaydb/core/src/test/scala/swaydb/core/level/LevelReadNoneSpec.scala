@@ -16,7 +16,7 @@
 //
 //package swaydb.core.level
 //
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MMAP
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
@@ -70,11 +70,11 @@
 //        assertAllLevels =
 //          (_, _, _, level) =>
 //            Seq(
-//              () => level.get(randomStringOption, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty,
-//              () => level.higher(randomStringOption, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty,
-//              () => level.lower(randomStringOption, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty,
-//              () => level.head(ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty,
-//              () => level.last(ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+//              () => level.get(randomStringOption, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
+//              () => level.higher(randomStringOption, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
+//              () => level.lower(randomStringOption, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
+//              () => level.head(ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
+//              () => level.last(ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
 //            ).runThisRandomly
 //      )
 //    }
@@ -138,13 +138,13 @@
 //                  nonExistingKeys foreach {
 //                    nonExistentKey =>
 //                      val expectedHigher = existing.find(put => put.hasTimeLeft() && put.key.readInt() > nonExistentKey).map(_.key.readInt())
-//                      level.higher(nonExistentKey, ThreadReadState.random).runRandomIO.right.value.toOptionPut.map(_.key.readInt()) shouldBe expectedHigher
+//                      level.higher(nonExistentKey, ThreadReadState.random).runRandomIO.get.toOptionPut.map(_.key.readInt()) shouldBe expectedHigher
 //                  },
 //                () =>
 //                  nonExistingKeys foreach {
 //                    nonExistentKey =>
 //                      val expectedLower = existing.reverse.find(put => put.hasTimeLeft() && put.key.readInt() < nonExistentKey).map(_.key.readInt())
-//                      level.lower(nonExistentKey, ThreadReadState.random).runRandomIO.right.value.toOptionPut.map(_.key.readInt()) shouldBe expectedLower
+//                      level.lower(nonExistentKey, ThreadReadState.random).runRandomIO.get.toOptionPut.map(_.key.readInt()) shouldBe expectedLower
 //                  }
 //              ).runThisRandomlyInParallel
 //            }

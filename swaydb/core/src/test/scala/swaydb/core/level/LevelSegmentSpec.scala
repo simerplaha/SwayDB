@@ -17,7 +17,7 @@
 ////package swaydb.core.level
 ////
 ////import org.scalamock.scalatest.MockFactory
-////import swaydb.IOValues._
+////import swaydb.effect.IOValues._
 ////import swaydb.config.MMAP
 ////import swaydb.config.storage.LevelStorage
 ////import swaydb.core.CommonAssertions._
@@ -82,7 +82,7 @@
 ////            val level = TestLevel()
 ////            val keyValues = randomIntKeyStringValues(keyValuesCount)
 ////            val segment = TestSegment(keyValues)
-////            segment.close.runRandomIO.right.value
+////            segment.close.runRandomIO.get
 ////            level.put(segment) shouldBe IO.unit
 ////            assertReads(keyValues, level)
 ////        }
@@ -102,7 +102,7 @@
 ////              level.put(segment) shouldBe IO.unit
 ////
 ////              val keyValues2 = randomIntKeyStringValues(keyValuesCount * 10)
-////              val segment2 = TestSegment(keyValues2).runRandomIO.right.value
+////              val segment2 = TestSegment(keyValues2).runRandomIO.get
 ////              level.put(segment2).get
 ////
 ////              assertGet(keyValues, level)
@@ -128,7 +128,7 @@
 ////                    (split1, two, three)
 ////                }
 ////
-////            val segments = Seq(TestSegment(keyValues1).runRandomIO.right.value, TestSegment(keyValues2).runRandomIO.right.value, TestSegment(keyValues3).runRandomIO.right.value)
+////            val segments = Seq(TestSegment(keyValues1).runRandomIO.get, TestSegment(keyValues2).runRandomIO.get, TestSegment(keyValues3).runRandomIO.get)
 ////            level.putSegments(segments) shouldBe IO.unit
 ////
 ////            assertReads(keyValues, level)
@@ -207,18 +207,18 @@
 ////
 ////              val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.byte, deleteDelay = Duration.Zero, mmap = mmapSegments), levelStorage = storage)
 ////
-////              level.put(keyValues).runRandomIO.right.value
+////              level.put(keyValues).runRandomIO.get
 ////              level.segmentsCount() shouldBe keyValues.size
 ////              assertDistribution()
 ////
 ////              //write the same key-values again so that all Segments are updated. This should still maintain the Segment distribution
-////              level.put(keyValues).runRandomIO.right.value
+////              level.put(keyValues).runRandomIO.get
 ////              assertDistribution()
 ////
 ////              //shuffle key-values should still maintain distribution order
 ////              Random.shuffle(keyValues.grouped(10)) foreach {
 ////                keyValues =>
-////                  level.put(keyValues).runRandomIO.right.value
+////                  level.put(keyValues).runRandomIO.get
 ////              }
 ////              assertDistribution()
 ////
@@ -226,10 +226,10 @@
 ////              Random.shuffle(keyValues.grouped(10)).take(2) foreach {
 ////                keyValues =>
 ////                  val deleteKeyValues = keyValues.mapToSlice(keyValue => Memory.remove(keyValue.key)).toSlice
-////                  level.put(deleteKeyValues).runRandomIO.right.value
+////                  level.put(deleteKeyValues).runRandomIO.get
 ////              }
 ////
-////              level.put(keyValues).runRandomIO.right.value
+////              level.put(keyValues).runRandomIO.get
 ////              assertDistribution()
 ////          }
 ////        }

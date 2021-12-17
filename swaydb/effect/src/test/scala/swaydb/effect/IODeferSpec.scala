@@ -22,7 +22,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.Defer
-import swaydb.IOValues._
+import swaydb.effect.IOValues._
 import swaydb.{Error, IO}
 
 import java.io.FileNotFoundException

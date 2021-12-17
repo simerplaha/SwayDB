@@ -16,7 +16,7 @@
 ////
 ////package swaydb.core.segment.block
 ////
-////import swaydb.IOValues._
+////import swaydb.effect.IOValues._
 ////import swaydb.core.TestData._
 ////import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 ////import swaydb.core.file.sweeper.FileSweeper
@@ -49,10 +49,10 @@
 ////        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
 ////        autoClose = true,
 ////        deleteAfterClean = OperatingSystem.isWindows()
-////      ).runRandomIO.right.value
+////      ).runRandomIO.get
 ////
-////    file.append(bytes).runRandomIO.right.value
-////    file.isFull.runRandomIO.right.value shouldBe true
+////    file.append(bytes).runRandomIO.get
+////    file.isFull.runRandomIO.get shouldBe true
 ////    file.forceSave()
 ////    file.close()
 ////

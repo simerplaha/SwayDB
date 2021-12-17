@@ -19,7 +19,7 @@
 //import org.scalatest.PrivateMethodTester._
 //import org.scalatest.exceptions.TestFailedException
 //import swaydb.IO.ApiIO
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb._
 //import swaydb.config.sequencer.Sequencer
 //import swaydb.core.{Core, ACoreSpec, TestExecutionContext}

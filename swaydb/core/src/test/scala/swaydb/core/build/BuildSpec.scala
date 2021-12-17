@@ -18,7 +18,7 @@
 //
 //import swaydb.Error.IO
 //import swaydb.Exception.InvalidDirectoryType
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.DataType
 //import swaydb.core.CoreTestData._
 //import swaydb.core.{ACoreSpec, TestSweeper}

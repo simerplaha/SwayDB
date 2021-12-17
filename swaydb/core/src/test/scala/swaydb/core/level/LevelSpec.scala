@@ -19,7 +19,7 @@
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.PrivateMethodTester
 //import swaydb.Glass
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MMAP
 //import swaydb.config.storage.LevelStorage
 //import swaydb.core._
@@ -88,7 +88,7 @@
 //                appendixFlushCheckpointSize = 4.mb
 //              )
 //
-//            val lock = Level.acquireLock(storage).runRandomIO.right.value
+//            val lock = Level.acquireLock(storage).runRandomIO.get
 //            lock shouldBe defined
 //            //other directories do not have locks.
 //            storage.otherDirs foreach {
@@ -97,11 +97,11 @@
 //            }
 //
 //            //trying to lock again should fail
-//            Level.acquireLock(storage).left.runRandomIO.right.value.exception shouldBe a[OverlappingFileLockException]
+//            Level.acquireLock(storage).left.runRandomIO.get.exception shouldBe a[OverlappingFileLockException]
 //
 //            //closing the lock should allow re-locking
 //            Effect.release(lock)
-//            Level.acquireLock(storage).runRandomIO.right.value shouldBe defined
+//            Level.acquireLock(storage).runRandomIO.get shouldBe defined
 //        }
 //      }
 //    }
@@ -163,7 +163,7 @@
 //            level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
 //
 //            //delete folder
-//            Effect.delete(level.pathDistributor.headPath.resolve("appendix")).runRandomIO.right.value
+//            Effect.delete(level.pathDistributor.headPath.resolve("appendix")).runRandomIO.get
 //            //expect failure when folder does not exist
 //            level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
 //        }
@@ -191,7 +191,7 @@
 //            val segmentsIdsBeforeInvalidSegments = level.segmentFilesOnDisk()
 //            segmentsIdsBeforeInvalidSegments should have size 1
 //
-//            val currentSegmentId = segmentsIdsBeforeInvalidSegments.head.fileId.runRandomIO.right.value._1
+//            val currentSegmentId = segmentsIdsBeforeInvalidSegments.head.fileId.runRandomIO.get._1
 //
 //            //create 3 invalid segments in all the paths of the Level
 //            level.dirs.foldLeft(currentSegmentId) {
@@ -207,7 +207,7 @@
 //            //every level folder has 3 uncommitted Segments plus 1 valid Segment
 //            level.segmentFilesOnDisk() should have size (level.dirs.size * 3) + 1
 //
-//            Level.deleteUncommittedSegments(level.dirs, level.segments()).runRandomIO.right.value
+//            Level.deleteUncommittedSegments(level.dirs, level.segments()).runRandomIO.get
 //
 //            level.segmentFilesOnDisk() should have size 1
 //            level.segmentFilesOnDisk() should contain only segmentsIdsBeforeInvalidSegments.head
@@ -224,10 +224,10 @@
 //          import sweeper._
 //
 //          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
-//          level.put(randomizedKeyValues(2000)).runRandomIO.right.value
+//          level.put(randomizedKeyValues(2000)).runRandomIO.get
 //
 //          val largeSegmentId = Level.largestSegmentId(level.segments())
-//          largeSegmentId shouldBe level.segments().map(_.path.fileId.runRandomIO.right.value._1).max
+//          largeSegmentId shouldBe level.segments().map(_.path.fileId.runRandomIO.get._1).max
 //      }
 //    }
 //
@@ -249,8 +249,8 @@
 //        implicit sweeper =>
 //          val level = TestLevel()
 //
-//          val segments = TestSegment(Slice(Memory.put(1, "value1"), Memory.put(2, "value2"))).runRandomIO.right.value
-//          val actualLogEntry = level.buildNewLogEntry(Slice(segments), originalSegmentMayBe = Segment.Null, initialLogEntry = None).runRandomIO.right.value
+//          val segments = TestSegment(Slice(Memory.put(1, "value1"), Memory.put(2, "value2"))).runRandomIO.get
+//          val actualLogEntry = level.buildNewLogEntry(Slice(segments), originalSegmentMayBe = Segment.Null, initialLogEntry = None).runRandomIO.get
 //          val expectedLogEntry = LogEntry.Put[Slice[Byte], Segment](segments.minKey, segments)
 //
 //          actualLogEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
@@ -264,12 +264,12 @@
 //        implicit sweeper =>
 //          val level = TestLevel()
 //
-//          val originalSegment = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value
-//          val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value
-//          val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.right.value
-//          val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value
+//          val originalSegment = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.get
+//          val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.get
+//          val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.get
+//          val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.get
 //
-//          val actualLogEntry = level.buildNewLogEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialLogEntry = None).runRandomIO.right.value
+//          val actualLogEntry = level.buildNewLogEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialLogEntry = None).runRandomIO.get
 //
 //          val expectedLogEntry =
 //            LogEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
@@ -286,10 +286,10 @@
 //        implicit sweeper =>
 //          val level = TestLevel()
 //
-//          val originalSegment = TestSegment(Slice(Memory.put(0, "value"), Memory.put(5, "value"))).runRandomIO.right.value
-//          val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value
-//          val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.right.value
-//          val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value
+//          val originalSegment = TestSegment(Slice(Memory.put(0, "value"), Memory.put(5, "value"))).runRandomIO.get
+//          val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.get
+//          val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.get
+//          val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.get
 //
 //          val expectedLogEntry =
 //            LogEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
@@ -297,7 +297,7 @@
 //              LogEntry.Put[Slice[Byte], Segment](11, mergedSegment3) ++
 //              LogEntry.Remove[Slice[Byte]](0)
 //
-//          val actualLogEntry = level.buildNewLogEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialLogEntry = None).runRandomIO.right.value
+//          val actualLogEntry = level.buildNewLogEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialLogEntry = None).runRandomIO.get
 //
 //          actualLogEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
 //            expectedLogEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])

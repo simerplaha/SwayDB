@@ -17,7 +17,7 @@
 ////package swaydb.core.level
 ////
 ////import org.scalamock.scalatest.MockFactory
-////import swaydb.IOValues._
+////import swaydb.effect.IOValues._
 ////import swaydb.config.MMAP
 ////import swaydb.config.compaction.LevelThrottle
 ////import swaydb.core.CommonAssertions._
@@ -83,14 +83,14 @@
 ////          def assert(level: Level) = {
 ////            keyValues foreach {
 ////              keyValue =>
-////                level.mightContainKey(keyValue.key, ThreadReadState.random).runRandomIO.right.value shouldBe true
+////                level.mightContainKey(keyValue.key, ThreadReadState.random).runRandomIO.get shouldBe true
 ////            }
 ////
-////            level.mightContainKey("THIS KEY DOES NOT EXISTS", ThreadReadState.random).runRandomIO.right.value shouldBe false
+////            level.mightContainKey("THIS KEY DOES NOT EXISTS", ThreadReadState.random).runRandomIO.get shouldBe false
 ////          }
 ////
 ////          val level = TestLevel(bloomFilterConfig = BloomFilterBlockConfig.random.copy(falsePositiveRate = 0.01))
-////          level.put(keyValues).runRandomIO.right.value
+////          level.put(keyValues).runRandomIO.get
 ////
 ////          assert(level)
 ////          if (isPersistentSpec) assert(level.reopen)
@@ -108,9 +108,9 @@
 ////          val level = TestLevel(nextLevel = None, throttle = (_) => LevelThrottle(Duration.Zero, 0), segmentConfig = SegmentBlockConfig.random2(minSegmentSize = 1.kb))
 ////
 ////          val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)
-////          level.put(keyValues).runRandomIO.right.value
+////          level.put(keyValues).runRandomIO.get
 ////          //do another put so split occurs.
-////          level.put(keyValues.headSlice).runRandomIO.right.value
+////          level.put(keyValues.headSlice).runRandomIO.get
 ////          level.segmentsCount() > 1 shouldBe true //ensure there are Segments in this Level
 ////
 ////          if (isPersistentSpec) {
@@ -151,7 +151,7 @@
 ////                bloomFilterConfig = BloomFilterBlockConfig.random,
 ////                segmentConfig = SegmentBlockConfig.random2(minSegmentSize = 100.mb),
 ////                pathDistributor = createPathDistributor
-////              ).runRandomIO.right.value
+////              ).runRandomIO.get
 ////
 ////          segments should have size 1
 ////          val segment = segments.head
@@ -177,7 +177,7 @@
 ////          //refresh so that if there is a compression running, this Segment will compressed.
 ////          val segments =
 ////            TestSegment(putKeyValues, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments))
-////              .runRandomIO.right.value
+////              .runRandomIO.get
 ////              .refresh(
 ////                removeDeletes = false,
 ////                createdInLevel = 0,
@@ -188,7 +188,7 @@
 ////                bloomFilterConfig = BloomFilterBlockConfig.random,
 ////                segmentConfig = SegmentBlockConfig.random2(minSegmentSize = 100.mb),
 ////                pathDistributor = createPathDistributor
-////              ).runRandomIO.right.value
+////              ).runRandomIO.get
 ////
 ////          segments should have size 1
 ////          val segment = segments.head
@@ -220,7 +220,7 @@
 ////          val level1 = TestLevel(nextLevel = Some(level2))
 ////
 ////          val putKeyValues = randomPutKeyValues(keyValuesCount)
-////          val segment = TestSegment(putKeyValues).runRandomIO.right.value
+////          val segment = TestSegment(putKeyValues).runRandomIO.get
 ////          level2.put(segment).get
 ////
 ////          level1.meterFor(3) shouldBe empty

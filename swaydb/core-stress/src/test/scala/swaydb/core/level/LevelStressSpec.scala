@@ -18,7 +18,7 @@
 //
 //import swaydb.IO
 //import swaydb.core.CommonAssertions._
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.testkit.RunThis._
 //import swaydb.core.TestBase
 //import swaydb.core.TestData._
