@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package swaydb.core.util
+package swaydb.utils
 
-import swaydb.slice.Slice
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-object UUIDs {
+class UUIDsSpec extends AnyWordSpec with Matchers {
 
-  def randomId(): String =
-    java.util.UUID.randomUUID.toString
-
-  def randomIdNoHyphen(): String =
-    randomId().replace("-", "")
-
-  def randomIdNoHyphenBytes(): Slice[Byte] =
-    Slice.writeString(randomIdNoHyphen())
+  "randomIdNoHyphen" should {
+    "return unique UUID without hyphens" in {
+      UUIDs.randomIdNoHyphen() should not include "-"
+    }
+  }
 }
