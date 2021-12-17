@@ -18,10 +18,11 @@ package swaydb.core.compression
 
 import swaydb.core.compression.CoreCompression.{LZ4, Snappy, UnCompressed}
 import swaydb.config.compression.{DecompressorId, LZ4Instance}
+import swaydb.testkit.TestKit.{eitherOne, randomIntMax}
 
 import scala.util.Random
 
-object CompressionTestGen {
+object CompressionTestKit {
 
   implicit class CompressionImplicits(internal: CoreCompression.type) {
     def random(minCompressionPercentage: Double = Double.MinValue) =
@@ -62,5 +63,36 @@ object CompressionTestGen {
     def randomLZ4(): CoreDecompressor.LZ4 =
       CoreDecompressor(DecompressorId.randomLZ4Id())
   }
+
+  def randomCompression(minCompressionPercentage: Double = Double.MinValue): CoreCompression =
+    CoreCompression.random(minCompressionPercentage = minCompressionPercentage)
+
+  def randomCompressionLZ4OrSnappy(minCompressionPercentage: Double = Double.MinValue): CoreCompression =
+    CoreCompression.randomLZ4OrSnappy(minCompressionPercentage = minCompressionPercentage)
+
+  def randomCompressionSnappy(minCompressionPercentage: Double = Double.MinValue): CoreCompression =
+    CoreCompression.randomSnappy(minCompressionPercentage = minCompressionPercentage)
+
+  def randomCompressionLZ4(minCompressionPercentage: Double = Double.MinValue): CoreCompression =
+    CoreCompression.randomLZ4(minCompressionPercentage = minCompressionPercentage)
+
+  def randomCompressions(minCompressionPercentage: Double = Double.MinValue): Iterable[CoreCompression] =
+    (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage))
+
+  def randomCompressionsOrEmpty(minCompressionPercentage: Double = Double.MinValue): Iterable[CoreCompression] =
+    eitherOne(
+      Seq.empty,
+      randomCompressions(minCompressionPercentage)
+    )
+
+  def randomCompressionsLZ4OrSnappy(minCompressionPercentage: Double = Double.MinValue): Iterable[CoreCompression] =
+    (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage))
+
+  def randomCompressionsLZ4OrSnappyOrEmpty(minCompressionPercentage: Double = Double.MinValue): Iterable[CoreCompression] =
+    eitherOne(
+      Seq.empty,
+      randomCompressionsLZ4OrSnappy(minCompressionPercentage)
+    )
+
 
 }

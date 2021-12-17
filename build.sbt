@@ -263,7 +263,10 @@ lazy val slice =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(utils, testkit % Test)
+    .dependsOn(
+      utils,
+      testkit % Test
+    )
 
 lazy val actor =
   project

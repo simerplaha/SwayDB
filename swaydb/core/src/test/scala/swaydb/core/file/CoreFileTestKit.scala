@@ -1,17 +1,17 @@
 package swaydb.core.file
 
 import swaydb.core.{TestForceSave, TestSweeper, TestTuple2}
-import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.TestSweeper._
 import swaydb.effect.Effect
-import swaydb.slice.Slice
+import swaydb.slice.{Slice, SliceRO}
 import swaydb.testkit.TestKit.randomCharacters
 import swaydb.utils.OperatingSystem
 
 import java.nio.file.Path
 import scala.util.Random
-
 import org.scalatest.PrivateMethodTester._
+import swaydb.core.segment.block.BlockCacheSource
+import swaydb.effect.EffectTestKit.randomThreadSafeIOStrategy
 
 object CoreFileTestKit {
 
@@ -171,6 +171,20 @@ object CoreFileTestKit {
 
   def createRandomDir()(implicit sweeper: TestSweeper): Path =
     Effect.createDirectory(randomDir()).sweep()
+
+  implicit class CoreFileImplicits(file: CoreFile) {
+    def toBlockCacheSource: BlockCacheSource =
+      new BlockCacheSource {
+        override def blockCacheMaxBytes: Int =
+          file.fileSize()
+
+        override def readFromSource(position: Int, size: Int): Slice[Byte] =
+          file.read(position = position, size = size)
+
+        override def readFromSource(position: Int, size: Int, blockSize: Int): SliceRO[Byte] =
+          file.read(position = position, size = size, blockSize = blockSize)
+      }
+  }
 
 }
 

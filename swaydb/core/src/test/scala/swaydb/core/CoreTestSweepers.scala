@@ -19,16 +19,15 @@ package swaydb.core
 import swaydb.ActorConfig
 import swaydb.config.MemoryCache
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.core.CommonAssertions._
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.testkit.TestKit._
 import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
-import swaydb.testkit.TestKit._
 
 private[swaydb] object CoreTestSweepers {
 
