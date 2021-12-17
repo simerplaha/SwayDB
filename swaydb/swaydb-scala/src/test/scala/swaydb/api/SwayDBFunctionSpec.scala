@@ -117,7 +117,7 @@
 //
 //  "it" should {
 //
-//    val functions = Sealed.list[Key.Function].collect { case function: PureFunction.Map[Key, Int] => function }
+//    val functions = MacroSealed.list[Key.Function].collect { case function: PureFunction.Map[Key, Int] => function }
 //    implicit val functionsMap = Functions[PureFunction.Map[Key, Int]](functions)
 //
 //    "perform concurrent atomic updates to a single key" in {

@@ -17,7 +17,7 @@
 package swaydb.core.segment.entry.id
 
 import swaydb.core.segment.data.Memory
-import swaydb.macros.Sealed
+import swaydb.macros.MacroSealed
 
 import scala.annotation.implicitNotFound
 
@@ -77,5 +77,5 @@ private[core] object MemoryToKeyValueIdBinder {
     }
 
   def allBinders: List[MemoryToKeyValueIdBinder[_]] =
-    Sealed.list[MemoryToKeyValueIdBinder[_]]
+    MacroSealed.list[MemoryToKeyValueIdBinder[_]]
 }

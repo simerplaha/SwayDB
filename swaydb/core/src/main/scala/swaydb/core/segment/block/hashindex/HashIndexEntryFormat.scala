@@ -23,7 +23,7 @@ import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.data.Persistent.Partial
 import swaydb.core.segment.data.{Memory, Persistent}
 import swaydb.core.util.{Bytes, CRC32}
-import swaydb.macros.Sealed
+import swaydb.macros.MacroSealed
 import swaydb.slice.{Slice, SliceMut, SliceReader}
 import swaydb.utils.ByteSizeOf
 
@@ -187,5 +187,5 @@ private[core] object HashIndexEntryFormat {
       }
   }
 
-  val formats: Array[HashIndexEntryFormat] = Sealed.array[HashIndexEntryFormat]
+  val formats: Array[HashIndexEntryFormat] = MacroSealed.array[HashIndexEntryFormat]
 }

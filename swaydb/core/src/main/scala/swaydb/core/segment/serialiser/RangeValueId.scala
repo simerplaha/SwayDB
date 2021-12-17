@@ -16,7 +16,7 @@
 
 package swaydb.core.segment.serialiser
 
-import swaydb.macros.Sealed
+import swaydb.macros.MacroSealed
 
 sealed trait RangeValueId {
   val id: Int
@@ -131,7 +131,7 @@ case object RangeValueId {
   }
 
   val ids: Array[RangeValueId] =
-    Sealed.array[RangeValueId].sortBy(_.id)
+    MacroSealed.array[RangeValueId].sortBy(_.id)
 
   def apply(id: Int): RangeValueId =
     ids(id)

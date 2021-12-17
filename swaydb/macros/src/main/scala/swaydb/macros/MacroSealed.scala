@@ -19,7 +19,7 @@ package swaydb.macros
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
 
-object Sealed {
+object MacroSealed {
 
   def list[A]: List[A] = macro list_impl[A]
 

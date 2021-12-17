@@ -16,7 +16,7 @@
 
 package swaydb.config.compression
 
-import swaydb.macros.Sealed
+import swaydb.macros.MacroSealed
 
 import scala.util.Random
 
@@ -87,13 +87,13 @@ private[swaydb] object DecompressorId {
   }
 
   private[swaydb] def lz4DecompressorIds(): Map[Int, LZ4DecompressorId] =
-    Sealed.list[LZ4DecompressorId] map {
+    MacroSealed.list[LZ4DecompressorId] map {
       compressionType =>
         compressionType.id -> compressionType
     } toMap
 
   private[swaydb] def otherDecompressorIds(): Map[Int, DecompressorId] =
-    Sealed.list[DecompressorId] map {
+    MacroSealed.list[DecompressorId] map {
       compressionType =>
         compressionType.id -> compressionType
     } toMap

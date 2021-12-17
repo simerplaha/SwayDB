@@ -21,7 +21,7 @@ import scala.jdk.CollectionConverters._
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
 
-object VersionReader {
+object MacroVersionReader {
 
   def version: (Int, Int, Int) = macro versionImpl
 

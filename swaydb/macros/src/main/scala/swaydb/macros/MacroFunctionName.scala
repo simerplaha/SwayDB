@@ -3,13 +3,13 @@ package swaydb.macros
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
 
-object FunctionNameMacro {
+object MacroFunctionName {
 
   final val useFullyQualifiedName = false
 
-  def functionName(param: Any): String = macro debugParameters_Impl
+  def functionName(param: Any): String = macro functionName_Impl
 
-  def debugParameters_Impl(c: blackbox.Context)(param: c.Expr[Any]): c.Expr[String] = {
+  def functionName_Impl(c: blackbox.Context)(param: c.Expr[Any]): c.Expr[String] = {
     import c.universe._
 
     def getName(select: c.universe.Select) =

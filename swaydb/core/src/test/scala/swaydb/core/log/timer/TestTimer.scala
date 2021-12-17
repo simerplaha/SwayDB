@@ -18,7 +18,7 @@ package swaydb.core
 
 import swaydb.core.log.timer.Timer
 import swaydb.core.segment.data.Time
-import swaydb.macros.Sealed
+import swaydb.macros.MacroSealed
 import swaydb.slice.Slice
 
 import java.util.concurrent.atomic.AtomicLong
@@ -96,7 +96,7 @@ object TestTimer {
   }
 
   def all =
-    Sealed.list[TestTimer]
+    MacroSealed.list[TestTimer]
 
   def random: TestTimer =
     Random.shuffle(all).head
