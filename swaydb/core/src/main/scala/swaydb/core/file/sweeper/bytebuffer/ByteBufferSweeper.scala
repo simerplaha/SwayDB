@@ -47,7 +47,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
   }
 
   object State {
-    def empty(): State =
+    def initial(): State =
       State(
         cleaner = None,
         pendingClean = mutable.HashMap.empty,
@@ -443,7 +443,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
                                                              actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ActorRef[ByteBufferCommand, State] =
     Actor[ByteBufferCommand, State](
       name = ByteBufferSweeper.className,
-      state = State.empty()
+      state = State.initial()
     ) {
       (command, self) =>
         process(

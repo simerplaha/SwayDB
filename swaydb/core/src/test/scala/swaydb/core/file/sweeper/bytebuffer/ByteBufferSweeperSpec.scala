@@ -229,7 +229,7 @@
 //
 //          val command = ByteBufferCommand.Clean(buffer, () => false, forced, path, forceSave)
 //
-//          val cleanResult = ByteBufferSweeper.initCleanerAndPerformClean(ByteBufferSweeper.State.empty(), buffer, command)
+//          val cleanResult = ByteBufferSweeper.initCleanerAndPerformClean(ByteBufferSweeper.State.initial(), buffer, command)
 //          cleanResult shouldBe a[IO.Right[_, _]]
 //          cleanResult.value.cleaner shouldBe defined
 //
