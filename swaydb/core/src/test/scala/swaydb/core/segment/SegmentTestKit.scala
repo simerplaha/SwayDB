@@ -1,6 +1,7 @@
 package swaydb.core.segment
 
 import org.scalatest.matchers.should.Matchers._
+import org.scalatest.PrivateMethodTester._
 import swaydb.{Error, IO}
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.config._
@@ -39,12 +40,16 @@ import swaydb.testkit.TestKit._
 import swaydb.utils.IDGenerator
 
 import java.nio.file.Path
+import java.util.concurrent.ConcurrentSkipListMap
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 
 object SegmentTestKit {
 
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
+
+  def getSegmentsCache(segment: PersistentSegment): ConcurrentSkipListMap[Slice[Byte], SegmentRef] =
+    segment invokePrivate PrivateMethod[ConcurrentSkipListMap[Slice[Byte], SegmentRef]](Symbol("segmentsCache"))()
 
   implicit class SegmentIOImplicits(io: SegmentReadIO.type) {
     def random: SegmentReadIO =

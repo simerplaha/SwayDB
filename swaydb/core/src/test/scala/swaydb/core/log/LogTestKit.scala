@@ -6,16 +6,25 @@ import swaydb.core.log.serialiser.LogEntryWriter
 import swaydb.core.segment.data.{KeyValue, Memory}
 import swaydb.core.TestExecutionContext
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
+import swaydb.core.log.timer.Timer
+import swaydb.core.queue.VolatileQueue
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.slice.order.KeyOrder
 import swaydb.effect.IOValues._
 import swaydb.testkit.RunThis._
+import org.scalatest.PrivateMethodTester._
 
 import scala.concurrent.duration._
 
 object LogTestKit {
+
+  def getLogs[K, V, C <: LogCache[K, V]](logs: Logs[K, V, C]): VolatileQueue[Log[K, V, C]] =
+    logs invokePrivate PrivateMethod[VolatileQueue[Log[K, V, C]]](Symbol("queue"))()
+
+  def getTimer[K, V, C <: LogCache[K, V]](logs: Logs[K, V, C]): Timer =
+    logs invokePrivate PrivateMethod[Timer](Symbol("timer"))()
 
   implicit class SliceKeyValueImplicits(actual: Iterable[KeyValue]) {
     def toLogEntry(implicit serialiser: LogEntryWriter[LogEntry.Put[Slice[Byte], Memory]]) =
