@@ -14,7 +14,7 @@ import swaydb.core.segment.io.SegmentReadIO
 import swaydb.effect.IOValues._
 import swaydb.serializers._
 import swaydb.serializers.Default._
-import swaydb.slice.order.KeyOrder
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.TestKit._
 import swaydb.IO
 import swaydb.core.level.{Level, LevelRef}
@@ -25,6 +25,7 @@ import swaydb.core.segment.SegmentTestKit._
 import swaydb.core.segment.block.BlockTestKit._
 import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.TestExecutionContext
+import swaydb.core.level.seek.{CurrentWalker, Higher, Lower, NextWalker, Seek}
 import swaydb.slice.{Reader, Slice}
 import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
@@ -522,6 +523,24 @@ object SegmentSearchTestKit {
           assertNotLast(keyValues(index), next, nextNext)
         }
     }
+  }
+
+  implicit class HigherImplicits(higher: Higher.type) {
+    def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                timeOrder: TimeOrder[Slice[Byte]],
+                                currentReader: CurrentWalker,
+                                nextReader: NextWalker,
+                                functionStore: CoreFunctionStore): IO[swaydb.Error.Level, Option[KeyValue.Put]] =
+      IO.Defer(Higher(key, ThreadReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).toOptionPut).runIO
+  }
+
+  implicit class LowerImplicits(higher: Lower.type) {
+    def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                timeOrder: TimeOrder[Slice[Byte]],
+                                currentReader: CurrentWalker,
+                                nextReader: NextWalker,
+                                functionStore: CoreFunctionStore): IO[swaydb.Error.Level, Option[KeyValue.Put]] =
+      IO.Defer(Lower(key, ThreadReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).toOptionPut).runIO
   }
 
 }

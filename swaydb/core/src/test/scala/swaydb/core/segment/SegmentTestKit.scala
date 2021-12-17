@@ -228,25 +228,6 @@ object SegmentTestKit {
       segment.lower(key, ThreadReadState.random)
   }
 
-
-  implicit class HigherImplicits(higher: Higher.type) {
-    def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                timeOrder: TimeOrder[Slice[Byte]],
-                                currentReader: CurrentWalker,
-                                nextReader: NextWalker,
-                                functionStore: CoreFunctionStore): IO[swaydb.Error.Level, Option[KeyValue.Put]] =
-      IO.Defer(Higher(key, ThreadReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).toOptionPut).runIO
-  }
-
-  implicit class LowerImplicits(higher: Lower.type) {
-    def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                timeOrder: TimeOrder[Slice[Byte]],
-                                currentReader: CurrentWalker,
-                                nextReader: NextWalker,
-                                functionStore: CoreFunctionStore): IO[swaydb.Error.Level, Option[KeyValue.Put]] =
-      IO.Defer(Lower(key, ThreadReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).toOptionPut).runIO
-  }
-
   implicit class AssignablesImplicits(keyValues: ListBuffer[Assignable]) {
 
     /**

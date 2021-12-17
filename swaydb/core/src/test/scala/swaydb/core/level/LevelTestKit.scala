@@ -208,7 +208,7 @@ object LevelTestKit {
               _ =>
                 import sweeper._
 
-                implicit val optimiseWrites = OptimiseWrites.random
+                implicit val optimiseWrites: OptimiseWrites = OptimiseWrites.random
                 implicit val atomic: Atomic = Atomic.random
 
                 LevelZero(
