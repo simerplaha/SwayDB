@@ -18,10 +18,10 @@ import swaydb.slice.SliceTestKit._
 import swaydb.utils.{Aggregator, FiniteDurations}
 import swaydb.IO
 import swaydb.core.segment.data.Memory.PendingApply
-import swaydb.core.TestTimer
 import swaydb.core.segment.data.merge.{FixedMerger, KeyValueMerger}
 import swaydb.testkit.TestKit._
 import swaydb.Error.Segment.ExceptionHandler
+import swaydb.core.log.timer.TestTimer
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.annotation.tailrec
@@ -35,6 +35,20 @@ object KeyValueTestKit {
   implicit val functionStore: CoreFunctionStore = CoreFunctionStore.memory()
 
   val functionIdGenerator = new AtomicInteger(0)
+
+  implicit class MemoryIterableImplicits(keyValues: Slice[Memory]) {
+    @inline final def maxKey(): MaxKey[Slice[Byte]] =
+      keyValues.last match {
+        case range: Memory.Range =>
+          MaxKey.Range(range.fromKey, range.toKey)
+
+        case fixed: Memory.Fixed =>
+          MaxKey.Fixed(fixed.key)
+      }
+
+    @inline final def minKey: Slice[Byte] =
+      keyValues.head.key
+  }
 
   implicit class SliceKeyValueImplicits(actual: Iterable[KeyValue]) {
     def shouldBe(expected: Iterable[KeyValue]): Unit = {

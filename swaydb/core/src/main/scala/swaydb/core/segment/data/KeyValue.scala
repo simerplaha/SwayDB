@@ -290,20 +290,6 @@ private[swaydb] object Memory {
 
   }
 
-  implicit class MemoryIterableImplicits(keyValues: Slice[Memory]) {
-    @inline final def maxKey(): MaxKey[Slice[Byte]] =
-      keyValues.last match {
-        case range: Memory.Range =>
-          MaxKey.Range(range.fromKey, range.toKey)
-
-        case fixed: Memory.Fixed =>
-          MaxKey.Fixed(fixed.key)
-      }
-
-    @inline final def minKey: Slice[Byte] =
-      keyValues.head.key
-  }
-
   sealed trait Fixed extends Memory with KeyValue.Fixed {
     def cut(): Memory.Fixed
 
