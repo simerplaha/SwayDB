@@ -2,24 +2,24 @@ package swaydb.core.segment.data
 
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.OptionValues._
+import swaydb.core.log.serialiser.LogEntryWriter
+import swaydb.core.log.LogEntry
+import swaydb.core.segment.{data, CoreFunctionStore}
 import swaydb.core.segment.data.Value.{FromValue, FromValueOption, RangeValue}
+import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.serialiser.{RangeValueSerialiser, ValueSerialiser}
+import swaydb.core.skiplist.SkipListConcurrent
+import swaydb.effect.IOValues._
 import swaydb.serializers._
 import swaydb.serializers.Default._
 import swaydb.slice.{MaxKey, Slice, SliceOption}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.effect.IOValues._
-import swaydb.core.log.serialiser.LogEntryWriter
-import swaydb.core.log.LogEntry
-import swaydb.core.segment.{data, CoreFunctionStore}
-import swaydb.core.segment.data.merge.stats.MergeStats
-import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.slice.SliceTestKit._
 import swaydb.utils.{Aggregator, FiniteDurations}
 import swaydb.IO
 import swaydb.core.segment.data.Memory.PendingApply
 import swaydb.core.TestTimer
-import swaydb.core.segment.data.merge.KeyValueMerger
+import swaydb.core.segment.data.merge.{FixedMerger, KeyValueMerger}
 import swaydb.testkit.TestKit._
 import swaydb.Error.Segment.ExceptionHandler
 
@@ -35,6 +35,21 @@ object KeyValueTestKit {
   implicit val functionStore: CoreFunctionStore = CoreFunctionStore.memory()
 
   val functionIdGenerator = new AtomicInteger(0)
+
+  implicit class SliceKeyValueImplicits(actual: Iterable[KeyValue]) {
+    def shouldBe(expected: Iterable[KeyValue]): Unit = {
+      val unzipActual = actual
+      val unzipExpected = expected
+      unzipActual.size shouldBe unzipExpected.size
+      unzipActual.zip(unzipExpected) foreach {
+        case (left, right) =>
+          left shouldBe right
+      }
+    }
+
+    def shouldBe(expected: Iterator[KeyValue]): Unit =
+      actual shouldBe expected.toList
+  }
 
   implicit class KeyValueImplicits(actual: KeyValue) {
 
@@ -672,7 +687,6 @@ object KeyValueTestKit {
     ).head
 
 
-
   implicit class FunctionOutputImplicits(functionOutput: SegmentFunctionOutput) {
     def toMemory(key: Slice[Byte],
                  time: Time): Memory.Fixed =
@@ -868,7 +882,6 @@ object KeyValueTestKit {
       )
     else
       Memory.Update(key, value, deadline, testTimer.next)
-
 
 
   def randomRangeKeyValue(from: Slice[Byte],
@@ -1550,5 +1563,38 @@ object KeyValueTestKit {
 
     builder.keyValues
   }
+
+
+  def collapseMerge(newKeyValue: Memory.Fixed,
+                    oldApplies: Slice[Value.Apply])(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
+    newKeyValue match {
+      case PendingApply(_, newApplies) =>
+        //PendingApplies on PendingApplies are never merged. They are just stashed in sequence of their time.
+        Memory.PendingApply(newKeyValue.key, oldApplies ++ newApplies)
+
+      case _ =>
+        var count = 0
+        //reversing so that order is where newer are at the head.
+        val reveredApplied = oldApplies.reverse.toList
+        reveredApplied.foldLeft(newKeyValue: KeyValue.Fixed) {
+          case (newer, older) =>
+            count += 1
+            //merge as though applies were normal fixed key-values. The result should be the same.
+            FixedMerger(newer, older.toMemory(newKeyValue.key)).runRandomIO.get match {
+              case newPendingApply: KeyValue.PendingApply =>
+                val resultApplies = newPendingApply.getOrFetchApplies.runRandomIO.get.reverse.toList ++ reveredApplied.drop(count)
+                val result =
+                  if (resultApplies.size == 1)
+                    resultApplies.head.toMemory(newKeyValue.key)
+                  else
+                    Memory.PendingApply(key = newKeyValue.key, resultApplies.reverse.toSlice)
+                return result
+
+              case other =>
+                other
+            }
+        }
+    }
+
 
 }

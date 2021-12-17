@@ -1,27 +1,29 @@
 package swaydb.core.level
 
+import swaydb.{Error, Glass, IO}
+import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
+import swaydb.config.accelerate.Accelerator
 import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.config.storage.{Level0Storage, LevelStorage}
-import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
-import swaydb.core.level.zero.LevelZero.LevelZeroLog
-import swaydb.core.segment.data.{KeyValue, Memory, SegmentKeyOrders}
-import swaydb.core.segment.io.SegmentCompactionIO
+import swaydb.config.CoreConfigTestKit._
 import swaydb.core.{TestExecutionContext, TestForceSave, TestSweeper}
-import swaydb.effect.Dir
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.utils.OperatingSystem
-import swaydb.{Error, Glass, IO}
-import swaydb.config.accelerate.Accelerator
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.segment.{MemorySegment, PersistentSegment, Segment}
+import swaydb.core.level.zero.LevelZero.LevelZeroLog
+import swaydb.core.segment.{MemorySegment, PersistentSegment, Segment, SegmentTestKit}
+import swaydb.core.segment.data.{KeyValue, Memory, SegmentKeyOrders}
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.io.SegmentCompactionIO
+import swaydb.core.TestSweeper._
+import swaydb.core.log.LogTestKit.SliceKeyValueImplicits
+import swaydb.effect.{Dir, Effect}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
 import swaydb.testkit.TestKit.randomBoolean
-import swaydb.core.segment.data.KeyValueTestKit._
-import TestSweeper._
-import swaydb.config.CoreConfigTestKit._
-import swaydb.effect.IOValues._
-import swaydb.core.log.LogTestKit.SliceKeyValueImplicits
+import swaydb.utils.OperatingSystem
 import swaydb.utils.StorageUnits._
+
+import java.nio.file.Paths
+import scala.annotation.tailrec
 
 object LevelTestKit {
 
@@ -246,5 +248,27 @@ object LevelTestKit {
             IO.unit
         }
   }
+
+  @tailrec
+  def dump(level: NextLevel): Unit =
+    level.nextLevel match {
+      case Some(nextLevel) =>
+        val data = Seq(s"\nLevel: ${level.rootPath}\n") ++ SegmentTestKit.dump(level.segments())
+
+        Effect.write(
+          to = Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"),
+          bytes = Slice.writeString(data.mkString("\n")).toByteBufferWrap()
+        )
+
+        dump(nextLevel)
+
+      case None =>
+        val data = Seq(s"\nLevel: ${level.rootPath}\n") ++ SegmentTestKit.dump(level.segments())
+
+        Effect.write(
+          to = Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"),
+          bytes = Slice.writeString(data.mkString("\n")).toByteBufferWrap()
+        )
+    }
 
 }

@@ -30,4 +30,13 @@ object EffectTestKit {
       )
     ).head
 
+  def randomIOStrategy(cacheOnAccess: Boolean = randomBoolean(),
+                       includeReserved: Boolean = true): IOStrategy =
+    if (randomBoolean())
+      IOStrategy.SynchronisedIO(cacheOnAccess)
+    else if (cacheOnAccess && includeReserved && randomBoolean())
+      IOStrategy.AsyncIO(cacheOnAccess = true) //this not being stored will result in too many retries.
+    else
+      IOStrategy.ConcurrentIO(cacheOnAccess)
+
 }

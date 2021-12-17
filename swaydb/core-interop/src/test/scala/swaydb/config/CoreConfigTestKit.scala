@@ -1,5 +1,6 @@
 package swaydb.config
 
+import swaydb.config.compaction.PushStrategy
 import swaydb.core.TestForceSave
 import swaydb.testkit.TestKit.{eitherOne, randomBoolean, randomIntMax}
 import swaydb.utils.OperatingSystem
@@ -69,4 +70,10 @@ object CoreConfigTestKit {
       else
         MMAP.Off(TestForceSave.standard())
   }
+
+  def randomPushStrategy(): PushStrategy =
+    if (randomBoolean())
+      PushStrategy.Immediately
+    else
+      PushStrategy.OnOverflow
 }
