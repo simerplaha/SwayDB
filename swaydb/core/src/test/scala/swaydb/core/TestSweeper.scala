@@ -32,7 +32,7 @@ import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.segment.MemorySweeperTestKit._
+import swaydb.core.segment.cache.sweeper.MemorySweeperTestKit._
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._
 import swaydb.utils.{IDGenerator, OperatingSystem}

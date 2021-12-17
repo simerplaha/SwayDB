@@ -1,4 +1,4 @@
-package swaydb.core.segment
+package swaydb.core.segment.cache.sweeper
 
 import swaydb.ActorConfig
 import swaydb.config.MemoryCache
