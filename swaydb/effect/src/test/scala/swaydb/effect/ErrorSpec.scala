@@ -17,7 +17,7 @@
 package swaydb.effect
 
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.DataAccess
 import swaydb.Exception.NullMappedByteBuffer
 import swaydb.{Error, _}
@@ -27,7 +27,7 @@ import java.nio.ReadOnlyBufferException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException, OverlappingFileLockException}
 import java.nio.file.{NoSuchFileException, Paths}
 
-class ErrorSpec extends AnyFlatSpec with Matchers {
+class ErrorSpec extends AnyFlatSpec {
 
   it should "convert known Exception to typed Errors and vice versa" in {
     val reserve = Reserve.free[Unit](name = "ErrorSpec")

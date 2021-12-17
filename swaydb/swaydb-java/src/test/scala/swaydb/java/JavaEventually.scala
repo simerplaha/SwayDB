@@ -84,6 +84,7 @@ object JavaEventually {
           } else {
             sleep(interval)
           }
+
         case Success(value) =>
           result = None
           keepTrying = false

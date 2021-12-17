@@ -18,8 +18,8 @@
 //
 //import org.scalatest.OptionValues._
 //import swaydb.Glass
-//import swaydb.core.TestSweeper
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.slice.Slice
 //import swaydb.slice.order.KeyOrder
 //import swaydb.testkit.RunThis._
@@ -54,7 +54,7 @@
 //
 //  import SwayDBPartialSetSpec._
 //
-//  override def newDB()(implicit sweeper: TestSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass] =
 //    swaydb.persistent.Set[(Int, Option[String]), Nothing, Glass](randomDir(), logSize = 10.bytes).sweep(_.delete())
 //}
 //
@@ -62,7 +62,7 @@
 //
 //  import SwayDBPartialSetSpec._
 //
-//  override def newDB()(implicit sweeper: TestSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass] =
 //    swaydb.memory.Set[(Int, Option[String]), Nothing, Glass](logSize = 10.bytes).sweep(_.delete())
 //}
 //
@@ -70,11 +70,11 @@
 //
 //  val keyValueCount = 1000
 //
-//  def newDB()(implicit sweeper: TestSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass]
+//  def newDB()(implicit sweeper: CoreTestSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass]
 //
 //  "read partially ordered key-values" in {
 //    runThis(times = repeatTest, log = true) {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          val set = newDB()

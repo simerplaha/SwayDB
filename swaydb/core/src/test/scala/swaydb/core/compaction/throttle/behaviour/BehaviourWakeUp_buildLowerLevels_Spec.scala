@@ -19,7 +19,7 @@
 //import swaydb.config.MMAP
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.level.{ALevelSpec, Level}
-//import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestForceSave}
+//import swaydb.core.{ACoreSpec, CoreTestSweeper, TestExecutionContext, TestForceSave}
 //import swaydb.utils.OperatingSystem
 //
 //
@@ -43,14 +43,14 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait BehaviourWakeUp_buildLowerLevels_Spec extends ALevelSpec {
+//sealed trait BehaviourWakeUp_buildLowerLevels_Spec extends AnyWordSpec {
 //
 //  implicit val ec = TestExecutionContext.executionContext
 //
 //  "build lower levels" when {
 //    "there are 2 levels" when {
 //      "lower level is the second level" in {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val level = TestLevel(nextLevel = Some(TestLevel()))
 //            val lowerLevel = level.nextLevel.get.shouldBeInstanceOf[Level]
@@ -64,7 +64,7 @@
 //
 //    "there are 3 levels" when {
 //      "lower level is the third level" in {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val level = TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel()))))
 //            val secondLevel = level.nextLevel.get.shouldBeInstanceOf[Level]
@@ -77,7 +77,7 @@
 //      }
 //
 //      "lower level is the second level" in {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val level = TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel()))))
 //            val secondLevel = level.nextLevel.get.shouldBeInstanceOf[Level]

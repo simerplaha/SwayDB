@@ -42,16 +42,16 @@
 ////
 ////class BehaviourCompactionTask_refresh_Spec2 extends BehaviourCompactionTask_refresh_Spec {
 ////  override def levelFoldersCount = 10
-////  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-////  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-////  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
+////  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
+////  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
+////  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
 ////}
 //
 //class BehaviourCompactionTask_refresh_Spec3 extends BehaviourCompactionTask_refresh_Spec {
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait BehaviourCompactionTask_refresh_Spec extends ALevelSpec {
+//sealed trait BehaviourCompactionTask_refresh_Spec extends AnyWordSpec {
 //
 //  implicit val timer = TestTimer.Empty
 //  implicit val keyOrder = KeyOrder.default
@@ -60,7 +60,7 @@
 //
 //  "succeed" in {
 //    runThis(10.times, log = true) {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -83,7 +83,7 @@
 //          BehaviourCompactionTask.refresh(task, level).awaitInf shouldBe unit
 //          level.isEmpty shouldBe true
 //
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            val reopen = level.reopen
 //            reopen.isEmpty shouldBe true
 //          }
@@ -93,7 +93,7 @@
 //
 //  "revert on failure" in {
 //    runThis(10.times, log = true) {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -128,7 +128,7 @@
 //
 //          level.segments().map(_.path) shouldBe segmentPathsBeforeRefresh
 //
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            val reopen = level.reopen
 //            assertReads(keyValues, reopen)
 //            reopen.segments().map(_.path) shouldBe segmentPathsBeforeRefresh

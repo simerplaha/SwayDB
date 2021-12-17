@@ -28,19 +28,18 @@ import scala.util.{Failure, Success, Try}
  * TO-DO - Move this to a test module.
  */
 //@formatter:off
-case class TestActor[T]()(implicit override val executionContext: ExecutionContext) extends Actor[T, Unit](
-                                                                                           name = "TestActor",
-                                                                                           state = (),
-                                                                                           queue = ActorQueue(QueueOrder.FIFO),
-                                                                                           stashCapacity = 0,
-                                                                                           weigher = _ => 1,
-                                                                                           cached = false,
-                                                                                           execution = (_, _) => None,
-                                                                                           interval = None,
-                                                                                           scheduler = null,
-                                                                                           preTerminate = None,
-                                                                                           postTerminate = None,
-                                                                                           recovery = None) {
+case class TestActor[T]()(implicit override val executionContext: ExecutionContext) extends Actor[T, Unit](name = "TestActor",
+                                                                                                           state = (),
+                                                                                                           queue = ActorQueue(QueueOrder.FIFO),
+                                                                                                           stashCapacity = 0,
+                                                                                                           weigher = _ => 1,
+                                                                                                           cached = false,
+                                                                                                           execution = (_, _) => None,
+                                                                                                           interval = None,
+                                                                                                           scheduler = null,
+                                                                                                           preTerminate = None,
+                                                                                                           postTerminate = None,
+                                                                                                           recovery = None) {
 //@formatter:on
 
   private val queue = new ConcurrentLinkedQueue[T]
@@ -69,6 +68,7 @@ case class TestActor[T]()(implicit override val executionContext: ExecutionConte
           } else {
             sleep(interval)
           }
+
         case Success(value) =>
           result = Right(value)
           keepTrying = false
@@ -77,6 +77,7 @@ case class TestActor[T]()(implicit override val executionContext: ExecutionConte
     result match {
       case Right(success) =>
         success
+
       case Left(failure) =>
         throw failure
     }

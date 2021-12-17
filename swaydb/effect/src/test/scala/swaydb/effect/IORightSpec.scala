@@ -16,7 +16,7 @@
 
 package swaydb.effect
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
@@ -24,7 +24,7 @@ import swaydb.testkit.RunThis._
 
 import scala.util.Try
 
-class IORightSpec extends AnyWordSpec with Matchers {
+class IORightSpec extends AnyWordSpec {
 
   val error = swaydb.Error.Fatal(this.getClass.getSimpleName + " test exception.")
 

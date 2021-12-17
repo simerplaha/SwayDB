@@ -16,7 +16,7 @@
 
 package swaydb.core.queue
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.testkit.RunThis._
 
@@ -25,7 +25,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.Random
 
-class VolatileQueueSpec extends AnyWordSpec with Matchers {
+class VolatileQueueSpec extends AnyWordSpec {
 
   implicit class QueueShouldBe[A >: Null](queue: VolatileQueue[A]) {
     def shouldBe(list: List[A]) = {

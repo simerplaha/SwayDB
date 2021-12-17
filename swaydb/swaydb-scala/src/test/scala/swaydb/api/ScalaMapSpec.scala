@@ -18,8 +18,8 @@
 //
 //import swaydb.effect.IOValues._
 //import swaydb._
-//import swaydb.core.TestSweeper
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.serializers.Default._
 //import swaydb.testkit.RunThis._
 //import swaydb.core.file.CoreFileTestKit._
@@ -27,14 +27,14 @@
 //class ScalaMapSpec0 extends ScalaMapSpec {
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): SetMapT[Int, String, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): SetMapT[Int, String, IO.ApiIO] =
 //    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir()).right.value.sweep(_.delete().get)
 //}
 //
 //class ScalaSetMapSpec0 extends ScalaMapSpec {
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): SetMapT[Int, String, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): SetMapT[Int, String, IO.ApiIO] =
 //    swaydb.persistent.SetMap[Int, String, IO.ApiIO](dir = randomDir()).right.value.sweep(_.delete().get)
 //}
 //
@@ -42,7 +42,7 @@
 //
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): SetMapT[Int, String, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): SetMapT[Int, String, IO.ApiIO] =
 //    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir(), logSize = 1.byte, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = 10.bytes)).right.value.sweep(_.delete().get)
 //}
 //
@@ -50,28 +50,28 @@
 //
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): SetMapT[Int, String, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): SetMapT[Int, String, IO.ApiIO] =
 //    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](logSize = 1.byte).right.value.sweep(_.delete().get)
 //}
 //
 //class ScalaMapSpec3 extends ScalaMapSpec {
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): SetMapT[Int, String, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): SetMapT[Int, String, IO.ApiIO] =
 //    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value.sweep(_.delete().get)
 //}
 //
 //class MultiMapSpec4 extends ScalaMapSpec {
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): SetMapT[Int, String, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): SetMapT[Int, String, IO.ApiIO] =
 //    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir()).get.sweep(_.delete().get))
 //}
 //
 //class MultiMapSpec5 extends ScalaMapSpec {
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): SetMapT[Int, String, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): SetMapT[Int, String, IO.ApiIO] =
 //    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get.sweep(_.delete().get))
 //}
 //
@@ -79,12 +79,12 @@
 //
 //  val keyValueCount: Int
 //
-//  def newDB()(implicit sweeper: TestSweeper): SetMapT[Int, String, IO.ApiIO]
+//  def newDB()(implicit sweeper: CoreTestSweeper): SetMapT[Int, String, IO.ApiIO]
 //
 //  "Expire" when {
 //    "put" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -98,7 +98,7 @@
 //
 //    "putAll" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -113,7 +113,7 @@
 //
 //    "remove" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -130,7 +130,7 @@
 //
 //    "removeAll" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -147,7 +147,7 @@
 //
 //    "keySet, head, last, contains" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()

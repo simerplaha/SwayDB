@@ -17,8 +17,8 @@
 //package swaydb.core.compaction.throttle
 //
 //import org.scalatest.flatspec.AnyFlatSpec
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //
-//class ThrottleLevelOrderingSpec extends AnyFlatSpec with Matchers {
+//class ThrottleLevelOrderingSpec extends AnyFlatSpec {
 //
 //}

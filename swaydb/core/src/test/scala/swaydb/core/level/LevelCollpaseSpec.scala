@@ -56,7 +56,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait LevelCollapseSpec extends ALevelSpec {
+//sealed trait LevelCollapseSpec extends AnyWordSpec {
 //
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //  implicit val testTimer: TestTimer = TestTimer.Empty
@@ -68,7 +68,7 @@
 //  //    false
 //
 //  "collapse small Segments to 50% of the size when the Segment's size was reduced by deleting 50% of it's key-values" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //        import sweeper._
 //
@@ -112,9 +112,9 @@
 //  }
 //
 //  "collapse all small Segments into one of the existing small Segments, if the Segment was reopened with a larger segment size" in {
-//    if (isPersistentSpec) //memory Level cannot be reopened.
+//    if (isPersistent) //memory Level cannot be reopened.
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -160,7 +160,7 @@
 //  "clear expired key-values" in {
 //    //this test is similar as the above collapsing small Segment test.
 //    //Remove or expiring key-values should have the same result
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //        import sweeper._
 //
@@ -208,7 +208,7 @@
 //  }
 //
 //  "update createdInLevel" in new ALogSpec {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //        import sweeper._
 //
@@ -221,7 +221,7 @@
 //        val nextLevel = TestLevel()
 //        nextLevel.putSegments(level.segments()).get
 //
-//        if (isPersistentSpec) nextLevel.segments() foreach (_.createdInLevel shouldBe level.levelNumber)
+//        if (isPersistent) nextLevel.segments() foreach (_.createdInLevel shouldBe level.levelNumber)
 //
 //        nextLevel.collapse(nextLevel.segments(), removeDeletedRecords = false).awaitInf match {
 //          case LevelCollapseResult.Empty =>

@@ -17,7 +17,7 @@
 //package swaydb.core.compaction.task.assigner
 //
 //import org.scalamock.scalatest.MockFactory
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.compaction.task.CompactionDataType
@@ -27,7 +27,7 @@
 //import scala.collection.mutable.ListBuffer
 //import swaydb.testkit.TestKit._
 //
-//class TaskAssigner_finaliseSegmentsToCompact_Spec extends AnyWordSpec with Matchers with MockFactory {
+//class TaskAssigner_finaliseSegmentsToCompact_Spec extends AnyWordSpec {
 //
 //  /**
 //   * SCENARIO 1

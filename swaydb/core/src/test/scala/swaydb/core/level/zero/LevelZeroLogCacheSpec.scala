@@ -15,7 +15,7 @@
 // */
 //package swaydb.core.level.zero
 //
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.config.{Atomic, OptimiseWrites}
 //import swaydb.core.CommonAssertions._
@@ -33,7 +33,7 @@
 //import swaydb.slice.order.TimeOrder
 //import swaydb.testkit.TestKit._
 //
-//class LevelZeroLogCacheSpec extends AnyWordSpec with Matchers {
+//class LevelZeroLogCacheSpec extends AnyWordSpec {
 //
 //  implicit val keyOrder = swaydb.slice.order.KeyOrder.default
 //  implicit val testTimer: TestTimer = TestTimer.Empty

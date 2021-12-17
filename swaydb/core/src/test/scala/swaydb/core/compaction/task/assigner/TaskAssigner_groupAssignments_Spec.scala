@@ -17,14 +17,14 @@
 //package swaydb.core.compaction.task.assigner
 //
 //import org.scalamock.scalatest.MockFactory
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.core.compaction.task.CompactionDataType
 //import swaydb.core.segment.assigner.AssignmentResult
 //
 //import scala.collection.mutable
 //
-//class TaskAssigner_groupAssignments_Spec extends AnyWordSpec with Matchers with MockFactory {
+//class TaskAssigner_groupAssignments_Spec extends AnyWordSpec {
 //
 //  "not join assignments" when {
 //    "there is no spread" in {

@@ -17,13 +17,12 @@
 package swaydb.effect
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.concurrent.{Eventually, Futures}
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
+import swaydb.{Error, IO}
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.Defer
 import swaydb.effect.IOValues._
-import swaydb.{Error, IO}
 
 import java.io.FileNotFoundException
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -31,7 +30,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
 
-class IODeferSpec extends AnyWordSpec with Matchers with Eventually with MockFactory with Futures {
+class IODeferSpec extends AnyWordSpec with MockFactory {
 
   val unknownError = swaydb.Error.Fatal(this.getClass.getSimpleName + " test exception.")
   val recoverableError = swaydb.Error.FileNotFound(new FileNotFoundException())
@@ -236,7 +235,7 @@ class IODeferSpec extends AnyWordSpec with Matchers with Eventually with MockFac
       deferred.isReady shouldBe true
       deferred.isComplete shouldBe true
 
-      //deferred's value is initialised initialised so the mock function is not invoked again.
+      //deferred value is initialised initialised so the mock function is not invoked again.
       deferred.runIO shouldBe IO.Right(2)
     }
 

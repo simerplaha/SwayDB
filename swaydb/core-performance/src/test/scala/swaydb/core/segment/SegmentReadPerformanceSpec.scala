@@ -18,11 +18,10 @@
 ////
 ////import swaydb.Benchmark
 ////import swaydb.config.SegmentRefCacheLife
-////import swaydb.core.TestSweeper._
+////import swaydb.core.CoreTestSweeper._
 ////import swaydb.core.CoreTestData._
 ////import swaydb.core.file.ForceSaveApplier
-////import swaydb.core.segment.PathsDistributor
-////import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlockConfig}
+////////import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlockConfig}
 ////import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 ////import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 ////import swaydb.core.segment.block.segment.SegmentBlockConfig
@@ -34,7 +33,7 @@
 ////import swaydb.core.segment.entry.reader.PersistentReader
 ////import swaydb.core.segment.io.SegmentReadIO
 ////import swaydb.core.segment.ref.search.ThreadReadState
-////import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, CoreTestSweepers}
+////import swaydb.core.{ACoreSpec, CoreTestSweeper, TestExecutionContext, CoreTestSweepers}
 ////import swaydb.effect.{Dir, IOAction, IOStrategy}
 ////import swaydb.slice.Slice
 ////import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -45,7 +44,7 @@
 ////import scala.concurrent.duration._
 ////import scala.util.Random
 ////
-////class SegmentReadPerformanceSpec extends ASegmentSpec {
+////class SegmentReadPerformanceSpec extends AnyWordSpec {
 ////
 ////  implicit val keyOrder = KeyOrder.default
 ////  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
@@ -67,7 +66,7 @@
 ////
 ////    val path: Path = testSegmentFile
 ////
-////    implicit val pathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq.empty)
+////    implicit val pathDistributor = pathDistributor(Seq(Dir(path.getParent, 1)), () => Seq.empty)
 ////
 ////    val sortedIndexConfig =
 ////      SortedIndexBlockConfig(
@@ -170,7 +169,7 @@
 ////        enableHashIndexForListSegment = true,
 ////        mmap = mmapSegments,
 ////        deleteDelay = 0.seconds,
-////        //              compressions = _ => Seq(CompressionInternal.randomLZ4(Double.MinValue))
+////        //              compressions = _ => Seq(CoreCompression.randomLZ4(Double.MinValue))
 ////        compressions = _ => Seq.empty,
 ////        initialiseIteratorsInOneSeek = false
 ////      )
@@ -178,8 +177,8 @@
 ////    implicit val fileSweeper = CoreTestSweepers.createFileSweeper()
 ////    implicit val byteBufferSweeper = CoreTestSweepers.createBufferCleaner()
 ////    implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.On
-////    //        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeperMax
-////    //      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeper10
+////    //        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = CoreTestSweeper.someMemorySweeperMax
+////    //      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = CoreTestSweeper.someMemorySweeper10
 ////    implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None
 ////
 ////    implicit val state: Option[MemorySweeper.Block] =
@@ -199,7 +198,7 @@
 ////    val segments =
 ////      Benchmark(s"Creating segment. keyValues: ${keyValues.size}") {
 ////        PersistentSegment(
-////          pathsDistributor = pathsDistributor,
+////          pathDistributor = pathDistributor,
 ////          createdInLevel = 1,
 ////          bloomFilterConfig = bloomFilterConfig,
 ////          hashIndexConfig = hashIndexConfig,
@@ -243,7 +242,7 @@
 ////  //  }
 ////
 ////  "Get" in {
-////    TestSweeper {
+////    CoreTestSweeper {
 ////      implicit sweeper =>
 ////
 ////        def assertGet(segment: Segment) = {
@@ -398,7 +397,7 @@
 ////  }
 ////
 ////  "Higher" in {
-////    TestSweeper {
+////    CoreTestSweeper {
 ////      implicit sweeper =>
 ////        def assertHigher(segment: Segment) = {
 ////          val readState = ThreadReadState.hashMap()
@@ -442,7 +441,7 @@
 ////  }
 ////
 ////  "Lower" in {
-////    TestSweeper {
+////    CoreTestSweeper {
 ////      implicit sweeper =>
 ////
 ////        val range = (1 until keyValues.size).reverse

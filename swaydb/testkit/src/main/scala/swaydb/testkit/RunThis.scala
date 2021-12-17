@@ -89,7 +89,7 @@ object RunThis extends Eventually {
   implicit class FutureAwait2[T](f: => T)(implicit ec: ExecutionContext) {
     def runThisInFuture(times: Int): Future[Seq[T]] = {
       println(s"runThis $times times")
-      val futures = Range.inclusive(1, times) map { _ => Future(f) }
+      val futures = Range.inclusive(1, times).map(_ => Future(f))
       Future.sequence(futures)
     }
   }

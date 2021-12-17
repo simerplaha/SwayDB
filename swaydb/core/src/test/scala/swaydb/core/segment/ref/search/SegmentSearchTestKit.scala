@@ -4,6 +4,7 @@ import org.scalactic.Equality
 import org.scalatest.OptionValues._
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.matchers.should.Matchers._
+import org.scalatest.Assertion
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.segment._
 import swaydb.core.segment.block._
@@ -16,15 +17,14 @@ import swaydb.serializers._
 import swaydb.serializers.Default._
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.TestKit._
-import swaydb.IO
+import swaydb.{IO, TestExecutionContext}
 import swaydb.core.level.{Level, LevelRef}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset, BloomFilterBlockState}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment.SegmentTestKit._
-import swaydb.core.segment.block.BlockTestKit._
+import swaydb.core.segment.block.SegmentBlockTestKit._
 import swaydb.core.segment.data.KeyValueTestKit._
-import swaydb.core.TestExecutionContext
 import swaydb.core.level.seek._
 import swaydb.slice.{Reader, Slice}
 import swaydb.slice.SliceTestKit._
@@ -174,7 +174,7 @@ object SegmentSearchTestKit {
     assertBloomNotContains(bloomFilterReader)
   }
 
-  def assertBloomNotContains(bloomFilterReader: UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]) =
+  def assertBloomNotContains(bloomFilterReader: UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]): Assertion =
     (1 to 1000).par.count {
       _ =>
         BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader.copy()).runRandomIO.get
@@ -197,12 +197,24 @@ object SegmentSearchTestKit {
     }
 
   def assertReads(keyValues: Slice[KeyValue],
-                  segment: Segment) = {
+                  segment: Segment): Unit = {
     val asserts = Seq(() => assertGet(keyValues, segment), () => assertHigher(keyValues, segment), () => assertLower(keyValues, segment))
     Random.shuffle(asserts).par.foreach(_ ())
   }
 
-  def assertAllSegmentsCreatedInLevel(level: Level) =
+  def assertReads(keyValues: Slice[Memory],
+                  segmentReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                         blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
+
+    //read fullIndex
+    SegmentBlockTestKit.readAll(segmentReader.copy()).runRandomIO.get shouldBe keyValues
+    //    //find each KeyValue using all Matchers
+    assertGet(keyValues, segmentReader.copy())
+    assertLower(keyValues, segmentReader.copy())
+    assertHigher(keyValues, segmentReader.copy())
+  }
+
+  def assertAllSegmentsCreatedInLevel(level: Level): Unit =
     level.segments() foreach (_.createdInLevel.runRandomIO.get shouldBe level.levelNumber)
 
   def assertGetFromThisLevelOnly(keyValues: Iterable[KeyValue],
@@ -228,18 +240,6 @@ object SegmentSearchTestKit {
       () => IO.Defer(level.head(ThreadReadState.random).toOptionPut).runIO.get shouldBe empty,
       () => IO.Defer(level.last(ThreadReadState.random).toOptionPut).runIO.get shouldBe empty
     ).runThisRandomlyInParallel
-
-  def assertReads(keyValues: Slice[Memory],
-                  segmentReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                         blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
-
-    //read fullIndex
-    BlockTestKit.readAll(segmentReader.copy()).runRandomIO.get shouldBe keyValues
-    //    //find each KeyValue using all Matchers
-    assertGet(keyValues, segmentReader.copy())
-    assertLower(keyValues, segmentReader.copy())
-    assertHigher(keyValues, segmentReader.copy())
-  }
 
   def assertGet(keyValues: Iterable[KeyValue],
                 segment: Segment): Unit =

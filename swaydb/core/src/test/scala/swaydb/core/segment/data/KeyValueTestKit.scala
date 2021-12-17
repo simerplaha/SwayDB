@@ -4,7 +4,7 @@ import org.scalatest.matchers.should.Matchers._
 import org.scalatest.OptionValues._
 import swaydb.core.log.serialiser.LogEntryWriter
 import swaydb.core.log.LogEntry
-import swaydb.core.segment.{data, CoreFunctionStore}
+import swaydb.core.segment.{data, CoreFunctionStore, TestCoreFunctionStore}
 import swaydb.core.segment.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.serialiser.{RangeValueSerialiser, ValueSerialiser}
@@ -31,10 +31,6 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.Random
 
 object KeyValueTestKit {
-
-  implicit val functionStore: CoreFunctionStore = CoreFunctionStore.memory()
-
-  val functionIdGenerator = new AtomicInteger(0)
 
   implicit class MemoryIterableImplicits(keyValues: Slice[Memory]) {
     @inline final def maxKey(): MaxKey[Slice[Byte]] =
@@ -76,6 +72,7 @@ object KeyValueTestKit {
           range.fetchFromValueUnsafe flatMapOptionS {
             case put: Value.Put =>
               Some(put.toMemory(range.fromKey))
+
             case _ =>
               None
           }
@@ -97,22 +94,27 @@ object KeyValueTestKit {
           keyValue match {
             case keyValue: Memory.Put =>
               keyValue.value.toOptionC
+
             case keyValue: Memory.Update =>
               keyValue.value.toOptionC
+
             case keyValue: Memory.Function =>
               Some(keyValue.getOrFetchFunction)
+
             case keyValue: Memory.PendingApply =>
               val bytes = Slice.allocate[Byte](ValueSerialiser.bytesRequired(keyValue.getOrFetchApplies.runRandomIO.get))
               ValueSerialiser.write(keyValue.getOrFetchApplies.runRandomIO.get)(bytes)
               Some(bytes)
+
             case keyValue: Memory.Remove =>
               None
+
             case keyValue: Memory.Range =>
               val bytes = Slice.allocate[Byte](RangeValueSerialiser.bytesRequired(keyValue.fromValue, keyValue.rangeValue))
               RangeValueSerialiser.write(keyValue.fromValue, keyValue.rangeValue)(bytes)
               Some(bytes)
-
           }
+
         case keyValue: Persistent =>
           keyValue match {
             case keyValue: Persistent.Put =>
@@ -159,13 +161,17 @@ object KeyValueTestKit {
               value match {
                 case Value.Remove(deadline, time) =>
                   deadline
+
                 case Value.Update(value, deadline, time) =>
                   deadline
+
                 case Value.Function(function, time) =>
                   None
+
                 case pending: Value.PendingApply =>
                   pending.applies.last.deadline
               }
+
             case Value.Put(value, deadline, time) =>
               deadline
           }
@@ -180,6 +186,7 @@ object KeyValueTestKit {
             true
           else
             false
+
         case _: Memory.Update | _: Memory.Remove | _: Memory.Function | _: Memory.PendingApply =>
           false
       }
@@ -193,6 +200,7 @@ object KeyValueTestKit {
             Some(expectedLevel)
           else
             None
+
         case range: Memory.Range =>
           range.fromValue flatMapOptionS {
             case range: Value.Put =>
@@ -200,15 +208,19 @@ object KeyValueTestKit {
                 Some(range.toMemory(keyValue.key))
               else
                 None
+
             case _ =>
               None
           }
-        case _: Memory.Update =>
+        case _: Memory.Update    =>
           None
+
         case _: Memory.Function =>
           None
+
         case _: Memory.PendingApply =>
           None
+
         case _: Memory.Remove =>
           None
       }
@@ -221,8 +233,10 @@ object KeyValueTestKit {
       value match {
         case Value.Remove(deadline, time) =>
           s"Remove(deadline = $deadline)"
+
         case Value.Put(value, deadline, time) =>
           s"Put(${value.toOptionC.map(_.read[Int]).getOrElse("None")}, deadline = $deadline)"
+
         case Value.Update(value, deadline, time) =>
           s"Update(${value.toOptionC.map(_.read[Int]).getOrElse("None")}, deadline = $deadline)"
       }
@@ -362,6 +376,7 @@ object KeyValueTestKit {
             fromValue foreachS assertSliced
             assertSliced(rangeValue)
         }
+
       case persistent: Persistent =>
         persistent match {
           case Persistent.Remove(_key, deadline, _time, indexOffset, nextIndexOffset, nextIndexSize, _, _) =>
@@ -412,11 +427,13 @@ object KeyValueTestKit {
       fromValue match {
         case _: Value.Remove =>
           None
+
         case Value.Put(value, deadline, time) =>
           if (deadline.forall(_.hasTimeLeft()))
             Some(Memory.Put(key, value, deadline, time))
           else
             None
+
         case _: Value.Update | _: Value.Function | _: Value.PendingApply =>
           None
       }
@@ -427,22 +444,24 @@ object KeyValueTestKit {
       applies mapToSlice {
         case Value.Remove(deadline, time) =>
           Memory.Remove(key, deadline, time)
+
         case Value.Update(value, deadline, time) =>
           Memory.Update(key, value, deadline, time)
+
         case function: Value.Function =>
           Memory.PendingApply(key, Slice(function))
       }
   }
 
 
-  def randomDeadUpdateOrExpiredPut(key: Slice[Byte]): Memory.Fixed =
+  def randomDeadUpdateOrExpiredPut(key: Slice[Byte])(implicit functionStore: TestCoreFunctionStore): Memory.Fixed =
     eitherOne(
       randomFixedKeyValue(key, includePuts = false),
       randomPutKeyValue(key, deadline = Some(expiredDeadline()))
     )
 
   def randomPutKeyValue(key: Slice[Byte],
-                        value: SliceOption[Byte] = randomStringSliceOptional,
+                        value: SliceOption[Byte] = randomStringSliceOptional(),
                         deadline: Option[Deadline] = randomDeadlineOption())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put =
     Memory.Put(
       key = key,
@@ -452,7 +471,7 @@ object KeyValueTestKit {
     )
 
   def randomExpiredPutKeyValue(key: Slice[Byte],
-                               value: SliceOption[Byte] = randomStringSliceOptional)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put =
+                               value: SliceOption[Byte] = randomStringSliceOptional())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put =
     randomPutKeyValue(
       key = key,
       value = value,
@@ -460,7 +479,7 @@ object KeyValueTestKit {
     )
 
   def randomUpdateKeyValue(key: Slice[Byte],
-                           value: SliceOption[Byte] = randomStringSliceOptional,
+                           value: SliceOption[Byte] = randomStringSliceOptional(),
                            deadline: Option[Deadline] = randomDeadlineOption())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Update =
     Memory.Update(key, value, deadline, testTimer.next)
 
@@ -470,25 +489,30 @@ object KeyValueTestKit {
 
   def randomRemoveAny(from: Slice[Byte],
                       to: Slice[Byte],
-                      addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory =
+                      addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                    functionStore: TestCoreFunctionStore): Memory =
     eitherOne(
       left = randomRemoveOrUpdateOrFunctionRemove(from, addFunctions),
       right = randomRemoveRange(from, to)
     )
 
-  def randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): RangeValue = {
+  def randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                              functionStore: TestCoreFunctionStore): RangeValue = {
     val value = randomRemoveOrUpdateOrFunctionRemove(Slice.emptyBytes, addFunctions).toRangeValue().runRandomIO.get
     //println(value)
     value
   }
 
-  def randomRemoveFunctionValue()(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.Function =
+  def randomRemoveFunctionValue()(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                  functionStore: TestCoreFunctionStore): Value.Function =
     randomFunctionKeyValue(Slice.emptyBytes, SegmentFunctionOutput.Remove).toRangeValue().runRandomIO.get
 
-  def randomFunctionValue(output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.Function =
+  def randomFunctionValue(output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                  functionStore: TestCoreFunctionStore): Value.Function =
     randomFunctionKeyValue(Slice.emptyBytes, SegmentFunctionOutput.Remove).toRangeValue().runRandomIO.get
 
-  def randomRemoveOrUpdateOrFunctionRemoveValueOption(addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Option[RangeValue] =
+  def randomRemoveOrUpdateOrFunctionRemoveValueOption(addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                    functionStore: TestCoreFunctionStore): Option[RangeValue] =
     eitherOne(
       left = None,
       right = Some(randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions))
@@ -498,30 +522,32 @@ object KeyValueTestKit {
    * Removes can occur by [[Memory.Remove]], [[Memory.Update]] with expiry or [[Memory.Function]] with remove output.
    */
   def randomRemoveOrUpdateOrFunctionRemove(key: Slice[Byte],
-                                           addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Fixed =
+                                           addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                         functionStore: TestCoreFunctionStore): Memory.Fixed =
     if (randomBoolean())
       randomRemoveKeyValue(key, randomExpiredDeadlineOption())
     else if (randomBoolean && addFunctions)
       randomFunctionKeyValue(key, randomRemoveFunctionOutput())
     else
-      randomUpdateKeyValue(key, randomStringOption, Some(expiredDeadline()))
+      randomUpdateKeyValue(key, randomStringOption(), Some(expiredDeadline()))
 
   def randomRemoveFunctionOutput() =
     eitherOne(
       SegmentFunctionOutput.Remove,
       SegmentFunctionOutput.Expire(expiredDeadline()),
-      SegmentFunctionOutput.Update(randomStringOption, Some(expiredDeadline()))
+      SegmentFunctionOutput.Update(randomStringOption(), Some(expiredDeadline()))
     )
 
   def randomUpdateFunctionOutput() =
     eitherOne(
       SegmentFunctionOutput.Expire(randomDeadline(false)),
-      SegmentFunctionOutput.Update(randomStringOption, randomDeadlineOption(false))
+      SegmentFunctionOutput.Update(randomStringOption(), randomDeadlineOption(false))
     )
 
   def randomRemoveRange(from: Slice[Byte],
                         to: Slice[Byte],
-                        addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Range =
+                        addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                      functionStore: TestCoreFunctionStore): Memory.Range =
     randomRangeKeyValue(
       from = from,
       to = to,
@@ -532,7 +558,8 @@ object KeyValueTestKit {
   /**
    * Creates remove ranges of random range slices slice for all input key-values.
    */
-  def randomRemoveRanges(keyValues: Iterable[Memory])(implicit testTimer: TestTimer = TestTimer.Incremental()): Iterator[Memory.Range] =
+  def randomRemoveRanges(keyValues: Iterable[Memory])(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                      functionStore: TestCoreFunctionStore): Iterator[Memory.Range] =
     keyValues
       .grouped(randomIntMax(100) max 1)
       .flatMap {
@@ -553,10 +580,11 @@ object KeyValueTestKit {
 
   def randomPendingApplyKeyValue(key: Slice[Byte],
                                  max: Int = 5,
-                                 value: SliceOption[Byte] = randomStringSliceOptional,
+                                 value: SliceOption[Byte] = randomStringSliceOptional(),
                                  deadline: Option[Deadline] = randomDeadlineOption(),
                                  functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
-                                 includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()) =
+                                 includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                   functionStore: TestCoreFunctionStore) =
     Memory.PendingApply(
       key = key,
       applies =
@@ -570,63 +598,72 @@ object KeyValueTestKit {
     )
 
   def createFunction(key: Slice[Byte],
-                     coreFunction: SegmentFunction)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function = {
-    val functionId = Slice.writeInt(functionIdGenerator.incrementAndGet())
-    functionStore.put(functionId, coreFunction)
+                     coreFunction: SegmentFunction)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                    functionStorage: TestCoreFunctionStore): Memory.Function = {
+    val functionId = Slice.writeInt(functionStorage.incrementAndGetId())
+    functionStorage.store.put(functionId, coreFunction)
     Memory.Function(key, functionId, testTimer.next)
   }
 
   def randomFunctionKeyValue(key: Slice[Byte],
-                             output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                             output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                     functionStorage: TestCoreFunctionStore): Memory.Function =
     createFunction(
       key = key,
       coreFunction = randomCoreFunction(output)
     )
 
   def randomFunctionNoDeadlineKeyValue(key: Slice[Byte],
-                                       output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                                       output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                               functionStorage: TestCoreFunctionStore): Memory.Function =
     createFunction(
       key = key,
-      coreFunction = randomcoreFunctionNoDeadline(output)
+      coreFunction = randomCoreFunctionNoDeadline(output)
     )
 
   def randomKeyFunctionKeyValue(key: Slice[Byte],
-                                output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                                output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                        functionStorage: TestCoreFunctionStore): Memory.Function =
     createFunction(
       key = key,
       coreFunction = SegmentFunction.Key(_ => output)
     )
 
   def randomKeyDeadlineFunctionKeyValue(key: Slice[Byte],
-                                        output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                                        output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                                functionStorage: TestCoreFunctionStore): Memory.Function =
     createFunction(
       key = key,
       coreFunction = SegmentFunction.KeyDeadline((_, _) => output)
     )
 
   def randomKeyValueFunctionKeyValue(key: Slice[Byte],
-                                     output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                                     output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                             functionStorage: TestCoreFunctionStore): Memory.Function =
     createFunction(
       key = key,
       coreFunction = SegmentFunction.KeyValue((_, _) => output)
     )
 
   def randomKeyValueDeadlineFunctionKeyValue(key: Slice[Byte],
-                                             output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                                             output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                                     functionStorage: TestCoreFunctionStore): Memory.Function =
     createFunction(
       key = key,
       coreFunction = SegmentFunction.KeyValueDeadline((_, _, _) => output)
     )
 
   def randomValueFunctionKeyValue(key: Slice[Byte],
-                                  output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                                  output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                          functionStorage: TestCoreFunctionStore): Memory.Function =
     createFunction(
       key = key,
       coreFunction = SegmentFunction.Value(_ => output)
     )
 
   def randomValueDeadlineFunctionKeyValue(key: Slice[Byte],
-                                          output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function =
+                                          output: SegmentFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                                  functionStorage: TestCoreFunctionStore): Memory.Function =
     createFunction(
       key = key,
       coreFunction = SegmentFunction.ValueDeadline((_, _) => output)
@@ -644,7 +681,7 @@ object KeyValueTestKit {
     if (randomBoolean())
       SegmentFunctionOutput.Expire(randomDeadline(expiredDeadline))
     else
-      SegmentFunctionOutput.Update((randomStringOption: Slice[Byte]).asSliceOption(), randomDeadlineOption(expiredDeadline))
+      SegmentFunctionOutput.Update((randomStringOption(): Slice[Byte]).asSliceOption(), randomDeadlineOption(expiredDeadline))
 
   def randomRequiresKeyFunction(functionOutput: SegmentFunctionOutput = randomFunctionOutput()): SegmentFunction.RequiresKey =
     Random.shuffle(
@@ -682,7 +719,7 @@ object KeyValueTestKit {
       )
     ).head
 
-  def randomcoreFunctionNoDeadline(functionOutput: SegmentFunctionOutput = randomFunctionOutput()): SegmentFunction =
+  def randomCoreFunctionNoDeadline(functionOutput: SegmentFunctionOutput = randomFunctionOutput()): SegmentFunction =
     Random.shuffle(
       Seq(
         SegmentFunction.Value(_ => functionOutput),
@@ -725,17 +762,18 @@ object KeyValueTestKit {
     else
       randomValueOnlyFunction(functionOutput)
 
-  def randomFunctionId(functionOutput: SegmentFunctionOutput = randomFunctionOutput()): Slice[Byte] = {
-    val functionId = Slice.writeInt(functionIdGenerator.incrementAndGet())
-    functionStore.put(functionId, randomCoreFunction(functionOutput))
+  def randomFunctionId(functionOutput: SegmentFunctionOutput = randomFunctionOutput())(implicit functionStore: TestCoreFunctionStore): Slice[Byte] = {
+    val functionId = Slice.writeInt(functionStore.incrementAndGetId())
+    functionStore.store.put(functionId, randomCoreFunction(functionOutput))
     functionId
   }
 
-  def randomApply(value: SliceOption[Byte] = randomStringSliceOptional,
+  def randomApply(value: SliceOption[Byte] = randomStringSliceOptional(),
                   deadline: Option[Deadline] = randomDeadlineOption(),
                   addRemoves: Boolean = randomBoolean(),
                   functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
-                  includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()) =
+                  includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                    functionStore: TestCoreFunctionStore) =
     if (addRemoves && randomBoolean())
       Value.Remove(deadline, testTimer.next)
     else if (includeFunctions && randomBoolean())
@@ -743,7 +781,7 @@ object KeyValueTestKit {
     else
       Value.Update(value, deadline, testTimer.next)
 
-  def randomApplyWithDeadline(value: SliceOption[Byte] = randomStringSliceOptional,
+  def randomApplyWithDeadline(value: SliceOption[Byte] = randomStringSliceOptional(),
                               addRangeRemoves: Boolean = randomBoolean(),
                               deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()) =
     if (addRangeRemoves && randomBoolean())
@@ -752,11 +790,12 @@ object KeyValueTestKit {
       Value.Update(value, Some(deadline), testTimer.next)
 
   def randomApplies(max: Int = 5,
-                    value: SliceOption[Byte] = randomStringSliceOptional,
+                    value: SliceOption[Byte] = randomStringSliceOptional(),
                     deadline: Option[Deadline] = randomDeadlineOption(),
                     addRemoves: Boolean = randomBoolean(),
                     functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
-                    includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Value.Apply] =
+                    includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                      functionStore: TestCoreFunctionStore): Slice[Value.Apply] =
     Slice.wrap {
       (1 to (Random.nextInt(max) max 1)).map {
         _ =>
@@ -771,7 +810,7 @@ object KeyValueTestKit {
     }
 
   def randomAppliesWithDeadline(max: Int = 5,
-                                value: SliceOption[Byte] = randomStringSliceOptional,
+                                value: SliceOption[Byte] = randomStringSliceOptional(),
                                 addRangeRemoves: Boolean = randomBoolean(),
                                 deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Value.Apply] =
     Slice.wrap {
@@ -787,9 +826,8 @@ object KeyValueTestKit {
 
   def randomTransientKeyValue(key: Slice[Byte],
                               toKey: SliceOption[Byte],
-                              value: SliceOption[Byte] = randomStringSliceOptional,
-                              fromValue: FromValueOption = randomFromValueOption(),
-                              rangeValue: RangeValue = randomRangeValue(),
+                              value: SliceOption[Byte] = randomStringSliceOptional(),
+                              rangeValue: RangeValue,
                               deadline: Option[Deadline] = randomDeadlineOption(),
                               time: Time = Time.empty,
                               functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
@@ -797,12 +835,12 @@ object KeyValueTestKit {
                               includeFunctions: Boolean = true,
                               includeRemoves: Boolean = true,
                               includePuts: Boolean = true,
-                              includeRanges: Boolean = true): Memory =
+                              includeRanges: Boolean = true)(implicit functionStore: TestCoreFunctionStore): Memory =
     if (toKey.isSomeC && includeRanges && randomBoolean())
-      Memory.Range(
-        fromKey = key,
-        toKey = toKey.getC,
-        fromValue = fromValue,
+      randomRangeKeyValue(
+        from = key,
+        to = toKey.getC,
+        fromValue = randomFromValueOption(),
         rangeValue = rangeValue
       )
     else
@@ -819,14 +857,14 @@ object KeyValueTestKit {
       )
 
   def randomFixedTransientKeyValue(key: Slice[Byte],
-                                   value: SliceOption[Byte] = randomStringSliceOptional,
+                                   value: SliceOption[Byte] = randomStringSliceOptional(),
                                    deadline: Option[Deadline] = randomDeadlineOption(),
                                    time: Time = Time.empty,
                                    functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                                    includePendingApply: Boolean = true,
                                    includeFunctions: Boolean = true,
                                    includeRemoves: Boolean = true,
-                                   includePuts: Boolean = true): Memory.Fixed =
+                                   includePuts: Boolean = true)(implicit functionStore: TestCoreFunctionStore): Memory.Fixed =
     if (includePuts && randomBoolean())
       Memory.Put(
         key = key,
@@ -868,13 +906,14 @@ object KeyValueTestKit {
       )
 
   def randomFixedKeyValue(key: Slice[Byte],
-                          value: SliceOption[Byte] = randomStringSliceOptional,
+                          value: SliceOption[Byte] = randomStringSliceOptional(),
                           deadline: Option[Deadline] = randomDeadlineOption(),
                           functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                           includePendingApply: Boolean = true,
                           includeFunctions: Boolean = true,
                           includeRemoves: Boolean = true,
-                          includePuts: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Fixed =
+                          includePuts: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                       functionStore: TestCoreFunctionStore): Memory.Fixed =
     if (includePuts && randomBoolean())
       Memory.Put(key, value, deadline, testTimer.next)
     else if (includeRemoves && randomBoolean())
@@ -897,12 +936,23 @@ object KeyValueTestKit {
     else
       Memory.Update(key, value, deadline, testTimer.next)
 
-
   def randomRangeKeyValue(from: Slice[Byte],
                           to: Slice[Byte],
-                          fromValue: FromValueOption = randomFromValueOption()(TestTimer.random),
-                          rangeValue: RangeValue = randomRangeValue()(TestTimer.random)): Memory.Range = {
-    val range = Memory.Range(from, to, fromValue, rangeValue)
+                          fromValue: Value.FromValueOption,
+                          rangeValue: Value.RangeValue): Memory.Range =
+    Memory.Range(
+      fromKey = from,
+      toKey = to,
+      fromValue = fromValue,
+      rangeValue = rangeValue
+    )
+
+  def randomRangeKeyValue(from: Slice[Byte],
+                          to: Slice[Byte]): Memory.Range = {
+    implicit val timer: TestTimer = TestTimer.random
+    implicit val functionStore: TestCoreFunctionStore = TestCoreFunctionStore()
+
+    val range = Memory.Range(from, to, randomFromValueOption(), randomRangeValue())
     //println(range)
     range
   }
@@ -938,11 +988,12 @@ object KeyValueTestKit {
     else
       None
 
-  def randomFromValueOption(value: SliceOption[Byte] = randomStringSliceOptional,
+  def randomFromValueOption(value: SliceOption[Byte] = randomStringSliceOptional(),
                             deadline: Option[Deadline] = randomDeadlineOption(),
                             functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                             addRemoves: Boolean = randomBoolean(),
-                            addPut: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): FromValueOption =
+                            addPut: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                               functionStore: TestCoreFunctionStore): FromValueOption =
     if (randomBoolean())
       randomFromValue(
         value = value,
@@ -954,7 +1005,7 @@ object KeyValueTestKit {
     else
       Value.FromValue.Null
 
-  def randomFromValueWithDeadlineOption(value: SliceOption[Byte] = randomStringSliceOptional,
+  def randomFromValueWithDeadlineOption(value: SliceOption[Byte] = randomStringSliceOptional(),
                                         addRangeRemoves: Boolean = randomBoolean(),
                                         deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): FromValueOption =
     if (randomBoolean())
@@ -962,9 +1013,10 @@ object KeyValueTestKit {
     else
       Value.FromValue.Null
 
-  def randomUpdateRangeValue(value: SliceOption[Byte] = randomStringSliceOptional,
+  def randomUpdateRangeValue(value: SliceOption[Byte] = randomStringSliceOptional(),
                              addRemoves: Boolean = randomBoolean(),
-                             functionOutput: SegmentFunctionOutput = randomUpdateFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()) = {
+                             functionOutput: SegmentFunctionOutput = randomUpdateFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                                   functionStore: TestCoreFunctionStore) = {
     val deadline =
     //if removes are allowed make sure to set the deadline
       if (addRemoves)
@@ -975,20 +1027,22 @@ object KeyValueTestKit {
     randomRangeValue(value = value, addRemoves = addRemoves, functionOutput = functionOutput, deadline = deadline)
   }
 
-  def randomFromValue(value: SliceOption[Byte] = randomStringSliceOptional,
+  def randomFromValue(value: SliceOption[Byte] = randomStringSliceOptional(),
                       addRemoves: Boolean = randomBoolean(),
                       deadline: Option[Deadline] = randomDeadlineOption(),
                       functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
-                      addPut: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.FromValue =
+                      addPut: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                         functionStore: TestCoreFunctionStore): Value.FromValue =
     if (addPut && randomBoolean())
       Value.Put(value, deadline, testTimer.next)
     else
       randomRangeValue(value = value, addRemoves = addRemoves, functionOutput = functionOutput, deadline = deadline)
 
-  def randomRangeValue(value: SliceOption[Byte] = randomStringSliceOptional,
+  def randomRangeValue(value: SliceOption[Byte] = randomStringSliceOptional(),
                        deadline: Option[Deadline] = randomDeadlineOption(),
                        functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
-                       addRemoves: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.RangeValue =
+                       addRemoves: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                              functionStore: TestCoreFunctionStore): Value.RangeValue =
     if (addRemoves && randomBoolean())
       Value.Remove(deadline, testTimer.next)
     else if (randomBoolean())
@@ -998,7 +1052,7 @@ object KeyValueTestKit {
     else
       Value.Update(value, deadline, testTimer.next)
 
-  def randomFromValueWithDeadline(value: SliceOption[Byte] = randomStringSliceOptional,
+  def randomFromValueWithDeadline(value: SliceOption[Byte] = randomStringSliceOptional(),
                                   addRangeRemoves: Boolean = randomBoolean(),
                                   deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.FromValue =
     if (randomBoolean())
@@ -1006,7 +1060,7 @@ object KeyValueTestKit {
     else
       randomRangeValueWithDeadline(value = value, addRangeRemoves = addRangeRemoves, deadline = deadline)
 
-  def randomRangeValueWithDeadline(value: SliceOption[Byte] = randomStringSliceOptional,
+  def randomRangeValueWithDeadline(value: SliceOption[Byte] = randomStringSliceOptional(),
                                    addRangeRemoves: Boolean = randomBoolean(),
                                    deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.RangeValue =
     if (addRangeRemoves && randomBoolean())
@@ -1023,7 +1077,8 @@ object KeyValueTestKit {
                                addRemoves: Boolean = false,
                                addRanges: Boolean = false,
                                addRemoveDeadlines: Boolean = false,
-                               addPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] =
+                               addPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                 functionStore: TestCoreFunctionStore): Slice[Memory] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1047,7 +1102,8 @@ object KeyValueTestKit {
                           addRemoveDeadlines: Boolean = randomBoolean(),
                           addPutDeadlines: Boolean = randomBoolean(),
                           addExpiredPutDeadlines: Boolean = randomBoolean(),
-                          addUpdateDeadlines: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] =
+                          addUpdateDeadlines: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                         functionStore: TestCoreFunctionStore): Slice[Memory] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1072,7 +1128,8 @@ object KeyValueTestKit {
                          addRanges: Boolean = false,
                          addRemoveDeadlines: Boolean = false,
                          addPutDeadlines: Boolean = true,
-                         addExpiredPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.random): Slice[Memory] =
+                         addExpiredPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.random,
+                                                                  functionStore: TestCoreFunctionStore): Slice[Memory] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1098,7 +1155,8 @@ object KeyValueTestKit {
                       addPutDeadlines: Boolean = false,
                       addExpiredPutDeadlines: Boolean = false,
                       addUpdateDeadlines: Boolean = false,
-                      addRanges: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] = {
+                      addRanges: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                  functionStore: TestCoreFunctionStore): Slice[Memory] = {
     val slice = Slice.allocate[Memory](count * 50) //extra space because addRanges and random Groups can be added for Fixed and Range key-values in the same iteration.
     //            var key = 1
     var key = startId getOrElse randomInt(minus = count)
@@ -1119,12 +1177,13 @@ object KeyValueTestKit {
           else
             None
         val rangeValueDeadline = if (addRemoveDeadlines || addUpdateDeadlines) randomDeadlineOption() else None
-        slice add randomRangeKeyValue(
-          from = key,
-          to = toKey,
-          fromValue = randomFromValueOption(value = fromValueValueBytes, deadline = fromValueDeadline, addPut = addPut),
-          rangeValue = randomRangeValue(value = rangeValueValueBytes, addRemoves = addRangeRemoves, deadline = rangeValueDeadline)
-        )
+        slice add
+          randomRangeKeyValue(
+            from = key,
+            to = toKey,
+            fromValue = randomFromValueOption(value = fromValueValueBytes, deadline = fromValueDeadline, addPut = addPut),
+            rangeValue = randomRangeValue(value = rangeValueValueBytes, addRemoves = addRangeRemoves, deadline = rangeValueDeadline)
+          )
         //randomly skip the Range's toKey for the next key.
         if (randomBoolean())
           key = toKey
@@ -1185,7 +1244,8 @@ object KeyValueTestKit {
                            addUpdateDeadlines: Boolean = true,
                            addPutDeadlines: Boolean = true,
                            addRemoves: Boolean = true,
-                           addRemoveDeadlines: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] =
+                           addRemoveDeadlines: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                               functionStore: TestCoreFunctionStore): Slice[Memory] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1358,14 +1418,19 @@ object KeyValueTestKit {
         keyValue match {
           case remove: Memory.Remove =>
             usedDeadlines ++ remove.deadline
+
           case put: Memory.Put =>
             usedDeadlines ++ put.deadline
+
           case update: Memory.Update =>
             usedDeadlines ++ update.deadline
+
           case _: Memory.Function =>
             usedDeadlines
+
           case apply: Memory.PendingApply =>
             collectUsedDeadlines(apply.applies.mapToSlice(_.toMemory(Slice.emptyBytes)), usedDeadlines)
+
           case range: Memory.Range =>
             val fromTransient = range.fromValue.toOptionS.map(_.toMemory(Slice.emptyBytes))
             val rangeTransient = range.rangeValue.toMemory(Slice.emptyBytes)
@@ -1476,10 +1541,10 @@ object KeyValueTestKit {
 
   def getUpdates(keyValues: Iterable[KeyValue]): Iterable[KeyValue.Fixed] =
     keyValues collect {
-      case keyValue: KeyValue.Update => keyValue
-      case keyValue: KeyValue.Remove => keyValue
+      case keyValue: KeyValue.Update       => keyValue
+      case keyValue: KeyValue.Remove       => keyValue
       case keyValue: KeyValue.PendingApply => keyValue
-      case keyValue: KeyValue.Function => keyValue
+      case keyValue: KeyValue.Function     => keyValue
     }
 
   /**
@@ -1490,7 +1555,8 @@ object KeyValueTestKit {
   def randomUpdate(keyValues: Iterable[KeyValue.Put],
                    updatedValue: SliceOption[Byte],
                    deadline: Option[Deadline],
-                   randomlyDropUpdates: Boolean)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] = {
+                   randomlyDropUpdates: Boolean)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                 functionStore: TestCoreFunctionStore): Slice[Memory] = {
     var keyUsed = keyValues.head.key.readInt() - 1
     val updateSlice = Slice.allocate[Memory](keyValues.size)
 
@@ -1510,19 +1576,21 @@ object KeyValueTestKit {
                 randomRangeKeyValue(
                   from = keyValue.key,
                   to = keyUsed + 1,
-                  fromValue = randomFromValueOption(
-                    value = updatedValue,
-                    deadline = deadline,
-                    addRemoves = false,
-                    functionOutput = SegmentFunctionOutput.Update(updatedValue, deadline),
-                    addPut = false
-                  ),
-                  rangeValue = randomRangeValue(
-                    value = updatedValue,
-                    deadline = deadline,
-                    functionOutput = SegmentFunctionOutput.Update(updatedValue, deadline),
-                    addRemoves = false
-                  )
+                  fromValue =
+                    randomFromValueOption(
+                      value = updatedValue,
+                      deadline = deadline,
+                      addRemoves = false,
+                      functionOutput = SegmentFunctionOutput.Update(updatedValue, deadline),
+                      addPut = false
+                    ),
+                  rangeValue =
+                    randomRangeValue(
+                      value = updatedValue,
+                      deadline = deadline,
+                      functionOutput = SegmentFunctionOutput.Update(updatedValue, deadline),
+                      addRemoves = false
+                    )
                 )
               )
             },
@@ -1561,11 +1629,14 @@ object KeyValueTestKit {
       }
   }
 
-  def merge(newKeyValues: Slice[KeyValue],
-            oldKeyValues: Slice[KeyValue],
-            isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] = {
+  def mergeKeyValues(newKeyValues: Slice[KeyValue],
+                     oldKeyValues: Slice[KeyValue],
+                     isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                           timeOrder: TimeOrder[Slice[Byte]],
+                                           functionStore: TestCoreFunctionStore): Iterable[Memory] = {
     val builder = MergeStats.random()
+
+    import functionStore._
 
     KeyValueMerger.merge(
       newKeyValues = newKeyValues,
@@ -1580,7 +1651,8 @@ object KeyValueTestKit {
 
 
   def collapseMerge(newKeyValue: Memory.Fixed,
-                    oldApplies: Slice[Value.Apply])(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
+                    oldApplies: Slice[Value.Apply])(implicit timeOrder: TimeOrder[Slice[Byte]],
+                                                    functionStore: CoreFunctionStore): KeyValue.Fixed =
     newKeyValue match {
       case PendingApply(_, newApplies) =>
         //PendingApplies on PendingApplies are never merged. They are just stashed in sequence of their time.

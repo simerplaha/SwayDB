@@ -18,8 +18,8 @@
 //
 //import org.scalatest.OptionValues._
 //import swaydb.api.TestBaseAPI
-//import swaydb.core.TestSweeper
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.core.CoreTestData._
 //import swaydb.serializers.Default._
 //import swaydb.{Glass, MultiMap}
@@ -29,14 +29,14 @@
 //class MultiMapPutSpec0 extends MultiMapPutSpec {
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass] =
 //    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir()).sweep(_.delete())
 //}
 //
 //class MultiMapPutSpec1 extends MultiMapPutSpec {
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass] =
 //    swaydb.memory.MultiMap[Int, Int, String, Nothing, Glass]().sweep(_.delete())
 //}
 //
@@ -44,11 +44,11 @@
 //
 //  val keyValueCount: Int
 //
-//  def newDB()(implicit sweeper: TestSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass]
+//  def newDB()(implicit sweeper: CoreTestSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass]
 //
 //  "Root" should {
 //    "Initialise a RootMap & SubMap from Root" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          val root = newDB()
@@ -75,7 +75,7 @@
 //    }
 //
 //    "Initialise a RootMap & 2 SubMaps from Root" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          val root = newDB()
@@ -108,7 +108,7 @@
 //    }
 //
 //    "Initialise 2 RootMaps & 2 SubMaps under each SubMap" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          val root = newDB()

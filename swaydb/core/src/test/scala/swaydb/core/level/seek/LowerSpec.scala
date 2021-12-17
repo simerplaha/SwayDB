@@ -16,7 +16,7 @@
 //
 //package swaydb.core.level.seek
 //
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
@@ -28,7 +28,7 @@
 //import swaydb.testkit.RunThis._
 //import swaydb.testkit.TestKit._
 //
-//class LowerSpec extends AnyWordSpec with Matchers {
+//class LowerSpec extends AnyWordSpec {
 //
 //  implicit val keyOrder = KeyOrder.default
 //  implicit val timeOrder = TimeOrder.long
@@ -43,10 +43,10 @@
 //      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = randomFromValueOption(addPut = false)).toOptionPut shouldBe empty
 //      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = randomFromValueOption(addPut = false)).toOptionPut shouldBe empty
 //
-//      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = Value.put(randomStringSliceOptional, Some(expiredDeadline()))).toOptionPut shouldBe empty
-//      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = Value.put(randomStringSliceOptional, Some(expiredDeadline()))).toOptionPut shouldBe empty
+//      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = Value.put(randomStringSliceOptional(), Some(expiredDeadline()))).toOptionPut shouldBe empty
+//      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = Value.put(randomStringSliceOptional(), Some(expiredDeadline()))).toOptionPut shouldBe empty
 //
-//      val put = Value.put(randomStringSliceOptional, randomDeadlineOption(false))
+//      val put = Value.put(randomStringSliceOptional(), randomDeadlineOption(false))
 //      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = put) shouldBe put.toMemory(1)
 //      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = put).toOptionPut shouldBe empty
 //    }

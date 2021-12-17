@@ -18,8 +18,8 @@
 //
 //import swaydb.effect.IOValues._
 //import swaydb._
-//import swaydb.core.TestSweeper
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.serializers.Default._
 //import swaydb.testkit.RunThis._
 //import swaydb.core.file.CoreFileTestKit._
@@ -27,7 +27,7 @@
 //class ScalaSetSpec0 extends ScalaSetSpec {
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): Set[Int, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): Set[Int, Nothing, IO.ApiIO] =
 //    swaydb.persistent.Set[Int, Nothing, IO.ApiIO](dir = randomDir()).right.value.sweep(_.delete().get)
 //}
 //
@@ -35,7 +35,7 @@
 //
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): Set[Int, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): Set[Int, Nothing, IO.ApiIO] =
 //    swaydb.persistent.Set[Int, Nothing, IO.ApiIO](randomDir(), logSize = 1.byte, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = 10.bytes)).right.value.sweep(_.delete().get)
 //}
 //
@@ -43,14 +43,14 @@
 //
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): Set[Int, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): Set[Int, Nothing, IO.ApiIO] =
 //    swaydb.memory.Set[Int, Nothing, IO.ApiIO](logSize = 1.byte).right.value.sweep(_.delete().get)
 //}
 //
 //class ScalaSetSpec3 extends ScalaSetSpec {
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): Set[Int, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): Set[Int, Nothing, IO.ApiIO] =
 //    swaydb.memory.Set[Int, Nothing, IO.ApiIO]().right.value.sweep(_.delete().get)
 //}
 //
@@ -58,13 +58,13 @@
 //
 //  val keyValueCount: Int
 //
-//  def newDB()(implicit sweeper: TestSweeper): Set[Int, Nothing, IO.ApiIO]
+//  def newDB()(implicit sweeper: CoreTestSweeper): Set[Int, Nothing, IO.ApiIO]
 //
 //
 //  "Expire" when {
 //    "put" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -77,7 +77,7 @@
 //
 //    "putAll" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -92,7 +92,7 @@
 //
 //    "remove" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val db = newDB()
 //
@@ -108,7 +108,7 @@
 //
 //    "removeAll" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val db = newDB()
 //
@@ -124,7 +124,7 @@
 //
 //    "head, last, contains" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val db = newDB()
 //

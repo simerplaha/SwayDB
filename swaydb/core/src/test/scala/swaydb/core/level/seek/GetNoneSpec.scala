@@ -18,7 +18,7 @@
 //
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.OptionValues
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
@@ -32,7 +32,7 @@
 //import swaydb.testkit.RunThis._
 //import swaydb.testkit.TestKit._
 //
-//class GetNoneSpec extends AnyWordSpec with Matchers with MockFactory with OptionValues {
+//class GetNoneSpec extends AnyWordSpec with OptionValues {
 //
 //  implicit val keyOrder = KeyOrder.default
 //  implicit val timeOrder = TimeOrder.long
@@ -192,7 +192,7 @@
 //              eitherOne(
 //                SegmentFunctionOutput.Remove,
 //                SegmentFunctionOutput.Expire(expiredDeadline()),
-//                SegmentFunctionOutput.Update(randomStringOption, Some(expiredDeadline()))
+//                SegmentFunctionOutput.Update(randomStringOption(), Some(expiredDeadline()))
 //              )
 //          )
 //
@@ -237,7 +237,7 @@
 //              eitherOne(
 //                SegmentFunctionOutput.Remove,
 //                SegmentFunctionOutput.Expire(expiredDeadline()),
-//                SegmentFunctionOutput.Update(randomStringOption, Some(expiredDeadline()))
+//                SegmentFunctionOutput.Update(randomStringOption(), Some(expiredDeadline()))
 //              )
 //          ).toRangeValue()
 //

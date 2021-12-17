@@ -35,6 +35,7 @@ private[swaydb] abstract class SourceFree[K, T](from: Option[From[K]],
    *
    * @param from    where to fetch the head from
    * @param reverse if this stream is in reverse order.
+   *
    * @return first element of this stream
    */
   private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]): BAG[T]
@@ -44,6 +45,7 @@ private[swaydb] abstract class SourceFree[K, T](from: Option[From[K]],
    *
    * @param previous previously read element
    * @param reverse  if this stream is in reverse iteration.
+   *
    * @return next element in this stream.
    */
   private[swaydb] def nextOrNull[BAG[_]](previous: T, reverse: Boolean)(implicit bag: Bag[BAG]): BAG[T]

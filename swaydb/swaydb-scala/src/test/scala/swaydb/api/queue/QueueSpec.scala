@@ -17,8 +17,8 @@
 //package swaydb.api.queue
 //
 //import org.scalatest.OptionValues._
-//import swaydb.core.TestSweeper._
-//import swaydb.core.{ACoreSpec, TestSweeper}
+//import swaydb.core.CoreTestSweeper._
+//import swaydb.core.CoreTestSweeper
 //import swaydb.serializers.Default._
 //import swaydb.{Benchmark, Glass, Queue}
 //
@@ -31,21 +31,21 @@
 //
 //class QueueSpec0 extends QueueSpec {
 //
-//  override def newQueue()(implicit sweeper: TestSweeper): Queue[Int] =
+//  override def newQueue()(implicit sweeper: CoreTestSweeper): Queue[Int] =
 //    swaydb.persistent.Queue[Int, Glass](randomDir()).sweep(_.delete())
 //}
 //
 //class QueueSpec3 extends QueueSpec {
-//  override def newQueue()(implicit sweeper: TestSweeper): Queue[Int] =
+//  override def newQueue()(implicit sweeper: CoreTestSweeper): Queue[Int] =
 //    swaydb.memory.Queue[Int, Glass]().sweep(_.delete())
 //}
 //
 //sealed trait QueueSpec extends ACoreSpec {
 //
-//  def newQueue()(implicit sweeper: TestSweeper): Queue[Int]
+//  def newQueue()(implicit sweeper: CoreTestSweeper): Queue[Int]
 //
 //  "push and pop" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //
 //        val queue: Queue[Int] = newQueue()
@@ -59,7 +59,7 @@
 //  }
 //
 //  "push and pop in FIFO manner" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //
 //        val queue: Queue[Int] = newQueue()
@@ -73,7 +73,7 @@
 //  }
 //
 //  "push, expire, pop & stream" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //
 //        val queue: Queue[Int] = newQueue()
@@ -110,7 +110,7 @@
 //  }
 //
 //  "concurrently process" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //
 //        val queue: Queue[Int] = newQueue()
@@ -153,7 +153,7 @@
 //  }
 //
 //  "concurrently process in batches" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //
 //        val queue = newQueue()
@@ -186,7 +186,7 @@
 //  }
 //
 //  "continue on restart" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //
 //        val path = randomDir()

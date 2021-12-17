@@ -45,39 +45,39 @@ object Exception {
 
   case class Busy(error: Error.Recoverable)
     extends Exception("Is busy")
-      with SwayDBException
+    with SwayDBException
 
   case class OpeningFile(file: Path, reserve: Reserve[Unit])
     extends Exception(s"Failed to open file $file")
-      with SwayDBException
+    with SwayDBException
 
   case class NoSuchFile(file: Path)
     extends Exception(s"No such file $file")
-      with SwayDBException
+    with SwayDBException
 
   case class ReservedResource(reserve: Reserve[Unit])
     extends Exception("ReservedResource is busy.")
-      with SwayDBException
+    with SwayDBException
 
   case class NullMappedByteBuffer(exception: Exception, reserve: Reserve[Unit])
     extends Exception(exception)
-      with SwayDBException
+    with SwayDBException
 
   case object OverlappingPushSegment
     extends Exception("Contains overlapping busy Segments")
-      with SwayDBException
+    with SwayDBException
 
   case object NoSegmentsRemoved
     extends Exception("No Segments Removed")
-      with SwayDBException
+    with SwayDBException
 
   case object NotSentToNextLevel
     extends Exception("Not sent to next Level")
-      with SwayDBException
+    with SwayDBException
 
   case class InvalidAccessException(message: String, cause: Throwable)
     extends Exception(message, cause)
-      with SwayDBException
+    with SwayDBException
 
   /**
    * Report missing functions.
@@ -110,23 +110,23 @@ object Exception {
    */
   case class FunctionNotFound(functionId: String)
     extends Exception(s"Function with id '$functionId' not found. Make sure the function is added to the instance. See documentation https://swaydb.io/.")
-      with SwayDBException
+    with SwayDBException
 
   case class OverlappingFileLock(exception: OverlappingFileLockException)
     extends Exception("Failed to get directory lock.")
-      with SwayDBException
+    with SwayDBException
 
   case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int)
     extends Exception(s"Failed to write all bytes written: $written, expected : $expected, bytesSize: $bytesSize")
-      with SwayDBException
+    with SwayDBException
 
   case class CannotCopyInMemoryFiles(file: Path)
     extends Exception(s"Cannot copy in-memory files $file")
-      with SwayDBException
+    with SwayDBException
 
   case class SegmentFileMissing(path: Path)
     extends Exception(s"$path: Segment file missing.")
-      with SwayDBException
+    with SwayDBException
 
   object InvalidBaseId {
     def apply(id: Int): InvalidBaseId =
@@ -134,11 +134,11 @@ object Exception {
   }
   case class InvalidBaseId(id: Int, cause: Throwable)
     extends Exception(s"Invalid keyValueId: $id.", cause)
-      with SwayDBException
+    with SwayDBException
 
   case class InvalidDataId(id: Int, message: String = "")
     extends Exception(s"Invalid data id: $id. $message")
-      with SwayDBException
+    with SwayDBException
 
   case class NotAnIntFile(path: Path)
     extends SwayDBException
@@ -148,26 +148,26 @@ object Exception {
 
   case class GetOnIncompleteDeferredFutureIO(reserve: Reserve[Unit])
     extends Exception("Get invoked on in-complete Future within Deferred IO.")
-      with SwayDBException
+    with SwayDBException
 
   case class InvalidDirectoryType(invalidType: String, expected: String)
     extends Exception(s"Invalid data type $invalidType for the directory of type $expected.")
-      with SwayDBException
+    with SwayDBException
 
   case class MissingMultiMapGenFolder(path: Path)
     extends Exception(s"Missing multimap gen file or folder: $path")
-      with SwayDBException
+    with SwayDBException
 
   case class IncompatibleVersions(previous: String, current: String)
     extends Exception(s"Incompatible versions! SwayDB v$current is not compatible with files created by v$previous. Use a different directory.")
-      with SwayDBException
+    with SwayDBException
 
   case class MissingBuildInfo(buildInfoFileName: String, version: String)
     extends Exception(s"Missing $buildInfoFileName file. This directory might be an incompatible older version of SwayDB. Current version: v$version.")
-      with SwayDBException
+    with SwayDBException
 
   case class InvalidLevelReservation(message: String)
     extends Exception(message)
-      with SwayDBException
+    with SwayDBException
 
 }

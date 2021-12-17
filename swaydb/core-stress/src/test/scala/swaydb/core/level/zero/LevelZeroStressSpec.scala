@@ -47,8 +47,8 @@
 //  override def levelFoldersCount = 10
 //  override def mmapSegmentsOnWrite = false
 //  override def mmapSegmentsOnRead = false
-//  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
-//  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+//  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.standard())
+//  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.standard())
 //}
 //
 //class LevelZeroStressSpec3 extends LevelZeroStressSpec {

@@ -18,27 +18,27 @@
 //
 //import org.scalatest.OptionValues._
 //import swaydb.Glass
-//import swaydb.core.TestSweeper._
-//import swaydb.core.{ACoreSpec, TestSweeper}
+//import swaydb.core.CoreTestSweeper._
+//import swaydb.core.CoreTestSweeper
 //import swaydb.serializers.Default._
 //import swaydb.core.file.CoreFileTestKit._
 //
 //class SetMapSpec0 extends SetMapSpec {
-//  override def newDB()(implicit sweeper: TestSweeper): swaydb.SetMap[Int, String, Glass] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): swaydb.SetMap[Int, String, Glass] =
 //    swaydb.persistent.SetMap[Int, String, Glass](randomDir()).sweep(_.delete())
 //}
 //
 //class SetMapSpec3 extends SetMapSpec {
-//  override def newDB()(implicit sweeper: TestSweeper): swaydb.SetMap[Int, String, Glass] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): swaydb.SetMap[Int, String, Glass] =
 //    swaydb.memory.SetMap[Int, String, Glass]().sweep(_.delete())
 //}
 //
 //sealed trait SetMapSpec extends ACoreSpec {
 //
-//  def newDB()(implicit sweeper: TestSweeper): swaydb.SetMap[Int, String, Glass]
+//  def newDB()(implicit sweeper: CoreTestSweeper): swaydb.SetMap[Int, String, Glass]
 //
 //  "put" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //
 //        val map = newDB()

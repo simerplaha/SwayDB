@@ -61,7 +61,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait LevelSpec extends ALevelSpec with MockFactory with PrivateMethodTester {
+//sealed trait LevelSpec extends AnyWordSpec  {
 //
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //  implicit val testTimer: TestTimer = TestTimer.Empty
@@ -75,8 +75,8 @@
 //  "acquireLock" should {
 //    "create a lock file for only the root directory and not allow more locks" in {
 //      //memory databases do not perform locks
-//      if (isPersistentSpec) {
-//        TestSweeper {
+//      if (isPersistent) {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val otherDirs = (0 to randomIntMax(5)) map (_ => Dir(randomDir(), 1))
@@ -109,7 +109,7 @@
 //
 //  "apply" should {
 //    "create level" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val level = TestLevel()
 //
@@ -140,8 +140,8 @@
 //    }
 //
 //    "report error if appendix file and folder does not exists" in {
-//      if (isPersistentSpec) {
-//        TestSweeper {
+//      if (isPersistent) {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -176,7 +176,7 @@
 //      if (isMemorySpec) {
 //        // memory Level do not have uncommitted Segments
 //      } else {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -219,7 +219,7 @@
 //
 //  "largestSegmentId" should {
 //    "value the largest segment in the Level when the Level is not empty" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -232,7 +232,7 @@
 //    }
 //
 //    "return 0 when the Level is empty" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 //
@@ -245,7 +245,7 @@
 //    import swaydb.core.log.serialiser.AppendixLogEntryWriter._
 //
 //    "build LogEntry.Put map for the first created Segment" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val level = TestLevel()
 //
@@ -260,7 +260,7 @@
 //
 //    "build LogEntry.Put map for the newly merged Segments and not add LogEntry.Remove map " +
 //      "for original Segment as it's minKey is replace by one of the new Segment" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val level = TestLevel()
 //
@@ -282,7 +282,7 @@
 //    }
 //
 //    "build LogEntry.Put map for the newly merged Segments and also add Remove map entry for original map when all minKeys are unique" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val level = TestLevel()
 //

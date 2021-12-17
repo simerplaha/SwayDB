@@ -21,7 +21,7 @@
 //import swaydb.core.CoreTestData._
 //import swaydb.core.level.zero.LevelZero.LevelZeroLog
 //import swaydb.core.segment.data.Memory
-//import swaydb.core.{ACoreSpec, TestSweeper, TestTimer}
+//import swaydb.core.{ACoreSpec, CoreTestSweeper, TestTimer}
 //import swaydb.core.log.ALogSpec
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
@@ -32,7 +32,7 @@
 //import scala.jdk.CollectionConverters._
 //import scala.util.Random
 //
-//class LevelZeroTaskAssigner_createStacks_Fixed_Spec extends ALogSpec with MockFactory {
+//class LevelZeroTaskAssigner_createStacks_Fixed_Spec extends ALogSpec {
 //
 //  implicit val timer = TestTimer.Empty
 //  implicit val keyOrder = KeyOrder.default
@@ -43,7 +43,7 @@
 //   * See the key-values in the comments to view the test inputs.
 //   */
 //  def createStacks(keyValues: Slice[Memory]*)(test: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] => Unit): Unit =
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //        val logs: Iterable[LevelZeroLog] = keyValues.map(TestLog(_))
 //        val stacks = LevelZeroTaskAssigner.createStacks(logs)

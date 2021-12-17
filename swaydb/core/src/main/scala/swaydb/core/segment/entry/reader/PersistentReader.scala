@@ -225,6 +225,7 @@ object PersistentReader extends LazyLogging {
    * @param previousKeyValueIndexReader    reader for the current entry.
    * @param previousKeyValueIndexOffset    this key-values index offset used to calculate next key-values indexOffset and header key byte size.
    * @param normalisedByteSize             normalised size for entry sorted index entry. 0 if not normalised.
+   *
    * @return [[Tuple2]] that contains the indexOffset of next key-value and next key-values size.
    */
   def calculateNextKeyValueOffsetAndSize(sortedIndexEndOffset: Int,

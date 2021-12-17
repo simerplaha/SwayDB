@@ -20,9 +20,9 @@
 //import swaydb.PureFunctionScala._
 //import swaydb.config.Functions
 //import swaydb.core.CommonAssertions._
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.core.CoreTestData._
-//import swaydb.core.{ACoreSpec, TestSweeper}
+//import swaydb.core.CoreTestSweeper
 //import swaydb.macros.Sealed
 //import swaydb.serializers.Default._
 //import swaydb.serializers.Serializer
@@ -66,7 +66,7 @@
 //  def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
 //                    keySerializer: Serializer[K],
 //                    valueSerializer: Serializer[V],
-//                    sweeper: TestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
+//                    sweeper: CoreTestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
 //    swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](randomDir()).right.value.sweep(_.delete().get)
 //}
 //
@@ -75,7 +75,7 @@
 //  def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
 //                    keySerializer: Serializer[K],
 //                    valueSerializer: Serializer[V],
-//                    sweeper: TestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
+//                    sweeper: CoreTestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
 //    swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](randomDir(), logSize = 1.byte).right.value.sweep(_.delete().get)
 //}
 //
@@ -84,7 +84,7 @@
 //  def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
 //                    keySerializer: Serializer[K],
 //                    valueSerializer: Serializer[V],
-//                    sweeper: TestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
+//                    sweeper: CoreTestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
 //    swaydb.memory.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](logSize = 1.byte).right.value.sweep(_.delete().get)
 //}
 //
@@ -93,7 +93,7 @@
 //  def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
 //                    keySerializer: Serializer[K],
 //                    valueSerializer: Serializer[V],
-//                    sweeper: TestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
+//                    sweeper: CoreTestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
 //    swaydb.memory.Map[K, V, PureFunction.Map[K, V], IO.ApiIO]().right.value.sweep(_.delete().get)
 //}
 //
@@ -113,7 +113,7 @@
 //  def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
 //                    keySerializer: Serializer[K],
 //                    valueSerializer: Serializer[V],
-//                    sweeper: TestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO]
+//                    sweeper: CoreTestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO]
 //
 //  "it" should {
 //
@@ -122,7 +122,7 @@
 //
 //    "perform concurrent atomic updates to a single key" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -141,7 +141,7 @@
 //
 //    "perform concurrent atomic updates to multiple keys" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val db = newDB()
 //
@@ -169,7 +169,7 @@
 //
 //    "batch commit updates" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val db = newDB()
 //
@@ -194,7 +194,7 @@
 //
 //    "Nothing should not update data" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val db = newDB()
 //
@@ -241,7 +241,7 @@
 //    //test no change
 //    val onKeyValueDeadline: OnKeyValueDeadline[Key, Value] = (_, _, _) => Apply.Nothing
 //
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //
 //        implicit val functions = Functions(onKey, onKeyDeadline, onKeyValue, onValue, onValueDeadline, onKeyValueDeadline)

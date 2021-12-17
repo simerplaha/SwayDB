@@ -17,8 +17,8 @@
 ////package swaydb.core.segment
 ////
 ////import swaydb.effect.IOValues._
-////import swaydb.core.TestSweeper._
-////import swaydb.core.{ACoreSpec, TestSweeper}
+////import swaydb.core.CoreTestSweeper._
+////import swaydb.core.CoreTestSweeper
 ////import swaydb.effect.{Dir, Effect}
 ////import swaydb.slice.order.KeyOrder
 ////import swaydb.{effect, Benchmark}
@@ -26,12 +26,12 @@
 ////
 ////import scala.util.Random
 ////
-////class PathsDistributorPerformanceSpec extends ALevelSpec {
+////class pathDistributorPerformanceSpec extends AnyWordSpec {
 ////
 ////  implicit val keyOrder = KeyOrder.default
 ////
-////  "PathsDistributorPerformanceSpec" in {
-////    TestSweeper {
+////  "pathDistributorPerformanceSpec" in {
+////    CoreTestSweeper {
 ////      implicit sweeper =>
 ////        val path = createNextLevelPath.sweep()
 ////
@@ -54,7 +54,7 @@
 ////        }
 ////
 ////        val distributor =
-////          PathsDistributor(
+////          pathDistributor(
 ////            dirs =
 ////              Seq(
 ////                Dir(path1, 1),
@@ -74,7 +74,7 @@
 ////        //in production scenarios there will never be more then 10 request/seconds, depending on the number of Segments being merged
 ////        //into next Level at one time.
 ////        //These benchmark also include Segment creation in randomlyDistributeSegments which should be accounted for.
-////        Benchmark("Benchmark PathsDistributor") {
+////        Benchmark("Benchmark pathDistributor") {
 ////          (1 to 10000) foreach {
 ////            _ =>
 ////              distributor.next()

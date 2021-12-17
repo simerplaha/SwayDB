@@ -1,20 +1,20 @@
 package swaydb.core.level
 
-import swaydb.{Error, Glass, IO}
+import swaydb.{Error, Glass, IO, TestExecutionContext}
 import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
 import swaydb.config.accelerate.Accelerator
 import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.config.storage.{Level0Storage, LevelStorage}
 import swaydb.config.CoreConfigTestKit._
-import swaydb.core.{TestExecutionContext, TestForceSave, TestSweeper}
+import swaydb.core.{TestForceSave, CoreTestSweeper}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
-import swaydb.core.segment.{MemorySegment, PersistentSegment, Segment, SegmentTestKit}
+import swaydb.core.segment.{CoreFunctionStore, MemorySegment, PersistentSegment, Segment, SegmentTestKit}
 import swaydb.core.segment.data.{KeyValue, Memory, SegmentKeyOrders}
 import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.io.SegmentCompactionIO
-import swaydb.core.TestSweeper._
-import swaydb.core.log.LogTestKit.SliceKeyValueImplicits
+import swaydb.core.CoreTestSweeper._
+import swaydb.core.log.LogTestKit.{getFunctionStore, getLogs, SliceKeyValueImplicits}
 import swaydb.effect.{Dir, Effect}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
@@ -33,11 +33,12 @@ object LevelTestKit {
     import swaydb.Error.Level.ExceptionHandler
     import swaydb.testkit.RunThis._
 
-    implicit val keyOrders: SegmentKeyOrders = SegmentKeyOrders(keyOrder)
+    implicit val keyOrders: SegmentKeyOrders =
+      SegmentKeyOrders(keyOrder)
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
-    def put(keyValues: Iterable[Memory], removeDeletes: Boolean = false)(implicit sweeper: TestSweeper,
+    def put(keyValues: Iterable[Memory], removeDeletes: Boolean = false)(implicit sweeper: CoreTestSweeper,
                                                                          compactionActor: SegmentCompactionIO.Actor): IO[Error.Level, Unit] = {
 
       implicit val idGenerator = level.segmentIDGenerator
@@ -47,6 +48,7 @@ object LevelTestKit {
       //        val path = level.pathDistributor.next().resolve(IDGenerator.segmentId(segmentId))
       //        (segmentId, path)
       //      }
+      import sweeper.testCoreFunctionStore._
 
       implicit val segmentIO = level.segmentIO
       implicit val fileSweeper = level.fileSweeper
@@ -64,7 +66,7 @@ object LevelTestKit {
             MemorySegment(
               keyValues = keyValues.iterator,
               //            fetchNextPath = fetchNextPath,
-              pathsDistributor = level.pathDistributor,
+              pathDistributor = level.pathDistributor,
               removeDeletes = false,
               minSegmentSize = level.segmentConfig.minSize,
               maxKeyValueCountPerSegment = level.segmentConfig.maxCount,
@@ -74,7 +76,7 @@ object LevelTestKit {
             PersistentSegment(
               keyValues = keyValues,
               createdInLevel = level.levelNumber,
-              pathsDistributor = level.pathDistributor,
+              pathDistributor = level.pathDistributor,
               removeDeletes = false,
               valuesConfig = level.valuesConfig,
               sortedIndexConfig = level.sortedIndexConfig,
@@ -93,11 +95,11 @@ object LevelTestKit {
       }
     }
 
-    def put(segment: Segment)(implicit sweeper: TestSweeper,
+    def put(segment: Segment)(implicit sweeper: CoreTestSweeper,
                               compactionActor: SegmentCompactionIO.Actor): IO[Error.Level, Unit] =
       putSegments(Seq(segment))
 
-    def putSegments(segments: Iterable[Segment], removeDeletes: Boolean = false)(implicit sweeper: TestSweeper,
+    def putSegments(segments: Iterable[Segment], removeDeletes: Boolean = false)(implicit sweeper: CoreTestSweeper,
                                                                                  compactionActor: SegmentCompactionIO.Actor): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
@@ -116,7 +118,7 @@ object LevelTestKit {
       }
     }
 
-    def putMap(map: LevelZeroLog)(implicit sweeper: TestSweeper,
+    def putMap(map: LevelZeroLog)(implicit sweeper: CoreTestSweeper,
                                   compactionActor: SegmentCompactionIO.Actor): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
@@ -135,15 +137,15 @@ object LevelTestKit {
       }
     }
 
-    def reopen(implicit sweeper: TestSweeper): Level =
+    def reopen(implicit sweeper: CoreTestSweeper): Level =
       reopen()
 
-    def tryReopen(implicit sweeper: TestSweeper): IO[swaydb.Error.Level, Level] =
+    def tryReopen(implicit sweeper: CoreTestSweeper): IO[swaydb.Error.Level, Level] =
       tryReopen()
 
     def reopen(segmentSize: Int = level.minSegmentSize,
                throttle: LevelMeter => LevelThrottle = level.throttle,
-               nextLevel: Option[NextLevel] = level.nextLevel)(implicit sweeper: TestSweeper): Level =
+               nextLevel: Option[NextLevel] = level.nextLevel)(implicit sweeper: CoreTestSweeper): Level =
       tryReopen(
         segmentSize = segmentSize,
         throttle = throttle,
@@ -152,7 +154,7 @@ object LevelTestKit {
 
     def tryReopen(segmentSize: Int = level.minSegmentSize,
                   throttle: LevelMeter => LevelThrottle = level.throttle,
-                  nextLevel: Option[NextLevel] = level.nextLevel)(implicit sweeper: TestSweeper): IO[swaydb.Error.Level, Level] = {
+                  nextLevel: Option[NextLevel] = level.nextLevel)(implicit sweeper: CoreTestSweeper): IO[swaydb.Error.Level, Level] = {
 
       val closeResult =
         if (OperatingSystem.isWindows() && level.hasMMAP)
@@ -190,13 +192,13 @@ object LevelTestKit {
 
     import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
 
-    def reopen(implicit sweeper: TestSweeper): LevelZero =
+    def reopen(implicit sweeper: CoreTestSweeper): LevelZero =
       reopen()
 
     def reopen(logSize: Int = level.logs.log.fileSize,
                appliedFunctionsLogSize: Int = level.appliedFunctionsLog.map(_.fileSize).getOrElse(0),
                clearAppliedFunctionsOnBoot: Boolean = false)(implicit timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                             sweeper: TestSweeper): LevelZero = {
+                                                             sweeper: CoreTestSweeper): LevelZero = {
 
       if (OperatingSystem.isWindows() && level.hasMMAP)
         level.close[Glass]()
@@ -250,7 +252,9 @@ object LevelTestKit {
   }
 
   @tailrec
-  def dump(level: NextLevel): Unit =
+  def dump(level: NextLevel): Unit = {
+    implicit val functionStore: CoreFunctionStore = getFunctionStore(level)
+
     level.nextLevel match {
       case Some(nextLevel) =>
         val data = Seq(s"\nLevel: ${level.rootPath}\n") ++ SegmentTestKit.dump(level.segments())
@@ -270,5 +274,6 @@ object LevelTestKit {
           bytes = Slice.writeString(data.mkString("\n")).toByteBufferWrap()
         )
     }
+  }
 
 }

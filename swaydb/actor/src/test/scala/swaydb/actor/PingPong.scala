@@ -17,17 +17,19 @@
 package swaydb.actor
 
 import swaydb.ActorConfig.QueueOrder
-import swaydb.core.TestExecutionContext
 import swaydb.testkit.RunThis._
 import swaydb.{Actor, ActorRef}
 
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
 
 object PingPong extends App {
 
-  implicit val ec = TestExecutionContext.executionContext
+  implicit val ec: ExecutionContext =
+    scala.concurrent.ExecutionContext.Implicits.global
 
-  implicit val ordering = QueueOrder.FIFO
+  implicit val ordering: QueueOrder[Nothing] =
+    QueueOrder.FIFO
 
   case class Pong(replyTo: ActorRef[Ping, State])
   case class Ping(replyTo: ActorRef[Pong, State])

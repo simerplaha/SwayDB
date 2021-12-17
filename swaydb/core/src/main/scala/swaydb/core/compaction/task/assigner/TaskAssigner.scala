@@ -275,10 +275,12 @@ protected case object TaskAssigner {
    * account in the logic below therefore should only be used for scoring.
    *
    * @note Mutates the input assignments.
+   *
    * @tparam A the type of input data
    * @tparam B the type of target data to which the the [[A]]'s would be assigned to.
    *           This would be most be [[Segment]].
    * @tparam C the type of assignments.
+   *
    * @return groups assignments that spread onto multiple Segments.
    */
   def groupAssignmentsForScoring[A, B, C <: Assignment.Result[mutable.SortedSet[A], mutable.SortedSet[A], B]](assignments: Iterable[C])(implicit inputDataType: CompactionDataType[A],
@@ -296,12 +298,16 @@ protected case object TaskAssigner {
         previousAssignmentOrNull != null && {
           //check if previous assignment spreads onto next assignment.
           val previousAssignmentsLast =
-            previousAssignmentOrNull.tailGapResult.lastOption
+            previousAssignmentOrNull
+              .tailGapResult
+              .lastOption
               .orElse(previousAssignmentOrNull.midOverlapResult.lastOption)
               .orElse(previousAssignmentOrNull.headGapResult.lastOption)
 
           val nextAssignmentsFirst =
-            nextAssignment.headGapResult.lastOption
+            nextAssignment
+              .headGapResult
+              .lastOption
               .orElse(nextAssignment.midOverlapResult.lastOption)
               .orElse(nextAssignment.tailGapResult.lastOption)
 

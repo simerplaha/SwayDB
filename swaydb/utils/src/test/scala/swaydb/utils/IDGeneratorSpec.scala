@@ -17,12 +17,12 @@
 package swaydb.utils
 
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import swaydb.utils.IDGenerator
 
 import scala.collection.parallel.CollectionConverters._
 
-class IDGeneratorSpec extends AnyFlatSpec with Matchers {
+class IDGeneratorSpec extends AnyFlatSpec {
 
   it should "always return new incremental ids when access concurrently" in {
 

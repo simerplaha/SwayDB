@@ -16,7 +16,7 @@
 //
 //package swaydb.core.cache
 //
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.Error.Segment.ExceptionHandler
 //import swaydb.core.CommonAssertions._
@@ -26,7 +26,7 @@
 //
 //import scala.collection.parallel.CollectionConverters._
 //
-//class CachePerformanceSpec extends AnyWordSpec with Matchers {
+//class CachePerformanceSpec extends AnyWordSpec {
 //
 //  val range = 1 to 1000000
 //

@@ -23,6 +23,7 @@ import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.data.merge.stats.MergeStats
+import swaydb.core.segment.distributor.PathDistributor
 import swaydb.core.util.DefIO
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -43,14 +44,14 @@ object DefragMemorySegment {
                                          newKeyValues: => Iterator[Assignable],
                                          removeDeletes: Boolean,
                                          createdInLevel: Int,
-                                         pathsDistributor: PathsDistributor)(implicit executionContext: ExecutionContext,
-                                                                             keyOrder: KeyOrder[Slice[Byte]],
-                                                                             timeOrder: TimeOrder[Slice[Byte]],
-                                                                             functionStore: CoreFunctionStore,
-                                                                             defragSource: DefragSource[SEG],
-                                                                             segmentConfig: SegmentBlockConfig,
-                                                                             fileSweeper: FileSweeper,
-                                                                             idGenerator: IDGenerator): Future[DefIO[NULL_SEG, Iterable[MemorySegment]]] =
+                                         pathDistributor: PathDistributor)(implicit executionContext: ExecutionContext,
+                                                                           keyOrder: KeyOrder[Slice[Byte]],
+                                                                           timeOrder: TimeOrder[Slice[Byte]],
+                                                                           functionStore: CoreFunctionStore,
+                                                                           defragSource: DefragSource[SEG],
+                                                                           segmentConfig: SegmentBlockConfig,
+                                                                           fileSweeper: FileSweeper,
+                                                                           idGenerator: IDGenerator): Future[DefIO[NULL_SEG, Iterable[MemorySegment]]] =
     Future {
       Defrag.runOnSegment(
         segment = segment,
@@ -69,7 +70,7 @@ object DefragMemorySegment {
           mergeResult = mergeResult.output,
           removeDeletes = removeDeletes,
           createdInLevel = createdInLevel,
-          pathsDistributor = pathsDistributor
+          pathDistributor = pathDistributor
         ) map {
           result =>
             mergeResult.withOutput(result.flatten)
@@ -84,14 +85,14 @@ object DefragMemorySegment {
                                       tailGap: Iterable[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
                                       removeDeletes: Boolean,
                                       createdInLevel: Int,
-                                      pathsDistributor: PathsDistributor)(implicit executionContext: ExecutionContext,
-                                                                          keyOrder: KeyOrder[Slice[Byte]],
-                                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                                          functionStore: CoreFunctionStore,
-                                                                          defragSource: DefragSource[SEG],
-                                                                          segmentConfig: SegmentBlockConfig,
-                                                                          fileSweeper: FileSweeper,
-                                                                          idGenerator: IDGenerator): Future[DefIO[NULL_SEG, Iterable[MemorySegment]]] =
+                                      pathDistributor: PathDistributor)(implicit executionContext: ExecutionContext,
+                                                                        keyOrder: KeyOrder[Slice[Byte]],
+                                                                        timeOrder: TimeOrder[Slice[Byte]],
+                                                                        functionStore: CoreFunctionStore,
+                                                                        defragSource: DefragSource[SEG],
+                                                                        segmentConfig: SegmentBlockConfig,
+                                                                        fileSweeper: FileSweeper,
+                                                                        idGenerator: IDGenerator): Future[DefIO[NULL_SEG, Iterable[MemorySegment]]] =
     Defrag.runOnGaps(
       fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Memory.Builder[Memory, ListBuffer]]],
       headGap = headGap,
@@ -105,7 +106,7 @@ object DefragMemorySegment {
           mergeResult = mergeResult,
           removeDeletes = removeDeletes,
           createdInLevel = createdInLevel,
-          pathsDistributor = pathsDistributor
+          pathDistributor = pathDistributor
         ) map {
           result =>
             DefIO(
@@ -127,13 +128,13 @@ object DefragMemorySegment {
   private def commitSegments[NULL_SEG >: SEG, SEG](mergeResult: ListBuffer[TransientSegment.Fragment[MergeStats.Memory.Builder[Memory, ListBuffer]]],
                                                    removeDeletes: Boolean,
                                                    createdInLevel: Int,
-                                                   pathsDistributor: PathsDistributor)(implicit executionContext: ExecutionContext,
-                                                                                       keyOrder: KeyOrder[Slice[Byte]],
-                                                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                                                       functionStore: CoreFunctionStore,
-                                                                                       segmentConfig: SegmentBlockConfig,
-                                                                                       fileSweeper: FileSweeper,
-                                                                                       idGenerator: IDGenerator): Future[ListBuffer[Slice[MemorySegment]]] =
+                                                   pathDistributor: PathDistributor)(implicit executionContext: ExecutionContext,
+                                                                                     keyOrder: KeyOrder[Slice[Byte]],
+                                                                                     timeOrder: TimeOrder[Slice[Byte]],
+                                                                                     functionStore: CoreFunctionStore,
+                                                                                     segmentConfig: SegmentBlockConfig,
+                                                                                     fileSweeper: FileSweeper,
+                                                                                     idGenerator: IDGenerator): Future[ListBuffer[Slice[MemorySegment]]] =
     Future.traverse(mergeResult) {
       case remote: TransientSegment.Remote =>
         Future {
@@ -141,7 +142,7 @@ object DefragMemorySegment {
             case ref: TransientSegment.RemoteRef =>
               MemorySegment(
                 keyValues = ref.iterator(segmentConfig.initialiseIteratorsInOneSeek),
-                pathsDistributor = pathsDistributor,
+                pathDistributor = pathDistributor,
                 removeDeletes = removeDeletes,
                 minSegmentSize = segmentConfig.minSize,
                 maxKeyValueCountPerSegment = segmentConfig.maxCount,
@@ -152,7 +153,7 @@ object DefragMemorySegment {
               MemorySegment.copyFrom(
                 segment = segment,
                 createdInLevel = createdInLevel,
-                pathsDistributor = pathsDistributor,
+                pathDistributor = pathDistributor,
                 removeDeletes = removeDeletes,
                 minSegmentSize = segmentConfig.minSize,
                 maxKeyValueCountPerSegment = segmentConfig.maxCount,
@@ -169,7 +170,7 @@ object DefragMemorySegment {
             MemorySegment(
               minSegmentSize = segmentConfig.minSize,
               maxKeyValueCountPerSegment = segmentConfig.maxCount,
-              pathsDistributor = pathsDistributor,
+              pathDistributor = pathDistributor,
               createdInLevel = createdInLevel,
               stats = stats.close()
             )

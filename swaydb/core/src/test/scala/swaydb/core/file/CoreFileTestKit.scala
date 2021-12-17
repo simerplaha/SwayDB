@@ -1,8 +1,8 @@
 package swaydb.core.file
 
 import org.scalatest.PrivateMethodTester._
-import swaydb.core.{TestForceSave, TestSweeper}
-import swaydb.core.TestSweeper._
+import swaydb.core.{TestForceSave, CoreTestSweeper}
+import swaydb.core.CoreTestSweeper._
 import swaydb.core.segment.block.BlockCacheSource
 import swaydb.effect.Effect
 import swaydb.effect.EffectTestKit.randomThreadSafeIOStrategy
@@ -21,28 +21,28 @@ object CoreFileTestKit {
   def invokePrivate_file(reader: FileReader): CoreFile =
     reader invokePrivate PrivateMethod[CoreFile](Symbol("file"))()
 
-  def randomFilePath()(implicit sweeper: TestSweeper): Path =
-    sweeper.testDir().resolve(s"${randomCharacters()}.test").sweep()
+  def randomFilePath()(implicit sweeper: CoreTestSweeper): Path =
+    sweeper.testPath.resolve(s"${randomCharacters()}.test").sweep()
 
-  def createFile(bytes: Slice[Byte])(implicit sweeper: TestSweeper): Path =
+  def createFile(bytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): Path =
     Effect.write(
-      to = sweeper.testDir().resolve(sweeper.idGenerator.nextSegmentId()),
+      to = sweeper.persistTestPath().resolve(sweeper.idGenerator.nextSegmentId()),
       bytes = bytes.toByteBufferWrap()
     ).sweep()
 
-  def createRandomFileReader(path: Path)(implicit sweeper: TestSweeper): FileReader =
+  def createRandomFileReader(path: Path)(implicit sweeper: CoreTestSweeper): FileReader =
     if (Random.nextBoolean())
       createMMAPFileReader(path)
     else
       createStandardFileFileReader(path)
 
-  def createFileReaders(path: Path)(implicit sweeper: TestSweeper): TestTuple2[FileReader] =
+  def createFileReaders(path: Path)(implicit sweeper: CoreTestSweeper): TestTuple2[FileReader] =
     TestTuple2(
       left = createMMAPFileReader(path),
       right = createStandardFileFileReader(path)
     )
 
-  def createMMAPFileReader(bytes: Slice[Byte])(implicit sweeper: TestSweeper): FileReader =
+  def createMMAPFileReader(bytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): FileReader =
     createMMAPFileReader(createFile(bytes))
 
   /**
@@ -51,25 +51,25 @@ object CoreFileTestKit {
   def createFiles(mmapPath: Path,
                   mmapBytes: Slice[Byte],
                   channelPath: Path,
-                  standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): TestTuple2[CoreFile] =
+                  standardBytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): TestTuple2[CoreFile] =
     TestTuple2(
       left = createMMAPWriteableReadable(mmapPath, mmapBytes),
       right = createStandardWriteableReadable(channelPath, standardBytes)
     )
 
-  def createFiles(bytes: Slice[Byte])(implicit sweeper: TestSweeper): TestTuple2[CoreFile] =
+  def createFiles(bytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): TestTuple2[CoreFile] =
     createFiles(
       mmapBytes = bytes,
       standardBytes = bytes
     )
 
-  def createFiles(mmapBytes: Slice[Byte], standardBytes: Slice[Byte])(implicit sweeper: TestSweeper): TestTuple2[CoreFile] =
+  def createFiles(mmapBytes: Slice[Byte], standardBytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): TestTuple2[CoreFile] =
     TestTuple2(
       left = createMMAPWriteableReadable(randomFilePath(), mmapBytes),
       right = createStandardWriteableReadable(randomFilePath(), standardBytes)
     )
 
-  def createMMAPWriteableReadable(path: Path, bytes: Slice[Byte])(implicit sweeper: TestSweeper): CoreFile = {
+  def createMMAPWriteableReadable(path: Path, bytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): CoreFile = {
     import sweeper._
 
     CoreFile.mmapWriteableReadable(
@@ -82,7 +82,7 @@ object CoreFileTestKit {
     ).sweep()
   }
 
-  def createWriteableMMAPFile(path: Path, bufferSize: Int)(implicit sweeper: TestSweeper): CoreFile = {
+  def createWriteableMMAPFile(path: Path, bufferSize: Int)(implicit sweeper: CoreTestSweeper): CoreFile = {
     import sweeper._
 
     CoreFile.mmapEmptyWriteableReadable(
@@ -95,7 +95,7 @@ object CoreFileTestKit {
     ).sweep()
   }
 
-  def createWriteableStandardFile(path: Path)(implicit sweeper: TestSweeper): CoreFile = {
+  def createWriteableStandardFile(path: Path)(implicit sweeper: CoreTestSweeper): CoreFile = {
     import sweeper._
 
     CoreFile.standardWritable(
@@ -106,7 +106,7 @@ object CoreFileTestKit {
     )
   }
 
-  def createStandardWriteableReadable(path: Path, bytes: Slice[Byte])(implicit sweeper: TestSweeper): CoreFile = {
+  def createStandardWriteableReadable(path: Path, bytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): CoreFile = {
     import sweeper._
 
     val file =
@@ -127,7 +127,7 @@ object CoreFileTestKit {
     ).sweep()
   }
 
-  def createMMAPFileReader(path: Path)(implicit sweeper: TestSweeper): FileReader = {
+  def createMMAPFileReader(path: Path)(implicit sweeper: CoreTestSweeper): FileReader = {
     import sweeper._
 
     val file =
@@ -141,10 +141,10 @@ object CoreFileTestKit {
     new FileReader(file = file)
   }
 
-  def createStandardFileFileReader(bytes: Slice[Byte])(implicit sweeper: TestSweeper): FileReader =
+  def createStandardFileFileReader(bytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): FileReader =
     createStandardFileFileReader(createFile(bytes))
 
-  def createStandardFileFileReader(path: Path)(implicit sweeper: TestSweeper): FileReader = {
+  def createStandardFileFileReader(path: Path)(implicit sweeper: CoreTestSweeper): FileReader = {
     import sweeper._
 
     val file =
@@ -157,19 +157,19 @@ object CoreFileTestKit {
     new FileReader(file = file)
   }
 
-  def createRandomFileReader(bytes: Slice[Byte])(implicit sweeper: TestSweeper): FileReader =
+  def createRandomFileReader(bytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): FileReader =
     createRandomFileReader(createFile(bytes))
 
-  def randomIntDirectory()(implicit sweeper: TestSweeper): Path =
-    sweeper.testDirPath.resolve(sweeper.idGenerator.toString)
+  def randomIntDirectory()(implicit sweeper: CoreTestSweeper): Path =
+    sweeper.testPath.resolve(sweeper.idGenerator.toString)
 
-  def createRandomIntDirectory()(implicit sweeper: TestSweeper): Path =
+  def createRandomIntDirectory()(implicit sweeper: CoreTestSweeper): Path =
     Effect.createDirectoriesIfAbsent(randomIntDirectory()).sweep()
 
-  def randomDir()(implicit sweeper: TestSweeper): Path =
-    sweeper.testDirPath.resolve(s"${randomCharacters()}").sweep()
+  def randomDir()(implicit sweeper: CoreTestSweeper): Path =
+    sweeper.testPath.resolve(s"${randomCharacters()}").sweep()
 
-  def createRandomDir()(implicit sweeper: TestSweeper): Path =
+  def createRandomDir()(implicit sweeper: CoreTestSweeper): Path =
     Effect.createDirectory(randomDir()).sweep()
 
   implicit class CoreFileImplicits(file: CoreFile) {

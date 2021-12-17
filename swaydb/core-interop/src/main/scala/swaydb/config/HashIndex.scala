@@ -26,7 +26,7 @@ import scala.jdk.CollectionConverters._
 sealed trait HashIndex {
   def toOption =
     this match {
-      case HashIndex.Off => None
+      case HashIndex.Off        => None
       case enable: HashIndex.On => Some(enable)
     }
 }

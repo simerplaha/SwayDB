@@ -20,8 +20,8 @@
 //import swaydb.PureFunctionScala._
 //import swaydb.api.TestBaseAPI
 //import swaydb.config.Functions
-//import swaydb.core.TestSweeper
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.serializers.Default._
 //import swaydb.slice.Slice
 //import swaydb.slice.order.KeyOrder
@@ -33,25 +33,25 @@
 //
 //class MultiMapFunctionsSpec0 extends MultiMapFunctionsSpec {
 //  override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
-//                       sweeper: TestSweeper) =
+//                       sweeper: CoreTestSweeper) =
 //    swaydb.persistent.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](dir = randomDir()).sweep(_.delete())
 //}
 //
 //class MultiMapFunctionsSpec1 extends MultiMapFunctionsSpec {
 //  override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
-//                       sweeper: TestSweeper) =
+//                       sweeper: CoreTestSweeper) =
 //    swaydb.persistent.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](dir = randomDir(), logSize = 1.byte).sweep(_.delete())
 //}
 //
 //class MultiMapFunctionsSpec2 extends MultiMapFunctionsSpec {
 //  override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
-//                       sweeper: TestSweeper) =
+//                       sweeper: CoreTestSweeper) =
 //    swaydb.memory.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass]().sweep(_.delete())
 //}
 //
 //class MultiMapFunctionsSpec3 extends MultiMapFunctionsSpec {
 //  override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
-//                       sweeper: TestSweeper) =
+//                       sweeper: CoreTestSweeper) =
 //    swaydb.memory.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](logSize = 1.byte).sweep(_.delete())
 //}
 //
@@ -60,7 +60,7 @@
 //  val keyValueCount: Int = 30
 //
 //  def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
-//              sweeper: TestSweeper): MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass]
+//              sweeper: CoreTestSweeper): MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass]
 //
 //  implicit val bag = Bag.glass
 //
@@ -86,7 +86,7 @@
 //    implicit val functions = Functions[PureFunction.Map[Int, String]](onKeyValueFunction, onValueFunction, onKeyFunction)
 //
 //    "single" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          val map = newDB()
@@ -109,7 +109,7 @@
 //    }
 //
 //    "batch" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          val map = newDB()

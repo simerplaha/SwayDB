@@ -21,7 +21,7 @@
 //import swaydb.IO
 //import swaydb.config.MMAP
 //import swaydb.core.CommonAssertions._
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.core.CoreTestData._
 //import swaydb.core._
 //import swaydb.core.log.ALogSpec
@@ -54,7 +54,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait LevelMergeSpec extends ALevelSpec with MockFactory with PrivateMethodTester {
+//sealed trait LevelMergeSpec extends AnyWordSpec  {
 //
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //  implicit val testTimer: TestTimer = TestTimer.Empty
@@ -65,7 +65,7 @@
 //  "level is empty" should {
 //    "write put key-values" in {
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            //create a Level
 //            val level = TestLevel()
@@ -105,7 +105,7 @@
 //
 //    "cleared update key-values" in {
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val level = TestLevel()
 //
@@ -144,7 +144,7 @@
 //  "level is non empty" should {
 //    "overwrite existing key-values" in new ALogSpec {
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val level = TestLevel()
 //
@@ -178,7 +178,7 @@
 //
 //    "merge new key-values" in new ALevelSpec with ALogSpec {
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val level = TestLevel()
 //
@@ -223,7 +223,7 @@
 //
 //    "seconds merge clears all existing key-values" in new ALogSpec {
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val level = TestLevel()
 //

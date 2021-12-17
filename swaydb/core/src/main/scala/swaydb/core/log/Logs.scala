@@ -91,9 +91,11 @@ private[core] object Logs extends LazyLogging {
               lastLogs match {
                 case PersistentLog(path, _, _, _, _, _) =>
                   path.incrementFolderId
+
                 case _ =>
                   path.resolve(0.toFolderId)
               }
+
             case None =>
               path.resolve(0.toFolderId)
           }
@@ -333,6 +335,7 @@ private[core] class Logs[K, V, C <: LogCache[K, V]](private val queue: VolatileQ
 
   /**
    * @param entry entry to add
+   *
    * @return IO.Right(true) when new log gets added to logs. This return value is currently used
    *         in LevelZero to determine if there is a log that should be converted Segment.
    */

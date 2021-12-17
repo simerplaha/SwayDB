@@ -1,7 +1,7 @@
 package swaydb.core.segment.block
 
 import org.scalatest.matchers.should.Matchers._
-import swaydb.{Error, IO}
+import swaydb.{Error, IO, TestExecutionContext}
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.config._
@@ -36,8 +36,8 @@ import swaydb.testkit.TestKit._
 import swaydb.utils.StorageUnits._
 import swaydb.SliceIOImplicits._
 import swaydb.config.CoreConfigTestKit._
-import swaydb.core.{SegmentBlocks, TestExecutionContext}
 import swaydb.core.file.FileReader
+import swaydb.core.segment.SegmentBlocks
 import swaydb.core.segment.SegmentTestKit._
 import swaydb.effect.EffectTestKit._
 import swaydb.slice.{Reader, Slice, SliceReader}
@@ -47,7 +47,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.Random
 
-object BlockTestKit {
+object SegmentBlockTestKit {
 
   implicit class ValuesBlockConfigImplicits(values: ValuesBlockConfig.type) {
     def random: ValuesBlockConfig =
@@ -392,20 +392,23 @@ object BlockTestKit {
       sortedIndexConfig = sortedIndexConfig,
       valuesConfig = valuesConfig,
       segmentConfig = segmentConfig
-    ).awaitInf mapToSlice {
-      closed =>
-        val segmentIO =
-          SegmentReadIO(
-            bloomFilterConfig = bloomFilterConfig,
-            hashIndexConfig = hashIndexConfig,
-            binarySearchIndexConfig = binarySearchIndexConfig,
-            sortedIndexConfig = sortedIndexConfig,
-            valuesConfig = valuesConfig,
-            segmentConfig = segmentConfig
-          )
+    ) map {
+      slices =>
+        slices mapToSlice {
+          closed =>
+            val segmentIO =
+              SegmentReadIO(
+                bloomFilterConfig = bloomFilterConfig,
+                hashIndexConfig = hashIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                valuesConfig = valuesConfig,
+                segmentConfig = segmentConfig
+              )
 
-        getSegmentBlockCacheFromSegmentClosed(closed, segmentIO)
-    }
+            getSegmentBlockCacheFromSegmentClosed(closed, segmentIO)
+        }
+    } awaitInf
 
   def getSegmentBlockCacheSingle(keyValues: Slice[Memory],
                                  valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
@@ -501,7 +504,7 @@ object BlockTestKit {
     }
 
   def readAll(segment: TransientSegment.One)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Slice[KeyValue]] =
-    BlockTestKit.readAll(segment.flattenSegmentBytes)
+    SegmentBlockTestKit.readAll(segment.flattenSegmentBytes)
 
   def writeAndRead(keyValues: Iterable[Memory])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                 keyOrder: KeyOrder[Slice[Byte]],
@@ -528,7 +531,7 @@ object BlockTestKit {
 
     segment should have size 1
 
-    BlockTestKit.readAll(segment.head.flattenSegmentBytes)
+    SegmentBlockTestKit.readAll(segment.head.flattenSegmentBytes)
   }
 
   def readBlocksFromSegment(closedSegment: TransientSegment.One,
@@ -583,5 +586,4 @@ object BlockTestKit {
     def flattenSegment: (Slice[Byte], Option[Deadline]) =
       (flattenSegmentBytes, segment.nearestPutDeadline)
   }
-
 }

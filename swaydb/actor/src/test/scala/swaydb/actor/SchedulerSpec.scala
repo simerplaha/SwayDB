@@ -17,16 +17,16 @@
 //package swaydb.core.util
 //
 //import org.scalatest.concurrent.Eventually
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.Error.Segment.ExceptionHandler
-//import swaydb.core.TestSweeper._
-//import swaydb.core.{TestSweeper, TestExecutionContext}
+//import swaydb.core.CoreTestSweeper._
+//import swaydb.core.{CoreTestSweeper, TestExecutionContext}
 //import swaydb.{IO, Scheduler}
 //
 //import scala.concurrent.duration._
 //
-//class SchedulerSpec extends AnyWordSpec with Matchers with Eventually {
+//class SchedulerSpec extends AnyWordSpec with Eventually {
 //
 //  implicit val ec = TestExecutionContext.executionContext
 //
@@ -56,7 +56,7 @@
 //
 //  "Delay.task" should {
 //    "run tasks and cancel tasks" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          @volatile var tasksExecuted = 0
@@ -85,7 +85,7 @@
 //
 //  "futureFromIO" should {
 //    "run in future and return result" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          @volatile var tryThread = ""
 //
@@ -109,7 +109,7 @@
 //
 //  "future" should {
 //    "run in future" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          @volatile var futureThread = ""
 //

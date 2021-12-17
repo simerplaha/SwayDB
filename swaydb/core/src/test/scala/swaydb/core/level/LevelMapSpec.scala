@@ -21,7 +21,7 @@
 //import swaydb.effect.IOValues._
 //import swaydb.config.{Atomic, MMAP, OptimiseWrites}
 //import swaydb.core.CommonAssertions._
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.core.CoreTestData._
 //import swaydb.core._
 //import swaydb.core.level.zero.LevelZeroLogCache
@@ -56,7 +56,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait LevelMapSpec extends ALevelSpec with MockFactory with PrivateMethodTester {
+//sealed trait LevelMapSpec extends AnyWordSpec {
 //
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //  implicit val testTimer: TestTimer = TestTimer.Empty
@@ -71,14 +71,14 @@
 //    import swaydb.core.log.serialiser.LevelZeroLogEntryReader._
 //    import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
 //
-//    def createTestMap()(implicit sweeper: TestSweeper) = {
+//    def createTestMap()(implicit sweeper: CoreTestSweeper) = {
 //      import sweeper._
 //
 //      implicit val optimiseWrites = OptimiseWrites.random
 //      implicit val atomic: Atomic = Atomic.random
 //
 //      val map =
-//        if (isPersistentSpec)
+//        if (isPersistent)
 //          Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
 //            folder = randomIntDirectory,
 //            mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
@@ -100,7 +100,7 @@
 //
 //    "succeed" when {
 //      "writing to an empty Level" in {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -122,7 +122,7 @@
 //      }
 //
 //      "writing to a non empty Level" in {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //

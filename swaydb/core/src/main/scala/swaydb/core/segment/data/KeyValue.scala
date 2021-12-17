@@ -315,47 +315,47 @@ private[swaydb] object Memory {
   def hasSameValue(left: Memory, right: Memory): Boolean =
     (left, right) match {
       //Remove
-      case (left: Memory.Remove, right: Memory.Remove) => true
-      case (left: Memory.Remove, right: Memory.Put) => right.value.isNoneC
-      case (left: Memory.Remove, right: Memory.Update) => right.value.isNoneC
-      case (left: Memory.Remove, right: Memory.Function) => false
+      case (left: Memory.Remove, right: Memory.Remove)       => true
+      case (left: Memory.Remove, right: Memory.Put)          => right.value.isNoneC
+      case (left: Memory.Remove, right: Memory.Update)       => right.value.isNoneC
+      case (left: Memory.Remove, right: Memory.Function)     => false
       case (left: Memory.Remove, right: Memory.PendingApply) => false
-      case (left: Memory.Remove, right: Memory.Range) => false
+      case (left: Memory.Remove, right: Memory.Range)        => false
       //Put
-      case (left: Memory.Put, right: Memory.Remove) => left.value.isNoneC
-      case (left: Memory.Put, right: Memory.Put) => left.value == right.value
-      case (left: Memory.Put, right: Memory.Update) => left.value == right.value
-      case (left: Memory.Put, right: Memory.Function) => left.value containsC right.function
+      case (left: Memory.Put, right: Memory.Remove)       => left.value.isNoneC
+      case (left: Memory.Put, right: Memory.Put)          => left.value == right.value
+      case (left: Memory.Put, right: Memory.Update)       => left.value == right.value
+      case (left: Memory.Put, right: Memory.Function)     => left.value containsC right.function
       case (left: Memory.Put, right: Memory.PendingApply) => false
-      case (left: Memory.Put, right: Memory.Range) => false
+      case (left: Memory.Put, right: Memory.Range)        => false
       //Update
-      case (left: Memory.Update, right: Memory.Remove) => left.value.isNoneC
-      case (left: Memory.Update, right: Memory.Put) => left.value == right.value
-      case (left: Memory.Update, right: Memory.Update) => left.value == right.value
-      case (left: Memory.Update, right: Memory.Function) => left.value containsC right.function
+      case (left: Memory.Update, right: Memory.Remove)       => left.value.isNoneC
+      case (left: Memory.Update, right: Memory.Put)          => left.value == right.value
+      case (left: Memory.Update, right: Memory.Update)       => left.value == right.value
+      case (left: Memory.Update, right: Memory.Function)     => left.value containsC right.function
       case (left: Memory.Update, right: Memory.PendingApply) => false
-      case (left: Memory.Update, right: Memory.Range) => false
+      case (left: Memory.Update, right: Memory.Range)        => false
       //Function
-      case (left: Memory.Function, right: Memory.Remove) => false
-      case (left: Memory.Function, right: Memory.Put) => right.value containsC left.function
-      case (left: Memory.Function, right: Memory.Update) => right.value containsC left.function
-      case (left: Memory.Function, right: Memory.Function) => left.function == right.function
+      case (left: Memory.Function, right: Memory.Remove)       => false
+      case (left: Memory.Function, right: Memory.Put)          => right.value containsC left.function
+      case (left: Memory.Function, right: Memory.Update)       => right.value containsC left.function
+      case (left: Memory.Function, right: Memory.Function)     => left.function == right.function
       case (left: Memory.Function, right: Memory.PendingApply) => false
-      case (left: Memory.Function, right: Memory.Range) => false
+      case (left: Memory.Function, right: Memory.Range)        => false
       //PendingApply
-      case (left: Memory.PendingApply, right: Memory.Remove) => false
-      case (left: Memory.PendingApply, right: Memory.Put) => false
-      case (left: Memory.PendingApply, right: Memory.Update) => false
-      case (left: Memory.PendingApply, right: Memory.Function) => false
+      case (left: Memory.PendingApply, right: Memory.Remove)       => false
+      case (left: Memory.PendingApply, right: Memory.Put)          => false
+      case (left: Memory.PendingApply, right: Memory.Update)       => false
+      case (left: Memory.PendingApply, right: Memory.Function)     => false
       case (left: Memory.PendingApply, right: Memory.PendingApply) => left.applies == right.applies
-      case (left: Memory.PendingApply, right: Memory.Range) => false
+      case (left: Memory.PendingApply, right: Memory.Range)        => false
       //Range
-      case (left: Memory.Range, right: Memory.Remove) => false
-      case (left: Memory.Range, right: Memory.Put) => false
-      case (left: Memory.Range, right: Memory.Update) => false
-      case (left: Memory.Range, right: Memory.Function) => false
+      case (left: Memory.Range, right: Memory.Remove)       => false
+      case (left: Memory.Range, right: Memory.Put)          => false
+      case (left: Memory.Range, right: Memory.Update)       => false
+      case (left: Memory.Range, right: Memory.Function)     => false
       case (left: Memory.Range, right: Memory.PendingApply) => false
-      case (left: Memory.Range, right: Memory.Range) => left.fromValue == right.fromValue && left.rangeValue == right.rangeValue
+      case (left: Memory.Range, right: Memory.Range)        => left.fromValue == right.fromValue && left.rangeValue == right.rangeValue
     }
 
   case class Put(key: Slice[Byte],
@@ -1017,7 +1017,8 @@ private[core] object Persistent {
               else if (valuesReaderOrNull == null)
                 throw new Exception("ValuesBlock is undefined.")
               else
-                UnblockedReader.moveTo(offset, valuesReaderOrNull)
+                UnblockedReader
+                  .moveTo(offset, valuesReaderOrNull)
                   .copy()
                   .readFullBlockOrNone()
                   .cutToSliceOption()
@@ -1124,7 +1125,8 @@ private[core] object Persistent {
               else if (valuesReaderOrNull == null)
                 throw new Exception("ValuesBlock is undefined.")
               else
-                UnblockedReader.moveTo(offset, valuesReaderOrNull)
+                UnblockedReader
+                  .moveTo(offset, valuesReaderOrNull)
                   .copy()
                   .readFullBlockOrNone()
                   .cutToSliceOption()
@@ -1282,7 +1284,8 @@ private[core] object Persistent {
               if (valuesReaderOrNull == null)
                 throw new Exception("ValuesBlock is undefined.")
               else
-                UnblockedReader.moveTo(offset, valuesReaderOrNull)
+                UnblockedReader
+                  .moveTo(offset, valuesReaderOrNull)
                   .copy()
                   .readFullBlock()
                   .cut()
@@ -1374,7 +1377,8 @@ private[core] object Persistent {
                 throw new Exception("ValuesBlock is undefined.")
               } else {
                 val bytes =
-                  UnblockedReader.moveTo(offset, valuesReaderOrNull)
+                  UnblockedReader
+                    .moveTo(offset, valuesReaderOrNull)
                     .copy()
                     .readFullBlock()
 
@@ -1509,7 +1513,8 @@ private[core] object Persistent {
                 throw new Exception("ValuesBlock is undefined.")
               } else {
                 val bytes =
-                  UnblockedReader.moveTo(offset, valuesReaderOrNull)
+                  UnblockedReader
+                    .moveTo(offset, valuesReaderOrNull)
                     .copy()
                     .readFullBlock()
 

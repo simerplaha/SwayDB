@@ -17,7 +17,7 @@
 package swaydb.effect
 
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import swaydb.testkit.RunThis._
 
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -25,7 +25,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
 import scala.util.Random
 
-class ReserveSpec extends AnyFlatSpec with Matchers {
+class ReserveSpec extends AnyFlatSpec {
 
   def getPromises(reserve: Reserve[Unit]): ConcurrentLinkedQueue[Promise[Unit]] = {
     import org.scalatest.PrivateMethodTester._
@@ -39,7 +39,7 @@ class ReserveSpec extends AnyFlatSpec with Matchers {
     val futures =
       (1 to 100) map {
         i =>
-          Reserve.promise(busy).future map { _ => i }
+          Reserve.promise(busy).future.map(_ => i)
       }
 
     Future.sequence(futures).await should contain theSameElementsInOrderAs (1 to 100)
@@ -51,7 +51,7 @@ class ReserveSpec extends AnyFlatSpec with Matchers {
     val futures =
       (1 to 10000) map {
         i =>
-          Reserve.promise(busy).future map { _ => i }
+          Reserve.promise(busy).future.map(_ => i)
       }
 
     Future {

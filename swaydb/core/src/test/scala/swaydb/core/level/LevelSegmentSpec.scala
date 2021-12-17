@@ -21,7 +21,7 @@
 ////import swaydb.config.MMAP
 ////import swaydb.config.storage.LevelStorage
 ////import swaydb.core.CommonAssertions._
-////import swaydb.core.TestSweeper._
+////import swaydb.core.CoreTestSweeper._
 ////import swaydb.core.CoreTestData._
 ////import swaydb.core._
 ////import swaydb.core.segment.block.segment.SegmentBlockConfig
@@ -52,16 +52,16 @@
 ////
 ////class LevelSegmentSpec2 extends LevelSegmentSpec {
 ////  override def levelFoldersCount = 10
-////  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-////  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-////  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
+////  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
+////  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
+////  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
 ////}
 ////
 ////class LevelSegmentSpec3 extends LevelSegmentSpec {
 ////  override def isMemorySpec = true
 ////}
 ////
-////sealed trait LevelSegmentSpec extends ALevelSpec with MockFactory {
+////sealed trait LevelSegmentSpec extends AnyWordSpec {
 ////
 ////  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 ////  implicit val testTimer: TestTimer = TestTimer.Empty
@@ -75,7 +75,7 @@
 ////  "writing Segments to single level" should {
 ////    "succeed" when {
 ////      "level is empty" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            import sweeper._
 ////
@@ -90,7 +90,7 @@
 ////
 ////      "level is non-empty" in {
 ////        runThis(10.times, log = true) {
-////          TestSweeper {
+////          CoreTestSweeper {
 ////            implicit sweeper =>
 ////              import sweeper._
 ////
@@ -112,7 +112,7 @@
 ////      }
 ////
 ////      "writing multiple Segments to an empty Level" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            import sweeper._
 ////
@@ -136,7 +136,7 @@
 ////      }
 ////
 ////      "writing multiple Segments to a non empty Level" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            import sweeper._
 ////
@@ -164,8 +164,8 @@
 ////      }
 ////
 ////      "distribute Segments to multiple directories based on the distribution ratio" in {
-////        if (isPersistentSpec) {
-////          TestSweeper {
+////        if (isPersistent) {
+////          CoreTestSweeper {
 ////            implicit sweeper =>
 ////              import sweeper._
 ////
@@ -238,7 +238,7 @@
 ////
 ////    "fail" when {
 ////      "fail when writing a deleted segment" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            import sweeper._
 ////
@@ -252,7 +252,7 @@
 ////              sweeper.receiveAll()
 ////
 ////            val result = level.put(segment).left.get
-////            if (isPersistentSpec)
+////            if (isPersistent)
 ////              result.exception shouldBe a[NoSuchFileException]
 ////            else
 ////              result.exception shouldBe a[Exception]
@@ -260,14 +260,14 @@
 ////            level.isEmpty shouldBe true
 ////
 ////            //if it's a persistent Level, reopen to ensure that Segment did not value committed.
-////            if (isPersistentSpec) level.reopen.isEmpty shouldBe true
+////            if (isPersistent) level.reopen.isEmpty shouldBe true
 ////        }
 ////      }
 ////
 ////      "revert copy if merge fails" in {
-////        if (isPersistentSpec)
+////        if (isPersistent)
 ////          runThis(10.times, log = true) {
-////            TestSweeper {
+////            CoreTestSweeper {
 ////              implicit sweeper =>
 ////
 ////                val keyValues = randomKeyValues(100)(TestTimer.Empty).groupedSlice(10).toArray

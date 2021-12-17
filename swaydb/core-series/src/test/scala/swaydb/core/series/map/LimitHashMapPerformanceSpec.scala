@@ -17,10 +17,10 @@
 package swaydb.core.series.map
 
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import swaydb.Benchmark
 
-class LimitHashMapPerformanceSpec extends AnyFlatSpec with Matchers {
+class LimitHashMapPerformanceSpec extends AnyFlatSpec {
 
   it should "perform" in {
 

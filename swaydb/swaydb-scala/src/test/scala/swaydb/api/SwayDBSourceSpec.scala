@@ -18,21 +18,21 @@
 //
 //import swaydb.effect.IOValues._
 //import swaydb._
-//import swaydb.core.TestSweeper
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.serializers.Default._
 //import swaydb.testkit.RunThis.runThis
 //import swaydb.core.file.CoreFileTestKit._
 //
 //class SwayDBSourceSpec0 extends SwayDBSourceSpec {
-//  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
 //    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir()).right.value.sweep(_.delete().get)
 //
 //  override val keyValueCount: Int = 100
 //}
 //
 //class SwayDBSource_SetMap_Spec0 extends SwayDBSourceSpec {
-//  override def newDB()(implicit sweeper: TestSweeper): SetMap[Int, String, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): SetMap[Int, String, IO.ApiIO] =
 //    swaydb.persistent.SetMap[Int, String, IO.ApiIO](randomDir()).right.value.sweep(_.delete().get)
 //
 //  override val keyValueCount: Int = 100
@@ -42,7 +42,7 @@
 //
 //  override val keyValueCount: Int = 100
 //
-//  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
 //    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir(), logSize = 1.byte).right.value.sweep(_.delete().get)
 //}
 //
@@ -50,7 +50,7 @@
 //
 //  override val keyValueCount: Int = 100
 //
-//  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
 //    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](logSize = 1.byte).right.value.sweep(_.delete().get)
 //}
 //
@@ -58,27 +58,27 @@
 //
 //  override val keyValueCount: Int = 100
 //
-//  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
 //    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value.sweep(_.delete().get)
 //}
 //
 //class MultiMapSwayDBSourceSpec4 extends SwayDBSourceSpec {
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
 //    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir()).get).sweep(_.delete().get)
 //}
 //
 //class MultiMapSwayDBSourceSpec5 extends SwayDBSourceSpec {
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
 //    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get).sweep(_.delete().get)
 //}
 //
 //sealed trait SwayDBSourceSpec extends TestBaseAPI {
 //
-//  def newDB()(implicit sweeper: TestSweeper): SetMapT[Int, String, IO.ApiIO]
+//  def newDB()(implicit sweeper: CoreTestSweeper): SetMapT[Int, String, IO.ApiIO]
 //
 //  implicit val bag = Bag.glass
 //
@@ -86,7 +86,7 @@
 //
 //    "transformValue" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()

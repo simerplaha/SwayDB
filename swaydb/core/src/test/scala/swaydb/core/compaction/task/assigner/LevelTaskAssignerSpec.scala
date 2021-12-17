@@ -25,7 +25,7 @@
 //import swaydb.core.segment.Segment
 //import swaydb.core.segment.block.segment.SegmentBlockConfig
 //import swaydb.core.segment.data.Memory
-//import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
+//import swaydb.core.{ACoreSpec, CoreTestSweeper, TestForceSave, TestTimer}
 //import swaydb.core.level.ALevelSpec
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
@@ -57,7 +57,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait LevelTaskAssignerSpec extends ALevelSpec with MockFactory {
+//sealed trait LevelTaskAssignerSpec extends AnyWordSpec {
 //
 //  implicit val timer = TestTimer.Empty
 //  implicit val keyOrder = KeyOrder.default
@@ -65,7 +65,7 @@
 //
 //  "refresh" when {
 //    "Level is empty" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val level = TestLevel()
 //          LevelTaskAssigner.refresh(level) shouldBe empty
@@ -73,7 +73,7 @@
 //    }
 //
 //    "Level is non-empty but no deadline key-values" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -85,7 +85,7 @@
 //    }
 //
 //    "Level has unexpired key-values" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -97,7 +97,7 @@
 //    }
 //
 //    "Level has expired key-values" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -113,7 +113,7 @@
 //
 //  "collapse" when {
 //    "Level is empty" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val level = TestLevel()
 //          LevelTaskAssigner.collapse(level) shouldBe empty
@@ -121,7 +121,7 @@
 //    }
 //
 //    "Level is non-empty and contains only one Segment" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -138,7 +138,7 @@
 //      if (isMemorySpec)
 //        cancel("Test not required for in-memory")
 //      else
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //

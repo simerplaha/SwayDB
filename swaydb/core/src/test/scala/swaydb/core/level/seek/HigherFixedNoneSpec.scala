@@ -18,7 +18,7 @@
 //
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.OptionValues
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.effect.IOValues._
 //import swaydb.core.CoreTestData._
@@ -31,7 +31,7 @@
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.testkit.RunThis._
 //
-//class HigherFixedNoneSpec extends AnyWordSpec with Matchers with MockFactory with OptionValues {
+//class HigherFixedNoneSpec extends AnyWordSpec with OptionValues {
 //
 //  implicit val keyOrder = KeyOrder.default
 //  implicit val timeOrder = TimeOrder.long

@@ -19,7 +19,7 @@
 //import org.scalamock.scalatest.MockFactory
 //import swaydb.core.CoreTestData._
 //import swaydb.core.level.zero.LevelZero.LevelZeroLog
-//import swaydb.core.{ACoreSpec, TestSweeper, TestTimer}
+//import swaydb.core.{ACoreSpec, CoreTestSweeper, TestTimer}
 //import swaydb.core.log.ALogSpec
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
@@ -31,7 +31,7 @@
 //import scala.collection.mutable.ListBuffer
 //import scala.jdk.CollectionConverters._
 //
-//class LevelZeroTaskAssigner_createStacks_Spec extends ALogSpec with MockFactory {
+//class LevelZeroTaskAssigner_createStacks_Spec extends ALogSpec {
 //
 //  implicit val timer = TestTimer.Empty
 //  implicit val keyOrder = KeyOrder.default
@@ -42,7 +42,7 @@
 //  }
 //
 //  "input.size = 1" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //        val logs: List[LevelZeroLog] =
 //          List(
@@ -59,7 +59,7 @@
 //
 //  "input.size = random but no overlaps" in {
 //    runThis(20.times, log = true) {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val logs: Iterable[LevelZeroLog] =
 //            (0 to randomIntMax(10)).foldLeft(ListBuffer.empty[LevelZeroLog]) {

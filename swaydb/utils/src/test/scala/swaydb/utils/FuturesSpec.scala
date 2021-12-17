@@ -16,7 +16,7 @@
 
 package swaydb.utils
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.testkit.RunThis._
 
@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 import scala.concurrent.Future
 import scala.util.Random
 
-class FuturesSpec extends AnyWordSpec with Matchers {
+class FuturesSpec extends AnyWordSpec {
 
   implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
 

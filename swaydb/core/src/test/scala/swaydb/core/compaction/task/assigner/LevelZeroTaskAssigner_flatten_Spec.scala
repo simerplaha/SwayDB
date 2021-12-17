@@ -32,7 +32,7 @@
 //import scala.concurrent.duration.DurationInt
 //import swaydb.testkit.TestKit._
 //
-//class LevelZeroTaskAssigner_flatten_Spec extends ALevelSpec with ALogSpec with MockFactory {
+//class LevelZeroTaskAssigner_flatten_Spec extends AnyWordSpec with ALogSpec {
 //
 //  implicit val timer = TestTimer.Empty
 //  implicit val keyOrder = KeyOrder.default
@@ -48,7 +48,7 @@
 //   */
 //  "random generation" in {
 //    runThis(5.times, log = true) {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //

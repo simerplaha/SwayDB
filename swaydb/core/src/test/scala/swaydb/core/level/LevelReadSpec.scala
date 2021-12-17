@@ -53,16 +53,16 @@
 ////
 ////class LevelReadSpec2 extends LevelReadSpec {
 ////  override def levelFoldersCount = 10
-////  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-////  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-////  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
+////  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
+////  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
+////  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
 ////}
 ////
 ////class LevelReadSpec3 extends LevelReadSpec {
 ////  override def isMemorySpec = true
 ////}
 ////
-////sealed trait LevelReadSpec extends ALevelSpec with MockFactory {
+////sealed trait LevelReadSpec extends AnyWordSpec {
 ////
 ////  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 ////  implicit def testTimer: TestTimer = TestTimer.Empty
@@ -74,7 +74,7 @@
 ////
 ////  "Level.mightContainKey" should {
 ////    "return true for key-values that exists or else false (bloom filter test on reboot)" in {
-////      TestSweeper {
+////      CoreTestSweeper {
 ////        implicit sweeper =>
 ////          import sweeper._
 ////
@@ -93,14 +93,14 @@
 ////          level.put(keyValues).runRandomIO.get
 ////
 ////          assert(level)
-////          if (isPersistentSpec) assert(level.reopen)
+////          if (isPersistent) assert(level.reopen)
 ////      }
 ////    }
 ////  }
 ////
 ////  "Level.takeSmallSegments" should {
 ////    "filter smaller segments from a Level" in {
-////      TestSweeper {
+////      CoreTestSweeper {
 ////        implicit sweeper =>
 ////          import sweeper._
 ////
@@ -113,7 +113,7 @@
 ////          level.put(keyValues.headSlice).runRandomIO.get
 ////          level.segmentsCount() > 1 shouldBe true //ensure there are Segments in this Level
 ////
-////          if (isPersistentSpec) {
+////          if (isPersistent) {
 ////            val reopen = level.reopen(segmentSize = 10.mb)
 ////
 ////            reopen.takeSmallSegments(10000) should not be empty
@@ -129,7 +129,7 @@
 ////
 ////  "Level.meter" should {
 ////    "return Level stats" in {
-////      TestSweeper {
+////      CoreTestSweeper {
 ////        implicit sweeper =>
 ////          import sweeper._
 ////
@@ -150,7 +150,7 @@
 ////                hashIndexConfig = HashIndexBlockConfig.random,
 ////                bloomFilterConfig = BloomFilterBlockConfig.random,
 ////                segmentConfig = SegmentBlockConfig.random2(minSegmentSize = 100.mb),
-////                pathDistributor = createPathDistributor
+////                pathDistributor = createPathDistributor()
 ////              ).runRandomIO.get
 ////
 ////          segments should have size 1
@@ -166,7 +166,7 @@
 ////
 ////  "Level.meterFor" should {
 ////    "forward request to the right level" in {
-////      TestSweeper {
+////      CoreTestSweeper {
 ////        implicit sweeper =>
 ////          import sweeper._
 ////
@@ -187,7 +187,7 @@
 ////                hashIndexConfig = HashIndexBlockConfig.random,
 ////                bloomFilterConfig = BloomFilterBlockConfig.random,
 ////                segmentConfig = SegmentBlockConfig.random2(minSegmentSize = 100.mb),
-////                pathDistributor = createPathDistributor
+////                pathDistributor = createPathDistributor()
 ////              ).runRandomIO.get
 ////
 ////          segments should have size 1
@@ -212,7 +212,7 @@
 ////    }
 ////
 ////    "return None is Level does not exist" in {
-////      TestSweeper {
+////      CoreTestSweeper {
 ////        implicit sweeper =>
 ////          import sweeper._
 ////

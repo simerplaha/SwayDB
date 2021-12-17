@@ -17,13 +17,13 @@
 //package swaydb.core.compaction.task.assigner
 //
 //import org.scalamock.scalatest.MockFactory
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.core.compaction.task.CompactionDataType
 //
 //import scala.collection.SortedSet
 //
-//class TaskAssigner_fillOnOverflow_Spec extends AnyWordSpec with Matchers with MockFactory {
+//class TaskAssigner_fillOnOverflow_Spec extends AnyWordSpec {
 //
 //  "fillOverflow" when {
 //    "no overflow" in {

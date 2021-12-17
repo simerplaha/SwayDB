@@ -20,7 +20,7 @@
 ////import swaydb.core.CoreTestData._
 ////import swaydb.core.segment.block.BlockCache
 ////import swaydb.core.segment.cache.sweeper.MemorySweeper
-////import swaydb.core.{ACoreSpec, TestSweeper}
+////import swaydb.core.CoreTestSweeper
 ////import swaydb.utils.StorageUnits._
 ////import swaydb.testkit.TestKit._
 ////
@@ -39,7 +39,7 @@
 ////       * fastest: 0.009364 seconds
 ////       */
 ////
-////      TestSweeper {
+////      CoreTestSweeper {
 ////        implicit sweeper =>
 ////          val bytes = Benchmark("Generating bytes")(randomBytesSlice(1.gb))
 ////          val file = createStandardFileFileReader(bytes).file

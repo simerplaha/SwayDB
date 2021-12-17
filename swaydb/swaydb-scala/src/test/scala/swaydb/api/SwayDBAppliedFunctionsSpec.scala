@@ -18,8 +18,8 @@
 //
 //import swaydb.PureFunctionScala._
 //import swaydb.config.Functions
-//import swaydb.core.TestSweeper
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.core.log.applied.AppliedFunctionsLog
 //import swaydb.serializers.Default._
 //import swaydb.testkit.RunThis.{eventual, runThis}
@@ -39,7 +39,7 @@
 //    "not create appliedFunctions map" when {
 //      "functions are disabled" in {
 //        runThis(times = repeatTest, log = true) {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //
 //              val dir = createRandomDir()
@@ -57,7 +57,7 @@
 //    "create appliedFunctions map" when {
 //      "functions are enabled" in {
 //        runThis(times = repeatTest, log = true) {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //
 //              val dir = createRandomDir()
@@ -82,7 +82,7 @@
 //  "store applied functions" when {
 //    "there is no data for the function to apply on" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val dir = createRandomDir()
@@ -118,7 +118,7 @@
 //
 //    "there is data for the function to apply" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val dir = createRandomDir()
@@ -174,7 +174,7 @@
 //  "fail start" when {
 //    "applied function is missing" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val dir = createRandomDir()
@@ -213,7 +213,7 @@
 //
 //  "store large number of functions" in {
 //    runThis(times = repeatTest, log = true) {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          val dir = createRandomDir()

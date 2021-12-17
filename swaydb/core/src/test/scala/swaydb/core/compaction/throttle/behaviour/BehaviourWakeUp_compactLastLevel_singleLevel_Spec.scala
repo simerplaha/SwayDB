@@ -24,7 +24,7 @@
 //import swaydb.core.segment.Segment
 //import swaydb.core.segment.block.segment.SegmentBlockConfig
 //import swaydb.core.util.DefIO
-//import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestForceSave}
+//import swaydb.core.{ACoreSpec, CoreTestSweeper, TestExecutionContext, TestForceSave}
 //import swaydb.core.level.ALevelSpec
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
@@ -56,14 +56,14 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends ALevelSpec {
+//sealed trait BehaviourWakeUp_singleLevel_compactNonEmptyLastLevel_Spec extends AnyWordSpec {
 //
 //  implicit val ec = TestExecutionContext.executionContext
 //
 //  "ignore compaction" when {
 //    "empty" in {
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -90,7 +90,7 @@
 //
 //    "there is only one file with no expired key-values" in {
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -133,7 +133,7 @@
 //
 //    "there are multiple large files with no expired key-values" in {
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -176,7 +176,7 @@
 //
 //    "all segments are small but there are only 2 segments (minimum is 3)" in {
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -233,7 +233,7 @@
 //  "run compaction" when {
 //    "all segments are small" in {
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -290,7 +290,7 @@
 //
 //    "there are expired key-values" in {
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //

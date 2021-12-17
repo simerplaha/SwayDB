@@ -14,13 +14,11 @@
 // * limitations under the License.
 // */
 //
-//package swaydb.core.segment
+//package swaydb.core.segment.distributor
 //
-//import org.scalamock.scalatest.MockFactory
-//import swaydb.effect.IOValues._
-//import swaydb.core.TestSweeper._
-//import swaydb.core.{ACoreSpec, TestSweeper}
-//import swaydb.core.level.ALevelSpec
+//import org.scalatest.matchers.should.Matchers._
+//import org.scalatest.wordspec.AnyWordSpec
+//import swaydb.core.CoreTestSweeper
 //import swaydb.effect
 //import swaydb.effect.{Dir, Effect}
 //import swaydb.slice.order.KeyOrder
@@ -28,7 +26,7 @@
 //
 //import java.nio.file.{Path, Paths}
 //
-//class PathsDistributorSpec extends ALevelSpec with MockFactory {
+//class PathsDistributorSpec extends AnyWordSpec {
 //
 //  implicit val keyOrder = KeyOrder.default
 //
@@ -38,13 +36,13 @@
 //    "return distributions and total Segments count when Segments are empty" in {
 //      val dirs = Seq(Dir("1", 1), Dir("2", 2), Dir("3", 3))
 //
-//      val (distributions, segmentsCount) = PathsDistributor.getDistributions(dirs, () => Seq())
+//      val (distributions, segmentsCount) = PathDistributor.getDistributions(dirs, () => Seq())
 //      distributions shouldBe Array(Distribution("1", 1, 0, 0), Distribution("2", 2, 0, 0), Distribution("3", 3, 0, 0))
 //      segmentsCount shouldBe 0
 //    }
 //
 //    "return distributions and total Segments count when Segments are non-empty" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val path = createNextLevelPath.sweep()
 //          val path1 = Effect.createDirectoriesIfAbsent(path.resolve("1"))
@@ -59,7 +57,7 @@
 //            )
 //
 //          val (distributions, segmentsCount) =
-//            PathsDistributor.getDistributions(
+//            PathDistributor.getDistributions(
 //              dirs,
 //              () =>
 //                Seq(
@@ -91,7 +89,7 @@
 //          Distribution(path = "5", distributionRatio = 3, actualSize = 0, expectedSize = 0)
 //        )
 //
-//      PathsDistributor.distribute(0, distributions) shouldBe distributions
+//      pathDistributor.distribute(0, distributions) shouldBe distributions
 //    }
 //
 //    "return distributions with expectedSizes when actualSize == 0" in {
@@ -104,7 +102,7 @@
 //          Distribution(path = "5", distributionRatio = 5, actualSize = 0, expectedSize = 0)
 //        )
 //
-//      PathsDistributor.distribute(100, distributions) shouldBe
+//      pathDistributor.distribute(100, distributions) shouldBe
 //        Array(
 //          Distribution(path = "5", distributionRatio = 5, actualSize = 0, expectedSize = 30),
 //          Distribution(path = "4", distributionRatio = 4, actualSize = 0, expectedSize = 28),
@@ -124,7 +122,7 @@
 //          Distribution(path = "5", distributionRatio = 5, actualSize = 7, expectedSize = 0)
 //        )
 //
-//      PathsDistributor.distribute(100, distributions) shouldBe
+//      pathDistributor.distribute(100, distributions) shouldBe
 //        Array(
 //          Distribution(path = "5", distributionRatio = 5, actualSize = 7, expectedSize = 30),
 //          Distribution(path = "4", distributionRatio = 4, actualSize = 6, expectedSize = 28),
@@ -144,7 +142,7 @@
 //          Distribution(path = "5", distributionRatio = 5, actualSize = 30, expectedSize = 0)
 //        )
 //
-//      PathsDistributor.distribute(100, distributions) shouldBe
+//      pathDistributor.distribute(100, distributions) shouldBe
 //        Array(
 //          Distribution(path = "3", distributionRatio = 3, actualSize = 1, expectedSize = 21), //20 missing
 //          Distribution(path = "4", distributionRatio = 4, actualSize = 14, expectedSize = 28), //12 missing
@@ -155,9 +153,9 @@
 //    }
 //  }
 //
-//  "PathsDistributor.next" should {
+//  "pathDistributor.next" should {
 //    "always returns the first path if there is only 1 directory" in {
-//      val distributor = PathsDistributor(Seq(Dir("1", 0)), () => Seq.empty)
+//      val distributor = pathDistributor(Seq(Dir("1", 0)), () => Seq.empty)
 //
 //      (1 to 100) foreach {
 //        _ =>
@@ -171,7 +169,7 @@
 //      segments.expects() returning Seq() repeat 100.times
 //
 //      val distributor =
-//        PathsDistributor(
+//        pathDistributor(
 //          Seq(
 //            Dir("1", 1),
 //            Dir("2", 2),
@@ -201,7 +199,7 @@
 //    }
 //
 //    "return paths based on the distribution ratio and update distribution when Segments are distributed unevenly" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val path = createNextLevelPath.sweep()
 //          val path1 = Effect.createDirectoriesIfAbsent(path.resolve("1"))
@@ -212,7 +210,7 @@
 //          segments.expects() returning Seq()
 //
 //          val distributor =
-//            PathsDistributor(
+//            pathDistributor(
 //              Seq(
 //                effect.Dir(path1, 1),
 //                effect.Dir(path2, 2),

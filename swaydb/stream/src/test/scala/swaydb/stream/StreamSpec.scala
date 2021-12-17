@@ -16,7 +16,7 @@
 
 package swaydb.stream
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Bag._
 import swaydb.IO.ApiIO
@@ -59,7 +59,7 @@ class StreamTrySpec extends StreamSpec[Try] {
     a.failed.get
 }
 
-sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordSpec with Matchers {
+sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordSpec {
 
   def get[A](a: BAG[A]): A
 
@@ -209,20 +209,25 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
 
     "collect conditional" in {
       Stream[Int, BAG](1 to 1000)
-        .collect { case n if n % 2 == 0 => n }
+        .collect {
+          case n if n % 2 == 0 => n
+        }
         .materialize
         .await shouldBe (2 to 1000 by 2)
     }
 
     "collectFirst" in {
       Stream[Int, BAG](1 to 1000)
-        .collectFirst { case n if n % 2 == 0 => n }
+        .collectFirst {
+          case n if n % 2 == 0 =>
+            n
+        }
         .await should contain(2)
     }
 
     "collect all" in {
       Stream[Int, BAG](1 to 1000)
-        .collect { case n => n }
+        .collect(n => n)
         .materialize
         .await shouldBe (1 to 1000)
     }

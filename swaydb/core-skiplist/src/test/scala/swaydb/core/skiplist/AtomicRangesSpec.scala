@@ -16,7 +16,7 @@
 //
 //package swaydb.core.util
 //
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.testkit.EitherValues.EitherTestUtils
 //import swaydb.IO.ApiIO
@@ -69,7 +69,7 @@
 //    a.failed.get
 //}
 //
-//abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordSpec with Matchers {
+//abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordSpec {
 //
 //  def get[A](a: BAG[A]): A
 //

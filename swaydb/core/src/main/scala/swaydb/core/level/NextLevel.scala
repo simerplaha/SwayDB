@@ -23,11 +23,12 @@ import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.io.SegmentCompactionIO
-import swaydb.core.segment.{PathsDistributor, Segment, SegmentOption}
+import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.util.DefIO
 import swaydb.effect.Dir
 import swaydb.slice.Slice
 import swaydb.{Error, IO}
+import swaydb.core.segment.distributor.PathDistributor
 
 import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer
@@ -68,7 +69,7 @@ trait NextLevel extends LevelRef {
 
   def dirs: Seq[Dir]
 
-  def pathDistributor: PathsDistributor
+  def pathDistributor: PathDistributor
 
   def throttle: LevelMeter => LevelThrottle
 

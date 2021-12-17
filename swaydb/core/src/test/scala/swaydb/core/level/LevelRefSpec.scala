@@ -17,12 +17,12 @@
 //package swaydb.core.level
 //
 //import org.scalamock.scalatest.MockFactory
-//import swaydb.core.{ACoreSpec, TestSweeper}
+//import swaydb.core.CoreTestSweeper
 //
 //import java.nio.file.Path
 //import scala.collection.mutable.ListBuffer
 //
-//class LevelRefSpec extends ALevelSpec with MockFactory {
+//class LevelRefSpec extends AnyWordSpec {
 //
 //  "firstPersistentLevel" should {
 //    "return none" in {
@@ -43,7 +43,7 @@
 //
 //  "getLevels" should {
 //    "return all levels" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val level3 = TestLevel()
 //          val level2 = TestLevel(nextLevel = Some(level3))
@@ -62,7 +62,7 @@
 //
 //  "foldLeft" when {
 //    "single level" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val level = TestLevel()
 //          val paths =
@@ -76,7 +76,7 @@
 //    }
 //
 //    "multi level" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val level3 = TestLevel()
 //          val level2 = TestLevel(nextLevel = Some(level3))
@@ -101,7 +101,7 @@
 //
 //  "map" when {
 //    "single level" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val level = TestLevel()
 //          val paths = level.mapLevels(_.rootPath)
@@ -111,7 +111,7 @@
 //    }
 //
 //    "multi level" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val level3 = TestLevel()
 //          val level2 = TestLevel(nextLevel = Some(level3))
@@ -131,7 +131,7 @@
 //  }
 //
 //  "reversedLevels" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //        val level3 = TestLevel()
 //        val level2 = TestLevel(nextLevel = Some(level3))

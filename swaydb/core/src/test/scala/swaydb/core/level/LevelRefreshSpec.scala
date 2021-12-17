@@ -56,7 +56,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait LevelRefreshSpec extends ALevelSpec with ALogSpec with MockFactory with PrivateMethodTester {
+//sealed trait LevelRefreshSpec extends AnyWordSpec with ALogSpec   {
 //
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //  implicit val testTimer: TestTimer = TestTimer.Empty
@@ -67,7 +67,7 @@
 //  "refresh" should {
 //    "remove expired key-values" in {
 //      runThis(5.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -106,7 +106,7 @@
 //    }
 //
 //    "update createdInLevel" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //

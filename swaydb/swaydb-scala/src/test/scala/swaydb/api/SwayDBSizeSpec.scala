@@ -18,8 +18,8 @@
 //
 //import swaydb.effect.IOValues._
 //import swaydb._
-//import swaydb.core.TestSweeper
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.serializers.Default._
 //import swaydb.testkit.RunThis._
 //import swaydb.core.file.CoreFileTestKit._
@@ -27,28 +27,28 @@
 //class SwayDBSize_Persistent_Spec extends SwayDBSizeSpec {
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
 //    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir()).right.value.sweep(_.delete().get)
 //}
 //
 //class SwayDBSize_Memory_Spec extends SwayDBSizeSpec {
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
 //    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value.sweep(_.delete().get)
 //}
 //
 //class MultiMapSizeSpec4 extends SwayDBSizeSpec {
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
 //    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir()).get).sweep(_.delete().get)
 //}
 //
 //class MultiMapSizeSpec5 extends SwayDBSizeSpec {
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
 //    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get).sweep(_.delete().get)
 //}
 //
@@ -58,11 +58,11 @@
 //
 //  override def deleteFiles = false
 //
-//  def newDB()(implicit sweeper: TestSweeper): MapT[Int, String, Nothing, IO.ApiIO]
+//  def newDB()(implicit sweeper: CoreTestSweeper): MapT[Int, String, Nothing, IO.ApiIO]
 //
 //  "return the size of key-values" in {
 //    runThis(times = repeatTest, log = true) {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          val db = newDB()

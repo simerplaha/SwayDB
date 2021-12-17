@@ -19,8 +19,8 @@
 //import org.scalatest.OptionValues._
 //import swaydb.api.{TestBaseAPI, repeatTest}
 //import swaydb.core.CommonAssertions._
-//import swaydb.core.TestSweeper
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.core.CoreTestData._
 //import swaydb.multimap.MultiPrepare
 //import swaydb.serializers.Default._
@@ -38,28 +38,28 @@
 //class MultiMapSpec0 extends MultiMapSpec {
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
 //    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir()).sweep(_.delete())
 //}
 //
 //class MultiMapSpec1 extends MultiMapSpec {
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
 //    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir(), logSize = 1.byte).sweep(_.delete())
 //}
 //
 //class MultiMapSpec2 extends MultiMapSpec {
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
 //    swaydb.memory.MultiMap[Int, Int, String, Nothing, Glass]().sweep(_.delete())
 //}
 //
 //class MultiMapSpec3 extends MultiMapSpec {
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): MultiMap[Int, Int, String, Nothing, Glass] =
 //    swaydb.memory.MultiMap[Int, Int, String, Nothing, Glass](logSize = 1.byte).sweep(_.delete())
 //}
 //
@@ -67,7 +67,7 @@
 //
 //  val keyValueCount: Int
 //
-//  def newDB()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass]
+//  def newDB()(implicit sweeper: CoreTestSweeper): MultiMap[Int, Int, String, Nothing, Glass]
 //
 //  implicit val bag = Bag.glass
 //
@@ -86,7 +86,7 @@
 //  //  |          |_______ child21 - (9, "nine"), (10, "ten")
 //  //  |          |_______ child22 - (11, "eleven"), (12, "twelve")
 //
-//  def buildRootMap()(implicit sweeper: TestSweeper): MultiMap[Int, Int, String, Nothing, Glass] = {
+//  def buildRootMap()(implicit sweeper: CoreTestSweeper): MultiMap[Int, Int, String, Nothing, Glass] = {
 //    val root = newDB()
 //    root.put(0, "zero")
 //
@@ -136,7 +136,7 @@
 //
 //  "put" should {
 //    "basic" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val root = buildRootMap()
 //          root.put(key = 0, value = "zero1")
@@ -169,7 +169,7 @@
 //    }
 //
 //    "stream" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val root = newDB()
 //
@@ -181,7 +181,7 @@
 //    }
 //
 //    //    "benchmark" in {
-//    //      TestSweeper {
+//    //      CoreTestSweeper {
 //    //        implicit sweeper =>
 //    //          val root = newDB()
 //    //
@@ -204,7 +204,7 @@
 //    //    }
 //
 //    "put a stream to an expired map and also submit key-values with deadline later than map's deadline" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val root = newDB()
 //          val deadline = 2.seconds.fromNow
@@ -237,7 +237,7 @@
 //    }
 //
 //    "put a stream to an expired map and also submit key-values with deadline earlier than map's deadline" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val root = newDB()
 //          val mapDeadline = 1.hour.fromNow
@@ -275,7 +275,7 @@
 //
 //    "put & expire" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val root = newDB()
@@ -307,7 +307,7 @@
 //
 //  "remove" should {
 //    "remove key-values and map" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          //hierarchy - root --> child1 --> child2 --> child3
 //          //                                       --> child4
@@ -351,7 +351,7 @@
 //    }
 //
 //    "remove sibling map" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          //hierarchy - root --> child1 --> child2 --> child3
 //          //                                       --> child4 (remove this)
@@ -385,7 +385,7 @@
 //    }
 //
 //    "remove map's key-values" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val root = newDB()
 //          root.put(1, "one")
@@ -415,7 +415,7 @@
 //  }
 //
 //  "expire child map" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //
 //        //hierarchy - root --> child1 --> child2
@@ -450,7 +450,7 @@
 //  }
 //
 //  "update & clearKeyValues" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //        //hierarchy - root --> child1 --> child2
 //        val root = newDB()
@@ -482,7 +482,7 @@
 //
 //  "children" should {
 //    "can be flatten into a single stream" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val root = newDB()
 //
@@ -500,7 +500,7 @@
 //
 //
 //    "replace" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          //hierarchy - root --> child1 --> child2 --> child3
 //          //                                       --> child4
@@ -545,7 +545,7 @@
 //    }
 //
 //    "replace sibling" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          //root --> child1 (replace this)
 //          //     --> child2
@@ -578,7 +578,7 @@
 //
 //    "replace removes all child maps" in {
 //      runThis(10.times) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val root = newDB()
 //
@@ -626,7 +626,7 @@
 //
 //    "init" when {
 //      "updated expiration" in {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            //hierarchy - root --> child1 --> child2
 //            val root = newDB()
@@ -666,7 +666,7 @@
 //  }
 //
 //  "transaction" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //        //hierarchy - root --> child1 --> child2 --> child3
 //        val root = newDB()

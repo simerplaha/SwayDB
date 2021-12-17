@@ -20,7 +20,7 @@
 //import swaydb.config.ForceSave
 //import swaydb.core.CoreTestData.randomBytesSlice
 //import swaydb.core.file.sweeper.bytebuffer.ByteBufferCleaner
-//import swaydb.core.{ACoreSpec, TestSweeper}
+//import swaydb.core.CoreTestSweeper
 //import swaydb.effect.Effect
 //import swaydb.testkit.RunThis._
 //import swaydb.utils.OperatingSystem
@@ -47,7 +47,7 @@
 //       * fastest: 0.009364 seconds
 //       */
 //
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          var slowest: Double = Double.MinValue
 //          var quickest: Double = Double.MaxValue
@@ -94,7 +94,7 @@
 //       * fastest: 0.008592 seconds
 //       */
 //
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          var slowest: Double = Double.MinValue

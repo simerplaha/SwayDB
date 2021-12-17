@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-package swaydb.core.segment
+package swaydb.core.segment.distributor
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.core.segment.Segment
 import swaydb.effect.{Dir, Reserve}
 import swaydb.utils.Options
 
@@ -27,51 +25,22 @@ import java.nio.file.Path
 import java.util
 import java.util.concurrent.ConcurrentLinkedDeque
 import scala.annotation.tailrec
-import scala.collection.compat._
 import scala.jdk.CollectionConverters._
 
-/**
- * Maintains the distribution of [[Segment]]s to the configured directories ratios.
- */
-private[core] case class Distribution(path: Path,
-                                      distributionRatio: Int,
-                                      var actualSize: Int,
-                                      var expectedSize: Int) {
+object PathDistributor {
 
-  def setExpectedSize(size: Int) = {
-    expectedSize = size
-    this
-  }
-
-  def setActualSize(size: Int) = {
-    actualSize = size
-    this
-  }
-
-  def missing =
-    expectedSize - actualSize
-
-  def paths =
-    Array.fill(missing)(path)
-}
-
-private[core] object PathsDistributor {
-
-  val empty =
-    PathsDistributor(Seq.empty, () => Iterable.empty)
-
-  implicit val order: Ordering[Distribution] =
+  private implicit val order: Ordering[Distribution] =
     new Ordering[Distribution] {
       override def compare(x: Distribution, y: Distribution): Int =
         y.missing compareTo x.missing
     }
 
   def apply(dirs: Seq[Dir],
-            segments: () => Iterable[Segment]): PathsDistributor =
-    new PathsDistributor(dirs, segments)
+            segments: () => Iterable[Distributable]): PathDistributor =
+    new PathDistributor(dirs, segments)
 
   def getActualSize(dir: Dir,
-                    segments: Iterable[Segment]) =
+                    segments: Iterable[Distributable]) =
     segments.foldLeft(0) {
       case (count, segment) =>
         if (segment.path.getParent == dir.path)
@@ -81,7 +50,7 @@ private[core] object PathsDistributor {
     }
 
   def getDistributions(dirs: Seq[Dir],
-                       _segments: () => Iterable[Segment]): (Array[Distribution], Int) = {
+                       _segments: () => Iterable[Distributable]): (Array[Distribution], Int) = {
     var totalSize = 0
     lazy val segments = _segments() //lazy val ???
     val distributions: Array[Distribution] =
@@ -131,11 +100,9 @@ private[core] object PathsDistributor {
   }
 }
 
-private[core] class PathsDistributor(val dirs: Seq[Dir],
-                                     //this should be the size of
-                                     segments: () => Iterable[Segment]) extends LazyLogging {
-
-  import PathsDistributor._
+private[core] class PathDistributor(val dirs: Seq[Dir],
+                                    //this should be the size of
+                                    segments: () => Iterable[Distributable]) extends LazyLogging {
 
   private val queue = new ConcurrentLinkedDeque[Path](distributePaths())
 
@@ -166,8 +133,8 @@ private[core] class PathsDistributor(val dirs: Seq[Dir],
       }
 
   private def distributePaths(): util.List[Path] = {
-    val (distributions, totalSize) = getDistributions(dirs, segments)
-    val distributionResult = distribute(totalSize, distributions)
+    val (distributions, totalSize) = PathDistributor.getDistributions(dirs, segments)
+    val distributionResult = PathDistributor.distribute(totalSize, distributions)
     val paths: Seq[Path] =
       distributionResult flatMap {
         dist: Distribution =>
@@ -197,7 +164,7 @@ private[core] class PathsDistributor(val dirs: Seq[Dir],
   def last: Dir =
     dirs.last
 
-  def addPriorityPath(path: Path): PathsDistributor = {
+  def addPriorityPath(path: Path): PathDistributor = {
     if (dirs.size > 1) queue.addFirst(path)
     this
   }

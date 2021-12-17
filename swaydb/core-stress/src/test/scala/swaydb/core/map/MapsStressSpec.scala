@@ -25,7 +25,7 @@
 //import swaydb.core.file.Effect
 //import swaydb.core.file.Effect._
 //import swaydb.core.level.zero.LevelZeroSkipListMerger
-//import swaydb.core.{TestBase, TestSweeper, TestTimer}
+//import swaydb.core.{TestBase, CoreTestSweeper, TestTimer}
 //import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 //import swaydb.config.RecoveryMode
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -37,8 +37,8 @@
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 //  implicit def testTimer: TestTimer = TestTimer.Empty
-//  implicit val fileSweeper: FileSweeper = TestSweeper.fileSweeper
-//  implicit val memorySweeper = TestSweeper.memorySweeperMax
+//  implicit val fileSweeper: FileSweeper = CoreTestSweeper.fileSweeper
+//  implicit val memorySweeper = CoreTestSweeper.memorySweeperMax
 //
 //  import swaydb.core.log.serializer.LevelZeroLogEntryReader._
 //  import swaydb.core.log.serializer.LevelZeroLogEntryWriter._

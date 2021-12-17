@@ -9,6 +9,7 @@ import swaydb.core.log.LogEntry
 import swaydb.core.segment.data._
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.CoreFunctionStore
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.TestKit.randomBoolean
@@ -17,13 +18,14 @@ object SegmentMergeTestKit {
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue],
                           oldKeyValues: Iterable[KeyValue],
-                          expected: Memory): Iterable[Memory] =
+                          expected: Memory)(implicit coreFunctionStore: CoreFunctionStore): Iterable[Memory] =
     assertSkipListMerge(newKeyValues, oldKeyValues, Slice(expected))
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue],
                           oldKeyValues: Iterable[KeyValue],
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): Iterable[Memory] = {
+                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                        coreFunctionStore: CoreFunctionStore): Iterable[Memory] = {
     import swaydb.core.log.serialiser.LevelZeroLogEntryWriter.Level0LogEntryPutWriter
     implicit val optimiseWrites: OptimiseWrites = OptimiseWrites.random
     implicit val atomic: Atomic = Atomic.random
@@ -45,14 +47,16 @@ object SegmentMergeTestKit {
                   oldKeyValue: KeyValue,
                   expected: Slice[Memory],
                   isLastLevel: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] =
+                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                coreFunctionStore: CoreFunctionStore): Iterable[Memory] =
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected, isLastLevel)
 
   def assertMerge(newKeyValues: Slice[KeyValue],
                   oldKeyValues: Slice[KeyValue],
                   expected: Slice[KeyValue],
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] = {
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        coreFunctionStore: CoreFunctionStore): Iterable[Memory] = {
     val builder = MergeStats.random()
 
     KeyValueMerger.merge(
@@ -85,7 +89,8 @@ object SegmentMergeTestKit {
                   oldKeyValue: KeyValue,
                   expected: KeyValue,
                   lastLevelExpect: KeyValueOption)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   coreFunctionStore: CoreFunctionStore): Unit = {
     //    println("*** Expected assert ***")
     assertMerge(newKeyValue, oldKeyValue, Slice(expected), lastLevelExpect.toOption.map(Slice(_)).getOrElse(Slice.empty))
     //println("*** Skip list assert ***")
@@ -96,7 +101,8 @@ object SegmentMergeTestKit {
                   oldKeyValues: Slice[KeyValue],
                   expected: Slice[KeyValue],
                   lastLevelExpect: Slice[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                                                    timeOrder: TimeOrder[Slice[Byte]],
+                                                    coreFunctionStore: CoreFunctionStore): Unit = {
     //    println("*** Expected assert ***")
     assertMerge(newKeyValues, oldKeyValues, expected, isLastLevel = false)
     //println("*** Expected last level ***")
@@ -109,7 +115,8 @@ object SegmentMergeTestKit {
                   oldKeyValue: KeyValue,
                   expected: Slice[KeyValue],
                   lastLevelExpect: Slice[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                    timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] = {
+                                                    timeOrder: TimeOrder[Slice[Byte]],
+                                                    coreFunctionStore: CoreFunctionStore): Iterable[Memory] = {
     //    println("*** Last level = false ***")
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected, isLastLevel = false)
     //println("*** Last level = true ***")
@@ -120,14 +127,16 @@ object SegmentMergeTestKit {
                   oldKeyValues: Slice[KeyValue],
                   expected: Memory,
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] =
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        coreFunctionStore: CoreFunctionStore): Iterable[Memory] =
     assertMerge(newKeyValues, oldKeyValues, Slice(expected), isLastLevel)
 
   def assertMerge(newKeyValue: Memory.Function,
                   oldKeyValue: Memory.PendingApply,
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   coreFunctionStore: CoreFunctionStore): Unit = {
     FunctionMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
     assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
@@ -138,7 +147,8 @@ object SegmentMergeTestKit {
                   oldKeyValue: Memory.Fixed,
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   coreFunctionStore: CoreFunctionStore): Unit = {
     FunctionMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
     assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
@@ -149,7 +159,8 @@ object SegmentMergeTestKit {
                   oldKeyValue: Memory.Fixed,
                   expected: KeyValue.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   coreFunctionStore: CoreFunctionStore): Unit = {
     RemoveMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
     assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
@@ -160,7 +171,8 @@ object SegmentMergeTestKit {
                   oldKeyValue: Memory.Fixed,
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   coreFunctionStore: CoreFunctionStore): Unit = {
     PutMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
     assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
@@ -172,7 +184,8 @@ object SegmentMergeTestKit {
                   oldKeyValue: Memory.Fixed,
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   coreFunctionStore: CoreFunctionStore): Unit = {
     UpdateMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
     assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
@@ -183,7 +196,8 @@ object SegmentMergeTestKit {
                   oldKeyValue: Memory.PendingApply,
                   expected: KeyValue.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   coreFunctionStore: CoreFunctionStore): Unit = {
     UpdateMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
     assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
@@ -195,7 +209,8 @@ object SegmentMergeTestKit {
                   oldKeyValue: Memory.PendingApply,
                   expected: Memory.PendingApply,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   coreFunctionStore: CoreFunctionStore): Unit = {
     FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
     assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
     //todo merge with persistent

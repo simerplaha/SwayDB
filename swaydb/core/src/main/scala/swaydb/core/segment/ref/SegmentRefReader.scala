@@ -49,6 +49,7 @@ object SegmentRefReader {
    *                          than the search key is required.
    * @param floorFromSkipList KeyValue read from the [[SegmentRef.skipList]]. This will always
    *                          be <= to the key being search.
+   *
    * @return the best possible key-value to search higher search from.
    */
   def bestStartForGetOrHigherSearch(key: Slice[Byte],

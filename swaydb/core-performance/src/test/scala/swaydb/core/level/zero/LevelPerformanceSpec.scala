@@ -21,7 +21,7 @@
 ////import swaydb.core.segment.cache.sweeper.MemorySweeper
 ////import swaydb.core.segment.ReadState
 ////import swaydb.core.util.{Benchmark, SkipList}
-////import swaydb.core.{TestBase, TestSweeper}
+////import swaydb.core.{TestBase, CoreTestSweeper}
 ////import swaydb.slice.order.KeyOrder
 ////import swaydb.slice.Slice
 ////import swaydb.config.util.StorageUnits._
@@ -46,8 +46,8 @@
 ////  override def levelFoldersCount = 10
 ////  override def mmapSegmentsOnWrite = false
 ////  override def mmapSegmentsOnRead = false
-////  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
-////  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+////  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.standard())
+////  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.standard())
 ////}
 ////
 ////class LevelZeroPerformanceSpec3 extends LevelZeroPerformanceSpec {
@@ -59,7 +59,7 @@
 ////
 ////  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 ////
-////  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeper10
+////  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = CoreTestSweeper.someMemorySweeper10
 ////  val keyValuesCount = 100
 ////
 ////  //  override def deleteFiles: Boolean = false

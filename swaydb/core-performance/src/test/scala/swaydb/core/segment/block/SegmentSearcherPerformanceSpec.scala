@@ -17,7 +17,7 @@
 ////
 ////import org.scalamock.scalatest.MockFactory
 ////import swaydb.core.CommonAssertions._
-////import swaydb.core.{TestBase, TestSweeper}
+////import swaydb.core.{TestBase, CoreTestSweeper}
 ////import swaydb.core.TestData._
 ////import swaydb.core.file.BlockCache
 ////import swaydb.Benchmark
@@ -29,9 +29,9 @@
 ////
 ////import scala.util.Random
 ////
-////class SegmentSearcherPerformanceSpec extends TestBase with MockFactory {
+////class SegmentSearcherPerformanceSpec extends TestBase  {
 ////  implicit val order = KeyOrder.default
-////  implicit def blockCache: Option[BlockCacheState] = TestSweeper.randomBlockCache
+////  implicit def blockCache: Option[BlockCacheState] = CoreTestSweeper.randomBlockCache
 ////
 ////  "search performance" in {
 ////    val compressions = Slice.fill(5)(randomCompressionsOrEmpty())

@@ -18,7 +18,7 @@
 //
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.OptionValues._
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.effect.IOValues._
 //import swaydb.core.CommonAssertions._
@@ -33,7 +33,7 @@
 //import swaydb.testkit.RunThis._
 //import swaydb.testkit.TestKit._
 //
-//class HigherRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {
+//class HigherRangeSomeSpec extends AnyWordSpec {
 //
 //  implicit val keyOrder = KeyOrder.default
 //  implicit val timeOrder = TimeOrder.long

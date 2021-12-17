@@ -22,7 +22,6 @@ import swaydb.config.{ForceSave, MMAP, SegmentRefCacheLife}
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.{CoreFile, ForceSaveApplier}
-import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment._
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.cache.sweeper.MemorySweeper
@@ -33,6 +32,7 @@ import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.IDGenerator
 import swaydb.{Error, IO}
 import swaydb.core.segment.data.SegmentKeyOrders
+import swaydb.core.segment.distributor.PathDistributor
 
 import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
@@ -42,7 +42,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
   override def minKey(segment: PersistentSegment): Slice[Byte] =
     segment.minKey
 
-  def persistMerged(pathsDistributor: PathsDistributor,
+  def persistMerged(pathDistributor: PathDistributor,
                     segmentRefCacheLife: SegmentRefCacheLife,
                     mmap: MMAP.Segment,
                     mergeResult: Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Persistent]]])(implicit keyOrders: SegmentKeyOrders,
@@ -55,15 +55,15 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                                                                                                         segmentReadIO: SegmentReadIO,
                                                                                                         idGenerator: IDGenerator,
                                                                                                         forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[DefIO[SegmentOption, Iterable[PersistentSegment]]]] =
-    mergeResult collect {
+    mergeResult.collect {
       //collect the ones with source set or has new segments to write
       case mergeResult if mergeResult.input.isSomeS || mergeResult.output.nonEmpty =>
         mergeResult
 
-    } mapRecoverIO[DefIO[SegmentOption, Iterable[PersistentSegment]]](
+    }.mapRecoverIO[DefIO[SegmentOption, Iterable[PersistentSegment]]](
       mergeResult =>
         persistTransient(
-          pathsDistributor = pathsDistributor,
+          pathDistributor = pathDistributor,
           segmentRefCacheLife = segmentRefCacheLife,
           mmap = mmap,
           transient = mergeResult.output
@@ -85,7 +85,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
           }
     )
 
-  def persistTransient(pathsDistributor: PathsDistributor,
+  def persistTransient(pathDistributor: PathDistributor,
                        segmentRefCacheLife: SegmentRefCacheLife,
                        mmap: MMAP.Segment,
                        transient: Iterable[TransientSegment.Persistent])(implicit keyOrders: SegmentKeyOrders,
@@ -107,7 +107,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
               //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
               throw new Exception("Empty key-values submitted to persistent Segment.")
             } else {
-              val path = pathsDistributor.next().resolve(IDGenerator.segment(idGenerator.nextId()))
+              val path = pathDistributor.next().resolve(IDGenerator.segment(idGenerator.nextId()))
 
               segment match {
                 case segment: TransientSegment.One =>
@@ -157,7 +157,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                   Slice(
                     PersistentSegment.copyFrom(
                       segment = segment.segment,
-                      pathsDistributor = pathsDistributor,
+                      pathDistributor = pathDistributor,
                       segmentRefCacheLife = segmentRefCacheLife,
                       mmap = mmap
                     )

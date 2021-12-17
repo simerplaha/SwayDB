@@ -24,7 +24,7 @@
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.segment.ref.search.ThreadReadState
-//import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
+//import swaydb.core.{ACoreSpec, CoreTestSweeper, TestForceSave}
 //import swaydb.slice.Slice
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.testkit.RunThis._
@@ -53,7 +53,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait LevelReadSomeSpec extends ALevelSpec with MockFactory {
+//sealed trait LevelReadSomeSpec extends AnyWordSpec {
 //
 //  //  override def deleteFiles = false
 //
@@ -79,7 +79,7 @@
 //
 //    "contains put that were updated" in {
 //      runThis(times) {
-//        val updatedValue = randomStringSliceOptional
+//        val updatedValue = randomStringSliceOptional()
 //        //also update the deadline so that no puts are expired
 //        val updatedDeadline = eitherOne(None, randomDeadlineOption(false))
 //
@@ -117,7 +117,7 @@
 //                      //if test failed check merging all key-values result in the key returning none.
 //                      implicit val keyOrder = KeyOrder.default
 //                      implicit val timeOrder = TimeOrder.long
-//                      TestSweeper {
+//                      CoreTestSweeper {
 //                        implicit sweeper =>
 //                          import sweeper._
 //

@@ -27,13 +27,13 @@ object SliceTestKit {
     }
   }
 
-  def randomStringOption: Option[Slice[Byte]] =
+  def randomStringOption(): Option[Slice[Byte]] =
     if (randomBoolean())
       Some(Slice.writeString(randomString()))
     else
       None
 
-  def randomStringSliceOptional: SliceOption[Byte] =
+  def randomStringSliceOptional(): SliceOption[Byte] =
     if (randomBoolean())
       Slice.writeString(randomString())
     else

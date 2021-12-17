@@ -8,10 +8,10 @@ import scala.collection.mutable.ListBuffer
 
 object UtilsTestKit {
 
-  def getJavaMap[K, OV, V <: OV](maps: HashedMap.Concurrent[K, OV, V]): ConcurrentHashMap[K, V] =
+  def invokePrivate_map[K, OV, V <: OV](maps: HashedMap.Concurrent[K, OV, V]): ConcurrentHashMap[K, V] =
     maps invokePrivate PrivateMethod[ConcurrentHashMap[K, V]](Symbol("map"))()
 
-  def getAtomicLong(generator: IDGenerator): AtomicLong =
+  def invokePrivate_atomicID(generator: IDGenerator): AtomicLong =
     generator invokePrivate PrivateMethod[AtomicLong](Symbol("atomicID"))()
 
   implicit class AggregatorImplicits(aggregator: Aggregator.type) {

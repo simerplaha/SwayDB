@@ -18,8 +18,8 @@
 //
 //import swaydb.effect.IOValues._
 //import swaydb._
-//import swaydb.core.TestSweeper
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.serializers.Default._
 //import swaydb.testkit.RunThis._
 //import swaydb.testkit.TestKit._
@@ -30,7 +30,7 @@
 //class SwayDBRemoveSpec0 extends SwayDBRemoveSpec {
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
 //    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir()).right.value.sweep(_.delete().get)
 //}
 //
@@ -38,7 +38,7 @@
 //
 //  val keyValueCount: Int = 1000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
 //    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir(), logSize = 1.byte, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = 10.bytes)).right.value.sweep(_.delete().get)
 //}
 //
@@ -46,14 +46,14 @@
 //
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
 //    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](logSize = 1.byte, minSegmentSize = 10.bytes).right.value.sweep(_.delete().get)
 //}
 //
 //class SwayDBRemoveSpec3 extends SwayDBRemoveSpec {
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
 //    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value.sweep(_.delete().get)
 //}
 //
@@ -61,14 +61,14 @@
 //class MultiMapRemoveSpec4 extends SwayDBRemoveSpec {
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
 //    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir()).get).sweep(_.delete().get)
 //}
 //
 //class MultiMapRemoveSpec5 extends SwayDBRemoveSpec {
 //  val keyValueCount: Int = 10000
 //
-//  override def newDB()(implicit sweeper: TestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
+//  override def newDB()(implicit sweeper: CoreTestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
 //    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get).sweep(_.delete().get)
 //}
 //
@@ -76,12 +76,12 @@
 //
 //  val keyValueCount: Int
 //
-//  def newDB()(implicit sweeper: TestSweeper): MapT[Int, String, Nothing, IO.ApiIO]
+//  def newDB()(implicit sweeper: CoreTestSweeper): MapT[Int, String, Nothing, IO.ApiIO]
 //
 //  "Remove" when {
 //    "Put" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -100,7 +100,7 @@
 //
 //    "Put & Remove" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -122,7 +122,7 @@
 //
 //    "Put & Update" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -144,7 +144,7 @@
 //
 //    "Put & Expire" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val db = newDB()
 //
@@ -169,7 +169,7 @@
 //
 //    "Put & Put" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -191,7 +191,7 @@
 //  "Remove" when {
 //    "Update" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -212,7 +212,7 @@
 //
 //    "Update & Remove" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -237,7 +237,7 @@
 //
 //    "Update & Update" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -262,7 +262,7 @@
 //
 //    "Update & Expire" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -293,7 +293,7 @@
 //
 //    "Update & Put" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -319,7 +319,7 @@
 //  "Remove" when {
 //    "Remove" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -340,7 +340,7 @@
 //
 //    "Remove & Remove" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -366,7 +366,7 @@
 //
 //    "Remove & Update" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -391,7 +391,7 @@
 //
 //    "Remove & Expire" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -421,7 +421,7 @@
 //
 //    "Remove & Put" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -451,7 +451,7 @@
 //  "Remove" when {
 //    "Expire" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -477,7 +477,7 @@
 //
 //    "Expire & Remove" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -506,7 +506,7 @@
 //
 //    "Expire & Update" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -536,7 +536,7 @@
 //
 //    "Expire & Expire" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()
@@ -568,7 +568,7 @@
 //
 //    "Expire & Put" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = newDB()

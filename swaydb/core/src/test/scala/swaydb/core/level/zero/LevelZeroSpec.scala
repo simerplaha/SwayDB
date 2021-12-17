@@ -30,7 +30,7 @@
 //import swaydb.core.log.timer.Timer
 //import swaydb.core.segment.data.Memory
 //import swaydb.core.segment.ref.search.ThreadReadState
-//import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
+//import swaydb.core.{ACoreSpec, CoreTestSweeper, TestForceSave, TestTimer}
 //import swaydb.core.level.ALevelSpec
 //import swaydb.effect.{Dir, Effect}
 //import swaydb.serializers.Default._
@@ -66,7 +66,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait LevelZeroSpec extends ALevelSpec with MockFactory {
+//sealed trait LevelZeroSpec extends AnyWordSpec {
 //
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //  implicit val testTimer: TestTimer = TestTimer.Empty
@@ -80,11 +80,11 @@
 //
 //  "LevelZero" should {
 //    "initialise" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val nextLevel = TestLevel()
 //          val zero = TestLevelZero(Some(nextLevel))
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            zero.existsOnDisk() shouldBe true
 //            nextLevel.existsOnDisk() shouldBe true
 //            //maps folder is initialised
@@ -100,7 +100,7 @@
 //
 //  "LevelZero.put" should {
 //    "write key-value" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          def assert(zero: LevelZero): Unit = {
 //            zero.put(1, "one").runRandomIO.value
@@ -112,12 +112,12 @@
 //
 //          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))))
 //          assert(zero)
-//          if (isPersistentSpec) assert(zero.reopen)
+//          if (isPersistent) assert(zero.reopen)
 //      }
 //    }
 //
 //    "write key-values that have empty bytes but the Slices are closed" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -129,24 +129,24 @@
 //
 //          val gotFromLevelZero = zero.get(one, ThreadReadState.random).getPut.getOrFetchValue.getC
 //          gotFromLevelZero shouldBe one
-//          //ensure that key-values are not cutd in LevelZero.
+//          //ensure that key-values are not cut in LevelZero.
 //          gotFromLevelZero.underlyingArraySize shouldBe 10
 //
 //          //the following does not apply to in-memory Levels
 //          //in-memory key-values are slice of the whole Segment.
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            //put the same key-value to Level1 and expect the key-values to be sliced
 //            level.put(Slice(Memory.put(one, one))).runRandomIO
 //            val gotFromLevelOne = level.get(one, ThreadReadState.random).getPut
 //            gotFromLevelOne.getOrFetchValue shouldBe one
-//            //ensure that key-values are not cutd in LevelOne.
+//            //ensure that key-values are not cut in LevelOne.
 //            gotFromLevelOne.getOrFetchValue.getC.underlyingArraySize shouldBe 4
 //          }
 //      }
 //    }
 //
 //    "not write empty key-value" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val zero = TestLevelZero(Some(TestLevel()))
 //          assertThrows[IllegalArgumentException](zero.put(Slice.empty, Slice.empty))
@@ -154,7 +154,7 @@
 //    }
 //
 //    "write empty values" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val zero = TestLevelZero(Some(TestLevel()))
 //          zero.put(1, Slice.empty).runRandomIO
@@ -164,7 +164,7 @@
 //
 //    "write large keys and values and reopen the database and re-read key-values" in {
 //      //approx 2 mb key and values
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val key1 = "a" + Random.nextString(750000): Slice[Byte]
 //          val key2 = "b" + Random.nextString(750000): Slice[Byte]
@@ -189,12 +189,12 @@
 //
 //          //allow compaction to do it's work
 //          sleep(2.seconds)
-//          if (isPersistentSpec) assertRead(zero.reopen)
+//          if (isPersistent) assertRead(zero.reopen)
 //      }
 //    }
 //
 //    "write keys only" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val zero = TestLevelZero(Some(TestLevel()))
 //
@@ -211,7 +211,7 @@
 //    }
 //
 //    "batch write key-values" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val keyValues = randomIntKeyStringValues(keyValuesCount)
 //
@@ -243,7 +243,7 @@
 //
 //  "LevelZero.remove" should {
 //    "remove key-values" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), logSize = 1.byte)
 //          val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(0))
@@ -267,7 +267,7 @@
 //    }
 //
 //    "batch remove key-values" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val keyValues = randomIntKeyStringValues(keyValuesCount)
 //          val zero = TestLevelZero(Some(TestLevel()))
@@ -286,7 +286,7 @@
 //
 //  "LevelZero.clear" should {
 //    "a database with single key-value" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), logSize = 1.byte)
 //          val keyValues = randomIntKeyStringValues(1)
@@ -307,7 +307,7 @@
 //
 //    "remove all key-values" in {
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), logSize = 1.byte)
 //            val keyValues = randomIntKeyStringValues(randomIntMax(20) max keyValuesCount)
@@ -329,7 +329,7 @@
 //  "LevelZero.head" should {
 //    "return the first key-value" in {
 //      //disable throttle
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))), logSize = 1.byte)
 //
@@ -363,7 +363,7 @@
 //
 //  "LevelZero.last" should {
 //    "return the last key-value" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val zero = TestLevelZero(Some(TestLevel()), logSize = 1.byte)
 //
@@ -394,7 +394,7 @@
 //
 //  "LevelZero.remove range" should {
 //    "not allow from key to be > than to key" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val zero = TestLevelZero(Some(TestLevel()), logSize = 1.byte)
 //          IO(zero.remove(10, 1)).left.value.getMessage shouldBe "fromKey should be less than toKey."
@@ -405,7 +405,7 @@
 //
 //  "LevelZero.update range" should {
 //    "not allow from key to be > than to key" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val zero = TestLevelZero(Some(TestLevel()), logSize = 1.byte)
 //          IO(zero.update(10, 1, value = "value")).left.value.getMessage shouldBe "fromKey should be less than toKey."
@@ -419,8 +419,8 @@
 //
 //    "initiate" when {
 //      "timer is enabled" in {
-//        if (isPersistentSpec)
-//          TestSweeper {
+//        if (isPersistent)
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //              val zero = TestLevelZero(None, enableTimer = true)
 //              zero.path.folderId shouldBe 0
@@ -433,7 +433,7 @@
 //              Effect.exists(appliedFunctionsPath) shouldBe true
 //          }
 //        else
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //              val zero = TestLevelZero(None, enableTimer = true)
 //              zero.path.folderId shouldBe 0
@@ -445,10 +445,10 @@
 //      }
 //
 //      "timer is enabled for in-memory but next level is-persistent" in {
-//        if (isPersistentSpec)
+//        if (isPersistent)
 //          cancel("does not apply for in-memory")
 //        else
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //
 //              val persistentLevel =
@@ -483,8 +483,8 @@
 //
 //    "not initiate" when {
 //      "timer is disabled" in {
-//        if (isPersistentSpec)
-//          TestSweeper {
+//        if (isPersistent)
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //              val zero = TestLevelZero(None, enableTimer = false)
 //              import Effect._
@@ -494,7 +494,7 @@
 //              Effect.exists(timerPath) shouldBe false
 //          }
 //        else
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //              val zero = TestLevelZero(None, enableTimer = false)
 //              import Effect._

@@ -51,7 +51,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait LevelReadNoneSpec extends ALevelSpec {
+//sealed trait LevelReadNoneSpec extends AnyWordSpec {
 //
 //  //  override def deleteFiles = false
 //
@@ -70,9 +70,9 @@
 //        assertAllLevels =
 //          (_, _, _, level) =>
 //            Seq(
-//              () => level.get(randomStringOption, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
-//              () => level.higher(randomStringOption, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
-//              () => level.lower(randomStringOption, ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
+//              () => level.get(randomStringOption(), ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
+//              () => level.higher(randomStringOption(), ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
+//              () => level.lower(randomStringOption(), ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
 //              () => level.head(ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
 //              () => level.last(ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
 //            ).runThisRandomly

@@ -23,7 +23,7 @@
 //import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 //import swaydb.core.file.sweeper.FileSweeper
 //import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
-//import swaydb.core.{TestBase, TestSweeper}
+//import swaydb.core.{TestBase, CoreTestSweeper}
 //import swaydb.config.util.OperatingSystem
 //import swaydb.config.util.StorageUnits._
 //

@@ -185,6 +185,7 @@ private[core] object SegmentSerialiser {
         segment.maxKey match {
           case MaxKey.Fixed(maxKey) =>
             (1, maxKey)
+
           case MaxKey.Range(fromKey, maxToKey) =>
             (2, Bytes.compressJoin(fromKey, maxToKey))
         }

@@ -56,7 +56,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends ALevelSpec with ALogSpec {
+//sealed trait BehaviourCompactionTask_compactSegments_2Levels_Spec extends AnyWordSpec with ALogSpec {
 //
 //  implicit val timer = TestTimer.Empty
 //  implicit val keyOrder = KeyOrder.default
@@ -67,7 +67,7 @@
 //    "there are 2 levels" should {
 //      "write data to lower level" when {
 //        "target Level is empty" in {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //              import sweeper._
 //
@@ -96,7 +96,7 @@
 //              assertEmpty(keyValues, sourceLevel)
 //              assertReads(keyValues, targetLevel)
 //
-//              if (isPersistentSpec) {
+//              if (isPersistent) {
 //                val reopenSource = sourceLevel.reopen
 //                val reopenTarget = targetLevel.reopen
 //
@@ -107,7 +107,7 @@
 //        }
 //
 //        "target Level is non empty" in {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //              import sweeper._
 //
@@ -141,7 +141,7 @@
 //              assertEmpty(keyValues, sourceLevel)
 //              assertReads(keyValues, targetLevel)
 //
-//              if (isPersistentSpec) {
+//              if (isPersistent) {
 //                val reopenSource = sourceLevel.reopen
 //                val reopenTarget = targetLevel.reopen
 //
@@ -155,7 +155,7 @@
 //      "expire data" when {
 //        "target Level is empty" in {
 //          runThis(10.times, log = true) {
-//            TestSweeper {
+//            CoreTestSweeper {
 //              implicit sweeper =>
 //                import sweeper._
 //
@@ -189,7 +189,7 @@
 //                assertEmpty(keyValues, sourceLevel)
 //                assertEmpty(keyValues, targetLevel)
 //
-//                if (isPersistentSpec) {
+//                if (isPersistent) {
 //                  val reopenSource = sourceLevel.reopen
 //                  val reopenTarget = targetLevel.reopen
 //
@@ -202,7 +202,7 @@
 //
 //        "target Level is non empty" in {
 //          runThis(20.times, log = true) {
-//            TestSweeper {
+//            CoreTestSweeper {
 //              implicit sweeper =>
 //                import sweeper._
 //
@@ -249,7 +249,7 @@
 //                sourceLevel.isEmpty shouldBe true
 //                targetLevel.isEmpty shouldBe true
 //
-//                if (isPersistentSpec) {
+//                if (isPersistent) {
 //                  val reopenSource = sourceLevel.reopen
 //                  val reopenTarget = targetLevel.reopen
 //
@@ -264,7 +264,7 @@
 //      "delete uncommitted Segment" when {
 //        "failure" in {
 //          runThis(5.times, log = true) {
-//            TestSweeper {
+//            CoreTestSweeper {
 //              implicit sweeper =>
 //                import sweeper._
 //
@@ -288,7 +288,7 @@
 //                  sourceLevel.isEmpty shouldBe false
 //                  targetLevel.isEmpty shouldBe true
 //
-//                  if (isPersistentSpec) {
+//                  if (isPersistent) {
 //                    targetLevel.segmentFilesOnDisk() shouldBe empty
 //                    segments.foreach(_.existsOnDiskOrMemory() shouldBe true)
 //                  } else {
@@ -317,12 +317,12 @@
 //                //Create a Segment file in the Level's folder giving it the Level's next SegmentId so that it fails
 //                //compaction because the fileName is already taken
 //                BehaviourCompactionTask.compactSegments(task, targetLevel).awaitFailureInf shouldBe a[Exception]
-//                if (isPersistentSpec) existingSegment.delete() //delete the Segment so that assertion can assert for empty Level
+//                if (isPersistent) existingSegment.delete() //delete the Segment so that assertion can assert for empty Level
 //
 //                //state remains unchanged
 //                assertNoChange(sourceLevel, targetLevel)
 //
-//                if (isPersistentSpec) {
+//                if (isPersistent) {
 //                  val reopenSource = sourceLevel.reopen
 //                  val reopenTarget = targetLevel.reopen
 //                  assertNoChange(reopenSource, reopenTarget)

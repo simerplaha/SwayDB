@@ -59,7 +59,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait BehaviourCompactionTask_collapse_Spec extends ALevelSpec {
+//sealed trait BehaviourCompactionTask_collapse_Spec extends AnyWordSpec {
 //
 //  implicit val timer = TestTimer.Empty
 //  implicit val keyOrder = KeyOrder.default
@@ -68,7 +68,7 @@
 //
 //  "succeed" in {
 //    runThis(10.times, log = true) {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -88,7 +88,7 @@
 //          level.isEmpty shouldBe false
 //          assertReads(keyValues, level)
 //
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            val levelReopen = level.reopen(segmentSize = Int.MaxValue)
 //            val task = CompactionTask.CollapseSegments(source = levelReopen, segments = levelReopen.segments())
 //            BehaviourCompactionTask.collapse(task, levelReopen).awaitInf
@@ -103,7 +103,7 @@
 //
 //  "revert on failure" in {
 //    runThis(10.times, log = true) {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -123,7 +123,7 @@
 //          level.isEmpty shouldBe false
 //          assertReads(keyValues, level)
 //
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            val levelReopen = level.reopen(segmentSize = Int.MaxValue)
 //            val task = CompactionTask.CollapseSegments(source = levelReopen, segments = levelReopen.segments())
 //

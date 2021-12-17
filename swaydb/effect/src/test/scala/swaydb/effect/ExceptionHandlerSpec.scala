@@ -17,11 +17,11 @@
 package swaydb.effect
 
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import swaydb.IO.ExceptionHandler.Throwable
 import swaydb._
 
-class ExceptionHandlerSpec extends AnyFlatSpec with Matchers {
+class ExceptionHandlerSpec extends AnyFlatSpec {
 
   it should "Exceptions to Throwable" in {
     val exception = Exception.FailedToWriteAllBytes(0, 10, 10)

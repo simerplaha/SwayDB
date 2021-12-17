@@ -223,6 +223,7 @@ abstract class Schema[M, K, V, F, BAG[_]](multiMap: Map[MultiKey[M, K], MultiVal
    * @param expiration default expiration to set
    * @param forceClear remove the map
    * @param expire     updates the expiration only. If forceClear is true then this is ignored.
+   *
    * @return a list of [[Prepare.Remove]] statements.
    */
   protected def prepareRemove(expiration: Option[Deadline],

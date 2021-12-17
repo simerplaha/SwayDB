@@ -16,13 +16,13 @@
 //
 //package swaydb.api
 //
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.Glass
 //
 //import scala.collection.mutable.ListBuffer
 //
-//class BagSpec extends AnyWordSpec with Matchers {
+//class BagSpec extends AnyWordSpec {
 //
 //  "tryMap" in {
 //    val result: swaydb.Stream[Int, Glass] = swaydb.Stream(1 to 100)

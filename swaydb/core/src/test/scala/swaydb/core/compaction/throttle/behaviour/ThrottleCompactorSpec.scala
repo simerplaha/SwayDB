@@ -20,7 +20,7 @@
 ////import org.scalatest.OptionValues._
 ////import swaydb.Actor
 ////import swaydb.core.CommonAssertions._
-////import swaydb.core.TestSweeper._
+////import swaydb.core.CoreTestSweeper._
 ////import swaydb.core.TestData._
 ////import swaydb.core.level.Level
 ////import swaydb.core.compaction.{Compaction, Compactor}
@@ -47,16 +47,16 @@
 ////
 ////class ThrottleCompactorSpec2 extends ThrottleCompactorSpec {
 ////  override def levelFoldersCount = 10
-////  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-////  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-////  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
+////  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
+////  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
+////  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
 ////}
 ////
 ////class ThrottleCompactorSpec3 extends ThrottleCompactorSpec {
 ////  override def inMemoryStorage = true
 ////}
 ////
-////sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
+////sealed trait ThrottleCompactorSpec extends TestBase  {
 ////
 ////  val keyValueCount = 1000
 ////
@@ -74,7 +74,7 @@
 ////  "createActors" should {
 ////    "build compaction hierarchy" when {
 ////      "there are two Levels and one new ExecutionContext" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            val nextLevel = TestLevel()
 ////            val zero = TestLevelZero(nextLevel = Some(nextLevel))
@@ -101,7 +101,7 @@
 ////      }
 ////
 ////      "there are two Levels and two new ExecutionContext" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            val nextLevel = TestLevel()
 ////            val zero = TestLevelZero(nextLevel = Some(nextLevel))
@@ -133,7 +133,7 @@
 ////      }
 ////
 ////      "there are three Levels and one new ExecutionContext" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            val nextLevel2 = TestLevel()
 ////            val nextLevel = TestLevel(nextLevel = Some(nextLevel2))
@@ -162,7 +162,7 @@
 ////      }
 ////
 ////      "there are three Levels and two new ExecutionContext" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            val nextLevel2 = TestLevel()
 ////            val nextLevel = TestLevel(nextLevel = Some(nextLevel2))
@@ -199,7 +199,7 @@
 ////  }
 ////
 ////  "scheduleNextWakeUp" should {
-////    def createTestLevel()(implicit sweeper: TestSweeper): (Level, Level, ThrottleState) = {
+////    def createTestLevel()(implicit sweeper: CoreTestSweeper): (Level, Level, ThrottleState) = {
 ////      val nextLevel = TestLevel()
 ////      val level = TestLevel(nextLevel = Some(nextLevel))
 ////
@@ -219,7 +219,7 @@
 ////
 ////    "not trigger wakeUp" when {
 ////      "level states were empty" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////
 ////            val (level, nextLevel, testState) = createTestLevel()
@@ -243,7 +243,7 @@
 ////      }
 ////
 ////      "level states were non-empty but level's state is unchanged and has scheduled task" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////
 ////            val (level, nextLevel, testState) = createTestLevel()
@@ -279,7 +279,7 @@
 ////      }
 ////
 ////      "level states were non-empty but level's state is unchanged and task is undefined" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////
 ////            val (level, nextLevel, testState) = createTestLevel()
@@ -328,7 +328,7 @@
 ////
 ////    "trigger wakeUp" when {
 ////      "one of level states is awaiting pull and successfully received read" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            import sweeper._
 ////
@@ -384,7 +384,7 @@
 ////      }
 ////
 ////      "one of level states is awaiting pull and other Level's sleep is shorter" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////
 ////            val (level, nextLevel, testState) = createTestLevel()
@@ -442,7 +442,7 @@
 ////
 ////
 ////    "run compaction and postCompaction" in {
-////      TestSweeper {
+////      CoreTestSweeper {
 ////        implicit sweeper =>
 ////
 ////          val nextLevel = TestLevel()

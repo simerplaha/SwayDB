@@ -16,7 +16,7 @@
 
 package swaydb.core.series
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.series.growable.SeriesGrowableList
 
@@ -28,7 +28,7 @@ class Volatile_SeriesGrowableListSpec extends SeriesGrowableListSpec {
     SeriesGrowableList.volatile[T](lengthPerSeries)
 }
 
-sealed trait SeriesGrowableListSpec extends AnyWordSpec with Matchers {
+sealed trait SeriesGrowableListSpec extends AnyWordSpec {
 
   def create[T >: Null : ClassTag](lengthPerSlice: Int): SeriesGrowableList[T]
 

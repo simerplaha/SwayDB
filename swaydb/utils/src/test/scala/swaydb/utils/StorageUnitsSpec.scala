@@ -14,6 +14,23 @@
  * limitations under the License.
  */
 
-package swaydb
+package swaydb.core.util
 
-class Test
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.utils.StorageUnits._
+
+class StorageUnitsSpec extends AnyWordSpec {
+
+  "megabytes" should {
+    "can be converted to bytes" in {
+      1.mb shouldBe 1000000
+    }
+  }
+
+  "kilobytes" should {
+    "can be converted to bytes" in {
+      1.kb shouldBe 1000
+    }
+  }
+}

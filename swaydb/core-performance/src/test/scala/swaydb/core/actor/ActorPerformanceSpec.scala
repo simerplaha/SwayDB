@@ -16,7 +16,7 @@
 //
 //package swaydb.actor
 //
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.ActorConfig.QueueOrder
 //import swaydb.core.TestExecutionContext
@@ -26,7 +26,7 @@
 //import scala.collection.parallel.CollectionConverters._
 //import scala.concurrent.duration._
 //
-//class ActorPerformanceSpec extends AnyWordSpec with Matchers {
+//class ActorPerformanceSpec extends AnyWordSpec {
 //
 //  implicit val ec = TestExecutionContext.executionContext
 //  implicit val ordering = QueueOrder.FIFO

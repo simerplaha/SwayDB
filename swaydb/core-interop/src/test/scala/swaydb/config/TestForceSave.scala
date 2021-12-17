@@ -37,7 +37,7 @@ object TestForceSave {
   /**
    * Enables [[ForceSave]] to be random.
    *
-   * @param 0.0    disables randomness - [[ForceSave.Off]].
+   * @param 0.0  disables randomness - [[ForceSave.Off]].
    *        0.5 would give 50% chance to be random and 50% to be [[ForceSave.Off]].
    *        1.1 will always apply randomness.
    *

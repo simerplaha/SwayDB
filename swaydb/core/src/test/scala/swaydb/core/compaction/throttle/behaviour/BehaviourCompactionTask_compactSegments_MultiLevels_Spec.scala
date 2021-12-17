@@ -56,7 +56,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait BehaviourCompactionTask_compactSegments_MultiLevels_Spec extends ALevelSpec with ALogSpec {
+//sealed trait BehaviourCompactionTask_compactSegments_MultiLevels_Spec extends AnyWordSpec with ALogSpec {
 //
 //  implicit val timer = TestTimer.Empty
 //  implicit val keyOrder = KeyOrder.default
@@ -67,7 +67,7 @@
 //    "there are multi levels" should {
 //      "write data to lower level" when {
 //        "target Level is empty" in {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //              import sweeper._
 //
@@ -120,7 +120,7 @@
 //              assertReads(keyValues.drop(2).take(1), level4)
 //              assertReads(keyValues.drop(3).take(1), level5)
 //
-//              if (isPersistentSpec) {
+//              if (isPersistent) {
 //                val reopenLevel1 = level1.reopen
 //                val reopenLevel2 = level2.reopen
 //                val reopenLevel3 = level3.reopen
@@ -138,7 +138,7 @@
 //        }
 //
 //        "target Level is non empty" in {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //              import sweeper._
 //
@@ -194,7 +194,7 @@
 //              assertReads(newKeyValues.drop(2).take(1), level4)
 //              assertReads(newKeyValues.drop(3).take(1), level5)
 //
-//              if (isPersistentSpec) {
+//              if (isPersistent) {
 //                val reopenLevel1 = level1.reopen
 //                val reopenLevel2 = level2.reopen
 //                val reopenLevel3 = level3.reopen

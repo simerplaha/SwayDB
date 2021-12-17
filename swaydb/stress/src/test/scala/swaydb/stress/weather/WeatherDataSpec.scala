@@ -20,7 +20,7 @@
 //import org.scalatest.Assertion
 //import swaydb.effect.IOValues._
 //import swaydb.core.CoreTestData._
-//import swaydb.core.{ACoreSpec, TestSweeper}
+//import swaydb.core.CoreTestSweeper
 //import swaydb.testkit.RunThis._
 //import swaydb.{Bag, IO, OK}
 //
@@ -31,7 +31,7 @@
 //
 //trait WeatherDataSpec extends ACoreSpec with LazyLogging {
 //
-//  def newDB()(implicit sweeper: TestSweeper): swaydb.SetMapT[Int, WeatherData, IO.ApiIO]
+//  def newDB()(implicit sweeper: CoreTestSweeper): swaydb.SetMapT[Int, WeatherData, IO.ApiIO]
 //
 //  implicit val bag = Bag.apiIO
 //
@@ -252,7 +252,7 @@
 //    )
 //
 //  "concurrently write 1 million weather data entries using BookPickle and read using multiple APIs concurrently" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //        implicit val db = newDB()
 //        //do initial put or batch (whichever one) to ensure that data exists for readRequests.

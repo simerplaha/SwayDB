@@ -17,7 +17,7 @@
 //package swaydb.core.file
 //
 //import swaydb.Benchmark
-//import swaydb.core.{ACoreSpec, TestSweeper, CoreTestSweepers}
+//import swaydb.core.{ACoreSpec, CoreTestSweeper, CoreTestSweepers}
 //import swaydb.core.CoreTestData._
 //import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 //import swaydb.core.file.sweeper.FileSweeper
@@ -38,10 +38,10 @@
 //  implicit val memorySweeper = CoreTestSweepers.createMemorySweeperMax()
 //  implicit val forceSave = ForceSaveApplier.On
 //
-//  //  implicit def blockCache: Option[BlockCacheState] = TestSweeper.randomBlockCache
+//  //  implicit def blockCache: Option[BlockCacheState] = CoreTestSweeper.randomBlockCache
 //
 //  "random access" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //        val bytes = randomBytesSlice(20.mb)
 //

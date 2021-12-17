@@ -24,7 +24,7 @@
 //import swaydb.core.level.{ALevelSpec, Level}
 //import swaydb.core.segment.Segment
 //import swaydb.core.segment.data.Memory
-//import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
+//import swaydb.core.{ACoreSpec, CoreTestSweeper, TestForceSave, TestTimer}
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
 //import swaydb.slice.Slice
@@ -53,7 +53,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait TaskAssigner_run_Spec extends ALevelSpec with MockFactory {
+//sealed trait TaskAssigner_run_Spec extends AnyWordSpec {
 //
 //  implicit val timer = TestTimer.Empty
 //  implicit val keyOrder = KeyOrder.default
@@ -61,7 +61,7 @@
 //
 //  "Level is empty" when {
 //    def runTest(pushStrategy: PushStrategy): Unit =
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val segment = TestSegment(Slice(Memory.put(1)))
 //          val level = TestLevel()
@@ -91,7 +91,7 @@
 //  }
 //
 //  "all levels are empty" when {
-//    def setupTest(pushStrategy: PushStrategy)(implicit sweeper: TestSweeper) = {
+//    def setupTest(pushStrategy: PushStrategy)(implicit sweeper: CoreTestSweeper) = {
 //      val segment = TestSegment(Slice(Memory.put(1)))
 //      //multiple nested Levels but
 //      val level = TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel()))))))
@@ -108,8 +108,8 @@
 //    }
 //
 //    "PushStrategy.OnOverflow" in {
-//      TestSweeper {
-//        implicit sweeper: TestSweeper =>
+//      CoreTestSweeper {
+//        implicit sweeper: CoreTestSweeper =>
 //
 //          val (tasks, level, segment) = setupTest(PushStrategy.OnOverflow)
 //
@@ -124,7 +124,7 @@
 //    }
 //
 //    "PushStrategy.Immediately" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val (tasks, level, segment) = setupTest(PushStrategy.Immediately)
 //
@@ -144,7 +144,7 @@
 //  }
 //
 //  "parent levels are empty but last Level has OVERLAPPING key-values" when {
-//    def runTest(pushStrategy: PushStrategy)(implicit sweeper: TestSweeper) = {
+//    def runTest(pushStrategy: PushStrategy)(implicit sweeper: CoreTestSweeper) = {
 //      //segment gets assigned to last Level with overlapping key-values.
 //      val segment = TestSegment(Slice(Memory.put(1)))
 //      //multiple nested Levels but last level is non-empty with the same key-values as the segment
@@ -169,14 +169,14 @@
 //    }
 //
 //    "PushStrategy.OnOverflow" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          runTest(PushStrategy.OnOverflow)
 //      }
 //    }
 //
 //    "PushStrategy.Immediately" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          runTest(PushStrategy.Immediately)
 //      }
@@ -184,7 +184,7 @@
 //  }
 //
 //  "parent levels are empty but last Level has NON-OVERLAPPING key-values" when {
-//    def setupTest(pushStrategy: PushStrategy)(implicit sweeper: TestSweeper) = {
+//    def setupTest(pushStrategy: PushStrategy)(implicit sweeper: CoreTestSweeper) = {
 //      //segment gets assigned to last Level with overlapping key-values.
 //      val segment = TestSegment(Slice(Memory.put(1)))
 //      //multiple nested Levels but last level is non-empty and does not overlap the Segment's key-values
@@ -202,7 +202,7 @@
 //    }
 //
 //    "PushStrategy.OnOverflow" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val (tasks, level, segment) = setupTest(PushStrategy.OnOverflow)
 //
@@ -217,7 +217,7 @@
 //    }
 //
 //    "PushStrategy.Immediately" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val (tasks, level, segment) = setupTest(PushStrategy.Immediately)
 //
@@ -237,7 +237,7 @@
 //  }
 //
 //  "head and last Level has NON-OVERLAPPING key-values and all other levels are empty" when {
-//    def setupTest(pushStrategy: PushStrategy)(implicit sweeper: TestSweeper) = {
+//    def setupTest(pushStrategy: PushStrategy)(implicit sweeper: CoreTestSweeper) = {
 //      //input key-value is 3
 //
 //      //head level has key-value 1
@@ -260,7 +260,7 @@
 //    }
 //
 //    "PushStrategy.OnOverflow" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val (tasks, level, segment) = setupTest(PushStrategy.OnOverflow)
 //
@@ -276,7 +276,7 @@
 //    }
 //
 //    "PushStrategy.Immediately" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val (tasks, level, segment) = setupTest(PushStrategy.Immediately)
 //
@@ -298,7 +298,7 @@
 //  }
 //
 //  "head has OVERLAPPING key-values and last level is non-empty" when {
-//    def runTest(pushStrategy: PushStrategy)(implicit sweeper: TestSweeper) = {
+//    def runTest(pushStrategy: PushStrategy)(implicit sweeper: CoreTestSweeper) = {
 //      //input key-value is 1
 //
 //      //head level has key-value 1
@@ -329,14 +329,14 @@
 //    }
 //
 //    "PushStrategy.OnOverflow" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          runTest(PushStrategy.OnOverflow)
 //      }
 //    }
 //
 //    "PushStrategy.Immediately" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          runTest(PushStrategy.Immediately)
 //      }
@@ -345,7 +345,7 @@
 //  }
 //
 //  "head has key-values assigned but there also exists a non-overlapping key-value" when {
-//    def setupTest(pushStrategy: PushStrategy)(implicit sweeper: TestSweeper) = {
+//    def setupTest(pushStrategy: PushStrategy)(implicit sweeper: CoreTestSweeper) = {
 //      //input 2 segments with key-values 1 and 3 (3 is copyable)
 //
 //      //head level has key-value 1
@@ -368,7 +368,7 @@
 //    }
 //
 //    "PushStrategy.OnOverflow" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val (tasks, level, segments) = setupTest(PushStrategy.OnOverflow)
 //
@@ -386,7 +386,7 @@
 //    }
 //
 //    "PushStrategy.Immediately" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val (tasks, level, segments) = setupTest(PushStrategy.Immediately)
 //
@@ -420,7 +420,7 @@
 //  "assign all overlapping Segments to their respective levels" when {
 //    "there are NO GAPS" when {
 //      def runTest(pushStrategy: PushStrategy): Unit =
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            //input Segments - 1, 2, 3, 4
 //
@@ -473,14 +473,14 @@
 //        }
 //
 //      "PushStrategy.OnOverflow" in {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            runTest(PushStrategy.OnOverflow)
 //        }
 //      }
 //
 //      "PushStrategy.Immediately" in {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            runTest(PushStrategy.Immediately)
 //        }
@@ -488,7 +488,7 @@
 //    }
 //
 //    "there are tail GAPS" when {
-//      def setupTest(pushStrategy: PushStrategy)(implicit sweeper: TestSweeper) = {
+//      def setupTest(pushStrategy: PushStrategy)(implicit sweeper: CoreTestSweeper) = {
 //        //input Segments - 1, 2, 3, 4, 5, 6, 7
 //        val segments =
 //          Slice(
@@ -518,7 +518,7 @@
 //      }
 //
 //      "PushStrategy.OnOverflow" in {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val (tasks, (level1, level2, level3, level4), segments) = setupTest(PushStrategy.OnOverflow)
 //
@@ -551,7 +551,7 @@
 //      }
 //
 //      "PushStrategy.Immediately" in {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val (tasks, (level1, level2, level3, level4), segments) = setupTest(PushStrategy.Immediately)
 //
@@ -585,7 +585,7 @@
 //    }
 //
 //    "there are head GAPS" when {
-//      def setupTest(pushStrategy: PushStrategy)(implicit sweeper: TestSweeper) = {
+//      def setupTest(pushStrategy: PushStrategy)(implicit sweeper: CoreTestSweeper) = {
 //        //input Segments - 1, 2, 3, 4, 5, 6, 7
 //        val segments =
 //          Slice(
@@ -615,7 +615,7 @@
 //      }
 //
 //      "PushStrategy.OnOverflow" in {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val (tasks, (level1, level2, level3, level4), segments) = setupTest(PushStrategy.OnOverflow)
 //
@@ -648,7 +648,7 @@
 //      }
 //
 //      "PushStrategy.Immediately" in {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            val (tasks, (level1, level2, level3, level4), segments) = setupTest(PushStrategy.Immediately)
 //

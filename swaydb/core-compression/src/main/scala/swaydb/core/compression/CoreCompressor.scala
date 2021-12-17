@@ -64,6 +64,7 @@ private[swaydb] object CoreCompressor extends LazyLogging {
         compressionLevel match {
           case Some(compressionLevel) =>
             CoreCompressor.LZ4(minCompressionPercentage, factory.highCompressor(compressionLevel))
+
           case None =>
             CoreCompressor.LZ4(minCompressionPercentage, factory.highCompressor())
         }

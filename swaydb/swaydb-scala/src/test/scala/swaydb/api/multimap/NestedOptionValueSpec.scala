@@ -18,8 +18,8 @@
 //
 //import org.scalatest.OptionValues._
 //import swaydb.api.TestBaseAPI
-//import swaydb.core.TestSweeper
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.serializers.Serializer
 //import swaydb.slice.Slice
 //import swaydb.{Bag, Glass}
@@ -29,7 +29,7 @@
 //  implicit val bag = Bag.glass
 //
 //  "Option[Option[V]]" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //
 //        import swaydb.serializers.Default._
@@ -49,7 +49,7 @@
 //  }
 //
 //  "Option[Empty[V]]" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //
 //        sealed trait Value

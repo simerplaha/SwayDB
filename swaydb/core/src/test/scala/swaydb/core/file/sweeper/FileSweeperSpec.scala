@@ -17,7 +17,7 @@
 //package swaydb.core.file.sweeper
 //
 //import org.scalamock.scalatest.MockFactory
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 ////import swaydb.core.CommonAssertions._
 //import swaydb.core._
@@ -27,7 +27,7 @@
 //import java.util.concurrent.ConcurrentSkipListSet
 //import scala.collection.mutable.ListBuffer
 //
-//class FileSweeperSpec extends AnyWordSpec with Matchers with MockFactory {
+//class FileSweeperSpec extends AnyWordSpec {
 //
 //  implicit val timer = TestTimer.Empty
 //
@@ -41,7 +41,7 @@
 //
 //  "queueOrder" should {
 //    "prioritise PauseResume messages" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val skipList = new ConcurrentSkipListSet[FileSweeperCommand.Close](FileCloserActor.actorQueueOrder())
 //
@@ -94,7 +94,7 @@
 //
 //  //  "pause and resume level" in {
 //  //    runThis(5.times, log = true) {
-//  //      TestSweeper {
+//  //      CoreTestSweeper {
 //  //        implicit sweeper =>
 //  //          import sweeper._
 //  //
@@ -126,7 +126,7 @@
 //  //
 //  //  "stress" in {
 //  //    runThis(5.times, log = true) {
-//  //      TestSweeper {
+//  //      CoreTestSweeper {
 //  //        implicit sweeper =>
 //  //          import sweeper._
 //  //

@@ -22,7 +22,7 @@
 //import swaydb.config.MMAP
 //import swaydb.core.CoreTestData._
 //import swaydb.core.segment.block.segment.SegmentBlockConfig
-//import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
+//import swaydb.core.{ACoreSpec, CoreTestSweeper, TestForceSave, TestTimer}
 //import swaydb.slice.Slice
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.testkit.RunThis._
@@ -51,7 +51,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait LevelRemoveSegmentSpec extends ALevelSpec with MockFactory with PrivateMethodTester {
+//sealed trait LevelRemoveSegmentSpec extends AnyWordSpec  {
 //
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //  implicit val testTimer: TestTimer = TestTimer.Empty
@@ -63,7 +63,7 @@
 //
 //  "removeSegments" should {
 //    "remove segments from disk and remove them from appendix" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -74,7 +74,7 @@
 //
 //          level.isEmpty shouldBe true
 //
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            if (isWindowsAndMMAPSegments())
 //              eventual(10.seconds) {
 //                sweeper.receiveAll()

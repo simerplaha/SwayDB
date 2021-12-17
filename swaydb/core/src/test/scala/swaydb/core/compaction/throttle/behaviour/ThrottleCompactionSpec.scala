@@ -52,16 +52,16 @@
 ////
 ////class CompactionSpec2 extends CompactionSpec {
 ////  override def levelFoldersCount = 10
-////  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-////  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-////  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
+////  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
+////  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
+////  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
 ////}
 ////
 ////class CompactionSpec3 extends CompactionSpec {
 ////  override def inMemoryStorage = true
 ////}
 ////
-////sealed trait CompactionSpec extends TestBase with MockFactory {
+////sealed trait CompactionSpec extends TestBase  {
 ////
 ////  val keyValueCount = 1000
 ////
@@ -88,7 +88,7 @@
 ////
 ////    "remove Segments" when {
 ////      "Segments from upper Level are merged into lower level" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            val thisLevel = mock[NextLevel]("thisLevel")
 ////            val nextLevel = mock[NextLevel]("nextLevel")
@@ -123,7 +123,7 @@
 ////
 ////    "return success" when {
 ////      "it fails to remove Segments" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            val thisLevel = mock[NextLevel]("thisLevel")
 ////            val nextLevel = mock[NextLevel]("nextLevel")
@@ -161,14 +161,14 @@
 ////  "copyForwardForEach" should {
 ////    "not copy" when {
 ////      "it's the last Level and is empty" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            ThrottleCompaction.copyForwardForEach(Slice(TestLevel())) shouldBe 0
 ////        }
 ////      }
 ////
 ////      "it's the last Level and is non empty" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            val keyValues = randomPutKeyValues(keyValueCount)
 ////            val level = TestLevel(keyValues = keyValues)
@@ -188,7 +188,7 @@
 ////    "copy all Segments to last level" when {
 ////      "no Segments overlap" in {
 ////        runThis(1.times, log = true) {
-////          TestSweeper {
+////          CoreTestSweeper {
 ////            implicit sweeper =>
 ////              val allKeyValues = randomPutKeyValues(keyValueCount, startId = Some(1))
 ////              val keyValues = allKeyValues.groupedSlice(5)
@@ -227,7 +227,7 @@
 ////
 ////    "copy Segments to last level" when {
 ////      "some Segments overlap" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            val allKeyValues = randomPutKeyValues(keyValueCount, addPutDeadlines = false, startId = Some(1))
 ////
@@ -293,7 +293,7 @@
 ////
 ////    "keep invoking refresh" when {
 ////      "remaining compactions are non zero" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            val segments: ListBuffer[Segment] =
 ////              (1 to 10).flatMap({
@@ -335,7 +335,7 @@
 ////
 ////    "invoke collapse" when {
 ////      "checkExpired is false" in {
-////        TestSweeper {
+////        CoreTestSweeper {
 ////          implicit sweeper =>
 ////            val segments: ListBuffer[Segment] =
 ////              (1 to 10).flatMap({

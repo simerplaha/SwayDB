@@ -23,7 +23,7 @@
 //import swaydb.core.level.zero.LevelZero.LevelZeroLog
 //import swaydb.core.segment.Segment
 //import swaydb.core.segment.data.Memory
-//import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestTimer}
+//import swaydb.core.{ACoreSpec, CoreTestSweeper, TestExecutionContext, TestTimer}
 //import swaydb.core.log.ALogSpec
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
@@ -32,7 +32,7 @@
 //import swaydb.testkit.RunThis._
 //import swaydb.testkit.TestKit._
 //
-//class LevelZeroTaskAssigner_mergeStack_Spec extends ALogSpec with MockFactory {
+//class LevelZeroTaskAssigner_mergeStack_Spec extends ALogSpec {
 //
 //  implicit val timer = TestTimer.Empty
 //  implicit val keyOrder = KeyOrder.default
@@ -41,7 +41,7 @@
 //  implicit val ec = TestExecutionContext.executionContext
 //
 //  "stack is empty" in {
-//    TestSweeper {
+//    CoreTestSweeper {
 //      implicit sweeper =>
 //        val stack: Iterable[Either[LevelZeroLog, Iterable[Memory]]] =
 //          List.empty
@@ -52,7 +52,7 @@
 //
 //  "stack.size == 1" in {
 //    runThis(10.times, log = true) {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          val keyValue = Memory.put(1, 1)
 //
@@ -72,7 +72,7 @@
 //
 //  "stack.size == 2" in {
 //    runThis(10.times, log = true) {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          val stack: Iterable[Either[LevelZeroLog, Iterable[Memory]]] =
@@ -89,7 +89,7 @@
 //
 //  "stack.size == 3" in {
 //    runThis(10.times, log = true) {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          val stack: Iterable[Either[LevelZeroLog, Iterable[Memory]]] =
@@ -107,7 +107,7 @@
 //
 //  "random size" in {
 //    runThis(100.times, log = true) {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          val stackedKeyValues =

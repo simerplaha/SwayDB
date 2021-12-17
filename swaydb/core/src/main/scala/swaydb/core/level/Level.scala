@@ -55,6 +55,7 @@ import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.utils.{Aggregator, Extension, Futures, IDGenerator}
 import swaydb.{Bag, Error, IO}
+import swaydb.core.segment.distributor.PathDistributor
 
 import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
@@ -180,7 +181,7 @@ private[core] case object Level extends LazyLogging {
               case None =>
                 val allSegments = appendix.cache.values()
                 implicit val segmentIDGenerator: IDGenerator = IDGenerator(initial = largestSegmentId(allSegments))
-                val paths: PathsDistributor = PathsDistributor(levelStorage.dirs, () => allSegments)
+                val paths: PathDistributor = PathDistributor(levelStorage.dirs, () => allSegments)
 
                 val deletedUnCommittedSegments =
                   if (levelStorage.persistent)
@@ -290,18 +291,18 @@ private[core] case class Level(dirs: Seq[Dir],
                                nextLevel: Option[NextLevel],
                                appendix: Log[Slice[Byte], Segment, AppendixLogCache],
                                lock: Option[FileLocker],
-                               pathDistributor: PathsDistributor)(implicit val keyOrders: SegmentKeyOrders,
-                                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                                  functionStore: CoreFunctionStore,
-                                                                  removeWriter: LogEntryWriter[LogEntry.Remove[Slice[Byte]]],
-                                                                  addWriter: LogEntryWriter[LogEntry.Put[Slice[Byte], Segment]],
-                                                                  val keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                  val fileSweeper: FileSweeper,
-                                                                  val bufferCleaner: ByteBufferSweeperActor,
-                                                                  val blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                  val segmentIDGenerator: IDGenerator,
-                                                                  val segmentIO: SegmentReadIO,
-                                                                  val forceSaveApplier: ForceSaveApplier) extends NextLevel with LazyLogging { self =>
+                               pathDistributor: PathDistributor)(implicit val keyOrders: SegmentKeyOrders,
+                                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                                 functionStore: CoreFunctionStore,
+                                                                 removeWriter: LogEntryWriter[LogEntry.Remove[Slice[Byte]]],
+                                                                 addWriter: LogEntryWriter[LogEntry.Put[Slice[Byte], Segment]],
+                                                                 val keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                 val fileSweeper: FileSweeper,
+                                                                 val bufferCleaner: ByteBufferSweeperActor,
+                                                                 val blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                 val segmentIDGenerator: IDGenerator,
+                                                                 val segmentIO: SegmentReadIO,
+                                                                 val forceSaveApplier: ForceSaveApplier) extends NextLevel with LazyLogging { self =>
 
   import keyOrders._
 
@@ -650,7 +651,7 @@ private[core] case class Level(dirs: Seq[Dir],
         tailGap = ListBuffer.empty,
         removeDeletes = removeDeletedRecords,
         createdInLevel = self.levelNumber,
-        pathsDistributor = pathDistributor
+        pathDistributor = pathDistributor
       ).map(Seq(_))
     } else {
       //Assignment successful. Defer merge to target Segments.
@@ -699,7 +700,7 @@ private[core] case class Level(dirs: Seq[Dir],
         tailGap = ListBuffer.empty,
         removeDeletes = removeDeletedRecords,
         createdInLevel = self.levelNumber,
-        pathsDistributor = pathDistributor,
+        pathDistributor = pathDistributor,
         segmentRefCacheLife = segmentConfig.segmentRefCacheLife,
         mmap = segmentConfig.mmap
       ).map(Seq(_))
@@ -720,7 +721,7 @@ private[core] case class Level(dirs: Seq[Dir],
             hashIndexConfig = hashIndexConfig,
             bloomFilterConfig = bloomFilterConfig,
             segmentConfig = segmentConfig,
-            pathsDistributor = pathDistributor,
+            pathDistributor = pathDistributor,
             segmentRefCacheLife = segmentConfig.segmentRefCacheLife,
             mmap = segmentConfig.mmap
           )
@@ -850,14 +851,14 @@ private[core] case class Level(dirs: Seq[Dir],
   def persist(mergeResult: Iterable[DefIO[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Segment, Iterable[DefIO[SegmentOption, Iterable[Segment]]]] =
     if (inMemory)
       SegmentWriteMemoryIO.persistMerged(
-        pathsDistributor = pathDistributor,
+        pathDistributor = pathDistributor,
         segmentRefCacheLife = segmentConfig.segmentRefCacheLife,
         mmap = segmentConfig.mmap,
         mergeResult = mergeResult.asInstanceOf[Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Memory]]]]
       )
     else
       SegmentWritePersistentIO.persistMerged(
-        pathsDistributor = pathDistributor,
+        pathDistributor = pathDistributor,
         segmentRefCacheLife = segmentConfig.segmentRefCacheLife,
         mmap = segmentConfig.mmap,
         mergeResult = mergeResult.asInstanceOf[Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Persistent]]]]
@@ -865,7 +866,13 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private def prepareCommit(result: Iterable[DefIO[SegmentOption, Iterable[Segment]]],
                             appendEntry: Option[LogEntry[Slice[Byte], Segment]]): IO[Error.Level, LogEntry[Slice[Byte], Segment]] = {
-    logger.trace(s"${pathDistributor.head}: Committing Segments. ${result.map { result => s"""${result.input.toOptionS.map(_.path)} -> ${result.output.map(_.path.toString).mkString(", ")}""" }.mkString("\n")}.")
+    logger.trace(
+      s"${pathDistributor.head}: Committing Segments. ${
+        result.map {
+          result => s"""${result.input.toOptionS.map(_.path)} -> ${result.output.map(_.path.toString).mkString(", ")}"""
+        }.mkString("\n")
+      }."
+    )
 
     result.foldLeftRecoverIO(LogEntry.noneSegment) {
       case (logEntry, result) =>

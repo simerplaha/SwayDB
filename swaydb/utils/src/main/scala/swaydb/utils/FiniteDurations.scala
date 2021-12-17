@@ -104,6 +104,7 @@ private[swaydb] object FiniteDurations {
           } else {
             Thread.sleep(interval.toMillis)
           }
+
         case Success(value) =>
           result = Success(value)
           keepTrying = false

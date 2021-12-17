@@ -58,7 +58,7 @@
 //  override def isMemorySpec = true
 //}
 //
-//sealed trait LevelKeyValuesSpec extends ALevelSpec with MockFactory with PrivateMethodTester {
+//sealed trait LevelKeyValuesSpec extends AnyWordSpec {
 //
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //  implicit val testTimer: TestTimer = TestTimer.Empty
@@ -71,7 +71,7 @@
 //
 //  "put KeyValues" should {
 //    "write a key-values to the Level" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -88,7 +88,7 @@
 //
 //          assertReads(keyValues, level)
 //
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            val reopen = level.reopen
 //            assertReads(keyValues, reopen)
 //          }
@@ -96,7 +96,7 @@
 //    }
 //
 //    "return an empty level if all the key values in the Level were REMOVED and if Level is the only Level" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -123,7 +123,7 @@
 //          level.segmentFilesInAppendix shouldBe 0
 //
 //          level.isEmpty shouldBe true
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            level.reopen.isEmpty shouldBe true
 //            level.segmentFilesOnDisk() shouldBe empty
 //          }
@@ -131,7 +131,7 @@
 //    }
 //
 //    "not return an empty level if all the key values in the Level were REMOVED but it has lower level" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -156,7 +156,7 @@
 //    }
 //
 //    "return an empty level if all the key values in the Level were REMOVED by RANGE and if Level is the only Level" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -169,7 +169,7 @@
 //          level.segmentFilesInAppendix shouldBe 0
 //
 //          level.isEmpty shouldBe true
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            level.reopen.isEmpty shouldBe true
 //            level.segmentFilesOnDisk() shouldBe empty
 //          }
@@ -177,7 +177,7 @@
 //    }
 //
 //    "not return an empty level if all the key values in the Level were REMOVED by RANGE but it has a lower Level" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -191,7 +191,7 @@
 //          level.segmentFilesInAppendix shouldBe segmentsCountBeforeRemove
 //
 //          level.isEmpty shouldBe false
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            level.reopen.isEmpty shouldBe false
 //            level.segmentFilesOnDisk() should have size segmentsCountBeforeRemove
 //          }
@@ -199,7 +199,7 @@
 //    }
 //
 //    "return an empty level if all the key values in the Level were EXPIRED and if Level is the only Level" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -242,7 +242,7 @@
 //
 //          level.isEmpty shouldBe true
 //
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            level.reopen.isEmpty shouldBe true
 //            level.segmentFilesOnDisk() shouldBe empty
 //          }
@@ -250,7 +250,7 @@
 //    }
 //
 //    "not return an empty level if all the key values in the Level were EXPIRED and if Level has a lower Level" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -285,7 +285,7 @@
 //          level.isEmpty shouldBe false
 //          level.segmentFilesInAppendix should be >= 1
 //
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            level.reopen.isEmpty shouldBe false
 //            level.segmentFilesOnDisk().size should be >= 1
 //          }
@@ -293,7 +293,7 @@
 //    }
 //
 //    "return an empty level if all the key values in the Level were EXPIRED by RANGE and if Level is the only Level" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -318,7 +318,7 @@
 //
 //          level.isEmpty shouldBe true
 //
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            level.reopen.isEmpty shouldBe true
 //            level.segmentFilesOnDisk() shouldBe empty
 //          }
@@ -326,7 +326,7 @@
 //    }
 //
 //    "not return an empty level if all the key values in the Level were EXPIRED by RANGE and if Level has a last Level" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -349,7 +349,7 @@
 //
 //          level.isEmpty shouldBe false
 //
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            level.reopen.isEmpty shouldBe false
 //            level.segmentFilesOnDisk().size should be >= 1
 //          }

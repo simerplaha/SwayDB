@@ -31,9 +31,10 @@ import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlock
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
 import swaydb.core.segment.block.BlockCompressionInfo
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.segment.data.{SegmentKeyOrders, Memory, Persistent}
+import swaydb.core.segment.data.{Memory, Persistent, SegmentKeyOrders}
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.merge.KeyValueGrouper
+import swaydb.core.segment.distributor.PathDistributor
 import swaydb.core.segment.io.{SegmentCompactionIO, SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.util.{DefIO, MinMax}
 import swaydb.effect.Effect
@@ -76,7 +77,7 @@ private[core] trait PersistentSegment extends Segment with PersistentSegmentOpti
           hashIndexConfig: HashIndexBlockConfig,
           bloomFilterConfig: BloomFilterBlockConfig,
           segmentConfig: SegmentBlockConfig,
-          pathsDistributor: PathsDistributor,
+          pathDistributor: PathDistributor,
           segmentRefCacheLife: SegmentRefCacheLife,
           mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
                               executionContext: ExecutionContext,
@@ -101,7 +102,7 @@ private[core] object PersistentSegment extends LazyLogging {
     override val asSegmentOption: SegmentOption = Segment.Null
   }
 
-  def apply(pathsDistributor: PathsDistributor,
+  def apply(pathDistributor: PathDistributor,
             createdInLevel: Int,
             bloomFilterConfig: BloomFilterBlockConfig,
             hashIndexConfig: HashIndexBlockConfig,
@@ -134,7 +135,7 @@ private[core] object PersistentSegment extends LazyLogging {
     ) flatMap {
       transient =>
         SegmentWritePersistentIO.persistTransient(
-          pathsDistributor = pathsDistributor,
+          pathDistributor = pathDistributor,
           segmentRefCacheLife = segmentConfig.segmentRefCacheLife,
           mmap = segmentConfig.mmap,
           transient = transient
@@ -342,7 +343,7 @@ private[core] object PersistentSegment extends LazyLogging {
 
   def apply(keyValues: Iterable[Memory],
             createdInLevel: Int,
-            pathsDistributor: PathsDistributor,
+            pathDistributor: PathDistributor,
             removeDeletes: Boolean,
             valuesConfig: ValuesBlockConfig,
             sortedIndexConfig: SortedIndexBlockConfig,
@@ -375,7 +376,7 @@ private[core] object PersistentSegment extends LazyLogging {
         )
 
     PersistentSegment(
-      pathsDistributor = pathsDistributor,
+      pathDistributor = pathDistributor,
       createdInLevel = createdInLevel,
       bloomFilterConfig = bloomFilterConfig,
       hashIndexConfig = hashIndexConfig,
@@ -389,7 +390,7 @@ private[core] object PersistentSegment extends LazyLogging {
 
   def copyFrom(segment: Segment,
                createdInLevel: Int,
-               pathsDistributor: PathsDistributor,
+               pathDistributor: PathDistributor,
                removeDeletes: Boolean,
                valuesConfig: ValuesBlockConfig,
                sortedIndexConfig: SortedIndexBlockConfig,
@@ -413,7 +414,7 @@ private[core] object PersistentSegment extends LazyLogging {
           Slice(
             copyFrom(
               segment = segment,
-              pathsDistributor = pathsDistributor,
+              pathDistributor = pathDistributor,
               segmentRefCacheLife = segmentConfig.segmentRefCacheLife,
               mmap = segmentConfig.mmap
             )
@@ -426,7 +427,7 @@ private[core] object PersistentSegment extends LazyLogging {
         PersistentSegment(
           keyValues = memory.skipList.values(),
           createdInLevel = createdInLevel,
-          pathsDistributor = pathsDistributor,
+          pathDistributor = pathDistributor,
           removeDeletes = removeDeletes,
           valuesConfig = valuesConfig,
           sortedIndexConfig = sortedIndexConfig,
@@ -438,7 +439,7 @@ private[core] object PersistentSegment extends LazyLogging {
     }
 
   def copyFrom(segment: PersistentSegment,
-               pathsDistributor: PathsDistributor,
+               pathDistributor: PathDistributor,
                segmentRefCacheLife: SegmentRefCacheLife,
                mmap: MMAP.Segment)(implicit keyOrders: SegmentKeyOrders,
                                    timeOrder: TimeOrder[Slice[Byte]],
@@ -450,7 +451,7 @@ private[core] object PersistentSegment extends LazyLogging {
                                    segmentIO: SegmentReadIO,
                                    idGenerator: IDGenerator,
                                    forceSaveApplier: ForceSaveApplier): PersistentSegment = {
-    val nextPath = pathsDistributor.next().resolve(IDGenerator.segment(idGenerator.nextId()))
+    val nextPath = pathDistributor.next().resolve(IDGenerator.segment(idGenerator.nextId()))
 
     segment.copyTo(nextPath)
 
@@ -523,6 +524,7 @@ private[core] object PersistentSegment extends LazyLogging {
             case BlockCompressionInfo.Null =>
               valuesBlock.offset.size
           }
+
         case None =>
           0
       }

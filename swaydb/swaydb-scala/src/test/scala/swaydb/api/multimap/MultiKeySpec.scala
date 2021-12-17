@@ -16,7 +16,7 @@
 //
 //package swaydb.api.multimap
 //
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.core.CoreTestData._
 //import swaydb.multimap.MultiKey
@@ -29,7 +29,7 @@
 //import scala.util.{Random, Try}
 //import swaydb.testkit.TestKit._
 //
-//class MultiKeySpec extends AnyWordSpec with Matchers {
+//class MultiKeySpec extends AnyWordSpec {
 //
 //  "mapKeySerializer" should {
 //    def doAssert[T, K](key: MultiKey[T, K])(implicit keySerializer: Serializer[K],

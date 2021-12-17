@@ -83,6 +83,7 @@ private[segment] object TimeWriter extends TimeWriter {
           case _: Memory.PendingApply =>
             keyValue.time
         }
+
       case _: Memory.Range =>
         Time.empty
     }

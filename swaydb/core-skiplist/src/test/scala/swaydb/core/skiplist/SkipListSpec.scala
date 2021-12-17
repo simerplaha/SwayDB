@@ -16,7 +16,7 @@
 
 package swaydb.core.skiplist
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -45,7 +45,7 @@ class Series_Length1_SkipListSpec extends SkipListSpec {
     SkipListSeries[NK, NV, K, V](lengthPerSeries = 1, nullKey = nullKey, nullValue = nullValue)
 }
 
-sealed trait SkipListSpec extends AnyWordSpec with Matchers {
+sealed trait SkipListSpec extends AnyWordSpec {
 
   sealed trait ValueOption
   object Value {

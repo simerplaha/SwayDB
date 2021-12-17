@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core
+package swaydb
 
 import swaydb.configs.level.DefaultThreadFactory
 

@@ -18,7 +18,7 @@
 //
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.OptionValues._
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.Error.Segment.ExceptionHandler
 //import swaydb.IO
@@ -36,7 +36,7 @@
 //import swaydb.testkit.RunThis._
 //import swaydb.testkit.TestKit._
 //
-//class LowerRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {
+//class LowerRangeSomeSpec extends AnyWordSpec {
 //
 //  implicit val keyOrder = KeyOrder.default
 //  implicit val timeOrder = TimeOrder.long
@@ -58,7 +58,7 @@
 //            implicit val current = mock[CurrentWalker]
 //            implicit val next = mock[NextWalker]
 //
-//            val rangeValue = randomUpdateRangeValue(value = randomStringSliceOptional, functionOutput = randomFunctionOutput(addRemoves = false, expiredDeadline = false))
+//            val rangeValue = randomUpdateRangeValue(value = randomStringSliceOptional(), functionOutput = randomFunctionOutput(addRemoves = false, expiredDeadline = false))
 //            val upperLevel = randomRangeKeyValue(0, 10, Value.FromValue.Null, rangeValue = rangeValue)
 //            val lowerLower = randomPutKeyValue(key - 1, deadline = None)
 //
@@ -86,7 +86,7 @@
 //        implicit val current = mock[CurrentWalker]
 //        implicit val next = mock[NextWalker]
 //
-//        val fromValue = eitherOne(Value.FromValue.Null, Value.put(randomStringSliceOptional, removeAfter = randomDeadlineOption(false)))
+//        val fromValue = eitherOne(Value.FromValue.Null, Value.put(randomStringSliceOptional(), removeAfter = randomDeadlineOption(false)))
 //        val upperLevel = randomRangeKeyValue(0, 10, fromValue, randomRangeValue(addRemoves = false, deadline = randomDeadlineOption(false), functionOutput = randomFunctionOutput(false, false)))
 //        val lowerLevel = randomPutKeyValue(0, deadline = randomDeadlineOption(false))
 //
@@ -204,7 +204,7 @@
 //            implicit val current = mock[CurrentWalker]
 //            implicit val next = mock[NextWalker]
 //
-//            val put = Value.Put(randomStringSliceOptional, None, Time.empty)
+//            val put = Value.Put(randomStringSliceOptional(), None, Time.empty)
 //
 //            inSequence {
 //              //@formatter:off

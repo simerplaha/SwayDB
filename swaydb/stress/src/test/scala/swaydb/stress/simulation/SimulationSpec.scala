@@ -22,7 +22,7 @@
 //import swaydb.PureFunctionScala._
 //import swaydb.api.TestBaseAPI
 //import swaydb.config.Functions
-//import swaydb.core.TestSweeper
+//import swaydb.core.CoreTestSweeper
 //import swaydb.core.CoreTestData._
 //import swaydb.function.FunctionConverter
 //import swaydb.serializers.Default._
@@ -68,7 +68,7 @@
 //  override val keyValueCount: Int = 0
 //
 //  def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
-//              sweeper: TestSweeper): swaydb.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO]
+//              sweeper: CoreTestSweeper): swaydb.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO]
 //
 //  implicit val functions = Functions[PureFunction.Map[Long, Domain]]()
 //
@@ -540,7 +540,7 @@
 //    //    }
 //
 //    "concurrently Create, Update, Read & Delete (CRUD) Products" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //

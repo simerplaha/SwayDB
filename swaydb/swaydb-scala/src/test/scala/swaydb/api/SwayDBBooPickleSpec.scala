@@ -18,8 +18,8 @@
 //
 //import org.scalatest.OptionValues._
 //import swaydb._
-//import swaydb.core.TestSweeper
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.core.file.CoreFileTestKit._
 //import swaydb.testkit.RunThis.runThis
 //import swaydb.testkit.TestKit._
@@ -44,7 +44,7 @@
 //
 //    "remove all but first and last" in {
 //      runThis(times = repeatTest, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val db = swaydb.persistent.Map[User, Info, Nothing, Glass](randomDir()).sweep(_.delete())

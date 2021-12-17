@@ -24,16 +24,16 @@
 ////import swaydb.core.file.reader.FileReader
 ////import swaydb.core.segment.block.reader.{BlockReader, BlockRefReader}
 ////import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
-////import swaydb.core.{TestBase, TestSweeper}
+////import swaydb.core.{TestBase, CoreTestSweeper}
 ////import swaydb.config.IOStrategy
 ////import swaydb.config.util.OperatingSystem
 ////import swaydb.config.util.StorageUnits._
 ////
 ////class BlockReaderPerformanceSpec extends TestBase {
 ////
-////  implicit val fileSweeper: FileSweeper = TestSweeper.fileSweeper
-////  implicit val bufferCleaner: ByteBufferSweeperActor  = TestSweeper.bufferCleaner
-////  implicit val memorySweeper = TestSweeper.memorySweeperMax
+////  implicit val fileSweeper: FileSweeper = CoreTestSweeper.fileSweeper
+////  implicit val bufferCleaner: ByteBufferSweeperActor  = CoreTestSweeper.bufferCleaner
+////  implicit val memorySweeper = CoreTestSweeper.memorySweeperMax
 ////
 ////  "random access" in {
 ////

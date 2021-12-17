@@ -16,10 +16,9 @@
 //
 //package swaydb.core.segment.defrag
 //
-//import org.scalamock.scalatest.MockFactory
-//import org.scalatest.EitherValues
-//import swaydb.core.CommonAssertions._
-//import swaydb.core.CoreTestData._
+//import org.scalatest.matchers.should.Matchers._
+//import org.scalatest.wordspec.AnyWordSpec
+//import swaydb.core.CoreTestSweeper
 //import swaydb.core.segment._
 //import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 //import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
@@ -28,24 +27,31 @@
 //import swaydb.core.segment.block.segment.transient.TransientSegment
 //import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 //import swaydb.core.segment.block.values.ValuesBlockConfig
-//import swaydb.core.segment.data.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 //import swaydb.core.segment.data.{KeyValue, Memory}
-//import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestTimer}
-//import swaydb.serializers.Default._
+//import swaydb.core.segment.data.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
+//import swaydb.core.segment.data.KeyValueTestKit._
+//import swaydb.core.segment.SegmentTestKit._
+//import swaydb.core.segment.block.SegmentBlockTestKit._
 //import swaydb.serializers._
+//import swaydb.serializers.Default._
 //import swaydb.slice.Slice
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.testkit.RunThis._
+//import swaydb.testkit.TestKit._
+//import swaydb.TestExecutionContext
+//import swaydb.core.log.timer.TestTimer
 //
 //import scala.collection.mutable.ListBuffer
-//import swaydb.testkit.TestKit._
+//import scala.concurrent.ExecutionContext
 //
 ///**
 // * Test setup for when input types are [[PersistentSegment]]
 // */
 //class PersistentSegment_DefragSpec extends DefragSpec[PersistentSegment, PersistentSegmentOption, MergeStats.Persistent.Builder[Memory, ListBuffer]] {
 //
-//  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: TestSweeper): PersistentSegment =
+//  override def isMemorySpec = false
+//
+//  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: CoreTestSweeper): PersistentSegment =
 //    TestSegment(keyValues).shouldBeInstanceOf[PersistentSegment]
 //
 //  override def nullSegment: PersistentSegmentOption =
@@ -65,7 +71,7 @@
 //
 //  override def isMemorySpec = true
 //
-//  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: TestSweeper): MemorySegment =
+//  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: CoreTestSweeper): MemorySegment =
 //    TestSegment(keyValues).shouldBeInstanceOf[MemorySegment]
 //
 //  override def nullSegment: MemorySegmentOption =
@@ -79,13 +85,13 @@
 //}
 //
 //
-//sealed trait DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats.Segment[Memory, ListBuffer]] extends ASegmentSpec with MockFactory with EitherValues {
+//class DefragSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats.Segment[Memory, ListBuffer]] extends AnyWordSpec {
 //
-//  implicit val ec = TestExecutionContext.executionContext
-//  implicit val timer = TestTimer.Empty
+//  implicit val ec: ExecutionContext = TestExecutionContext.executionContext
+//  implicit val timer: TestTimer = TestTimer.Empty
 //
-//  implicit val keyOrder = KeyOrder.default
-//  implicit val timerOrder = TimeOrder.long
+//  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+//  implicit val timerOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 //
 //  implicit def valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
 //  implicit def sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
@@ -94,7 +100,7 @@
 //  implicit def bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random
 //  implicit def segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 //
-//  def testSegment(keyValues: Slice[Memory] = randomizedKeyValues())(implicit sweeper: TestSweeper): SEG
+//  def testSegment(keyValues: Slice[Memory])(implicit sweeper: CoreTestSweeper): SEG
 //  def nullSegment: NULL_SEG
 //  implicit def mergeStatsCreator: MergeStatsCreator[S]
 //  implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig): MergeStatsSizeCalculator[S]
@@ -103,8 +109,9 @@
 //    "there are no gaps" when {
 //      "removeDeletes = false" in {
 //        runThis(10.times, log = true) {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
+//              import sweeper._
 //
 //              //ignore pending apply, functions and ranges since they merge update key-values to a compressed format
 //              val segment = testSegment(randomizedKeyValues(addPendingApply = false, addFunctions = false, addRanges = false))
@@ -133,8 +140,10 @@
 //
 //      "removeDeletes = true" in {
 //        runThis(10.times, log = true) {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
+//              import sweeper._
+//
 //              //add only updated key-values
 //              val segment = testSegment(keyValues = Slice(randomUpdateKeyValue(1), randomFunctionKeyValue(2), randomRemoveAny(3, 10)))
 //
@@ -163,8 +172,9 @@
 //    "there are no key-values to merge" when {
 //      "removeDeletes = false" in {
 //        runThis(10.times, log = true) {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
+//              import sweeper._
 //
 //              val keyValues = randomKeyValues(30).groupedSlice(3)
 //              keyValues should have size 3
@@ -193,7 +203,7 @@
 //
 //              mergeResult.output should have size 3
 //
-//              if (isPersistentSpec) //if it's persistent Remote Segments instances
+//              if (isPersistent) //if it's persistent Remote Segments instances
 //                mergeResult.output.head.shouldBeInstanceOf[TransientSegment.RemotePersistentSegment].segment shouldBe headGap
 //              else //if it's memory stats are created
 //                mergeResult.output.head.shouldBeInstanceOf[TransientSegment.Stats[S]].stats.keyValues shouldBe headGap.iterator(randomBoolean()).toList
@@ -201,7 +211,7 @@
 //              //fence always remains the same
 //              mergeResult.output.drop(1).head shouldBe TransientSegment.Fence
 //
-//              if (isPersistentSpec) //if it's persistent Remote Segments instances
+//              if (isPersistent) //if it's persistent Remote Segments instances
 //                mergeResult.output.last.shouldBeInstanceOf[TransientSegment.RemotePersistentSegment].segment shouldBe tailGap
 //              else //if it's memory stats are created
 //                mergeResult.output.last.shouldBeInstanceOf[TransientSegment.Stats[S]].stats.keyValues shouldBe tailGap.iterator(randomBoolean()).toList
@@ -211,8 +221,9 @@
 //
 //      "segmentSize is too small" in {
 //        runThis(10.times, log = true) {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
+//              import sweeper._
 //
 //              val keyValues = randomPutKeyValues(count = 10000, startId = Some(0), valueSize = 0, addPutDeadlines = false).groupedSlice(1000)
 //              keyValues should have size 1000
@@ -245,7 +256,7 @@
 //
 //              mergeResult.input shouldBe midSegment
 //
-//              if (isPersistentSpec) {
+//              if (isPersistent) {
 //                mergeResult.output should have size 2
 //
 //                mergeResult.output.head.shouldBeInstanceOf[TransientSegment.Stats[S]].stats.keyValues shouldBe keyValues.take(51).flatten

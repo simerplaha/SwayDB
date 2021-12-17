@@ -22,8 +22,8 @@
 //import swaydb.api.multimap.multiprepare.PrimaryKey._
 //import swaydb.api.multimap.multiprepare.Row._
 //import swaydb.api.multimap.multiprepare.Table._
-//import swaydb.core.TestSweeper
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.multimap.MultiPrepare
 //import swaydb.{Bag, Glass, Prepare}
 //
@@ -34,7 +34,7 @@
 //
 //  "transaction" when {
 //    "nested map hierarchy" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          implicit val bag = Bag.glass

@@ -20,8 +20,8 @@
 //import swaydb.Bag.Implicits._
 //import swaydb._
 //import swaydb.config.sequencer.Sequencer
-//import swaydb.core.TestSweeper._
-//import swaydb.core.{TestSweeper, TestExecutionContext}
+//import swaydb.core.CoreTestSweeper._
+//import swaydb.core.{CoreTestSweeper, TestExecutionContext}
 //import swaydb.serializers.Default._
 //import swaydb.testkit.RunThis.FutureImplicits
 //
@@ -30,7 +30,7 @@
 //import swaydb.core.file.CoreFileTestKit._
 //
 //class SwayDBSequencerSpec0 extends SwayDBSequencerSpec {
-//  def newDB[BAG[+_]]()(implicit sweeper: TestSweeper,
+//  def newDB[BAG[+_]]()(implicit sweeper: CoreTestSweeper,
 //                       sequencer: Sequencer[BAG],
 //                       bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
 //    swaydb.persistent.Map[Int, String, Nothing, BAG](randomDir()).map(_.sweep(_.toBag[Glass].delete()))
@@ -42,7 +42,7 @@
 //
 //  override val keyValueCount: Int = 100
 //
-//  def newDB[BAG[+_]]()(implicit sweeper: TestSweeper,
+//  def newDB[BAG[+_]]()(implicit sweeper: CoreTestSweeper,
 //                       sequencer: Sequencer[BAG],
 //                       bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
 //    swaydb.memory.Map[Int, String, Nothing, BAG]().map(_.sweep(_.toBag[Glass].delete()))
@@ -50,14 +50,14 @@
 //
 //sealed trait SwayDBSequencerSpec extends TestBaseAPI {
 //
-//  def newDB[BAG[+_]]()(implicit sweeper: TestSweeper,
+//  def newDB[BAG[+_]]()(implicit sweeper: CoreTestSweeper,
 //                       sequencer: Sequencer[BAG],
 //                       bag: Bag[BAG]): BAG[SetMapT[Int, String, BAG]]
 //
 //  "Synchronised bags" should {
 //    "used Serial.Synchronised" when {
 //      "serial is null" in {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            def doTest[BAG[+_]](implicit bag: Bag.Sync[BAG]) = {
@@ -89,7 +89,7 @@
 //  "Async bags" should {
 //    "use Serial.Thread" when {
 //      "serial is null" in {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            implicit val bag = Bag.future(TestExecutionContext.executionContext)
@@ -113,7 +113,7 @@
 //    "convert" when {
 //      "Synchronised to" when {
 //        "Synchronised" in {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //              implicit val sequencer: Sequencer[Glass] = null
 //              val map = newDB[Glass]()
@@ -128,7 +128,7 @@
 //        }
 //
 //        "SingleThread" in {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //              implicit val sequencer: Sequencer[Glass] = null
 //              val map = newDB[Glass]()
@@ -146,7 +146,7 @@
 //
 //      "SingleThreaded to" when {
 //        "Synchronised" in {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //
 //              implicit val bag = Bag.future(TestExecutionContext.executionContext)

@@ -5,7 +5,7 @@
 //import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 //import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 //import swaydb.config.storage.{Level0Storage, LevelStorage}
-//import swaydb.core.{CoreInitialiser, TestExecutionContext, TestForceSave, TestSweeper, TestTimer}
+//import swaydb.core.{CoreInitialiser, TestExecutionContext, TestForceSave, CoreTestSweeper, TestTimer}
 //import swaydb.core.compaction.{Compactor, CompactorCreator}
 //import swaydb.core.compaction.throttle.ThrottleCompactorCreator
 //import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -23,8 +23,8 @@
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.testkit.TestKit.{randomBoolean, randomIntMax, randomNextInt}
 //import swaydb.effect.IOValues._
-//import swaydb.core.segment.{ASegmentSpec, PathsDistributor}
-//import swaydb.core.TestSweeper._
+//import swaydb.core.segment.{ASegmentSpec, pathDistributor}
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.core.file.sweeper.FileSweeper
 //import swaydb.effect.{Dir, Effect}
 //import swaydb.utils.OperatingSystem
@@ -34,7 +34,7 @@
 //import scala.concurrent.ExecutionContext
 //import scala.concurrent.duration._
 //
-//trait ALevelSpec extends ASegmentSpec {
+//trait ALevelSpec extends AnyWordSpec {
 //
 //  def nextLevelId: Int = nextIntReversed
 //
@@ -45,8 +45,8 @@
 //  def createNextLevelPath: Path =
 //    Effect.createDirectoriesIfAbsent(nextLevelPath)
 //
-//  def createPathDistributor(implicit sweeper: TestSweeper) =
-//    PathsDistributor(Seq(Dir(createNextLevelPath.sweep(), 1)), () => Seq.empty)
+//  def createPathDistributor()(implicit sweeper: CoreTestSweeper) =
+//    pathDistributor(Seq(Dir(createNextLevelPath.sweep(), 1)), () => Seq.empty)
 //
 //  def nextLevelPath: Path =
 //    testClassDir.resolve(nextIntReversed.toString)
@@ -99,7 +99,7 @@
 //              segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random2(deleteDelay = Duration.Zero, mmap = mmapSegments),
 //              keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
 //                                                      timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-//                                                      sweeper: TestSweeper): Level = {
+//                                                      sweeper: CoreTestSweeper): Level = {
 //      import sweeper._
 //
 //      implicit val keyOrders: SegmentKeyOrders =
@@ -141,7 +141,7 @@
 //              brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
 //              throttle: LevelZeroMeter => LevelZeroThrottle = _ => LevelZeroThrottle(Duration.Zero, 1))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
 //                                                                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-//                                                                                                        sweeper: TestSweeper,
+//                                                                                                        sweeper: CoreTestSweeper,
 //                                                                                                        optimiseWrites: OptimiseWrites = OptimiseWrites.random,
 //                                                                                                        atomic: Atomic = Atomic.random): LevelZero = {
 //      import sweeper._
@@ -204,7 +204,7 @@
 //
 //    println("Starting levels")
 //
-//    implicit val levelSweeper: TestSweeper = new TestSweeper()
+//    implicit val levelSweeper: CoreTestSweeper = new CoreTestSweeper()
 //    implicit val fileSweeper: FileSweeper.On = levelSweeper.fileSweeper
 //
 //    val level4 = TestLevel(throttle = levelThrottle)
@@ -371,7 +371,7 @@
 //                              level3: Level,
 //                              assertAllLevels: LevelRef => Unit,
 //                              assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-//                                                                 levelSweeper: TestSweeper): Unit = {
+//                                                                 levelSweeper: CoreTestSweeper): Unit = {
 //    implicit val ec: ExecutionContext =
 //      TestExecutionContext.executionContext
 //

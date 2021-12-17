@@ -18,7 +18,7 @@
 //
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.OptionValues
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.effect.IOValues._
 //import swaydb.core.CommonAssertions._
@@ -34,7 +34,7 @@
 //import swaydb.testkit.RunThis._
 //import swaydb.testkit.TestKit._
 //
-//class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with OptionValues {
+//class GetSomeSpec extends AnyWordSpec with OptionValues {
 //
 //  implicit val keyOrder = KeyOrder.default
 //  implicit val timeOrder = TimeOrder.long
@@ -104,7 +104,7 @@
 //            output =
 //              eitherOne(
 //                SegmentFunctionOutput.Expire(randomDeadline(false)),
-//                SegmentFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
+//                SegmentFunctionOutput.Update(randomStringSliceOptional(), randomDeadlineOption(false))
 //              )
 //          )
 //
@@ -132,7 +132,7 @@
 //            functionOutput =
 //              eitherOne(
 //                SegmentFunctionOutput.Expire(randomDeadline(false)),
-//                SegmentFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
+//                SegmentFunctionOutput.Update(randomStringSliceOptional(), randomDeadlineOption(false))
 //              )
 //          )
 //
@@ -178,7 +178,7 @@
 //            output =
 //              eitherOne(
 //                SegmentFunctionOutput.Expire(randomDeadline(false)),
-//                SegmentFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
+//                SegmentFunctionOutput.Update(randomStringSliceOptional(), randomDeadlineOption(false))
 //              )
 //          )
 //
