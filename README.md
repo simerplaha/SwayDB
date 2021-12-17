@@ -27,7 +27,9 @@ for reads, caching & compaction.
 **Branches**: This is the `development` branch. See [`master`](https://github.com/simerplaha/SwayDB/tree/master) for
 stable version.
 
-**Status**: Under testing & performance optimisations. See [project status](#Project-status).
+**Status**: Under [testing](https://github.com/simerplaha/SwayDB/issues/349)
+& [performance](https://github.com/simerplaha/SwayDB/issues?q=is%3Aissue+is%3Aopen+label%3APerformance) optimisations.
+See [project status](#Project-status).
 
 [Documentation](https://swaydb.io)
 
@@ -113,7 +115,8 @@ foundation's [COC](https://www.apache.org/foundation/policies/conduct.html).
 
 ## Project status
 
-Under testing & performance optimisations.
+Under [testing](https://github.com/simerplaha/SwayDB/issues/349)
+& [performance](https://github.com/simerplaha/SwayDB/issues?q=is%3Aissue+is%3Aopen+label%3APerformance) optimisations.
 
 Your feedback and support is very important to get to production. Please get involved
 via [chat](https://gitter.im/SwayDB-chat/Lobby), [discussion](https://github.com/simerplaha/SwayDB/discussions),
