@@ -14,7 +14,7 @@
 // * limitations under the License.
 // */
 //
-//package swaydb.core.actor
+//package swaydb.actor
 //
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec

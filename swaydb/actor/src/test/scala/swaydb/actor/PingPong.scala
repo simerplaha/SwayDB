@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package swaydb.core.actor
+package swaydb.actor
 
 import swaydb.ActorConfig.QueueOrder
 import swaydb.core.TestExecutionContext
