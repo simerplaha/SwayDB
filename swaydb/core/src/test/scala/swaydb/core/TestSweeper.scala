@@ -19,12 +19,12 @@ package swaydb.core
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.{ActorRef, Bag, DefActor, Glass, Scheduler}
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.core.CoreTestSweepers._
 import swaydb.core.cache.{Cache, CacheUnsafe}
 import swaydb.core.file.{CoreFile, ForceSaveApplier}
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.file.sweeper.FileSweeperTestKit._
 import swaydb.core.level.LevelRef
 import swaydb.core.log.{Log, Logs}
 import swaydb.core.log.counter.CounterLog
@@ -32,6 +32,7 @@ import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.segment.MemorySweeperTestKit._
 import swaydb.effect.Effect
 import swaydb.testkit.RunThis._
 import swaydb.utils.{IDGenerator, OperatingSystem}

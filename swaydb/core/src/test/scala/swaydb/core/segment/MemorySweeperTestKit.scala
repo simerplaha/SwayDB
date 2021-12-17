@@ -1,27 +1,8 @@
-/*
- * Copyright 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-package swaydb.core
+package swaydb.core.segment
 
 import swaydb.ActorConfig
 import swaydb.config.MemoryCache
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.core.file.sweeper.FileSweeper
-import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
-import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.testkit.TestKit._
@@ -29,7 +10,7 @@ import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
 
-private[swaydb] object CoreTestSweepers {
+object MemorySweeperTestKit {
 
   def createMemorySweeperMax(): Option[MemorySweeper.All] =
     MemorySweeper(MemoryCache.All(4096, 1.mb / 2, 600.mb, false, None, false, ActorConfig.TimeLoop("TimeLoop test", 10.seconds, DefaultExecutionContext.sweeperEC)))
@@ -68,12 +49,6 @@ private[swaydb] object CoreTestSweepers {
 
   def randomBlockCache: Option[BlockCacheState] =
     orNone(createBlockCache(createMemorySweeperRandom()))
-
-  def createFileSweeper(): FileSweeper.On =
-    FileSweeper(1000, ActorConfig.Basic("Basic test 3", DefaultExecutionContext.sweeperEC))
-
-  def createBufferCleaner(): ByteBufferSweeperActor =
-    ByteBufferSweeper()(DefaultExecutionContext.sweeperEC)
 
   def createRandomCacheSweeper(): Option[MemorySweeper.Cache] =
     eitherOne(

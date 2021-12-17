@@ -23,8 +23,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.config.MMAP
 import swaydb.core.TestSweeper._
 import swaydb.effect.Effect
-import swaydb.testkit.TestKit._
-import swaydb.utils.{IDGenerator, OperatingSystem}
+import swaydb.utils.OperatingSystem
 
 import java.nio.file._
 import java.util.concurrent.atomic.AtomicInteger
