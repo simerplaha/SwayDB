@@ -1,17 +1,17 @@
 package swaydb.core.file
 
-import swaydb.core.{TestForceSave, TestSweeper, TestTuple2}
+import org.scalatest.PrivateMethodTester._
+import swaydb.core.{TestForceSave, TestSweeper}
 import swaydb.core.TestSweeper._
+import swaydb.core.segment.block.BlockCacheSource
 import swaydb.effect.Effect
+import swaydb.effect.EffectTestKit.randomThreadSafeIOStrategy
 import swaydb.slice.{Slice, SliceRO}
-import swaydb.testkit.TestKit.randomCharacters
+import swaydb.testkit.TestKit._
 import swaydb.utils.OperatingSystem
 
 import java.nio.file.Path
 import scala.util.Random
-import org.scalatest.PrivateMethodTester._
-import swaydb.core.segment.block.BlockCacheSource
-import swaydb.effect.EffectTestKit.randomThreadSafeIOStrategy
 
 object CoreFileTestKit {
 
