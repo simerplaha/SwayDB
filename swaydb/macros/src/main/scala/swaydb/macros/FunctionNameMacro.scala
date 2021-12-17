@@ -30,8 +30,11 @@ object FunctionNameMacro {
       case Apply(Apply(select @ Select(_, _), _), _) =>
         getName(select)
 
+      case Function(_, Apply(select @ Select(_, _), _)) =>
+        getName(select)
+
       case tree =>
-        c.abort(c.enclosingPosition, "Not a function: " + show(tree))
+        c.abort(c.enclosingPosition, s"Not a function: ${show(tree)}")
     }
   }
 }

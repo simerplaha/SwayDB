@@ -22,22 +22,22 @@ import swaydb.core.{TestForceSave, TestSweeper}
 import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.TestSweeper._
 import swaydb.effect.Effect
-import swaydb.macros.FunctionNameMacro.functionName
+import swaydb.effect.EffectTestKit._
 import swaydb.slice.{Slice, Slices}
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 import swaydb.utils.OperatingSystem
 import swaydb.utils.PipeOps._
-import swaydb.slice.SliceTestKit._
-import swaydb.effect.EffectTestKit._
+
 import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
 import java.nio.file.FileAlreadyExistsException
 import java.nio.ReadOnlyBufferException
 
 class CoreFileSpec extends AnyWordSpec {
 
-  functionName(CoreFile.standardWritable(???, ???, ???, ???)(???, ???, ???)) should {
-    s"initialise a ${classOf[StandardFile].getSimpleName} for write only" in {
+  "standardWritable" should {
+    "initialise a StandardFile for write only" in {
       TestSweeper(3.times) {
         implicit sweeper =>
           import sweeper._
@@ -103,7 +103,7 @@ class CoreFileSpec extends AnyWordSpec {
       }
     }
 
-    "fail is file already exists" in {
+    "fail if file already exists" in {
       TestSweeper(3.times) {
         implicit sweeper =>
           import sweeper._
