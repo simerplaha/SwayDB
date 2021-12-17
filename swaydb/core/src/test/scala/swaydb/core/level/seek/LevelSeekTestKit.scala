@@ -127,8 +127,8 @@ object LevelSeekTestKit {
   def assertLowerNone(keyValues: Iterable[KeyValue],
                       level: LevelRef,
                       shuffleTake: Option[Int] = None): Unit = {
-    val unzipedKeyValues = keyValues
-    val keyValuesToAssert = shuffleTake.map(Random.shuffle(unzipedKeyValues).take) getOrElse unzipedKeyValues
+    val unzippedKeyValues = keyValues
+    val keyValuesToAssert = shuffleTake.map(Random.shuffle(unzippedKeyValues).take) getOrElse unzippedKeyValues
     keyValuesToAssert foreach {
       keyValue =>
         try {

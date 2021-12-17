@@ -3,12 +3,10 @@ package swaydb.core.segment
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.PrivateMethodTester._
 import swaydb.{Error, IO}
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.config._
 import swaydb.config.CoreConfigTestKit._
 import swaydb.core.TestSweeper
 import swaydb.core.TestSweeper._
-import swaydb.core.level.seek._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig

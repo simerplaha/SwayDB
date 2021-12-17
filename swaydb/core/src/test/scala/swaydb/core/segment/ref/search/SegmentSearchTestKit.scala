@@ -25,7 +25,7 @@ import swaydb.core.segment.SegmentTestKit._
 import swaydb.core.segment.block.BlockTestKit._
 import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.TestExecutionContext
-import swaydb.core.level.seek.{CurrentWalker, Higher, Lower, NextWalker, Seek}
+import swaydb.core.level.seek._
 import swaydb.slice.{Reader, Slice}
 import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._

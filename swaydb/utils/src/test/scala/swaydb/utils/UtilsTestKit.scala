@@ -1,10 +1,10 @@
 package swaydb.utils
 
-import java.util.concurrent.ConcurrentHashMap
-import scala.collection.mutable.ListBuffer
 import org.scalatest.PrivateMethodTester._
 
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
+import scala.collection.mutable.ListBuffer
 
 object UtilsTestKit {
 

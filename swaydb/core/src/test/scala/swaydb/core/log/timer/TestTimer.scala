@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package swaydb.core
+package swaydb.core.log.timer
 
-import swaydb.core.log.timer.Timer
 import swaydb.core.segment.data.Time
 import swaydb.macros.MacroSealed
 import swaydb.slice.Slice

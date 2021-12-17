@@ -9,12 +9,12 @@ import scala.reflect.ClassTag
 object SliceTestKit {
 
   implicit class SliceTestSliceByteImplicits(actual: Slice[Byte]) {
-    def shouldBeSliced() =
+    def shouldBeSliced(): Unit =
       actual.underlyingArraySize shouldBe actual.toArrayCopy[Byte].length
   }
 
   implicit class OptionSliceByteImplicits(actual: Option[Slice[Byte]]) {
-    def shouldBeSliced() =
+    def shouldBeSliced(): Unit =
       actual foreach (_.shouldBeSliced())
   }
 
@@ -48,7 +48,8 @@ object SliceTestKit {
     slice
   }
 
-  def randomBytesSlice(size: Int = 10): Slice[Byte] = Slice.wrap(randomBytes(size))
+  def randomBytesSlice(size: Int = 10): Slice[Byte] =
+    Slice.wrap(randomBytes(size))
 
   def randomBytesSliceOption(size: Int = 10): Option[Slice[Byte]] =
     randomBytesSliceOptional(size).toOptionC

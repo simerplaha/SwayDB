@@ -1,6 +1,7 @@
 package swaydb.core.log
 
 import org.scalatest.matchers.should.Matchers._
+import org.scalatest.PrivateMethodTester._
 import swaydb.{Bag, Glass}
 import swaydb.core.log.serialiser.LogEntryWriter
 import swaydb.core.segment.data.{KeyValue, Memory}
@@ -12,9 +13,7 @@ import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.slice.order.KeyOrder
-import swaydb.effect.IOValues._
 import swaydb.testkit.RunThis._
-import org.scalatest.PrivateMethodTester._
 
 import scala.concurrent.duration._
 
