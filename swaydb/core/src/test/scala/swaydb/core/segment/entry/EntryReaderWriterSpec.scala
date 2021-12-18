@@ -20,22 +20,22 @@ import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.log.timer.TestTimer
 import swaydb.core.segment.data.{Memory, Persistent}
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.entry.id.MemoryToKeyValueIdBinder
 import swaydb.core.segment.entry.reader.PersistentParser
 import swaydb.core.segment.entry.writer._
-import swaydb.serializers.Default._
-import swaydb.serializers._
-import swaydb.slice.{Slice, SliceReader}
-import swaydb.slice.order.KeyOrder
-import swaydb.testkit.RunThis._
-
-import scala.util.Random
-import swaydb.testkit.TestKit._
-import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.SegmentTestKit._
-import swaydb.slice.SliceTestKit._
 import swaydb.core.segment.block.SegmentBlockTestKit._
 import swaydb.core.segment.TestCoreFunctionStore
+import swaydb.serializers._
+import swaydb.serializers.Default._
+import swaydb.slice.{Slice, SliceReader}
+import swaydb.slice.order.KeyOrder
+import swaydb.slice.SliceTestKit._
+import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
+
+import scala.util.Random
 
 class EntryReaderWriterSpec extends AnyWordSpec {
 

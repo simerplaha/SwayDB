@@ -39,7 +39,7 @@ import swaydb.core.segment.ref.search.SegmentSearchTestKit._
 import swaydb.effect.EffectTestKit._
 import swaydb.serializers._
 import swaydb.serializers.Default._
-import swaydb.slice.{Reader, Slice, SliceReader}
+import swaydb.slice.{Slice, SliceReader}
 import swaydb.slice.order.KeyOrder
 import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._

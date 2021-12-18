@@ -21,6 +21,9 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.{Benchmark, IO}
 import swaydb.config.CoreConfigTestKit._
 import swaydb.config.MMAP
+import swaydb.core.{CoreSpecType, CoreTestSweeper}
+import swaydb.core.compression.CompressionTestKit._
+import swaydb.core.log.timer.TestTimer
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
@@ -28,13 +31,11 @@ import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
-import swaydb.core.segment.data._
-import swaydb.core.{CoreSpecType, CoreTestSweeper}
-import swaydb.core.compression.CompressionTestKit._
-import swaydb.core.log.timer.TestTimer
 import swaydb.core.segment.block.SegmentBlockTestKit._
+import swaydb.core.segment.data._
 import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.ref.search.SegmentSearchTestKit._
+import swaydb.core.segment.SegmentTestKit._
 import swaydb.effect.EffectTestKit._
 import swaydb.effect.IOStrategy
 import swaydb.serializers._
@@ -44,19 +45,6 @@ import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 import swaydb.utils.StorageUnits._
-import swaydb.core.segment.data.KeyValueTestKit._
-import swaydb.core.segment.SegmentTestKit._
-import swaydb.slice.SliceTestKit._
-import swaydb.core.segment.block.SegmentBlockTestKit._
-import swaydb.config.CoreConfigTestKit._
-import org.scalatest.matchers.should.Matchers._
-import swaydb.core.segment.data.merge.SegmentMergeTestKit._
-import swaydb.core.log.timer.TestTimer
-import swaydb.effect.EffectTestKit._
-import swaydb.core.compression.CompressionTestKit._
-import swaydb.core.segment.block.SegmentBlockTestKit._
-import swaydb.core.file.CoreFileTestKit._
-import swaydb.core.segment.ref.search.SegmentSearchTestKit._
 
 import scala.util.Random
 

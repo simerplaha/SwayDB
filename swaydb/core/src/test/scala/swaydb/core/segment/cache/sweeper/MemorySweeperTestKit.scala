@@ -4,7 +4,6 @@ import swaydb.ActorConfig
 import swaydb.config.MemoryCache
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.segment.block.{BlockCache, BlockCacheState}
-import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.testkit.TestKit._
 import swaydb.utils.StorageUnits._
 

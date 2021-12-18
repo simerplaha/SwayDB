@@ -21,9 +21,9 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.Promise
 import scala.concurrent.duration.Deadline
 
-class Reserve[T](private val info: AtomicReference[Option[T]],
-                 private val promises: ConcurrentLinkedQueue[Promise[Unit]],
-                 val name: String) {
+class Reserve[@specialized(Unit) T](private val info: AtomicReference[Option[T]],
+                                    private val promises: ConcurrentLinkedQueue[Promise[Unit]],
+                                    val name: String) {
 
   @inline private def savePromise(promise: Promise[Unit]): Unit =
     promises add promise
@@ -37,25 +37,25 @@ class Reserve[T](private val info: AtomicReference[Option[T]],
 
 object Reserve {
 
-  def free[T](name: String): Reserve[T] =
+  def free[@specialized(Unit) T](name: String): Reserve[T] =
     new Reserve(new AtomicReference[Option[T]](None), new ConcurrentLinkedQueue[Promise[Unit]](), name)
 
-  def busy[T](info: T, name: String): Reserve[T] =
+  def busy[@specialized(Unit) T](info: T, name: String): Reserve[T] =
     new Reserve(new AtomicReference[Option[T]](Some(info)), new ConcurrentLinkedQueue[Promise[Unit]](), name)
 
-  def blockUntilFree[T](reserve: Reserve[T]): Unit =
+  def blockUntilFree[@specialized(Unit) T](reserve: Reserve[T]): Unit =
     reserve.synchronized {
       while (reserve.isBusy)
         reserve.wait()
     }
 
-  def blockUntilFree[T](reserve: Reserve[T], deadline: Deadline): Unit =
+  def blockUntilFree[@specialized(Unit) T](reserve: Reserve[T], deadline: Deadline): Unit =
     reserve.synchronized {
       while (reserve.isBusy && deadline.hasTimeLeft())
         reserve.wait(deadline.timeLeft.toMillis)
     }
 
-  private def notifyBlocking[T](reserve: Reserve[T]): Unit =
+  private def notifyBlocking[@specialized(Unit) T](reserve: Reserve[T]): Unit =
     reserve.synchronized {
       reserve.notifyAll()
 
@@ -69,7 +69,7 @@ object Reserve {
       }
     }
 
-  def promise[T](reserve: Reserve[T]): Promise[Unit] =
+  def promise[@specialized(Unit) T](reserve: Reserve[T]): Promise[Unit] =
     reserve.synchronized {
       if (reserve.info.get().isDefined) {
         val promise = Promise[Unit]()
@@ -80,10 +80,10 @@ object Reserve {
       }
     }
 
-  def compareAndSet[T](info: Some[T], reserve: Reserve[T]): Boolean =
+  def compareAndSet[@specialized(Unit) T](info: Some[T], reserve: Reserve[T]): Boolean =
     reserve.info.compareAndSet(None, info)
 
-  def setFree[T](reserve: Reserve[T]): Unit = {
+  def setFree[@specialized(Unit) T](reserve: Reserve[T]): Unit = {
     reserve.info.set(None)
     notifyBlocking(reserve)
   }

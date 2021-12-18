@@ -6,15 +6,14 @@ import swaydb.config.accelerate.Accelerator
 import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.config.storage.{Level0Storage, LevelStorage}
 import swaydb.config.CoreConfigTestKit._
-import swaydb.core.{TestForceSave, CoreTestSweeper}
+import swaydb.core.{CoreTestSweeper, TestForceSave}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
-import swaydb.core.segment.{CoreFunctionStore, MemorySegment, PersistentSegment, Segment, SegmentTestKit}
+import swaydb.core.segment._
 import swaydb.core.segment.data.{KeyValue, Memory, SegmentKeyOrders}
-import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.CoreTestSweeper._
-import swaydb.core.log.LogTestKit.{getFunctionStore, getLogs, SliceKeyValueImplicits}
+import swaydb.core.log.LogTestKit.{getFunctionStore, SliceKeyValueImplicits}
 import swaydb.effect.{Dir, Effect}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice

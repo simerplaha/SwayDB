@@ -21,7 +21,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
 import swaydb.config.accelerate.Accelerator
 import swaydb.config.CoreConfigTestKit._
-import swaydb.core.{TestForceSave, CoreTestSweeper}
+import swaydb.core.{CoreTestSweeper, TestForceSave}
 import swaydb.core.CoreTestSweeper._
 import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.level.zero.LevelZeroLogCache

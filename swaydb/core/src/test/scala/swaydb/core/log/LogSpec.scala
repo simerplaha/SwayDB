@@ -19,6 +19,7 @@ package swaydb.core.log
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.config.{Atomic, MMAP, OptimiseWrites}
+import swaydb.config.CoreConfigTestKit._
 import swaydb.core._
 import swaydb.core.CoreTestSweeper._
 import swaydb.core.file.CoreFile
@@ -27,12 +28,16 @@ import swaydb.core.level.AppendixLogCache
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.log.LogTestKit._
 import swaydb.core.log.serialiser._
+import swaydb.core.log.timer.TestTimer
 import swaydb.core.segment.Segment
 import swaydb.core.segment.data.{Memory, MemoryOption, SegmentKeyOrders, Value}
 import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.effect.Effect
 import swaydb.effect.Effect._
+import swaydb.effect.EffectTestKit._
 import swaydb.serializers._
 import swaydb.serializers.Default._
 import swaydb.slice.{Slice, SliceOption}
@@ -41,34 +46,6 @@ import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 import swaydb.utils.{Extension, OperatingSystem}
 import swaydb.utils.StorageUnits._
-import swaydb.config.CoreConfigTestKit._
-import swaydb.core.log.timer.TestTimer
-import swaydb.core.segment.SegmentTestKit._
-import swaydb.core.segment.data.KeyValueTestKit._
-import swaydb.effect.EffectTestKit._
-
-import swaydb.core.segment.data.KeyValueTestKit._
-import swaydb.core.segment.SegmentTestKit._
-import swaydb.slice.SliceTestKit._
-import swaydb.core.segment.block.SegmentBlockTestKit._
-import swaydb.config.CoreConfigTestKit._
-import org.scalatest.matchers.should.Matchers._
-import swaydb.core.segment.data.merge.SegmentMergeTestKit._
-import swaydb.core.log.timer.TestTimer
-import swaydb.effect.EffectTestKit._
-import swaydb.core.compression.CompressionTestKit._
-import swaydb.core.segment.block.SegmentBlockTestKit._
-import swaydb.core.file.CoreFileTestKit._
-import swaydb.core.segment.ref.search.SegmentSearchTestKit._
-import org.scalatest.wordspec.AnyWordSpec
-import swaydb.actor.ActorTestKit._
-import swaydb.utils.UtilsTestKit._
-import swaydb.core.CoreSpecType
-import swaydb.TestExecutionContext
-import swaydb.slice.order.TimeOrder
-import swaydb.slice.Slice
-
-import LogTestKit._
 
 import java.nio.file.{FileAlreadyExistsException, Path}
 
@@ -91,7 +68,6 @@ class LogSpec extends AnyWordSpec {
           implicit val specType: CoreSpecType = _specType
 
           import sweeper._
-
           import LevelZeroLogEntryWriter._
 
           val log =

@@ -7,7 +7,6 @@ import swaydb.config._
 import swaydb.config.CoreConfigTestKit._
 import swaydb.core.{CoreSpecType, CoreTestSweeper, TestForceSave}
 import swaydb.core.CoreTestSweeper._
-import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
@@ -22,6 +21,7 @@ import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.merge.KeyValueGrouper
 import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.data.Memory.PendingApply
+import swaydb.core.segment.distributor.PathDistributor
 import swaydb.core.segment.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.core.segment.io.{SegmentCompactionIO, SegmentReadIO}
@@ -29,8 +29,6 @@ import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.SegmentSearchTestKit._
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.DefIO
-import swaydb.core.segment.distributor.PathDistributor
-import swaydb.effect.{Dir, Effect}
 import swaydb.effect.EffectTestKit._
 import swaydb.effect.IOValues._
 import swaydb.serializers._

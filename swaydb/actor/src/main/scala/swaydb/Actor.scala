@@ -382,9 +382,9 @@ object Actor {
                                   previousDelay: FiniteDuration,
                                   defaultDelay: FiniteDuration): FiniteDuration =
   //if there is no overflow increment previous delay or return the default it's overflow is controlled.
-    if (currentQueueSize <= defaultQueueSize)
+    if (currentQueueSize <= defaultQueueSize) {
       (previousDelay + incrementDelayBy) min defaultDelay
-    else { //else adjust overflow.
+    } else { //else adjust overflow.
       val overflow = defaultQueueSize.toFloat / currentQueueSize
       val adjustDelay = previousDelay.toMillis * overflow
       FiniteDuration(adjustDelay.toLong, TimeUnit.MILLISECONDS)

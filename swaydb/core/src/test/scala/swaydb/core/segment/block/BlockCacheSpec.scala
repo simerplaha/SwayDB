@@ -19,10 +19,10 @@ package swaydb.core.segment.block
 import org.scalatest.OptionValues._
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.util.Bytes
 import swaydb.core.{CoreSpecType, CoreTestSweeper}
 import swaydb.core.file.CoreFileTestKit._
+import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.util.Bytes
 import swaydb.slice.{Slice, SliceRO, Slices}
 import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._

@@ -19,11 +19,11 @@ package swaydb.core.segment.serialiser
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.log.timer.TestTimer
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.data.Value
 import swaydb.core.segment.data.Value.{FromValue, FromValueOption, RangeValue}
-import swaydb.slice.Slice
-import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.TestCoreFunctionStore
+import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 
 class RangeValueSerialiserSpec extends AnyWordSpec {

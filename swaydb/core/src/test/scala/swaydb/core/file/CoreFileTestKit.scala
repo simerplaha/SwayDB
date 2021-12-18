@@ -1,7 +1,7 @@
 package swaydb.core.file
 
 import org.scalatest.PrivateMethodTester._
-import swaydb.core.{TestForceSave, CoreTestSweeper}
+import swaydb.core.{CoreTestSweeper, TestForceSave}
 import swaydb.core.CoreTestSweeper._
 import swaydb.core.segment.block.BlockCacheSource
 import swaydb.effect.Effect

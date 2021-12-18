@@ -18,12 +18,12 @@ package swaydb.core.util
 
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.effect.IOValues._
 import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.TestCoreFunctionStore
-import swaydb.serializers.Default._
+import swaydb.effect.IOValues._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.{MaxKey, Slice}
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._

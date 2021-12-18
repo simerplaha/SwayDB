@@ -49,8 +49,8 @@ import swaydb.Bag.Async
 import swaydb.core.file.sweeper.FileSweeper
 
 import java.nio.file.Path
-import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
 
 object LogTestKit {
 

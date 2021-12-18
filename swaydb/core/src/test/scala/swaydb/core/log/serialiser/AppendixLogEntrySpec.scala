@@ -21,6 +21,7 @@ import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.config.CoreConfigTestKit._
 import swaydb.config.MMAP
+import swaydb.core.{CoreSpecType, CoreTestSweeper, TestForceSave}
 import swaydb.core.log.LogEntry
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.segment.data.KeyValueTestKit._
@@ -28,7 +29,6 @@ import swaydb.core.segment.data.SegmentKeyOrders
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.SegmentTestKit._
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{CoreSpecType, CoreTestSweeper, TestForceSave}
 import swaydb.serializers._
 import swaydb.serializers.Default._
 import swaydb.slice.{Slice, SliceOption}

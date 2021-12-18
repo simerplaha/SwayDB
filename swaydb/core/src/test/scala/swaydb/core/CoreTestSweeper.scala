@@ -283,7 +283,7 @@ class CoreTestSweeper(val testName: String,
   implicit lazy val blockSweeperCache: Option[MemorySweeper.Block] = blockMemorySweepers.head.getOrFetch(()) orElse allMemorySweeper()
   implicit lazy val cacheMemorySweeper: Option[MemorySweeper.Cache] = cacheMemorySweepers.head.getOrFetch(()) orElse allMemorySweeper()
 
-  implicit lazy val scheduler = schedulers.head.getOrFetch(())
+  implicit lazy val scheduler: Scheduler = schedulers.head.getOrFetch(())
 
   lazy implicit val testCoreFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
   lazy implicit val coreFunctionStore: CoreFunctionStore = testCoreFunctionStore.store

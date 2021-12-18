@@ -23,7 +23,6 @@ import swaydb.testkit.TestKit._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.log.timer.TestTimer
 
-import java.util.concurrent.atomic.AtomicInteger
 import scala.annotation.tailrec
 import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer

@@ -16,8 +16,10 @@
 
 package swaydb.core.segment.defrag
 
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.config.MMAP
+import swaydb.core.{CoreSpecType, CoreTestSweeper}
 import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -26,9 +28,8 @@ import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
-import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.{CoreSpecType, CoreTestSweeper}
 import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.SegmentTestKit._
 import swaydb.core.segment.block.SegmentBlockTestKit._
 import swaydb.slice.Slice
@@ -37,9 +38,8 @@ import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 import swaydb.TestExecutionContext
-import swaydb.core.log.timer.TestTimer
-import org.scalatest.matchers.should.Matchers._
 import swaydb.config.CoreConfigTestKit._
+import swaydb.core.log.timer.TestTimer
 import swaydb.core.segment.data.SegmentKeyOrders
 import swaydb.core.segment.distributor.PathDistributor
 

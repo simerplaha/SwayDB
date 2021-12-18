@@ -19,9 +19,9 @@ package swaydb.core.segment.data.merge
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.log.timer.TestTimer
+import swaydb.core.segment.{CoreFunctionStore, TestCoreFunctionStore}
 import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.data.merge.SegmentMergeTestKit._
-import swaydb.core.segment.{CoreFunctionStore, TestCoreFunctionStore}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.SliceTestKit._

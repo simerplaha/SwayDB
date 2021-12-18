@@ -19,7 +19,7 @@ package swaydb.core.file
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.{TestForceSave, CoreTestSweeper}
+import swaydb.core.{CoreTestSweeper, TestForceSave}
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCleaner
 import swaydb.core.file.CoreFileTestKit._
 import swaydb.effect.Effect

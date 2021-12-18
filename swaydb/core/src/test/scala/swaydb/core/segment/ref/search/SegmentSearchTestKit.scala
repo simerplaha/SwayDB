@@ -5,30 +5,30 @@ import org.scalatest.OptionValues._
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.Assertion
+import swaydb.{IO, TestExecutionContext}
 import swaydb.Error.Segment.ExceptionHandler
+import swaydb.core.level.{Level, LevelRef}
+import swaydb.core.level.seek._
 import swaydb.core.segment._
 import swaydb.core.segment.block._
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset, BloomFilterBlockState}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockOffset.BloomFilterBlockOps
 import swaydb.core.segment.block.reader.UnblockedReader
+import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data._
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.effect.IOValues._
-import swaydb.serializers._
-import swaydb.serializers.Default._
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.testkit.TestKit._
-import swaydb.{IO, TestExecutionContext}
-import swaydb.core.level.{Level, LevelRef}
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset, BloomFilterBlockState}
-import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment.SegmentTestKit._
 import swaydb.core.segment.block.SegmentBlockTestKit._
 import swaydb.core.segment.data.KeyValueTestKit._
-import swaydb.core.level.seek._
+import swaydb.effect.IOValues._
+import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.{Reader, Slice}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
