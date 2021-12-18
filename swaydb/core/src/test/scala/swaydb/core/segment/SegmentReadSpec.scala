@@ -17,70 +17,50 @@
 package swaydb.core.segment
 
 import org.scalatest.OptionValues._
-import org.scalatest.concurrent.ScalaFutures
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
-import swaydb.IOValues._
-import swaydb.config.MMAP
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.TestExecutionContext
 import swaydb.core._
-import swaydb.core.level.ALevelSpec
-import swaydb.core.log.ALogSpec
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.log.LogTestKit.TestLog
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data._
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.core.segment.block.SegmentBlockTestKit._
 import swaydb.effect.Effect
-import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.{MaxKey, Slice}
 import swaydb.slice.order.KeyOrder
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
-import swaydb.utils.OperatingSystem
+import swaydb.testkit.TestKit._
 
 import java.nio.file.NoSuchFileException
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
 import scala.util.Random
-import swaydb.testkit.TestKit._
 
-class SegmentReadSpec0 extends SegmentReadSpec {
-  val keyValuesCount = 100
-}
+class SegmentReadSpec extends AnyWordSpec {
 
-class SegmentReadSpec1 extends SegmentReadSpec {
-  val keyValuesCount = 100
-  override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-}
-
-class SegmentReadSpec2 extends SegmentReadSpec {
-  val keyValuesCount = 100
-  override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
-  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
-  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
-}
-
-class SegmentReadSpec3 extends SegmentReadSpec {
-  val keyValuesCount = 100
-  override def isMemorySpec = true
-}
-
-sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
-
-  implicit val keyOrder = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.random
+  implicit val segmentIO: SegmentReadIO = SegmentReadIO.random
 
-  def keyValuesCount: Int
-
-  implicit val segmentIO = SegmentReadIO.random
+  def keyValuesCount: Int = 1000
 
   "belongsTo" should {
     "return true if the input key-value belong to the Segment else false when the Segment contains no Range key-value" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)))
 
           runThis(10.times) {
@@ -109,8 +89,14 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
     }
 
     "return true if the input key-value belong to the Segment else false when the Segment's max key is a Range key-value" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)))
 
           runThis(10.times) {
@@ -139,8 +125,14 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
     }
 
     "return true if the input key-value belong to the Segment else false when the Segment's min key is a Range key-value" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           val segment = TestSegment(Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)))
 
           runThis(10.times) {
@@ -169,8 +161,14 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
     }
 
     "for randomizedKeyValues" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(keyValuesCount + 1000))
           val segment = TestSegment(keyValues)
 
@@ -215,8 +213,14 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "rangeBelongsTo" should {
     "return true for overlapping KeyValues else false for Segments if the Segment's last key-value is not a Range" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)))
 
           //0 - 0
@@ -289,10 +293,15 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
     }
 
     "return true for overlapping KeyValues else false for Segments if the Segment's last key-value is a Range" in {
-      TestSweeper {
-        implicit sweeper =>
-          val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)))
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
 
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
+          val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)))
 
           //0 - 0
           //      1 - (5 - 10(EX))
@@ -414,8 +423,14 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "partitionOverlapping" should {
     "partition overlapping and non-overlapping Segments" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           //0-1, 2-3
           //         4-5, 6-7
           var segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3))))
@@ -464,8 +479,14 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "overlaps" should {
     "return true for overlapping Segments else false for Segments without Ranges" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           //0 1
           //    2 3
           var segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
@@ -518,8 +539,14 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
     }
 
     "return true for overlapping Segments if the target Segment's maxKey is a Range key" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           //0 1
           //    2 3
           var segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
@@ -606,8 +633,14 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "nonOverlapping and overlapping" should {
     "return non overlapping Segments" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           //0-1, 2-3
           //         4-5, 6-7
           var segments1 = List(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3))))
@@ -668,8 +701,14 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "tempMinMaxKeyValues" should {
     "return key-values with Segments min and max keys only" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           implicit def testTimer: TestTimer = TestTimer.Empty
 
           val segment1 = TestSegment(randomizedKeyValues(keyValuesCount))
@@ -685,6 +724,7 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
                 segment.maxKey match {
                   case MaxKey.Fixed(maxKey) =>
                     Seq(Memory.put(segment.minKey), Memory.put(maxKey))
+
                   case MaxKey.Range(fromKey, maxKey) =>
                     Seq(Memory.put(segment.minKey), Memory.Range(fromKey, maxKey, Value.FromValue.Null, Value.update(maxKey)))
                 }
@@ -697,8 +737,13 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "overlapsWithBusySegments" should {
     "return true or false if input Segments overlap or do not overlap with busy Segments respectively" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
 
           val targetSegments =
             TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
@@ -757,9 +802,14 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
       }
     }
 
-    "return true or false if input map overlap or do not overlap with busy Segments respectively" in new ALogSpec {
-      TestSweeper {
-        implicit sweeper =>
+    "return true or false if input map overlap or do not overlap with busy Segments respectively" in {
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
 
           val targetSegments = {
             TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
@@ -822,32 +872,42 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
 
   "getAllKeyValues" should {
     "value KeyValues from multiple Segments" in {
-      runThis(10.times, log = true) {
-        TestSweeper {
-          implicit sweeper =>
-            val keyValues1 = randomizedKeyValues(keyValuesCount)
-            val keyValues2 = randomizedKeyValues(keyValuesCount)
-            val keyValues3 = randomizedKeyValues(keyValuesCount)
+      CoreTestSweeper.foreachRepeat(10.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
 
-            val segment1 = TestSegment(keyValues1)
-            val segment2 = TestSegment(keyValues2)
-            val segment3 = TestSegment(keyValues3)
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
 
-            val all = Slice.wrap((keyValues1 ++ keyValues2 ++ keyValues3).toArray)
+          import sweeper.testCoreFunctionStore
 
-            val mergedSegment = TestSegment(all)
-            mergedSegment.nearestPutDeadline shouldBe nearestPutDeadline(all)
+          val keyValues1 = randomizedKeyValues(keyValuesCount)
+          val keyValues2 = randomizedKeyValues(keyValuesCount)
+          val keyValues3 = randomizedKeyValues(keyValuesCount)
 
-            val readKeyValues = Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean()))
+          val segment1 = TestSegment(keyValues1)
+          val segment2 = TestSegment(keyValues2)
+          val segment3 = TestSegment(keyValues3)
 
-            readKeyValues shouldBe all
-        }
+          val all = Slice.wrap((keyValues1 ++ keyValues2 ++ keyValues3).toArray)
+
+          val mergedSegment = TestSegment(all)
+          mergedSegment.nearestPutDeadline shouldBe nearestPutDeadline(all)
+
+          val readKeyValues = Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean()))
+
+          readKeyValues shouldBe all
       }
     }
 
     "fail read if reading any one Segment fails for persistent Segments" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           val keyValues1 = randomizedKeyValues(keyValuesCount)
           val keyValues2 = randomizedKeyValues(keyValuesCount)
           val keyValues3 = randomizedKeyValues(keyValuesCount)
@@ -872,63 +932,64 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
     "fail read if reading any one Segment file is corrupted" in {
       //Ignoring for windows MMAP because even after closing the files Windows not allow altering the unmapped file's Bytes.
       //Exception - The requested operation cannot be performed on a file with a user-mapped section open.
-      if (isPersistentSpec)
-        if (isWindowsAndMMAPSegments())
-          cancel("Test does not apply to Windows with MMAP files.")
-        else
-          TestSweeper {
-            implicit sweeper =>
-              runThis(100.times, log = true) {
-                val keyValues1 = randomizedKeyValues(keyValuesCount)
-                val keyValues2 = randomizedKeyValues(keyValuesCount)
-                val keyValues3 = randomizedKeyValues(keyValuesCount)
+      CoreTestSweeper {
+        implicit sweeper =>
+          import sweeper.testCoreFunctionStore
 
-                val segment1 = TestSegment(keyValues1)
-                val segment2 = TestSegment(keyValues2)
-                val segment3 = TestSegment(keyValues3)
+          implicit val specType: CoreSpecType = CoreSpecType.Persistent
 
-                def clearAll() = {
-                  segment1.clearAllCaches()
-                  segment2.clearAllCaches()
-                  segment3.clearAllCaches()
-                }
+          runThis(100.times, log = true) {
+            val keyValues1 = randomizedKeyValues(keyValuesCount)
+            val keyValues2 = randomizedKeyValues(keyValuesCount)
+            val keyValues3 = randomizedKeyValues(keyValuesCount)
 
-                val bytes = Effect.readAllBytes(segment2.path)
+            val segment1 = TestSegment(keyValues1)
+            val segment2 = TestSegment(keyValues2)
+            val segment3 = TestSegment(keyValues3)
 
-                //FIXME this should result in DataAccess
+            def clearAll() = {
+              segment1.clearAllCaches()
+              segment2.clearAllCaches()
+              segment3.clearAllCaches()
+            }
 
-                Effect.overwrite(segment2.path, bytes.drop(1))
-                clearAll()
-                assertThrows[swaydb.Error](Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean())))
+            val bytes = Effect.readAllBytes(segment2.path)
 
-                Effect.overwrite(segment2.path, bytes.dropRight(1))
-                clearAll()
-                assertThrows[swaydb.Error](segment2.iterator(randomBoolean()))
+            //FIXME this should result in DataAccess
 
-                Effect.overwrite(segment2.path, bytes.drop(10))
-                clearAll()
-                assertThrows[swaydb.Error](Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean())))
+            Effect.overwrite(segment2.path, bytes.drop(1))
+            clearAll()
+            assertThrows[swaydb.Error](Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean())))
 
-                Effect.overwrite(segment2.path, bytes.dropRight(1))
-                clearAll()
-                assertThrows[swaydb.Error](Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean())))
-              }
+            Effect.overwrite(segment2.path, bytes.dropRight(1))
+            clearAll()
+            assertThrows[swaydb.Error](segment2.iterator(randomBoolean()))
+
+            Effect.overwrite(segment2.path, bytes.drop(10))
+            clearAll()
+            assertThrows[swaydb.Error](Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean())))
+
+            Effect.overwrite(segment2.path, bytes.dropRight(1))
+            clearAll()
+            assertThrows[swaydb.Error](Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean())))
           }
+      }
       //memory files do not require this test
     }
-  }
 
-  "getAll" should {
-    "read full index" in {
-      if (isPersistentSpec)
-        TestSweeper {
+    "getAll" should {
+      "read full index" in {
+        CoreTestSweeper {
           implicit sweeper =>
+            import sweeper.testCoreFunctionStore
+            implicit val specType: CoreSpecType = CoreSpecType.Persistent
+
             runThis(10.times) {
               //ensure groups are not added because ones read their values are populated in memory
               val keyValues = randomizedKeyValues(keyValuesCount)
               val segment = TestSegment(keyValues)
 
-              if (isPersistentSpec) segment.isKeyValueCacheEmpty shouldBe true
+              segment.isKeyValueCacheEmpty shouldBe true
 
               val segmentKeyValues = segment.iterator(randomBoolean()).toSlice
 
@@ -937,85 +998,94 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
                   val actualKeyValue = keyValues(index)
                   val segmentKeyValue = segmentKeyValues(index)
 
-                  if (isPersistentSpec) {
-                    //ensure that indexEntry's values are not already read as they are lazily fetched from the file.
-                    //values with Length 0 and non Range key-values always have isValueDefined set to true as they do not required disk seek.
-                    segmentKeyValue match {
-                      case persistent: Persistent.Remove =>
-                        persistent.isValueCached shouldBe true
+                  //ensure that indexEntry's values are not already read as they are lazily fetched from the file.
+                  //values with Length 0 and non Range key-values always have isValueDefined set to true as they do not required disk seek.
+                  segmentKeyValue match {
+                    case persistent: Persistent.Remove =>
+                      persistent.isValueCached shouldBe true
 
-                      case persistent: Persistent =>
-                        persistent.isValueCached shouldBe false
-                    }
+                    case persistent: Persistent =>
+                      persistent.isValueCached shouldBe false
+                  }
 
-                    actualKeyValue shouldBe segmentKeyValue //after comparison values should be populated.
+                  actualKeyValue shouldBe segmentKeyValue //after comparison values should be populated.
 
-                    segmentKeyValue match {
-                      case persistent: Persistent.Remove =>
-                        persistent.isValueCached shouldBe true
+                  segmentKeyValue match {
+                    case persistent: Persistent.Remove =>
+                      persistent.isValueCached shouldBe true
 
-                      case persistent: Persistent =>
-                        persistent.isValueCached shouldBe true
-                    }
+                    case persistent: Persistent =>
+                      persistent.isValueCached shouldBe true
                   }
               }
             }
         }
-    }
-  }
-
-  "getNearestDeadline" should {
-    "return earliest deadline from key-values" in {
-      runThis(10.times) {
-        val deadlines = (1 to 8).map(_.seconds.fromNow)
-
-        val shuffledDeadlines = Random.shuffle(deadlines)
-
-        //populated deadlines from shuffled deadlines.
-        val keyValues =
-          Slice(
-            Memory.remove(1, shuffledDeadlines(0)),
-            Memory.put(2, 1, shuffledDeadlines(1)),
-            Memory.update(3, 10, shuffledDeadlines(2)),
-            Memory.Range(4, 10, Value.FromValue.Null, Value.remove(shuffledDeadlines(3))),
-            Memory.Range(5, 10, Value.put(10, shuffledDeadlines(4)), Value.remove(shuffledDeadlines(5))),
-            Memory.Range(6, 10, Value.put(10, shuffledDeadlines(6)), Value.update(Slice.Null, Some(shuffledDeadlines(7))))
-          )
-
-        Segment.getNearestDeadline(keyValues).value shouldBe nearestPutDeadline(keyValues).value
-      }
-    }
-  }
-
-  "getNearestDeadlineSegment" should {
-    "return None deadline if non of the key-values in the Segments contains deadline" in {
-      TestSweeper {
-        implicit sweeper =>
-          def segmentConfig(keyValuesCount: Int) =
-            if (isPersistentSpec)
-              SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValuesCount * 2), mmap = mmapSegments)
-            else
-              SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments)
-
-          runThis(100.times) {
-            val keyValues1 = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
-            val segment1 = TestSegment(keyValues1, segmentConfig = segmentConfig(keyValues1.size))
-
-            val keyValues2 = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
-            val segment2 = TestSegment(keyValues2, segmentConfig = segmentConfig(keyValues2.size))
-
-            Segment.getNearestDeadlineSegment(segment1, segment2).toOptionS shouldBe empty
-
-            segment1.close()
-            segment2.close()
-          }
       }
     }
 
-    "return deadline if one of the Segments contains deadline" in {
-      runThis(10.times) {
-        TestSweeper {
-          implicit sweeper =>
+    "getNearestDeadline" should {
+      "return earliest deadline from key-values" in {
+        runThis(10.times) {
+          val deadlines = (1 to 8).map(_.seconds.fromNow)
+
+          val shuffledDeadlines = Random.shuffle(deadlines)
+
+          //populated deadlines from shuffled deadlines.
+          val keyValues =
+            Slice(
+              Memory.remove(1, shuffledDeadlines(0)),
+              Memory.put(2, 1, shuffledDeadlines(1)),
+              Memory.update(3, 10, shuffledDeadlines(2)),
+              Memory.Range(4, 10, Value.FromValue.Null, Value.remove(shuffledDeadlines(3))),
+              Memory.Range(5, 10, Value.put(10, shuffledDeadlines(4)), Value.remove(shuffledDeadlines(5))),
+              Memory.Range(6, 10, Value.put(10, shuffledDeadlines(6)), Value.update(Slice.Null, Some(shuffledDeadlines(7))))
+            )
+
+          Segment.getNearestDeadline(keyValues).value shouldBe nearestPutDeadline(keyValues).value
+        }
+      }
+    }
+
+    "getNearestDeadlineSegment" should {
+      "return None deadline if non of the key-values in the Segments contains deadline" in {
+        CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+          (_sweeper, _specType) =>
+
+            implicit val sweeper: CoreTestSweeper = _sweeper
+            implicit val specType: CoreSpecType = _specType
+
+            import sweeper.testCoreFunctionStore
+
+            def segmentConfig(keyValuesCount: Int) =
+              if (specType.isPersistent)
+                SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValuesCount * 2), mmap = mmapSegments)
+              else
+                SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments)
+
+            runThis(100.times) {
+              val keyValues1 = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
+              val segment1 = TestSegment(keyValues1, segmentConfig = segmentConfig(keyValues1.size))
+
+              val keyValues2 = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
+              val segment2 = TestSegment(keyValues2, segmentConfig = segmentConfig(keyValues2.size))
+
+              Segment.getNearestDeadlineSegment(segment1, segment2).toOptionS shouldBe empty
+
+              segment1.close()
+              segment2.close()
+            }
+        }
+      }
+
+      "return deadline if one of the Segments contains deadline" in {
+        CoreTestSweeper.foreachRepeat(10.times, CoreSpecType.all) {
+          (_sweeper, _specType) =>
+
+            implicit val sweeper: CoreTestSweeper = _sweeper
+            implicit val specType: CoreSpecType = _specType
+
+            import sweeper.testCoreFunctionStore
+
             val keyValues = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
 
             //only a single key-value with a deadline.
@@ -1025,12 +1095,12 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
                 left = Memory.remove(keyValues.last.key.readInt() + 10000, deadline),
                 mid =
                   eitherOne(
-                    Memory.put(keyValues.last.key.readInt() + 10000, randomStringOption, deadline),
+                    Memory.put(keyValues.last.key.readInt() + 10000, randomStringOption(), deadline),
                     randomRangeKeyValueForDeadline(keyValues.last.key.readInt() + 10000, keyValues.last.key.readInt() + 20000, deadline = deadline)
                   ),
                 right =
                   eitherOne(
-                    Memory.update(keyValues.last.key.readInt() + 10000, randomStringOption, deadline),
+                    Memory.update(keyValues.last.key.readInt() + 10000, randomStringOption(), deadline),
                     Memory.PendingApply(keyValues.last.key.readInt() + 10000, randomAppliesWithDeadline(deadline = deadline))
                   )
               )
@@ -1049,19 +1119,23 @@ sealed trait SegmentReadSpec extends ALevelSpec with ScalaFutures {
             Segment.getNearestDeadlineSegment(Random.shuffle(Seq(segment1, segment2, segment2, segment2))).flatMapOptionS(_.nearestPutDeadline) shouldBe deadlineToExpect
         }
       }
-    }
 
-    "return deadline" in {
-      implicit val ec = TestExecutionContext.executionContext
+      "return deadline" in {
+        implicit val ec: ExecutionContext = TestExecutionContext.executionContext
 
-      runThis(10.times) {
-        TestSweeper {
-          implicit sweeper =>
+        CoreTestSweeper.foreachRepeat(10.times, CoreSpecType.all) {
+          (_sweeper, _specType) =>
+
+            implicit val sweeper: CoreTestSweeper = _sweeper
+            implicit val specType: CoreSpecType = _specType
+
+            import sweeper.testCoreFunctionStore
+
             val keyValues1 = randomizedKeyValues(1000)
             val keyValues2 = randomizedKeyValues(1000)
 
             val segmentConfig =
-              if (isPersistentSpec)
+              if (specType.isPersistent)
                 SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValues1.size * 2), mmap = mmapSegments)
               else
                 SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments)

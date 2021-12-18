@@ -17,7 +17,7 @@
 package swaydb.slice
 
 import org.scalatest.OptionValues._
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
@@ -26,7 +26,7 @@ import swaydb.utils.ByteSizeOf
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
-class SliceSpec extends AnyWordSpec with Matchers {
+class SliceSpec extends AnyWordSpec {
 
   implicit val keyOrder = KeyOrder.default
 
@@ -404,7 +404,8 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "write multiple with addAll" in {
-    Slice.allocate[Int](4)
+    Slice
+      .allocate[Int](4)
       .add(1)
       .add(2)
       .addAll(Slice(3, 4)).toList shouldBe List(1, 2, 3, 4)
@@ -412,7 +413,8 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
   "addAll should fail if Slice does not have capacity" in {
     assertThrows[ArrayIndexOutOfBoundsException] {
-      Slice.allocate[Int](3)
+      Slice
+        .allocate[Int](3)
         .add(1)
         .add(2)
         .addAll(Slice(3, 4))
@@ -421,7 +423,8 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
   "None ++ Some(Slice[T](...))" in {
     val merged: Iterable[Slice[Int]] = Some(Slice[Int](1, 2, 3)) ++ None
-    merged.flatten
+    merged
+      .flatten
       .toList should contain inOrderOnly(1, 2, 3)
   }
 

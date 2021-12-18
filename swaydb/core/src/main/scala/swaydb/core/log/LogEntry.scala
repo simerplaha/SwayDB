@@ -204,7 +204,7 @@ private[swaydb] case object LogEntry {
     def hasRemoveDeadline: Boolean =
       value match {
         case Memory.Remove(_, Some(_), _) => true
-        case _ => false
+        case _                            => false
       }
 
     /**

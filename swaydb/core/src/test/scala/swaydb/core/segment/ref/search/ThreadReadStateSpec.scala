@@ -16,14 +16,13 @@
 
 package swaydb.core.segment.ref.search
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CoreTestData._
-
-import java.nio.file.Paths
 import swaydb.testkit.TestKit._
 
-class ThreadReadStateSpec extends AnyWordSpec with Matchers {
+import java.nio.file.Paths
+
+class ThreadReadStateSpec extends AnyWordSpec {
 
   "it" should {
     "return Null" when {

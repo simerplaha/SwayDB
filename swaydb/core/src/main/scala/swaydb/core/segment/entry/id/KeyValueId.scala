@@ -17,7 +17,7 @@
 package swaydb.core.segment.entry.id
 
 import swaydb.core.segment.entry.reader.base.BaseEntryReader
-import swaydb.macros.Sealed
+import swaydb.macros.MacroSealed
 
 sealed trait KeyValueId {
 
@@ -143,5 +143,5 @@ object KeyValueId {
   }
 
   def all: List[KeyValueId] =
-    Sealed.list[KeyValueId]
+    MacroSealed.list[KeyValueId]
 }

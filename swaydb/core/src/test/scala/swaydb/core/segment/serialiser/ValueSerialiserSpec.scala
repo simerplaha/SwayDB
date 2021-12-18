@@ -16,19 +16,19 @@
 
 package swaydb.core.segment.serialiser
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
+import swaydb.core.compression.CompressionTestKit._
 import swaydb.core.compression.CoreCompression
-import swaydb.core.compression.CompressionTestGen._
-import swaydb.core.CoreTestData._
 import swaydb.core.segment.serialiser.ValueSerialiser.IntMapListBufferSerialiser
 import swaydb.slice.Slice
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.TestKit._
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-class ValueSerialiserSpec extends AnyWordSpec with Matchers {
+class ValueSerialiserSpec extends AnyWordSpec {
 
   "IntMapListBufferSerialiser" in {
 

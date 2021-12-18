@@ -18,22 +18,24 @@ package swaydb.core.log.serialiser
 
 
 import org.scalatest.OptionValues._
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Log.ExceptionHandler
-import swaydb.IOValues._
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
+import swaydb.core.log.timer.TestTimer
 import swaydb.core.segment.data._
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.core.segment.TestCoreFunctionStore
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{ACoreSpec, TestTimer}
-import swaydb.serializers.Default._
+import swaydb.effect.IOValues._
 import swaydb.serializers._
-import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.serializers.Default._
 import swaydb.slice.{Slice, SliceOption}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 
-class LogEntrySerialiserSpec extends AnyWordSpec with Matchers {
+
+class LogEntrySerialiserSpec extends AnyWordSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
@@ -48,25 +50,27 @@ class LogEntrySerialiserSpec extends AnyWordSpec with Matchers {
       bytes.isFull shouldBe true
 
       import LevelZeroLogEntryReader.Level0Reader
-      LogEntrySerialiser.read[Slice[Byte], Memory](bytes, dropCorruptedTailEntries = false).runRandomIO.right.value.item shouldBe empty
+      LogEntrySerialiser.read[Slice[Byte], Memory](bytes, dropCorruptedTailEntries = false).runRandomIO.get.item shouldBe empty
     }
 
     "write and read key values" in {
-      import LevelZeroLogEntryWriter.Level0LogEntryPutWriter
+      implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
       val keyValues = randomKeyValues(1000, addRemoves = true)
+
       val map = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       keyValues foreach {
         keyValue =>
           map.put(keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))
       }
 
+      import LevelZeroLogEntryWriter.Level0LogEntryPutWriter
       val bytes = LogEntrySerialiser.write(map.iterator)
       bytes.isFull shouldBe true
 
       //re-read the bytes written to map and it should contain all the original entries
       import LevelZeroLogEntryReader.Level0Reader
       val readMap = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
-      LogEntrySerialiser.read[Slice[Byte], Memory](bytes, dropCorruptedTailEntries = false).runRandomIO.right.value.item.value applyBatch readMap
+      LogEntrySerialiser.read[Slice[Byte], Memory](bytes, dropCorruptedTailEntries = false).runRandomIO.get.item.value applyBatch readMap
       keyValues foreach {
         keyValue =>
           val value = readMap.get(keyValue.key)
@@ -75,7 +79,10 @@ class LogEntrySerialiserSpec extends AnyWordSpec with Matchers {
     }
 
     "read bytes to map and ignore empty written byte(s)" in {
+      implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
+
       val keyValues = randomKeyValues(1000, addRemoves = true)
+
       val map = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       keyValues foreach {
         keyValue =>
@@ -86,7 +93,7 @@ class LogEntrySerialiserSpec extends AnyWordSpec with Matchers {
         //re-read the bytes written to map and it should contain all the original entries
         import LevelZeroLogEntryReader.Level0Reader
         val readMap = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
-        LogEntrySerialiser.read(bytesWithEmpty, dropCorruptedTailEntries = false).runRandomIO.right.value.item.value applyBatch readMap
+        LogEntrySerialiser.read(bytesWithEmpty, dropCorruptedTailEntries = false).runRandomIO.get.item.value applyBatch readMap
         keyValues foreach {
           keyValue =>
             val value = readMap.get(keyValue.key)
@@ -139,7 +146,7 @@ class LogEntrySerialiserSpec extends AnyWordSpec with Matchers {
 
       //re-read allBytes and write it to skipList and it should contain all the original entries
       import LevelZeroLogEntryReader.Level0Reader
-      val logEntry = LogEntrySerialiser.read(allBytes, dropCorruptedTailEntries = false).runRandomIO.right.value.item.value
+      val logEntry = LogEntrySerialiser.read(allBytes, dropCorruptedTailEntries = false).runRandomIO.get.item.value
       logEntry applyBatch map
       map should have size allKeyValues.size
       allKeyValues foreach {
@@ -150,9 +157,9 @@ class LogEntrySerialiserSpec extends AnyWordSpec with Matchers {
 
       //corrupt bytes in bytes2 and read the bytes again. keyValues2 should not exist as it's key-values are corrupted.
       val corruptedBytes2: Slice[Byte] = allBytes.dropRight(1)
-      LogEntrySerialiser.read(corruptedBytes2, dropCorruptedTailEntries = false).left.runRandomIO.right.value.exception shouldBe a[IllegalStateException]
+      LogEntrySerialiser.read(corruptedBytes2, dropCorruptedTailEntries = false).left.runRandomIO.get.exception shouldBe a[IllegalStateException]
       //enable skip corrupt entries.
-      val logEntryWithTailCorruptionSkipOnCorruption = LogEntrySerialiser.read(corruptedBytes2, dropCorruptedTailEntries = true).runRandomIO.right.value.item.value
+      val logEntryWithTailCorruptionSkipOnCorruption = LogEntrySerialiser.read(corruptedBytes2, dropCorruptedTailEntries = true).runRandomIO.get.item.value
       map.clear()
       logEntryWithTailCorruptionSkipOnCorruption applyBatch map
       map should have size 5 //only one entry is corrupted
@@ -165,8 +172,8 @@ class LogEntrySerialiserSpec extends AnyWordSpec with Matchers {
       //corrupt bytes of bytes1
       val corruptedBytes1: Slice[Byte] = allBytes.drop(1)
       //all bytes are corrupted, failure occurs.
-      LogEntrySerialiser.read(corruptedBytes1, dropCorruptedTailEntries = false).left.runRandomIO.right.value.exception shouldBe a[IllegalStateException]
-      LogEntrySerialiser.read(corruptedBytes1, dropCorruptedTailEntries = true).runRandomIO.right.value.item shouldBe empty
+      LogEntrySerialiser.read(corruptedBytes1, dropCorruptedTailEntries = false).left.runRandomIO.get.exception shouldBe a[IllegalStateException]
+      LogEntrySerialiser.read(corruptedBytes1, dropCorruptedTailEntries = true).runRandomIO.get.item shouldBe empty
     }
   }
 }

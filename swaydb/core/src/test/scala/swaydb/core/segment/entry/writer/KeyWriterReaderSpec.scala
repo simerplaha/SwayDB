@@ -16,16 +16,20 @@
 
 package swaydb.core.segment.entry.writer
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CoreTestData._
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.segment.entry.reader.{EntryReaderFailure, KeyReader}
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.TestCoreFunctionStore
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 
-class KeyWriterReaderSpec extends AnyWordSpec with Matchers {
+class KeyWriterReaderSpec extends AnyWordSpec {
+
+  private implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
 
   val noCompressedDeadlineIds: Seq[BaseEntryId.Deadline] =
     allBaseEntryIds collect {

@@ -16,12 +16,12 @@
 
 package swaydb.slice
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.Random
 
-class SliceOptionSpec extends AnyWordSpec with Matchers {
+class SliceOptionSpec extends AnyWordSpec {
 
   val slice: Slice[Int] = Slice(1, 2, 3)
 

@@ -1,18 +1,18 @@
-/*
- * Copyright 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+///*
+// * Copyright 2018 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+// *
+// * Licensed under the Apache License, Version 2.0 (the "License");
+// * you may not use this file except in compliance with the License.
+// * You may obtain a copy of the License at
+// *
+// * http://www.apache.org/licenses/LICENSE-2.0
+// *
+// * Unless required by applicable law or agreed to in writing, software
+// * distributed under the License is distributed on an "AS IS" BASIS,
+// * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// * See the License for the specific language governing permissions and
+// * limitations under the License.
+// */
 //package swaydb.core.segment.block.binarysearch
 //
 //import org.scalatest.OptionValues._
@@ -20,17 +20,32 @@
 //import swaydb.testkit.RunThis._
 //import swaydb.core.TestBase
 //import swaydb.core.TestData._
-//import swaydb.core.segment.data.Persistent
+//import swaydb.core.segment.data.{Persistent, SegmentKeyOrders}
 //import swaydb.core.segment.block.reader.BlockRefReader
 //import swaydb.core.segment.block.{Block, KeyMatcher}
 //import swaydb.core.util.Bytes
 //import swaydb.slice.order.KeyOrder
 //import swaydb.slice.Slice
+//import swaydb.core.segment.data.KeyValueTestKit._
+//import swaydb.core.segment.SegmentTestKit._
+//import swaydb.slice.SliceTestKit._
+//import swaydb.core.segment.block.SegmentBlockTestKit._
+//import swaydb.config.CoreConfigTestKit._
+//import org.scalatest.matchers.should.Matchers._
+//import org.scalatest.wordspec.AnyWordSpec
+//import swaydb.core.segment.data.merge.SegmentMergeTestKit._
+//import swaydb.core.log.timer.TestTimer
+//import swaydb.effect.EffectTestKit._
+//import swaydb.core.compression.CompressionTestKit._
+//import swaydb.core.segment.block.SegmentBlockTestKit._
+//import swaydb.core.file.CoreFileTestKit._
+//import swaydb.core.segment.ref.search.KeyMatcher
+//import swaydb.core.segment.ref.search.SegmentSearchTestKit._
 //
-//class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
+//class BinarySearchIndexBlock_BinarySearch_Spec extends AnyWordSpec {
 //
 //  implicit val keyOrder = KeyOrder.default
-//  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = CoreKeyOrders(keyOrder).partialKeyOrder
+//  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = SegmentKeyOrders(keyOrder).partialKeyOrder
 //
 //  "binarySearch" should {
 //

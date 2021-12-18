@@ -16,21 +16,20 @@
 
 package swaydb.core.segment.ref.search
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
 import swaydb.core.segment.data.{Persistent, Time}
-import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 import swaydb.utils.TupleOrNone
 
 import java.nio.file.Paths
-import swaydb.testkit.TestKit._
 
-class SegmentReadStateSpec extends AnyWordSpec with Matchers {
+class SegmentReadStateSpec extends AnyWordSpec {
 
   def previousKeyValue =
     Persistent.Put(

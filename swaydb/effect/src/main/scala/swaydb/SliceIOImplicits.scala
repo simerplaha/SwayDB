@@ -109,6 +109,7 @@ object SliceIOImplicits {
         case Some(value) =>
           recover(results, value)
           value
+
         case None =>
           IO.Right[E, Slice[R]](results)
       }

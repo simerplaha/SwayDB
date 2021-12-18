@@ -38,6 +38,7 @@ import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data._
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.defrag.DefragPersistentSegment
+import swaydb.core.segment.distributor.PathDistributor
 import swaydb.core.segment.io.{SegmentCompactionIO, SegmentReadIO}
 import swaydb.core.segment.ref.{SegmentRef, SegmentRefOption, SegmentRefReader}
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -746,10 +747,10 @@ private case class PersistentSegmentMany(file: CoreFile,
   @inline def segmentRefs(initialiseIteratorsInOneSeek: Boolean): Iterator[SegmentRef] =
     new Iterator[SegmentRef] {
       //TODO - do not read sortedIndexBlock if the SegmentRef is already cached in-memory.
-      var nextRef: SegmentRef = _
-      val listSegment = listSegmentCache.getOrFetch(())
-      val iter = listSegment.iterator(initialiseIteratorsInOneSeek)
-      var nextInvoked = false
+      private var nextRef: SegmentRef = _
+      private val listSegment = listSegmentCache.getOrFetch(())
+      private val iter = listSegment.iterator(initialiseIteratorsInOneSeek)
+      private var nextInvoked = false
 
       @tailrec
       final override def hasNext: Boolean =
@@ -835,7 +836,7 @@ private case class PersistentSegmentMany(file: CoreFile,
           hashIndexConfig: HashIndexBlockConfig,
           bloomFilterConfig: BloomFilterBlockConfig,
           segmentConfig: SegmentBlockConfig,
-          pathsDistributor: PathsDistributor,
+          pathDistributor: PathDistributor,
           segmentRefCacheLife: SegmentRefCacheLife,
           mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
                               executionContext: ExecutionContext,
@@ -854,7 +855,7 @@ private case class PersistentSegmentMany(file: CoreFile,
       newKeyValues = newKeyValues,
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
-      pathsDistributor = pathsDistributor,
+      pathDistributor = pathDistributor,
       segmentRefCacheLife = segmentRefCacheLife,
       mmap = mmap
     )

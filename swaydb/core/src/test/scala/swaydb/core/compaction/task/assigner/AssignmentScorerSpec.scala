@@ -17,7 +17,7 @@
 package swaydb.core.compaction.task.assigner
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.compaction.task.CompactionDataType
 import swaydb.core.segment.assigner.AssignmentResult
@@ -25,7 +25,7 @@ import swaydb.testkit.RunThis._
 
 import scala.util.Random
 
-class AssignmentScorerSpec extends AnyWordSpec with Matchers with MockFactory {
+class AssignmentScorerSpec extends AnyWordSpec with MockFactory {
 
   "scoring" when {
     "NO GAPS" should {

@@ -46,6 +46,7 @@ private[swaydb] object Value {
     fromValue match {
       case rangeValue: RangeValue =>
         hasTimeLeft(rangeValue)
+
       case put: Put =>
         put.deadline forall (_.hasTimeLeft())
     }

@@ -246,35 +246,35 @@ object Error {
   def apply[T](exception: Throwable): Error =
     exception match {
       //known Exception that can occur which can return their typed Error version.
-      case exception: Exception.Busy => exception.error
-      case exception: Exception.OpeningFile => Error.OpeningFile(exception.file, exception.reserve)
-      case exception: Exception.ReservedResource => Error.ReservedResource(exception.reserve)
+      case exception: Exception.Busy                 => exception.error
+      case exception: Exception.OpeningFile          => Error.OpeningFile(exception.file, exception.reserve)
+      case exception: Exception.ReservedResource     => Error.ReservedResource(exception.reserve)
       case exception: Exception.NullMappedByteBuffer => Error.NullMappedByteBuffer(exception)
-      case exception: Exception.NoSuchFile => Error.NoSuchFile(exception.file)
+      case exception: Exception.NoSuchFile           => Error.NoSuchFile(exception.file)
 
       //the following Exceptions will occur when a file was being read but
       //it was closed or deleted when it was being read. There is no AtomicBoolean busy
       //associated with these exception and should simply be retried.
-      case exception: NoSuchFileException => Error.NoSuchFile(exception)
-      case exception: FileNotFoundException => Error.FileNotFound(exception)
+      case exception: NoSuchFileException        => Error.NoSuchFile(exception)
+      case exception: FileNotFoundException      => Error.FileNotFound(exception)
       case exception: AsynchronousCloseException => Error.AsynchronousClose(exception)
-      case exception: ClosedChannelException => Error.ClosedChannel(exception)
+      case exception: ClosedChannelException     => Error.ClosedChannel(exception)
 
-      case Exception.OverlappingPushSegment => Error.OverlappingPushSegment
-      case Exception.NoSegmentsRemoved => Error.NoSegmentsRemoved
-      case Exception.NotSentToNextLevel => Error.NotSentToNextLevel
+      case Exception.OverlappingPushSegment         => Error.OverlappingPushSegment
+      case Exception.NoSegmentsRemoved              => Error.NoSegmentsRemoved
+      case Exception.NotSentToNextLevel             => Error.NotSentToNextLevel
       case exception: Exception.OverlappingFileLock => swaydb.Error.UnableToLockDirectory(exception)
 
       case exception: ReadOnlyBufferException => Error.ReadOnlyBuffer(exception)
 
-      case exception: Exception.FailedToWriteAllBytes => Error.FailedToWriteAllBytes(exception)
+      case exception: Exception.FailedToWriteAllBytes   => Error.FailedToWriteAllBytes(exception)
       case exception: Exception.CannotCopyInMemoryFiles => Error.CannotCopyInMemoryFiles(exception)
-      case exception: Exception.SegmentFileMissing => Error.SegmentFileMissing(exception)
-      case exception: Exception.InvalidBaseId => Error.InvalidKeyValueId(exception)
+      case exception: Exception.SegmentFileMissing      => Error.SegmentFileMissing(exception)
+      case exception: Exception.InvalidBaseId           => Error.InvalidKeyValueId(exception)
 
       case exception: Exception.FunctionNotFound => Error.FunctionNotFound(exception.functionId)
 
-      case exception: Exception.NotAnIntFile => Error.NotAnIntFile(exception)
+      case exception: Exception.NotAnIntFile     => Error.NotAnIntFile(exception)
       case exception: Exception.UnknownExtension => Error.UnknownExtension(exception)
 
       case exception: Exception.GetOnIncompleteDeferredFutureIO => Error.GetOnIncompleteDeferredFutureIO(exception)
@@ -420,14 +420,13 @@ object Error {
     }
   }
 
-  case class Fatal(exception: Throwable)
-    extends Error.API
-      with Error.Boot
-      with Error.IO
-      with Error.Segment
-      with Error.Level
-      with Error.Log
-      with Error.Close
-      with Error.Delete
+  case class Fatal(exception: Throwable) extends Error.API
+                                         with Error.Boot
+                                         with Error.IO
+                                         with Error.Segment
+                                         with Error.Level
+                                         with Error.Log
+                                         with Error.Close
+                                         with Error.Delete
 
 }

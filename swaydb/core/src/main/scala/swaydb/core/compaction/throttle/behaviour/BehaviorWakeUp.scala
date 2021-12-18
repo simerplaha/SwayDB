@@ -148,7 +148,13 @@ private[throttle] object BehaviorWakeUp extends BehaviorWakeUp with LazyLogging 
             (level, levelState)
         }
 
-    logger.debug(s"${context.name}: Levels to compact: \t\n${levelsToCompact.map { case (level, state) => (level.levelNumber, state) }.mkString("\t\n")}")
+    logger.debug(
+      s"${context.name}: Levels to compact: \t\n${
+        levelsToCompact.map {
+          case (level, state) => (level.levelNumber, state)
+        }.mkString("\t\n")
+      }"
+    )
 
     val nextDeadline =
       levelsToCompact.foldLeft(Option.empty[Deadline]) {

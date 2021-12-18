@@ -16,22 +16,23 @@
 
 package swaydb.core.segment
 
-import swaydb.core.ACoreSpec
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.cache.Cache
 import swaydb.core.segment.block.values.ValuesBlockOffset
+import swaydb.core.segment.data.{Persistent, Time, Value}
 import swaydb.core.segment.data.Persistent._
 import swaydb.core.segment.data.Value.FromValueOption
-import swaydb.core.segment.data.{Persistent, Time, Value}
 import swaydb.core.segment.ref.search.KeyMatcher
 import swaydb.core.segment.ref.search.KeyMatcher.Result._
-import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 
 import scala.util.Random
 
-class KeyMatcherSpec extends ASegmentSpec {
+class KeyMatcherSpec extends AnyWordSpec {
 
   implicit val integer: KeyOrder[Slice[Byte]] =
     new KeyOrder[Slice[Byte]] {
@@ -48,9 +49,10 @@ class KeyMatcherSpec extends ASegmentSpec {
    * Tests check for keys to match in all positions (before and after each key)
    */
 
-  import swaydb.core.CommonAssertions.keyMatcherResultEquality
+  import swaydb.core.segment.ref.search.SegmentSearchTestKit.keyMatcherResultEquality
 
-  val whichKeyValue = Random.shuffle((1 to 5).toList).head
+  private val whichKeyValue =
+    Random.shuffle((1 to 5).toList).head
 
   implicit def toFixed(int: Int): Persistent.Fixed =
     if (whichKeyValue == 1)
@@ -71,7 +73,7 @@ class KeyMatcherSpec extends ASegmentSpec {
      * A tuple indicates a range's (fromKey, toKey)
      */
 
-    val noneRangeValueCache =
+    private val noneRangeValueCache =
       Cache.unsafe[ValuesBlockOffset, (FromValueOption, Value.RangeValue)](false, false, None) {
         (_, _) =>
           fail("")

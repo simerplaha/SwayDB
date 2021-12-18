@@ -16,18 +16,18 @@
 
 package swaydb.core.segment.block.reader
 
-import org.scalamock.scalatest.MockFactory
-import swaydb.core.CoreTestData._
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.core.segment.block.{Block, BlockCache, BlockOps}
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
 import swaydb.core.segment.block.values.ValuesBlockOffset
-import swaydb.core.segment.block.{Block, BlockCache, BlockOps}
-import swaydb.core.{ACoreSpec, TestSweeper}
-import swaydb.core.segment.ASegmentSpec
+import swaydb.core.CoreTestSweeper
 import swaydb.slice.Slice
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class BlockedReaderSpec extends ASegmentSpec with MockFactory {
+class BlockedReaderSpec extends AnyWordSpec {
 
   "apply" when {
     "ref" in {
@@ -47,7 +47,7 @@ class BlockedReaderSpec extends ASegmentSpec with MockFactory {
     }
 
     "unblocked Segment" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
 
           val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))

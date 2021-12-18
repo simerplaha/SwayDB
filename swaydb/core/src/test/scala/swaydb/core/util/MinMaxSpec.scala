@@ -17,21 +17,20 @@
 package swaydb.core.util
 
 import org.scalatest.OptionValues._
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CoreTestData._
 import swaydb.core.segment.data.{Time, Value}
-import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 import swaydb.utils.ByteSizeOf
 
 import scala.util.Random
-import swaydb.testkit.TestKit._
 
-class MinMaxSpec extends AnyWordSpec with Matchers {
+class MinMaxSpec extends AnyWordSpec {
 
   "min" should {
     "return minimum of two" in {

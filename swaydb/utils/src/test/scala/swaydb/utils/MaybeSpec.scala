@@ -16,13 +16,13 @@
 
 package swaydb.utils
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.utils.Maybe._
 
 import scala.util.Success
 
-class MaybeSpec extends AnyWordSpec with Matchers {
+class MaybeSpec extends AnyWordSpec {
 
   "some" should {
     val some = Maybe.some("some")

@@ -16,25 +16,28 @@
 
 package swaydb.core.segment
 
-import org.scalatest.OptionValues._
-import swaydb.{ActorConfig, Benchmark}
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.{ActorConfig, Benchmark, TestExecutionContext}
 import swaydb.config.MemoryCache
-import swaydb.core.CommonAssertions._
-import swaydb.core.TestSweeper._
-import swaydb.core.CoreTestData._
+import swaydb.core.{CoreSpecType, CoreTestSweeper}
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.core.segment.block.SegmentBlockTestKit._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext}
-import swaydb.slice.Slice
+import swaydb.core.segment.ref.search.SegmentSearchTestKit._
+import swaydb.core.CoreTestSweeper._
 import swaydb.slice.order.TimeOrder
+import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.DurationInt
 
 /**
  * These class has tests to assert the behavior of [[MemorySweeper]] on [[swaydb.core.segment.Segment]]s.
  */
-class SegmentMemorySweeperSpec extends ASegmentSpec {
+class SegmentMemorySweeperSpec extends AnyWordSpec {
 
   val keyValuesCount = 100
 
@@ -46,17 +49,21 @@ class SegmentMemorySweeperSpec extends ASegmentSpec {
   "PersistentSegment" should {
     "drop Group key-value only after it's been decompressed" in {
       runThis(10.times, log = true) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
+            import sweeper.testCoreFunctionStore
+
             //add key-values to the right of the group
             val keyValues = randomKeyValues(count = 1000, addUpdates = true, startId = Some(1))
 
             //set the limiter to drop key-values fast
             implicit val memorySweeper: MemorySweeper.KeyValue =
               MemorySweeper(MemoryCache.KeyValueCacheOnly(1, None, Some(ActorConfig.TimeLoop("", 2.seconds, ec))))
-                .value
+                .get
                 .asInstanceOf[MemorySweeper.KeyValue]
                 .sweep()
+
+            implicit val coreSpecType: CoreSpecType = CoreSpecType.random()
 
             //create persistent Segment
             val segment =

@@ -31,11 +31,11 @@ private[throttle] object ThrottleLevelOrdering extends LazyLogging {
       override def compare(left: LevelRef, right: LevelRef): Int = {
         (left, right) match {
           //Level
-          case (left: Level, right: Level) => order(left, right)
+          case (left: Level, right: Level)     => order(left, right)
           case (left: Level, right: LevelZero) => order(right, left) * -1
           //LevelZero
           case (left: LevelZero, right: Level) => order(left, right)
-          case (_: LevelZero, _: LevelZero) => 0
+          case (_: LevelZero, _: LevelZero)    => 0
         }
       }
     }

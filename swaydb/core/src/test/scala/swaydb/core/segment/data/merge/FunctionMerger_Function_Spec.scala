@@ -16,28 +16,30 @@
 
 package swaydb.core.segment.data.merge
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
-import swaydb.core.TestTimer
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.data.merge.SegmentMergeTestKit._
+import swaydb.core.segment.{CoreFunctionStore, TestCoreFunctionStore}
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 
-class FunctionMerger_Function_Spec extends AnyWordSpec with Matchers {
+class FunctionMerger_Function_Spec extends AnyWordSpec {
 
-  implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  private implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+
+  private implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
+  private implicit val functionStore: CoreFunctionStore = testFunctionStore.store
+
+  private implicit val testTimer = TestTimer.Incremental()
 
   "Merging Function into function" when {
-
     "times are in order" should {
-
       "always return PendingApply" in {
-
-        implicit val testTimer = TestTimer.Incremental()
-
         runThis(1000.times) {
           val key = randomBytesSlice()
 

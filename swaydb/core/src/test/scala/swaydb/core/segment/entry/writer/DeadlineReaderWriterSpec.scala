@@ -16,22 +16,25 @@
 
 package swaydb.core.segment.entry.writer
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.TestCoreFunctionStore
 import swaydb.core.util.Times._
-import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{FiniteDuration, _}
-import swaydb.testkit.TestKit._
 
-class DeadlineReaderWriterSpec extends AnyWordSpec with Matchers {
+class DeadlineReaderWriterSpec extends AnyWordSpec {
+
+  private implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
 
   val deadlineIds: Seq[BaseEntryId.DeadlineId] =
     allBaseEntryIds collect {

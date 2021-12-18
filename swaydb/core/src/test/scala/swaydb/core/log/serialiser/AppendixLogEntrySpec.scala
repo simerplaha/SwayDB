@@ -17,23 +17,25 @@
 package swaydb.core.log.serialiser
 
 import org.scalatest.OptionValues._
-import swaydb.IOValues._
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.config.CoreConfigTestKit._
 import swaydb.config.MMAP
-import swaydb.core.{TestForceSave, TestSweeper}
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
 import swaydb.core.log.LogEntry
-import swaydb.core.segment.{ASegmentSpec, Segment, SegmentOption}
+import swaydb.core.segment.{Segment, SegmentOption}
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.data.SegmentKeyOrders
 import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.SegmentTestKit._
 import swaydb.core.skiplist.SkipListConcurrent
+import swaydb.core.{CoreSpecType, CoreTestSweeper, TestForceSave}
 import swaydb.serializers._
 import swaydb.serializers.Default._
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.OperatingSystem
 
-class AppendixLogEntrySpec extends ASegmentSpec {
+class AppendixLogEntrySpec extends AnyWordSpec {
 
   implicit val keyOrder = KeyOrder.default
   implicit val keyOrders: SegmentKeyOrders = SegmentKeyOrders(keyOrder)
@@ -43,11 +45,15 @@ class AppendixLogEntrySpec extends ASegmentSpec {
   "LogEntryWriterAppendix & LogEntryReaderAppendix" should {
 
     "write Add segment" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
           import sweeper._
 
-          val segment = TestSegment()
+          val segment = TestSegment(randomizedKeyValues(100))
 
           val appendixReader =
             AppendixLogEntryReader(
@@ -85,8 +91,12 @@ class AppendixLogEntrySpec extends ASegmentSpec {
     }
 
     "write Remove Segment" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
           import sweeper._
 
           val appendixReader = AppendixLogEntryReader(
@@ -119,8 +129,12 @@ class AppendixLogEntrySpec extends ASegmentSpec {
     }
 
     "write and remove key-value" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
           import AppendixLogEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
           import sweeper._
 
@@ -133,11 +147,11 @@ class AppendixLogEntrySpec extends ASegmentSpec {
             segmentRefCacheLife = randomSegmentRefCacheLife()
           )
 
-          val segment1 = TestSegment()
-          val segment2 = TestSegment()
-          val segment3 = TestSegment()
-          val segment4 = TestSegment()
-          val segment5 = TestSegment()
+          val segment1 = TestSegment(randomizedKeyValues(100))
+          val segment2 = TestSegment(randomizedKeyValues(100))
+          val segment3 = TestSegment(randomizedKeyValues(100))
+          val segment4 = TestSegment(randomizedKeyValues(100))
+          val segment5 = TestSegment(randomizedKeyValues(100))
 
           val entry: LogEntry[Slice[Byte], Segment] =
             (LogEntry.Put[Slice[Byte], Segment](segment1.minKey, segment1): LogEntry[Slice[Byte], Segment]) ++
@@ -174,7 +188,7 @@ class AppendixLogEntrySpec extends ASegmentSpec {
 
           //write skip list to bytes should result in the same skip list as before
           val bytes = LogEntrySerialiser.write[Slice[Byte], Segment](skipList.iterator)
-          val crcEntries = LogEntrySerialiser.read[Slice[Byte], Segment](bytes, false).value.item.value
+          val crcEntries = LogEntrySerialiser.read[Slice[Byte], Segment](bytes, false).get.item.value
           skipList.clear()
           crcEntries applyBatch skipList
           assertSkipList()

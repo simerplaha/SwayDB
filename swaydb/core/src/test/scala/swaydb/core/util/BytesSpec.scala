@@ -17,19 +17,19 @@
 package swaydb.core.util
 
 import org.scalatest.OptionValues._
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.IOValues._
+import swaydb.effect.IOValues._
 import swaydb.OK
-import swaydb.core.CoreTestData._
-import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.{Slice, SliceReader}
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
-import swaydb.utils.StorageUnits._
 import swaydb.testkit.TestKit._
+import swaydb.utils.StorageUnits._
 
-class BytesSpec extends AnyWordSpec with Matchers {
+class BytesSpec extends AnyWordSpec {
 
   "compress, decompress & commonPrefixBytes" should {
     "return common bytes" in {
@@ -131,7 +131,7 @@ class BytesSpec extends AnyWordSpec with Matchers {
       mergedBytes.size shouldBe 12
       mergedBytes.isFull shouldBe true
 
-      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.right.value
+      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.get
 
       (readBytes1, readBytes2) shouldBe ((bytes1, bytes2))
       readBytes1.isFull shouldBe true
@@ -146,7 +146,7 @@ class BytesSpec extends AnyWordSpec with Matchers {
       mergedBytes.size should be < (bytes1.size + bytes2.size)
       mergedBytes.isFull shouldBe true
 
-      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.right.value
+      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.get
 
       (readBytes1, readBytes2) shouldBe ((bytes1, bytes2))
       readBytes1.isFull shouldBe true
@@ -159,7 +159,7 @@ class BytesSpec extends AnyWordSpec with Matchers {
       mergedBytes.size should be < (bytes.size + bytes.size)
       mergedBytes.isFull shouldBe true
 
-      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.right.value
+      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.get
 
       (readBytes1, readBytes2) shouldBe ((bytes, bytes))
       readBytes1.isFull shouldBe true
@@ -184,11 +184,16 @@ class BytesSpec extends AnyWordSpec with Matchers {
       totalByteSizeWithoutCompression shouldBe 200.bytes
 
       //merge each (fromKey, toKey) pair extracting common bytes only for each pair.
-      val individuallyCompressedBytes: Iterable[Slice[Byte]] = keys map { case (fromKey, toKey) => Bytes.compressJoin(fromKey, toKey) }
+      val individuallyCompressedBytes: Iterable[Slice[Byte]] =
+        keys map {
+          case (fromKey, toKey) =>
+            Bytes.compressJoin(fromKey, toKey)
+        }
+
       val individualMergedSizes = individuallyCompressedBytes.foldLeft(0)(_ + _.size)
       individualMergedSizes shouldBe 120.bytes //results in 120.bytes which is smaller then without compression
       //uncompress
-      individuallyCompressedBytes.map(Bytes.decompressJoin).map(_.runRandomIO.right.value).toList shouldBe keys
+      individuallyCompressedBytes.map(Bytes.decompressJoin).map(_.runRandomIO.get).toList shouldBe keys
 
       //merge each (fromKey, toKey) pair with previous key-values merged bytes. This is should returns is higher compressed keys.
       val mergedCompressedKeys: Slice[Byte] =
@@ -212,7 +217,7 @@ class BytesSpec extends AnyWordSpec with Matchers {
         val sliceReverse = Bytes.writeUnsignedIntReversed(intToWrite)
         sliceReverse shouldBe Slice.wrap(slice.toList.reverse.toArray)
 
-        Bytes.readLastUnsignedInt(sliceReverse).runRandomIO.right.value shouldBe ((intToWrite, slice.size))
+        Bytes.readLastUnsignedInt(sliceReverse).runRandomIO.get shouldBe ((intToWrite, slice.size))
     }
   }
 

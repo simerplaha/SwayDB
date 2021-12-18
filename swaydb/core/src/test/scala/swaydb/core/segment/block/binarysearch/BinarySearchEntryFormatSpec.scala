@@ -16,14 +16,14 @@
 
 package swaydb.core.segment.block.binarysearch
 
-import swaydb.core.ACoreSpec
-import swaydb.core.CoreTestData._
-import swaydb.core.segment.ASegmentSpec
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.util.Bytes
 import swaydb.slice.Slice
+import swaydb.slice.SliceTestKit._
 import swaydb.utils.ByteSizeOf
 
-class BinarySearchEntryFormatSpec extends ASegmentSpec {
+class BinarySearchEntryFormatSpec extends AnyWordSpec {
 
   "ReferenceIndex" when {
     "non zero" should {

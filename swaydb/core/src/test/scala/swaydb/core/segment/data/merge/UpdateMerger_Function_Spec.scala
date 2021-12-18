@@ -16,42 +16,51 @@
 
 package swaydb.core.segment.data.merge
 
-import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.IOValues._
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
-import swaydb.core.TestTimer
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.segment.{CoreFunctionStore, TestCoreFunctionStore}
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.data.Memory
-import swaydb.serializers.Default._
+import swaydb.core.segment.data.merge.SegmentMergeTestKit._
+import swaydb.effect.IOValues._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class UpdateMerger_Function_Spec extends AnyWordSpec with Matchers {
+class UpdateMerger_Function_Spec extends AnyWordSpec {
 
-  implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  private implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+
+  private implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
+  private implicit val functionStore: CoreFunctionStore = testFunctionStore.store
+
   "Merging update into Function" when {
     "times are in order" in {
 
-      implicit val testTimer = TestTimer.Incremental()
+      val incrementalTimer: TestTimer.Incremental =
+        TestTimer.Incremental()
 
       runThis(1000.times) {
-        val key = randomStringOption
+        implicit val testTimer: TestTimer =
+          eitherOne(incrementalTimer, TestTimer.Empty)
+
+        val key = randomStringOption()
 
         val output = randomFunctionOutput()
 
-        val oldKeyValue = randomFunctionKeyValue(key = key, output)(eitherOne(testTimer, TestTimer.Empty))
+        val oldKeyValue = randomFunctionKeyValue(key = key, output)
 
-        val newKeyValue = randomUpdateKeyValue(key = key)(eitherOne(testTimer, TestTimer.Empty))
+        val newKeyValue = randomUpdateKeyValue(key = key)
 
         //          println(s"oldKeyValue: $oldKeyValue")
         //          println(s"newKeyValue: $newKeyValue")
 
-        val expected = Memory.PendingApply(key = key, Slice(oldKeyValue.toFromValue().runRandomIO.right.value, newKeyValue.toFromValue().runRandomIO.right.value))
+        val expected = Memory.PendingApply(key = key, Slice(oldKeyValue.toFromValue().runRandomIO.get, newKeyValue.toFromValue().runRandomIO.get))
 
         assertMerge(
           newKeyValue = newKeyValue,

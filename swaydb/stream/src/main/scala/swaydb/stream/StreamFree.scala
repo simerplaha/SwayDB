@@ -181,7 +181,7 @@ private[swaydb] trait StreamFree[A] { self =>
   def count[BAG[_]](f: A => Boolean)(implicit bag: Bag[BAG]): BAG[Int] =
     foldLeft(0) {
       case (c, item) if f(item) => c + 1
-      case (c, _) => c
+      case (c, _)               => c
     }
 
   /**

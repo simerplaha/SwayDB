@@ -22,12 +22,13 @@ import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.segment.data.{SegmentKeyOrders, KeyValue}
-import swaydb.core.segment.{CoreFunctionStore, PathsDistributor, Segment}
+import swaydb.core.segment.data.{KeyValue, SegmentKeyOrders}
+import swaydb.core.segment.{CoreFunctionStore, Segment}
 import swaydb.utils.IDGenerator
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.{Actor, DefActor}
+import swaydb.core.segment.distributor.PathDistributor
 
 import java.util.concurrent.ConcurrentHashMap
 import scala.concurrent.{ExecutionContext, Future}
@@ -95,7 +96,7 @@ class SegmentCompactionIO(@volatile private var state: SegmentCompactionIO.State
   def isFailed(): Boolean =
     !isSuccess()
 
-  def persist[T <: TransientSegment, S <: Segment](pathsDistributor: PathsDistributor,
+  def persist[T <: TransientSegment, S <: Segment](pathDistributor: PathDistributor,
                                                    segmentRefCacheLife: SegmentRefCacheLife,
                                                    mmap: MMAP.Segment,
                                                    transient: Iterable[T])(implicit keyOrders: SegmentKeyOrders,
@@ -113,7 +114,7 @@ class SegmentCompactionIO(@volatile private var state: SegmentCompactionIO.State
       case SegmentCompactionIO.State.Success(segments) =>
         //if the state is then persist the segment
         segmentWriteIO.persistTransient(
-          pathsDistributor = pathsDistributor,
+          pathDistributor = pathDistributor,
           segmentRefCacheLife = segmentRefCacheLife,
           mmap = mmap,
           transient = transient

@@ -17,57 +17,35 @@
 package swaydb.core.segment
 
 import org.scalatest.OptionValues._
-import org.scalatest.PrivateMethodTester
-import org.scalatest.concurrent.ScalaFutures
-import swaydb.config.MMAP
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.core.{CoreSpecType, CoreTestSweeper}
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
-import swaydb.core.level.ALevelSpec
-import swaydb.serializers.Default._
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.core.segment.ref.search.SegmentSearchTestKit._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
-import swaydb.utils.OperatingSystem
 
-class SegmentLowerSpec0 extends SegmentLowerSpec {
-  val keyValuesCount = 100
-}
-
-class SegmentLowerSpec1 extends SegmentLowerSpec {
-  val keyValuesCount = 100
-  override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-}
-
-class SegmentLowerSpec2 extends SegmentLowerSpec {
-  val keyValuesCount = 100
-  override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
-  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
-  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
-}
-
-class SegmentLowerSpec3 extends SegmentLowerSpec {
-  val keyValuesCount = 1000
-
-  override def isMemorySpec = true
-}
-
-sealed trait SegmentLowerSpec extends ALevelSpec with ScalaFutures with PrivateMethodTester {
+class SegmentLowerSpec extends AnyWordSpec {
 
   implicit val keyOrder = KeyOrder.default
 
-  def keyValuesCount: Int
+  val keyValuesCount: Int = 100
 
   "Segment.lower" should {
     "value the lower key from the segment that has only 1 fixed key-value" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           assertSegment(
             keyValues =
               Slice(randomFixedKeyValue(1)),
@@ -84,8 +62,14 @@ sealed trait SegmentLowerSpec extends ALevelSpec with ScalaFutures with PrivateM
     }
 
     "value the lower from the segment when there are no Range key-values" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           //1, 2, 3
           assertSegment(
             keyValues =
@@ -111,77 +95,86 @@ sealed trait SegmentLowerSpec extends ALevelSpec with ScalaFutures with PrivateM
 
     "value the lower from the segment when there are Range key-values" in {
       //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-      runThis(100.times, log = true) {
-        TestSweeper {
-          implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(100.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
 
-            assertSegment(
-              keyValues = Slice(
-                randomFixedKeyValue(1),
-                randomRangeKeyValue(2, 5),
-                randomFixedKeyValue(10),
-                randomRangeKeyValue(11, 20),
-                randomRangeKeyValue(20, 30)
-              ),
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
 
-              assert =
-                (keyValues, segment) => {
-                  val readState = ThreadReadState.random
+          import sweeper.testCoreFunctionStore
 
-                  //0
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(0, readState).toOption shouldBe empty
-                  //1
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(1, readState).toOption shouldBe empty
-                  //    2
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(2, readState).getUnsafe shouldBe keyValues(0)
-                  //     3
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(3, readState).getUnsafe shouldBe keyValues(1)
-                  //       4
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(4, readState).getUnsafe shouldBe keyValues(1)
-                  //        5
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(5, readState).getUnsafe shouldBe keyValues(1)
-                  //          6
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(6, readState).getUnsafe shouldBe keyValues(1)
-                  //            10
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(10, readState).getUnsafe shouldBe keyValues(1)
-                  //                 11
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(11, readState).getUnsafe shouldBe keyValues(2)
-                  //                   12
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(12, readState).getUnsafe shouldBe keyValues(3)
-                  //                    19
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(19, readState).getUnsafe shouldBe keyValues(3)
-                  //                      20
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(20, readState).getUnsafe shouldBe keyValues(3)
-                  //                              21
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(21, readState).getUnsafe shouldBe keyValues(4)
-                  //                                29
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(29, readState).getUnsafe shouldBe keyValues(4)
-                  //                                 30
-                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-                  segment.lower(30, readState).getUnsafe shouldBe keyValues(4)
-                }
-            )
-        }
+          assertSegment(
+            keyValues = Slice(
+              randomFixedKeyValue(1),
+              randomRangeKeyValue(2, 5),
+              randomFixedKeyValue(10),
+              randomRangeKeyValue(11, 20),
+              randomRangeKeyValue(20, 30)
+            ),
+
+            assert =
+              (keyValues, segment) => {
+                val readState = ThreadReadState.random
+
+                //0
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(0, readState).toOption shouldBe empty
+                //1
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(1, readState).toOption shouldBe empty
+                //    2
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(2, readState).getUnsafe shouldBe keyValues(0)
+                //     3
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(3, readState).getUnsafe shouldBe keyValues(1)
+                //       4
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(4, readState).getUnsafe shouldBe keyValues(1)
+                //        5
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(5, readState).getUnsafe shouldBe keyValues(1)
+                //          6
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(6, readState).getUnsafe shouldBe keyValues(1)
+                //            10
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(10, readState).getUnsafe shouldBe keyValues(1)
+                //                 11
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(11, readState).getUnsafe shouldBe keyValues(2)
+                //                   12
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(12, readState).getUnsafe shouldBe keyValues(3)
+                //                    19
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(19, readState).getUnsafe shouldBe keyValues(3)
+                //                      20
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(20, readState).getUnsafe shouldBe keyValues(3)
+                //                              21
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(21, readState).getUnsafe shouldBe keyValues(4)
+                //                                29
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(29, readState).getUnsafe shouldBe keyValues(4)
+                //                                 30
+                //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                segment.lower(30, readState).getUnsafe shouldBe keyValues(4)
+              }
+          )
       }
     }
 
     "random" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(50.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           assertSegment(
             keyValues = randomizedKeyValues(keyValuesCount, addUpdates = true),
             assert = assertLower(_, _)

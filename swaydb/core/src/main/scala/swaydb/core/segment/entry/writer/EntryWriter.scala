@@ -103,6 +103,7 @@ private[core] object EntryWriter {
    * Note: No extra bytes are required to differentiate between a key that has meta or no meta block.
    *
    * @param binder [[BaseEntryIdFormat]] for this key-value's type.
+   *
    * @return indexEntry, valueBytes, valueOffsetBytes, nextValuesOffsetPosition
    */
   def write[T <: Memory](current: T,

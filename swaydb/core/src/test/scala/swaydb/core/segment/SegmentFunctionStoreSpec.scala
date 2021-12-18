@@ -17,17 +17,16 @@
 package swaydb.core.segment
 
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import swaydb.core.segment.data.{SegmentFunction, SegmentFunctionOutput}
-import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 
-class SegmentFunctionStoreSpec extends AnyFlatSpec with Matchers {
+class SegmentFunctionStoreSpec extends AnyFlatSpec {
 
   val store = CoreFunctionStore.memory()
 
   it should "write int keys" in {
-
     (1 to 100) foreach {
       i =>
         val function = SegmentFunction.Key(_ => SegmentFunctionOutput.Update(i, None))
@@ -39,7 +38,6 @@ class SegmentFunctionStoreSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "not allow duplicate functions" in {
-
     val key = 0
     val function = SegmentFunction.Key(_ => SegmentFunctionOutput.Update(key, None))
     store.put(key, function)

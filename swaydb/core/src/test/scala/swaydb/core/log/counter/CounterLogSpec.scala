@@ -16,14 +16,15 @@
 
 package swaydb.core.log.counter
 
-import swaydb.IOValues._
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.config.CoreConfigTestKit._
 import swaydb.config.MMAP
 import swaydb.core._
-import swaydb.core.CoreTestData._
-import swaydb.core.TestSweeper._
-import swaydb.core.log.LogTestUtil._
+import swaydb.core.CoreTestSweeper._
+import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.log.serialiser._
-import swaydb.core.log.ALogSpec
+import swaydb.core.log.LogTestKit._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
@@ -31,9 +32,8 @@ import swaydb.testkit.TestKit._
 import swaydb.utils.StorageUnits._
 
 import scala.collection.mutable.ListBuffer
-import swaydb.core.file.CoreFileTestKit._
 
-class CounterLogSpec extends ALogSpec {
+class CounterLogSpec extends AnyWordSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
@@ -63,7 +63,7 @@ class CounterLogSpec extends ALogSpec {
 
   "fetch the next long" in {
     runThis(10.times, log = true) {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -75,7 +75,7 @@ class CounterLogSpec extends ALogSpec {
               fileSize = randomIntMax(100) max 1,
               mmap = MMAP.randomForLog(),
               mod = mod
-            ).value.sweep()
+            ).get.sweep()
 
           val expectedNext = CounterLog.startId + 1
           map.next shouldBe expectedNext
@@ -92,7 +92,7 @@ class CounterLogSpec extends ALogSpec {
 
   "initialise and reopen" in {
     runThis(10.times, log = true) {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -108,7 +108,7 @@ class CounterLogSpec extends ALogSpec {
               fileSize = randomIntMax(1.kb) max 1,
               mmap = MMAP.randomForLog(),
               mod = mod
-            ).value.sweep()
+            ).get.sweep()
 
           val expectedStart = CounterLog.startId + 1
           val expectedLast = expectedStart + maxIteration

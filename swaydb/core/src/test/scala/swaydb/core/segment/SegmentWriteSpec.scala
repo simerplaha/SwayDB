@@ -18,17 +18,19 @@
 //
 //import org.scalatest.OptionValues.convertOptionToValuable
 //import swaydb.Error.Segment.ExceptionHandler
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.config.MMAP
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.PrivateMethodInvokers._
-//import swaydb.core.TestSweeper._
+//import swaydb.core.CoreTestSweeper._
 //import swaydb.core.CoreTestData._
 //import swaydb.core._
 //import swaydb.core.file.sweeper.FileSweeper
 //import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
-//import swaydb.core.segment.PathsDistributor
-//import swaydb.core.segment.block.BlockCacheState
+//import swaydb.core.segment.cache.sweeper.MemorySweeperTestKit
+//
+//import scala.concurrent.ExecutionContext
+//////import swaydb.core.segment.block.BlockCacheState
 //import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 //import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 //import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
@@ -61,42 +63,43 @@
 //import scala.util.Random
 //import swaydb.testkit.TestKit._
 //
-//class SegmentWriteSpec0 extends SegmentWriteSpec
+//import swaydb.core.segment.data.KeyValueTestKit._
+//import swaydb.core.segment.SegmentTestKit._
+//import swaydb.slice.SliceTestKit._
+//import swaydb.core.segment.block.SegmentBlockTestKit._
+//import swaydb.config.CoreConfigTestKit._
+//import org.scalatest.matchers.should.Matchers._
+//import swaydb.core.segment.data.merge.SegmentMergeTestKit._
+//import swaydb.core.log.timer.TestTimer
+//import swaydb.effect.EffectTestKit._
+//import swaydb.core.compression.CompressionTestKit._
+//import swaydb.core.segment.block.SegmentBlockTestKit._
+//import swaydb.core.file.CoreFileTestKit._
+//import swaydb.core.segment.ref.search.SegmentSearchTestKit._
+//import org.scalatest.wordspec.AnyWordSpec
+//import swaydb.actor.ActorTestKit._
+//import swaydb.utils.UtilsTestKit._
+//import swaydb.core.CoreSpecType
+//import swaydb.TestExecutionContext
+//import swaydb.slice.order.TimeOrder
+//import swaydb.slice.Slice
 //
-//class SegmentWriteSpec1 extends SegmentWriteSpec {
-//  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-//}
-//
-//class SegmentWriteSpec2 extends SegmentWriteSpec {
-//  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-//  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-//  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
-//}
-//
-//class SegmentWriteSpec3 extends SegmentWriteSpec {
-//  override def isMemorySpec = true
-//}
-//
-//sealed trait SegmentWriteSpec extends ALevelSpec {
+//class SegmentWriteSpec extends AnyWordSpec {
 //
 //  val keyValuesCount = 100
 //
 //  implicit val testTimer: TestTimer = TestTimer.Empty
-//
-//  implicit val ec = TestExecutionContext.executionContext
-//  implicit val keyOrder = KeyOrder.default
+//  implicit val ec: ExecutionContext = TestExecutionContext.executionContext
+//  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-//  implicit def segmentIO = SegmentReadIO.random
+//
+//  implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
 //
 //  "Segment" should {
 //
 //    "create a Segment" in {
 //      runThis(100.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            assertSegment(
 //              keyValues =
@@ -141,7 +144,7 @@
 //
 //    "set minKey & maxKey to be Fixed if the last key-value is a Fixed key-value" in {
 //      runThis(50.times) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            assertSegment(
 //              keyValues =
@@ -163,7 +166,7 @@
 //
 //    "set minKey & maxKey to be Range if the last key-value is a Range key-value" in {
 //      runThis(50.times) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            assertSegment(
 //              keyValues = Slice(randomFixedKeyValue(0), randomRangeKeyValue(1, 10)),
@@ -179,7 +182,7 @@
 //    }
 //
 //    "un-slice Segment's minKey & maxKey and also un-slice cache key-values" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //          //set this MemorySweeper as root sweeper.
@@ -239,7 +242,7 @@
 //                (keyValues, segment) => {
 //                  assertMinAndMaxKeyAreSliced(segment)
 //                  //if Persistent Segment, read all key-values from disk so that they value added to cache.
-//                  if (isPersistentSpec) assertGet(readKeyValues, segment)
+//                  if (isPersistent) assertGet(readKeyValues, segment)
 //                  //assert key-values added to cache are un-sliced
 //                  assertCacheKeyValuesAreSliced(segment)
 //                }
@@ -273,15 +276,15 @@
 //    }
 //
 //    "not create bloomFilter if the Segment has Remove range key-values or function key-values and set hasRange to true" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          //adjustSegmentConfig = false so that Many Segments do not get created.
 //
 //          def doAssert(keyValues: Slice[KeyValue], segment: Segment) = {
 //            segment.hasBloomFilter() shouldBe false
 //            assertBloom(keyValues, segment)
-//            segment.hasRange.runRandomIO.right.value shouldBe true
-//            segment.close.runRandomIO.right.value
+//            segment.hasRange.runRandomIO.get shouldBe true
+//            segment.close.runRandomIO.get
 //          }
 //
 //          assertSegment(
@@ -316,8 +319,8 @@
 //    }
 //
 //    "create bloomFilter if the Segment has no Remove range key-values but has update range key-values. And set hasRange to true" in {
-//      if (isPersistentSpec) {
-//        TestSweeper {
+//      if (isPersistent) {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            assertSegment(
 //              keyValues =
@@ -334,15 +337,15 @@
 //
 //              assert =
 //                (keyValues, segment) => {
-//                  segment.hasBloomFilter().runRandomIO.right.value shouldBe true
-//                  segment.hasRange.runRandomIO.right.value shouldBe false
+//                  segment.hasBloomFilter().runRandomIO.get shouldBe true
+//                  segment.hasRange.runRandomIO.get shouldBe false
 //
 //                  segment.rangeCount shouldBe 0
 //                  segment.updateCount shouldBe 1
 //                  segment.putCount shouldBe 2
 //                  segment.putDeadlineCount shouldBe 0
 //
-//                  segment.close.runRandomIO.right.value
+//                  segment.close.runRandomIO.get
 //                }
 //            )
 //
@@ -361,15 +364,15 @@
 //
 //              assert =
 //                (keyValues, segment) => {
-//                  segment.hasBloomFilter().runRandomIO.right.value shouldBe true
-//                  segment.hasRange.runRandomIO.right.value shouldBe true
+//                  segment.hasBloomFilter().runRandomIO.get shouldBe true
+//                  segment.hasRange.runRandomIO.get shouldBe true
 //
 //                  segment.rangeCount shouldBe 1
 //                  segment.updateCount shouldBe 0
 //                  segment.putCount shouldBe 1
 //                  segment.putDeadlineCount shouldBe 0
 //
-//                  segment.close.runRandomIO.right.value
+//                  segment.close.runRandomIO.get
 //                }
 //            )
 //        }
@@ -377,7 +380,7 @@
 //    }
 //
 //    "set hasRange to true if the Segment contains Range key-values" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          def doAssert(keyValues: Slice[KeyValue], segment: Segment): Unit = {
 //            segment.hasRange shouldBe true
@@ -435,7 +438,7 @@
 //      if (isMemorySpec) {
 //        //memory Segments do not check for overwrite. No tests required
 //      } else {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            assertSegment(
 //              keyValues =
@@ -451,7 +454,7 @@
 //                  val readState = ThreadReadState.random
 //                  failedKV foreach {
 //                    keyValue =>
-//                      segment.get(keyValue.key, readState).runRandomIO.right.value.toOption shouldBe empty
+//                      segment.get(keyValue.key, readState).runRandomIO.get.toOption shouldBe empty
 //                  }
 //                  assertBloom(keyValues, segment)
 //                }
@@ -465,7 +468,7 @@
 //        //memory Segments cannot re-initialise Segments after shutdown.
 //      } else {
 //        runThis(10.times) {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //              //set this MemorySweeper as root sweeper.
 //              CoreTestSweepers.createKeyValueSweeperBlock().value.sweep()
@@ -495,7 +498,7 @@
 //                    segment.isKeyValueCacheEmpty shouldBe false
 //
 //                    assertBloom(keyValues, segment)
-//                    segment.close.runRandomIO.right.value
+//                    segment.close.runRandomIO.get
 //                    segment.isOpen shouldBe false
 //                    segment.isFileDefined shouldBe false
 //
@@ -512,7 +515,7 @@
 //        //memory Segments cannot re-initialise Segments after shutdown.
 //      } else {
 //        runThis(100.times, log = true) {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //              import sweeper._
 //
@@ -540,7 +543,7 @@
 //      if (isMemorySpec) {
 //        //memory Segments do not value re-initialised
 //      } else {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            //memory-mapped files on windows get submitted to ByteBufferCleaner.
@@ -548,7 +551,7 @@
 //            bufferCleaner.actor
 //
 //            //create a segment and delete it
-//            val segment = TestSegment()
+//            val segment = TestSegment(randomizedKeyValues(100))
 //            segment.delete()
 //
 //            eventual(20.seconds) {
@@ -562,7 +565,7 @@
 //  "deleteSegments" should {
 //    "delete multiple segments" in {
 //      runThis(100.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds).sweep()
@@ -595,7 +598,7 @@
 //
 //  "open a closed Segment on read and clear footer" in {
 //    runThis(10.times) {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          //        implicit val fileSweeper = FileSweeper.Disabled
 //          implicit val blockCache: Option[BlockCacheState] = None
@@ -606,7 +609,7 @@
 //
 //          def close(): Unit = {
 //            segment.close()
-//            if (isPersistentSpec) {
+//            if (isPersistent) {
 //              //also clear the cache so that if the key-value is a group on open file is still reopened
 //              //instead of just reading from in-memory Group key-value.
 //              eitherOne(segment.clearCachedKeyValues(), segment.clearAllCaches())
@@ -632,7 +635,7 @@
 //
 //  "fail read and write operations on a Segment that does not exists" when {
 //    def executeTest(gaped: Boolean): Unit =
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -693,7 +696,7 @@
 //              hashIndexConfig = hashIndexConfig,
 //              bloomFilterConfig = bloomFilterConfig,
 //              segmentConfig = segmentConfig,
-//              pathDistributor = createPathDistributor,
+//              pathDistributor = createPathDistributor(),
 //              segmentRefCacheLife = randomSegmentRefCacheLife(),
 //              mmapSegment = mmapSegments
 //            )
@@ -709,14 +712,14 @@
 //              hashIndexConfig = hashIndexConfig,
 //              bloomFilterConfig = bloomFilterConfig,
 //              segmentConfig = segmentConfig,
-//              pathDistributor = createPathDistributor
+//              pathDistributor = createPathDistributor()
 //            )
 //          }.left.get.exception shouldBe a[NoSuchFileException]
 //
 //          segment.isOpen shouldBe false
 //          segment.isFileDefined shouldBe false
 //
-//          if (isPersistentSpec && gaped) {
+//          if (isPersistent && gaped) {
 //            //if gap wait for gap segments to be created.
 //            sleep(2.seconds)
 //            //failure should triggered recovery and then cleanup so the directory should be empty.
@@ -738,13 +741,13 @@
 //      //memory Segments do not value closed via
 //    } else {
 //      runThis(5.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            implicit val fileSweeper = FileSweeper(1, ActorConfig.TimeLoop("", 2.second, ec)).sweep()
 //
 //            val keyValues = randomizedKeyValues(keyValuesCount)
 //
-//            val segmentConfig = SegmentBlockConfig.random(cacheBlocksOnCreate = true, mmap = MMAP.Off(TestForceSave.channel()), cacheOnAccess = true)
+//            val segmentConfig = SegmentBlockConfig.random(cacheBlocksOnCreate = true, mmap = MMAP.Off(TestForceSave.standard()), cacheOnAccess = true)
 //
 //            val segment1 =
 //              TestSegment(
@@ -784,7 +787,7 @@
 //
 //  "delete" should {
 //    "close the channel and delete the file" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          //set this MemorySweeper as root sweeper.
@@ -802,7 +805,7 @@
 //          segment.cachedKeyValueSize shouldBe keyValues.size //cache is not cleared
 //
 //          eventual(5.seconds) {
-//            if (isPersistentSpec) {
+//            if (isPersistent) {
 //              segment.isOpen shouldBe false
 //              segment.isFooterDefined shouldBe false //on delete in-memory footer is cleared
 //            }
@@ -814,8 +817,8 @@
 //
 //  "copyTo" should {
 //    "copy the segment to a target path without deleting the original" in {
-//      if (isPersistentSpec) {
-//        TestSweeper {
+//      if (isPersistent) {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val keyValues = randomizedKeyValues(keyValuesCount)
@@ -840,7 +843,7 @@
 //
 //  "copyToPersist" should {
 //    "copy the segment and persist it to disk" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //          val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
@@ -863,13 +866,13 @@
 //              segmentConfig = segmentConfig
 //            )
 //
-//          val pathDistributor = createPathDistributor
+//          val pathDistributor = createPathDistributor()
 //
 //          val segments =
 //            Segment.copyToPersist(
 //              segment = segment,
 //              createdInLevel = 0,
-//              pathsDistributor = pathDistributor,
+//              pathDistributor = pathDistributor,
 //              valuesConfig = valuesConfig,
 //              sortedIndexConfig = sortedIndexConfig,
 //              binarySearchIndexConfig = binarySearchIndexConfig,
@@ -879,7 +882,7 @@
 //              removeDeletes = false,
 //            ).awaitInf.map(_.sweep())
 //
-//          if (isPersistentSpec)
+//          if (isPersistent)
 //            segments.size shouldBe 1
 //          else
 //            segments.size should be > 1
@@ -891,7 +894,7 @@
 //
 //    "copy the segment and persist it to disk when remove deletes is true" in {
 //      runThis(10.times) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -905,13 +908,13 @@
 //            val bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random
 //            val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = Segment.segmentSizeForMerge(segment, randomBoolean()) / 10)
 //
-//            val pathDistributor = createPathDistributor
+//            val pathDistributor = createPathDistributor()
 //
 //            val segments =
 //              Segment.copyToPersist(
 //                segment = segment,
 //                createdInLevel = 0,
-//                pathsDistributor = pathDistributor,
+//                pathDistributor = pathDistributor,
 //                valuesConfig = valuesConfig,
 //                sortedIndexConfig = sortedIndexConfig,
 //                binarySearchIndexConfig = binarySearchIndexConfig,
@@ -923,7 +926,7 @@
 //
 //            segments.foreach(_.existsOnDisk() shouldBe true)
 //
-//            if (isPersistentSpec)
+//            if (isPersistent)
 //              segments.flatMap(_.iterator(randomBoolean())) shouldBe keyValues //persistent Segments are simply copied and are not checked for removed key-values.
 //            else
 //              segments.flatMap(_.iterator(randomBoolean())) shouldBe keyValues.collect { //memory Segments does a split/merge and apply lastLevel rules.
@@ -938,7 +941,7 @@
 //    }
 //
 //    "revert copy if Segment initialisation fails after copy" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -952,7 +955,7 @@
 //          val bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random
 //          val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = Segment.segmentSizeForMerge(segment, randomBoolean()) / 10)
 //
-//          val pathDistributor = createPathDistributor
+//          val pathDistributor = createPathDistributor()
 //
 //          pathDistributor.dirs.foreach(_.path.sweep())
 //
@@ -966,7 +969,7 @@
 //            Segment.copyToPersist(
 //              segment = segment,
 //              createdInLevel = 0,
-//              pathsDistributor = pathDistributor,
+//              pathDistributor = pathDistributor,
 //              valuesConfig = valuesConfig,
 //              sortedIndexConfig = sortedIndexConfig,
 //              binarySearchIndexConfig = binarySearchIndexConfig,
@@ -993,12 +996,12 @@
 //            sweeper.receiveAll()
 //
 //          Effect.size(conflictingPath) shouldBe 0
-//          if (isPersistentSpec) segment.existsOnDisk() shouldBe true //original Segment remains untouched
+//          if (isPersistent) segment.existsOnDisk() shouldBe true //original Segment remains untouched
 //      }
 //    }
 //
 //    "revert copy of Key-values if creating at least one Segment fails" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -1023,7 +1026,7 @@
 //              segmentConfig = segmentConfig
 //            )
 //
-//          val pathDistributor = createPathDistributor
+//          val pathDistributor = createPathDistributor()
 //
 //          pathDistributor.dirs.foreach(_.path.sweep())
 //
@@ -1044,7 +1047,7 @@
 //            Segment.copyToPersist(
 //              keyValues = keyValues,
 //              createdInLevel = 0,
-//              pathsDistributor = pathDistributor,
+//              pathDistributor = pathDistributor,
 //              valuesConfig = valuesConfig,
 //              sortedIndexConfig = sortedIndexConfig,
 //              binarySearchIndexConfig = binarySearchIndexConfig,
@@ -1069,11 +1072,11 @@
 //
 //    "transfer blockCache on copy" in {
 //      //when a Segment is copied it's BlockCache bytes should still be accessible.
-//      if (isPersistentSpec)
+//      if (isPersistent)
 //        runThis(50.times, log = true) {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
-//              CoreTestSweepers.createBlockCacheBlockSweeper().foreach(_.sweep())
+//              MemorySweeperTestKit.createBlockCacheBlockSweeper().foreach(_.sweep())
 //
 //              import sweeper._
 //
@@ -1135,7 +1138,7 @@
 //              }
 //              postCachingTailSegments should not be empty
 //
-//              val pathDistributor = createPathDistributor
+//              val pathDistributor = createPathDistributor()
 //              pathDistributor.dirs.foreach(_.path.sweep())
 //
 //              //copy the segment
@@ -1143,7 +1146,7 @@
 //                Segment.copyToPersist(
 //                  segment = segment,
 //                  createdInLevel = 0,
-//                  pathsDistributor = pathDistributor,
+//                  pathDistributor = pathDistributor,
 //                  valuesConfig = valuesConfig,
 //                  sortedIndexConfig = sortedIndexConfig,
 //                  binarySearchIndexConfig = binarySearchIndexConfig,
@@ -1201,9 +1204,9 @@
 //    //      //when a Segment is copied it's BlockCache bytes should still be accessible.
 //    //      if (persistent)
 //    //        runThis(100.times, log = true) {
-//    //          TestSweeper {
+//    //          CoreTestSweeper {
 //    //            implicit sweeper =>
-//    //              TestSweeper.createBlockCacheBlockSweeper().foreach(_.sweep())
+//    //              CoreTestSweeper.createBlockCacheBlockSweeper().foreach(_.sweep())
 //    //
 //    //              import sweeper._
 //    //
@@ -1218,7 +1221,7 @@
 //    //              val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random(cacheOnAccess = false, cacheBlocksOnCreate = true, hasCompression = false).copy(minSize = Int.MaxValue, maxCount = keyValues.size / 10)
 //    //
 //    //              val path = testSegmentFile
-//    //              implicit val pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq.empty)
+//    //              implicit val pathDistributor: pathDistributor = pathDistributor(Seq(Dir(path.getParent, 1)), () => Seq.empty)
 //    //
 //    //              //used to calculate the size of Segment
 //    //              val segment =
@@ -1270,7 +1273,7 @@
 //    //                  hashIndexConfig = hashIndexConfig,
 //    //                  bloomFilterConfig = bloomFilterConfig,
 //    //                  segmentConfig = segmentConfig,
-//    //                  pathsDistributor = pathsDistributor
+//    //                  pathDistributor = pathDistributor
 //    //                )
 //    //
 //    //              newSegmentsResult.replaced shouldBe true
@@ -1314,7 +1317,7 @@
 //  "copyToMemory" should {
 //    "copy persistent segment and store it in Memory" in {
 //      runThis(100.times) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //            val keyValues = randomizedKeyValues(keyValuesCount)
@@ -1322,14 +1325,14 @@
 //
 //            val memorySize = keyValues.foldLeft(0)(_ + MergeStats.Memory.calculateSize(_))
 //
-//            val pathDistributor = createPathDistributor
+//            val pathDistributor = createPathDistributor()
 //            pathDistributor.dirs.foreach(_.path.sweep())
 //
 //            val segments =
 //              Segment.copyToMemory(
 //                segment = segment,
 //                createdInLevel = 0,
-//                pathsDistributor = pathDistributor,
+//                pathDistributor = pathDistributor,
 //                removeDeletes = false,
 //                minSegmentSize =
 //                //there are too many conditions that will not split the segments so set the size of each segment to be too small
@@ -1349,14 +1352,14 @@
 //
 //    "copy the segment and persist it to disk when removeDeletes is true" in {
 //      runThis(10.times) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
 //            val keyValues = randomizedKeyValues(keyValuesCount)
 //            val segment = TestSegment(keyValues)
 //
-//            val pathDistributor = createPathDistributor
+//            val pathDistributor = createPathDistributor()
 //            pathDistributor.dirs.foreach(_.path.sweep())
 //
 //            val memorySize = keyValues.foldLeft(0)(_ + MergeStats.Memory.calculateSize(_))
@@ -1365,7 +1368,7 @@
 //              Segment.copyToMemory(
 //                segment = segment,
 //                createdInLevel = 0,
-//                pathsDistributor = pathDistributor,
+//                pathDistributor = pathDistributor,
 //                removeDeletes = true,
 //                minSegmentSize = memorySize / 1000,
 //                maxKeyValueCountPerSegment = randomIntMax(keyValues.size),
@@ -1391,7 +1394,7 @@
 //  "put" should {
 //    "return None for empty byte arrays for values" in {
 //      runThis(10.times) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val keyValuesWithEmptyValues = ListBuffer.empty[Memory]
@@ -1454,7 +1457,7 @@
 //    }
 //
 //    "reopen closed channel" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -1462,7 +1465,7 @@
 //
 //          val segment = TestSegment(keyValues1)
 //          segment.close()
-//          if (isPersistentSpec) segment.isOpen shouldBe false
+//          if (isPersistent) segment.isOpen shouldBe false
 //
 //          val keyValues2 = randomizedKeyValues(keyValuesCount)
 //
@@ -1478,17 +1481,17 @@
 //            hashIndexConfig = HashIndexBlockConfig.random,
 //            bloomFilterConfig = BloomFilterBlockConfig.random,
 //            segmentConfig = SegmentBlockConfig.random.copy(minSize = 1.mb),
-//            pathDistributor = createPathDistributor,
+//            pathDistributor = createPathDistributor(),
 //            segmentRefCacheLife = randomSegmentRefCacheLife(),
 //            mmapSegment = mmapSegments
 //          ).output.mapToSlice(_.sweep())
 //
-//          if (isPersistentSpec) segment.isOpen shouldBe true
+//          if (isPersistent) segment.isOpen shouldBe true
 //      }
 //    }
 //
 //    "return a new segment with merged key values" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -1527,7 +1530,7 @@
 //              hashIndexConfig = hashIndexConfig,
 //              bloomFilterConfig = bloomFilterConfig,
 //              segmentConfig = segmentConfig.copy(minSize = 4.mb),
-//              pathDistributor = createPathDistributor,
+//              pathDistributor = createPathDistributor(),
 //              segmentRefCacheLife = randomSegmentRefCacheLife(),
 //              mmapSegment = mmapSegments
 //            ).output.mapToSlice(_.sweep())
@@ -1561,7 +1564,7 @@
 //    "return multiple new segments with merged key values" when {
 //      def doTest(gaped: Boolean) =
 //        runThis(2.times, log = true) {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //              import sweeper._
 //
@@ -1626,7 +1629,7 @@
 //                  hashIndexConfig = hashIndexConfig,
 //                  bloomFilterConfig = bloomFilterConfig,
 //                  segmentConfig = segmentConfig.copy(minSize = oldSegment.segmentSize / 10),
-//                  pathDistributor = createPathDistributor,
+//                  pathDistributor = createPathDistributor(),
 //                  segmentRefCacheLife = randomSegmentRefCacheLife(),
 //                  mmapSegment = mmapSegments
 //                ).output.mapToSlice(_.sweep())
@@ -1651,7 +1654,7 @@
 //        cancel("Test not need for Memory Segment")
 //      else
 //        runThis(10.times, log = true) {
-//          TestSweeper {
+//          CoreTestSweeper {
 //            implicit sweeper =>
 //              import sweeper._
 //
@@ -1688,7 +1691,7 @@
 //                  hashIndexConfig = hashIndexConfig,
 //                  bloomFilterConfig = bloomFilterConfig,
 //                  segmentConfig = segmentConfig.copy(minSize = 50.bytes),
-//                  pathDistributor = PathsDistributor(Seq(Dir(segment.path.getParent, 1)), () => Seq.empty),
+//                  pathDistributor = pathDistributor(Seq(Dir(segment.path.getParent, 1)), () => Seq.empty),
 //                  segmentRefCacheLife = randomSegmentRefCacheLife(),
 //                  mmapSegment = mmapSegments
 //                ).output.mapToSlice(_.sweep())
@@ -1712,7 +1715,7 @@
 //    }
 //
 //    "return new segment with deleted KeyValues if all keys were deleted and removeDeletes is false" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -1750,7 +1753,7 @@
 //              hashIndexConfig = hashIndexConfig,
 //              bloomFilterConfig = bloomFilterConfig,
 //              segmentConfig = segmentConfig.copy(minSize = 4.mb),
-//              pathDistributor = createPathDistributor,
+//              pathDistributor = createPathDistributor(),
 //              segmentRefCacheLife = randomSegmentRefCacheLife(),
 //              mmapSegment = mmapSegments
 //            ).output.mapToSlice(_.sweep())
@@ -1760,12 +1763,12 @@
 //          newDeletedSegment.iterator(randomBoolean()).toList shouldBe deleteKeyValues
 //
 //          assertGet(keyValues, segment)
-//          if (isPersistentSpec) assertGet(keyValues, segment.asInstanceOf[PersistentSegment].reopen)
+//          if (isPersistent) assertGet(keyValues, segment.asInstanceOf[PersistentSegment].reopen)
 //      }
 //    }
 //
 //    "return new segment with updated KeyValues if all keys values were updated to None" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -1797,7 +1800,7 @@
 //              hashIndexConfig = hashIndexConfig,
 //              bloomFilterConfig = bloomFilterConfig,
 //              segmentConfig = segmentConfig.copy(minSize = 4.mb),
-//              pathDistributor = createPathDistributor,
+//              pathDistributor = createPathDistributor(),
 //              segmentRefCacheLife = randomSegmentRefCacheLife(),
 //              mmapSegment = mmapSegments
 //            ).output.mapToSlice(_.sweep())
@@ -1810,7 +1813,7 @@
 //
 //    "merge existing segment file with new KeyValues returning new segment file with updated KeyValues" in {
 //      runThis(10.times) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -1851,7 +1854,7 @@
 //                hashIndexConfig = hashIndexConfig,
 //                bloomFilterConfig = bloomFilterConfig,
 //                segmentConfig = segmentConfig.copy(minSize = 10.mb),
-//                pathDistributor = createPathDistributor,
+//                pathDistributor = createPathDistributor(),
 //                segmentRefCacheLife = randomSegmentRefCacheLife(),
 //                mmapSegment = mmapSegments
 //              ).output.mapToSlice(_.sweep())
@@ -1872,7 +1875,7 @@
 //
 //    "return no new segments if all the KeyValues in the Segment were deleted and if remove deletes is true" in {
 //      runThis(50.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -1903,7 +1906,7 @@
 //              hashIndexConfig = HashIndexBlockConfig.random,
 //              bloomFilterConfig = BloomFilterBlockConfig.random,
 //              segmentConfig = SegmentBlockConfig.random.copy(minSize = 4.mb),
-//              pathDistributor = createPathDistributor,
+//              pathDistributor = createPathDistributor(),
 //              segmentRefCacheLife = randomSegmentRefCacheLife(),
 //              mmapSegment = mmapSegments
 //            ).output.isEmpty shouldBe true
@@ -1913,7 +1916,7 @@
 //
 //    "slice Put range into slice with fromValue set to Remove" in {
 //      runThis(10.times) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
 //
@@ -1938,7 +1941,7 @@
 //                hashIndexConfig = HashIndexBlockConfig.random,
 //                bloomFilterConfig = BloomFilterBlockConfig.random,
 //                segmentConfig = SegmentBlockConfig.random,
-//                pathDistributor = createPathDistributor,
+//                pathDistributor = createPathDistributor(),
 //                segmentRefCacheLife = randomSegmentRefCacheLife(),
 //                mmapSegment = mmapSegments
 //              ).output.mapToSlice(_.sweep()).flatMap(_.iterator(randomBoolean())).toList
@@ -1951,7 +1954,7 @@
 //    }
 //
 //    "return 1 new segment with only 1 key-value if all the KeyValues in the Segment were deleted but 1" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -1976,7 +1979,7 @@
 //              hashIndexConfig = HashIndexBlockConfig.random,
 //              bloomFilterConfig = BloomFilterBlockConfig.random,
 //              segmentConfig = SegmentBlockConfig.random.copy(minSize = 4.mb),
-//              pathDistributor = createPathDistributor,
+//              pathDistributor = createPathDistributor(),
 //              segmentRefCacheLife = randomSegmentRefCacheLife(),
 //              mmapSegment = mmapSegments
 //            ).output.mapToSlice(_.sweep())
@@ -1995,7 +1998,7 @@
 //    }
 //
 //    "distribute new Segments to multiple folders equally" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //          import sweeper._
 //
@@ -2008,10 +2011,10 @@
 //
 //          val segmentSizeForMerge = Segment.segmentSizeForMerge(segment, randomBoolean())
 //
-//          val pathsDistributor = PathsDistributor(dirs, () => Seq(segment))
+//          val pathDistributor = pathDistributor(dirs, () => Seq(segment))
 //
 //          val segments =
-//            if (isPersistentSpec)
+//            if (isPersistent)
 //              segment.put(
 //                headGap = Iterable.empty[KeyValue],
 //                tailGap = Iterable.empty[KeyValue],
@@ -2024,7 +2027,7 @@
 //                hashIndexConfig = HashIndexBlockConfig.random,
 //                bloomFilterConfig = BloomFilterBlockConfig.random,
 //                segmentConfig = SegmentBlockConfig.random.copy(minSize = segmentSizeForMerge / 4),
-//                pathDistributor = pathsDistributor,
+//                pathDistributor = pathDistributor,
 //                segmentRefCacheLife = randomSegmentRefCacheLife(),
 //                mmapSegment = mmapSegments
 //              ).output.mapToSlice(_.sweep())
@@ -2041,7 +2044,7 @@
 //                hashIndexConfig = HashIndexBlockConfig.random,
 //                bloomFilterConfig = BloomFilterBlockConfig.random,
 //                segmentConfig = SegmentBlockConfig.random.copy(minSize = 21.bytes),
-//                pathDistributor = pathsDistributor,
+//                pathDistributor = pathDistributor,
 //                segmentRefCacheLife = randomSegmentRefCacheLife(),
 //                mmapSegment = mmapSegments
 //              ).output.mapToSlice(_.sweep())
@@ -2061,7 +2064,7 @@
 //          segments(2).path.getParent shouldBe dirs(2).path
 //          segments(3).path.getParent shouldBe dirs(3).path
 //
-//          if (isPersistentSpec)
+//          if (isPersistent)
 //            segments(4).path.getParent shouldBe dirs(4).path
 //
 //        //all paths are used ???
@@ -2072,8 +2075,8 @@
 //
 //  "refresh" should {
 //    "return new Segment with Removed key-values removed" in {
-//      if (isPersistentSpec) {
-//        TestSweeper {
+//      if (isPersistent) {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val keyValues =
@@ -2103,7 +2106,7 @@
 //    }
 //
 //    "return no new Segments if all the key-values in the Segment were expired" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          val keyValues1 = (1 to 100).map(key => randomPutKeyValue(key, deadline = Some(1.second.fromNow))).toSlice
@@ -2121,14 +2124,14 @@
 //            hashIndexConfig = HashIndexBlockConfig.random,
 //            bloomFilterConfig = BloomFilterBlockConfig.random,
 //            segmentConfig = SegmentBlockConfig.random,
-//            pathDistributor = createPathDistributor
+//            pathDistributor = createPathDistributor()
 //          ).isEmpty shouldBe true
 //      }
 //    }
 //
 //    "return all key-values when removeDeletes is false and when Segment was created in another Level" in {
 //      runThis(5.times) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            val keyValues: Slice[Memory.Put] = (1 to 100).map(key => Memory.put(key, key, 1.second)).toSlice
@@ -2156,7 +2159,7 @@
 //                  hashIndexConfig = HashIndexBlockConfig.random,
 //                  bloomFilterConfig = BloomFilterBlockConfig.random,
 //                  segmentConfig = SegmentBlockConfig.random,
-//                  pathDistributor = createPathDistributor
+//                  pathDistributor = createPathDistributor()
 //                ).mapToSlice(_.sweep())
 //              }
 //
@@ -2167,7 +2170,7 @@
 //
 //    "return all key-values when removeDeletes is false and when Segment was created in same Level" in {
 //      runThis(5.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            CoreTestSweepers.createMemorySweeperMax().value.sweep()
@@ -2224,7 +2227,7 @@
 //                  hashIndexConfig = hashIndexConfig,
 //                  bloomFilterConfig = bloomFilterConfig,
 //                  segmentConfig = segmentConfig.copy(minSize = Int.MaxValue),
-//                  pathDistributor = createPathDistributor
+//                  pathDistributor = createPathDistributor()
 //                ).mapToSlice(_.sweep())
 //              }
 //
@@ -2247,7 +2250,7 @@
 //     */
 //    "debugger for previous test-case" ignore {
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            CoreTestSweepers.createMemorySweeperMax().value.sweep()
@@ -2299,7 +2302,7 @@
 //                    hashIndexConfig = hashIndexConfig,
 //                    bloomFilterConfig = bloomFilterConfig,
 //                    segmentConfig = segmentConfig.copy(minSize = Int.MaxValue),
-//                    pathDistributor = createPathDistributor
+//                    pathDistributor = createPathDistributor()
 //                  ).mapToSlice(_.sweep())
 //                }
 //

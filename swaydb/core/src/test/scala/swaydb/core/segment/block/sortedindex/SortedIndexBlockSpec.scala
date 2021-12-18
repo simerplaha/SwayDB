@@ -16,31 +16,37 @@
 
 package swaydb.core.segment.block.sortedindex
 
-import org.scalatest.PrivateMethodTester
-import swaydb.config.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.{Benchmark, Compression}
 import swaydb.config.{PrefixCompression, UncompressedBlockInfo}
-import swaydb.core.CommonAssertions._
-import swaydb.core.ACoreSpec
-import swaydb.core.CoreTestData._
+import swaydb.config.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
+import swaydb.config.CoreConfigTestKit._
+import swaydb.core.compression.CompressionTestKit._
 import swaydb.core.segment.block.Block
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockOffset}
 import swaydb.core.segment.data.Persistent
 import swaydb.core.segment.data.merge.stats.MergeStats
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.core.segment.block.SegmentBlockTestKit._
+import swaydb.core.segment.TestCoreFunctionStore
+import swaydb.effect.EffectTestKit._
 import swaydb.slice.order.KeyOrder
+import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
-import swaydb.{Benchmark, Compression}
-import swaydb.core.segment.ASegmentSpec
+import swaydb.testkit.TestKit._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
-import swaydb.testkit.TestKit._
 
-class SortedIndexBlockSpec extends ASegmentSpec with PrivateMethodTester {
+class SortedIndexBlockSpec extends AnyWordSpec {
 
-  implicit val order = KeyOrder.default
-  implicit def segmentIO = SegmentReadIO.random
+  private implicit val order: KeyOrder[Slice[Byte]] = KeyOrder.default
+  private implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
+  private implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
 
   "Config" should {
     "disable prefixCompression when normalise defined" in {

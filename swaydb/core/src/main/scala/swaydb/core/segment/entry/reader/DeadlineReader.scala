@@ -53,6 +53,7 @@ object DeadlineReader {
           previous.indexEntryDeadline match {
             case some @ Some(_) =>
               some
+
             case None =>
               throw EntryReaderFailure.NoPreviousDeadline
           }

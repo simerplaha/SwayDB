@@ -16,7 +16,7 @@
 //
 //package swaydb.effect
 //
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.IO
 //import swaydb.IO.ExceptionHandler.Throwable
@@ -26,7 +26,7 @@
 //
 //import scala.collection.mutable.ListBuffer
 //
-//class IOSpec extends AnyWordSpec with Matchers {
+//class IOSpec extends AnyWordSpec {
 //
 //  "CatchLeak" when {
 //    "exception" in {

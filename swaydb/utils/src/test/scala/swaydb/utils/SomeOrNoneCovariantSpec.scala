@@ -16,12 +16,12 @@
 
 package swaydb.utils
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.Random
 
-class SomeOrNoneCovariantSpec extends AnyWordSpec with Matchers {
+class SomeOrNoneCovariantSpec extends AnyWordSpec {
 
   private sealed trait Option extends SomeOrNoneCovariant[Option, Option.Some] {
     override def noneC: Option = Option.None

@@ -16,26 +16,30 @@
 
 package swaydb.core.segment
 
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.config.CoreConfigTestKit._
 import swaydb.config.MMAP
-import swaydb.core.CommonAssertions._
-import swaydb.core.TestSweeper._
-import swaydb.core.CoreTestData._
-import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.{ACoreSpec, TestSweeper}
+import swaydb.core.{CoreSpecType, CoreTestSweeper}
+import swaydb.core.CoreTestSweeper._
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.data.SegmentKeyOrders
+import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.SegmentTestKit._
 import swaydb.slice.{Slice, SliceReader}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class SegmentSerialiserSpec extends ASegmentSpec {
+class SegmentSerialiserSpec extends AnyWordSpec {
 
   "serialise segment" in {
     runThis(100.times, log = true, "Test - Serialise segment") {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
 
+          implicit val coreSpecType: CoreSpecType = CoreSpecType.random()
           implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
           implicit val keyOrders: SegmentKeyOrders = SegmentKeyOrders(keyOrder)
           implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long

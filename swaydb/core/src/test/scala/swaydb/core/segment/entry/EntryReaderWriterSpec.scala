@@ -16,11 +16,9 @@
 
 package swaydb.core.segment.entry
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
-import swaydb.core.TestTimer
+import swaydb.core.log.timer.TestTimer
 import swaydb.core.segment.data.{Memory, Persistent}
 import swaydb.core.segment.entry.id.MemoryToKeyValueIdBinder
 import swaydb.core.segment.entry.reader.PersistentParser
@@ -33,14 +31,20 @@ import swaydb.testkit.RunThis._
 
 import scala.util.Random
 import swaydb.testkit.TestKit._
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.slice.SliceTestKit._
+import swaydb.core.segment.block.SegmentBlockTestKit._
+import swaydb.core.segment.TestCoreFunctionStore
 
-class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
+class EntryReaderWriterSpec extends AnyWordSpec {
 
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit val timeWriter: TimeWriter = TimeWriter
-  implicit val valueWriter: ValueWriter = ValueWriter
-  implicit val deadlineWriter: DeadlineWriter = DeadlineWriter
-  implicit val keyWriter: KeyWriter = KeyWriter
+  private implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  private implicit val timeWriter: TimeWriter = TimeWriter
+  private implicit val valueWriter: ValueWriter = ValueWriter
+  private implicit val deadlineWriter: DeadlineWriter = DeadlineWriter
+  private implicit val keyWriter: KeyWriter = KeyWriter
+  private implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
 
   "write and read single Fixed entry" in {
     runThis(1000.times) {
@@ -105,7 +109,7 @@ class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
       implicit val testTimer = TestTimer.random
 
       val previous = randomizedKeyValues(count = 1).head
-      val duplicateValues = if (Random.nextBoolean()) previous.value else randomStringSliceOptional
+      val duplicateValues = if (Random.nextBoolean()) previous.value else randomStringSliceOptional()
       val duplicateDeadline = if (Random.nextBoolean()) previous.deadline else randomDeadlineOption()
       val next =
         eitherOne(
@@ -191,62 +195,62 @@ class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
       previous match {
         case previous: Memory.Put =>
           next match {
-            case next: Memory.Put => assertParse(previous, next)
-            case next: Memory.Update => assertParse(previous, next)
-            case next: Memory.Remove => assertParse(previous, next)
-            case next: Memory.Function => assertParse(previous, next)
+            case next: Memory.Put          => assertParse(previous, next)
+            case next: Memory.Update       => assertParse(previous, next)
+            case next: Memory.Remove       => assertParse(previous, next)
+            case next: Memory.Function     => assertParse(previous, next)
             case next: Memory.PendingApply => assertParse(previous, next)
-            case next: Memory.Range => assertParse(previous, next)
+            case next: Memory.Range        => assertParse(previous, next)
           }
 
         case previous: Memory.Update =>
           next match {
-            case next: Memory.Put => assertParse(previous, next)
-            case next: Memory.Update => assertParse(previous, next)
-            case next: Memory.Remove => assertParse(previous, next)
-            case next: Memory.Function => assertParse(previous, next)
+            case next: Memory.Put          => assertParse(previous, next)
+            case next: Memory.Update       => assertParse(previous, next)
+            case next: Memory.Remove       => assertParse(previous, next)
+            case next: Memory.Function     => assertParse(previous, next)
             case next: Memory.PendingApply => assertParse(previous, next)
-            case next: Memory.Range => assertParse(previous, next)
+            case next: Memory.Range        => assertParse(previous, next)
           }
 
         case previous: Memory.Remove =>
           next match {
-            case next: Memory.Put => assertParse(previous, next)
-            case next: Memory.Update => assertParse(previous, next)
-            case next: Memory.Remove => assertParse(previous, next)
-            case next: Memory.Function => assertParse(previous, next)
+            case next: Memory.Put          => assertParse(previous, next)
+            case next: Memory.Update       => assertParse(previous, next)
+            case next: Memory.Remove       => assertParse(previous, next)
+            case next: Memory.Function     => assertParse(previous, next)
             case next: Memory.PendingApply => assertParse(previous, next)
-            case next: Memory.Range => assertParse(previous, next)
+            case next: Memory.Range        => assertParse(previous, next)
           }
 
         case previous: Memory.Function =>
           next match {
-            case next: Memory.Put => assertParse(previous, next)
-            case next: Memory.Update => assertParse(previous, next)
-            case next: Memory.Remove => assertParse(previous, next)
-            case next: Memory.Function => assertParse(previous, next)
+            case next: Memory.Put          => assertParse(previous, next)
+            case next: Memory.Update       => assertParse(previous, next)
+            case next: Memory.Remove       => assertParse(previous, next)
+            case next: Memory.Function     => assertParse(previous, next)
             case next: Memory.PendingApply => assertParse(previous, next)
-            case next: Memory.Range => assertParse(previous, next)
+            case next: Memory.Range        => assertParse(previous, next)
           }
 
         case previous: Memory.PendingApply =>
           next match {
-            case next: Memory.Put => assertParse(previous, next)
-            case next: Memory.Update => assertParse(previous, next)
-            case next: Memory.Remove => assertParse(previous, next)
-            case next: Memory.Function => assertParse(previous, next)
+            case next: Memory.Put          => assertParse(previous, next)
+            case next: Memory.Update       => assertParse(previous, next)
+            case next: Memory.Remove       => assertParse(previous, next)
+            case next: Memory.Function     => assertParse(previous, next)
             case next: Memory.PendingApply => assertParse(previous, next)
-            case next: Memory.Range => assertParse(previous, next)
+            case next: Memory.Range        => assertParse(previous, next)
           }
 
         case previous: Memory.Range =>
           next match {
-            case next: Memory.Put => assertParse(previous, next)
-            case next: Memory.Update => assertParse(previous, next)
-            case next: Memory.Remove => assertParse(previous, next)
-            case next: Memory.Function => assertParse(previous, next)
+            case next: Memory.Put          => assertParse(previous, next)
+            case next: Memory.Update       => assertParse(previous, next)
+            case next: Memory.Remove       => assertParse(previous, next)
+            case next: Memory.Function     => assertParse(previous, next)
             case next: Memory.PendingApply => assertParse(previous, next)
-            case next: Memory.Range => assertParse(previous, next)
+            case next: Memory.Range        => assertParse(previous, next)
           }
       }
     }

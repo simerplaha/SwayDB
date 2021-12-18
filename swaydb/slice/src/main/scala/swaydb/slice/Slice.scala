@@ -170,6 +170,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
    *
    * @param fromOffset start offset
    * @param toOffset   end offset
+   *
    * @return Slice for the given offsets
    */
   override def slice(fromOffset: Int, toOffset: Int): This =
@@ -1085,7 +1086,7 @@ class Slices[A](val slices: Array[Slice[A]])(override implicit val classTag: Cla
 
   def append(right: SliceRO[A]): Slices[A] =
     right match {
-      case right: Slice[A] => append(right)
+      case right: Slice[A]  => append(right)
       case right: Slices[A] => append(right)
     }
 

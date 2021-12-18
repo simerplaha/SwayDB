@@ -16,29 +16,35 @@
 
 package swaydb.core.segment.data.merge
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
-import swaydb.core.TestTimer
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.segment.{CoreFunctionStore, TestCoreFunctionStore}
 import swaydb.core.segment.data._
-import swaydb.serializers.Default._
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.data.merge.SegmentMergeTestKit._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class FunctionMerger_Put_Spec extends AnyWordSpec with Matchers {
+class FunctionMerger_Put_Spec extends AnyWordSpec {
 
-  implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+
+  private implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
+  private implicit val functionStore: CoreFunctionStore = testFunctionStore.store
+
   "Merging any function into Put" when {
     "times are in order" should {
       "always return new key-value" in {
         runThis(1000.times) {
 
-          implicit val testTimer = eitherOne(TestTimer.Incremental(), TestTimer.Empty)
+          implicit val testTimer: TestTimer = eitherOne(TestTimer.Incremental(), TestTimer.Empty)
           val key = randomBytesSlice()
 
           val oldKeyValue = randomPutKeyValue(key = key)(testTimer)

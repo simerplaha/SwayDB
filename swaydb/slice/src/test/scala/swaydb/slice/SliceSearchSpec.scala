@@ -16,12 +16,12 @@
 
 package swaydb.slice
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.Random
 
-class SliceSearchSpec extends AnyWordSpec with Matchers {
+class SliceSearchSpec extends AnyWordSpec {
 
   implicit val intOrder = Ordering.Int
 

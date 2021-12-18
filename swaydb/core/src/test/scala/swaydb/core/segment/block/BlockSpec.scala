@@ -1,19 +1,22 @@
 package swaydb.core.segment.block
 
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.core.compression.CompressionTestKit._
 import swaydb.core.compression.CoreCompression
-import swaydb.core.ACoreSpec
-import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.reader.BlockRefReader
-import swaydb.core.segment.block.segment.transient.TransientSegmentRef
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
+import swaydb.core.segment.block.segment.transient.TransientSegmentRef
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
-import swaydb.core.segment.ASegmentSpec
+import swaydb.core.segment.block.SegmentBlockTestKit._
 import swaydb.effect.IOAction
 import swaydb.slice.Slice
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class BlockSpec extends ASegmentSpec {
+
+class BlockSpec extends AnyWordSpec {
 
   "decompressionAction" in {
     //uncompressed

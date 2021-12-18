@@ -23,6 +23,7 @@ import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data._
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.defrag.DefragMemorySegment
+import swaydb.core.segment.distributor.PathDistributor
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.skiplist.SkipListTreeMap
 import swaydb.core.util._
@@ -48,7 +49,7 @@ private[core] object MemorySegment {
 
   def apply(minSegmentSize: Int,
             maxKeyValueCountPerSegment: Int,
-            pathsDistributor: PathsDistributor,
+            pathDistributor: PathDistributor,
             createdInLevel: Int,
             stats: MergeStats.Memory.ClosedIgnoreStats[IterableOnce])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                       timeOrder: TimeOrder[Slice[Byte]],
@@ -129,7 +130,7 @@ private[core] object MemorySegment {
         }
 
       def createSegment() = {
-        val path = pathsDistributor.next().resolve(IDGenerator.segment(idGenerator.nextId()))
+        val path = pathDistributor.next().resolve(IDGenerator.segment(idGenerator.nextId()))
 
         //Note: Memory key-values can be received from Persistent Segments in which case it's important that
         //all byte arrays are cut before writing them to Memory Segment.
@@ -155,7 +156,7 @@ private[core] object MemorySegment {
             createdInLevel = createdInLevel,
             skipList = skipList,
             nearestPutDeadline = nearestDeadline,
-            pathsDistributor = pathsDistributor
+            pathDistributor = pathDistributor
           )
 
         segments += segment
@@ -183,7 +184,7 @@ private[core] object MemorySegment {
     }
 
   def apply(keyValues: Iterator[KeyValue],
-            pathsDistributor: PathsDistributor,
+            pathDistributor: PathDistributor,
             removeDeletes: Boolean,
             minSegmentSize: Int,
             maxKeyValueCountPerSegment: Int,
@@ -200,7 +201,7 @@ private[core] object MemorySegment {
 
     MemorySegment(
       minSegmentSize = minSegmentSize,
-      pathsDistributor = pathsDistributor,
+      pathDistributor = pathDistributor,
       createdInLevel = createdInLevel,
       maxKeyValueCountPerSegment = maxKeyValueCountPerSegment,
       stats = builder
@@ -209,7 +210,7 @@ private[core] object MemorySegment {
 
   def copyFrom(segment: Segment,
                createdInLevel: Int,
-               pathsDistributor: PathsDistributor,
+               pathDistributor: PathDistributor,
                removeDeletes: Boolean,
                minSegmentSize: Int,
                maxKeyValueCountPerSegment: Int,
@@ -220,7 +221,7 @@ private[core] object MemorySegment {
                                                       idGenerator: IDGenerator): Slice[MemorySegment] =
     MemorySegment(
       keyValues = segment.iterator(initialiseIteratorsInOneSeek),
-      pathsDistributor = pathsDistributor,
+      pathDistributor = pathDistributor,
       removeDeletes = removeDeletes,
       minSegmentSize = minSegmentSize,
       maxKeyValueCountPerSegment = maxKeyValueCountPerSegment,
@@ -242,10 +243,10 @@ private[core] final case class MemorySegment(path: Path,
                                              createdInLevel: Int,
                                              private[segment] val skipList: SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
                                              nearestPutDeadline: Option[Deadline],
-                                             pathsDistributor: PathsDistributor)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                                                 functionStore: CoreFunctionStore,
-                                                                                 fileSweeper: FileSweeper) extends Segment with MemorySegmentOption with LazyLogging {
+                                             pathDistributor: PathDistributor)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                               timeOrder: TimeOrder[Slice[Byte]],
+                                                                               functionStore: CoreFunctionStore,
+                                                                               fileSweeper: FileSweeper) extends Segment with MemorySegmentOption with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -276,7 +277,7 @@ private[core] final case class MemorySegment(path: Path,
         newKeyValues = newKeyValues,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
-        pathsDistributor = pathsDistributor
+        pathDistributor = pathDistributor
       )
     }
 
@@ -296,7 +297,7 @@ private[core] final case class MemorySegment(path: Path,
         MemorySegment(
           minSegmentSize = segmentConfig.minSize,
           maxKeyValueCountPerSegment = segmentConfig.maxCount,
-          pathsDistributor = pathsDistributor,
+          pathDistributor = pathDistributor,
           createdInLevel = createdInLevel,
           stats = mergeStats
         )

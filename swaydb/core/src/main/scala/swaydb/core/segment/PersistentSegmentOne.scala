@@ -24,7 +24,6 @@ import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand}
 import swaydb.core.file.{CoreFile, ForceSaveApplier}
-import swaydb.core.segment.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockConfig, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig, BloomFilterBlockOffset}
@@ -40,6 +39,7 @@ import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data._
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.defrag.DefragPersistentSegment
+import swaydb.core.segment.distributor.PathDistributor
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -316,7 +316,7 @@ private case class PersistentSegmentOne(file: CoreFile,
           hashIndexConfig: HashIndexBlockConfig,
           bloomFilterConfig: BloomFilterBlockConfig,
           segmentConfig: SegmentBlockConfig,
-          pathsDistributor: PathsDistributor,
+          pathDistributor: PathDistributor,
           segmentRefCacheLife: SegmentRefCacheLife,
           mmap: MMAP.Segment)(implicit idGenerator: IDGenerator,
                               executionContext: ExecutionContext,
@@ -336,7 +336,7 @@ private case class PersistentSegmentOne(file: CoreFile,
       newKeyValues = newKeyValues,
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
-      pathsDistributor = pathsDistributor,
+      pathDistributor = pathDistributor,
       segmentRefCacheLife = segmentRefCacheLife,
       mmap = mmap
     )

@@ -16,33 +16,35 @@
 
 package swaydb.core.log
 
-import swaydb.IOValues._
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.config.CoreConfigTestKit._
 import swaydb.config.MMAP
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
 import swaydb.core.log.serialiser._
-import swaydb.core.segment.data.{SegmentKeyOrders, Memory, MemoryOption, Value}
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.segment.{Segment, SegmentOption}
+import swaydb.core.segment.data.{Memory, MemoryOption, SegmentKeyOrders, Value}
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.{ASegmentSpec, Segment, SegmentOption}
+import swaydb.core.segment.SegmentTestKit._
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{ACoreSpec, TestForceSave, TestSweeper, TestTimer}
-import swaydb.serializers.Default._
+import swaydb.core.{CoreSpecType, CoreTestSweeper, TestForceSave}
+import swaydb.effect.IOValues._
 import swaydb.serializers._
-import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.serializers.Default._
 import swaydb.slice.{Slice, SliceOption, SliceReader}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.{ByteSizeOf, OperatingSystem}
 
 import scala.concurrent.duration._
 
-class LogEntrySpec extends ALogSpec with ASegmentSpec {
+class LogEntrySpec extends AnyWordSpec {
 
   implicit val keyOrder = KeyOrder.default
   implicit val keyOrders: SegmentKeyOrders = SegmentKeyOrders(keyOrder)
   implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
-
-  val keyValues = randomKeyValues(count = 10)
 
   "LogEntry" should {
     "set hasRemoveDeadline to true if Put has remove deadline" in {
@@ -172,10 +174,16 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
     }
 
     "add Appendix single Put entry to skipList" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           import AppendixLogEntryWriter._
-          val segment = TestSegment(keyValues)
+          val segment = TestSegment(randomKeyValues(100))
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
 
@@ -189,10 +197,16 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
     }
 
     "remove Appendix entry from skipList" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
           import AppendixLogEntryWriter._
-          val segment = TestSegment(keyValues)
+          val segment = TestSegment(randomKeyValues(100))
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
 
@@ -209,15 +223,20 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
     }
 
     "batch multiple appendix entries to skipList" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper._
           import AppendixLogEntryWriter._
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
-          val segment1 = TestSegment().runRandomIO.right.value
-          val segment2 = TestSegment().runRandomIO.right.value
-          val segment3 = TestSegment().runRandomIO.right.value
-          val segment4 = TestSegment().runRandomIO.right.value
+          val segment1 = TestSegment(randomizedKeyValues(100)).runRandomIO.get
+          val segment2 = TestSegment(randomizedKeyValues(100)).runRandomIO.get
+          val segment3 = TestSegment(randomizedKeyValues(100)).runRandomIO.get
+          val segment4 = TestSegment(randomizedKeyValues(100)).runRandomIO.get
 
           val entry =
             (LogEntry.Put[Slice[Byte], Segment](1, segment1): LogEntry[Slice[Byte], Segment]) ++
@@ -251,13 +270,17 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-      LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Put]](bytes.drop(ByteSizeOf.byte)).runRandomIO.right.value shouldBe entry
-      LogEntryReader.read[LogEntry[Slice[Byte], Memory]](bytes).runRandomIO.right.value shouldBe entry
+      LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Put]](bytes.drop(ByteSizeOf.byte)).runRandomIO.get shouldBe entry
+      LogEntryReader.read[LogEntry[Slice[Byte], Memory]](bytes).runRandomIO.get shouldBe entry
     }
 
     "write and read bytes for a single Appendix" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
           import sweeper._
 
           val appendixReader =
@@ -272,7 +295,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
 
           import AppendixLogEntryWriter._
           import appendixReader._
-          val segment = TestSegment(keyValues)
+          val segment = TestSegment(randomKeyValues(100))
 
           val entry = LogEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
           entry.hasRange shouldBe false
@@ -281,8 +304,8 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
           entry writeTo bytes
           bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-          LogEntryReader.read[LogEntry.Put[Slice[Byte], Segment]](bytes.drop(1)).runRandomIO.right.value shouldBe entry
-          LogEntryReader.read[LogEntry[Slice[Byte], Segment]](bytes).runRandomIO.right.value shouldBe entry
+          LogEntryReader.read[LogEntry.Put[Slice[Byte], Segment]](bytes.drop(1)).runRandomIO.get shouldBe entry
+          LogEntryReader.read[LogEntry[Slice[Byte], Segment]](bytes).runRandomIO.get shouldBe entry
       }
     }
   }
@@ -299,13 +322,17 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-      LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Remove]](bytes.drop(ByteSizeOf.byte)).runRandomIO.right.value shouldBe entry
-      LogEntryReader.read[LogEntry[Slice[Byte], Memory]](bytes).runRandomIO.right.value shouldBe entry
+      LogEntryReader.read[LogEntry.Put[Slice[Byte], Memory.Remove]](bytes.drop(ByteSizeOf.byte)).runRandomIO.get shouldBe entry
+      LogEntryReader.read[LogEntry[Slice[Byte], Memory]](bytes).runRandomIO.get shouldBe entry
     }
 
     "write and read bytes for single Appendix entry" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
           import sweeper._
 
           val appendixReader =
@@ -321,7 +348,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
           import AppendixLogEntryWriter._
           import appendixReader._
 
-          val segment = TestSegment(keyValues)
+          val segment = TestSegment(randomKeyValues(100))
 
           //do remove
           val entry = LogEntry.Remove[Slice[Byte]](segment.minKey)
@@ -331,8 +358,8 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
           entry writeTo bytes
           bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-          LogEntryReader.read[LogEntry.Remove[Slice[Byte]]](bytes.drop(1)).runRandomIO.right.value.key shouldBe entry.key
-          LogEntryReader.read[LogEntry[Slice[Byte], Segment]](bytes).runRandomIO.right.value shouldBe entry
+          LogEntryReader.read[LogEntry.Remove[Slice[Byte]]](bytes.drop(1)).runRandomIO.get.key shouldBe entry.key
+          LogEntryReader.read[LogEntry[Slice[Byte], Segment]](bytes).runRandomIO.get shouldBe entry
       }
     }
   }
@@ -355,7 +382,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-      LogEntryReader.read[LogEntry[Slice[Byte], Memory]](bytes).runRandomIO.right.value shouldBe entry
+      LogEntryReader.read[LogEntry[Slice[Byte], Memory]](bytes).runRandomIO.get shouldBe entry
     }
   }
 
@@ -383,7 +410,7 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps!
 
-      val readLogEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(bytes)).runRandomIO.right.value
+      val readLogEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(bytes)).runRandomIO.get
 
       val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       readLogEntry applyBatch skipList
@@ -395,8 +422,12 @@ class LogEntrySpec extends ALogSpec with ASegmentSpec {
     }
 
     "be written and read for Appendix" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
           import sweeper._
 
           val appendixReader =

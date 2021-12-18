@@ -42,6 +42,7 @@ import swaydb.core.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.core.util._
 import swaydb.effect.Effect
 import swaydb.SliceIOImplicits._
+import swaydb.core.segment.distributor.Distributable
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, Slice, SliceOption}
 import swaydb.utils.Collections._
@@ -478,9 +479,15 @@ private[core] case object Segment extends LazyLogging {
   def getNearestDeadlineSegment(previous: Segment,
                                 next: Segment): SegmentOption =
     (previous.nearestPutDeadline, next.nearestPutDeadline) match {
-      case (None, None) => Segment.Null
-      case (Some(_), None) => previous
-      case (None, Some(_)) => next
+      case (None, None) =>
+        Segment.Null
+
+      case (Some(_), None) =>
+        previous
+
+      case (None, Some(_)) =>
+        next
+
       case (Some(previousDeadline), Some(nextDeadline)) =>
         if (previousDeadline < nextDeadline)
           previous
@@ -534,7 +541,7 @@ private[core] case object Segment extends LazyLogging {
     }
 }
 
-private[core] trait Segment extends FileSweeperItem with SegmentOption with Assignable.Collection { self =>
+private[core] trait Segment extends FileSweeperItem with SegmentOption with Assignable.Collection with Distributable { self =>
 
   final def key: Slice[Byte] =
     minKey

@@ -1,10 +1,10 @@
 package swaydb.slice
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.slice.order.KeyOrder
 
-class MaxKeySpec extends AnyWordSpec with Matchers {
+class MaxKeySpec extends AnyWordSpec {
 
   implicit val keyOrder = KeyOrder.default
 

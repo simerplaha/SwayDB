@@ -17,14 +17,14 @@
 //package swaydb.core.log
 //
 //import org.scalatest.OptionValues._
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.TestData._
 //import swaydb.core.file.sweeper.FileSweeper
 //import swaydb.core.segment.data.Memory
 //import swaydb.core.level.zero.LevelZeroSkipListMerger
 //import swaydb.core.log.serializer.LevelZeroLogEntryWriter.Level0PutWriter
-//import swaydb.core.{TestBase, TestSweeper, TestTimer}
+//import swaydb.core.{TestBase, CoreTestSweeper, TestTimer}
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.slice.Slice
 //import swaydb.config.util.StorageUnits._
@@ -34,8 +34,8 @@
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //
 //  implicit val skipListMerger = LevelZeroSkipListMerger
-//  implicit val fileSweeper: FileSweeper = TestSweeper.fileSweeper
-//  implicit val memorySweeper = TestSweeper.memorySweeperMax
+//  implicit val fileSweeper: FileSweeper = CoreTestSweeper.fileSweeper
+//  implicit val memorySweeper = CoreTestSweeper.memorySweeperMax
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 //
 //  implicit def testTimer: TestTimer = TestTimer.Empty
@@ -48,7 +48,7 @@
 //        keyValues foreach {
 //          keyValue =>
 //            val entry = LogEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))(Level0PutWriter)
-//            map.write(entry).runRandomIO.right.value shouldBe true
+//            map.write(entry).runRandomIO.get shouldBe true
 //        }
 //
 //        testRead(map)
@@ -66,21 +66,21 @@
 //      import swaydb.core.log.serializer.LevelZeroLogEntryReader.Level0Reader
 //      import swaydb.core.log.serializer.LevelZeroLogEntryWriter.Level0LogEntryPutWriter
 //
-//      test(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
-//      test(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
+//      test(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.get.item)
+//      test(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.get.item)
 //      test(Map.memory[Slice[Byte], Memory](flushOnOverflow = true, fileSize = 1.kb))
 //
 //      //reopen - all the entries should value recovered for persistent maps. Also switch mmap types.
-//      testRead(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir1, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
-//      testRead(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir2, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
+//      testRead(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir1, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.get.item)
+//      testRead(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir2, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.get.item)
 //
 //      //write the same data again
-//      test(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
-//      test(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
+//      test(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.get.item)
+//      test(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.get.item)
 //
 //      //read again
-//      testRead(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir1, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
-//      testRead(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir2, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
+//      testRead(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir1, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.get.item)
+//      testRead(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir2, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.get.item)
 //    }
 //  }
 //}

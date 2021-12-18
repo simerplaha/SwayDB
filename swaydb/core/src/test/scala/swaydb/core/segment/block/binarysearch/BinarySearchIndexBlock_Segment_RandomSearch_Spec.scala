@@ -15,33 +15,33 @@
  */
 package swaydb.core.segment.block.binarysearch
 
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
-import swaydb.IOValues._
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.core.CoreTestSweeper
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
+import swaydb.core.segment.block.SegmentBlockTestKit._
 import swaydb.core.segment.data.{Memory, Persistent, PersistentOption, SegmentKeyOrders}
-import swaydb.core.{ACoreSpec, SegmentBlocks, TestSweeper}
-import swaydb.core.segment.ASegmentSpec
-import swaydb.serializers.Default._
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.SegmentBlocks
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
-
-import scala.util.Try
 import swaydb.testkit.TestKit._
 
-class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends ASegmentSpec with MockFactory {
+import scala.util.Try
+
+class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends AnyWordSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = SegmentKeyOrders(keyOrder).partialKeyOrder
 
   val startId = 0
 
-  def genKeyValuesAndBlocks(keyValuesCount: Int = 10)(implicit testCaseSweeper: TestSweeper): (Slice[Memory], SegmentBlocks) = {
+  def genKeyValuesAndBlocks(keyValuesCount: Int = 10)(implicit testCaseSweeper: CoreTestSweeper): (Slice[Memory], SegmentBlocks) = {
     import testCaseSweeper._
     //  def genKeyValuesAndBlocks(keyValuesCount: Int = 50): (Slice[Memory], Blocks) = {
 
@@ -81,7 +81,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends ASegmentSpec with
           ),
         segmentConfig =
           SegmentBlockConfig.random2(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue)
-      ).value
+      ).get
 
     blocks should have size 1
 
@@ -108,7 +108,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends ASegmentSpec with
     "search key-values" in {
 
       runThis(100.times, log = true, s"Running binary search test") {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             val (keyValues, blocks) = genKeyValuesAndBlocks()
 
@@ -177,7 +177,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends ASegmentSpec with
 
     "search non existent key-values" in {
       runThis(100.times, log = true) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
 
             val (keyValues, blocks) = genKeyValuesAndBlocks()
@@ -236,7 +236,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends ASegmentSpec with
 
     "search higher for existing key-values" in {
       runThis(100.times, log = true) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
 
             val (keyValues, blocks) = genKeyValuesAndBlocks()
@@ -275,7 +275,8 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends ASegmentSpec with
                 eitherOne(
                   left = Persistent.Null,
                   right = //There is a random test. It could get index out of bounds.
-                    Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption
+                    Try(keyValues(index + randomIntMax(keyValues.size - 1)))
+                      .toOption
                       .flatMapOption(Persistent.Null: PersistentOption) {
                         keyValue =>
                           //read the end key from index.
@@ -341,7 +342,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends ASegmentSpec with
 
     "search lower for existing key-values" in {
       runThis(100.times, log = true) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
 
             val (keyValues, blocks) = genKeyValuesAndBlocks()
@@ -357,7 +358,8 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends ASegmentSpec with
                   eitherOne(
                     left = Persistent.Null,
                     right = //There is a random test. It could get index out of bounds.
-                      Try(keyValues(randomIntMax(index))).toOption
+                      Try(keyValues(randomIntMax(index)))
+                        .toOption
                         .flatMapOption(Persistent.Null: PersistentOption) {
                           keyValue =>
                             //read the end key from index.

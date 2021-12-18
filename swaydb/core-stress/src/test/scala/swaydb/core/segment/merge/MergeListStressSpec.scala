@@ -16,7 +16,7 @@
 //
 //package swaydb.core.segment.data.merge
 //
-//import org.scalatest.matchers.should.Matchers
+//import org.scalatest.matchers.should.Matchers._
 //import swaydb.core.CommonAssertions._
 //import swaydb.testkit.RunThis._
 //import swaydb.core.TestData._
@@ -29,7 +29,7 @@
 //import scala.collection.mutable.ListBuffer
 //import scala.util.Random
 //
-//class MergeListStressSpec extends AnyWordSpec with Matchers {
+//class MergeListStressSpec extends AnyWordSpec {
 //
 //  implicit def testTimer: TestTimer = TestTimer.random
 //

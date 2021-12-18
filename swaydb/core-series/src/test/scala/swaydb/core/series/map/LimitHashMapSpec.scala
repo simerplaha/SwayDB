@@ -1,7 +1,7 @@
 package swaydb.core.series.map
 
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import swaydb.testkit.TestKit._
 
 class ProbeLimitHashMap extends LimitHashMapSpec {
@@ -30,7 +30,7 @@ class NoProbeLimitConcurrentHashMap extends LimitHashMapSpec {
     )
 }
 
-sealed trait LimitHashMapSpec extends AnyFlatSpec with Matchers {
+sealed trait LimitHashMapSpec extends AnyFlatSpec {
 
   def createMap[K, V >: Null](limit: Integer): LimitHashMap[K, V]
 

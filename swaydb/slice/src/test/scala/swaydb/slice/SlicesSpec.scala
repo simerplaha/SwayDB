@@ -1,9 +1,9 @@
 package swaydb.slice
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 
-class SlicesSpec extends AnyWordSpec with Matchers {
+class SlicesSpec extends AnyWordSpec {
 
   "get" when {
     "empty" in {

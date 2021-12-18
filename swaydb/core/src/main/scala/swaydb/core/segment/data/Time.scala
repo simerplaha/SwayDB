@@ -34,7 +34,7 @@ private[core] object Time {
     new Time(slice)
   }
 
-  def >(upperTime: Time, lowerTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean = {
+  @inline def >(upperTime: Time, lowerTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean = {
     import timeOrder._
     if (upperTime.nonEmpty && lowerTime.nonEmpty)
       upperTime.time > lowerTime.time

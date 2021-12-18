@@ -89,6 +89,7 @@ private[core] object CoreInitialiser extends LazyLogging {
    * @param keyOrder         Defines the sort order for keys. See documentation on website.
    * @param timeOrder        Defines the order in which a single key-value's updates are applied.
    * @param functionStore    Stores all registered functions.
+   *
    * @return
    */
   def apply(config: SwayDBConfig,

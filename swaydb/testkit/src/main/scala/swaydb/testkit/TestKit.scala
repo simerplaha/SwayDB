@@ -1,10 +1,23 @@
 package swaydb.testkit
 
+import org.scalatest.matchers.should.Matchers._
+
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
+import scala.reflect.ClassTag
 import scala.util.Random
 
 object TestKit {
+
+  implicit class CommonAssertions[A](instance: A) {
+    def shouldBeInstanceOf[B <: A](implicit bClassTag: ClassTag[B]): B = {
+      if (!instance.isInstanceOf[B])
+      //shouldBe again for descriptive ScalaTest errors
+        instance.getClass shouldBe bClassTag.runtimeClass
+
+      instance.asInstanceOf[B]
+    }
+  }
 
   def randomByte() = (Random.nextInt(256) - 128).toByte
 
@@ -133,4 +146,16 @@ object TestKit {
     def toInt =
       if (bool) 1 else 0
   }
+
+  /**
+   * Makes it a little easier to run tests on a tuple of same type using iteration.
+   */
+  case class TestTuple2[T](left: T, right: T) extends Iterable[T] {
+
+    def toTuple: (T, T) =
+      (left, right)
+
+    override def iterator: Iterator[T] = Iterator(left, right)
+  }
+
 }

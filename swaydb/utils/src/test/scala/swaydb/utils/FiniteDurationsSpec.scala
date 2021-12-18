@@ -17,13 +17,13 @@
 package swaydb.utils
 
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import swaydb.utils.FiniteDurations._
 
 import java.util.{Timer, TimerTask}
 import scala.concurrent.duration._
 
-class FiniteDurationsSpec extends AnyFlatSpec with Matchers {
+class FiniteDurationsSpec extends AnyFlatSpec {
 
   it should "return duration as string" in {
     (1 to 100) foreach {

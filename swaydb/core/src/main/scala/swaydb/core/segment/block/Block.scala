@@ -71,6 +71,7 @@ private[core] object Block extends LazyLogging {
    * @param bytes                    Bytes compressed
    * @param dataBlocksHeaderByteSize extra header bytes required by the data-byte
    * @param compression              compression applied
+   *
    * @return header bytes
    */
   def createCompressedHeaderBytes(bytes: Slice[Byte],
@@ -95,6 +96,7 @@ private[core] object Block extends LazyLogging {
    * Creates the header byte array and inserts the un-compression information
    *
    * @param dataBlocksHeaderByteSize extra header bytes required by the data-byte
+   *
    * @return header bytes
    */
   @inline def createUnCompressedHeaderBytes(dataBlocksHeaderByteSize: Int): SliceMut[Byte] = {

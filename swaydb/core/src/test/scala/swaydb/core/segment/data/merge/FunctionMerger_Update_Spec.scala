@@ -17,25 +17,31 @@
 package swaydb.core.segment.data.merge
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.IOValues._
+import swaydb.effect.IOValues._
 import swaydb.OK
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.segment.{CoreFunctionStore, TestCoreFunctionStore}
 import swaydb.core.segment.data._
-import swaydb.core.{CoreTestData, TestTimer}
-import swaydb.serializers.Default._
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.data.merge.SegmentMergeTestKit._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFactory {
+class FunctionMerger_Update_Spec extends AnyWordSpec with MockFactory {
 
-  implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  private implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+
+  private implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
+  private implicit val functionStore: CoreFunctionStore = testFunctionStore.store
+
   "Merging coreFunction Key/Value/KeyValue into Update" when {
     "times are in order" should {
       "always return new key-value" in {
@@ -123,7 +129,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
                   oldKeyValue.copy(value = value, deadline = deadline.orElse(oldKeyValue.deadline), time = newKeyValue.time)
               }
             else
-              Memory.PendingApply(key = key, applies = Slice(oldKeyValue.toFromValue().runRandomIO.right.value, newKeyValue.toFromValue().runRandomIO.right.value))
+              Memory.PendingApply(key = key, applies = Slice(oldKeyValue.toFromValue().runRandomIO.get, newKeyValue.toFromValue().runRandomIO.get))
 
           assertMerge(
             newKeyValue = newKeyValue,
@@ -155,7 +161,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
               assertMerge(
                 newKeyValue = newKeyValue,
                 oldKeyValue = oldKeyValue,
-                expected = Memory.PendingApply(Slice.emptyBytes, Slice(oldKeyValue.toFromValue().runRandomIO.right.value, newKeyValue.toFromValue().runRandomIO.right.value)),
+                expected = Memory.PendingApply(Slice.emptyBytes, Slice(oldKeyValue.toFromValue().runRandomIO.get, newKeyValue.toFromValue().runRandomIO.get)),
                 lastLevel = None
               )
           }
@@ -178,7 +184,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
               assertMerge(
                 newKeyValue = newKeyValue,
                 oldKeyValue = oldKeyValue,
-                expected = Memory.PendingApply(1, Slice(oldKeyValue.toFromValue().runRandomIO.right.value, newKeyValue.toFromValue().runRandomIO.right.value)),
+                expected = Memory.PendingApply(1, Slice(oldKeyValue.toFromValue().runRandomIO.get, newKeyValue.toFromValue().runRandomIO.get)),
                 lastLevel = None
               )
           }
@@ -191,7 +197,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
         runThis(100.times) {
           //mock functions are never called
           implicit val testTimer = TestTimer.Incremental()
-          val output = SegmentFunctionOutput.Update((randomStringOption: Slice[Byte]).asSliceOption(), Some(randomDeadline()))
+          val output = SegmentFunctionOutput.Update((randomStringOption(): Slice[Byte]).asSliceOption(), Some(randomDeadline()))
 
           Seq(
             SegmentFunction.Key(_ => output),
@@ -234,7 +240,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
               }
             )
 
-          val functionId = functionIdGenerator.incrementAndGet()
+          val functionId = testFunctionStore.incrementAndGetId()
           functionStore.put(functionId, function) shouldBe OK.instance
 
           val functionLevel1 = Memory.Function(1, function = functionId, time = Time(3))
@@ -243,7 +249,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
 
           //merge LEVEL1 and LEVEL2
           val level1And2Merge =
-            CoreTestData.merge(
+            mergeKeyValues(
               newKeyValues = Slice(functionLevel1),
               oldKeyValues = Slice(functionLevel2),
               isLastLevel = false
@@ -253,7 +259,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
 
           //merge LEVEL3 and LEVEL3
           val level2And3Merge =
-            CoreTestData.merge(
+            mergeKeyValues(
               newKeyValues = Slice(functionLevel2),
               oldKeyValues = Slice(functionLevel3),
               isLastLevel = false
@@ -263,7 +269,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
 
           //merge the result of above two merges
           val finalFunctionMerge =
-            CoreTestData.merge(
+            mergeKeyValues(
               newKeyValues = level1And2Merge.toSlice,
               oldKeyValues = level2And3Merge.toSlice,
               isLastLevel = false
@@ -288,7 +294,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
 
           //put collapses all functions
           val putMerge =
-            CoreTestData.merge(
+            mergeKeyValues(
               newKeyValues = finalFunctionMerge.toSlice,
               oldKeyValues = Slice(Memory.Put(1, 0, randomDeadline, Time(0))),
               isLastLevel = randomBoolean()

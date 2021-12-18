@@ -17,130 +17,119 @@
 package swaydb.core.segment.assigner
 
 import org.scalatest.OptionValues._
-import swaydb.config.MMAP
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
-import swaydb.core.segment.{ASegmentSpec, Segment}
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.core.{CoreSpecType, CoreTestSweeper}
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.segment.Segment
 import swaydb.core.segment.data.{Memory, Value}
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
-import swaydb.core.level.ALevelSpec
+import swaydb.core.segment.SegmentTestKit._
 import swaydb.effect.Effect._
-import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
-import swaydb.utils.OperatingSystem
+import swaydb.testkit.TestKit._
 import swaydb.utils.PipeOps._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import swaydb.testkit.TestKit._
 
-class Segment_AssignerAssignKeyValues_Spec0 extends Assigner_AssignKeyValues_Spec {
-  val keyValueCount = 100
-}
-
-class Segment_AssignerAssignKeyValues_Spec1 extends Assigner_AssignKeyValues_Spec {
-  val keyValueCount = 100
-
-  override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-}
-
-class Segment_AssignerAssignKeyValues_Spec2 extends Assigner_AssignKeyValues_Spec {
-  val keyValueCount = 100
-
-  override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
-  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
-  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
-}
-
-class Segment_AssignerAssignKeyValues_Spec3 extends Assigner_AssignKeyValues_Spec {
-  val keyValueCount = 1000
-  override def isMemorySpec = true
-}
-
-sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
+class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
   implicit val keyOrder = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
 
-  def keyValueCount: Int
+  def keyValueCount: Int = 1000
 
   "assign new key-value to the Segment" when {
     "both have the same key values" in {
-      runThis(10.times, log = true) {
-        TestSweeper {
-          implicit sweeper =>
-            val keyValues = randomKeyValues(count = keyValueCount, startId = Some(1))
-            val segment = TestSegment(keyValues)
+      CoreTestSweeper.foreachRepeat(10.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
 
-            //assign the Segment's key-values to itself.
-            /**
-             * Test with no gaps
-             */
-            val noGaps = Assigner.assignUnsafeNoGaps(keyValues, Slice(segment), randomBoolean())
-            noGaps should have size 1
-            noGaps.head.midOverlap.result.expectKeyValues() shouldBe keyValues
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
 
-            /**
-             * Test with gaps
-             */
-            val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](keyValues, Slice(segment), randomBoolean())
-            gaps should have size 1
-            gaps.head.headGap.result shouldBe empty
-            gaps.head.midOverlap.result.expectKeyValues() shouldBe keyValues
-            gaps.head.tailGap.result shouldBe empty
-        }
+          import sweeper.testCoreFunctionStore
+
+          val keyValues = randomKeyValues(count = keyValueCount, startId = Some(1))
+          val segment = TestSegment(keyValues)
+
+          //assign the Segment's key-values to itself.
+          /**
+           * Test with no gaps
+           */
+          val noGaps = Assigner.assignUnsafeNoGaps(keyValues, Slice(segment), randomBoolean())
+          noGaps should have size 1
+          noGaps.head.midOverlap.result.expectKeyValues() shouldBe keyValues
+
+          /**
+           * Test with gaps
+           */
+          val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](keyValues, Slice(segment), randomBoolean())
+          gaps should have size 1
+          gaps.head.headGap.result shouldBe empty
+          gaps.head.midOverlap.result.expectKeyValues() shouldBe keyValues
+          gaps.head.tailGap.result shouldBe empty
       }
     }
 
     "segment is assigned" in {
-      runThis(10.times, log = true) {
-        TestSweeper {
-          implicit sweeper =>
-            val segmentKeyValue = randomKeyValues(count = keyValueCount, startId = Some(0))
+      CoreTestSweeper.foreachRepeat(10.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
 
-            val segment = TestSegment(segmentKeyValue)
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
 
-            /**
-             * Test with no gaps
-             */
-            val noGaps = Assigner.assignUnsafeNoGaps(Slice(segment), Slice(segment), randomBoolean())
-            noGaps should have size 1
+          import sweeper.testCoreFunctionStore
 
-            val assignedSegments = noGaps.head.midOverlap.result.expectSegments()
-            assignedSegments should have size 1
-            assignedSegments.head.segmentNumber shouldBe segment.segmentNumber
+          val segmentKeyValue = randomKeyValues(count = keyValueCount, startId = Some(0))
 
-            /**
-             * Test with gaps
-             */
-            val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segment), Slice(segment), randomBoolean())
-            gaps should have size 1
-            gaps.head.headGap.result shouldBe empty
-            gaps.head.tailGap.result shouldBe empty
+          val segment = TestSegment(segmentKeyValue)
 
-            val assignedSegments2 = noGaps.head.midOverlap.result.expectSegments()
-            assignedSegments2 should have size 1
-            assignedSegments2.head.segmentNumber shouldBe segment.segmentNumber
-        }
+          /**
+           * Test with no gaps
+           */
+          val noGaps = Assigner.assignUnsafeNoGaps(Slice(segment), Slice(segment), randomBoolean())
+          noGaps should have size 1
+
+          val assignedSegments = noGaps.head.midOverlap.result.expectSegments()
+          assignedSegments should have size 1
+          assignedSegments.head.segmentNumber shouldBe segment.segmentNumber
+
+          /**
+           * Test with gaps
+           */
+          val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segment), Slice(segment), randomBoolean())
+          gaps should have size 1
+          gaps.head.headGap.result shouldBe empty
+          gaps.head.tailGap.result shouldBe empty
+
+          val assignedSegments2 = noGaps.head.midOverlap.result.expectSegments()
+          assignedSegments2 should have size 1
+          assignedSegments2.head.segmentNumber shouldBe segment.segmentNumber
       }
     }
   }
 
   "assign KeyValues to the first Segment if there is only one Segment" when {
     "noGap" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
+          implicit val testTimer: TestTimer = TestTimer.Incremental()
+
           val keyValues = randomizedKeyValues(10, startId = Some(0))
 
-          val segmentKeyValues = randomizedKeyValues(10, startId = Some(0))(TestTimer.Incremental())
+          val segmentKeyValues = randomizedKeyValues(10, startId = Some(0))
           val segment = TestSegment(segmentKeyValues)
 
           val result = Assigner.assignUnsafeNoGaps(keyValues, List(segment), randomBoolean())
@@ -153,34 +142,44 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
     }
 
     "gaps" in {
-      runThis(5.times, log = true) {
-        TestSweeper {
-          implicit sweeper =>
-            val headGap = randomizedKeyValues(100, startId = Some(0))
-            val midKeyValues = randomizedKeyValues(100, startId = Some(headGap.nextKey(incrementBy = randomIntMax(2))))
-            val tailGap = randomizedKeyValues(100, startId = Some(midKeyValues.nextKey(incrementBy = randomIntMax(2))))
+      CoreTestSweeper.foreachRepeat(5.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
 
-            //create the Segment with only mid key-values
-            val segment = TestSegment(midKeyValues)
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
 
-            val newKeyValues = headGap ++ midKeyValues ++ tailGap
+          import sweeper.testCoreFunctionStore
 
-            val result = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](newKeyValues, List(segment), randomBoolean())
-            result.size shouldBe 1
-            val assignment = result.head
-            assignment.segment.path shouldBe segment.path
+          val headGap = randomizedKeyValues(100, startId = Some(0))
+          val midKeyValues = randomizedKeyValues(100, startId = Some(headGap.nextKey(incrementBy = randomIntMax(2))))
+          val tailGap = randomizedKeyValues(100, startId = Some(midKeyValues.nextKey(incrementBy = randomIntMax(2))))
 
-            assignment.headGap.result.expectKeyValues() shouldBe headGap
-            assignment.midOverlap.result.expectKeyValues() shouldBe midKeyValues
-            assignment.tailGap.result.expectKeyValues() shouldBe tailGap
-        }
+          //create the Segment with only mid key-values
+          val segment = TestSegment(midKeyValues)
+
+          val newKeyValues = headGap ++ midKeyValues ++ tailGap
+
+          val result = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](newKeyValues, List(segment), randomBoolean())
+          result.size shouldBe 1
+          val assignment = result.head
+          assignment.segment.path shouldBe segment.path
+
+          assignment.headGap.result.expectKeyValues() shouldBe headGap
+          assignment.midOverlap.result.expectKeyValues() shouldBe midKeyValues
+          assignment.tailGap.result.expectKeyValues() shouldBe tailGap
       }
     }
   }
 
   "assign KeyValues to second Segment when none of the keys belong to the first Segment" in {
-    TestSweeper {
-      implicit sweeper =>
+    CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+      (_sweeper, _specType) =>
+
+        implicit val sweeper: CoreTestSweeper = _sweeper
+        implicit val specType: CoreSpecType = _specType
+
+        import sweeper.testCoreFunctionStore
+
         val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(2, 10, Value.FromValue.Null, Value.remove(10.seconds.fromNow))))
         val segment2 = TestSegment(Slice(Memory.put(10)))
         val segments = Seq(segment1, segment2)
@@ -203,8 +202,14 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "assign gap KeyValue to the first Segment if the first Segment already has a key-value assigned to it" in {
-    TestSweeper {
-      implicit sweeper =>
+    CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+      (_sweeper, _specType) =>
+
+        implicit val sweeper: CoreTestSweeper = _sweeper
+        implicit val specType: CoreSpecType = _specType
+
+        import sweeper.testCoreFunctionStore
+
         val segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(2, 10)))
         val segment2 = TestSegment(Slice(randomFixedKeyValue(20)))
         val segments = Seq(segment1, segment2)
@@ -225,34 +230,43 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "assign gap KeyValue to the second Segment if the first Segment has no key-value assigned to it" in {
-    runThis(10.times, log = true) {
-      TestSweeper {
-        implicit sweeper =>
-          val segment1KeyValues = Slice(randomFixedKeyValue(1), randomRangeKeyValue(2, 10))
-          val segment2KeyValues = Slice(randomFixedKeyValue(20))
+    CoreTestSweeper.foreachRepeat(10.times, CoreSpecType.all) {
+      (_sweeper, _specType) =>
 
-          val segment1 = TestSegment(segment1KeyValues)
-          val segment2 = TestSegment(segment2KeyValues)
-          val segments = Seq(segment1, segment2)
+        implicit val sweeper: CoreTestSweeper = _sweeper
+        implicit val specType: CoreSpecType = _specType
 
-          //15 is a gap key but no key-values are assigned to segment1 so segment2 will value this key-value.
-          val keyValues =
-            Slice(
-              randomFixedKeyValue(15),
-              randomRangeKeyValue(20, 100)
-            )
+        import sweeper.testCoreFunctionStore
 
-          val result = Assigner.assignUnsafeNoGaps(keyValues, segments, randomBoolean())
-          result.size shouldBe 1
-          result.head.segment.path shouldBe segment2.path
-          result.head.midOverlap.result.expectKeyValues() shouldBe keyValues
-      }
+        val segment1KeyValues = Slice(randomFixedKeyValue(1), randomRangeKeyValue(2, 10))
+        val segment2KeyValues = Slice(randomFixedKeyValue(20))
+
+        val segment1 = TestSegment(segment1KeyValues)
+        val segment2 = TestSegment(segment2KeyValues)
+        val segments = Seq(segment1, segment2)
+
+        //15 is a gap key but no key-values are assigned to segment1 so segment2 will value this key-value.
+        val keyValues =
+          Slice(
+            randomFixedKeyValue(15),
+            randomRangeKeyValue(20, 100)
+          )
+
+        val result = Assigner.assignUnsafeNoGaps(keyValues, segments, randomBoolean())
+        result.size shouldBe 1
+        result.head.segment.path shouldBe segment2.path
+        result.head.midOverlap.result.expectKeyValues() shouldBe keyValues
     }
   }
 
   "assign gap Range KeyValue to all Segments that fall within the Range's toKey" in {
-    TestSweeper {
-      implicit sweeper =>
+    CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+      (_sweeper, _specType) =>
+
+        implicit val sweeper: CoreTestSweeper = _sweeper
+        implicit val specType: CoreSpecType = _specType
+
+
         // 1 - 10(exclusive)
         val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(2, 10, Value.FromValue.Null, Value.remove(None))))
         // 20 - 20
@@ -284,8 +298,14 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "assign key value to the first segment when the key is the new smallest" in {
-    TestSweeper {
-      implicit sweeper =>
+    CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+      (_sweeper, _specType) =>
+
+        implicit val sweeper: CoreTestSweeper = _sweeper
+        implicit val specType: CoreSpecType = _specType
+
+        import sweeper.testCoreFunctionStore
+
         val segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
         val segment2 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)))
 
@@ -300,8 +320,13 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "assign key value to the first segment and split out to other Segment when the key is the new smallest and the range spreads onto other Segments" in {
-    TestSweeper {
-      implicit sweeper =>
+    CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+      (_sweeper, _specType) =>
+
+        implicit val sweeper: CoreTestSweeper = _sweeper
+        implicit val specType: CoreSpecType = _specType
+
+
         val segment1 = TestSegment(Slice(Memory.put(1), Memory.put(2)))
         val segment2 = TestSegment(Slice(Memory.put(4), Memory.put(5)))
         val segment3 = TestSegment(Slice(Memory.Range(6, 10, Value.remove(None), Value.update(10)), Memory.remove(10)))
@@ -321,8 +346,12 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "debugger" in {
-    TestSweeper {
-      implicit sweeper =>
+    CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+      (_sweeper, _specType) =>
+
+        implicit val sweeper: CoreTestSweeper = _sweeper
+        implicit val specType: CoreSpecType = _specType
+
         val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(26074, 26075, Value.FromValue.Null, Value.update(Slice.Null, None))))
         val segment2 = TestSegment(Slice(Memory.put(26075), Memory.Range(28122, 28123, Value.FromValue.Null, Value.update(Slice.Null, None))))
         val segment3 = TestSegment(Slice(Memory.put(28123), Memory.Range(32218, 32219, Value.FromValue.Null, Value.update(Slice.Null, None))))
@@ -339,8 +368,12 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "assign key value to the last segment when the key is the new largest" in {
-    TestSweeper {
-      implicit sweeper =>
+    CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+      (_sweeper, _specType) =>
+
+        implicit val sweeper: CoreTestSweeper = _sweeper
+        implicit val specType: CoreSpecType = _specType
+
         val segment1 = TestSegment(Slice(Memory.put(1), Memory.put(2)))
         val segment2 = TestSegment(Slice(Memory.put(4), Memory.put(5)))
         val segment3 = TestSegment(Slice(Memory.put(6), Memory.put(7)))
@@ -371,8 +404,14 @@ sealed trait Assigner_AssignKeyValues_Spec extends ALevelSpec {
   }
 
   "assign all KeyValues to their target Segments" in {
-    TestSweeper {
-      implicit sweeper =>
+    CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
+      (_sweeper, _specType) =>
+
+        implicit val sweeper: CoreTestSweeper = _sweeper
+        implicit val specType: CoreSpecType = _specType
+
+        import sweeper.testCoreFunctionStore
+
         val keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3), randomFixedKeyValue(4), randomFixedKeyValue(5))
         val segment1 = TestSegment(Slice(randomFixedKeyValue(key = 1)))
         val segment2 = TestSegment(Slice(randomFixedKeyValue(key = 2)))

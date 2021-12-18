@@ -16,21 +16,25 @@
 
 package swaydb.core.segment.block.hashindex
 
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.core.CoreTestSweeper
+import swaydb.core.compression.CompressionTestKit._
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
+import swaydb.core.segment.block.SegmentBlockTestKit._
 import swaydb.core.segment.data.{Persistent, SegmentKeyOrders}
-import swaydb.core.{ACoreSpec, SegmentBlocks, TestSweeper}
-import swaydb.core.segment.ASegmentSpec
-import swaydb.serializers.Default._
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.SegmentBlocks
+import swaydb.effect.EffectTestKit._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class HashIndexBlockSpec extends ASegmentSpec {
+class HashIndexBlockSpec extends AnyWordSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = SegmentKeyOrders(keyOrder).partialKeyOrder
@@ -39,7 +43,7 @@ class HashIndexBlockSpec extends ASegmentSpec {
 
   "searching a segment" in {
     runThis(100.times, log = true) {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
 

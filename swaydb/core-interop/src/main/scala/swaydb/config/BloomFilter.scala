@@ -26,7 +26,7 @@ import scala.jdk.CollectionConverters._
 sealed trait BloomFilter {
   def toOption: Option[BloomFilter.On] =
     this match {
-      case BloomFilter.Off => None
+      case BloomFilter.Off        => None
       case enable: BloomFilter.On => Some(enable)
     }
 }

@@ -16,32 +16,33 @@
 
 package swaydb.core.log
 
-import org.scalatest.OptionValues._
-import swaydb.IOValues._
-import swaydb.config.accelerate.Accelerator
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
-import swaydb.core.CommonAssertions._
-import swaydb.core.CorePrivateMethodTester._
-import swaydb.core.TestSweeper._
-import swaydb.core.CoreTestData._
+import swaydb.config.accelerate.Accelerator
+import swaydb.config.CoreConfigTestKit._
+import swaydb.core.{TestForceSave, CoreTestSweeper}
+import swaydb.core.CoreTestSweeper._
+import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.level.zero.LevelZeroLogCache
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.log.LogTestKit._
 import swaydb.core.segment.data.{Memory, MemoryOption, Value}
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave, TestTimer}
-import swaydb.effect.Effect._
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.effect.Effect
-import swaydb.serializers.Default._
+import swaydb.effect.Effect._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 import swaydb.utils.{Extension, OperatingSystem}
 import swaydb.utils.StorageUnits._
 
 import java.nio.file.NoSuchFileException
-import swaydb.testkit.TestKit._
-import swaydb.core.file.CoreFileTestKit._
 
-class LogsSpec extends ALogSpec {
+class LogsSpec extends AnyWordSpec {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
@@ -55,7 +56,7 @@ class LogsSpec extends ALogSpec {
   "Logs.persistent" should {
     "initialise and recover on reopen" in {
       runThis(10.times, log = true) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -67,7 +68,7 @@ class LogsSpec extends ALogSpec {
                 fileSize = 1.mb,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
-              ).value
+              ).get
 
             logs.write(_ => LogEntry.Put(1, Memory.put(1)))
             logs.write(_ => LogEntry.Put(2, Memory.put(2)))
@@ -79,7 +80,7 @@ class LogsSpec extends ALogSpec {
             path.folders.map(_.folderId) should contain only 0
 
             if (logs.mmap.hasMMAP && OperatingSystem.isWindows()) {
-              logs.close().value
+              logs.close().get
               sweeper.receiveAll()
             }
 
@@ -91,7 +92,7 @@ class LogsSpec extends ALogSpec {
                 fileSize = 1.mb,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
-              ).value.sweep()
+              ).get.sweep()
 
             //adding more entries to reopened Log should contain all entries
             reopen.write(_ => LogEntry.Put(3, Memory.put(3)))
@@ -111,7 +112,7 @@ class LogsSpec extends ALogSpec {
 
     "delete empty logs on recovery" in {
       runThis(10.times, log = true) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             import sweeper._
             val path = createRandomDir()
@@ -122,10 +123,10 @@ class LogsSpec extends ALogSpec {
                 fileSize = 1.mb,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
-              ).value
+              ).get
 
             if (logs.mmap.hasMMAP && OperatingSystem.isWindows()) {
-              logs.close().value
+              logs.close().get
               sweeper.receiveAll()
             }
 
@@ -141,7 +142,7 @@ class LogsSpec extends ALogSpec {
                 fileSize = 1.mb,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
-              ).value.sweep()
+              ).get.sweep()
 
             reopen.logsCount shouldBe 1
             //since the old log is empty, it should value deleted
@@ -157,7 +158,7 @@ class LogsSpec extends ALogSpec {
 
   "Logs.memory" should {
     "initialise" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val log: Logs[Slice[Byte], Memory, LevelZeroLogCache] =
@@ -178,7 +179,7 @@ class LogsSpec extends ALogSpec {
 
   "Logs" should {
     "initialise a new log if the current log is full" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           def test(logs: Logs[Slice[Byte], Memory, LevelZeroLogCache]) = {
@@ -200,7 +201,7 @@ class LogsSpec extends ALogSpec {
               fileSize = 21.bytes + 31.bytes,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.ReportFailure
-            ).value.sweep()
+            ).get.sweep()
 
           test(logs)
           //new log 1 gets created since the 3rd entry is overflow entry.
@@ -218,7 +219,7 @@ class LogsSpec extends ALogSpec {
 
     "write a key value larger then the actual fileSize" in {
       runThis(10.times, log = true) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             import sweeper._
             val largeValue = randomBytesSlice(1.mb)
@@ -261,7 +262,7 @@ class LogsSpec extends ALogSpec {
                   fileSize = 500.bytes,
                   acceleration = Accelerator.brake(),
                   recovery = RecoveryMode.ReportFailure
-                ).value
+                ).get
               )
 
             if (originalLogs.mmap.hasMMAP && OperatingSystem.isWindows())
@@ -283,7 +284,7 @@ class LogsSpec extends ALogSpec {
                 fileSize = 500.bytes,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
-              ).value.sweep()
+              ).get.sweep()
 
             logs.logsCount shouldBe 5
             logs.find[MemoryOption](Memory.Null, _.cache.skipList.get(1)) shouldBe Memory.put(1, largeValue)
@@ -296,7 +297,7 @@ class LogsSpec extends ALogSpec {
 
     "recover logs in newest to oldest order" in {
       runThis(10.times, log = true) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -308,7 +309,7 @@ class LogsSpec extends ALogSpec {
                 fileSize = 1.byte,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
-              ).value
+              ).get
 
             logs.write(_ => LogEntry.Put(1, Memory.put(1)))
             logs.write(_ => LogEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2)))
@@ -318,11 +319,11 @@ class LogsSpec extends ALogSpec {
 
             logs.logsCount shouldBe 5
             //logs value added
-            getLogs(logs).iterator.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
-            logs.last().value.pathOption.value.folderId shouldBe 0
+            getLogs(logs).iterator.toList.map(_.pathOption.get.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
+            logs.last().get.pathOption.get.folderId shouldBe 0
 
             if (logs.mmap.hasMMAP && OperatingSystem.isWindows()) {
-              logs.close().value
+              logs.close().get
               sweeper.receiveAll()
             }
 
@@ -333,15 +334,15 @@ class LogsSpec extends ALogSpec {
                 fileSize = 1.byte,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
-              ).value
+              ).get
 
-            getLogs(recovered1).iterator.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
-            recovered1.log.pathOption.value.folderId shouldBe 5
+            getLogs(recovered1).iterator.toList.map(_.pathOption.get.folderId) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
+            recovered1.log.pathOption.get.folderId shouldBe 5
             recovered1.write(_ => LogEntry.Put[Slice[Byte], Memory.Remove](6, Memory.remove(6)))
-            recovered1.last().value.pathOption.value.folderId shouldBe 0
+            recovered1.last().get.pathOption.get.folderId shouldBe 0
 
             if (recovered1.mmap.hasMMAP && OperatingSystem.isWindows()) {
-              recovered1.close().value
+              recovered1.close().get
               sweeper.receiveAll()
             }
 
@@ -352,18 +353,18 @@ class LogsSpec extends ALogSpec {
                 fileSize = 1.byte,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
-              ).value.sweep()
+              ).get.sweep()
 
-            getLogs(recovered2).iterator.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(6, 5, 4, 3, 2, 1, 0)
-            recovered2.log.pathOption.value.folderId shouldBe 6
-            recovered2.last().value.pathOption.value.folderId shouldBe 0
+            getLogs(recovered2).iterator.toList.map(_.pathOption.get.folderId) should contain inOrderOnly(6, 5, 4, 3, 2, 1, 0)
+            recovered2.log.pathOption.get.folderId shouldBe 6
+            recovered2.last().get.pathOption.get.folderId shouldBe 0
         }
       }
     }
 
     "recover from existing logs" in {
       runThis(10.times, log = true) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -375,14 +376,14 @@ class LogsSpec extends ALogSpec {
                 fileSize = 1.byte,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
-              ).value
+              ).get
 
             logs.write(_ => LogEntry.Put(1, Memory.put(1)))
             logs.write(_ => LogEntry.Put(2, Memory.put(2)))
             logs.write(_ => LogEntry.Put[Slice[Byte], Memory](1, Memory.remove(1)))
 
             if (logs.mmap.hasMMAP && OperatingSystem.isWindows()) {
-              logs.close().value
+              logs.close().get
               sweeper.receiveAll()
             }
 
@@ -393,11 +394,11 @@ class LogsSpec extends ALogSpec {
                 fileSize = 1.byte,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
-              ).value.sweep()
+              ).get.sweep()
 
             val recoveredLogsLogs = getLogs(recoveredLogs).iterator.toList
             recoveredLogsLogs should have size 4
-            recoveredLogsLogs.map(_.pathOption.value.folderId) shouldBe List(3, 2, 1, 0)
+            recoveredLogsLogs.map(_.pathOption.get.folderId) shouldBe List(3, 2, 1, 0)
 
             recoveredLogsLogs.head.cache.skipList.size shouldBe 0
             recoveredLogsLogs.tail.head.cache.skipList.get(1) shouldBe Memory.remove(1)
@@ -409,7 +410,7 @@ class LogsSpec extends ALogSpec {
 
     "fail recovery if one of the log is corrupted and recovery mode is ReportFailure" in {
       runThis(10.times, log = true) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             import sweeper._
             val path = createRandomDir()
@@ -420,18 +421,18 @@ class LogsSpec extends ALogSpec {
                 fileSize = 1.byte,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
-              ).value
+              ).get
 
             logs.write(_ => LogEntry.Put(1, Memory.put(1)))
             logs.write(_ => LogEntry.Put(2, Memory.put(2)))
             logs.write(_ => LogEntry.Put[Slice[Byte], Memory](3, Memory.remove(3)))
 
             if (logs.mmap.hasMMAP && OperatingSystem.isWindows()) {
-              logs.close().value
+              logs.close().get
               sweeper.receiveAll()
             }
 
-            val secondLogsPath = getLogs(logs).iterator.toList.tail.head.pathOption.value.files(Extension.Log).head
+            val secondLogsPath = getLogs(logs).iterator.toList.tail.head.pathOption.get.files(Extension.Log).head
             val secondLogsBytes = Effect.readAllBytes(secondLogsPath)
             Effect.overwrite(secondLogsPath, secondLogsBytes.dropRight(1))
 
@@ -441,14 +442,14 @@ class LogsSpec extends ALogSpec {
               fileSize = 1.byte,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.ReportFailure
-            ).left.value.exception shouldBe a[IllegalStateException]
+            ).left.get.exception shouldBe a[IllegalStateException]
         }
       }
     }
 
     "continue recovery if one of the log is corrupted and recovery mode is DropCorruptedTailEntries" in {
       runThis(10.times, log = true) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             import sweeper._
             val path = createRandomDir()
@@ -459,7 +460,7 @@ class LogsSpec extends ALogSpec {
                 fileSize = 50.bytes,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
-              ).value
+              ).get
 
             logs.write(_ => LogEntry.Put(1, Memory.put(1)))
             logs.write(_ => LogEntry.Put(2, Memory.put(2)))
@@ -468,7 +469,7 @@ class LogsSpec extends ALogSpec {
             logs.write(_ => LogEntry.Put(5, Memory.put(5)))
             logs.write(_ => LogEntry.Put(6, Memory.put(6, 6)))
 
-            val secondLogsPath = getLogs(logs).iterator.toList.tail.head.pathOption.value.files(Extension.Log).head
+            val secondLogsPath = getLogs(logs).iterator.toList.tail.head.pathOption.get.files(Extension.Log).head
             val secondLogsBytes = Effect.readAllBytes(secondLogsPath)
             Effect.overwrite(secondLogsPath, secondLogsBytes.dropRight(1))
 
@@ -479,7 +480,7 @@ class LogsSpec extends ALogSpec {
                 fileSize = 50.bytes,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.DropCorruptedTailEntries
-              ).value.sweep()
+              ).get.sweep()
 
             val recoveredLogs = getLogs(recovered).iterator.toList
 
@@ -506,7 +507,7 @@ class LogsSpec extends ALogSpec {
     }
 
     "continue recovery if one of the log is corrupted and recovery mode is DropCorruptedTailEntriesAndLogs" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val path = createRandomDir()
@@ -517,7 +518,7 @@ class LogsSpec extends ALogSpec {
               fileSize = 50.bytes,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.ReportFailure
-            ).value
+            ).get
 
           logs.write(_ => LogEntry.Put(1, Memory.put(1)))
           logs.write(_ => LogEntry.Put(2, Memory.put(2, 2)))
@@ -526,7 +527,7 @@ class LogsSpec extends ALogSpec {
           logs.write(_ => LogEntry.Put(5, Memory.put(5)))
           logs.write(_ => LogEntry.Put(6, Memory.put(6)))
 
-          val secondLogsPath = getLogs(logs).iterator.toList.tail.head.pathOption.value.files(Extension.Log).head
+          val secondLogsPath = getLogs(logs).iterator.toList.tail.head.pathOption.get.files(Extension.Log).head
           val secondLogsBytes = Effect.readAllBytes(secondLogsPath)
           Effect.overwrite(secondLogsPath, secondLogsBytes.dropRight(1))
 
@@ -537,7 +538,7 @@ class LogsSpec extends ALogSpec {
               fileSize = 50.bytes,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.DropCorruptedTailEntriesAndLogs
-            ).value.sweep()
+            ).get.sweep()
 
           getLogs(recoveredLogs) should have size 3
           //the last log is delete since the second last Log is found corrupted.
@@ -556,7 +557,7 @@ class LogsSpec extends ALogSpec {
     }
 
     "start a new Log if writing an entry fails" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val path = createRandomDir()
@@ -567,7 +568,7 @@ class LogsSpec extends ALogSpec {
               fileSize = 100.bytes,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.ReportFailure
-            ).value
+            ).get
 
           logs.write(_ => LogEntry.Put(1, Memory.put(1)))
           logs.logsCount shouldBe 1

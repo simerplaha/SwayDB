@@ -16,7 +16,7 @@
 
 package swaydb.config
 
-import swaydb.macros.Sealed
+import swaydb.macros.MacroSealed
 
 sealed trait DataType {
   def id: Byte
@@ -58,7 +58,7 @@ object DataType {
   }
 
   def all =
-    Sealed.array[DataType]
+    MacroSealed.array[DataType]
 
   def apply(id: Byte): Option[DataType] =
     all.find(_.id == id)

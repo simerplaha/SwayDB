@@ -80,6 +80,7 @@ sealed trait IO[+L, +R] {
   }
 
   def left: IO[Throwable, L]
+
   def right: IO[Throwable, R]
 
   def recoverWith[L2 >: L : IO.ExceptionHandler, B >: R](f: PartialFunction[L, IO[L2, B]]): IO[L2, B]
@@ -99,9 +100,11 @@ sealed trait IO[+L, +R] {
   def toOptionValue: IO[L, Option[R]]
 
   def toEither: Either[L, R]
+
   def toFuture: Future[R]
 
   def toTry: scala.util.Try[R]
+
   def toDefer[L2 >: L : IO.ExceptionHandler]: IO.Defer[L2, R] =
     IO.Defer.io[L2, R](io = this)
 

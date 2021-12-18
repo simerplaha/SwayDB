@@ -16,23 +16,26 @@
 
 package swaydb.core.util
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.IOValues._
-import swaydb.core.CoreTestData._
+import swaydb.effect.IOValues._
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.data.Memory
+import swaydb.core.segment.TestCoreFunctionStore
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.slice.MaxKey
+import swaydb.slice.{MaxKey, Slice}
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 
-class KeyCompressorSpec extends AnyWordSpec with Matchers {
+class KeyCompressorSpec extends AnyWordSpec {
 
-  implicit val keyOrder = KeyOrder.default
+  private implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  private implicit val testCoreFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
 
   "None, Fixed" in {
     runThis(20.times) {
+
       val last = randomFixedKeyValue(2)
 
       val (minKey, maxKey, compressedKey) =
@@ -44,7 +47,7 @@ class KeyCompressorSpec extends AnyWordSpec with Matchers {
       minKey shouldBe last.key
       maxKey shouldBe MaxKey.Fixed(last.key)
 
-      KeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((last.key, MaxKey.Fixed(last.key)))
+      KeyCompressor.decompress(compressedKey).runRandomIO.get shouldBe ((last.key, MaxKey.Fixed(last.key)))
     }
   }
 
@@ -62,7 +65,7 @@ class KeyCompressorSpec extends AnyWordSpec with Matchers {
       minKey shouldBe head.key
       maxKey shouldBe MaxKey.Fixed(last.key)
 
-      KeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((head.key, MaxKey.Fixed(last.key)))
+      KeyCompressor.decompress(compressedKey).runRandomIO.get shouldBe ((head.key, MaxKey.Fixed(last.key)))
     }
   }
 
@@ -79,7 +82,7 @@ class KeyCompressorSpec extends AnyWordSpec with Matchers {
       minKey shouldBe last.key
       maxKey shouldBe MaxKey.Range(last.fromKey, last.toKey)
 
-      KeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((last.key, MaxKey.Range(last.fromKey, last.toKey)))
+      KeyCompressor.decompress(compressedKey).runRandomIO.get shouldBe ((last.key, MaxKey.Range(last.fromKey, last.toKey)))
     }
   }
 
@@ -97,7 +100,7 @@ class KeyCompressorSpec extends AnyWordSpec with Matchers {
       minKey shouldBe head.key
       maxKey shouldBe MaxKey.Range(last.fromKey, last.toKey)
 
-      KeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((head.key, MaxKey.Range(last.fromKey, last.toKey)))
+      KeyCompressor.decompress(compressedKey).runRandomIO.get shouldBe ((head.key, MaxKey.Range(last.fromKey, last.toKey)))
     }
   }
 }

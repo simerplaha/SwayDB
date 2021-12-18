@@ -30,9 +30,10 @@ import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.segment.data.{SegmentKeyOrders, Memory}
+import swaydb.core.segment.data.{Memory, SegmentKeyOrders}
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.defrag.DefragSource._
+import swaydb.core.segment.distributor.PathDistributor
 import swaydb.core.segment.io.{SegmentCompactionIO, SegmentReadIO, SegmentWriteIO}
 import swaydb.core.segment.ref.{SegmentRef, SegmentRefOption}
 import swaydb.core.util.DefIO
@@ -64,7 +65,7 @@ object DefragPersistentSegment {
                                          newKeyValues: Iterator[Assignable],
                                          removeDeletes: Boolean,
                                          createdInLevel: Int,
-                                         pathsDistributor: PathsDistributor,
+                                         pathDistributor: PathDistributor,
                                          segmentRefCacheLife: SegmentRefCacheLife,
                                          mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
                                                              defragSource: DefragSource[SEG],
@@ -105,7 +106,7 @@ object DefragPersistentSegment {
         commitFragments(
           fragments = mergeResult.output,
           createdInLevel = createdInLevel,
-          pathsDistributor = pathsDistributor,
+          pathDistributor = pathDistributor,
           segmentRefCacheLife = segmentRefCacheLife,
           mmap = mmap
         ) map {
@@ -122,7 +123,7 @@ object DefragPersistentSegment {
                                       tailGap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                                       removeDeletes: Boolean,
                                       createdInLevel: Int,
-                                      pathsDistributor: PathsDistributor,
+                                      pathDistributor: PathDistributor,
                                       segmentRefCacheLife: SegmentRefCacheLife,
                                       mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
                                                           keyOrders: SegmentKeyOrders,
@@ -155,7 +156,7 @@ object DefragPersistentSegment {
         commitFragments(
           fragments = mergeResult,
           createdInLevel = createdInLevel,
-          pathsDistributor = pathsDistributor,
+          pathDistributor = pathDistributor,
           segmentRefCacheLife = segmentRefCacheLife,
           mmap = mmap
         ) map {
@@ -180,7 +181,7 @@ object DefragPersistentSegment {
               newKeyValues: Iterator[Assignable],
               removeDeletes: Boolean,
               createdInLevel: Int,
-              pathsDistributor: PathsDistributor,
+              pathDistributor: PathDistributor,
               segmentRefCacheLife: SegmentRefCacheLife,
               mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
                                   keyOrders: SegmentKeyOrders,
@@ -208,7 +209,7 @@ object DefragPersistentSegment {
         tailGap = tailGap,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
-        pathsDistributor = pathsDistributor,
+        pathDistributor = pathDistributor,
         segmentRefCacheLife = segmentRefCacheLife,
         mmap = mmap
       )
@@ -258,7 +259,7 @@ object DefragPersistentSegment {
             commitFragments(
               fragments = fragments,
               createdInLevel = createdInLevel,
-              pathsDistributor = pathsDistributor,
+              pathDistributor = pathDistributor,
               segmentRefCacheLife = segmentRefCacheLife,
               mmap = mmap
             ) map {
@@ -427,7 +428,7 @@ object DefragPersistentSegment {
    */
   def commitFragments(fragments: ListBuffer[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                       createdInLevel: Int,
-                      pathsDistributor: PathsDistributor,
+                      pathDistributor: PathDistributor,
                       segmentRefCacheLife: SegmentRefCacheLife,
                       mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
                                           keyOrders: SegmentKeyOrders,
@@ -502,7 +503,7 @@ object DefragPersistentSegment {
             commitGroup(
               group = group,
               createdInLevel = createdInLevel,
-              pathsDistributor = pathsDistributor,
+              pathDistributor = pathDistributor,
               segmentRefCacheLife = segmentRefCacheLife,
               mmap = mmap
             )
@@ -522,7 +523,7 @@ object DefragPersistentSegment {
           compactionIO.ask.flatMap {
             (instance, _) =>
               instance.persist(
-                pathsDistributor = pathsDistributor,
+                pathDistributor = pathDistributor,
                 segmentRefCacheLife = segmentRefCacheLife,
                 mmap = mmap,
                 transient = remoteSegments
@@ -539,7 +540,7 @@ object DefragPersistentSegment {
    */
   private def commitGroup(group: Iterable[TransientSegment.RemoteRefOrStats[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                           createdInLevel: Int,
-                          pathsDistributor: PathsDistributor,
+                          pathDistributor: PathDistributor,
                           segmentRefCacheLife: SegmentRefCacheLife,
                           mmap: MMAP.Segment)(implicit executionContext: ExecutionContext,
                                               keyOrders: SegmentKeyOrders,
@@ -609,7 +610,7 @@ object DefragPersistentSegment {
           compactionIO.ask.flatMap {
             (instance, _) =>
               instance.persist(
-                pathsDistributor = pathsDistributor,
+                pathDistributor = pathDistributor,
                 segmentRefCacheLife = segmentRefCacheLife,
                 mmap = mmap,
                 transient = transient

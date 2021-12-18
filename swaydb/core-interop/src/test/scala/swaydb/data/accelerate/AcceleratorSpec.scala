@@ -16,13 +16,13 @@
 
 package swaydb.config.accelerate
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.utils.StorageUnits._
 
 import scala.concurrent.duration._
 
-class AcceleratorSpec extends AnyWordSpec with Matchers {
+class AcceleratorSpec extends AnyWordSpec {
 
   "BlockingBrakeAccelerator" should {
     "not apply brakes and not increase the map size when map count is not reached" in {

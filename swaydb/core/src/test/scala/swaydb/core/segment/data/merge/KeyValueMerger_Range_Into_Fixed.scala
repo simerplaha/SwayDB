@@ -17,22 +17,28 @@
 package swaydb.core.segment.data.merge
 
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
-import swaydb.core.TestTimer
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.segment.{CoreFunctionStore, TestCoreFunctionStore}
 import swaydb.core.segment.data.{Memory, Value}
-import swaydb.serializers.Default._
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.data.merge.SegmentMergeTestKit._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 
 import scala.util.Random
 
 class KeyValueMerger_Range_Into_Fixed extends AnyWordSpec {
 
-  implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  private implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+
+  private implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
+  private implicit val functionStore: CoreFunctionStore = testFunctionStore.store
+
   implicit val testTimer = TestTimer.Empty
 
   "Range into Single" when {
@@ -49,13 +55,13 @@ class KeyValueMerger_Range_Into_Fixed extends AnyWordSpec {
 
         val expectedKeyValue =
           (newKeyValue.fromValue, newKeyValue.rangeValue) match {
-            case (Value.FromValue.Null, Value.Remove(None, _)) =>
+            case (Value.FromValue.Null, Value.Remove(None, _))  =>
               newKeyValue
             case (Value.Put(_, None, _), Value.Remove(None, _)) =>
               newKeyValue
             case (Value.Remove(None, _), Value.Remove(None, _)) =>
               newKeyValue
-            case _ =>
+            case _                                              =>
               Memory.Range(1, 10, expectedFromValue.toFromValue(), newKeyValue.rangeValue)
           }
 
@@ -84,6 +90,7 @@ class KeyValueMerger_Range_Into_Fixed extends AnyWordSpec {
           newKeyValue.rangeValue match {
             case Value.Remove(None, _) =>
               Slice(newKeyValue)
+
             case _ =>
               Slice(
                 newKeyValue.copy(fromKey = 1, toKey = midKey),

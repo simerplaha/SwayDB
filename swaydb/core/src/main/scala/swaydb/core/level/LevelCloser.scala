@@ -35,7 +35,8 @@ object LevelCloser extends LazyLogging {
     MemorySweeper.close(keyValueMemorySweeper)
     MemorySweeper.close(blockCacheSweeper)
 
-    FileSweeper.close()
+    FileSweeper
+      .close()
       .and(ByteBufferSweeper.close())
   }
 }

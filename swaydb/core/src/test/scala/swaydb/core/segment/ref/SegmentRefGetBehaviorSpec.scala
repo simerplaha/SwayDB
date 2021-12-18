@@ -17,10 +17,8 @@
 package swaydb.core.segment.ref
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
 import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset}
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
@@ -28,21 +26,25 @@ import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
-import swaydb.core.segment.data.{SegmentKeyOrders, Persistent, PersistentOption, Time}
+import swaydb.core.segment.data.{Persistent, PersistentOption, SegmentKeyOrders, Time}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.{SegmentSearcher, ThreadReadState}
-import swaydb.core.{ACoreSpec, TestExecutionContext, TestSweeper}
-import swaydb.core.segment.ASegmentSpec
-import swaydb.serializers.Default._
+import swaydb.core.CoreTestSweeper
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.{MaxKey, Slice}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
+import swaydb.TestExecutionContext
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.core.segment.block.SegmentBlockTestKit._
+import swaydb.core.segment.data.KeyValueTestKit._
 
 import java.nio.file.Paths
-import swaydb.testkit.TestKit._
+import scala.concurrent.ExecutionContext
 
-class SegmentRefGetBehaviorSpec extends AnyWordSpec with Matchers with MockFactory {
+class SegmentRefGetBehaviorSpec extends AnyWordSpec with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
   implicit val keyOrders: SegmentKeyOrders = SegmentKeyOrders(keyOrder)
@@ -114,9 +116,11 @@ class SegmentRefGetBehaviorSpec extends AnyWordSpec with Matchers with MockFacto
 
   "GET - Behaviour" in {
     runThis(10.times, log = true) {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
-          implicit val ec = TestExecutionContext.executionContext
+          import sweeper.testCoreFunctionStore
+
+          implicit val ec: ExecutionContext = TestExecutionContext.executionContext
           implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None
 
           //test data
@@ -152,7 +156,7 @@ class SegmentRefGetBehaviorSpec extends AnyWordSpec with Matchers with MockFacto
             Persistent.Remove(
               _key =
                 eitherOne(
-                  //tests that sorted keys are cutd.
+                  //tests that sorted keys are cut.
                   (key ++ Slice.fill[Byte](10)(randomByte())).dropRight(10),
                   (Slice.fill[Byte](10)(randomByte()) ++ key).drop(10)
                 ),

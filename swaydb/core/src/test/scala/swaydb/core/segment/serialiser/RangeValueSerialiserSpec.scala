@@ -16,16 +16,19 @@
 
 package swaydb.core.segment.serialiser
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CoreTestData._
-import swaydb.core.TestTimer
+import swaydb.core.log.timer.TestTimer
 import swaydb.core.segment.data.Value
 import swaydb.core.segment.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.slice.Slice
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.TestCoreFunctionStore
 import swaydb.testkit.RunThis._
 
-class RangeValueSerialiserSpec extends AnyWordSpec with Matchers {
+class RangeValueSerialiserSpec extends AnyWordSpec {
+
+  implicit val testCoreFunctions: TestCoreFunctionStore = TestCoreFunctionStore()
 
   def doAssert[R <: RangeValue](rangeValue: R)(implicit serialiser: RangeValueSerialiser[Unit, R]) = {
     val bytesRequired = RangeValueSerialiser.bytesRequired((), rangeValue)
@@ -55,7 +58,7 @@ class RangeValueSerialiserSpec extends AnyWordSpec with Matchers {
   "Serialize range values" in {
 
     runThis(1000.times) {
-      implicit val testTimer = TestTimer.random
+      implicit val testTimer: TestTimer = TestTimer.random
 
       randomRangeValue() match {
         case rangeValue: Value.Remove =>
@@ -99,32 +102,32 @@ class RangeValueSerialiserSpec extends AnyWordSpec with Matchers {
   "Serialize from values and range values" in {
 
     runThis(1000.times) {
-      implicit val testTimer = TestTimer.random
+      implicit val testTimer: TestTimer = TestTimer.random
 
       (randomFromValue(), randomRangeValue()) match {
-        case (fromValue: Value.Remove, rangeValue: Value.Remove) => doAssert(fromValue, rangeValue)
-        case (fromValue: Value.Remove, rangeValue: Value.Update) => doAssert(fromValue, rangeValue)
-        case (fromValue: Value.Remove, rangeValue: Value.Function) => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.Remove, rangeValue: Value.Remove)       => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.Remove, rangeValue: Value.Update)       => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.Remove, rangeValue: Value.Function)     => doAssert(fromValue, rangeValue)
         case (fromValue: Value.Remove, rangeValue: Value.PendingApply) => doAssert(fromValue, rangeValue)
 
-        case (fromValue: Value.Put, rangeValue: Value.Remove) => doAssert(fromValue, rangeValue)
-        case (fromValue: Value.Put, rangeValue: Value.Update) => doAssert(fromValue, rangeValue)
-        case (fromValue: Value.Put, rangeValue: Value.Function) => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.Put, rangeValue: Value.Remove)       => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.Put, rangeValue: Value.Update)       => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.Put, rangeValue: Value.Function)     => doAssert(fromValue, rangeValue)
         case (fromValue: Value.Put, rangeValue: Value.PendingApply) => doAssert(fromValue, rangeValue)
 
-        case (fromValue: Value.Update, rangeValue: Value.Remove) => doAssert(fromValue, rangeValue)
-        case (fromValue: Value.Update, rangeValue: Value.Update) => doAssert(fromValue, rangeValue)
-        case (fromValue: Value.Update, rangeValue: Value.Function) => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.Update, rangeValue: Value.Remove)       => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.Update, rangeValue: Value.Update)       => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.Update, rangeValue: Value.Function)     => doAssert(fromValue, rangeValue)
         case (fromValue: Value.Update, rangeValue: Value.PendingApply) => doAssert(fromValue, rangeValue)
 
-        case (fromValue: Value.Function, rangeValue: Value.Remove) => doAssert(fromValue, rangeValue)
-        case (fromValue: Value.Function, rangeValue: Value.Update) => doAssert(fromValue, rangeValue)
-        case (fromValue: Value.Function, rangeValue: Value.Function) => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.Function, rangeValue: Value.Remove)       => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.Function, rangeValue: Value.Update)       => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.Function, rangeValue: Value.Function)     => doAssert(fromValue, rangeValue)
         case (fromValue: Value.Function, rangeValue: Value.PendingApply) => doAssert(fromValue, rangeValue)
 
-        case (fromValue: Value.PendingApply, rangeValue: Value.Remove) => doAssert(fromValue, rangeValue)
-        case (fromValue: Value.PendingApply, rangeValue: Value.Update) => doAssert(fromValue, rangeValue)
-        case (fromValue: Value.PendingApply, rangeValue: Value.Function) => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.PendingApply, rangeValue: Value.Remove)       => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.PendingApply, rangeValue: Value.Update)       => doAssert(fromValue, rangeValue)
+        case (fromValue: Value.PendingApply, rangeValue: Value.Function)     => doAssert(fromValue, rangeValue)
         case (fromValue: Value.PendingApply, rangeValue: Value.PendingApply) => doAssert(fromValue, rangeValue)
       }
     }

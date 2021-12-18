@@ -16,31 +16,29 @@
 
 package swaydb.core.file
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.{TestForceSave, TestSweeper}
-import swaydb.core.CoreTestData._
+import swaydb.core.{TestForceSave, CoreTestSweeper}
 import swaydb.core.file.CoreFileTestKit._
-import swaydb.core.CommonAssertions._
+import swaydb.core.CoreTestSweeper._
 import swaydb.effect.Effect
+import swaydb.effect.EffectTestKit._
 import swaydb.slice.{Slice, Slices}
+import swaydb.slice.SliceTestKit._
+import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 import swaydb.utils.OperatingSystem
 import swaydb.utils.PipeOps._
-import swaydb.IO
-import swaydb.core.TestSweeper._
-import swaydb.testkit.RunThis._
 
 import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
 import java.nio.file.FileAlreadyExistsException
 import java.nio.ReadOnlyBufferException
-import swaydb.macros.FunctionNameMacro.functionName
 
-class CoreFileSpec extends AnyWordSpec with Matchers {
+class CoreFileSpec extends AnyWordSpec {
 
-  functionName(CoreFile.standardWritable(???, ???, ???, ???)(???, ???, ???)) should {
+  "standardWritable" should {
     "initialise a StandardFile for write only" in {
-      TestSweeper(3.times) {
+      CoreTestSweeper.repeat(3.times) {
         implicit sweeper =>
           import sweeper._
 
@@ -105,13 +103,12 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
       }
     }
 
-    "fail is file already exists" in {
-      TestSweeper(3.times) {
+    "fail if file already exists" in {
+      CoreTestSweeper.repeat(3.times) {
         implicit sweeper =>
           import sweeper._
 
           val testFile = randomFilePath()
-          val bytes = randomBytesSlice()
 
           def createFile() =
             CoreFile.standardWritable(
@@ -132,7 +129,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
   "standardReadable" should {
     "initialise a StandardFile for read only" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -179,7 +176,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "fail initialisation if the file does not exists" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           assertThrows[swaydb.Exception.NoSuchFile] {
@@ -195,7 +192,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
   "mmapWriteableReadable" should {
     "write bytes to a File, extend the buffer on overflow and reopen it for reading via mmapRead" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath()
@@ -255,7 +252,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "fail write if the slice is partially written" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath()
@@ -280,7 +277,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "fail to write if the file already exists" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath()
@@ -324,7 +321,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
   "mmapReadable" should {
     "open an existing file for reading" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath()
@@ -361,7 +358,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "fail to read if the file does not exists" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           assertThrows[swaydb.Exception.NoSuchFile] {
@@ -378,7 +375,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
   "mmapEmptyWriteableReadable" should {
     "fail to initialise if it already exists" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath()
@@ -400,7 +397,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
   "closing" should {
     "close a StandardFile and then reopening the file should open it in read only mode" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath()
@@ -425,7 +422,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "close a memory mapped file and reopen on read" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath()
@@ -474,7 +471,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "close a MMAPFile and reopening the file should open it in read only mode" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath()
@@ -505,7 +502,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     "open a file for writing and handle BufferOverflow" in {
       runThisNumbered(10.times, log = true) {
         testNumber =>
-          TestSweeper {
+          CoreTestSweeper {
             implicit sweeper =>
               import sweeper._
               val bytes1 = Slice.writeString("bytes one")
@@ -569,7 +566,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
   "writing" should {
     "write bytes to a File" in {
-      TestSweeper(10.times) {
+      CoreTestSweeper.repeat(10.times) {
         implicit sweeper =>
           val bytes1 = Slice.wrap(randomBytes(100))
           val bytes2 = Slice.wrap(randomBytes(100))
@@ -589,7 +586,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "write empty bytes to a File" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           //This test might log NullPointerException because cleaner is being
           //invoked a MappedByteBuffer which is empty. This is a valid test
@@ -618,7 +615,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "write partially written bytes" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           //size is 10 but only 2 bytes were written
           val incompleteBytes = Slice.allocate[Byte](10)
@@ -640,7 +637,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "fail to write if the file already exists" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           val bytes = randomBytesSlice()
 
@@ -669,7 +666,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
   "appending" should {
     "append bytes to the end of the StandardFile" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath()
@@ -718,7 +715,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "append bytes to the end of the MMAP file" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath()
@@ -771,7 +768,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "append bytes by extending an overflown buffer of MMAP file" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath()
@@ -826,7 +823,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "not fail when appending empty bytes to StandardFile" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -854,7 +851,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "not fail when appending empty bytes to MMAPFile" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -888,7 +885,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
   "read and find" should {
     "read and find bytes at a position from a StandardFile" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath()
@@ -929,7 +926,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
   "delete" should {
     "delete a StandardFile" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val bytes = randomBytesSlice(100)
@@ -952,7 +949,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "delete a MMAPFile" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -982,7 +979,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
   "copy" should {
     "copy a StandardFile" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val bytes = randomBytesSlice(100)
@@ -1015,7 +1012,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "copy a MMAPFile" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val bytes = randomBytesSlice(100)
@@ -1051,7 +1048,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
   }
 
   //  "copying large number of memory-mapped files" in {
-  //    TestSweeper {
+  //    CoreTestSweeper {
   //      implicit sweeper =>
   //        import swaydb.testkit.RunThis._
   //
@@ -1114,7 +1111,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
   "read blockSize" when {
     "size is empty" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           createFiles(randomBytesSlice(100), randomBytesSlice(100)) foreach {
             file =>
@@ -1124,7 +1121,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "blockSize == size" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           val bytes = randomBytesSlice(100)
 
@@ -1136,7 +1133,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
     }
 
     "blockSize > size" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           val bytes = randomBytesSlice(100)
 
@@ -1149,7 +1146,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
 
     "blockSize < size" when {
       "size is multiple of blockSize" in {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             val bytes = randomBytesSlice(100)
 
@@ -1173,7 +1170,7 @@ class CoreFileSpec extends AnyWordSpec with Matchers {
       }
 
       "size is not a multiple of blockSize" in {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             val bytes = randomBytesSlice(100)
 

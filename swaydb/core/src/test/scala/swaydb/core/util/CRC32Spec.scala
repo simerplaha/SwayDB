@@ -17,13 +17,13 @@
 package swaydb.core.util
 
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
-import swaydb.core.CoreTestData._
+import org.scalatest.matchers.should.Matchers._
 import swaydb.slice.Slice
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class CRC32Spec extends AnyFlatSpec with Matchers {
+class CRC32Spec extends AnyFlatSpec {
 
   it should "apply CRC on bytes" in {
     runThis(100.times) {

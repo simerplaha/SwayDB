@@ -16,29 +16,35 @@
 
 package swaydb.core.segment.data.merge
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.IOValues._
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
-import swaydb.core.TestTimer
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.segment.{CoreFunctionStore, TestCoreFunctionStore}
 import swaydb.core.segment.data._
-import swaydb.serializers.Default._
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.data.merge.SegmentMergeTestKit._
+import swaydb.effect.IOValues._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class FunctionMerger_Remove_Spec extends AnyWordSpec with Matchers {
+class FunctionMerger_Remove_Spec extends AnyWordSpec {
 
-  implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+
+  private implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
+  private implicit val functionStore: CoreFunctionStore = testFunctionStore.store
+
   "Merging a key function into Remove" when {
     "times are in order" should {
       "always return new key-value" in {
         runThis(1000.times) {
-          implicit val testTimer = eitherOne(TestTimer.Incremental(), TestTimer.Empty)
+          implicit val testTimer: TestTimer = eitherOne(TestTimer.Incremental(), TestTimer.Empty)
           val key = randomBytesSlice()
 
           val oldKeyValue = randomRemoveKeyValue(key = key)(testTimer)
@@ -87,7 +93,7 @@ class FunctionMerger_Remove_Spec extends AnyWordSpec with Matchers {
     "times are in order" should {
       "always return new key-value" in {
 
-        implicit val testTimer = TestTimer.Incremental()
+        implicit val testTimer: TestTimer.Incremental = TestTimer.Incremental()
 
         runThis(1000.times) {
           val key = randomBytesSlice()
@@ -108,7 +114,7 @@ class FunctionMerger_Remove_Spec extends AnyWordSpec with Matchers {
             if (oldKeyValue.deadline.isEmpty)
               oldKeyValue.copy(time = newKeyValue.time)
             else //else the result should be merged because value is unknown from Remove key-value.
-              Memory.PendingApply(key, Slice(oldKeyValue.toFromValue().runRandomIO.right.value, newKeyValue.toFromValue().runRandomIO.right.value))
+              Memory.PendingApply(key, Slice(oldKeyValue.toFromValue().runRandomIO.get, newKeyValue.toFromValue().runRandomIO.get))
 
           assertMerge(
             newKeyValue = newKeyValue,

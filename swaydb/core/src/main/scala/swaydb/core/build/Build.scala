@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.config.DataType
 import swaydb.effect.Effect
-import swaydb.macros.VersionReader
+import swaydb.macros.MacroVersionReader
 import swaydb.slice.Slice
 
 import java.nio.file.Path
@@ -32,7 +32,7 @@ object Build extends LazyLogging {
 
   val fileName = "build.info"
 
-  final val (major, minor, revision) = VersionReader.version
+  final val (major, minor, revision) = MacroVersionReader.version
 
   case class Version(major: Int,
                      minor: Int,

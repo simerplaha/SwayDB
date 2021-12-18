@@ -1,12 +1,16 @@
 package swaydb.core.segment.block
 
 import org.scalatest.OptionValues._
-import swaydb.ActorConfig
-import swaydb.IOValues._
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.{ActorConfig, TestExecutionContext}
+import swaydb.actor.ActorTestKit._
 import swaydb.config.MemoryCache
-import swaydb.core.CommonAssertions._
-import swaydb.core.TestSweeper._
-import swaydb.core.CoreTestData._
+import swaydb.core.{CoreSpecType, CoreTestSweeper}
+import swaydb.core.CoreTestSweeper._
+import swaydb.core.compression.CompressionTestKit._
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
@@ -15,15 +19,19 @@ import swaydb.core.segment.block.segment.{SegmentBlockCache, SegmentBlockConfig}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 import swaydb.core.segment.block.values.ValuesBlockConfig
 import swaydb.core.segment.cache.sweeper.MemorySweeper
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.data.Memory
-import swaydb.core.segment.{ASegmentSpec, PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
-import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.core.segment.block.SegmentBlockTestKit._
+import swaydb.effect.EffectTestKit._
 import swaydb.effect.IOStrategy
-import swaydb.serializers.Default._
+import swaydb.effect.IOValues._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 import swaydb.utils.StorageUnits._
 
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -31,9 +39,8 @@ import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.Random
-import swaydb.testkit.TestKit._
 
-class SegmentBlockCacheSpec extends ASegmentSpec {
+class SegmentBlockCacheSpec extends AnyWordSpec {
   implicit val order = KeyOrder.default
   implicit val timer: TestTimer = TestTimer.Empty
   implicit val sweeper: Option[MemorySweeper.Block] = None
@@ -46,7 +53,7 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
   "it" should {
     "return distinct Readers" in {
       runThis(10.times, log = true) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -66,12 +73,12 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
               _ =>
                 Seq(
                   () => blockCache.getFooter().runRandomIO.get,
-                  () => segmentBlockReader add blockCache.createSegmentBlockReader().runRandomIO.right.value,
-                  () => sortedIndexReader add blockCache.createSortedIndexReader().runRandomIO.right.value,
-                  () => Option(blockCache.createBinarySearchIndexReaderOrNull().runRandomIO.right.value).foreach(reader => binarySearchIndexReader.add(reader)),
-                  () => Option(blockCache.createBloomFilterReaderOrNull().runRandomIO.right.value).foreach(reader => bloomFilterReader.add(reader)),
-                  () => Option(blockCache.createHashIndexReaderOrNull().runRandomIO.right.value).foreach(reader => hashIndexReader.add(reader)),
-                  () => Option(blockCache.createValuesReaderOrNull().runRandomIO.right.value).foreach(reader => valuesReader.add(reader)),
+                  () => segmentBlockReader add blockCache.createSegmentBlockReader().runRandomIO.get,
+                  () => sortedIndexReader add blockCache.createSortedIndexReader().runRandomIO.get,
+                  () => Option(blockCache.createBinarySearchIndexReaderOrNull().runRandomIO.get).foreach(reader => binarySearchIndexReader.add(reader)),
+                  () => Option(blockCache.createBloomFilterReaderOrNull().runRandomIO.get).foreach(reader => bloomFilterReader.add(reader)),
+                  () => Option(blockCache.createHashIndexReaderOrNull().runRandomIO.get).foreach(reader => hashIndexReader.add(reader)),
+                  () => Option(blockCache.createValuesReaderOrNull().runRandomIO.get).foreach(reader => valuesReader.add(reader)),
                   () => eitherOne(blockCache.clear(), ())
                 ).runThisRandomlyInParallel
             }
@@ -89,7 +96,7 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
 
   "clear" should {
     "none all cached" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
 
@@ -101,12 +108,12 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
           val readers: Seq[() => Object] =
             Seq(
               () => blockCache.getFooter().runRandomIO.get,
-              () => blockCache.createSegmentBlockReader().runRandomIO.right.value,
-              () => blockCache.createSortedIndexReader().runRandomIO.right.value,
-              () => blockCache.createBinarySearchIndexReaderOrNull().runRandomIO.right.value,
-              () => blockCache.createBloomFilterReaderOrNull().runRandomIO.right.value,
-              () => blockCache.createHashIndexReaderOrNull().runRandomIO.right.value,
-              () => blockCache.createValuesReaderOrNull().runRandomIO.right.value
+              () => blockCache.createSegmentBlockReader().runRandomIO.get,
+              () => blockCache.createSortedIndexReader().runRandomIO.get,
+              () => blockCache.createBinarySearchIndexReaderOrNull().runRandomIO.get,
+              () => blockCache.createBloomFilterReaderOrNull().runRandomIO.get,
+              () => blockCache.createHashIndexReaderOrNull().runRandomIO.get,
+              () => blockCache.createValuesReaderOrNull().runRandomIO.get
             )
 
           runThis(100.times) {
@@ -128,7 +135,7 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
   "it" should {
     "not add un-cached blocks and readers to memory sweeper" in {
       runThis(10.times) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             import sweeper._
 
@@ -212,8 +219,10 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
 
     "add cached blocks to memory sweeper" in {
       runThis(10.times) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
+
+
             implicit val blockSweeper: Option[MemorySweeper.Block] =
               MemorySweeper(MemoryCache.ByteCacheOnly(4096, 50000.bytes, 600.mb, disableForSearchIO = false, ActorConfig.random(10.seconds)(TestExecutionContext.executionContext)))
                 .map(_.asInstanceOf[MemorySweeper.Block].sweep())
@@ -229,6 +238,8 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
             assertSweeperActorSize(0)
 
             //initialise block cache
+            import sweeper.testCoreFunctionStore
+
             val keyValues = randomizedKeyValues(100, startId = Some(1))
             val blockCache =
               getSegmentBlockCacheSingle(
@@ -255,17 +266,17 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
             assertSweeperActorSize(expectedMessageCount)
 
             //binarySearchIndex and others blocks that are optional can be None
-            blockCache.getBinarySearchIndex() foreach { _ => expectedMessageCount += 1 }
+            blockCache.getBinarySearchIndex().foreach(_ => expectedMessageCount += 1)
             assertSweeperActorSize(expectedMessageCount)
             (1 to randomIntMax(10)) foreach (_ => blockCache.getBinarySearchIndex()) //calling the same block multiple times does not increase the memory sweeper's size
             assertSweeperActorSize(expectedMessageCount)
 
-            blockCache.getHashIndex() foreach { _ => expectedMessageCount += 1 }
+            blockCache.getHashIndex().foreach(_ => expectedMessageCount += 1)
             assertSweeperActorSize(expectedMessageCount)
             (1 to randomIntMax(10)) foreach (_ => blockCache.getHashIndex())
             assertSweeperActorSize(expectedMessageCount)
 
-            blockCache.getBloomFilter() foreach { _ => expectedMessageCount += 1 }
+            blockCache.getBloomFilter().foreach(_ => expectedMessageCount += 1)
             assertSweeperActorSize(expectedMessageCount)
             (1 to randomIntMax(10)) foreach (_ => blockCache.getBloomFilter())
             assertSweeperActorSize(expectedMessageCount)
@@ -276,7 +287,7 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
             (1 to randomIntMax(10)) foreach (_ => blockCache.getSortedIndex())
             assertSweeperActorSize(expectedMessageCount)
 
-            blockCache.getValues() foreach { _ => expectedMessageCount += 1 }
+            blockCache.getValues().foreach(_ => expectedMessageCount += 1)
             assertSweeperActorSize(expectedMessageCount)
             (1 to randomIntMax(10)) foreach (_ => blockCache.getValues())
             assertSweeperActorSize(expectedMessageCount)
@@ -289,17 +300,18 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
             (1 to randomIntMax(10)) foreach (_ => blockCache.createSegmentBlockReader())
             assertSweeperActorSize(expectedMessageCount)
 
-            Option(blockCache.createHashIndexReaderOrNull()) foreach { _ => expectedMessageCount += 1 }
+            Option(blockCache.createHashIndexReaderOrNull()).foreach(_ => expectedMessageCount += 1)
+
             assertSweeperActorSize(expectedMessageCount)
             (1 to randomIntMax(10)) foreach (_ => blockCache.createHashIndexReaderOrNull())
             assertSweeperActorSize(expectedMessageCount)
 
-            Option(blockCache.createBinarySearchIndexReaderOrNull()) foreach { _ => expectedMessageCount += 1 }
+            Option(blockCache.createBinarySearchIndexReaderOrNull()).foreach(_ => expectedMessageCount += 1)
             assertSweeperActorSize(expectedMessageCount)
             (1 to randomIntMax(10)) foreach (_ => blockCache.createBinarySearchIndexReaderOrNull())
             assertSweeperActorSize(expectedMessageCount)
 
-            Option(blockCache.createBloomFilterReaderOrNull()) foreach { _ => expectedMessageCount += 1 }
+            Option(blockCache.createBloomFilterReaderOrNull()).foreach(_ => expectedMessageCount += 1)
             assertSweeperActorSize(expectedMessageCount)
             (1 to randomIntMax(10)) foreach (_ => blockCache.createBloomFilterReaderOrNull())
             assertSweeperActorSize(expectedMessageCount)
@@ -310,7 +322,7 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
             (1 to randomIntMax(10)) foreach (_ => blockCache.createSortedIndexReader())
             assertSweeperActorSize(expectedMessageCount)
 
-            Option(blockCache.createValuesReaderOrNull()) foreach { _ => expectedMessageCount += 1 }
+            Option(blockCache.createValuesReaderOrNull()).foreach(_ => expectedMessageCount += 1)
             assertSweeperActorSize(expectedMessageCount)
             (1 to randomIntMax(10)) foreach (_ => blockCache.createValuesReaderOrNull())
             assertSweeperActorSize(expectedMessageCount)
@@ -322,10 +334,13 @@ class SegmentBlockCacheSpec extends ASegmentSpec {
   "it" should {
     "cache sortedIndex and values blocks on readAll" in {
       runThis(10.times, log = true) {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
+            implicit val coreSpecType: CoreSpecType = CoreSpecType.random()
+
             //ensure Segment itself is not caching bytes.
             //disable compression so bytes do not get cached
+            import sweeper.testCoreFunctionStore
 
             val keyValues =
               randomizedKeyValues(randomIntMax(100) max 1)

@@ -17,14 +17,16 @@
 package swaydb.core.segment.data.merge
 
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
-import swaydb.core.TestTimer
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.segment.{CoreFunctionStore, TestCoreFunctionStore}
 import swaydb.core.segment.data.{Memory, Value}
-import swaydb.serializers.Default._
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.data.merge.SegmentMergeTestKit._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 
 import scala.concurrent.duration._
@@ -32,13 +34,17 @@ import scala.util.Random
 
 class KeyValueMerger_Fixed_Into_Range extends AnyWordSpec {
 
-  implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  private implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+
+  private implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
+  private implicit val functionStore: CoreFunctionStore = testFunctionStore.store
 
   "Single into Range" when {
 
     "left out" in {
-      implicit val testTimer = TestTimer.Incremental()
+      implicit val testTimer: TestTimer.Incremental = TestTimer.Incremental()
+
       runThis(10000.times) {
         val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val newKeyValue = randomFixedKeyValue(0)
@@ -61,7 +67,8 @@ class KeyValueMerger_Fixed_Into_Range extends AnyWordSpec {
     }
 
     "left" in {
-      implicit val testTimer = TestTimer.Incremental()
+      implicit val testTimer: TestTimer.Incremental = TestTimer.Incremental()
+
       runThis(10000.times) {
         val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val newKeyValue = randomFixedKeyValue(1)
@@ -85,7 +92,7 @@ class KeyValueMerger_Fixed_Into_Range extends AnyWordSpec {
 
     "mid" in {
       runThis(10000.times) {
-        implicit val testTimer = TestTimer.Incremental()
+        implicit val testTimer: TestTimer.Incremental = TestTimer.Incremental()
 
         val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val midKey = Random.shuffle((2 to 9).toList).head
@@ -116,7 +123,7 @@ class KeyValueMerger_Fixed_Into_Range extends AnyWordSpec {
 
     "right" in {
       runThis(10000.times) {
-        implicit val testTimer = TestTimer.Incremental()
+        implicit val testTimer: TestTimer.Incremental = TestTimer.Incremental()
 
         val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val newKeyValue = randomFixedKeyValue(10)
@@ -141,7 +148,7 @@ class KeyValueMerger_Fixed_Into_Range extends AnyWordSpec {
     }
 
     "split the range if the input key-values key overlaps range's multiple keys (random mix test)" in {
-      implicit val testTimer = TestTimer.Empty
+      implicit val testTimer: TestTimer = TestTimer.Empty
 
       val deadline1 = 20.seconds.fromNow
       val deadline2 = 30.seconds.fromNow

@@ -1,6 +1,6 @@
 package swaydb.core.util
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.slice.{Slice, SliceReader}
 import swaydb.testkit.RunThis._
@@ -10,7 +10,7 @@ import swaydb.utils.ByteSizeOf
 import java.nio.charset.StandardCharsets
 import scala.util.Random
 
-class Bytes_ByteSliceAPI_Spec extends AnyWordSpec with Matchers {
+class Bytes_ByteSliceAPI_Spec extends AnyWordSpec {
 
   val intRanges =
     Seq(

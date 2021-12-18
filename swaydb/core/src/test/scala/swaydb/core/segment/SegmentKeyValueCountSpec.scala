@@ -16,82 +16,61 @@
 
 package swaydb.core.segment
 
-import org.scalatest.PrivateMethodTester
-import org.scalatest.concurrent.ScalaFutures
-import swaydb.IOValues._
-import swaydb.config.MMAP
-import swaydb.core.CoreTestData._
-import swaydb.core.{ACoreSpec, TestSweeper, TestForceSave}
-import swaydb.core.level.ALevelSpec
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.core.{CoreSpecType, CoreTestSweeper}
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.effect.IOValues._
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
-import swaydb.utils.OperatingSystem
 
-class SegmentKeyValueCount0 extends SegmentKeyValueCount {
-  val keyValuesCount = 1000
-}
-
-class SegmentKeyValueCount1 extends SegmentKeyValueCount {
-  val keyValuesCount = 1000
-  override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-}
-
-class SegmentKeyValueCount2 extends SegmentKeyValueCount {
-  val keyValuesCount = 1000
-  override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
-  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
-  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
-}
-
-class SegmentKeyValueCount3 extends SegmentKeyValueCount {
-  val keyValuesCount = 10000
-
-  override def isMemorySpec = true
-}
-
-sealed trait SegmentKeyValueCount extends ALevelSpec with ScalaFutures with PrivateMethodTester {
+class SegmentKeyValueCountSpec extends AnyWordSpec {
 
   implicit val keyOrder = KeyOrder.default
 
-  def keyValuesCount: Int
+  val keyValuesCount: Int = 1000
 
   "Segment.keyValueCount" should {
 
     "return 1 when the Segment contains only 1 key-value" in {
-      runThis(10.times) {
-        TestSweeper {
-          implicit sweeper =>
+      CoreTestSweeper.foreachRepeat(10.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
 
-            assertSegment(
-              keyValues = randomizedKeyValues(1),
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
 
-              assert =
-                (keyValues, segment) => {
-                  keyValues should have size 1
-                  segment.keyValueCount.runRandomIO.right.value shouldBe keyValues.size
-                }
-            )
-        }
+          import sweeper.testCoreFunctionStore
+
+          assertSegment(
+            keyValues = randomizedKeyValues(1),
+
+            assert =
+              (keyValues, segment) => {
+                keyValues should have size 1
+                segment.keyValueCount.runRandomIO.get shouldBe keyValues.size
+              }
+          )
       }
     }
 
     "return the number of randomly generated key-values where there are no Groups" in {
-      runThis(10.times) {
-        TestSweeper {
-          implicit sweeper =>
-            assertSegment(
-              keyValues = randomizedKeyValues(keyValuesCount),
+      CoreTestSweeper.foreachRepeat(10.times, CoreSpecType.all) {
+        (_sweeper, _specType) =>
 
-              assert =
-                (keyValues, segment) => {
-                  segment.keyValueCount.runRandomIO.right.value shouldBe keyValues.size
-                }
-            )
-        }
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper.testCoreFunctionStore
+
+          assertSegment(
+            keyValues = randomizedKeyValues(keyValuesCount),
+
+            assert =
+              (keyValues, segment) => {
+                segment.keyValueCount.runRandomIO.get shouldBe keyValues.size
+              }
+          )
       }
     }
   }

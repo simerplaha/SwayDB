@@ -17,9 +17,9 @@
 package swaydb.core.segment.entry.id
 
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 
-class KeyValueIdSpec extends AnyFlatSpec with Matchers {
+class KeyValueIdSpec extends AnyFlatSpec {
 
   it should "not have overlapping ids" in {
 

@@ -16,14 +16,14 @@
 //
 //package swaydb.core.file
 //
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.testkit.RunThis._
 //import swaydb.core.TestData._
 //import swaydb.core.file.sweeper.FileSweeper
 //import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 //import swaydb.core.file.sweeper.FileSweeper
 //import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
-//import swaydb.core.{TestBase, TestSweeper}
+//import swaydb.core.{TestBase, CoreTestSweeper}
 //import swaydb.config.util.OperatingSystem
 //import swaydb.config.util.StorageUnits._
 //
@@ -39,29 +39,29 @@
 //    "write key values to a StandardFile" in {
 //      val path = randomFilePath()
 //
-//      val file = CoreFile.standardWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//      val file = CoreFile.standardWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
 //      Benchmark("write 1 million key values to a StandardFile") {
 //        bytes foreach {
 //          byteChunk =>
-//            file.append(byteChunk).runRandomIO.right.value
+//            file.append(byteChunk).runRandomIO.get
 //        }
 //      }
-//      file.close().runRandomIO.right.value
+//      file.close().runRandomIO.get
 //    }
 //
 //    "write key values to a StandardFile concurrently" in {
 //      val path = randomFilePath()
 //
-//      val file = CoreFile.standardWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//      val file = CoreFile.standardWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
 //      Benchmark("write 1 million key values to a StandardFile concurrently") {
 //        Future.sequence {
 //          bytes map {
 //            chunk =>
-//              Future(file.append(chunk).runRandomIO.right.value)
+//              Future(file.append(chunk).runRandomIO.get)
 //          }
 //        } await 20.seconds
 //      }
-//      file.close().runRandomIO.right.value
+//      file.close().runRandomIO.get
 //    }
 //
 //    "write key values to a MMAPlFile" in {
@@ -75,15 +75,15 @@
 //          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
 //          autoClose = false,
 //          deleteAfterClean = OperatingSystem.isWindows()
-//        ).runRandomIO.right.value
+//        ).runRandomIO.get
 //
 //      Benchmark("write 1 million key values to a MMAPlFile") {
 //        bytes foreach {
 //          chunk =>
-//            file.append(chunk).runRandomIO.right.value
+//            file.append(chunk).runRandomIO.get
 //        }
 //      }
-//      file.close().runRandomIO.right.value
+//      file.close().runRandomIO.get
 //    }
 //
 //    "write key values to a MMAPlFile concurrently" in {
@@ -97,17 +97,17 @@
 //          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
 //          autoClose = false,
 //          deleteAfterClean = OperatingSystem.isWindows()
-//        ).runRandomIO.right.value
+//        ).runRandomIO.get
 //
 //      Benchmark("write 1 million key values to a MMAPlFile concurrently") {
 //        Future.sequence {
 //          bytes map {
 //            chunk =>
-//              Future(file.append(chunk).runRandomIO.right.value)
+//              Future(file.append(chunk).runRandomIO.get)
 //          }
 //        } await 20.seconds
 //      }
-//      file.close().runRandomIO.right.value
+//      file.close().runRandomIO.get
 //    }
 //  }
 //}

@@ -23,7 +23,7 @@ import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.data.Persistent.Partial
 import swaydb.core.segment.data.{Memory, Persistent}
 import swaydb.core.util.Bytes
-import swaydb.macros.Sealed
+import swaydb.macros.MacroSealed
 import swaydb.slice.{Slice, SliceMut, SliceReader}
 import swaydb.utils.ByteSizeOf
 
@@ -177,5 +177,5 @@ private[core] object BinarySearchEntryFormat {
     }
   }
 
-  val formats: Array[BinarySearchEntryFormat] = Sealed.array[BinarySearchEntryFormat]
+  val formats: Array[BinarySearchEntryFormat] = MacroSealed.array[BinarySearchEntryFormat]
 }

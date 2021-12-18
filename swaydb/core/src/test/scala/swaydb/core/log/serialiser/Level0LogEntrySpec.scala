@@ -17,27 +17,29 @@
 package swaydb.core.log.serialiser
 
 import org.scalatest.OptionValues._
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IO
-import swaydb.IOValues._
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
 import swaydb.core.log.LogEntry
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.log.LogTestKit._
 import swaydb.core.segment.data.{Memory, MemoryOption}
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.TestCoreFunctionStore
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.core.{ACoreSpec, TestTimer}
-import swaydb.serializers.Default._
+import swaydb.effect.IOValues._
 import swaydb.serializers._
-import swaydb.slice.order.KeyOrder
+import swaydb.serializers.Default._
 import swaydb.slice.{Slice, SliceOption, SliceReader}
+import swaydb.slice.order.KeyOrder
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.TestKit._
 import swaydb.utils.ByteSizeOf
 
-class Level0LogEntrySpec extends AnyWordSpec with Matchers {
+class Level0LogEntrySpec extends AnyWordSpec {
 
-  implicit val keyOrder = KeyOrder.default
-  implicit val testTimer = TestTimer.Empty
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val testTimer: TestTimer = TestTimer.Empty
 
   "LogEntryWriterLevel0 & LogEntryReaderLevel0" should {
 
@@ -48,10 +50,10 @@ class Level0LogEntrySpec extends AnyWordSpec with Matchers {
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
-        reader.read(SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+        reader.read(SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.get shouldBe addEntry
 
         import LevelZeroLogEntryReader.Level0Reader
-        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
+        val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.get
         readEntry shouldBe addEntry
 
         val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -63,6 +65,8 @@ class Level0LogEntrySpec extends AnyWordSpec with Matchers {
         headKey shouldBe (addEntry.value.key: Slice[Byte])
         headValue shouldBe addEntry.value
       }
+
+      implicit val testCoreFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
 
       val keyValues =
         randomizedKeyValues(
@@ -117,16 +121,16 @@ class Level0LogEntrySpec extends AnyWordSpec with Matchers {
       import LevelZeroLogEntryWriter.{Level0PutWriter, Level0RangeWriter, Level0RemoveWriter, Level0UpdateWriter}
       import swaydb.Error.Log.ExceptionHandler
 
-      val put1 = Memory.put(1, randomStringOption, randomDeadlineOption())
-      val put2 = Memory.put(2, randomStringOption, randomDeadlineOption())
-      val put3 = Memory.put(3, randomStringOption, randomDeadlineOption())
-      val put4 = Memory.put(4, randomStringOption, randomDeadlineOption())
-      val put5 = Memory.put(5, randomStringOption, randomDeadlineOption())
+      val put1 = Memory.put(1, randomStringOption(), randomDeadlineOption())
+      val put2 = Memory.put(2, randomStringOption(), randomDeadlineOption())
+      val put3 = Memory.put(3, randomStringOption(), randomDeadlineOption())
+      val put4 = Memory.put(4, randomStringOption(), randomDeadlineOption())
+      val put5 = Memory.put(5, randomStringOption(), randomDeadlineOption())
 
       val remove1 = Memory.remove(1, randomDeadlineOption())
       val remove2 = Memory.remove(2, randomDeadlineOption())
 
-      val update1 = Memory.update(3, randomStringOption, randomDeadlineOption())
+      val update1 = Memory.update(3, randomStringOption(), randomDeadlineOption())
 
       val range1 = randomRangeKeyValue(6, 7)
       val range2 = randomRangeKeyValue(7, 8)
@@ -156,7 +160,7 @@ class Level0LogEntrySpec extends AnyWordSpec with Matchers {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import LevelZeroLogEntryReader.Level0Reader
-      val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.right.value
+      val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.get
       readEntry shouldBe entry
 
       val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
@@ -183,7 +187,7 @@ class Level0LogEntrySpec extends AnyWordSpec with Matchers {
       //write skip list to bytes should result in the same skip list as before
       import LevelZeroLogEntryWriter.Level0LogEntryPutWriter
       val bytes = LogEntrySerialiser.write[Slice[Byte], Memory](skipList.iterator)
-      val recoveryResult = LogEntrySerialiser.read[Slice[Byte], Memory](bytes, false).runRandomIO.right.value
+      val recoveryResult = LogEntrySerialiser.read[Slice[Byte], Memory](bytes, false).runRandomIO.get
       recoveryResult.result shouldBe IO.unit
 
       val readEntries = recoveryResult.item.value

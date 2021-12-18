@@ -16,38 +16,63 @@
 
 package swaydb.core.log
 
-import org.scalatest.OptionValues._
-import swaydb.IOValues._
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.config.{Atomic, MMAP, OptimiseWrites}
-import swaydb.core.CommonAssertions._
-import swaydb.core.TestSweeper._
-import swaydb.core.CoreTestData._
 import swaydb.core._
+import swaydb.core.CoreTestSweeper._
 import swaydb.core.file.CoreFile
+import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.level.AppendixLogCache
 import swaydb.core.level.zero.LevelZeroLogCache
-import swaydb.core.log.LogTestUtil._
+import swaydb.core.log.LogTestKit._
 import swaydb.core.log.serialiser._
-import swaydb.core.segment.{ASegmentSpec, Segment}
-import swaydb.core.segment.data.{SegmentKeyOrders, Memory, MemoryOption, Value}
+import swaydb.core.segment.Segment
+import swaydb.core.segment.data.{Memory, MemoryOption, SegmentKeyOrders, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.skiplist.SkipListConcurrent
-import swaydb.effect.Effect._
 import swaydb.effect.Effect
-import swaydb.serializers.Default._
+import swaydb.effect.Effect._
 import swaydb.serializers._
-import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.serializers.Default._
 import swaydb.slice.{Slice, SliceOption}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
+import swaydb.testkit.TestKit._
 import swaydb.utils.{Extension, OperatingSystem}
 import swaydb.utils.StorageUnits._
-import swaydb.testkit.TestKit._
+import swaydb.config.CoreConfigTestKit._
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.effect.EffectTestKit._
+
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.slice.SliceTestKit._
+import swaydb.core.segment.block.SegmentBlockTestKit._
+import swaydb.config.CoreConfigTestKit._
+import org.scalatest.matchers.should.Matchers._
+import swaydb.core.segment.data.merge.SegmentMergeTestKit._
+import swaydb.core.log.timer.TestTimer
+import swaydb.effect.EffectTestKit._
+import swaydb.core.compression.CompressionTestKit._
+import swaydb.core.segment.block.SegmentBlockTestKit._
+import swaydb.core.file.CoreFileTestKit._
+import swaydb.core.segment.ref.search.SegmentSearchTestKit._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.actor.ActorTestKit._
+import swaydb.utils.UtilsTestKit._
+import swaydb.core.CoreSpecType
+import swaydb.TestExecutionContext
+import swaydb.slice.order.TimeOrder
+import swaydb.slice.Slice
+
+import LogTestKit._
 
 import java.nio.file.{FileAlreadyExistsException, Path}
-import swaydb.testkit.TestKit._
-import swaydb.core.file.CoreFileTestKit._
 
-class LogSpec extends ALogSpec with ASegmentSpec {
+class LogSpec extends AnyWordSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val keyOrders: SegmentKeyOrders = SegmentKeyOrders(keyOrder)
@@ -59,8 +84,14 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
   "Map" should {
     "initialise a memory level0" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper._
+
           import LevelZeroLogEntryWriter._
 
           val log =
@@ -94,8 +125,13 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "initialise a memory Appendix log" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
+          import sweeper._
           import AppendixLogEntryWriter._
 
           val log =
@@ -104,8 +140,8 @@ class LogSpec extends ALogSpec with ASegmentSpec {
               flushOnOverflow = false
             ).sweep()
 
-          val segment1 = TestSegment()
-          val segment2 = TestSegment()
+          val segment1 = TestSegment(randomizedKeyValues())
+          val segment2 = TestSegment(randomizedKeyValues(100))
 
           log.writeSync(LogEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
           log.writeSync(LogEntry.Put[Slice[Byte], Segment](2, segment2)) shouldBe true
@@ -120,7 +156,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "initialise a persistent Level0 log and recover from it when it's empty" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -153,7 +189,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "initialise a persistent Appendix log and recover from it when it's empty" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import AppendixLogEntryWriter._
           import sweeper._
@@ -196,7 +232,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "initialise a persistent Level0 log and recover from it when it's contains data" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -256,8 +292,12 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "initialise a persistent Appendix log and recover from it when it's contains data" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
           import sweeper._
 
           val appendixReader = AppendixLogEntryReader(
@@ -318,7 +358,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "initialise a Map that has two persistent Level0 log files (second file did not value deleted due to early JVM termination)" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -381,8 +421,12 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "initialise a Map that has two persistent Appendix log files (second file did not value deleted due to early JVM termination)" in {
-      TestSweeper {
-        implicit sweeper =>
+      CoreTestSweeper.foreach(CoreSpecType.all) {
+        (_sweeper, _specType) =>
+
+          implicit val sweeper: CoreTestSweeper = _sweeper
+          implicit val specType: CoreSpecType = _specType
+
           import sweeper._
 
           val appendixReader =
@@ -458,7 +502,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "fail initialise if the Map exists but recovery is not provided" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -497,7 +541,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
   "PersistentMap.recover" should {
     "recover from an empty PersistentMap folder" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -525,7 +569,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "recover from an existing PersistentMap folder" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -587,7 +631,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "recover from an existing PersistentMap folder when flushOnOverflow is true" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -678,7 +722,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "recover from an existing PersistentMap folder with empty memory log" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -723,7 +767,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
   "PersistentMap.nextFile" should {
     "creates a new file from the current file" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -758,7 +802,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           val nextFileSkipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
           val nextFileBytes = CoreFile.standardReadable(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false).readAll()
           nextFileBytes.size should be > 0
-          val logEntries = LogEntrySerialiser.read(nextFileBytes, dropCorruptedTailEntries = false).value.item.value
+          val logEntries = LogEntrySerialiser.read(nextFileBytes, dropCorruptedTailEntries = false).get.item.get
           logEntries applyBatch nextFileSkipList
 
           nextFileSkipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
@@ -775,7 +819,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     import LevelZeroLogEntryWriter._
 
     "fail if the WAL file is corrupted and and when dropCorruptedTailEntries = false" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val log =
@@ -817,7 +861,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
     }
 
     "successfully recover partial data if WAL file is corrupted and when dropCorruptedTailEntries = true" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
           val log =
@@ -873,7 +917,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
   "PersistentMap.recovery on corruption" when {
     "there are two WAL files and the first file is corrupted" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -945,7 +989,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           recoveredMapWith0LogCorrupted.item.sweep()
 
           //recovery state contains failure because the WAL file is partially recovered.
-          recoveredMapWith0LogCorrupted.result.left.value.exception shouldBe a[IllegalStateException]
+          recoveredMapWith0LogCorrupted.result.left.get.exception shouldBe a[IllegalStateException]
           //count instead of size because skipList's actual size can be higher.
           recoveredMapWith0LogCorrupted.item.cache.skipList.toIterable.count(_ => true) shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
 
@@ -962,7 +1006,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
   "PersistentMap.recovery on corruption" when {
     "there are two WAL files and the second file is corrupted" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -1032,7 +1076,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
           recoveredMapWith0LogCorrupted.item.sweep()
 
           //recovery state contains failure because the WAL file is partially recovered.
-          recoveredMapWith0LogCorrupted.result.left.value.exception shouldBe a[IllegalStateException]
+          recoveredMapWith0LogCorrupted.result.left.get.exception shouldBe a[IllegalStateException]
           //count instead of size because skipList's actual size can be higher.
           recoveredMapWith0LogCorrupted.item.cache.skipList.toIterable.count(_ => true) shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
 
@@ -1049,7 +1093,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
   "Randomly inserting data into Map and recovering the Map" should {
     "result in the recovered Map to have the same skipList as the Map before recovery" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._
@@ -1074,14 +1118,14 @@ class LogSpec extends ALogSpec with ASegmentSpec {
             //slice write them to that if log's randomly selected size is too small and multiple maps are written to.
             keyValues.groupedSlice(5) foreach {
               keyValues =>
-                log.writeSync(keyValues.toLogEntry.value) shouldBe true
+                log.writeSync(keyValues.toLogEntry.get) shouldBe true
             }
 
             log.cache.skipList.values() shouldBe keyValues
 
             //write overlapping key-values to the same log which are randomly selected and may or may not contain range, update, or key-values deadlines.
             val updatedValues = randomizedKeyValues(10, startId = Some(keyValues.head.key.readInt()), addPut = true)
-            val updatedEntries = updatedValues.toLogEntry.value
+            val updatedEntries = updatedValues.toLogEntry.get
             log.writeSync(updatedEntries) shouldBe true
 
             //reopening the log should return in the original skipList.
@@ -1099,7 +1143,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
   "inserting data" when {
     "fileSize is too small that it overflows" should {
       "extend the fileSize & also log warn message" in {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
 
             runThis(100.times, log = true) {
@@ -1132,17 +1176,17 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
               //randomly create 100 key-values to insert into the Map. These key-values may contain range, update, or key-values deadlines randomly.
               val keyValues = randomizedKeyValues(100, addPut = true)
-              val keyValueEntry = keyValues.toLogEntry.value
+              val keyValueEntry = keyValues.toLogEntry.get
               //slice write them to that if log's randomly selected size is too small and multiple maps are written to.
               keyValues.groupedSlice(10) foreach {
                 keyValues =>
-                  log.writeSync(keyValues.toLogEntry.value) shouldBe true
+                  log.writeSync(keyValues.toLogEntry.get) shouldBe true
               }
               log.cache.skipList.values() shouldBe keyValues
 
               //write overlapping key-values to the same log which are randomly selected and may or may not contain range, update, or key-values deadlines.
               val updatedValues = randomizedKeyValues(100, startId = Some(keyValues.head.key.readInt()), addPut = true)
-              val updatedEntries = updatedValues.toLogEntry.value
+              val updatedEntries = updatedValues.toLogEntry.get
               log.writeSync(updatedEntries) shouldBe true
 
               //reopening the log should return in the original skipList.
@@ -1160,7 +1204,7 @@ class LogSpec extends ALogSpec with ASegmentSpec {
 
   "reopening after each write" in {
     runThis(1.times, log = true) {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import LevelZeroLogEntryReader._
           import LevelZeroLogEntryWriter._

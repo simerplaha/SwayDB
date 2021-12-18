@@ -18,7 +18,7 @@
 //
 //import swaydb.IO
 //import swaydb.core.CommonAssertions._
-//import swaydb.IOValues._
+//import swaydb.effect.IOValues._
 //import swaydb.testkit.RunThis._
 //import swaydb.core.TestBase
 //import swaydb.core.TestData._
@@ -46,8 +46,8 @@
 //  override def levelFoldersCount = 10
 //  override def mmapSegmentsOnWrite = false
 //  override def mmapSegmentsOnRead = false
-//  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
-//  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+//  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.standard())
+//  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.standard())
 //}
 //
 //class LevelStressSpec3 extends LevelStressSpec {

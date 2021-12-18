@@ -16,35 +16,38 @@
 //
 //package swaydb.core.segment.defrag
 //
-//import org.scalamock.scalatest.MockFactory
-//import org.scalatest.EitherValues
-//import swaydb.core.CommonAssertions._
-//import swaydb.core.CoreTestData._
-//import swaydb.core.segment.PathsDistributor
+//import org.scalatest.matchers.should.Matchers._
+//import org.scalatest.wordspec.AnyWordSpec
+//import swaydb.core.CoreTestSweeper
 //import swaydb.core.segment._
 //import swaydb.core.segment.block.segment.SegmentBlockConfig
 //import swaydb.core.segment.block.segment.transient.TransientSegment
 //import swaydb.core.segment.block.sortedindex.SortedIndexBlockConfig
 //import swaydb.core.segment.data.Memory
 //import swaydb.core.segment.data.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
-//import swaydb.core.{ACoreSpec, TestSweeper, TestExecutionContext, TestTimer}
-//import swaydb.core.level.ALevelSpec
-//import swaydb.serializers.Default._
+//import swaydb.core.segment.data.KeyValueTestKit._
+//import swaydb.core.segment.SegmentTestKit.TestSegment
+//import swaydb.core.segment.block.SegmentBlockTestKit._
 //import swaydb.serializers._
+//import swaydb.serializers.Default._
 //import swaydb.slice.Slice
 //import swaydb.testkit.RunThis._
-//import swaydb.utils.StorageUnits._
-//
-//import scala.collection.compat._
-//import scala.collection.mutable.ListBuffer
 //import swaydb.testkit.TestKit._
+//import swaydb.utils.StorageUnits._
+//import swaydb.TestExecutionContext
+//import swaydb.core.log.timer.TestTimer
+//
+//import scala.collection.mutable.ListBuffer
+//import scala.concurrent.ExecutionContext
 //
 ///**
 // * Test setup for when input types are [[PersistentSegment]]
 // */
 //class PersistentSegment_DefragGapSpec extends DefragGapSpec[PersistentSegment, PersistentSegmentOption, MergeStats.Persistent.Builder[Memory, ListBuffer]] {
 //
-//  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: TestSweeper): PersistentSegment =
+//  override def isMemorySpec: Boolean = false
+//
+//  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: CoreTestSweeper): PersistentSegment =
 //    TestSegment(keyValues).shouldBeInstanceOf[PersistentSegment]
 //
 //  override def nullSegment: PersistentSegmentOption =
@@ -55,6 +58,7 @@
 //
 //  override implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig): MergeStatsSizeCalculator[MergeStats.Persistent.Builder[Memory, ListBuffer]] =
 //    MergeStatsSizeCalculator.persistentSizeCalculator(sortedIndexConfig)
+//
 //}
 //
 ///**
@@ -64,7 +68,7 @@
 //
 //  override def isMemorySpec = true
 //
-//  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: TestSweeper): MemorySegment =
+//  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: CoreTestSweeper): MemorySegment =
 //    TestSegment(keyValues).shouldBeInstanceOf[MemorySegment]
 //
 //  override def nullSegment: MemorySegmentOption =
@@ -77,24 +81,23 @@
 //    MergeStatsSizeCalculator.MemorySizeCalculator
 //}
 //
+//class DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats.Segment[Memory, ListBuffer]] extends AnyWordSpec {
 //
-//sealed trait DefragGapSpec[SEG <: Segment, NULL_SEG >: SEG, S >: Null <: MergeStats.Segment[Memory, ListBuffer]] extends ALevelSpec with MockFactory with EitherValues {
+//  private implicit val ec: ExecutionContext = TestExecutionContext.executionContext
+//  private implicit val timer: TestTimer = TestTimer.Empty
+//  private implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
 //
-//  implicit val ec = TestExecutionContext.executionContext
-//  implicit val timer = TestTimer.Empty
-//
-//
-//  def testSegment(keyValues: Slice[Memory] = randomizedKeyValues())(implicit sweeper: TestSweeper): SEG
+//  def testSegment(keyValues: Slice[Memory] = randomizedKeyValues())(implicit sweeper: CoreTestSweeper): SEG
 //  def nullSegment: NULL_SEG
 //  implicit def mergeStatsCreator: MergeStatsCreator[S]
 //  implicit def mergeStatsSizeCalculator(implicit sortedIndexConfig: SortedIndexBlockConfig): MergeStatsSizeCalculator[S]
 //
 //  "add Segments" when {
 //    "there is no head MergeStats and no next and removeDeletes is false" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
-//          val segments: ListBuffer[SEG] = ListBuffer.range(1, 5).map(_ => testSegment())
+//          val segments: ListBuffer[SEG] = ListBuffer.range(1, 5).map(_ => TestSegment(randomizedKeyValues(100)))
 //
 //          implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
 //          implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = segments.map(_.segmentSize).min)
@@ -108,7 +111,7 @@
 //              hasNext = false
 //            )
 //
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            val expected =
 //              segments map {
 //                case segment: PersistentSegment =>
@@ -124,7 +127,7 @@
 //    }
 //
 //    "there is head MergeStats but it is greater than segmentConfig.minSize" in {
-//      TestSweeper {
+//      CoreTestSweeper {
 //        implicit sweeper =>
 //
 //          implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
@@ -150,7 +153,7 @@
 //              hasNext = false
 //            )
 //
-//          if (isPersistentSpec) {
+//          if (isPersistent) {
 //            val expectedTail =
 //              segments map {
 //                case segment: PersistentSegment =>
@@ -175,7 +178,7 @@
 //    "there is head MergeStats but it is smaller than segmentConfig.minSize" in {
 //      //in this test the second PersistentSegmentOne should get merged into head stats.
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
 //            //each segment has non removable key-values
@@ -209,7 +212,7 @@
 //                hasNext = false
 //              )
 //
-//            if (isPersistentSpec) { //headKeyValues are larger than initial
+//            if (isPersistent) { //headKeyValues are larger than initial
 //              mergeStatsCreated.keyValues.size should be > initialKeyValues.size
 //
 //              //first segment gets merged into merge stats and other 4 remain intact.
@@ -261,10 +264,8 @@
 //          cancel("TODO")
 //        else
 //          runThis(10.times, log = true) {
-//            TestSweeper {
+//            CoreTestSweeper {
 //              implicit sweeper =>
-//
-//                implicit val pathsDistributor: PathsDistributor = createPathDistributor
 //
 //                //a single
 //                val manySegment = TestSegment.many(keyValues = randomPutKeyValues(100), segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = 5))
@@ -344,10 +345,8 @@
 //          cancel("TODO")
 //        else
 //          runThis(10.times, log = true) {
-//            TestSweeper {
+//            CoreTestSweeper {
 //              implicit sweeper =>
-//
-//                implicit val pathsDistributor = createPathDistributor
 //
 //                val manySegment = TestSegment.many(keyValues = randomPutKeyValues(100), segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = 5))
 //                manySegment should have size 1
@@ -426,12 +425,15 @@
 //  "expand Segment" when {
 //    "it contains removable key-values" in {
 //      runThis(10.times, log = true) {
-//        TestSweeper {
+//        CoreTestSweeper {
 //          implicit sweeper =>
 //
-//            implicit val pathsDistributor = createPathDistributor
+//            val segments =
+//              ListBuffer.range(0, 5) map {
+//                _ =>
+//                  TestSegment(keyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.update(3)))
+//              }
 //
-//            val segments = ListBuffer.range(0, 5).map(_ => TestSegment(keyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.update(3))))
 //            segments.foreach(_.hasUpdateOrRange shouldBe true)
 //
 //            implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random

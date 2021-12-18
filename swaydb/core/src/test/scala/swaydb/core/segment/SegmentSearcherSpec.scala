@@ -15,19 +15,21 @@
  */
 package swaydb.core.segment
 
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Benchmark
-import swaydb.core.{SegmentBlocks, TestSweeper}
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
+import swaydb.core.CoreTestSweeper
 import swaydb.core.segment.block.BlockCompressionInfo
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.data.{Memory, Persistent, PersistentOption, SegmentKeyOrders}
+import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.SegmentSearcher
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.core.segment.block.SegmentBlockTestKit._
 import swaydb.serializers._
 import swaydb.serializers.Default._
 import swaydb.slice.Slice
@@ -37,7 +39,7 @@ import swaydb.testkit.TestKit._
 
 import scala.util.Try
 
-class SegmentSearcherSpec extends ASegmentSpec with MockFactory {
+class SegmentSearcherSpec extends AnyWordSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = SegmentKeyOrders(keyOrder).partialKeyOrder
@@ -249,7 +251,7 @@ class SegmentSearcherSpec extends ASegmentSpec with MockFactory {
 
   "all searches" in {
     runThis(100.times, log = true) {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
 

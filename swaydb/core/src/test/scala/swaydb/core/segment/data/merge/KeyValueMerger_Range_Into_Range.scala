@@ -17,23 +17,28 @@
 package swaydb.core.segment.data.merge
 
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.IOValues._
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
-import swaydb.core.TestTimer
-import swaydb.core.segment.data.Value.FromValueOption
+import swaydb.core.log.timer.TestTimer
+import swaydb.core.segment.{CoreFunctionStore, TestCoreFunctionStore}
 import swaydb.core.segment.data.{Memory, Value}
-import swaydb.serializers.Default._
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.data.Value.FromValueOption
+import swaydb.core.segment.data.merge.SegmentMergeTestKit._
+import swaydb.effect.IOValues._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.testkit.RunThis._
 
 class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
 
-  implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val testTimer = TestTimer.Empty
+  private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  private implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+
+  private implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
+  private implicit val functionStore: CoreFunctionStore = testFunctionStore.store
+
+  implicit val testTimer: TestTimer = TestTimer.Empty
 
   "Range into Range" when {
     "1" in {
@@ -183,10 +188,12 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
           oldKeyValue.fromValue match {
             case oldFromValue: Value.FromValue =>
               FixedMerger(newKeyValue.fromValue.getOrElseS(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).toFromValue()
+
             case Value.FromValue.Null =>
               newKeyValue.fromValue match {
                 case newFromValue: Value.FromValue =>
                   FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElseS(oldKeyValue.rangeValue).toMemory(10)).toFromValue()
+
                 case Value.FromValue.Null =>
                   Value.FromValue.Null
               }
@@ -198,7 +205,7 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
               fromKey = 10,
               toKey = 15,
               fromValue = from,
-              rangeValue = ValueMerger(newKeyValue.rangeValue: Value.RangeValue, oldKeyValue.rangeValue: Value.RangeValue).runRandomIO.right.value
+              rangeValue = ValueMerger(newKeyValue.rangeValue: Value.RangeValue, oldKeyValue.rangeValue: Value.RangeValue).runRandomIO.get
             ),
             Memory.Range(
               fromKey = 15,
@@ -242,10 +249,12 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
                 oldKeyValue.fromValue match {
                   case oldFromValue: Value.FromValue =>
                     FixedMerger(newKeyValue.fromValue.getOrElseS(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).toFromValue()
+
                   case Value.FromValue.Null =>
                     newKeyValue.fromValue match {
                       case newFromValue: Value.FromValue =>
                         FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElseS(oldKeyValue.rangeValue).toMemory(10)).toFromValue()
+
                       case Value.FromValue.Null =>
                         Value.FromValue.Null
                     }
@@ -288,10 +297,12 @@ class KeyValueMerger_Range_Into_Range extends AnyWordSpec {
                 oldKeyValue.fromValue match {
                   case oldFromValue: Value.FromValue =>
                     FixedMerger(newKeyValue.fromValue.getOrElseS(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).toFromValue()
+
                   case Value.FromValue.Null =>
                     newKeyValue.fromValue match {
                       case newFromValue: Value.FromValue =>
                         FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElseS(oldKeyValue.rangeValue).toMemory(10)).toFromValue()
+
                       case Value.FromValue.Null =>
                         Value.FromValue.Null
                     }

@@ -26,6 +26,7 @@ import swaydb.core.segment._
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data.SegmentKeyOrders
+import swaydb.core.segment.distributor.PathDistributor
 import swaydb.core.util.DefIO
 import swaydb.slice.Slice
 import swaydb.slice.order.TimeOrder
@@ -37,7 +38,7 @@ object SegmentWriteMemoryIO extends SegmentWriteIO[TransientSegment.Memory, Memo
   override def minKey(segment: MemorySegment): Slice[Byte] =
     segment.minKey
 
-  override def persistTransient(pathsDistributor: PathsDistributor,
+  override def persistTransient(pathDistributor: PathDistributor,
                                 segmentRefCacheLife: SegmentRefCacheLife,
                                 mmap: MMAP.Segment,
                                 transient: Iterable[TransientSegment.Memory])(implicit keyOrders: SegmentKeyOrders,
@@ -54,7 +55,7 @@ object SegmentWriteMemoryIO extends SegmentWriteIO[TransientSegment.Memory, Memo
       transient.map(_.segment)
     }
 
-  override def persistMerged(pathsDistributor: PathsDistributor,
+  override def persistMerged(pathDistributor: PathDistributor,
                              segmentRefCacheLife: SegmentRefCacheLife,
                              mmap: MMAP.Segment,
                              mergeResult: Iterable[DefIO[SegmentOption, Iterable[TransientSegment.Memory]]])(implicit keyOrders: SegmentKeyOrders,

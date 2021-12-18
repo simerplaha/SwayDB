@@ -17,15 +17,14 @@
 package swaydb.core.file
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.IOValues._
-import swaydb.core.{TestForceSave, TestSweeper}
-import swaydb.core.CoreTestData._
+import swaydb.core.{TestForceSave, CoreTestSweeper}
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCleaner
 import swaydb.core.file.CoreFileTestKit._
 import swaydb.effect.Effect
 import swaydb.slice.Slice
+import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 import swaydb.utils.StorageUnits._
@@ -35,12 +34,12 @@ import java.nio.channels.FileChannel.MapMode
 import java.nio.file.StandardOpenOption
 import java.util.concurrent.atomic.AtomicBoolean
 
-class MMAPFileSpec extends AnyWordSpec with Matchers with MockFactory {
+class MMAPFileSpec extends AnyWordSpec with MockFactory {
 
   "BEHAVIOUR TEST - cleared MappedByteBuffer without forceSave" should {
     "not fatal JVM terminate" when {
       "writing, reading & copying" in {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             runThis(50.times, log = true) {
               //create random path and byte slice
@@ -87,7 +86,7 @@ class MMAPFileSpec extends AnyWordSpec with Matchers with MockFactory {
                     ForceSaveApplier.On
 
                 //do not forceSave and clear the in-memory bytes.
-                ByteBufferCleaner.initialiseCleaner(readWriteBuff, path, forced, forceSave).value
+                ByteBufferCleaner.initialiseCleaner(readWriteBuff, path, forced, forceSave).get
 
                 if (alreadyForced)
                   forced.get() shouldBe true
@@ -132,7 +131,7 @@ class MMAPFileSpec extends AnyWordSpec with Matchers with MockFactory {
                     ForceSaveApplier.On
 
                 //clear the buffer again
-                ByteBufferCleaner.initialiseCleaner(readOnlyBuff, path, forcedAgain, forceSaveAgain).value
+                ByteBufferCleaner.initialiseCleaner(readOnlyBuff, path, forcedAgain, forceSaveAgain).get
 
                 if (alreadyForced2)
                   forcedAgain.get() shouldBe true

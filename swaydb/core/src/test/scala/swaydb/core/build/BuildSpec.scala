@@ -16,26 +16,26 @@
 
 package swaydb.core.build
 
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.IO
 import swaydb.Exception.InvalidDirectoryType
-import swaydb.IOValues._
 import swaydb.config.DataType
-import swaydb.core.CoreTestData._
-import swaydb.core.{ACoreSpec, TestSweeper}
+import swaydb.core.CoreTestSweeper
+import swaydb.core.file.CoreFileTestKit._
 import swaydb.effect.Effect
 import swaydb.slice.Slice
+import swaydb.testkit.TestKit._
 import swaydb.utils.{ByteSizeOf, Extension}
 
 import java.nio.file.FileAlreadyExistsException
 import scala.util.Random
-import swaydb.testkit.TestKit._
-import swaydb.core.file.CoreFileTestKit._
 
-class BuildSpec extends ACoreSpec {
+class BuildSpec extends AnyWordSpec {
 
   "write" should {
     "create a build.info file" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           DataType.all foreach {
             dataType =>
@@ -43,22 +43,22 @@ class BuildSpec extends ACoreSpec {
               val buildInfo = Build.Info(version = version, dataType = dataType)
 
               val folder = randomDir()
-              Build.write(folder, buildInfo).value shouldBe folder.resolve(Build.fileName)
+              Build.write(folder, buildInfo).get shouldBe folder.resolve(Build.fileName)
 
-              val readBuildInfo = Build.read(folder).value
+              val readBuildInfo = Build.read(folder).get
               readBuildInfo shouldBe buildInfo
           }
       }
     }
 
     "fail if build.info already exists" in {
-      TestSweeper {
+      CoreTestSweeper {
         implicit sweeper =>
           val folder = createRandomDir()
           val file = Effect.createFile(folder.resolve(Build.fileName))
           val fileContent = Effect.readAllBytes(file)
 
-          Build.write(folder, DataType.Map).left.value shouldBe a[FileAlreadyExistsException]
+          Build.write(folder, DataType.Map).left.get shouldBe a[FileAlreadyExistsException]
 
           //file content is unaffected
           Effect.readAllBytes(file) shouldBe fileContent
@@ -69,29 +69,29 @@ class BuildSpec extends ACoreSpec {
   "read" should {
     "return fresh" when {
       "the folder does not exist" in {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
 
             val folder = randomDir()
             Effect.exists(folder) shouldBe false
-            Build.read(folder).value shouldBe Build.Fresh
+            Build.read(folder).get shouldBe Build.Fresh
         }
       }
 
       "the folder exists but is empty" in {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
 
             val folder = createRandomDir()
             Effect.exists(folder) shouldBe true
-            Build.read(folder).value shouldBe Build.Fresh
+            Build.read(folder).get shouldBe Build.Fresh
         }
       }
     }
 
     "return NoBuildInfo" when {
       "non-empty folder exists without build.info file" in {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             Extension.all foreach {
               extension =>
@@ -101,9 +101,9 @@ class BuildSpec extends ACoreSpec {
                 Effect.exists(folder) shouldBe true
                 Effect.exists(file) shouldBe true
 
-                Build.read(folder).value shouldBe Build.NoBuildInfo
+                Build.read(folder).get shouldBe Build.NoBuildInfo
 
-                Build.read(file).value shouldBe Build.NoBuildInfo
+                Build.read(file).get shouldBe Build.NoBuildInfo
             }
         }
       }
@@ -113,7 +113,7 @@ class BuildSpec extends ACoreSpec {
 
     "fail" when {
       "invalid crc" in {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>
@@ -121,18 +121,18 @@ class BuildSpec extends ACoreSpec {
                 val buildInfo = Build.Info(version = version, dataType = dataType)
 
                 val folder = randomDir()
-                val file = Build.write(folder, buildInfo).value
+                val file = Build.write(folder, buildInfo).get
 
                 //drop crc
                 Effect.overwrite(file, Effect.readAllBytes(file).drop(1))
 
-                Build.read(folder).left.value.getMessage should startWith(s"assertion failed: Invalid CRC.")
+                Build.read(folder).left.get.getMessage should startWith(s"assertion failed: Invalid CRC.")
             }
         }
       }
 
       "invalid formatId" in {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>
@@ -140,7 +140,7 @@ class BuildSpec extends ACoreSpec {
                 val buildInfo = Build.Info(version = version, dataType = dataType)
 
                 val folder = randomDir()
-                val file = Build.write(folder, buildInfo).value
+                val file = Build.write(folder, buildInfo).get
 
                 val existsBytes = Effect.readAllBytes(file)
 
@@ -154,8 +154,8 @@ class BuildSpec extends ACoreSpec {
                 Effect.overwrite(file, bytesWithInvalidFormatId.toArray)
 
                 //Invalid formatId will return invalid CRC.
-                //            Build.read(folder).left.value.getMessage shouldBe s"assertion failed: $file has invalid formatId. ${Build.formatId + 1} != ${Build.formatId}"
-                Build.read(folder).left.value.getMessage should startWith(s"assertion failed: Invalid CRC.")
+                //            Build.read(folder).left.get.getMessage shouldBe s"assertion failed: $file has invalid formatId. ${Build.formatId + 1} != ${Build.formatId}"
+                Build.read(folder).left.get.getMessage should startWith(s"assertion failed: Invalid CRC.")
             }
         }
       }
@@ -165,7 +165,7 @@ class BuildSpec extends ACoreSpec {
   "validateOrCreate" should {
     "fail on an existing non-empty directories" when {
       "DisallowOlderVersions" in {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>
@@ -180,7 +180,7 @@ class BuildSpec extends ACoreSpec {
                     Effect.exists(file) shouldBe true
 
                     implicit val validator = BuildValidator.DisallowOlderVersions(dataType)
-                    Build.validateOrCreate(folder).left.value.getMessage should startWith("Missing build.info file. This directory might be an incompatible older version of SwayDB. Current version:")
+                    Build.validateOrCreate(folder).left.get.getMessage should startWith("Missing build.info file. This directory might be an incompatible older version of SwayDB. Current version:")
                 }
             }
         }
@@ -189,7 +189,7 @@ class BuildSpec extends ACoreSpec {
 
     "fail on an existing directory with different dataType" when {
       "DisallowOlderVersions" in {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             DataType.all foreach {
               invalidDataType =>
@@ -204,7 +204,7 @@ class BuildSpec extends ACoreSpec {
                 Effect.exists(folder.resolve(Build.fileName)) shouldBe true
 
                 val error = Build.validateOrCreate(folder)(IO.ExceptionHandler, BuildValidator.DisallowOlderVersions(invalidDataType))
-                error.left.value.exception shouldBe InvalidDirectoryType(invalidDataType.name, dataType.name)
+                error.left.get.exception shouldBe InvalidDirectoryType(invalidDataType.name, dataType.name)
             }
         }
       }
@@ -212,7 +212,7 @@ class BuildSpec extends ACoreSpec {
 
     "pass on empty directory" when {
       "DisallowOlderVersions" in {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>
@@ -220,9 +220,9 @@ class BuildSpec extends ACoreSpec {
                 Effect.exists(folder) shouldBe true
 
                 implicit val validator = BuildValidator.DisallowOlderVersions(dataType)
-                Build.validateOrCreate(folder).value
+                Build.validateOrCreate(folder).get
 
-                Build.read(folder).value shouldBe a[Build.Info]
+                Build.read(folder).get shouldBe a[Build.Info]
             }
         }
       }
@@ -230,7 +230,7 @@ class BuildSpec extends ACoreSpec {
 
     "pass on non existing directory" when {
       "DisallowOlderVersions" in {
-        TestSweeper {
+        CoreTestSweeper {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>
@@ -238,9 +238,9 @@ class BuildSpec extends ACoreSpec {
                 Effect.exists(folder) shouldBe false
 
                 implicit val validator = BuildValidator.DisallowOlderVersions(dataType)
-                Build.validateOrCreate(folder).value
+                Build.validateOrCreate(folder).get
 
-                Build.read(folder).value shouldBe a[Build.Info]
+                Build.read(folder).get shouldBe a[Build.Info]
             }
         }
       }

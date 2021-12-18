@@ -1,11 +1,11 @@
 package swaydb.core.segment.entry.reader
 
 import org.scalatest.OptionValues._
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.segment.entry.reader.base.BaseEntryReader4
 
-class PersistentReaderSpec extends AnyWordSpec with Matchers {
+class PersistentReaderSpec extends AnyWordSpec {
 
   "populateBaseEntryIds" should {
     PersistentReader.populateBaseEntryIds()

@@ -16,19 +16,20 @@
 
 package swaydb.core.segment.entry.writer
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
 import swaydb.core.segment.data.{Memory, Time}
 import swaydb.core.segment.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
-import swaydb.serializers.Default._
+import swaydb.core.segment.SegmentTestKit._
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.TestCoreFunctionStore
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 
-class ValueReaderWriterSpec extends AnyWordSpec with Matchers {
+class ValueReaderWriterSpec extends AnyWordSpec {
 
   val timeIds: Seq[BaseEntryId.Time] =
     allBaseEntryIds collect {
@@ -94,6 +95,8 @@ class ValueReaderWriterSpec extends AnyWordSpec with Matchers {
     }
 
     "previous key-value is None" in {
+      implicit val testFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
+
       runThis(100.times) {
         val keyValue = randomizedKeyValues(1).head
 

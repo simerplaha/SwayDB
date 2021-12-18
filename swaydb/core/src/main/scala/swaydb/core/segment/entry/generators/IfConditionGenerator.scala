@@ -91,7 +91,12 @@ object IfConditionGenerator extends App {
     val allLines = Effect.readAllLines(targetIdClass).asScala
     val writer = new PrintWriter(targetIdClass.toFile)
 
-    val conditionStartIndex = allLines.zipWithIndex.find { case (line, index) => line.contains("//GENERATED") }.get._2
+    val conditionStartIndex =
+      allLines.zipWithIndex.find {
+        case (line, index) =>
+          line.contains("//GENERATED")
+      }.get._2
+
     val newLines =
       allLines.take(conditionStartIndex) ++
         Seq("\t//GENERATED CONDITIONS") ++

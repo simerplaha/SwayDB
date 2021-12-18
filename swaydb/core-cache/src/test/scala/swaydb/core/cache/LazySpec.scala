@@ -17,7 +17,7 @@
 package swaydb.core.cache
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IO
 import swaydb.testkit.RunThis._
@@ -27,7 +27,7 @@ import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.util.Random
 
-class LazySpec extends AnyWordSpec with Matchers with MockFactory {
+class LazySpec extends AnyWordSpec with MockFactory {
 
   "Lazy.value" when {
     "empty" should {

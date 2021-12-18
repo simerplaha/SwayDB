@@ -16,24 +16,25 @@
 
 package swaydb.core.log.applied
 
-import swaydb.IOValues._
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.config.CoreConfigTestKit._
 import swaydb.config.MMAP
-import swaydb.core.TestSweeper._
-import swaydb.core.CoreTestData._
 import swaydb.core._
-import swaydb.core.log.{ALogSpec, LogEntry}
-import swaydb.core.log.LogTestUtil._
+import swaydb.core.CoreTestSweeper._
+import swaydb.core.file.CoreFileTestKit._
+import swaydb.core.log.LogEntry
 import swaydb.core.log.serialiser._
-import swaydb.serializers.Default._
+import swaydb.core.log.LogTestKit._
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
-import swaydb.utils.StorageUnits._
 import swaydb.testkit.TestKit._
-import swaydb.core.file.CoreFileTestKit._
+import swaydb.utils.StorageUnits._
 
-class AppliedFunctionsLogSpec extends ACoreSpec {
+class AppliedFunctionsLogSpec extends AnyWordSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
@@ -41,50 +42,48 @@ class AppliedFunctionsLogSpec extends ACoreSpec {
   implicit val functionsEntryReader = AppliedFunctionsLogEntryReader.FunctionsLogEntryReader
 
   "initialise and reopen" in {
-    runThis(10.times, log = true) {
-      TestSweeper {
-        implicit sweeper =>
-          import sweeper._
+    CoreTestSweeper.repeat(10.times) {
+      implicit sweeper =>
+        import sweeper._
 
-          val mapResult =
-            AppliedFunctionsLog(
-              dir = randomDir(),
-              fileSize = randomIntMax(1.kb) max 1,
-              mmap = MMAP.randomForLog()
-            )
+        val mapResult =
+          AppliedFunctionsLog(
+            dir = randomDir(),
+            fileSize = randomIntMax(1.kb) max 1,
+            mmap = MMAP.randomForLog()
+          )
 
-          //start successful
-          mapResult.result.value shouldBe (())
+        //start successful
+        mapResult.result.get shouldBe (())
 
-          val map = mapResult.item.sweep()
+        val map = mapResult.item.sweep()
 
-          //write random functionIds
-          val functionIds =
-            (1 to (randomIntMax(1000) max 10)) map {
-              i =>
-                val functionId = randomString()
-                map.writeSync(LogEntry.Put(functionId, Slice.Null)) shouldBe true
-                functionId
-            }
-
-          //should contain
-          functionIds foreach {
-            functionId =>
-              map.cache.skipList.contains(functionId) shouldBe true
+        //write random functionIds
+        val functionIds =
+          (1 to (randomIntMax(1000) max 10)) map {
+            i =>
+              val functionId = randomString()
+              map.writeSync(LogEntry.Put(functionId, Slice.Null)) shouldBe true
+              functionId
           }
 
-          //randomly reopening results in the same skipList
-          functionIds.foldLeft(map.reopen) {
-            case (reopened, functionId) =>
-              reopened.cache.skipList.size shouldBe functionIds.size
-              reopened.cache.skipList.contains(functionId) shouldBe true
+        //should contain
+        functionIds foreach {
+          functionId =>
+            map.cache.skipList.contains(functionId) shouldBe true
+        }
 
-              if (randomBoolean())
-                reopened
-              else
-                reopened.reopen.sweep()
-          }
-      }
+        //randomly reopening results in the same skipList
+        functionIds.foldLeft(map.reopen) {
+          case (reopened, functionId) =>
+            reopened.cache.skipList.size shouldBe functionIds.size
+            reopened.cache.skipList.contains(functionId) shouldBe true
+
+            if (randomBoolean())
+              reopened
+            else
+              reopened.reopen.sweep()
+        }
     }
   }
 }

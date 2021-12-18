@@ -16,7 +16,7 @@
 
 package swaydb.core.util
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Benchmark
 import swaydb.slice.Slice
@@ -25,7 +25,7 @@ import swaydb.utils.Collections._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
-class CollectionsSpec extends AnyWordSpec with Matchers {
+class CollectionsSpec extends AnyWordSpec {
 
   "foreachBreak" should {
     "exit on break" in {

@@ -16,7 +16,7 @@
 
 package swaydb.core.series
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.series.appendable.{SeriesAppendable, SeriesAppendableVolatile}
 
@@ -27,7 +27,7 @@ class Volatile_SeriesAppendableSpec extends SeriesAppendableSpec {
     SeriesAppendableVolatile[T](limit)
 }
 
-sealed trait SeriesAppendableSpec extends AnyWordSpec with Matchers {
+sealed trait SeriesAppendableSpec extends AnyWordSpec {
 
   def create[T >: Null : ClassTag](limit: Int): SeriesAppendable[T]
 

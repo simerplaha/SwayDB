@@ -291,19 +291,19 @@ private[swaydb] object Effect extends LazyLogging {
             extension: Extension): List[Path] =
     Effect.stream(folder) {
       _.iterator()
-        .asScala
-        .filter(isExtension(_, extension))
-        .toList
-        .sortBy(path => numberFileId(path)._1)
+       .asScala
+       .filter(isExtension(_, extension))
+       .toList
+       .sortBy(path => numberFileId(path)._1)
     }
 
   def folders(folder: Path): List[Path] =
     Effect.stream(folder) {
       _.iterator()
-        .asScala
-        .filter(folder => Try(folderId(folder)).isSuccess)
-        .toList
-        .sortBy(folderId)
+       .asScala
+       .filter(folder => Try(folderId(folder)).isSuccess)
+       .toList
+       .sortBy(folderId)
     }
 
   def segmentFilesOnDisk(paths: Seq[Path]): Seq[Path] =

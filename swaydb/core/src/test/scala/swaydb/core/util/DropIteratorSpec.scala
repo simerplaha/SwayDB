@@ -16,19 +16,18 @@
 
 package swaydb.core.util
 
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.CommonAssertions._
-import swaydb.core.CoreTestData._
-import swaydb.core.TestTimer
-import swaydb.core.segment.data.Value.FromValue
+import swaydb.core.log.timer.TestTimer
 import swaydb.core.segment.data.{KeyValue, Memory, Value}
-import swaydb.serializers.Default._
+import swaydb.core.segment.data.KeyValueTestKit._
+import swaydb.core.segment.data.Value.FromValue
 import swaydb.serializers._
+import swaydb.serializers.Default._
 import swaydb.slice.Slice
 import swaydb.utils.DropIterator
 
-class DropIteratorSpec extends AnyWordSpec with Matchers {
+class DropIteratorSpec extends AnyWordSpec {
 
   implicit val testTimer: TestTimer = TestTimer.Empty
 
