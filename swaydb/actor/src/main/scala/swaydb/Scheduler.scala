@@ -39,29 +39,24 @@ object Scheduler {
     }
 }
 
-class Scheduler private(timer: Timer)(implicit val ec: ExecutionContext) {
+class Scheduler private(timer: Timer) {
 
   def apply[T](delayFor: FiniteDuration)(block: => Future[T]): Future[T] = {
     val promise = Promise[T]()
     val task =
       new TimerTask {
-        def run(): Unit = {
-          ec.execute(
-            new Runnable {
-              override def run(): Unit =
-                promise.completeWith(block)
-            }
-          )
-        }
+        def run(): Unit =
+          promise.completeWith(block)
       }
+
     timer.schedule(task, delayFor.toMillis max 0)
     promise.future
   }
 
-  def future[T](delayFor: FiniteDuration)(block: => T): Future[T] =
+  def future[T](delayFor: FiniteDuration)(block: => T)(implicit ec: ExecutionContext): Future[T] =
     apply(delayFor)(Future(block))
 
-  def futureFromIO[T](delayFor: FiniteDuration)(block: => IO[swaydb.Error.Segment, T]): Future[T] =
+  def futureFromIO[T](delayFor: FiniteDuration)(block: => IO[swaydb.Error.Segment, T])(implicit ec: ExecutionContext): Future[T] =
     apply(delayFor)(Future(block).flatMap(_.toFuture))
 
   def task(delayFor: FiniteDuration)(block: => Unit): TimerTask = {
