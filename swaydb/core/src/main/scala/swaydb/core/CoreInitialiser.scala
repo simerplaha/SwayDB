@@ -30,7 +30,7 @@ import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper
-import swaydb.core.level.{Level, LevelCloser, MemoryPathGenerator, NextLevel}
+import swaydb.core.level.{Level, LevelCloser, LevelPathGenerator, NextLevel}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.{block, CoreFunctionStore}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -158,7 +158,7 @@ private[core] object CoreInitialiser extends LazyLogging {
           implicit val bufferSweeper: ByteBufferSweeperActor =
             ByteBufferSweeper()(fileSweeper.executionContext)
 
-          lazy val memoryLevelPath = MemoryPathGenerator.next()
+          lazy val memoryLevelPath = LevelPathGenerator.nextMemoryPath()
 
           def createLevel(id: Long,
                           nextLevel: Option[NextLevel],

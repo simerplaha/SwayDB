@@ -22,10 +22,10 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * For generating unique path ids for in-memory instances.
  */
-object MemoryPathGenerator {
+object LevelPathGenerator {
 
   private val memoryPathId = new AtomicInteger(0)
 
-  def next() = Paths.get(s"MEMORY-${memoryPathId.incrementAndGet()}")
+  def nextMemoryPath() = Paths.get(s"MEMORY-${memoryPathId.incrementAndGet()}")
 
 }

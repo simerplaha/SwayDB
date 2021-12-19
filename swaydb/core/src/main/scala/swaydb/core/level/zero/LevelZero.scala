@@ -28,7 +28,7 @@ import swaydb.config.storage.Level0Storage
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.level.{LevelRef, LevelSeek, MemoryPathGenerator, NextLevel}
+import swaydb.core.level.{LevelRef, LevelSeek, LevelPathGenerator, NextLevel}
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.log.{Log, LogEntry, Logs}
@@ -226,7 +226,7 @@ private[core] case object LevelZero extends LazyLogging {
                   acceleration = acceleration
                 )
 
-              val path = nextLevel.map(_.rootPath.getParent).getOrElse(MemoryPathGenerator.next())
+              val path = nextLevel.map(_.rootPath.getParent).getOrElse(LevelPathGenerator.nextMemoryPath())
               (log, appliedFunctionsLog, path.resolve(0.toString), None)
           }
       }
