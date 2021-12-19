@@ -15,5 +15,5 @@ object BloomFilterBlockOffset {
   }
 }
 
-case class BloomFilterBlockOffset(start: Int,
-                                  size: Int) extends BlockOffset
+@inline case class BloomFilterBlockOffset(start: Int,
+                                          size: Int) extends BlockOffset

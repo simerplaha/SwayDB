@@ -17,5 +17,5 @@ object SortedIndexBlockOffset {
 
 }
 
-case class SortedIndexBlockOffset(start: Int,
-                                  size: Int) extends BlockOffset
+@inline case class SortedIndexBlockOffset(start: Int,
+                                          size: Int) extends BlockOffset

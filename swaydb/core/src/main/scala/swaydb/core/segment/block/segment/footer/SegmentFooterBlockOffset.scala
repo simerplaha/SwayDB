@@ -17,5 +17,5 @@ object SegmentFooterBlockOffset {
 
 }
 
-case class SegmentFooterBlockOffset(start: Int,
-                                    size: Int) extends BlockOffset
+@inline case class SegmentFooterBlockOffset(start: Int,
+                                            size: Int) extends BlockOffset

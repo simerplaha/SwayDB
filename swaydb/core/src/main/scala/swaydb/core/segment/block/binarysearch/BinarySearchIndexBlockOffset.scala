@@ -17,5 +17,5 @@ object BinarySearchIndexBlockOffset {
 
 }
 
-case class BinarySearchIndexBlockOffset(start: Int,
-                                        size: Int) extends BlockOffset
+@inline case class BinarySearchIndexBlockOffset(start: Int,
+                                                size: Int) extends BlockOffset

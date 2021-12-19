@@ -17,5 +17,5 @@ object HashIndexBlockOffset {
 
 }
 
-case class HashIndexBlockOffset(start: Int,
-                                size: Int) extends BlockOffset
+@inline case class HashIndexBlockOffset(start: Int,
+                                        size: Int) extends BlockOffset
