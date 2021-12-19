@@ -103,9 +103,9 @@ class CacheSpec extends AnyWordSpec with MockFactory {
         initial = initialValue
       ) //then it's strategy IO
 
-  "valueIO" should {
+  "static" should {
     "always return initial value" in {
-      val cache: Cache[swaydb.Error.Segment, Unit, Int] = Cache.value(10)
+      val cache: Cache[swaydb.Error.Segment, Unit, Int] = Cache.static(10)
       cache.isCached shouldBe true
       cache.state() should contain(IO.Right(10))
       runThisParallel(100.times) {

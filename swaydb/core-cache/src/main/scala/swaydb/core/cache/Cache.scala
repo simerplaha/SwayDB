@@ -27,10 +27,12 @@ private[swaydb] object Cache {
 
   case object Null extends CacheOrNull[Nothing, Any, Nothing]
 
-  def value[E: IO.ExceptionHandler, I, B](output: B): Cache[E, I, B] =
+  def static[E: IO.ExceptionHandler, I, B](output: B): Cache[E, I, B] =
     new Cache[E, I, B] {
+      private final val staticState = Option(IO.Right(output))
+
       override def getOrFetch(input: => I): IO[E, B] =
-        IO(output)
+        staticState.get
 
       override def isCached: Boolean =
         true
@@ -42,13 +44,13 @@ private[swaydb] object Cache {
         ()
 
       override def state(): Option[IO.Right[E, B]] =
-        Option(IO.Right(output))
+        staticState
 
       override def getOrElse[F >: E : IO.ExceptionHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
         IO[F, BB](output)
 
       override def clearApply[F >: E : IO.ExceptionHandler, T](f: Option[B] => IO[F, T]): IO[F, T] =
-        IO.failed[F, T](new Exception("ValueIO cannot be cleared"))
+        IO.failed[F, T](new Exception("Static caches cannot be cleared"))
     }
 
   //  def emptyValuesBlock[E: IO.ExceptionHandler]: Cache[E, ValuesBlockOffset, UnblockedReader[ValuesBlockOffset, ValuesBlock]] =
