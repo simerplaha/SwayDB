@@ -462,6 +462,7 @@ private case object PersistentSegmentMany extends LazyLogging {
           throw new Exception("Empty Segment read. Persisted Segments cannot be empty.")
       }
 
+    //TODO ensure that this is a lazy iterator.
     val allKeyValues = segmentRefs.values().flatMap(_.iterator(false))
 
     val deadlineFunctionId = DeadlineAndFunctionId(allKeyValues)

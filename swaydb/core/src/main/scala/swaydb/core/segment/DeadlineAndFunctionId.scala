@@ -49,9 +49,9 @@ private object DeadlineAndFunctionId {
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             next: KeyValue): DeadlineAndFunctionId =
     next match {
-      case readOnly: KeyValue.Put =>
+      case put: KeyValue.Put =>
         DeadlineAndFunctionId(
-          deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
+          deadline = FiniteDurations.getNearestDeadline(deadline, put.deadline),
           minMaxFunctionId = minMaxFunctionId
         )
 
@@ -67,25 +67,23 @@ private object DeadlineAndFunctionId {
           minMaxFunctionId = minMaxFunctionId
         )
 
-      case readOnly: KeyValue.PendingApply =>
-        val applies = readOnly.getOrFetchApplies
+      case pendingApply: KeyValue.PendingApply =>
         DeadlineAndFunctionId(
           deadline = deadline,
-          minMaxFunctionId = MinMax.minMaxFunction(applies, minMaxFunctionId)
+          minMaxFunctionId = MinMax.minMaxFunction(pendingApply.getOrFetchApplies, minMaxFunctionId)
         )
 
-      case readOnly: KeyValue.Function =>
+      case function: KeyValue.Function =>
         DeadlineAndFunctionId(
           deadline = deadline,
-          minMaxFunctionId = Some(MinMax.minMaxFunction(readOnly, minMaxFunctionId))
+          minMaxFunctionId = Some(MinMax.minMaxFunction(function, minMaxFunctionId))
         )
 
       case range: KeyValue.Range =>
         range.fetchFromAndRangeValueUnsafe match {
           case (fromValue: Value.FromValue, rangeValue) =>
-            val fromValueDeadline = getNearestPutDeadline(deadline, fromValue)
             DeadlineAndFunctionId(
-              deadline = getNearestPutDeadline(fromValueDeadline, rangeValue),
+              deadline = getNearestPutDeadline(getNearestPutDeadline(deadline, fromValue), rangeValue),
               minMaxFunctionId = MinMax.minMaxFunction(fromValue, rangeValue, minMaxFunctionId)
             )
 

@@ -116,7 +116,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                       path = path,
                       mmap = mmap,
                       segmentSize = segment.segmentSize,
-                      byteTransferer =
+                      byteTransporter =
                         file => {
                           file.append(segment.fileHeader)
                           //toArray is not expensive. bodyBytes is a very small number < 12
@@ -139,7 +139,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                       path = path,
                       mmap = mmap,
                       segmentSize = segmentSize,
-                      byteTransferer =
+                      byteTransporter =
                         file => {
                           file.append(segment.fileHeader)
                           segment.ref.segmentBlockCache.transfer(0, segment.segmentSizeIgnoreHeader, file)
@@ -169,7 +169,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                       path = path,
                       mmap = mmap,
                       segmentSize = segment.segmentSize,
-                      byteTransferer =
+                      byteTransporter =
                         file => {
                           file.append(segment.fileHeader)
                           //toArray is not expensive. bodyBytes is a very small number < 12
@@ -256,10 +256,10 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
   private def segmentFile(path: Path,
                           mmap: MMAP.Segment,
                           segmentSize: Int,
-                          byteTransferer: CoreFile => Unit)(implicit segmentReadIO: SegmentReadIO,
-                                                            fileSweeper: FileSweeper,
-                                                            bufferCleaner: ByteBufferSweeperActor,
-                                                            forceSaveApplier: ForceSaveApplier): CoreFile =
+                          byteTransporter: CoreFile => Unit)(implicit segmentReadIO: SegmentReadIO,
+                                                             fileSweeper: FileSweeper,
+                                                             bufferCleaner: ByteBufferSweeperActor,
+                                                             forceSaveApplier: ForceSaveApplier): CoreFile =
     mmap match {
       case MMAP.On(deleteAfterClean, forceSave) => //if both read and writes are mmaped. Keep the file open.
         CoreFile.mmapWriteableReadableTransfer(
@@ -269,7 +269,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
           deleteAfterClean = deleteAfterClean,
           forceSave = forceSave,
           bufferSize = segmentSize,
-          transfer = byteTransferer
+          transfer = byteTransporter
         )
 
       case MMAP.ReadOnly(deleteAfterClean) =>
@@ -282,7 +282,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
           )
 
         try
-          byteTransferer(standardWrite)
+          byteTransporter(standardWrite)
         catch {
           case throwable: Throwable =>
             logger.error(s"Failed to write $mmap file with applier. Closing file: $path", throwable)
@@ -309,7 +309,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
           )
 
         try
-          byteTransferer(standardWrite)
+          byteTransporter(standardWrite)
         catch {
           case throwable: Throwable =>
             logger.error(s"Failed to write $mmap file with applier. Closing file: $path", throwable)
