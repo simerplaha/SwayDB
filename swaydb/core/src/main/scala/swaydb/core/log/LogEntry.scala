@@ -270,6 +270,7 @@ private[swaydb] case object LogEntry {
     def copySingle() =
       copy()
 
-    override protected val _entries: ListBuffer[LogEntry.Point[K, _]] = ListBuffer(this)
+    override protected val _entries: ListBuffer[LogEntry.Point[K, _]] =
+      ListBuffer(this)
   }
 }

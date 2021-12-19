@@ -18,12 +18,25 @@ package swaydb.core.log
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.config.{ForceSave, MMAP}
+import swaydb.slice.order.KeyOrder
+import swaydb.utils.StorageUnits._
 
 import java.nio.file.Path
 
-protected class MemoryLog[K, V, C <: LogCache[K, V]](val cache: C,
-                                                     flushOnOverflow: Boolean,
-                                                     val fileSize: Int) extends Log[K, V, C] with LazyLogging {
+object MemoryLog {
+  @inline def apply[K, V, C <: LogCache[K, V]](fileSize: Int = 0.byte,
+                                               flushOnOverflow: Boolean = true)(implicit keyOrder: KeyOrder[K],
+                                                                                cacheBuilder: LogCacheBuilder[C]): MemoryLog[K, V, C] =
+    new MemoryLog[K, V, C](
+      cache = cacheBuilder.create(),
+      flushOnOverflow = flushOnOverflow,
+      fileSize = fileSize
+    )
+}
+
+protected class MemoryLog[K, V, C <: LogCache[K, V]] private(val cache: C,
+                                                             flushOnOverflow: Boolean,
+                                                             val fileSize: Int) extends Log[K, V, C] with LazyLogging {
 
   private var currentBytesWritten: Long = 0
   var skipListKeyValuesMaxCount: Int = 0

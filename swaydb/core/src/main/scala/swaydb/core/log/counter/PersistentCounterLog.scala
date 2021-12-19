@@ -23,8 +23,8 @@ import swaydb.config.MMAP
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.log.{LogEntry, PersistentLog}
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
-import swaydb.core.log.{Log, LogEntry, PersistentLog}
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 
@@ -57,7 +57,7 @@ private[swaydb] case object PersistentCounterLog extends LazyLogging {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
     IO {
-      Log.persistent[Slice[Byte], Slice[Byte], PersistentCounterLogCache](
+      PersistentLog[Slice[Byte], Slice[Byte], PersistentCounterLogCache](
         folder = path,
         mmap = mmap,
         flushOnOverflow = true,

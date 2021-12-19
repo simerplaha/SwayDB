@@ -19,13 +19,7 @@ package swaydb.core.log
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.config.MMAP
-import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.FileSweeper
-import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
 import swaydb.utils.IDGenerator
-import swaydb.slice.order.KeyOrder
-import swaydb.utils.StorageUnits._
 
 import java.nio.file.Path
 
@@ -36,49 +30,6 @@ private[core] object Log extends LazyLogging {
    */
   private[log] val uniqueFileNumberGenerator = IDGenerator()
 
-  def persistent[K, V, C <: LogCache[K, V]](folder: Path,
-                                            mmap: MMAP.Log,
-                                            flushOnOverflow: Boolean,
-                                            fileSize: Int,
-                                            dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                               fileSweeper: FileSweeper,
-                                                                               bufferCleaner: ByteBufferSweeperActor,
-                                                                               writer: LogEntryWriter[LogEntry.Put[K, V]],
-                                                                               reader: LogEntryReader[LogEntry[K, V]],
-                                                                               cacheBuilder: LogCacheBuilder[C],
-                                                                               forceSaveApplier: ForceSaveApplier): RecoveryResult[PersistentLog[K, V, C]] =
-    PersistentLog(
-      folder = folder,
-      mmap = mmap,
-      flushOnOverflow = flushOnOverflow,
-      fileSize = fileSize,
-      dropCorruptedTailEntries = dropCorruptedTailEntries
-    )
-
-  def persistent[K, V, C <: LogCache[K, V]](folder: Path,
-                                            mmap: MMAP.Log,
-                                            flushOnOverflow: Boolean,
-                                            fileSize: Int)(implicit keyOrder: KeyOrder[K],
-                                                           fileSweeper: FileSweeper,
-                                                           bufferCleaner: ByteBufferSweeperActor,
-                                                           writer: LogEntryWriter[LogEntry.Put[K, V]],
-                                                           cacheBuilder: LogCacheBuilder[C],
-                                                           forceSaveApplier: ForceSaveApplier): PersistentLog[K, V, C] =
-    PersistentLog(
-      folder = folder,
-      mmap = mmap,
-      flushOnOverflow = flushOnOverflow,
-      fileSize = fileSize
-    )
-
-  def memory[K, V, C <: LogCache[K, V]](fileSize: Int = 0.byte,
-                                        flushOnOverflow: Boolean = true)(implicit keyOrder: KeyOrder[K],
-                                                                         cacheBuilder: LogCacheBuilder[C]): MemoryLog[K, V, C] =
-    new MemoryLog[K, V, C](
-      cache = cacheBuilder.create(),
-      flushOnOverflow = flushOnOverflow,
-      fileSize = fileSize
-    )
 }
 
 private[core] trait Log[K, V, C <: LogCache[K, V]] {

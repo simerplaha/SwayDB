@@ -71,7 +71,7 @@ class LogSpec extends AnyWordSpec {
           import MemoryLogEntryWriter._
 
           val log =
-            Log.memory[Slice[Byte], Memory, LevelZeroLogCache](
+            MemoryLog[Slice[Byte], Memory, LevelZeroLogCache](
               fileSize = 1.mb,
               flushOnOverflow = false
             ).sweep()
@@ -111,7 +111,7 @@ class LogSpec extends AnyWordSpec {
           import SegmentLogEntryWriter._
 
           val log =
-            Log.memory[Slice[Byte], Segment, AppendixLogCache](
+            MemoryLog[Slice[Byte], Segment, AppendixLogCache](
               fileSize = 1.mb,
               flushOnOverflow = false
             ).sweep()
@@ -139,7 +139,7 @@ class LogSpec extends AnyWordSpec {
           import sweeper._
 
           val log =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -151,7 +151,7 @@ class LogSpec extends AnyWordSpec {
           log.close()
           //recover from an empty log
           val recovered =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.path,
               mmap = MMAP.On(OperatingSystem.isWindows(), GenForceSave.mmap()),
               flushOnOverflow = false,
@@ -183,7 +183,7 @@ class LogSpec extends AnyWordSpec {
           import appendixReader._
 
           val log =
-            Log.persistent[Slice[Byte], Segment, AppendixLogCache](
+            PersistentLog[Slice[Byte], Segment, AppendixLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false, fileSize = 1.mb,
@@ -194,7 +194,7 @@ class LogSpec extends AnyWordSpec {
           log.close()
           //recover from an empty log
           val recovered =
-            Log.persistent[Slice[Byte], Segment, AppendixLogCache](
+            PersistentLog[Slice[Byte], Segment, AppendixLogCache](
               folder = log.path,
               mmap = MMAP.On(OperatingSystem.isWindows(), GenForceSave.mmap()),
               flushOnOverflow = false,
@@ -224,7 +224,7 @@ class LogSpec extends AnyWordSpec {
 
           def doRecover(path: Path): PersistentLog[Slice[Byte], Memory, LevelZeroLogCache] = {
             val recovered =
-              Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+              PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
                 folder = path,
                 mmap = MMAP.randomForLog(),
                 flushOnOverflow = false,
@@ -243,7 +243,7 @@ class LogSpec extends AnyWordSpec {
           }
 
           val log =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -291,7 +291,7 @@ class LogSpec extends AnyWordSpec {
           val segment2 = GenSegment(Slice(Memory.put(3, 3, None), Memory.put(4, 4, None)))
 
           val log =
-            Log.persistent[Slice[Byte], Segment, AppendixLogCache](
+            PersistentLog[Slice[Byte], Segment, AppendixLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -307,7 +307,7 @@ class LogSpec extends AnyWordSpec {
 
           def doRecover(path: Path): PersistentLog[Slice[Byte], Segment, AppendixLogCache] = {
             val recovered =
-              Log.persistent[Slice[Byte], Segment, AppendixLogCache](
+              PersistentLog[Slice[Byte], Segment, AppendixLogCache](
                 folder = log.path,
                 mmap = MMAP.randomForLog(),
                 flushOnOverflow = false,
@@ -341,7 +341,7 @@ class LogSpec extends AnyWordSpec {
           import sweeper._
 
           val map1 =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -355,7 +355,7 @@ class LogSpec extends AnyWordSpec {
           map1.writeSync(LogEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
 
           val map2 =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -374,7 +374,7 @@ class LogSpec extends AnyWordSpec {
 
           //recover log 1 and it should contain all entries of map1 and map2
           val map1Recovered =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -426,7 +426,7 @@ class LogSpec extends AnyWordSpec {
           val segment2Updated = GenSegment(Slice(Memory.put(2, 2, None), Memory.put(12, 12, None)))
 
           val map1 =
-            Log.persistent[Slice[Byte], Segment, AppendixLogCache](
+            PersistentLog[Slice[Byte], Segment, AppendixLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -439,7 +439,7 @@ class LogSpec extends AnyWordSpec {
           map1.writeSync(LogEntry.Put(3, segment3)) shouldBe true
 
           val map2 =
-            Log.persistent[Slice[Byte], Segment, AppendixLogCache](
+            PersistentLog[Slice[Byte], Segment, AppendixLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -457,7 +457,7 @@ class LogSpec extends AnyWordSpec {
 
           //recover log 1 and it should contain all entries of map1 and map2
           val map1Recovered =
-            Log.persistent[Slice[Byte], Segment, AppendixLogCache](
+            PersistentLog[Slice[Byte], Segment, AppendixLogCache](
               folder = map1.path,
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -485,7 +485,7 @@ class LogSpec extends AnyWordSpec {
           import sweeper._
 
           val log =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -494,7 +494,7 @@ class LogSpec extends AnyWordSpec {
 
           //fails because the file already exists.
           assertThrows[FileAlreadyExistsException] {
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.path,
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -503,7 +503,7 @@ class LogSpec extends AnyWordSpec {
           }
 
           //recovers because the recovery is provided
-          Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+          PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
             folder = log.path,
             mmap = MMAP.Off(GenForceSave.standard()),
             flushOnOverflow = false,
@@ -553,7 +553,7 @@ class LogSpec extends AnyWordSpec {
 
           //create a log
           val log =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.On(OperatingSystem.isWindows(), GenForceSave.mmap()),
               flushOnOverflow = false,
@@ -615,7 +615,7 @@ class LogSpec extends AnyWordSpec {
 
           //create a log
           val log =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.On(OperatingSystem.isWindows(), GenForceSave.mmap()),
               flushOnOverflow = true,
@@ -706,7 +706,7 @@ class LogSpec extends AnyWordSpec {
 
           //create a log
           val log =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.On(OperatingSystem.isWindows(), GenForceSave.mmap()),
               flushOnOverflow = false,
@@ -799,7 +799,7 @@ class LogSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
           val log =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -817,7 +817,7 @@ class LogSpec extends AnyWordSpec {
 
           def assertRecover =
             assertThrows[IllegalStateException] {
-              Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+              PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
                 folder = log.currentFilePath.getParent,
                 mmap = MMAP.Off(GenForceSave.standard()),
                 flushOnOverflow = false,
@@ -841,7 +841,7 @@ class LogSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
           val log =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -860,7 +860,7 @@ class LogSpec extends AnyWordSpec {
           Effect.overwrite(log.currentFilePath, allBytes.dropRight(1))
 
           val recoveredMap =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.currentFilePath.getParent,
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -878,7 +878,7 @@ class LogSpec extends AnyWordSpec {
           Effect.overwrite(recoveredMap.currentFilePath, allBytes.drop(1))
 
           val recoveredMap2 =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = recoveredMap.currentFilePath.getParent,
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -900,7 +900,7 @@ class LogSpec extends AnyWordSpec {
           import sweeper._
 
           val map1 =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -913,7 +913,7 @@ class LogSpec extends AnyWordSpec {
           map1.writeSync(LogEntry.Put(3, Memory.put(3, 3))) shouldBe true
 
           val map2 =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -940,7 +940,7 @@ class LogSpec extends AnyWordSpec {
           //corrupt 0.log bytes
           Effect.overwrite(log0, log0Bytes.drop(1))
           assertThrows[IllegalStateException] {
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -954,7 +954,7 @@ class LogSpec extends AnyWordSpec {
           //corrupt 0.log bytes
           Effect.overwrite(log0, log0Bytes.dropRight(1))
           val recoveredMapWith0LogCorrupted =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -989,7 +989,7 @@ class LogSpec extends AnyWordSpec {
           import sweeper._
 
           val map1 =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -1002,7 +1002,7 @@ class LogSpec extends AnyWordSpec {
           map1.writeSync(LogEntry.Put(3, Memory.put(3, 3))) shouldBe true
 
           val map2 =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -1028,7 +1028,7 @@ class LogSpec extends AnyWordSpec {
           //corrupt 1.log bytes
           Effect.overwrite(log1, log1Bytes.drop(1))
           assertThrows[IllegalStateException] {
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -1042,7 +1042,7 @@ class LogSpec extends AnyWordSpec {
           //corrupt 1.log bytes
           Effect.overwrite(log1, log1Bytes.dropRight(1))
           val recoveredMapWith0LogCorrupted =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
               mmap = MMAP.Off(GenForceSave.standard()),
               flushOnOverflow = false,
@@ -1081,7 +1081,7 @@ class LogSpec extends AnyWordSpec {
 
             //create a Map with randomly max size so that this test also covers when multiple maps are created. Also set flushOnOverflow to true so that the same Map gets written.
             val log =
-              Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+              PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
                 folder = genDir(),
                 mmap = MMAP.randomForLog(),
                 flushOnOverflow = true,
@@ -1138,7 +1138,7 @@ class LogSpec extends AnyWordSpec {
               val mmap = GenForceSave.mmap()
 
               val log =
-                Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+                PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
                   folder = genDir(),
                   //when deleteAfterClean is false, this will pass with TestTimer.Empty because the files are deleted
                   //immediately and reopen does not have to recovery multiple log files with functions. But we always
@@ -1187,7 +1187,7 @@ class LogSpec extends AnyWordSpec {
           import sweeper._
 
           val map1 =
-            Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+            PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
               folder = genDir(),
               mmap = MMAP.randomForLog(),
               flushOnOverflow = true,

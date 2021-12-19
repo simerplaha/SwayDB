@@ -17,18 +17,18 @@
 package swaydb.core.log.applied
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.{Error, IO}
 import swaydb.config.MMAP
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.log
+import swaydb.core.log.{Log, PersistentLog, RecoveryResult}
 import swaydb.core.log.serialiser.{KeyLogEntryReader, KeyLogEntryWriter}
-import swaydb.core.log.{Log, RecoveryResult}
 import swaydb.core.segment.CoreFunctionStore
 import swaydb.effect.Effect
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
-import swaydb.{Error, IO}
 
 import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
@@ -49,7 +49,7 @@ case object AppliedFunctionsLog extends LazyLogging {
     implicit val fileSweeper: FileSweeper = FileSweeper.Off
     implicit val keyOrder = KeyOrder.default
 
-    Log.persistent[Slice[Byte], Unit, AppliedFunctionsLogCache](
+    PersistentLog[Slice[Byte], Unit, AppliedFunctionsLogCache](
       folder = folder,
       mmap = mmap,
       flushOnOverflow = true,

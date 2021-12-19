@@ -96,7 +96,7 @@ object LogTestKit {
 
       ensureCleanedForWindows(log.mmap)
 
-      Log.persistent[K, V, C](
+      PersistentLog[K, V, C](
         folder = log.path,
         mmap = MMAP.randomForLog(),
         flushOnOverflow = log.flushOnOverflow,

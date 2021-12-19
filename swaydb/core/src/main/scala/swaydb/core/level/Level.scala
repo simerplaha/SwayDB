@@ -29,7 +29,7 @@ import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.log.serialiser._
-import swaydb.core.log.{Log, LogEntry}
+import swaydb.core.log.{Log, LogEntry, MemoryLog, PersistentLog}
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, GapAggregator}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -148,7 +148,7 @@ private[core] case object Level extends LazyLogging {
               } else {
                 IO {
                   Effect createDirectoriesIfAbsent appendixFolder
-                  Log.persistent[Slice[Byte], Segment, AppendixLogCache](
+                  PersistentLog[Slice[Byte], Segment, AppendixLogCache](
                     folder = appendixFolder,
                     mmap = mmap,
                     flushOnOverflow = true,
@@ -160,7 +160,7 @@ private[core] case object Level extends LazyLogging {
 
             case LevelStorage.Memory(_) =>
               logger.info("{}: Initialising appendix for in-memory Level", levelStorage.dir)
-              IO(Log.memory[Slice[Byte], Segment, AppendixLogCache]())
+              IO(MemoryLog[Slice[Byte], Segment, AppendixLogCache]())
           }
 
         //initialise Level

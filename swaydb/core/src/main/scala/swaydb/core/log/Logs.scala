@@ -50,7 +50,7 @@ private[core] object Logs extends LazyLogging {
                                                                                      timer: Timer,
                                                                                      forceSaveApplier: ForceSaveApplier): Logs[K, V, C] = {
     val log =
-      Log.memory[K, V, C](
+      MemoryLog[K, V, C](
         fileSize = fileSize,
         flushOnOverflow = false
       )
@@ -111,7 +111,7 @@ private[core] object Logs extends LazyLogging {
             logger.debug(s"{}: Creating next log with ID {} logs.", path, nextLogId)
             val queue = VolatileQueue[Log[K, V, C]](otherLogs)
             IO {
-              Log.persistent[K, V, C](
+              PersistentLog[K, V, C](
                 folder = nextLogId,
                 mmap = mmap,
                 flushOnOverflow = false,
@@ -204,7 +204,7 @@ private[core] object Logs extends LazyLogging {
           logger.debug(s"{}: Recovering.", mapPath)
 
           IO {
-            Log.persistent[K, V, C](
+            PersistentLog[K, V, C](
               folder = mapPath,
               mmap = mmap,
               flushOnOverflow = false,
@@ -267,7 +267,7 @@ private[core] object Logs extends LazyLogging {
     currentLog match {
       case currentLog: PersistentLog[K, V, C] =>
         currentLog.close()
-        Log.persistent[K, V, C](
+        PersistentLog[K, V, C](
           folder = currentLog.path.incrementFolderId,
           mmap = currentLog.mmap,
           flushOnOverflow = false,
@@ -275,23 +275,23 @@ private[core] object Logs extends LazyLogging {
         )
 
       case _ =>
-        Log.memory[K, V, C](
+        MemoryLog[K, V, C](
           fileSize = nextLogSize,
           flushOnOverflow = false
         )
     }
 }
 
-private[core] class Logs[K, V, C <: LogCache[K, V]](private val queue: VolatileQueue[Log[K, V, C]],
-                                                    fileSize: Int,
-                                                    acceleration: LevelZeroMeter => Accelerator,
-                                                    @volatile private var currentLog: Log[K, V, C])(implicit keyOrder: KeyOrder[K],
-                                                                                                    fileSweeper: FileSweeper,
-                                                                                                    val bufferCleaner: ByteBufferSweeperActor,
-                                                                                                    writer: LogEntryWriter[LogEntry.Put[K, V]],
-                                                                                                    cacheBuilder: LogCacheBuilder[C],
-                                                                                                    private val timer: Timer,
-                                                                                                    forceSaveApplier: ForceSaveApplier) extends LazyLogging { self =>
+private[core] class Logs[K, V, C <: LogCache[K, V]] private(private val queue: VolatileQueue[Log[K, V, C]],
+                                                            fileSize: Int,
+                                                            acceleration: LevelZeroMeter => Accelerator,
+                                                            @volatile private var currentLog: Log[K, V, C])(implicit keyOrder: KeyOrder[K],
+                                                                                                            fileSweeper: FileSweeper,
+                                                                                                            val bufferCleaner: ByteBufferSweeperActor,
+                                                                                                            writer: LogEntryWriter[LogEntry.Put[K, V]],
+                                                                                                            cacheBuilder: LogCacheBuilder[C],
+                                                                                                            private val timer: Timer,
+                                                                                                            forceSaveApplier: ForceSaveApplier) extends LazyLogging { self =>
 
   @volatile private var closed: Boolean = false
 

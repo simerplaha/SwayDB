@@ -27,7 +27,7 @@ import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.level.AppendixLogCache
 import swaydb.core.log.serialiser.LogEntryWriter
-import swaydb.core.log.{Log, LogEntry}
+import swaydb.core.log.{Log, LogEntry, PersistentLog}
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.effect.Effect
@@ -180,7 +180,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
             )
         )
 
-      Log.persistent[Slice[Byte], Segment, AppendixLogCache](
+      PersistentLog[Slice[Byte], Segment, AppendixLogCache](
         folder = appendixDir,
         mmap = mmap,
         flushOnOverflow = true,

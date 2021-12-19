@@ -79,7 +79,7 @@
 //
 //      val map =
 //        if (isPersistent)
-//          Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+//          PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
 //            folder = randomIntDirectory,
 //            mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
 //            flushOnOverflow = true,
@@ -87,7 +87,7 @@
 //            dropCorruptedTailEntries = false
 //          ).runRandomIO.get.item.sweep()
 //        else
-//          Log.memory[Slice[Byte], Memory, LevelZeroLogCache]()
+//          MemoryLog[Slice[Byte], Memory, LevelZeroLogCache]()
 //
 //      val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
 //      keyValues foreach {

@@ -35,7 +35,7 @@ import swaydb.utils.Extension
 import java.nio.file.Path
 import scala.annotation.tailrec
 
-protected object PersistentLog extends LazyLogging {
+private[core] object PersistentLog extends LazyLogging {
 
   def apply[K, V, C <: LogCache[K, V]](folder: Path,
                                        mmap: MMAP.Log,
@@ -264,15 +264,15 @@ protected object PersistentLog extends LazyLogging {
   }
 }
 
-protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
-                                                              mmap: MMAP.Log,
-                                                              fileSize: Int,
-                                                              flushOnOverflow: Boolean,
-                                                              cache: C,
-                                                              private var currentFile: CoreFile)(implicit val fileSweeper: FileSweeper,
-                                                                                                 val bufferCleaner: ByteBufferSweeperActor,
-                                                                                                 val writer: LogEntryWriter[LogEntry.Put[K, V]],
-                                                                                                 val forceSaveApplier: ForceSaveApplier) extends Log[K, V, C] with LazyLogging {
+protected case class PersistentLog[K, V, C <: LogCache[K, V]] private(path: Path,
+                                                                      mmap: MMAP.Log,
+                                                                      fileSize: Int,
+                                                                      flushOnOverflow: Boolean,
+                                                                      cache: C,
+                                                                      private var currentFile: CoreFile)(implicit val fileSweeper: FileSweeper,
+                                                                                                         val bufferCleaner: ByteBufferSweeperActor,
+                                                                                                         val writer: LogEntryWriter[LogEntry.Put[K, V]],
+                                                                                                         val forceSaveApplier: ForceSaveApplier) extends Log[K, V, C] with LazyLogging {
 
   // actualSize of the file can be different to fileSize when the entry's size is > fileSize.
   // In this case a file is created just to fit those bytes (for that one entry).

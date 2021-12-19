@@ -46,12 +46,12 @@ object GenLog {
 
     val testLog =
       if (coreSpecType.isMemory)
-        Log.memory[Slice[Byte], Memory, LevelZeroLogCache](
+        MemoryLog[Slice[Byte], Memory, LevelZeroLogCache](
           fileSize = fileSize,
           flushOnOverflow = flushOnOverflow
         )
       else
-        Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
+        PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
           folder = genLogFile(),
           mmap = mmap,
           flushOnOverflow = flushOnOverflow,
