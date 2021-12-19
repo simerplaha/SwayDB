@@ -141,7 +141,7 @@ class LogSpec extends AnyWordSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -153,7 +153,7 @@ class LogSpec extends AnyWordSpec {
           val recovered =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.path,
-              mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows(), RandomForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -175,7 +175,7 @@ class LogSpec extends AnyWordSpec {
               mmapSegment =
                 MMAP.On(
                   deleteAfterClean = OperatingSystem.isWindows(),
-                  forceSave = TestForceSave.mmap()
+                  forceSave = RandomForceSave.mmap()
                 ),
               segmentRefCacheLife = randomSegmentRefCacheLife()
             )
@@ -185,7 +185,7 @@ class LogSpec extends AnyWordSpec {
           val log =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false, fileSize = 1.mb,
               dropCorruptedTailEntries = false
             ).item.sweep()
@@ -196,7 +196,7 @@ class LogSpec extends AnyWordSpec {
           val recovered =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
               folder = log.path,
-              mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows(), RandomForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -245,7 +245,7 @@ class LogSpec extends AnyWordSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -280,7 +280,7 @@ class LogSpec extends AnyWordSpec {
             mmapSegment =
               MMAP.On(
                 deleteAfterClean = OperatingSystem.isWindows(),
-                forceSave = TestForceSave.mmap()
+                forceSave = RandomForceSave.mmap()
               ),
             segmentRefCacheLife = randomSegmentRefCacheLife()
           )
@@ -293,7 +293,7 @@ class LogSpec extends AnyWordSpec {
           val log =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -343,7 +343,7 @@ class LogSpec extends AnyWordSpec {
           val map1 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -357,7 +357,7 @@ class LogSpec extends AnyWordSpec {
           val map2 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -376,7 +376,7 @@ class LogSpec extends AnyWordSpec {
           val map1Recovered =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -410,7 +410,7 @@ class LogSpec extends AnyWordSpec {
               mmapSegment =
                 MMAP.On(
                   deleteAfterClean = OperatingSystem.isWindows(),
-                  forceSave = TestForceSave.mmap()
+                  forceSave = RandomForceSave.mmap()
                 ),
               segmentRefCacheLife = randomSegmentRefCacheLife()
             )
@@ -428,7 +428,7 @@ class LogSpec extends AnyWordSpec {
           val map1 =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -441,7 +441,7 @@ class LogSpec extends AnyWordSpec {
           val map2 =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -459,7 +459,7 @@ class LogSpec extends AnyWordSpec {
           val map1Recovered =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
               folder = map1.path,
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -487,7 +487,7 @@ class LogSpec extends AnyWordSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb
             ).sweep()
@@ -496,7 +496,7 @@ class LogSpec extends AnyWordSpec {
           assertThrows[FileAlreadyExistsException] {
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.path,
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb
             ).sweep()
@@ -505,7 +505,7 @@ class LogSpec extends AnyWordSpec {
           //recovers because the recovery is provided
           Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
             folder = log.path,
-            mmap = MMAP.Off(TestForceSave.standard()),
+            mmap = MMAP.Off(RandomForceSave.standard()),
             flushOnOverflow = false,
             fileSize = 1.mb,
             dropCorruptedTailEntries = false
@@ -528,7 +528,7 @@ class LogSpec extends AnyWordSpec {
           val file =
             PersistentLog.recover[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               fileSize = 4.mb,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -555,7 +555,7 @@ class LogSpec extends AnyWordSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows(), RandomForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = false
@@ -584,7 +584,7 @@ class LogSpec extends AnyWordSpec {
           val recoveredFile =
             PersistentLog.recover[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.path,
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               fileSize = 4.mb,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -617,7 +617,7 @@ class LogSpec extends AnyWordSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows(), RandomForceSave.mmap()),
               flushOnOverflow = true,
               fileSize = 1.byte,
               dropCorruptedTailEntries = false
@@ -647,7 +647,7 @@ class LogSpec extends AnyWordSpec {
           val recoveredFile =
             PersistentLog.recover[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.path,
-              mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows(), RandomForceSave.mmap()),
               fileSize = 1.byte,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -676,7 +676,7 @@ class LogSpec extends AnyWordSpec {
           val recoveredFile2 =
             PersistentLog.recover[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.path,
-              mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows(), RandomForceSave.mmap()),
               fileSize = 1.byte,
               cache = cache2,
               dropCorruptedTailEntries = false
@@ -708,7 +708,7 @@ class LogSpec extends AnyWordSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows(), RandomForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = false
@@ -724,7 +724,7 @@ class LogSpec extends AnyWordSpec {
           val file =
             PersistentLog.recover[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.path,
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               fileSize = 4.mb,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -761,7 +761,7 @@ class LogSpec extends AnyWordSpec {
           val currentFile =
             PersistentLog.recover[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               fileSize = 4.mb,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -770,7 +770,7 @@ class LogSpec extends AnyWordSpec {
           val nextFile =
             PersistentLog.nextFile[Slice[Byte], Memory, LevelZeroLogCache](
               currentFile = currentFile,
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               size = 4.mb,
               cache = cache
             ).sweep()
@@ -801,7 +801,7 @@ class LogSpec extends AnyWordSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = false
@@ -819,7 +819,7 @@ class LogSpec extends AnyWordSpec {
             assertThrows[IllegalStateException] {
               Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 folder = log.currentFilePath.getParent,
-                mmap = MMAP.Off(TestForceSave.standard()),
+                mmap = MMAP.Off(RandomForceSave.standard()),
                 flushOnOverflow = false,
                 fileSize = 4.mb,
                 dropCorruptedTailEntries = false
@@ -843,7 +843,7 @@ class LogSpec extends AnyWordSpec {
           val log =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = false
@@ -862,7 +862,7 @@ class LogSpec extends AnyWordSpec {
           val recoveredMap =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = log.currentFilePath.getParent,
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = true
@@ -880,7 +880,7 @@ class LogSpec extends AnyWordSpec {
           val recoveredMap2 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = recoveredMap.currentFilePath.getParent,
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = true
@@ -902,7 +902,7 @@ class LogSpec extends AnyWordSpec {
           val map1 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -915,7 +915,7 @@ class LogSpec extends AnyWordSpec {
           val map2 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -942,7 +942,7 @@ class LogSpec extends AnyWordSpec {
           assertThrows[IllegalStateException] {
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -956,7 +956,7 @@ class LogSpec extends AnyWordSpec {
           val recoveredMapWith0LogCorrupted =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = true
@@ -991,7 +991,7 @@ class LogSpec extends AnyWordSpec {
           val map1 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -1004,7 +1004,7 @@ class LogSpec extends AnyWordSpec {
           val map2 =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = createRandomDir(),
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -1030,7 +1030,7 @@ class LogSpec extends AnyWordSpec {
           assertThrows[IllegalStateException] {
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -1044,7 +1044,7 @@ class LogSpec extends AnyWordSpec {
           val recoveredMapWith0LogCorrupted =
             Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               folder = map1.path,
-              mmap = MMAP.Off(TestForceSave.standard()),
+              mmap = MMAP.Off(RandomForceSave.standard()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = true
@@ -1135,7 +1135,7 @@ class LogSpec extends AnyWordSpec {
               //time value set will result in duplicate merges.
               implicit val testTimer: TestTimer = TestTimer.Incremental()
 
-              val mmap = TestForceSave.mmap()
+              val mmap = RandomForceSave.mmap()
 
               val log =
                 Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](

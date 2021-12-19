@@ -18,7 +18,7 @@ package swaydb.core.file
 
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.{CoreTestSweeper, TestForceSave}
+import swaydb.core.{CoreTestSweeper, RandomForceSave}
 import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.CoreTestSweeper._
 import swaydb.effect.Effect
@@ -50,7 +50,7 @@ class CoreFileSpec extends AnyWordSpec {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.standard()
+              forceSave = RandomForceSave.standard()
             )
 
           //the file is open
@@ -83,7 +83,7 @@ class CoreFileSpec extends AnyWordSpec {
                 path = testFile,
                 fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                 autoClose = true,
-                forceSave = TestForceSave.standard()
+                forceSave = RandomForceSave.standard()
               )
             }
           )
@@ -115,7 +115,7 @@ class CoreFileSpec extends AnyWordSpec {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.standard()
+              forceSave = RandomForceSave.standard()
             )
 
           val file = createFile()
@@ -204,7 +204,7 @@ class CoreFileSpec extends AnyWordSpec {
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows(),
-              forceSave = TestForceSave.mmap(),
+              forceSave = RandomForceSave.mmap(),
               bytes = bytes
             )
 
@@ -269,7 +269,7 @@ class CoreFileSpec extends AnyWordSpec {
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows(),
-              forceSave = TestForceSave.mmap(),
+              forceSave = RandomForceSave.mmap(),
               bytes = bytes
             )
           } shouldBe swaydb.Exception.FailedToWriteAllBytes(0, 10, 2)
@@ -288,7 +288,7 @@ class CoreFileSpec extends AnyWordSpec {
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
             deleteAfterClean = OperatingSystem.isWindows(),
-            forceSave = TestForceSave.mmap(),
+            forceSave = RandomForceSave.mmap(),
             bytes = bytes
           ).close()
 
@@ -299,7 +299,7 @@ class CoreFileSpec extends AnyWordSpec {
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows(),
-              forceSave = TestForceSave.mmap(),
+              forceSave = RandomForceSave.mmap(),
               bytes = bytes
             )
           }
@@ -388,7 +388,7 @@ class CoreFileSpec extends AnyWordSpec {
               bufferSize = 10,
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows(),
-              forceSave = TestForceSave.mmap()
+              forceSave = RandomForceSave.mmap()
             )
           }
       }
@@ -408,7 +408,7 @@ class CoreFileSpec extends AnyWordSpec {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.standard()
+              forceSave = RandomForceSave.standard()
             )
 
           file.append(bytes)
@@ -435,7 +435,7 @@ class CoreFileSpec extends AnyWordSpec {
               bufferSize = bytes.size,
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows(),
-              forceSave = TestForceSave.mmap()
+              forceSave = RandomForceSave.mmap()
             )
 
           file.append(bytes)
@@ -484,7 +484,7 @@ class CoreFileSpec extends AnyWordSpec {
               bufferSize = bytes.size,
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows(),
-              forceSave = TestForceSave.mmap()
+              forceSave = RandomForceSave.mmap()
             )
 
           file.append(bytes)
@@ -523,7 +523,7 @@ class CoreFileSpec extends AnyWordSpec {
                   bufferSize = bufferSize,
                   autoClose = true,
                   deleteAfterClean = OperatingSystem.isWindows(),
-                  forceSave = TestForceSave.mmap()
+                  forceSave = RandomForceSave.mmap()
                 ).sweep()
 
               val standardFile =
@@ -531,7 +531,7 @@ class CoreFileSpec extends AnyWordSpec {
                   path = randomFilePath(),
                   fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                   autoClose = true,
-                  forceSave = TestForceSave.standard()
+                  forceSave = RandomForceSave.standard()
                 ).sweep()
 
               Seq(mmapFile, standardFile) foreach {
@@ -677,7 +677,7 @@ class CoreFileSpec extends AnyWordSpec {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.standard()
+              forceSave = RandomForceSave.standard()
             )
 
           file.append(bytes(0))
@@ -729,7 +729,7 @@ class CoreFileSpec extends AnyWordSpec {
               bufferSize = allBytesSize,
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows(),
-              forceSave = TestForceSave.mmap()
+              forceSave = RandomForceSave.mmap()
             )
 
           file.append(bytes(0))
@@ -782,7 +782,7 @@ class CoreFileSpec extends AnyWordSpec {
               bufferSize = bytes.head.size,
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows(),
-              forceSave = TestForceSave.mmap()
+              forceSave = RandomForceSave.mmap()
             )
 
           file.append(bytes(0))
@@ -832,7 +832,7 @@ class CoreFileSpec extends AnyWordSpec {
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.standard()
+              forceSave = RandomForceSave.standard()
             )
 
           file.append(Slice.emptyBytes)
@@ -862,7 +862,7 @@ class CoreFileSpec extends AnyWordSpec {
               bufferSize = 100,
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows(),
-              forceSave = TestForceSave.mmap()
+              forceSave = RandomForceSave.mmap()
             )
 
           file.append(Slice.emptyBytes)
@@ -896,7 +896,7 @@ class CoreFileSpec extends AnyWordSpec {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.standard()
+              forceSave = RandomForceSave.standard()
             )
 
           file.append(bytes)
@@ -936,7 +936,7 @@ class CoreFileSpec extends AnyWordSpec {
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.standard()
+              forceSave = RandomForceSave.standard()
             )
 
           file.append(bytes)
@@ -959,7 +959,7 @@ class CoreFileSpec extends AnyWordSpec {
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows(),
-              forceSave = TestForceSave.mmap(),
+              forceSave = RandomForceSave.mmap(),
               bytes = randomBytesSlice()
             ).sweep()
 
@@ -989,7 +989,7 @@ class CoreFileSpec extends AnyWordSpec {
               path = randomFilePath(),
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              forceSave = TestForceSave.standard()
+              forceSave = RandomForceSave.standard()
             )
 
           file.append(bytes)
@@ -1024,7 +1024,7 @@ class CoreFileSpec extends AnyWordSpec {
               bufferSize = bytes.size,
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows(),
-              forceSave = TestForceSave.mmap()
+              forceSave = RandomForceSave.mmap()
             )
 
           file.append(bytes)

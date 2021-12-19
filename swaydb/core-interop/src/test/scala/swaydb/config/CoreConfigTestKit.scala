@@ -1,7 +1,7 @@
 package swaydb.config
 
 import swaydb.config.compaction.PushStrategy
-import swaydb.core.TestForceSave
+import swaydb.core.RandomForceSave
 import swaydb.testkit.TestKit.{eitherOne, randomBoolean, randomIntMax}
 import swaydb.utils.OperatingSystem
 
@@ -58,17 +58,17 @@ object CoreConfigTestKit {
   implicit class MMAPImplicits(mmap: MMAP.type) {
     def randomForSegment(): MMAP.Segment =
       if (Random.nextBoolean())
-        MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap())
+        MMAP.On(OperatingSystem.isWindows(), RandomForceSave.mmap())
       else if (Random.nextBoolean())
         MMAP.ReadOnly(OperatingSystem.isWindows())
       else
-        MMAP.Off(TestForceSave.standard())
+        MMAP.Off(RandomForceSave.standard())
 
     def randomForLog(): MMAP.Log =
       if (Random.nextBoolean())
-        MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap())
+        MMAP.On(OperatingSystem.isWindows(), RandomForceSave.mmap())
       else
-        MMAP.Off(TestForceSave.standard())
+        MMAP.Off(RandomForceSave.standard())
   }
 
   def randomPushStrategy(): PushStrategy =

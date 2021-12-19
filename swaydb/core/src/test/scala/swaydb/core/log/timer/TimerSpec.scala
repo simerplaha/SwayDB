@@ -19,7 +19,7 @@ package swaydb.core.log.timer
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers._
 import swaydb.config.MMAP
-import swaydb.core.{CoreSpecType, CoreTestSweeper, TestForceSave}
+import swaydb.core.{CoreSpecType, CoreTestSweeper, RandomForceSave}
 import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.log.counter.CounterLog
 import swaydb.core.log.serialiser.{CounterLogEntryReader, CounterLogEntryWriter}
@@ -56,7 +56,7 @@ class TimerSpec extends AnyFlatSpec {
             case CoreSpecType.Persistent =>
               Timer.persistent(
                 path = dir,
-                mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
+                mmap = MMAP.On(OperatingSystem.isWindows(), RandomForceSave.mmap()),
                 mod = 100,
                 fileSize = 1000
               ).get

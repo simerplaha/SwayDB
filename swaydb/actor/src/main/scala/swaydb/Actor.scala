@@ -474,7 +474,8 @@ class Actor[-T, S] private[swaydb](val name: String,
   override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit bag: Bag.Async[X]): Actor.Task[R, X] = {
     val promise = Promise[R]()
 
-    implicit val queueOrder = QueueOrder.FIFO
+    implicit val queueOrder: QueueOrder.FIFO.type =
+      QueueOrder.FIFO
 
     val replyTo: ActorRef[R, Unit] = Actor[R](name + "_response")((response, _) => promise.success(response)).start()
     val task = this.send(message(replyTo), delay)

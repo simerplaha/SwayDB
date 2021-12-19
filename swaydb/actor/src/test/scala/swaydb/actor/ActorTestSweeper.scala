@@ -49,7 +49,7 @@ object ActorTestSweeper extends LazyLogging {
 
 }
 
-class ActorTestSweeper(private val schedulers: ListBuffer[CacheUnsafe[Unit, Scheduler]] = ListBuffer(Cache.unsafe[Unit, Scheduler](true, true, None)((_, _) => Scheduler()(scala.concurrent.ExecutionContext.Implicits.global))),
+class ActorTestSweeper(private val schedulers: ListBuffer[CacheUnsafe[Unit, Scheduler]] = ListBuffer(Cache.unsafe[Unit, Scheduler](true, true, None)((_, _) => Scheduler())),
                        private val actors: ListBuffer[ActorRef[_, _]] = ListBuffer.empty,
                        private val defActors: ListBuffer[DefActor[_]] = ListBuffer.empty) extends AutoCloseable with LazyLogging {
 

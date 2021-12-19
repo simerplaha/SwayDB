@@ -30,7 +30,7 @@ import scala.util.Random
  *      MappedByteBuffer.force is slow on windows and since test-cases are
  *      closing all files on each run Force save on all tests slows down test run.
  */
-object TestForceSave {
+object RandomForceSave {
 
   @volatile private var double: Double = 1.1 //defaults to allow random.
 

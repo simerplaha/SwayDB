@@ -1,7 +1,7 @@
 package swaydb.core.file
 
 import org.scalatest.PrivateMethodTester._
-import swaydb.core.{CoreTestSweeper, TestForceSave}
+import swaydb.core.{CoreTestSweeper, RandomForceSave}
 import swaydb.core.CoreTestSweeper._
 import swaydb.core.segment.block.BlockCacheSource
 import swaydb.effect.Effect
@@ -77,7 +77,7 @@ object CoreFileTestKit {
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
       deleteAfterClean = OperatingSystem.isWindows(),
-      forceSave = TestForceSave.mmap(),
+      forceSave = RandomForceSave.mmap(),
       bytes = bytes
     ).sweep()
   }
@@ -90,7 +90,7 @@ object CoreFileTestKit {
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
       deleteAfterClean = OperatingSystem.isWindows(),
-      forceSave = TestForceSave.mmap(),
+      forceSave = RandomForceSave.mmap(),
       bufferSize = bufferSize
     ).sweep()
   }
@@ -102,7 +102,7 @@ object CoreFileTestKit {
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
-      forceSave = TestForceSave.standard()
+      forceSave = RandomForceSave.standard()
     )
   }
 
@@ -114,7 +114,7 @@ object CoreFileTestKit {
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
-        forceSave = TestForceSave.standard()
+        forceSave = RandomForceSave.standard()
       ).sweep()
 
     file.append(bytes)
