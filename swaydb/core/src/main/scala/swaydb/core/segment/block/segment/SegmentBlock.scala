@@ -62,7 +62,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                      sortedIndexConfig: SortedIndexBlockConfig,
                      valuesConfig: ValuesBlockConfig,
                      segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                        ec: ExecutionContext): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
+                                                        ec: ExecutionContext): Future[Slice[TransientSegment.OneOrManyOrRemoteRef]] =
     if (mergeStats.isEmpty)
       Future.successful(Slice.empty)
     else
@@ -95,7 +95,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                      binarySearchIndexConfig: BinarySearchIndexBlockConfig,
                      valuesConfig: ValuesBlockConfig,
                      segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                        ec: ExecutionContext): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
+                                                        ec: ExecutionContext): Future[Slice[TransientSegment.OneOrManyOrRemoteRef]] =
     if (ones.isEmpty)
       Future.successful(Slice.empty)
     else
@@ -144,7 +144,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                                     binarySearchIndexConfig: BinarySearchIndexBlockConfig,
                                     valuesConfig: ValuesBlockConfig,
                                     segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                       ec: ExecutionContext): Future[TransientSegment.OneOrRemoteRefOrMany] =
+                                                                       ec: ExecutionContext): Future[TransientSegment.OneOrManyOrRemoteRef] =
     if (segments.size == 1)
       Future.successful(segments.head.copyWithFileHeader(headerBytes = PersistentSegmentOne.formatIdSlice))
     else

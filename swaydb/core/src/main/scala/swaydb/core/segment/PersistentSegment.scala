@@ -91,7 +91,7 @@ private[core] trait PersistentSegment extends Segment with PersistentSegmentOpti
               hashIndexConfig: HashIndexBlockConfig,
               bloomFilterConfig: BloomFilterBlockConfig,
               segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
-                                                 ec: ExecutionContext): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]]
+                                                 ec: ExecutionContext): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrManyOrRemoteRef]]]
 
 
 }
@@ -503,7 +503,7 @@ private[core] object PersistentSegment extends LazyLogging {
                           hashIndexConfig: HashIndexBlockConfig,
                           bloomFilterConfig: BloomFilterBlockConfig,
                           segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             ec: ExecutionContext): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] = {
+                                                             ec: ExecutionContext): Future[Slice[TransientSegment.OneOrManyOrRemoteRef]] = {
 
     val sortedIndexSize =
       sortedIndexBlock.compressionInfo match {
@@ -559,7 +559,7 @@ private[core] object PersistentSegment extends LazyLogging {
                          hashIndexConfig: HashIndexBlockConfig,
                          bloomFilterConfig: BloomFilterBlockConfig,
                          segmentConfig: SegmentBlockConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                            ec: ExecutionContext): Future[Slice[TransientSegment.OneOrRemoteRefOrMany]] =
+                                                            ec: ExecutionContext): Future[Slice[TransientSegment.OneOrManyOrRemoteRef]] =
     Future
       .unit
       .mapUnit {

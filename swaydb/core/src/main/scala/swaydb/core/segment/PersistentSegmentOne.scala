@@ -350,7 +350,7 @@ private case class PersistentSegmentOne(file: CoreFile,
               hashIndexConfig: HashIndexBlockConfig,
               bloomFilterConfig: BloomFilterBlockConfig,
               segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
-                                                 ec: ExecutionContext): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]] = {
+                                                 ec: ExecutionContext): Future[DefIO[PersistentSegment, Slice[TransientSegment.OneOrManyOrRemoteRef]]] = {
     //    val footer = ref.getFooter()
     //if it's created in the same level the required spaces for sortedIndex and values
     //will be the same as existing or less than the current sizes so there is no need to create a

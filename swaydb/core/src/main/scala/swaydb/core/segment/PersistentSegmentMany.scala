@@ -870,7 +870,7 @@ private case class PersistentSegmentMany(file: CoreFile,
               hashIndexConfig: HashIndexBlockConfig,
               bloomFilterConfig: BloomFilterBlockConfig,
               segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
-                                                 ec: ExecutionContext): Future[DefIO[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]]] =
+                                                 ec: ExecutionContext): Future[DefIO[PersistentSegmentMany, Slice[TransientSegment.OneOrManyOrRemoteRef]]] =
     PersistentSegment.refreshForNewLevel(
       keyValues = iterator(segmentConfig.initialiseIteratorsInOneSeek),
       removeDeletes = removeDeletes,
