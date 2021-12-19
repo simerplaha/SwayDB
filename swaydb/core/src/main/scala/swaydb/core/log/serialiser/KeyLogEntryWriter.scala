@@ -23,19 +23,19 @@ import swaydb.utils.ByteSizeOf
 
 private[swaydb] object KeyLogEntryWriter {
 
-  implicit object KeyPutLogEntryWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Slice.Null.type]] {
+  implicit object KeyPutLogEntryWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Unit]] {
     val id: Byte = 0
 
     override val isRange: Boolean = false
     override val isUpdate: Boolean = false
 
-    override def write(entry: LogEntry.Put[Slice[Byte], Slice.Null.type], bytes: SliceMut[Byte]): Unit =
+    override def write(entry: LogEntry.Put[Slice[Byte], Unit], bytes: SliceMut[Byte]): Unit =
       bytes
         .add(id)
         .addUnsignedInt(entry.key.size)
         .addAll(entry.key)
 
-    override def bytesRequired(entry: LogEntry.Put[Slice[Byte], Slice.Null.type]): Int =
+    override def bytesRequired(entry: LogEntry.Put[Slice[Byte], Unit]): Int =
       ByteSizeOf.byte +
         Bytes.sizeOfUnsignedInt(entry.key.size) +
         entry.key.size

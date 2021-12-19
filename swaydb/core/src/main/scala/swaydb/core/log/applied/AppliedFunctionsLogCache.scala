@@ -30,24 +30,24 @@ object AppliedFunctionsLogCache {
         AppliedFunctionsLogCache(
           SkipListConcurrent(
             nullKey = Slice.Null,
-            nullValue = Slice.Null
+            nullValue = ()
           )
         )
     }
 }
 
-case class AppliedFunctionsLogCache(skipList: SkipListConcurrent[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]) extends LogCache[Slice[Byte], Slice.Null.type] {
+case class AppliedFunctionsLogCache(skipList: SkipListConcurrent[SliceOption[Byte], Unit, Slice[Byte], Unit]) extends LogCache[Slice[Byte], Unit] {
 
-  override def writeAtomic(entry: LogEntry[Slice[Byte], Slice.Null.type]): Unit =
+  override def writeAtomic(entry: LogEntry[Slice[Byte], Unit]): Unit =
     writeNonAtomic(entry) //AppliedFunctions do not need atomicity.
 
-  override def writeNonAtomic(entry: LogEntry[Slice[Byte], Slice.Null.type]): Unit =
+  override def writeNonAtomic(entry: LogEntry[Slice[Byte], Unit]): Unit =
     entry.entries foreach {
       point =>
         point applyPoint skipList
     }
 
-  override def iterator: Iterator[(Slice[Byte], Slice.Null.type)] =
+  override def iterator: Iterator[(Slice[Byte], Unit)] =
     skipList.iterator
 
   override def isEmpty: Boolean =

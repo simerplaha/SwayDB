@@ -21,9 +21,9 @@ import swaydb.slice.{SliceReader, Slice}
 
 private[swaydb] object KeyLogEntryReader {
 
-  object KeyPutLogEntryReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Slice.Null.type]] {
-    override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Slice.Null.type] =
-      LogEntry.Put(reader.read(reader.readUnsignedInt()), Slice.Null)(KeyLogEntryWriter.KeyPutLogEntryWriter)
+  object KeyPutLogEntryReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Unit]] {
+    override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Unit] =
+      LogEntry.Put(reader.read(reader.readUnsignedInt()), ())(KeyLogEntryWriter.KeyPutLogEntryWriter)
   }
 
   object KeyRemoveLogEntryReader extends LogEntryReader[LogEntry.Remove[Slice[Byte]]] {
@@ -31,9 +31,9 @@ private[swaydb] object KeyLogEntryReader {
       LogEntry.Remove(reader.read(reader.readUnsignedInt()))(KeyLogEntryWriter.KeyRemoveLogEntryWriter)
   }
 
-  implicit object KeyLogEntryReader extends LogEntryReader[LogEntry[Slice[Byte], Slice.Null.type]] {
-    override def read(reader: SliceReader): LogEntry[Slice[Byte], Slice.Null.type] =
-      reader.foldLeft(null: LogEntry[Slice[Byte], Slice.Null.type]) {
+  implicit object KeyLogEntryReader extends LogEntryReader[LogEntry[Slice[Byte], Unit]] {
+    override def read(reader: SliceReader): LogEntry[Slice[Byte], Unit] =
+      reader.foldLeft(null: LogEntry[Slice[Byte], Unit]) {
         case (previousEntryOrNull, reader) =>
           val entryId = reader.readUnsignedInt()
           if (entryId == KeyLogEntryWriter.KeyPutLogEntryWriter.id) {

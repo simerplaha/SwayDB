@@ -30,7 +30,7 @@ import swaydb.slice.order.KeyOrder
 
 import java.nio.file.Path
 
-protected case object PersistentCounterLog extends LazyLogging {
+private[log] case object PersistentCounterLog extends LazyLogging {
 
   /**
    * If startId greater than mod then mod needs
@@ -106,9 +106,9 @@ protected case object PersistentCounterLog extends LazyLogging {
   }
 }
 
-protected class PersistentCounterLog(val mod: Long,
-                                     val startId: Long,
-                                     map: PersistentLog[Slice[Byte], Slice[Byte], PersistentCounterLogCache])(implicit writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]]) extends CounterLog with LazyLogging {
+private[log] class PersistentCounterLog(val mod: Long,
+                                        val startId: Long,
+                                        map: PersistentLog[Slice[Byte], Slice[Byte], PersistentCounterLogCache])(implicit writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]]) extends CounterLog with LazyLogging {
 
   private var count = startId
 

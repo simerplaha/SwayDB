@@ -272,7 +272,7 @@ private[swaydb] case class LevelZero(path: Path,
                                      nextLevel: Option[NextLevel],
                                      inMemory: Boolean,
                                      throttle: LevelZeroMeter => LevelZeroThrottle,
-                                     appliedFunctionsLog: Option[Log[Slice[Byte], Slice.Null.type, AppliedFunctionsLogCache]],
+                                     appliedFunctionsLog: Option[Log[Slice[Byte], Unit, AppliedFunctionsLogCache]],
                                      private val lock: Option[FileLocker])(implicit val keyOrder: KeyOrder[Slice[Byte]],
                                                                            val timeOrder: TimeOrder[Slice[Byte]],
                                                                            val functionStore: CoreFunctionStore) extends LevelRef with LazyLogging {
@@ -493,7 +493,7 @@ private[swaydb] case class LevelZero(path: Path,
         if (appliedFunctions.cache.skipList.notContains(function)) {
           //writeNoSync because this already because this functions is already being
           //called un log.write which is a sync function.
-          appliedFunctions.writeNoSync(LogEntry.Put(function, Slice.Null)(KeyLogEntryWriter.KeyPutLogEntryWriter))
+          appliedFunctions.writeNoSync(LogEntry.Put(function, ())(KeyLogEntryWriter.KeyPutLogEntryWriter))
         }
     }
 

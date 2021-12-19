@@ -40,7 +40,7 @@ case object AppliedFunctionsLog extends LazyLogging {
   def apply(dir: Path,
             fileSize: Int,
             mmap: MMAP.Log)(implicit bufferCleaner: ByteBufferSweeperActor,
-                            forceSaveApplier: ForceSaveApplier): RecoveryResult[log.PersistentLog[Slice[Byte], Slice.Null.type, AppliedFunctionsLogCache]] = {
+                            forceSaveApplier: ForceSaveApplier): RecoveryResult[log.PersistentLog[Slice[Byte], Unit, AppliedFunctionsLogCache]] = {
     val folder = dir.resolve(folderName)
     Effect.createDirectoriesIfAbsent(folder)
 
@@ -49,7 +49,7 @@ case object AppliedFunctionsLog extends LazyLogging {
     implicit val fileSweeper: FileSweeper = FileSweeper.Off
     implicit val keyOrder = KeyOrder.default
 
-    Log.persistent[Slice[Byte], Slice.Null.type, AppliedFunctionsLogCache](
+    Log.persistent[Slice[Byte], Unit, AppliedFunctionsLogCache](
       folder = folder,
       mmap = mmap,
       flushOnOverflow = true,
@@ -58,7 +58,7 @@ case object AppliedFunctionsLog extends LazyLogging {
     )
   }
 
-  def validate(appliedFunctions: Log[Slice[Byte], Slice.Null.type, AppliedFunctionsLogCache],
+  def validate(appliedFunctions: Log[Slice[Byte], Unit, AppliedFunctionsLogCache],
                functionStore: CoreFunctionStore): IO[Error.Level, Unit] = {
     val missingFunctions = ListBuffer.empty[String]
     logger.debug("Checking for missing functions.")
