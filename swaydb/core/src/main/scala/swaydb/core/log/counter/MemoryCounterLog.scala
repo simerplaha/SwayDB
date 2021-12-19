@@ -18,12 +18,12 @@ package swaydb.core.log.counter
 
 import java.util.concurrent.atomic.AtomicLong
 
-protected object MemoryCounterLog {
+private[swaydb] object MemoryCounterLog {
   def apply(): MemoryCounterLog =
     new MemoryCounterLog(new AtomicLong(CounterLog.startId))
 }
 
-protected class MemoryCounterLog(count: AtomicLong) extends CounterLog {
+private[swaydb] class MemoryCounterLog(count: AtomicLong) extends CounterLog {
 
   def next: Long =
     count.incrementAndGet()

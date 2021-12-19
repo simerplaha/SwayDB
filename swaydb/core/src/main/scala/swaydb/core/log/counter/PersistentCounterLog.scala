@@ -30,7 +30,7 @@ import swaydb.slice.order.KeyOrder
 
 import java.nio.file.Path
 
-private[log] case object PersistentCounterLog extends LazyLogging {
+private[swaydb] case object PersistentCounterLog extends LazyLogging {
 
   /**
    * If startId greater than mod then mod needs
@@ -45,13 +45,13 @@ private[log] case object PersistentCounterLog extends LazyLogging {
       mod
     }
 
-  private[counter] def apply(path: Path,
-                             mmap: MMAP.Log,
-                             mod: Long,
-                             fileSize: Int)(implicit bufferCleaner: ByteBufferSweeperActor,
-                                            forceSaveApplier: ForceSaveApplier,
-                                            writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]],
-                                            reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Log, PersistentCounterLog] = {
+  def apply(path: Path,
+            mmap: MMAP.Log,
+            mod: Long,
+            fileSize: Int)(implicit bufferCleaner: ByteBufferSweeperActor,
+                           forceSaveApplier: ForceSaveApplier,
+                           writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]],
+                           reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Log, PersistentCounterLog] = {
     //Disabled because autoClose is not required here.
     implicit val fileSweeper: FileSweeper = FileSweeper.Off
     implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
@@ -106,9 +106,9 @@ private[log] case object PersistentCounterLog extends LazyLogging {
   }
 }
 
-private[log] class PersistentCounterLog(val mod: Long,
-                                        val startId: Long,
-                                        map: PersistentLog[Slice[Byte], Slice[Byte], PersistentCounterLogCache])(implicit writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]]) extends CounterLog with LazyLogging {
+private[swaydb] class PersistentCounterLog private(val mod: Long,
+                                                   val startId: Long,
+                                                   map: PersistentLog[Slice[Byte], Slice[Byte], PersistentCounterLogCache])(implicit writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]]) extends CounterLog with LazyLogging {
 
   private var count = startId
 

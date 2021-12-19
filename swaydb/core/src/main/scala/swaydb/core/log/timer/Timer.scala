@@ -21,7 +21,7 @@ import swaydb.config.MMAP
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.log.LogEntry
-import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}
+import swaydb.core.log.counter.{MemoryCounterLog, PersistentCounterLog}
 import swaydb.core.log.serialiser.{KeyValueLogEntryReader, KeyValueLogEntryWriter, LogEntryReader, LogEntryWriter}
 import swaydb.core.segment.data.Time
 import swaydb.effect.Effect
@@ -49,7 +49,7 @@ private[core] object Timer {
 
   def memory(): Timer =
     new Timer {
-      val memory = CounterLog.memory()
+      val memory = MemoryCounterLog()
 
       override val isEmptyTimer: Boolean =
         false
@@ -84,8 +84,8 @@ private[core] object Timer {
     val timerFolder = path.resolve(folderName)
     Effect createDirectoriesIfAbsent timerFolder
 
-    CounterLog.persistent(
-      dir = timerFolder,
+    PersistentCounterLog(
+      path = timerFolder,
       mmap = mmap,
       mod = mod,
       fileSize = fileSize

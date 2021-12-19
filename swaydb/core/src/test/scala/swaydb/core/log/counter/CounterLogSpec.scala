@@ -71,8 +71,8 @@ class CounterLogSpec extends AnyWordSpec {
           val mod = randomIntMax(10) max 1
 
           val map =
-            CounterLog.persistent(
-              dir = genDirPath(),
+            PersistentCounterLog(
+              path = genDirPath(),
               fileSize = randomIntMax(100) max 1,
               mmap = MMAP.randomForLog(),
               mod = mod
@@ -104,8 +104,8 @@ class CounterLogSpec extends AnyWordSpec {
           val usedIds = ListBuffer.empty[Long]
 
           val map =
-            CounterLog.persistent(
-              dir = genDirPath(),
+            PersistentCounterLog(
+              path = genDirPath(),
               fileSize = randomIntMax(1.kb) max 1,
               mmap = MMAP.randomForLog(),
               mod = mod

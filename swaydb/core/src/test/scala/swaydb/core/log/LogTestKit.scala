@@ -133,8 +133,8 @@ object LogTestKit {
       counter.close()
       ensureCleanedForWindows(counter.mmap)
 
-      CounterLog.persistent(
-        dir = counter.path,
+      PersistentCounterLog(
+        path = counter.path,
         fileSize = counter.fileSize,
         mmap = MMAP.randomForLog(),
         mod = counter.mod

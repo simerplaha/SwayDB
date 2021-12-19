@@ -16,15 +16,7 @@
 
 package swaydb.core.log.counter
 
-import swaydb.IO
-import swaydb.config.MMAP
-import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.log.LogEntry
-import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
 import swaydb.slice.Slice
-
-import java.nio.file.Path
 
 private[swaydb] trait CounterLog {
   def next: Long
@@ -37,20 +29,4 @@ private[swaydb] object CounterLog {
 
   val defaultKey: Slice[Byte] = Slice.emptyBytes
 
-  def memory(): MemoryCounterLog =
-    MemoryCounterLog()
-
-  def persistent(dir: Path,
-                 mmap: MMAP.Log,
-                 mod: Long,
-                 fileSize: Int)(implicit bufferCleaner: ByteBufferSweeperActor,
-                                forceSaveApplier: ForceSaveApplier,
-                                writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]],
-                                reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Log, PersistentCounterLog] =
-    PersistentCounterLog(
-      path = dir,
-      mmap = mmap,
-      mod = mod,
-      fileSize = fileSize
-    )
 }

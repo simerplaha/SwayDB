@@ -20,7 +20,7 @@ import swaydb.config.accelerate.LevelZeroMeter
 import swaydb.config.compaction.LevelMeter
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.log.counter.CounterLog
+import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}
 import swaydb.core.util.Times._
 import swaydb.multimap.{MultiKey, MultiPrepare, MultiValue, Schema}
 import swaydb.serializers.{Serializer, _}
@@ -50,8 +50,8 @@ object MultiMap {
     implicit val core: ByteBufferSweeperActor = map.protectedSweeper
     implicit val forceSaveApplier = ForceSaveApplier.On
 
-    CounterLog.persistent(
-      dir = path.resolve(MultiMap.folderName),
+    PersistentCounterLog(
+      path = path.resolve(MultiMap.folderName),
       mmap = mmap,
       mod = 1000,
       fileSize = 1.mb

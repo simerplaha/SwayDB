@@ -22,7 +22,7 @@ import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, Le
 import swaydb.config.sequencer.Sequencer
 import swaydb.config._
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.core.log.counter.CounterLog
+import swaydb.core.log.counter.{CounterLog, MemoryCounterLog}
 import swaydb.function.FunctionConverter
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
@@ -99,7 +99,8 @@ object MultiMap extends LazyLogging {
 
       bag.flatMap(map) {
         map =>
-          implicit val counter = CounterLog.memory()
+          implicit val counter: MemoryCounterLog =
+            MemoryCounterLog()
 
           swaydb.MultiMap[M, K, V, F, BAG](map)
       }
