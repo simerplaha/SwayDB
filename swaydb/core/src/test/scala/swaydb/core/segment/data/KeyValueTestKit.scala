@@ -315,98 +315,98 @@ object KeyValueTestKit {
       actual.toMemory() shouldBe expected.toMemory()
   }
 
-  def assertNotSliced(keyValue: KeyValue): Unit =
-    IO(assertSliced(keyValue)).left.runRandomIO.get
+  def assertNotCut(keyValue: KeyValue): Unit =
+    IO(assertCut(keyValue)).left.runRandomIO.get
 
-  def assertSliced(value: Value): Unit =
+  def assertCut(value: Value): Unit =
     value match {
       case Value.Remove(deadline, time) =>
-        time.time.shouldBeSliced()
+        time.time.shouldBeCut()
 
       case Value.Update(value, deadline, time) =>
-        value.toOptionC.shouldBeSliced()
-        time.time.shouldBeSliced()
+        value.toOptionC.shouldBeCut()
+        time.time.shouldBeCut()
 
       case Value.Function(function, time) =>
-        function.shouldBeSliced()
-        time.time.shouldBeSliced()
+        function.shouldBeCut()
+        time.time.shouldBeCut()
 
       case Value.PendingApply(applies) =>
-        applies foreach assertSliced
+        applies foreach assertCut
 
       case Value.Put(value, deadline, time) =>
-        value.toOptionC.shouldBeSliced()
-        time.time.shouldBeSliced()
+        value.toOptionC.shouldBeCut()
+        time.time.shouldBeCut()
     }
 
-  def assertSliced(value: Iterable[Value]): Unit =
-    value foreach assertSliced
+  def assertCut(value: Iterable[Value]): Unit =
+    value foreach assertCut
 
-  def assertSliced(keyValue: KeyValue): Unit =
+  def assertCut(keyValue: KeyValue): Unit =
     keyValue match {
       case memory: Memory =>
         memory match {
           case Memory.Put(key, value, deadline, time) =>
-            key.shouldBeSliced()
-            value.toOptionC.shouldBeSliced()
-            time.time.shouldBeSliced()
+            key.shouldBeCut()
+            value.toOptionC.shouldBeCut()
+            time.time.shouldBeCut()
 
           case Memory.Update(key, value, deadline, time) =>
-            key.shouldBeSliced()
-            value.toOptionC.shouldBeSliced()
-            time.time.shouldBeSliced()
+            key.shouldBeCut()
+            value.toOptionC.shouldBeCut()
+            time.time.shouldBeCut()
 
           case Memory.Function(key, function, time) =>
-            key.shouldBeSliced()
-            function.shouldBeSliced()
-            time.time.shouldBeSliced()
+            key.shouldBeCut()
+            function.shouldBeCut()
+            time.time.shouldBeCut()
 
           case PendingApply(key, applies) =>
-            key.shouldBeSliced()
-            assertSliced(applies)
+            key.shouldBeCut()
+            assertCut(applies)
 
           case Memory.Remove(key, deadline, time) =>
-            key.shouldBeSliced()
-            time.time.shouldBeSliced()
+            key.shouldBeCut()
+            time.time.shouldBeCut()
 
           case Memory.Range(fromKey, toKey, fromValue, rangeValue) =>
-            fromKey.shouldBeSliced()
-            toKey.shouldBeSliced()
-            fromValue foreachS assertSliced
-            assertSliced(rangeValue)
+            fromKey.shouldBeCut()
+            toKey.shouldBeCut()
+            fromValue foreachS assertCut
+            assertCut(rangeValue)
         }
 
       case persistent: Persistent =>
         persistent match {
           case Persistent.Remove(_key, deadline, _time, indexOffset, nextIndexOffset, nextIndexSize, _, _) =>
-            _key.shouldBeSliced()
-            _time.time.shouldBeSliced()
+            _key.shouldBeCut()
+            _time.time.shouldBeCut()
 
           case put @ Persistent.Put(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-            _key.shouldBeSliced()
-            _time.time.shouldBeSliced()
-            put.getOrFetchValue.runRandomIO.get.toOptionC.shouldBeSliced()
+            _key.shouldBeCut()
+            _time.time.shouldBeCut()
+            put.getOrFetchValue.runRandomIO.get.toOptionC.shouldBeCut()
 
           case updated @ Persistent.Update(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-            _key.shouldBeSliced()
-            _time.time.shouldBeSliced()
-            updated.getOrFetchValue.runRandomIO.get.toOptionC.shouldBeSliced()
+            _key.shouldBeCut()
+            _time.time.shouldBeCut()
+            updated.getOrFetchValue.runRandomIO.get.toOptionC.shouldBeCut()
 
           case function @ Persistent.Function(_key, lazyFunctionReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-            _key.shouldBeSliced()
-            _time.time.shouldBeSliced()
-            function.getOrFetchFunction.runRandomIO.get.shouldBeSliced()
+            _key.shouldBeCut()
+            _time.time.shouldBeCut()
+            function.getOrFetchFunction.runRandomIO.get.shouldBeCut()
 
           case pendingApply @ Persistent.PendingApply(_key, _time, deadline, lazyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-            _key.shouldBeSliced()
-            _time.time.shouldBeSliced()
-            pendingApply.getOrFetchApplies.runRandomIO.get foreach assertSliced
+            _key.shouldBeCut()
+            _time.time.shouldBeCut()
+            pendingApply.getOrFetchApplies.runRandomIO.get foreach assertCut
 
           case range @ Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-            _fromKey.shouldBeSliced()
-            _toKey.shouldBeSliced()
-            range.fetchFromValueUnsafe.runRandomIO.get foreachS assertSliced
-            assertSliced(range.fetchRangeValueUnsafe.runRandomIO.get)
+            _fromKey.shouldBeCut()
+            _toKey.shouldBeCut()
+            range.fetchFromValueUnsafe.runRandomIO.get foreachS assertCut
+            assertCut(range.fetchRangeValueUnsafe.runRandomIO.get)
         }
     }
 

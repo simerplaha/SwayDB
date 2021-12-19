@@ -189,7 +189,7 @@
 //          CoreTestSweepers.createMemorySweeperMax().value.sweep()
 //
 //          //assert that all key-values added to cache are not sub-slices.
-//          def assertCacheKeyValuesAreSliced(segment: Segment) = {
+//          def assertCacheKeyValuesAreCut(segment: Segment) = {
 //            val skipList =
 //              segment match {
 //                case segment: MemorySegment =>
@@ -208,13 +208,13 @@
 //              skipList =>
 //                skipList.toIterable foreach {
 //                  case (key, value: KeyValue) =>
-//                    key.shouldBeSliced()
-//                    assertSliced(value)
+//                    key.shouldBeCut()
+//                    assertCut(value)
 //                }
 //            }
 //          }
 //
-//          def assertMinAndMaxKeyAreSliced(segment: Segment) = {
+//          def assertMinAndMaxKeyAreCut(segment: Segment) = {
 //            segment.minKey.underlyingArraySize shouldBe 1
 //            segment.maxKey match {
 //              case MaxKey.Fixed(maxKey) =>
@@ -232,7 +232,7 @@
 //            val readKeyValues = writeAndRead(keyValues).get.mapToSlice(_.toMemory())
 //
 //            //assert that readKeyValues keys are not sliced.
-//            readKeyValues foreach assertNotSliced
+//            readKeyValues foreach assertNotCut
 //
 //            //Create Segment with sub-slice key-values and assert min & maxKey and also check that cached key-values are un-sliced.
 //            assertSegment(
@@ -240,11 +240,11 @@
 //
 //              assert =
 //                (keyValues, segment) => {
-//                  assertMinAndMaxKeyAreSliced(segment)
+//                  assertMinAndMaxKeyAreCut(segment)
 //                  //if Persistent Segment, read all key-values from disk so that they value added to cache.
 //                  if (isPersistent) assertGet(readKeyValues, segment)
 //                  //assert key-values added to cache are un-sliced
-//                  assertCacheKeyValuesAreSliced(segment)
+//                  assertCacheKeyValuesAreCut(segment)
 //                }
 //            )
 //          }

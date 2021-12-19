@@ -9,13 +9,13 @@ import scala.reflect.ClassTag
 object SliceTestKit {
 
   implicit class SliceTestSliceByteImplicits(actual: Slice[Byte]) {
-    def shouldBeSliced(): Unit =
+    def shouldBeCut(): Unit =
       actual.underlyingArraySize shouldBe actual.toArrayCopy[Byte].length
   }
 
   implicit class OptionSliceByteImplicits(actual: Option[Slice[Byte]]) {
-    def shouldBeSliced(): Unit =
-      actual foreach (_.shouldBeSliced())
+    def shouldBeCut(): Unit =
+      actual foreach (_.shouldBeCut())
   }
 
   implicit class ToSlice[T: ClassTag](items: IterableOnce[T]) {
