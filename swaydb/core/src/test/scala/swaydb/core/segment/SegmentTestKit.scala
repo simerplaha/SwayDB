@@ -5,7 +5,7 @@ import org.scalatest.PrivateMethodTester._
 import swaydb.{Error, IO, TestExecutionContext}
 import swaydb.config._
 import swaydb.config.CoreConfigTestKit._
-import swaydb.core.{CoreSpecType, CoreTestSweeper, RandomForceSave}
+import swaydb.core.{CoreSpecType, CoreTestSweeper}
 import swaydb.core.CoreTestSweeper._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -472,7 +472,7 @@ object SegmentTestKit {
   }
 
   def mmapSegments: MMAP.Segment =
-    MMAP.On(OperatingSystem.isWindows(), RandomForceSave.mmap())
+    MMAP.On(OperatingSystem.isWindows(), GenForceSave.mmap())
 
   def isWindowsAndMMAPSegments(): Boolean =
     OperatingSystem.isWindows() && mmapSegments.mmapReads && mmapSegments.mmapWrites

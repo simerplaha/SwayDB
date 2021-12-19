@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package swaydb.core
+package swaydb.config
 
-import swaydb.config.ForceSave
 import swaydb.utils.OperatingSystem
 
 import scala.util.Random
@@ -30,16 +29,16 @@ import scala.util.Random
  *      MappedByteBuffer.force is slow on windows and since test-cases are
  *      closing all files on each run Force save on all tests slows down test run.
  */
-object RandomForceSave {
+object GenForceSave {
 
   @volatile private var double: Double = 1.1 //defaults to allow random.
 
   /**
    * Enables [[ForceSave]] to be random.
    *
-   * @param 0.0  disables randomness - [[ForceSave.Off]].
-   *        0.5 would give 50% chance to be random and 50% to be [[ForceSave.Off]].
-   *        1.1 will always apply randomness.
+   * @param double 0.0 disables randomness - [[ForceSave.Off]].
+   *               0.5 would give 50% chance to be random and 50% to be [[ForceSave.Off]].
+   *               1.1 will always apply randomness.
    *
    */
   def setRandomForWindows(double: Double = 1.1): Unit =

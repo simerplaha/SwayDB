@@ -18,10 +18,10 @@ package swaydb.core.log
 
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
+import swaydb.config.{Atomic, GenForceSave, MMAP, OptimiseWrites, RecoveryMode}
 import swaydb.config.accelerate.Accelerator
 import swaydb.config.CoreConfigTestKit._
-import swaydb.core.{CoreTestSweeper, RandomForceSave}
+import swaydb.core.CoreTestSweeper
 import swaydb.core.CoreTestSweeper._
 import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.level.zero.LevelZeroLogCache
@@ -457,7 +457,7 @@ class LogsSpec extends AnyWordSpec {
             val logs =
               Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 path = path,
-                mmap = MMAP.Off(RandomForceSave.standard()),
+                mmap = MMAP.Off(GenForceSave.standard()),
                 fileSize = 50.bytes,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
@@ -515,7 +515,7 @@ class LogsSpec extends AnyWordSpec {
           val logs =
             Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               path = path,
-              mmap = MMAP.Off(RandomForceSave.standard()),
+              mmap = MMAP.Off(GenForceSave.standard()),
               fileSize = 50.bytes,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.ReportFailure
@@ -565,7 +565,7 @@ class LogsSpec extends AnyWordSpec {
           val logs =
             Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               path = path,
-              mmap = MMAP.Off(RandomForceSave.standard()),
+              mmap = MMAP.Off(GenForceSave.standard()),
               fileSize = 100.bytes,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.ReportFailure

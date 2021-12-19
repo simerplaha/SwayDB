@@ -19,9 +19,9 @@ package swaydb.core.log
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.PrivateMethodTester._
 import swaydb.{Bag, Glass, TestExecutionContext}
-import swaydb.config.{Atomic, MMAP, OptimiseWrites}
+import swaydb.config.{Atomic, GenForceSave, MMAP, OptimiseWrites}
 import swaydb.config.CoreConfigTestKit._
-import swaydb.core.{CoreSpecType, CoreTestSweeper, RandomForceSave}
+import swaydb.core.{CoreSpecType, CoreTestSweeper}
 import swaydb.core.CoreTestSweeper._
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
@@ -251,10 +251,10 @@ object LogTestKit {
     def apply(keyValues: Slice[Memory],
               fileSize: Int = 4.mb,
               flushOnOverflow: Boolean = false,
-              mmap: MMAP.Log = MMAP.On(OperatingSystem.isWindows(), RandomForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                             timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                             sweeper: CoreTestSweeper,
-                                                                                             coreSpecType: CoreSpecType): LevelZeroLog = {
+              mmap: MMAP.Log = MMAP.On(OperatingSystem.isWindows(), GenForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                          timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                          sweeper: CoreTestSweeper,
+                                                                                          coreSpecType: CoreSpecType): LevelZeroLog = {
       import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
       import sweeper._
 

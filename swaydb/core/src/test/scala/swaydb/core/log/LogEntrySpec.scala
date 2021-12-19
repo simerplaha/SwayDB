@@ -19,8 +19,8 @@ package swaydb.core.log
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.config.CoreConfigTestKit._
-import swaydb.config.MMAP
-import swaydb.core.{CoreSpecType, CoreTestSweeper, RandomForceSave}
+import swaydb.config.{GenForceSave, MMAP}
+import swaydb.core.{CoreSpecType, CoreTestSweeper}
 import swaydb.core.log.serialiser._
 import swaydb.core.log.timer.TestTimer
 import swaydb.core.segment.{Segment, SegmentOption}
@@ -286,7 +286,7 @@ class LogEntrySpec extends AnyWordSpec {
               mmapSegment =
                 MMAP.On(
                   deleteAfterClean = OperatingSystem.isWindows(),
-                  forceSave = RandomForceSave.mmap()
+                  forceSave = GenForceSave.mmap()
                 ),
               segmentRefCacheLife = randomSegmentRefCacheLife()
             )
@@ -338,7 +338,7 @@ class LogEntrySpec extends AnyWordSpec {
               mmapSegment =
                 MMAP.On(
                   deleteAfterClean = OperatingSystem.isWindows(),
-                  forceSave = RandomForceSave.mmap()
+                  forceSave = GenForceSave.mmap()
                 ),
               segmentRefCacheLife = randomSegmentRefCacheLife()
             )
@@ -433,7 +433,7 @@ class LogEntrySpec extends AnyWordSpec {
               mmapSegment =
                 MMAP.On(
                   deleteAfterClean = OperatingSystem.isWindows(),
-                  forceSave = RandomForceSave.mmap()
+                  forceSave = GenForceSave.mmap()
                 ),
               segmentRefCacheLife = randomSegmentRefCacheLife()
             )

@@ -1,12 +1,12 @@
 package swaydb.core.level
 
 import swaydb.{Error, Glass, IO, TestExecutionContext}
-import swaydb.config.{Atomic, MMAP, OptimiseWrites, RecoveryMode}
+import swaydb.config.{Atomic, GenForceSave, MMAP, OptimiseWrites, RecoveryMode}
 import swaydb.config.accelerate.Accelerator
 import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.config.storage.{Level0Storage, LevelStorage}
 import swaydb.config.CoreConfigTestKit._
-import swaydb.core.{CoreTestSweeper, RandomForceSave}
+import swaydb.core.CoreTestSweeper
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.segment._
@@ -218,7 +218,7 @@ object LevelTestKit {
                   clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
                   storage =
                     Level0Storage.Persistent(
-                      mmap = MMAP.on(OperatingSystem.isWindows(), forceSave = RandomForceSave.mmap()),
+                      mmap = MMAP.on(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap()),
                       dir = level.path.getParent,
                       recovery = RecoveryMode.ReportFailure
                     ),

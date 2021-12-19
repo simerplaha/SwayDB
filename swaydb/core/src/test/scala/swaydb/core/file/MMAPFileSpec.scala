@@ -19,7 +19,8 @@ package swaydb.core.file
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.{CoreTestSweeper, RandomForceSave}
+import swaydb.config.GenForceSave
+import swaydb.core.CoreTestSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCleaner
 import swaydb.core.file.CoreFileTestKit._
 import swaydb.effect.Effect
@@ -76,7 +77,7 @@ class MMAPFileSpec extends AnyWordSpec with MockFactory {
                 )
 
                 //forceSave configurations
-                val forceSave = RandomForceSave.mmap()
+                val forceSave = GenForceSave.mmap()
                 val alreadyForced = randomBoolean()
                 val forced = new AtomicBoolean(alreadyForced)
 
@@ -121,7 +122,7 @@ class MMAPFileSpec extends AnyWordSpec with MockFactory {
                 readOnlyBuff.get(array)
                 array shouldBe bytes.toArray
 
-                val forceSaveAgain = RandomForceSave.mmap()
+                val forceSaveAgain = GenForceSave.mmap()
                 val alreadyForced2 = randomBoolean()
                 val forcedAgain = new AtomicBoolean(alreadyForced2)
 
