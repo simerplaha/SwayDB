@@ -22,7 +22,7 @@ import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.log
-import swaydb.core.log.serialiser.{AppliedFunctionsLogEntryReader, AppliedFunctionsLogEntryWriter}
+import swaydb.core.log.serialiser.{KeyLogEntryReader, KeyLogEntryWriter}
 import swaydb.core.log.{Log, RecoveryResult}
 import swaydb.core.segment.CoreFunctionStore
 import swaydb.effect.Effect
@@ -44,8 +44,8 @@ case object AppliedFunctionsLog extends LazyLogging {
     val folder = dir.resolve(folderName)
     Effect.createDirectoriesIfAbsent(folder)
 
-    implicit val functionsEntryWriter = AppliedFunctionsLogEntryWriter.FunctionsPutLogEntryWriter
-    implicit val functionsEntryReader = AppliedFunctionsLogEntryReader.FunctionsLogEntryReader
+    implicit val functionsEntryWriter = KeyLogEntryWriter.KeyPutLogEntryWriter
+    implicit val functionsEntryReader = KeyLogEntryReader.KeyLogEntryReader
     implicit val fileSweeper: FileSweeper = FileSweeper.Off
     implicit val keyOrder = KeyOrder.default
 

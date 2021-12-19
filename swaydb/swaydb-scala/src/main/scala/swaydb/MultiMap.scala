@@ -45,8 +45,8 @@ object MultiMap {
                                                                                                                                                                                             keySerializer: Serializer[K],
                                                                                                                                                                                             mapKeySerializer: Serializer[M],
                                                                                                                                                                                             valueSerializer: Serializer[V]): BAG[MultiMap[M, K, V, F, BAG]] = {
-    implicit val writer = swaydb.core.log.serialiser.CounterLogEntryWriter.CounterPutLogEntryWriter
-    implicit val reader = swaydb.core.log.serialiser.CounterLogEntryReader.CounterPutLogEntryReader
+    implicit val writer = swaydb.core.log.serialiser.KeyValueLogEntryWriter.KeyValueLogEntryPutWriter
+    implicit val reader = swaydb.core.log.serialiser.KeyValueLogEntryReader.KeyValueLogEntryPutReader
     implicit val core: ByteBufferSweeperActor = map.protectedSweeper
     implicit val forceSaveApplier = ForceSaveApplier.On
 

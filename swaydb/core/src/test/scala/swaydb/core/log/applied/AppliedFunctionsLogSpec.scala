@@ -39,8 +39,8 @@ class AppliedFunctionsLogSpec extends AnyWordSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
-  implicit val functionsEntryWriter = AppliedFunctionsLogEntryWriter.FunctionsPutLogEntryWriter
-  implicit val functionsEntryReader = AppliedFunctionsLogEntryReader.FunctionsLogEntryReader
+  implicit val functionsEntryWriter = KeyLogEntryWriter.KeyPutLogEntryWriter
+  implicit val functionsEntryReader = KeyLogEntryReader.KeyLogEntryReader
 
   "initialise and reopen" in {
     CoreTestSweeper.repeat(10.times) {

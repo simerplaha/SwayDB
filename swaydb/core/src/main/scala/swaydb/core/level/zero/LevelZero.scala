@@ -33,7 +33,7 @@ import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.log.{Log, LogEntry, Logs}
 import swaydb.core.log.applied.{AppliedFunctionsLog, AppliedFunctionsLogCache}
-import swaydb.core.log.serialiser.AppliedFunctionsLogEntryWriter
+import swaydb.core.log.serialiser.KeyLogEntryWriter
 import swaydb.core.log.timer.Timer
 import swaydb.core.segment.{CoreFunctionStore, Segment, SegmentOption}
 import swaydb.core.segment.assigner.Assignable
@@ -88,8 +88,8 @@ private[core] case object LevelZero extends LazyLogging {
                                                            forceSaveApplier: ForceSaveApplier,
                                                            optimiseWrites: OptimiseWrites,
                                                            atomic: Atomic): IO[swaydb.Error.Level, LevelZero] = {
-    import swaydb.core.log.serialiser.LevelZeroLogEntryReader.Level0Reader
-    import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
+    import swaydb.core.log.serialiser.MemoryLogEntryReader.KeyValueLogEntryPutReader
+    import swaydb.core.log.serialiser.MemoryLogEntryWriter._
 
     if (cacheKeyValueIds)
       PersistentReader.populateBaseEntryIds()
@@ -280,7 +280,7 @@ private[swaydb] case class LevelZero(path: Path,
   logger.info("{}: Level0 started.", path)
 
   import keyOrder._
-  import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
+  import swaydb.core.log.serialiser.MemoryLogEntryWriter._
 
   val levelZeroMeter: LevelZeroMeter =
     logs.meter
@@ -416,7 +416,7 @@ private[swaydb] case class LevelZero(path: Path,
                 logger.info(s"Checked $progress/$totalAppliedFunctions applied functions. Removed ${cleaned.size}.")
 
               if (!this.mightContainFunction(functionId)) {
-                appliedFunctions.writeSync(LogEntry.Remove(functionId)(AppliedFunctionsLogEntryWriter.FunctionsRemoveLogEntryWriter))
+                appliedFunctions.writeSync(LogEntry.Remove(functionId)(KeyLogEntryWriter.KeyRemoveLogEntryWriter))
                 cleaned += functionId.readString()
                 cleaned
               } else {
@@ -493,7 +493,7 @@ private[swaydb] case class LevelZero(path: Path,
         if (appliedFunctions.cache.skipList.notContains(function)) {
           //writeNoSync because this already because this functions is already being
           //called un log.write which is a sync function.
-          appliedFunctions.writeNoSync(LogEntry.Put(function, Slice.Null)(AppliedFunctionsLogEntryWriter.FunctionsPutLogEntryWriter))
+          appliedFunctions.writeNoSync(LogEntry.Put(function, Slice.Null)(KeyLogEntryWriter.KeyPutLogEntryWriter))
         }
     }
 

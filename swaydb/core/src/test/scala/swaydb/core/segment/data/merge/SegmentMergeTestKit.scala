@@ -26,7 +26,7 @@ object SegmentMergeTestKit {
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                         coreFunctionStore: CoreFunctionStore): Iterable[Memory] = {
-    import swaydb.core.log.serialiser.LevelZeroLogEntryWriter.Level0LogEntryPutWriter
+    import swaydb.core.log.serialiser.MemoryLogEntryWriter.LogEntryPutWriter
     implicit val optimiseWrites: OptimiseWrites = OptimiseWrites.random
     implicit val atomic: Atomic = Atomic.random
     val cache = LevelZeroLogCache.builder.create()

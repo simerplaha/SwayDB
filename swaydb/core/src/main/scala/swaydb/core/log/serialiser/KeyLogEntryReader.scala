@@ -19,31 +19,31 @@ package swaydb.core.log.serialiser
 import swaydb.core.log.LogEntry
 import swaydb.slice.{SliceReader, Slice}
 
-private[swaydb] object AppliedFunctionsLogEntryReader {
+private[swaydb] object KeyLogEntryReader {
 
-  object FunctionsPutLogEntryReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Slice.Null.type]] {
+  object KeyPutLogEntryReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Slice.Null.type]] {
     override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Slice.Null.type] =
-      LogEntry.Put(reader.read(reader.readUnsignedInt()), Slice.Null)(AppliedFunctionsLogEntryWriter.FunctionsPutLogEntryWriter)
+      LogEntry.Put(reader.read(reader.readUnsignedInt()), Slice.Null)(KeyLogEntryWriter.KeyPutLogEntryWriter)
   }
 
-  object FunctionsRemoveLogEntryReader extends LogEntryReader[LogEntry.Remove[Slice[Byte]]] {
+  object KeyRemoveLogEntryReader extends LogEntryReader[LogEntry.Remove[Slice[Byte]]] {
     override def read(reader: SliceReader): LogEntry.Remove[Slice[Byte]] =
-      LogEntry.Remove(reader.read(reader.readUnsignedInt()))(AppliedFunctionsLogEntryWriter.FunctionsRemoveLogEntryWriter)
+      LogEntry.Remove(reader.read(reader.readUnsignedInt()))(KeyLogEntryWriter.KeyRemoveLogEntryWriter)
   }
 
-  implicit object FunctionsLogEntryReader extends LogEntryReader[LogEntry[Slice[Byte], Slice.Null.type]] {
+  implicit object KeyLogEntryReader extends LogEntryReader[LogEntry[Slice[Byte], Slice.Null.type]] {
     override def read(reader: SliceReader): LogEntry[Slice[Byte], Slice.Null.type] =
       reader.foldLeft(null: LogEntry[Slice[Byte], Slice.Null.type]) {
         case (previousEntryOrNull, reader) =>
           val entryId = reader.readUnsignedInt()
-          if (entryId == AppliedFunctionsLogEntryWriter.FunctionsPutLogEntryWriter.id) {
-            val nextEntry = FunctionsPutLogEntryReader.read(reader)
+          if (entryId == KeyLogEntryWriter.KeyPutLogEntryWriter.id) {
+            val nextEntry = KeyPutLogEntryReader.read(reader)
             if (previousEntryOrNull == null)
               nextEntry
             else
               previousEntryOrNull ++ nextEntry
-          } else if (entryId == AppliedFunctionsLogEntryWriter.FunctionsRemoveLogEntryWriter.id) {
-            val nextEntry = FunctionsPutLogEntryReader.read(reader)
+          } else if (entryId == KeyLogEntryWriter.KeyRemoveLogEntryWriter.id) {
+            val nextEntry = KeyPutLogEntryReader.read(reader)
             if (previousEntryOrNull == null)
               nextEntry
             else

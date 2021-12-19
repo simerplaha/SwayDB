@@ -68,8 +68,8 @@
 //  //    false
 //
 //  "putMap on a single Level" should {
-//    import swaydb.core.log.serialiser.LevelZeroLogEntryReader._
-//    import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
+//    import swaydb.core.log.serialiser.MemoryKeyValueReader._
+//    import swaydb.core.log.serialiser.MemoryKeyValueWriter._
 //
 //    def createTestMap()(implicit sweeper: CoreTestSweeper) = {
 //      import sweeper._

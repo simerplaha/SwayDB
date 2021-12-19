@@ -189,7 +189,7 @@ object LevelTestKit {
 
   implicit class ReopenLevelZero(level: LevelZero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) {
 
-    import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
+    import swaydb.core.log.serialiser.MemoryLogEntryWriter._
 
     def reopen(implicit sweeper: CoreTestSweeper): LevelZero =
       reopen()

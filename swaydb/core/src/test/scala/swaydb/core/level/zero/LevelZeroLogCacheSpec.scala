@@ -22,7 +22,7 @@
 //import swaydb.core.CoreTestData._
 //import swaydb.core.TestTimer
 //import swaydb.core.log.LogEntry
-//import swaydb.core.log.serialiser.LevelZeroLogEntryWriter
+//import swaydb.core.log.serialiser.MemoryKeyValueWriter
 //import swaydb.core.segment.data.merge.KeyValueMerger
 //import swaydb.core.segment.data.merge.stats.MergeStats
 //import swaydb.core.segment.data.{Memory, Value}
@@ -39,7 +39,7 @@
 //  implicit val testTimer: TestTimer = TestTimer.Empty
 //  implicit val timeOrder = TimeOrder.long
 //
-//  import LevelZeroLogEntryWriter._
+//  import MemoryKeyValueWriter._
 //
 //  def doInsert(memory: Memory,
 //               expectSkipList: Iterable[(Slice[Byte], Memory)])(implicit state: LevelZeroLogCache.State): Unit = {

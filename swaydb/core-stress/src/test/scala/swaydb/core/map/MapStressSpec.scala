@@ -23,7 +23,7 @@
 //import swaydb.core.file.sweeper.FileSweeper
 //import swaydb.core.segment.data.Memory
 //import swaydb.core.level.zero.LevelZeroSkipListMerger
-//import swaydb.core.log.serializer.LevelZeroLogEntryWriter.Level0PutWriter
+//import swaydb.core.log.serializer.MemoryKeyValueWriter.Level0PutWriter
 //import swaydb.core.{TestBase, CoreTestSweeper, TestTimer}
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.slice.Slice
@@ -63,8 +63,8 @@
 //      val dir1 = genDir()
 //      val dir2 = genDir()
 //
-//      import swaydb.core.log.serializer.LevelZeroLogEntryReader.Level0Reader
-//      import swaydb.core.log.serializer.LevelZeroLogEntryWriter.Level0LogEntryPutWriter
+//      import swaydb.core.log.serializer.MemoryKeyValueReader.Level0Reader
+//      import swaydb.core.log.serializer.MemoryKeyValueWriter.Level0LogEntryPutWriter
 //
 //      test(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.get.item)
 //      test(Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.get.item)

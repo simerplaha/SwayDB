@@ -56,7 +56,7 @@ class AppendixLogEntrySpec extends AnyWordSpec {
           val segment = GenSegment(randomizedKeyValues(100))
 
           val appendixReader =
-            AppendixLogEntryReader(
+            SegmentLogEntryReader(
               mmapSegment =
                 MMAP.On(
                   deleteAfterClean = OperatingSystem.isWindows(),
@@ -65,17 +65,17 @@ class AppendixLogEntrySpec extends AnyWordSpec {
               segmentRefCacheLife = randomSegmentRefCacheLife()
             )
 
-          import AppendixLogEntryWriter.AppendixPutWriter
+          import SegmentLogEntryWriter.SegmentLogEntryPutWriter
           val entry = LogEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
 
           val slice = Slice.allocate[Byte](entry.entryBytesSize)
           entry writeTo slice
           slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
-          import appendixReader.AppendixPutReader
+          import appendixReader.SegmentLogEntryPutReader
           LogEntryReader.read[LogEntry.Put[Slice[Byte], Segment]](slice.drop(1)) shouldBe entry
 
-          import appendixReader.AppendixReader
+          import appendixReader.SegmentLogEntryReader
           val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Segment]](slice)
           readEntry shouldBe entry
 
@@ -99,26 +99,27 @@ class AppendixLogEntrySpec extends AnyWordSpec {
 
           import sweeper._
 
-          val appendixReader = AppendixLogEntryReader(
-            mmapSegment =
-              MMAP.On(
-                deleteAfterClean = OperatingSystem.isWindows(),
-                forceSave = GenForceSave.mmap()
-              ),
-            segmentRefCacheLife = randomSegmentRefCacheLife()
-          )
+          val appendixReader =
+            SegmentLogEntryReader(
+              mmapSegment =
+                MMAP.On(
+                  deleteAfterClean = OperatingSystem.isWindows(),
+                  forceSave = GenForceSave.mmap()
+                ),
+              segmentRefCacheLife = randomSegmentRefCacheLife()
+            )
 
-          import AppendixLogEntryWriter.AppendixRemoveWriter
+          import SegmentLogEntryWriter.SegmentLogEntryRemoveWriter
           val entry = LogEntry.Remove[Slice[Byte]](1)
 
           val slice = Slice.allocate[Byte](entry.entryBytesSize)
           entry writeTo slice
           slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
-          import appendixReader.AppendixRemoveReader
+          import appendixReader.SegmentLogEntryRemoveReader
           LogEntryReader.read[LogEntry.Remove[Slice[Byte]]](slice.drop(1)).key shouldBe entry.key
 
-          import appendixReader.AppendixReader
+          import appendixReader.SegmentLogEntryReader
           val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Segment]](slice)
           readEntry shouldBe entry
 
@@ -135,10 +136,10 @@ class AppendixLogEntrySpec extends AnyWordSpec {
           implicit val sweeper: CoreTestSweeper = _sweeper
           implicit val specType: CoreSpecType = _specType
 
-          import AppendixLogEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
+          import SegmentLogEntryWriter.{SegmentLogEntryPutWriter, SegmentLogEntryRemoveWriter}
           import sweeper._
 
-          val appendixReader = AppendixLogEntryReader(
+          val appendixReader = SegmentLogEntryReader(
             mmapSegment =
               MMAP.On(
                 deleteAfterClean = OperatingSystem.isWindows(),
@@ -166,7 +167,7 @@ class AppendixLogEntrySpec extends AnyWordSpec {
           entry writeTo slice
           slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
-          import appendixReader.AppendixReader
+          import appendixReader.SegmentLogEntryReader
           val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Segment]](slice)
           readEntry shouldBe entry
 
@@ -187,8 +188,8 @@ class AppendixLogEntrySpec extends AnyWordSpec {
           }
 
           //write skip list to bytes should result in the same skip list as before
-          val bytes = LogEntrySerialiser.write[Slice[Byte], Segment](skipList.iterator)
-          val crcEntries = LogEntrySerialiser.read[Slice[Byte], Segment](bytes, false).get.item.value
+          val bytes = LogEntryParser.write[Slice[Byte], Segment](skipList.iterator)
+          val crcEntries = LogEntryParser.read[Slice[Byte], Segment](bytes, false).get.item.value
           skipList.clear()
           crcEntries applyBatch skipList
           assertSkipList()

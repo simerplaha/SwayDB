@@ -24,9 +24,9 @@ import swaydb.slice.{Slice, SliceReader}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.Deadline
 
-private[core] object LevelZeroLogEntryReader {
+private[core] object MemoryLogEntryReader {
 
-  implicit object Level0RemoveReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Remove]] {
+  implicit object RemoveLogEntryPutReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Remove]] {
 
     override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Memory.Remove] = {
       val keyLength = reader.readUnsignedInt()
@@ -35,11 +35,11 @@ private[core] object LevelZeroLogEntryReader {
       val time = reader.read(timeLength).cut()
       val deadlineLong = reader.readUnsignedLong()
       val deadline = if (deadlineLong == 0) None else Some(Deadline((deadlineLong, TimeUnit.NANOSECONDS)))
-      LogEntry.Put(key, Memory.Remove(key, deadline, Time(time)))(LevelZeroLogEntryWriter.Level0RemoveWriter)
+      LogEntry.Put(key, Memory.Remove(key, deadline, Time(time)))(MemoryLogEntryWriter.RemoveLogEntryPutWriter)
     }
   }
 
-  implicit object Level0PutReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Put]] {
+  implicit object PutLogEntryPutReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Put]] {
 
     override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Memory.Put] = {
       val keyLength = reader.readUnsignedInt()
@@ -51,11 +51,11 @@ private[core] object LevelZeroLogEntryReader {
       val deadlineLong = reader.readUnsignedLong()
 
       val deadline = if (deadlineLong == 0) None else Some(Deadline((deadlineLong, TimeUnit.NANOSECONDS)))
-      LogEntry.Put(key, Memory.Put(key, value, deadline, Time(time)))(LevelZeroLogEntryWriter.Level0PutWriter)
+      LogEntry.Put(key, Memory.Put(key, value, deadline, Time(time)))(MemoryLogEntryWriter.PutLogEntryPutWriter)
     }
   }
 
-  implicit object Level0UpdateReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Update]] {
+  implicit object UpdateLogEntryPutReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Update]] {
 
     override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Memory.Update] = {
       val keyLength = reader.readUnsignedInt()
@@ -67,11 +67,11 @@ private[core] object LevelZeroLogEntryReader {
       val deadlineLong = reader.readUnsignedLong()
 
       val deadline = if (deadlineLong == 0) None else Some(Deadline((deadlineLong, TimeUnit.NANOSECONDS)))
-      LogEntry.Put(key, Memory.Update(key, value, deadline, Time(time)))(LevelZeroLogEntryWriter.Level0UpdateWriter)
+      LogEntry.Put(key, Memory.Update(key, value, deadline, Time(time)))(MemoryLogEntryWriter.UpdateLogEntryPutWriter)
     }
   }
 
-  implicit object Level0FunctionReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Function]] {
+  implicit object FunctionLogEntryPutReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Function]] {
 
     override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Memory.Function] = {
       val keyLength = reader.readUnsignedInt()
@@ -81,11 +81,11 @@ private[core] object LevelZeroLogEntryReader {
       val functionLength = reader.readUnsignedInt()
       val value = reader.read(functionLength)
 
-      LogEntry.Put(key, Memory.Function(key, value, Time(time)))(LevelZeroLogEntryWriter.Level0FunctionWriter)
+      LogEntry.Put(key, Memory.Function(key, value, Time(time)))(MemoryLogEntryWriter.FunctionLogEntryPutWriter)
     }
   }
 
-  implicit object Level0RangeReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Range]] {
+  implicit object RangeLogEntryPutReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.Range]] {
 
     override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Memory.Range] = {
       val fromKeyLength = reader.readUnsignedInt()
@@ -96,11 +96,11 @@ private[core] object LevelZeroLogEntryReader {
       val valueBytes = if (valueLength == 0) Slice.emptyBytes else reader.read(valueLength)
       val (fromValue, rangeValue) = RangeValueSerialiser.read(valueBytes)
 
-      LogEntry.Put(fromKey, Memory.Range(fromKey, toKey, fromValue, rangeValue))(LevelZeroLogEntryWriter.Level0RangeWriter)
+      LogEntry.Put(fromKey, Memory.Range(fromKey, toKey, fromValue, rangeValue))(MemoryLogEntryWriter.RangeLogEntryPutWriter)
     }
   }
 
-  implicit object Level0PendingApplyReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.PendingApply]] {
+  implicit object PendingApplyLogEntryPutReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Memory.PendingApply]] {
 
     override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Memory.PendingApply] = {
       val keyLength = reader.readUnsignedInt()
@@ -109,11 +109,11 @@ private[core] object LevelZeroLogEntryReader {
       val valueBytes = reader.read(valueLength)
       val applies = ValueSerialiser.read[Slice[Value.Apply]](valueBytes)
 
-      LogEntry.Put(key, Memory.PendingApply(key, applies))(LevelZeroLogEntryWriter.Level0PendingApplyWriter)
+      LogEntry.Put(key, Memory.PendingApply(key, applies))(MemoryLogEntryWriter.PendingApplyLogEntryPutWriter)
     }
   }
 
-  implicit object Level0Reader extends LogEntryReader[LogEntry[Slice[Byte], Memory]] {
+  implicit object KeyValueLogEntryPutReader extends LogEntryReader[LogEntry[Slice[Byte], Memory]] {
     private def merge(nextEntry: LogEntry[Slice[Byte], Memory],
                       previousEntryOrNull: LogEntry[Slice[Byte], Memory]) =
       if (previousEntryOrNull == null)
@@ -123,47 +123,41 @@ private[core] object LevelZeroLogEntryReader {
 
     override def read(reader: SliceReader): LogEntry[Slice[Byte], Memory] =
       reader.foldLeft(null: LogEntry[Slice[Byte], Memory]) {
-        case (previousEntry, reader) => {
+        case (previousEntry, reader) =>
           val entryId = reader.get()
-          if (entryId == LevelZeroLogEntryWriter.Level0PutWriter.id)
+
+          if (entryId == MemoryLogEntryWriter.PutLogEntryPutWriter.id)
             merge(
-              nextEntry = Level0PutReader.read(reader),
+              nextEntry = PutLogEntryPutReader.read(reader),
               previousEntryOrNull = previousEntry
             )
-
-          else if (entryId == LevelZeroLogEntryWriter.Level0RemoveWriter.id)
+          else if (entryId == MemoryLogEntryWriter.RemoveLogEntryPutWriter.id)
             merge(
-              nextEntry = Level0RemoveReader.read(reader),
+              nextEntry = RemoveLogEntryPutReader.read(reader),
               previousEntryOrNull = previousEntry
             )
-
-          else if (entryId == LevelZeroLogEntryWriter.Level0FunctionWriter.id)
+          else if (entryId == MemoryLogEntryWriter.FunctionLogEntryPutWriter.id)
             merge(
-              nextEntry = Level0FunctionReader.read(reader),
+              nextEntry = FunctionLogEntryPutReader.read(reader),
               previousEntryOrNull = previousEntry
             )
-
-          else if (entryId == LevelZeroLogEntryWriter.Level0PendingApplyWriter.id)
+          else if (entryId == MemoryLogEntryWriter.PendingApplyLogEntryPutWriter.id)
             merge(
-              nextEntry = Level0PendingApplyReader.read(reader),
+              nextEntry = PendingApplyLogEntryPutReader.read(reader),
               previousEntryOrNull = previousEntry
             )
-
-          else if (entryId == LevelZeroLogEntryWriter.Level0UpdateWriter.id)
+          else if (entryId == MemoryLogEntryWriter.UpdateLogEntryPutWriter.id)
             merge(
-              nextEntry = Level0UpdateReader.read(reader),
+              nextEntry = UpdateLogEntryPutReader.read(reader),
               previousEntryOrNull = previousEntry
             )
-
-          else if (entryId == LevelZeroLogEntryWriter.Level0RangeWriter.id)
+          else if (entryId == MemoryLogEntryWriter.RangeLogEntryPutWriter.id)
             merge(
-              nextEntry = Level0RangeReader.read(reader),
+              nextEntry = RangeLogEntryPutReader.read(reader),
               previousEntryOrNull = previousEntry
             )
-
           else
             throw new IllegalArgumentException(s"Invalid entry type $entryId.")
-        }
       }
   }
 }

@@ -21,9 +21,9 @@ import swaydb.core.segment.{Segment, SegmentSerialiser}
 import swaydb.core.util.Bytes
 import swaydb.slice.{Slice, SliceMut}
 
-private[core] object AppendixLogEntryWriter {
+private[core] object SegmentLogEntryWriter {
 
-  implicit object AppendixRemoveWriter extends LogEntryWriter[LogEntry.Remove[Slice[Byte]]] {
+  implicit object SegmentLogEntryRemoveWriter extends LogEntryWriter[LogEntry.Remove[Slice[Byte]]] {
     val id: Int = 0
 
     override val isRange: Boolean = false
@@ -41,7 +41,7 @@ private[core] object AppendixLogEntryWriter {
         entry.key.size
   }
 
-  implicit object AppendixPutWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Segment]] {
+  implicit object SegmentLogEntryPutWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Segment]] {
     val id: Int = 1
 
     override val isRange: Boolean = false

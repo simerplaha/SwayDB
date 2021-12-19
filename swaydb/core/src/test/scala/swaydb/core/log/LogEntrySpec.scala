@@ -48,24 +48,24 @@ class LogEntrySpec extends AnyWordSpec {
 
   "LogEntry" should {
     "set hasRemoveDeadline to true if Put has remove deadline" in {
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryWriter._
       LogEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1, 1.second.fromNow)).hasRemoveDeadline shouldBe true
     }
 
     "set hasRemoveDeadline to false if Put has remove deadline" in {
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryWriter._
       LogEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1)).hasRemoveDeadline shouldBe false
     }
 
     "set hasUpdate to true if Put has update" in {
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryWriter._
       val entry = LogEntry.Put[Slice[Byte], Memory.Update](1, Memory.update(1, 1))
       entry.hasRemoveDeadline shouldBe false
       entry.hasUpdate shouldBe true
     }
 
     "set hasUpdate to false if Put does not have update" in {
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryWriter._
 
       val entry = LogEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, 1))
       entry.hasRemoveDeadline shouldBe false
@@ -77,7 +77,7 @@ class LogEntrySpec extends AnyWordSpec {
     }
 
     "put Level0 single Put entry to skipList" in {
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryWriter._
       val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 
       val entry = LogEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, "one"))
@@ -89,7 +89,7 @@ class LogEntrySpec extends AnyWordSpec {
     }
 
     "put Level0 single Remote entry to skipList" in {
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryWriter._
       val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 
       val entry = LogEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))
@@ -101,7 +101,7 @@ class LogEntrySpec extends AnyWordSpec {
     }
 
     "put Level0 single Put Range entry to skipList" in {
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryWriter._
       val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 
       val range1 = Memory.Range(1, 10, Value.put("one"), Value.update("range one"))
@@ -122,7 +122,7 @@ class LogEntrySpec extends AnyWordSpec {
     }
 
     "put Level0 single Remove Range entry to skipList" in {
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryWriter._
       val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 
       val range1 = Memory.Range(1, 10, Value.remove(None), Value.remove(None))
@@ -143,7 +143,7 @@ class LogEntrySpec extends AnyWordSpec {
     }
 
     "batch multiple Level0 key-value to skipList" in {
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryWriter._
 
       val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 
@@ -181,7 +181,7 @@ class LogEntrySpec extends AnyWordSpec {
           implicit val specType: CoreSpecType = _specType
 
           import sweeper.testCoreFunctionStore
-          import AppendixLogEntryWriter._
+          import SegmentLogEntryWriter._
           val segment = GenSegment(randomKeyValues(100))
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
@@ -203,7 +203,7 @@ class LogEntrySpec extends AnyWordSpec {
           implicit val specType: CoreSpecType = _specType
 
           import sweeper.testCoreFunctionStore
-          import AppendixLogEntryWriter._
+          import SegmentLogEntryWriter._
           val segment = GenSegment(randomKeyValues(100))
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
@@ -228,7 +228,7 @@ class LogEntrySpec extends AnyWordSpec {
           implicit val specType: CoreSpecType = _specType
 
           import sweeper._
-          import AppendixLogEntryWriter._
+          import SegmentLogEntryWriter._
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
           val segment1 = GenSegment(randomizedKeyValues(100)).runRandomIO.get
@@ -258,8 +258,8 @@ class LogEntrySpec extends AnyWordSpec {
 
   "LogEntry.Put" should {
     "write and read bytes for a single Level0 key-value" in {
-      import LevelZeroLogEntryReader._
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryReader._
+      import MemoryLogEntryWriter._
 
       val entry = LogEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, "one"))
       entry.hasRange shouldBe false
@@ -282,7 +282,7 @@ class LogEntrySpec extends AnyWordSpec {
           import sweeper._
 
           val appendixReader =
-            AppendixLogEntryReader(
+            SegmentLogEntryReader(
               mmapSegment =
                 MMAP.On(
                   deleteAfterClean = OperatingSystem.isWindows(),
@@ -291,7 +291,7 @@ class LogEntrySpec extends AnyWordSpec {
               segmentRefCacheLife = randomSegmentRefCacheLife()
             )
 
-          import AppendixLogEntryWriter._
+          import SegmentLogEntryWriter._
           import appendixReader._
           val segment = GenSegment(randomKeyValues(100))
 
@@ -310,8 +310,8 @@ class LogEntrySpec extends AnyWordSpec {
 
   "LogEntry.Remove" should {
     "write and read bytes for a single Level0 key-values entry" in {
-      import LevelZeroLogEntryReader._
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryReader._
+      import MemoryLogEntryWriter._
 
       val entry = LogEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))
       entry.hasRange shouldBe false
@@ -334,7 +334,7 @@ class LogEntrySpec extends AnyWordSpec {
           import sweeper._
 
           val appendixReader =
-            AppendixLogEntryReader(
+            SegmentLogEntryReader(
               mmapSegment =
                 MMAP.On(
                   deleteAfterClean = OperatingSystem.isWindows(),
@@ -343,7 +343,7 @@ class LogEntrySpec extends AnyWordSpec {
               segmentRefCacheLife = randomSegmentRefCacheLife()
             )
 
-          import AppendixLogEntryWriter._
+          import SegmentLogEntryWriter._
           import appendixReader._
 
           val segment = GenSegment(randomKeyValues(100))
@@ -364,8 +364,8 @@ class LogEntrySpec extends AnyWordSpec {
 
   "LogEntry" should {
     "batch write multiple key-values for Level0" in {
-      import LevelZeroLogEntryReader._
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryReader._
+      import MemoryLogEntryWriter._
 
       val entry =
         (LogEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, "one")): LogEntry[Slice[Byte], Memory]) ++
@@ -387,8 +387,8 @@ class LogEntrySpec extends AnyWordSpec {
   "10000 log entries" can {
 
     "be written and read for Level0" in {
-      import LevelZeroLogEntryReader._
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryReader._
+      import MemoryLogEntryWriter._
 
       val initialEntry: LogEntry[Slice[Byte], Memory] = LogEntry.Put(0, Memory.put(0, 0))
       var entry =
@@ -429,7 +429,7 @@ class LogEntrySpec extends AnyWordSpec {
           import sweeper._
 
           val appendixReader =
-            AppendixLogEntryReader(
+            SegmentLogEntryReader(
               mmapSegment =
                 MMAP.On(
                   deleteAfterClean = OperatingSystem.isWindows(),
@@ -437,7 +437,7 @@ class LogEntrySpec extends AnyWordSpec {
                 ),
               segmentRefCacheLife = randomSegmentRefCacheLife()
             )
-          import AppendixLogEntryWriter._
+          import SegmentLogEntryWriter._
           import appendixReader._
 
           val keyValues = randomKeyValues(100, startId = Some(0))
@@ -489,7 +489,7 @@ class LogEntrySpec extends AnyWordSpec {
 
   "distinct" should {
     "remove older entries when all key-values are duplicate" in {
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryWriter._
 
       val oldEntries =
         (LogEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, "old")): LogEntry[Slice[Byte], Memory]) ++
@@ -509,7 +509,7 @@ class LogEntrySpec extends AnyWordSpec {
     }
 
     "remove older duplicate entries" in {
-      import LevelZeroLogEntryWriter._
+      import MemoryLogEntryWriter._
 
       val oldEntries =
         (LogEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, "old")): LogEntry[Slice[Byte], Memory]) ++

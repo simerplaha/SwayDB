@@ -38,7 +38,7 @@ object GenLog {
                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                         sweeper: CoreTestSweeper,
                                                                                         coreSpecType: CoreSpecType): LevelZeroLog = {
-    import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
+    import swaydb.core.log.serialiser.MemoryLogEntryWriter._
     import sweeper._
 
     implicit val optimiseWrites: OptimiseWrites = OptimiseWrites.random

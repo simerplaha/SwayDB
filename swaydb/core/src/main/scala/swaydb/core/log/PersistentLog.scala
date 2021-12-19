@@ -24,7 +24,7 @@ import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.{CoreFile, ForceSaveApplier}
-import swaydb.core.log.serialiser.{LogEntryReader, LogEntrySerialiser, LogEntryWriter}
+import swaydb.core.log.serialiser.{LogEntryReader, LogEntryParser, LogEntryWriter}
 import swaydb.effect.Effect._
 import swaydb.effect.{Effect, IOStrategy}
 import swaydb.slice.Slice
@@ -149,7 +149,7 @@ protected object PersistentLog extends LazyLogging {
           logger.info(s"$path: Recovering key-values with dropCorruptedTailEntries set as $dropCorruptedTailEntries.")
           val file = CoreFile.standardReadable(path, IOStrategy.SynchronisedIO(true), autoClose = false)
           val bytes = file.readAll()
-          val recovery = LogEntrySerialiser.read[K, V](bytes, dropCorruptedTailEntries).get
+          val recovery = LogEntryParser.read[K, V](bytes, dropCorruptedTailEntries).get
 
           val entriesCount = recovery.item.map(_.entriesCount).getOrElse(0)
           val entriesOrEntry = if (entriesCount == 0 || entriesCount > 1) "entries" else "entry"
@@ -235,7 +235,7 @@ protected object PersistentLog extends LazyLogging {
                                                     forceSaveApplier: ForceSaveApplier): CoreFile = {
 
     val nextPath = currentFile.path.incrementFileId
-    val bytes = LogEntrySerialiser.write(cache.iterator)
+    val bytes = LogEntryParser.write(cache.iterator)
 
     val newFile =
       mmap match {
@@ -310,7 +310,7 @@ protected case class PersistentLog[K, V, C <: LogCache[K, V]](path: Path,
   final def writeNoSync(entry: LogEntry[K, V]): Boolean = {
     val entryTotalByteSize = entry.totalByteSize
     if ((bytesWritten + entryTotalByteSize) <= actualFileSize) {
-      currentFile.append(LogEntrySerialiser.write(entry))
+      currentFile.append(LogEntryParser.write(entry))
       //if this main contains range then use skipListMerge.
       cache.writeAtomic(entry)
       bytesWritten += entryTotalByteSize

@@ -51,8 +51,8 @@ class LogsSpec extends AnyWordSpec {
   implicit def optimiseWrites: OptimiseWrites = OptimiseWrites.random
   implicit def atomic = Atomic.random
 
-  import swaydb.core.log.serialiser.LevelZeroLogEntryReader._
-  import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
+  import swaydb.core.log.serialiser.MemoryLogEntryReader._
+  import swaydb.core.log.serialiser.MemoryLogEntryWriter._
 
   "Logs.persistent" should {
     "initialise and recover on reopen" in {

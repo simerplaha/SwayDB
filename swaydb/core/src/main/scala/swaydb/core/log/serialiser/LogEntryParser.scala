@@ -25,7 +25,7 @@ import swaydb.core.util.CRC32
 import swaydb.slice.{Slice, SliceReader}
 import swaydb.utils.ByteSizeOf
 
-private[core] object LogEntrySerialiser extends LazyLogging {
+private[core] object LogEntryParser extends LazyLogging {
 
   val headerSize =
   //    crc         +     length

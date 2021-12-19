@@ -17,7 +17,7 @@
 package swaydb.core.log
 
 import swaydb.core.log.LogEntry.{Put, Remove}
-import swaydb.core.log.serialiser.{LogEntrySerialiser, LogEntryWriter}
+import swaydb.core.log.serialiser.{LogEntryParser, LogEntryWriter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.data.Memory
 import swaydb.core.skiplist.{SkipList, SkipListBatchable, SkipListConcurrent}
@@ -56,7 +56,7 @@ private[swaydb] sealed trait LogEntry[K, +V] { thisEntry =>
   def entryBytesSize: Int
 
   def totalByteSize: Int =
-    entryBytesSize + LogEntrySerialiser.headerSize
+    entryBytesSize + LogEntryParser.headerSize
 
   def writeTo(slice: SliceMut[Byte]): Unit
 

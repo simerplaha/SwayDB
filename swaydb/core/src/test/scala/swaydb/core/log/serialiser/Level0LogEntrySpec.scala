@@ -52,7 +52,7 @@ class Level0LogEntrySpec extends AnyWordSpec {
 
         reader.read(SliceReader(slice.drop(ByteSizeOf.byte))).runRandomIO.get shouldBe addEntry
 
-        import LevelZeroLogEntryReader.Level0Reader
+        import MemoryLogEntryReader.KeyValueLogEntryPutReader
         val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.get
         readEntry shouldBe addEntry
 
@@ -86,39 +86,39 @@ class Level0LogEntrySpec extends AnyWordSpec {
 
       keyValues foreach {
         case keyValue: Memory.Remove =>
-          import LevelZeroLogEntryReader.Level0RemoveReader
-          import LevelZeroLogEntryWriter.Level0RemoveWriter
+          import MemoryLogEntryReader.RemoveLogEntryPutReader
+          import MemoryLogEntryWriter.RemoveLogEntryPutWriter
           assert(LogEntry.Put(keyValue.key, keyValue))
 
         case keyValue: Memory.Put =>
-          import LevelZeroLogEntryReader.Level0PutReader
-          import LevelZeroLogEntryWriter.Level0PutWriter
+          import MemoryLogEntryReader.PutLogEntryPutReader
+          import MemoryLogEntryWriter.PutLogEntryPutWriter
           assert(LogEntry.Put(keyValue.key, keyValue))
 
         case keyValue: Memory.Update =>
-          import LevelZeroLogEntryReader.Level0UpdateReader
-          import LevelZeroLogEntryWriter.Level0UpdateWriter
+          import MemoryLogEntryReader.UpdateLogEntryPutReader
+          import MemoryLogEntryWriter.UpdateLogEntryPutWriter
           assert(LogEntry.Put(keyValue.key, keyValue))
 
         case keyValue: Memory.Function =>
-          import LevelZeroLogEntryReader.Level0FunctionReader
-          import LevelZeroLogEntryWriter.Level0FunctionWriter
+          import MemoryLogEntryReader.FunctionLogEntryPutReader
+          import MemoryLogEntryWriter.FunctionLogEntryPutWriter
           assert(LogEntry.Put(keyValue.key, keyValue))
 
         case keyValue: Memory.PendingApply =>
-          import LevelZeroLogEntryReader.Level0PendingApplyReader
-          import LevelZeroLogEntryWriter.Level0PendingApplyWriter
+          import MemoryLogEntryReader.PendingApplyLogEntryPutReader
+          import MemoryLogEntryWriter.PendingApplyLogEntryPutWriter
           assert(LogEntry.Put(keyValue.key, keyValue))
 
         case keyValue: Memory.Range =>
-          import LevelZeroLogEntryReader.Level0RangeReader
-          import LevelZeroLogEntryWriter.Level0RangeWriter
+          import MemoryLogEntryReader.RangeLogEntryPutReader
+          import MemoryLogEntryWriter.RangeLogEntryPutWriter
           assert(LogEntry.Put(keyValue.key, keyValue))
       }
     }
 
     "write, remove & update key-value" in {
-      import LevelZeroLogEntryWriter.{Level0PutWriter, Level0RangeWriter, Level0RemoveWriter, Level0UpdateWriter}
+      import MemoryLogEntryWriter.{PutLogEntryPutWriter, RangeLogEntryPutWriter, RemoveLogEntryPutWriter, UpdateLogEntryPutWriter}
       import swaydb.Error.Log.ExceptionHandler
 
       val put1 = Memory.put(1, randomStringOption(), randomDeadlineOption())
@@ -159,7 +159,7 @@ class Level0LogEntrySpec extends AnyWordSpec {
       entry writeTo slice
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
-      import LevelZeroLogEntryReader.Level0Reader
+      import MemoryLogEntryReader.KeyValueLogEntryPutReader
       val readEntry = LogEntryReader.read[LogEntry[Slice[Byte], Memory]](SliceReader(slice)).runRandomIO.get
       readEntry shouldBe entry
 
@@ -185,9 +185,9 @@ class Level0LogEntrySpec extends AnyWordSpec {
         scalaSkipList.get(11).value shouldBe range6
       }
       //write skip list to bytes should result in the same skip list as before
-      import LevelZeroLogEntryWriter.Level0LogEntryPutWriter
-      val bytes = LogEntrySerialiser.write[Slice[Byte], Memory](skipList.iterator)
-      val recoveryResult = LogEntrySerialiser.read[Slice[Byte], Memory](bytes, false).runRandomIO.get
+      import MemoryLogEntryWriter.LogEntryPutWriter
+      val bytes = LogEntryParser.write[Slice[Byte], Memory](skipList.iterator)
+      val recoveryResult = LogEntryParser.read[Slice[Byte], Memory](bytes, false).runRandomIO.get
       recoveryResult.result shouldBe IO.unit
 
       val readEntries = recoveryResult.item.value

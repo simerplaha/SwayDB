@@ -40,8 +40,8 @@
 //  implicit val fileSweeper: FileSweeper = CoreTestSweeper.fileSweeper
 //  implicit val memorySweeper = CoreTestSweeper.memorySweeperMax
 //
-//  import swaydb.core.log.serializer.LevelZeroLogEntryReader._
-//  import swaydb.core.log.serializer.LevelZeroLogEntryWriter._
+//  import swaydb.core.log.serializer.MemoryKeyValueReader._
+//  import swaydb.core.log.serializer.MemoryKeyValueWriter._
 //
 //  implicit val skipListMerger = LevelZeroSkipListMerger
 //

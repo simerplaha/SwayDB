@@ -68,7 +68,7 @@ class LogSpec extends AnyWordSpec {
           implicit val specType: CoreSpecType = _specType
 
           import sweeper._
-          import LevelZeroLogEntryWriter._
+          import MemoryLogEntryWriter._
 
           val log =
             Log.memory[Slice[Byte], Memory, LevelZeroLogCache](
@@ -108,7 +108,7 @@ class LogSpec extends AnyWordSpec {
           implicit val specType: CoreSpecType = _specType
 
           import sweeper._
-          import AppendixLogEntryWriter._
+          import SegmentLogEntryWriter._
 
           val log =
             Log.memory[Slice[Byte], Segment, AppendixLogCache](
@@ -134,8 +134,8 @@ class LogSpec extends AnyWordSpec {
     "initialise a persistent Level0 log and recover from it when it's empty" in {
       CoreTestSweeper {
         implicit sweeper =>
-          import LevelZeroLogEntryReader._
-          import LevelZeroLogEntryWriter._
+          import MemoryLogEntryReader._
+          import MemoryLogEntryWriter._
           import sweeper._
 
           val log =
@@ -167,11 +167,11 @@ class LogSpec extends AnyWordSpec {
     "initialise a persistent Appendix log and recover from it when it's empty" in {
       CoreTestSweeper {
         implicit sweeper =>
-          import AppendixLogEntryWriter._
+          import SegmentLogEntryWriter._
           import sweeper._
 
           val appendixReader =
-            AppendixLogEntryReader(
+            SegmentLogEntryReader(
               mmapSegment =
                 MMAP.On(
                   deleteAfterClean = OperatingSystem.isWindows(),
@@ -210,8 +210,8 @@ class LogSpec extends AnyWordSpec {
     "initialise a persistent Level0 log and recover from it when it's contains data" in {
       CoreTestSweeper {
         implicit sweeper =>
-          import LevelZeroLogEntryReader._
-          import LevelZeroLogEntryWriter._
+          import MemoryLogEntryReader._
+          import MemoryLogEntryWriter._
           import sweeper._
 
           def assertReads(log: PersistentLog[Slice[Byte], Memory, LevelZeroLogCache]) = {
@@ -276,7 +276,7 @@ class LogSpec extends AnyWordSpec {
 
           import sweeper._
 
-          val appendixReader = AppendixLogEntryReader(
+          val appendixReader = SegmentLogEntryReader(
             mmapSegment =
               MMAP.On(
                 deleteAfterClean = OperatingSystem.isWindows(),
@@ -284,7 +284,7 @@ class LogSpec extends AnyWordSpec {
               ),
             segmentRefCacheLife = randomSegmentRefCacheLife()
           )
-          import AppendixLogEntryWriter._
+          import SegmentLogEntryWriter._
           import appendixReader._
 
           val segment1 = GenSegment(Slice(Memory.put(1, 1, None), Memory.put(2, 2, None)))
@@ -336,8 +336,8 @@ class LogSpec extends AnyWordSpec {
     "initialise a Map that has two persistent Level0 log files (second file did not value deleted due to early JVM termination)" in {
       CoreTestSweeper {
         implicit sweeper =>
-          import LevelZeroLogEntryReader._
-          import LevelZeroLogEntryWriter._
+          import MemoryLogEntryReader._
+          import MemoryLogEntryWriter._
           import sweeper._
 
           val map1 =
@@ -406,7 +406,7 @@ class LogSpec extends AnyWordSpec {
           import sweeper._
 
           val appendixReader =
-            AppendixLogEntryReader(
+            SegmentLogEntryReader(
               mmapSegment =
                 MMAP.On(
                   deleteAfterClean = OperatingSystem.isWindows(),
@@ -415,7 +415,7 @@ class LogSpec extends AnyWordSpec {
               segmentRefCacheLife = randomSegmentRefCacheLife()
             )
 
-          import AppendixLogEntryWriter._
+          import SegmentLogEntryWriter._
           import appendixReader._
 
           val segment1 = GenSegment(Slice(Memory.put(1, 1, None), Memory.put(2, 2, None)))
@@ -480,8 +480,8 @@ class LogSpec extends AnyWordSpec {
     "fail initialise if the Map exists but recovery is not provided" in {
       CoreTestSweeper {
         implicit sweeper =>
-          import LevelZeroLogEntryReader._
-          import LevelZeroLogEntryWriter._
+          import MemoryLogEntryReader._
+          import MemoryLogEntryWriter._
           import sweeper._
 
           val log =
@@ -519,8 +519,8 @@ class LogSpec extends AnyWordSpec {
     "recover from an empty PersistentMap folder" in {
       CoreTestSweeper {
         implicit sweeper =>
-          import LevelZeroLogEntryReader._
-          import LevelZeroLogEntryWriter._
+          import MemoryLogEntryReader._
+          import MemoryLogEntryWriter._
           import sweeper._
 
           val cache = LevelZeroLogCache.builder.create()
@@ -547,8 +547,8 @@ class LogSpec extends AnyWordSpec {
     "recover from an existing PersistentMap folder" in {
       CoreTestSweeper {
         implicit sweeper =>
-          import LevelZeroLogEntryReader._
-          import LevelZeroLogEntryWriter._
+          import MemoryLogEntryReader._
+          import MemoryLogEntryWriter._
           import sweeper._
 
           //create a log
@@ -609,8 +609,8 @@ class LogSpec extends AnyWordSpec {
     "recover from an existing PersistentMap folder when flushOnOverflow is true" in {
       CoreTestSweeper {
         implicit sweeper =>
-          import LevelZeroLogEntryReader._
-          import LevelZeroLogEntryWriter._
+          import MemoryLogEntryReader._
+          import MemoryLogEntryWriter._
           import sweeper._
 
           //create a log
@@ -700,8 +700,8 @@ class LogSpec extends AnyWordSpec {
     "recover from an existing PersistentMap folder with empty memory log" in {
       CoreTestSweeper {
         implicit sweeper =>
-          import LevelZeroLogEntryReader._
-          import LevelZeroLogEntryWriter._
+          import MemoryLogEntryReader._
+          import MemoryLogEntryWriter._
           import sweeper._
 
           //create a log
@@ -745,8 +745,8 @@ class LogSpec extends AnyWordSpec {
     "creates a new file from the current file" in {
       CoreTestSweeper {
         implicit sweeper =>
-          import LevelZeroLogEntryReader._
-          import LevelZeroLogEntryWriter._
+          import MemoryLogEntryReader._
+          import MemoryLogEntryWriter._
           import sweeper._
 
           val cache = LevelZeroLogCache.builder.create()
@@ -778,7 +778,7 @@ class LogSpec extends AnyWordSpec {
           val nextFileSkipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
           val nextFileBytes = CoreFile.standardReadable(nextFile.path, genThreadSafeIOStrategy(), autoClose = false).readAll()
           nextFileBytes.size should be > 0
-          val logEntries = LogEntrySerialiser.read(nextFileBytes, dropCorruptedTailEntries = false).get.item.get
+          val logEntries = LogEntryParser.read(nextFileBytes, dropCorruptedTailEntries = false).get.item.get
           logEntries applyBatch nextFileSkipList
 
           nextFileSkipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
@@ -791,8 +791,8 @@ class LogSpec extends AnyWordSpec {
   }
 
   "PersistentMap.recovery on corruption" should {
-    import LevelZeroLogEntryReader._
-    import LevelZeroLogEntryWriter._
+    import MemoryLogEntryReader._
+    import MemoryLogEntryWriter._
 
     "fail if the WAL file is corrupted and and when dropCorruptedTailEntries = false" in {
       CoreTestSweeper {
@@ -895,8 +895,8 @@ class LogSpec extends AnyWordSpec {
     "there are two WAL files and the first file is corrupted" in {
       CoreTestSweeper {
         implicit sweeper =>
-          import LevelZeroLogEntryReader._
-          import LevelZeroLogEntryWriter._
+          import MemoryLogEntryReader._
+          import MemoryLogEntryWriter._
           import sweeper._
 
           val map1 =
@@ -984,8 +984,8 @@ class LogSpec extends AnyWordSpec {
     "there are two WAL files and the second file is corrupted" in {
       CoreTestSweeper {
         implicit sweeper =>
-          import LevelZeroLogEntryReader._
-          import LevelZeroLogEntryWriter._
+          import MemoryLogEntryReader._
+          import MemoryLogEntryWriter._
           import sweeper._
 
           val map1 =
@@ -1071,8 +1071,8 @@ class LogSpec extends AnyWordSpec {
     "result in the recovered Map to have the same skipList as the Map before recovery" in {
       CoreTestSweeper {
         implicit sweeper =>
-          import LevelZeroLogEntryReader._
-          import LevelZeroLogEntryWriter._
+          import MemoryLogEntryReader._
+          import MemoryLogEntryWriter._
           import sweeper._
 
           //run this test multiple times to randomly generate multiple combinations of overlapping key-value with optionally & randomly added Put, Remove, Range or Update.
@@ -1123,8 +1123,8 @@ class LogSpec extends AnyWordSpec {
           implicit sweeper =>
 
             runThis(100.times, log = true) {
-              import LevelZeroLogEntryReader._
-              import LevelZeroLogEntryWriter._
+              import MemoryLogEntryReader._
+              import MemoryLogEntryWriter._
               import sweeper._
 
               //This test also shows how the merge handles situations when recovery happens on multiple log files
@@ -1182,8 +1182,8 @@ class LogSpec extends AnyWordSpec {
     runThis(1.times, log = true) {
       CoreTestSweeper {
         implicit sweeper =>
-          import LevelZeroLogEntryReader._
-          import LevelZeroLogEntryWriter._
+          import MemoryLogEntryReader._
+          import MemoryLogEntryWriter._
           import sweeper._
 
           val map1 =

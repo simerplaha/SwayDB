@@ -72,7 +72,7 @@
 //  implicit val testTimer: TestTimer = TestTimer.Empty
 //  implicit val timeOrder = TimeOrder.long
 //
-//  import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
+//  import swaydb.core.log.serialiser.MemoryKeyValueWriter._
 //
 //  val keyValuesCount = 10
 //

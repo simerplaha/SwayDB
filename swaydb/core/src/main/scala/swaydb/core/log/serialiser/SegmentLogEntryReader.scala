@@ -28,7 +28,7 @@ import swaydb.core.segment.data.SegmentKeyOrders
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceReader}
 
-private[core] object AppendixLogEntryReader {
+private[core] object SegmentLogEntryReader {
   def apply(mmapSegment: MMAP.Segment,
             segmentRefCacheLife: SegmentRefCacheLife)(implicit keyOrders: SegmentKeyOrders,
                                                       timeOrder: TimeOrder[Slice[Byte]],
@@ -38,25 +38,25 @@ private[core] object AppendixLogEntryReader {
                                                       bufferCleaner: ByteBufferSweeperActor,
                                                       blockCacheSweeper: Option[MemorySweeper.Block],
                                                       forceSaveApplier: ForceSaveApplier,
-                                                      segmentIO: SegmentReadIO): AppendixLogEntryReader =
-    new AppendixLogEntryReader(
+                                                      segmentIO: SegmentReadIO): SegmentLogEntryReader =
+    new SegmentLogEntryReader(
       mmapSegment = mmapSegment,
       segmentRefCacheLife = segmentRefCacheLife
     )
 }
 
-private[core] class AppendixLogEntryReader(mmapSegment: MMAP.Segment,
-                                           segmentRefCacheLife: SegmentRefCacheLife)(implicit keyOrders: SegmentKeyOrders,
-                                                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                                                     functionStore: CoreFunctionStore,
-                                                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                     fileSweeper: FileSweeper,
-                                                                                     bufferCleaner: ByteBufferSweeperActor,
-                                                                                     blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                                     forceSaveApplier: ForceSaveApplier,
-                                                                                     segmentIO: SegmentReadIO) {
+private[core] class SegmentLogEntryReader(mmapSegment: MMAP.Segment,
+                                          segmentRefCacheLife: SegmentRefCacheLife)(implicit keyOrders: SegmentKeyOrders,
+                                                                                    timeOrder: TimeOrder[Slice[Byte]],
+                                                                                    functionStore: CoreFunctionStore,
+                                                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                    fileSweeper: FileSweeper,
+                                                                                    bufferCleaner: ByteBufferSweeperActor,
+                                                                                    blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                                    forceSaveApplier: ForceSaveApplier,
+                                                                                    segmentIO: SegmentReadIO) {
 
-  implicit object AppendixPutReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Segment]] {
+  implicit object SegmentLogEntryPutReader extends LogEntryReader[LogEntry.Put[Slice[Byte], Segment]] {
     override def read(reader: SliceReader): LogEntry.Put[Slice[Byte], Segment] = {
       val segment =
         SegmentSerialiser.FormatA.read(
@@ -69,31 +69,31 @@ private[core] class AppendixLogEntryReader(mmapSegment: MMAP.Segment,
       LogEntry.Put(
         key = segment.minKey,
         value = segment
-      )(AppendixLogEntryWriter.AppendixPutWriter)
+      )(SegmentLogEntryWriter.SegmentLogEntryPutWriter)
     }
   }
 
-  implicit object AppendixRemoveReader extends LogEntryReader[LogEntry.Remove[Slice[Byte]]] {
+  implicit object SegmentLogEntryRemoveReader extends LogEntryReader[LogEntry.Remove[Slice[Byte]]] {
     override def read(reader: SliceReader): LogEntry.Remove[Slice[Byte]] = {
       val minKeyLength = reader.readUnsignedInt()
       val minKey: Slice[Byte] = reader.read(minKeyLength).cut()
-      LogEntry.Remove(minKey)(AppendixLogEntryWriter.AppendixRemoveWriter)
+      LogEntry.Remove(minKey)(SegmentLogEntryWriter.SegmentLogEntryRemoveWriter)
     }
   }
 
-  implicit object AppendixReader extends LogEntryReader[LogEntry[Slice[Byte], Segment]] {
+  implicit object SegmentLogEntryReader extends LogEntryReader[LogEntry[Slice[Byte], Segment]] {
     override def read(reader: SliceReader): LogEntry[Slice[Byte], Segment] =
       reader.foldLeft(null: LogEntry[Slice[Byte], Segment]) {
         case (previousEntryOrNull, reader) =>
           val entryId = reader.readUnsignedInt()
-          if (entryId == AppendixLogEntryWriter.AppendixPutWriter.id) {
-            val nextEntry = AppendixPutReader.read(reader)
+          if (entryId == SegmentLogEntryWriter.SegmentLogEntryPutWriter.id) {
+            val nextEntry = SegmentLogEntryPutReader.read(reader)
             if (previousEntryOrNull == null)
               nextEntry
             else
               previousEntryOrNull ++ nextEntry
-          } else if (entryId == AppendixLogEntryWriter.AppendixRemoveWriter.id) {
-            val nextEntry = AppendixRemoveReader.read(reader)
+          } else if (entryId == SegmentLogEntryWriter.SegmentLogEntryRemoveWriter.id) {
+            val nextEntry = SegmentLogEntryRemoveReader.read(reader)
             if (previousEntryOrNull == null)
               nextEntry
             else

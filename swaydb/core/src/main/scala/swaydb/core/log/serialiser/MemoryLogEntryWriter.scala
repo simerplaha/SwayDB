@@ -26,9 +26,9 @@ import swaydb.utils.ByteSizeOf
 /**
  * TODO move to using varints and see if that makes a difference in performance.
  */
-private[core] object LevelZeroLogEntryWriter {
+private[core] object MemoryLogEntryWriter {
 
-  implicit object Level0RemoveWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Memory.Remove]] {
+  implicit object RemoveLogEntryPutWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Memory.Remove]] {
     val id: Byte = 0
 
     override val isRange: Boolean = false
@@ -52,7 +52,7 @@ private[core] object LevelZeroLogEntryWriter {
         Bytes.sizeOfUnsignedLong(entry.value.deadline.map(_.time.toNanos).getOrElse(0))
   }
 
-  implicit object Level0PutWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Memory.Put]] {
+  implicit object PutLogEntryPutWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Memory.Put]] {
     val id: Byte = 1
 
     override val isRange: Boolean = false
@@ -83,7 +83,7 @@ private[core] object LevelZeroLogEntryWriter {
           Bytes.sizeOfUnsignedLong(entry.value.deadline.map(_.time.toNanos).getOrElse(0))
   }
 
-  implicit object Level0UpdateWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Memory.Update]] {
+  implicit object UpdateLogEntryPutWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Memory.Update]] {
     val id: Byte = 2
 
     override val isRange: Boolean = false
@@ -114,7 +114,7 @@ private[core] object LevelZeroLogEntryWriter {
           Bytes.sizeOfUnsignedLong(entry.value.deadline.map(_.time.toNanos).getOrElse(0))
   }
 
-  implicit object Level0FunctionWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Memory.Function]] {
+  implicit object FunctionLogEntryPutWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Memory.Function]] {
     val id: Byte = 3
 
     override val isRange: Boolean = false
@@ -143,7 +143,7 @@ private[core] object LevelZeroLogEntryWriter {
           entry.value.function.size
   }
 
-  implicit object Level0RangeWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Memory.Range]] {
+  implicit object RangeLogEntryPutWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Memory.Range]] {
     val id: Byte = 4
 
     override val isRange: Boolean = true
@@ -177,7 +177,7 @@ private[core] object LevelZeroLogEntryWriter {
       }
   }
 
-  implicit object Level0PendingApplyWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Memory.PendingApply]] {
+  implicit object PendingApplyLogEntryPutWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Memory.PendingApply]] {
     val id: Byte = 5
 
     override val isRange: Boolean = true
@@ -210,7 +210,7 @@ private[core] object LevelZeroLogEntryWriter {
       }
   }
 
-  implicit object Level0LogEntryPutWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Memory]] {
+  implicit object LogEntryPutWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Memory]] {
 
     override val isRange: Boolean = true
     override val isUpdate: Boolean = true

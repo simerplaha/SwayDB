@@ -38,8 +38,8 @@ class CounterLogSpec extends AnyWordSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
-  implicit val functionsEntryWriter = CounterLogEntryWriter.CounterPutLogEntryWriter
-  implicit val functionsEntryReader = CounterLogEntryReader.CounterPutLogEntryReader
+  implicit val functionsEntryWriter = KeyValueLogEntryWriter.KeyValueLogEntryPutWriter
+  implicit val functionsEntryReader = KeyValueLogEntryReader.KeyValueLogEntryPutReader
 
   "nextCommit" should {
     "reserve greater startId" when {

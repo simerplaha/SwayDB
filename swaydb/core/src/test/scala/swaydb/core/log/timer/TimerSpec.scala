@@ -21,15 +21,15 @@ import org.scalatest.matchers.should.Matchers._
 import swaydb.config.{GenForceSave, MMAP}
 import swaydb.core.{CoreSpecType, CoreTestSweeper}
 import swaydb.core.log.counter.CounterLog
-import swaydb.core.log.serialiser.{CounterLogEntryReader, CounterLogEntryWriter}
+import swaydb.core.log.serialiser.{KeyValueLogEntryReader, KeyValueLogEntryWriter}
 import swaydb.core.log.LogTestKit.ReopenTimer
 import swaydb.effect.EffectTestKit._
 import swaydb.utils.OperatingSystem
 
 class TimerSpec extends AnyFlatSpec {
 
-  implicit val timerReader = CounterLogEntryReader.CounterPutLogEntryReader
-  implicit val timerWriter = CounterLogEntryWriter.CounterPutLogEntryWriter
+  implicit val timerReader = KeyValueLogEntryReader.KeyValueLogEntryPutReader
+  implicit val timerWriter = KeyValueLogEntryWriter.KeyValueLogEntryPutWriter
 
   it should "write time sequentially" in {
     CoreTestSweeper.foreachParallel(CoreSpecType.all) {

@@ -22,7 +22,7 @@ import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.log.LogEntry
 import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}
-import swaydb.core.log.serialiser.{CounterLogEntryReader, CounterLogEntryWriter, LogEntryReader, LogEntryWriter}
+import swaydb.core.log.serialiser.{KeyValueLogEntryReader, KeyValueLogEntryWriter, LogEntryReader, LogEntryWriter}
 import swaydb.core.segment.data.Time
 import swaydb.effect.Effect
 import swaydb.slice.Slice
@@ -78,8 +78,8 @@ private[core] object Timer {
                  mod: Long = 100000,
                  fileSize: Int = 1.mb)(implicit bufferCleaner: ByteBufferSweeperActor,
                                        forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Log, PersistentTimer] = {
-    implicit val writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]] = CounterLogEntryWriter.CounterPutLogEntryWriter
-    implicit val reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]] = CounterLogEntryReader.CounterPutLogEntryReader
+    implicit val writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]] = KeyValueLogEntryWriter.KeyValueLogEntryPutWriter
+    implicit val reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]] = KeyValueLogEntryReader.KeyValueLogEntryPutReader
 
     val timerFolder = path.resolve(folderName)
     Effect createDirectoriesIfAbsent timerFolder

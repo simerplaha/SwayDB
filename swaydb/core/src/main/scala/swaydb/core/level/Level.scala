@@ -125,10 +125,10 @@ private[core] case object Level extends LazyLogging {
         )
 
         //initialise readers & writers
-        import AppendixLogEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
+        import SegmentLogEntryWriter.{SegmentLogEntryPutWriter, SegmentLogEntryRemoveWriter}
 
         val appendixReader =
-          new AppendixLogEntryReader(
+          new SegmentLogEntryReader(
             mmapSegment = segmentConfig.mmap,
             segmentRefCacheLife = segmentConfig.segmentRefCacheLife
           )

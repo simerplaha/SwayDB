@@ -21,9 +21,9 @@ import swaydb.core.util.Bytes
 import swaydb.slice.{Slice, SliceMut}
 import swaydb.utils.ByteSizeOf
 
-private[swaydb] object AppliedFunctionsLogEntryWriter {
+private[swaydb] object KeyLogEntryWriter {
 
-  implicit object FunctionsPutLogEntryWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Slice.Null.type]] {
+  implicit object KeyPutLogEntryWriter extends LogEntryWriter[LogEntry.Put[Slice[Byte], Slice.Null.type]] {
     val id: Byte = 0
 
     override val isRange: Boolean = false
@@ -41,7 +41,7 @@ private[swaydb] object AppliedFunctionsLogEntryWriter {
         entry.key.size
   }
 
-  implicit object FunctionsRemoveLogEntryWriter extends LogEntryWriter[LogEntry.Remove[Slice[Byte]]] {
+  implicit object KeyRemoveLogEntryWriter extends LogEntryWriter[LogEntry.Remove[Slice[Byte]]] {
     val id: Byte = 1
 
     override val isRange: Boolean = false
