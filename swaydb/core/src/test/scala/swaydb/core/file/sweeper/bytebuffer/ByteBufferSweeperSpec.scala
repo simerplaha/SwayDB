@@ -34,7 +34,7 @@
 //import swaydb.testkit.TestKit._
 //import swaydb.utils.OperatingSystem
 //import swaydb.Bag.Async
-//import swaydb.core.CommonAssertions.{randomThreadSafeIOStrategy, _}
+//import swaydb.core.CommonAssertions.{genThreadSafeIOStrategy, _}
 //
 //import java.nio.channels.FileChannel
 //import java.nio.channels.FileChannel.MapMode
@@ -60,8 +60,8 @@
 //
 //        val file: CoreFile =
 //          CoreFile.mmapWriteableReadable(
-//            path = randomDir(),
-//            fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+//            path = genDirPath(),
+//            fileOpenIOStrategy = genThreadSafeIOStrategy(cacheOnAccess = true),
 //            autoClose = true,
 //            deleteAfterClean = OperatingSystem.isWindows(),
 //            forceSave = TestForceSave.mmap(),
@@ -94,8 +94,8 @@
 //            (1 to 10) map {
 //              _ =>
 //                CoreFile.mmapWriteableReadable(
-//                  path = randomDir(),
-//                  fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+//                  path = genDirPath(),
+//                  fileOpenIOStrategy = genThreadSafeIOStrategy(cacheOnAccess = true),
 //                  autoClose = true,
 //                  deleteAfterClean = OperatingSystem.isWindows(),
 //                  forceSave = TestForceSave.mmap(),
@@ -213,7 +213,7 @@
 //      CoreTestSweeper {
 //        implicit sweeper =>
 //
-//          val path = randomFilePath()
+//          val path = genFilePath()
 //          val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
 //          val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 //
@@ -259,7 +259,7 @@
 //          implicit sweeper =>
 //            import sweeper._
 //
-//            val filePath = randomFilePath()
+//            val filePath = genFilePath()
 //            val folderPath = filePath.getParent
 //
 //            val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
@@ -303,7 +303,7 @@
 //          implicit sweeper =>
 //            import sweeper._
 //
-//            val filePath = randomFilePath()
+//            val filePath = genFilePath()
 //            val folderPath = filePath.getParent
 //
 //            val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
@@ -348,7 +348,7 @@
 //          implicit sweeper =>
 //            import sweeper._
 //
-//            val filePath = randomFilePath()
+//            val filePath = genFilePath()
 //            val folderPath = filePath.getParent
 //
 //            val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
@@ -391,7 +391,7 @@
 //          implicit sweeper =>
 //            import sweeper._
 //
-//            val filePath = randomFilePath()
+//            val filePath = genFilePath()
 //            val folderPath = filePath.getParent
 //
 //            val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
@@ -448,7 +448,7 @@
 //
 //            implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(messageReschedule = 2.seconds).sweep()
 //
-//            val filePath = randomFilePath()
+//            val filePath = genFilePath()
 //
 //            val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
 //            val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
@@ -568,7 +568,7 @@
 //            import sweeper._
 //
 //            def sendRandomRequests(): Path = {
-//              val filePath = randomFilePath()
+//              val filePath = genFilePath()
 //              val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
 //              val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 //

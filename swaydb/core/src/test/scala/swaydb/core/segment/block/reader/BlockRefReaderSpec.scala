@@ -20,6 +20,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.compression.CoreCompression
 import swaydb.core.segment.block.segment.SegmentBlockOffset
 import swaydb.slice.SliceReader
+import swaydb.utils.Extension
 //import swaydb.core.segment.block.segment.SegmentBlockOffset
 import org.scalatest.matchers.should.Matchers._
 import swaydb.core.segment.block.{Block, BlockCache}
@@ -39,7 +40,7 @@ class BlockRefReaderSpec extends AnyWordSpec {
       CoreTestSweeper {
         implicit sweeper =>
           val bytes = randomBytesSlice(100)
-          val fileReader = createRandomFileReader(bytes)
+          val fileReader = createRandomFileReader(bytes, Extension.Seg)
           val file = invokePrivate_file(fileReader)
 
           val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))

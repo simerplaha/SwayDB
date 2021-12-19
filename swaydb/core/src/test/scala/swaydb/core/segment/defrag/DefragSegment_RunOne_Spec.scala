@@ -46,6 +46,7 @@ import swaydb.TestExecutionContext
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
+import swaydb.effect.EffectTestKit._
 
 class DefragSegment_RunOne_Spec extends AnyWordSpec {
 

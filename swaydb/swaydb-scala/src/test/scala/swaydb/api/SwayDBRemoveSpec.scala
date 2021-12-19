@@ -31,7 +31,7 @@
 //  val keyValueCount: Int = 1000
 //
 //  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir()).right.value.sweep(_.delete().get)
+//    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = genDirPath()).right.value.sweep(_.delete().get)
 //}
 //
 //class SwayDBRemoveSpec1 extends SwayDBRemoveSpec {
@@ -39,7 +39,7 @@
 //  val keyValueCount: Int = 1000
 //
 //  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir(), logSize = 1.byte, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = 10.bytes)).right.value.sweep(_.delete().get)
+//    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](genDirPath(), logSize = 1.byte, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = 10.bytes)).right.value.sweep(_.delete().get)
 //}
 //
 //class SwayDBRemoveSpec2 extends SwayDBRemoveSpec {
@@ -62,7 +62,7 @@
 //  val keyValueCount: Int = 10000
 //
 //  override def newDB()(implicit sweeper: CoreTestSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
-//    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir()).get).sweep(_.delete().get)
+//    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = genDirPath()).get).sweep(_.delete().get)
 //}
 //
 //class MultiMapRemoveSpec5 extends SwayDBRemoveSpec {

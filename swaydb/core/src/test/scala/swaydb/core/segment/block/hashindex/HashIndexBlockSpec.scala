@@ -62,7 +62,7 @@ class HashIndexBlockSpec extends AnyWordSpec {
               useCacheableReaders = randomBoolean(),
               sortedIndexConfig =
                 SortedIndexBlockConfig(
-                  ioStrategy = _ => randomIOStrategy(),
+                  ioStrategy = _ => genIOStrategy(),
                   enablePrefixCompression = false,
                   shouldPrefixCompress = _ => randomBoolean(),
                   prefixCompressKeysOnly = randomBoolean(),
@@ -78,7 +78,7 @@ class HashIndexBlockSpec extends AnyWordSpec {
                   minimumNumberOfHits = 0,
                   format = randomHashIndexSearchFormat(),
                   allocateSpace = _.requiredSpace * 10,
-                  ioStrategy = _ => randomIOStrategy(),
+                  ioStrategy = _ => genIOStrategy(),
                   compressions = _ => compressions
                 ),
               segmentConfig =

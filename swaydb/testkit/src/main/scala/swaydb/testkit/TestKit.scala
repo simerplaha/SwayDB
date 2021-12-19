@@ -19,7 +19,8 @@ object TestKit {
     }
   }
 
-  def randomByte() = (Random.nextInt(256) - 128).toByte
+  def randomByte(): Byte =
+    (Random.nextInt(256) - 128).toByte
 
   def ints(numbers: Int): Int =
     (1 to numbers).foldLeft("") {
@@ -27,15 +28,16 @@ object TestKit {
         concat + Math.abs(Random.nextInt(9)).toString
     }.toInt
 
-  def randomInt(minus: Int = 0) = Math.abs(Random.nextInt(Int.MaxValue)) - minus - 1
+  def randomInt(minus: Int = 0): Int =
+    Math.abs(Random.nextInt(Int.MaxValue)) - minus - 1
 
-  def randomIntMax(max: Int = Int.MaxValue) =
+  def randomIntMax(max: Int = Int.MaxValue): Int =
     Math.abs(Random.nextInt(max))
 
-  def randomIntMin(min: Int) =
+  def randomIntMin(min: Int): Int =
     Math.abs(randomIntMax()) max min
 
-  def randomIntMaxOption(max: Int = Int.MaxValue) =
+  def randomIntMaxOption(max: Int = Int.MaxValue): Option[Int] =
     if (randomBoolean())
       Some(randomIntMax(max))
     else
@@ -65,9 +67,11 @@ object TestKit {
     else
       (randomIntMax(60) max 30).seconds.fromNow
 
-  def randomCharacters(size: Int = 10) = Random.alphanumeric.take(size max 1).mkString
+  def randomCharacters(size: Int = 10): String =
+    Random.alphanumeric.take(size max 1).mkString
 
-  def randomBytes(size: Int = 10) = Array.fill(size)(randomByte())
+  def randomBytes(size: Int = 10): Array[Byte] =
+    Array.fill(size)(randomByte())
 
   def randomly[T](f: => T): Option[T] =
     if (Random.nextBoolean())
@@ -143,7 +147,7 @@ object TestKit {
 
 
   implicit class BooleanImplicit(bool: Boolean) {
-    def toInt =
+    def toInt: Int =
       if (bool) 1 else 0
   }
 

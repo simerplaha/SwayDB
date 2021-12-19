@@ -30,7 +30,7 @@
 //  val keyValueCount: Int = 1000
 //
 //  override def newDB()(implicit sweeper: CoreTestSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass] =
-//    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir()).sweep(_.delete())
+//    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = genDirPath()).sweep(_.delete())
 //}
 //
 //class MultiMapPutSpec1 extends MultiMapPutSpec {

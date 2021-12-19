@@ -29,22 +29,22 @@
 //
 //class SwayDBGetSpec0 extends SwayDBGetSpec {
 //  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir()).right.value.sweep(_.delete().get)
+//    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](genDirPath()).right.value.sweep(_.delete().get)
 //}
 //
 //class SwayDBGet_SetMap_Spec0 extends SwayDBGetSpec {
 //  override def newDB()(implicit sweeper: CoreTestSweeper): SetMap[Int, String, IO.ApiIO] =
-//    swaydb.persistent.SetMap[Int, String, IO.ApiIO](randomDir()).right.value.sweep(_.delete().get)
+//    swaydb.persistent.SetMap[Int, String, IO.ApiIO](genDirPath()).right.value.sweep(_.delete().get)
 //}
 //
 //class SwayDBGet_Eventually_Persistent_SetMap_Spec0 extends SwayDBGetSpec {
 //  override def newDB()(implicit sweeper: CoreTestSweeper): SetMap[Int, String, IO.ApiIO] =
-//    swaydb.eventually.persistent.SetMap[Int, String, IO.ApiIO](randomDir()).right.value.sweep(_.delete().get)
+//    swaydb.eventually.persistent.SetMap[Int, String, IO.ApiIO](genDirPath()).right.value.sweep(_.delete().get)
 //}
 //
 //class SwayDBGetSpec1 extends SwayDBGetSpec {
 //  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir(), logSize = 1.byte).right.value.sweep(_.delete().get)
+//    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](genDirPath(), logSize = 1.byte).right.value.sweep(_.delete().get)
 //}
 //
 //class SwayDBGetSpec2 extends SwayDBGetSpec {
@@ -59,7 +59,7 @@
 //
 //class MultiMapGetSpec4 extends SwayDBGetSpec {
 //  override def newDB()(implicit sweeper: CoreTestSweeper): SetMapT[Int, String, IO.ApiIO] =
-//    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir()).get).sweep(_.delete().get)
+//    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = genDirPath()).get).sweep(_.delete().get)
 //}
 //
 //class MultiMapGetSpec5 extends SwayDBGetSpec {

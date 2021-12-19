@@ -33,7 +33,7 @@
 //  def newDB[BAG[+_]]()(implicit sweeper: CoreTestSweeper,
 //                       sequencer: Sequencer[BAG],
 //                       bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
-//    swaydb.persistent.Map[Int, String, Nothing, BAG](randomDir()).map(_.sweep(_.toBag[Glass].delete()))
+//    swaydb.persistent.Map[Int, String, Nothing, BAG](genDirPath()).map(_.sweep(_.toBag[Glass].delete()))
 //
 //  override val keyValueCount: Int = 100
 //}

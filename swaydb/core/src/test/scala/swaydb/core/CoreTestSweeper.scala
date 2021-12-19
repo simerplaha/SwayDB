@@ -17,9 +17,8 @@
 package swaydb.core
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{ActorRef, Bag, DefActor, Glass, Scheduler, TestExecutionContext}
+import swaydb.{Bag, Glass, TestExecutionContext}
 import swaydb.actor.ActorTestSweeper
-import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.cache.{Cache, CacheUnsafe}
 import swaydb.core.file.{CoreFile, ForceSaveApplier}
 import swaydb.core.file.sweeper.FileSweeper
@@ -36,12 +35,10 @@ import swaydb.core.segment.cache.sweeper.MemorySweeperTestKit._
 import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.CoreTestSweeper.deleteParentPath
 import swaydb.core.segment.distributor.PathDistributor
-import swaydb.effect.{Dir, Effect}
+import swaydb.effect.{Effect, EffectTestSweeper}
 import swaydb.testkit.RunThis._
-import swaydb.utils.{IDGenerator, OperatingSystem}
 
-import java.nio.file.{Path, Paths}
-import java.util.concurrent.atomic.AtomicInteger
+import java.nio.file.Path
 import scala.beans.BeanProperty
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters.IterableIsParallelizable
@@ -64,23 +61,6 @@ import scala.util.Try
 
 object CoreTestSweeper extends LazyLogging {
 
-  private val testNumber = new AtomicInteger(0)
-
-  private val projectTargetFolder: String =
-    getClass.getClassLoader.getResource("").getPath
-
-  private val projectFolder: Path =
-    if (OperatingSystem.isWindows())
-      Paths.get(projectTargetFolder.drop(1)).getParent.getParent
-    else
-      Paths.get(projectTargetFolder).getParent.getParent
-
-  private val testFolder: Path =
-    projectFolder.resolve("TEST_FILES")
-
-  private val testMemoryFolder: Path =
-    projectFolder.resolve("TEST_MEMORY_FILES")
-
   private def deleteParentPath(path: Path) = {
     val parentPath = path.getParent
     //also delete parent folder of Segment. TestSegments are created with a parent folder.
@@ -90,7 +70,7 @@ object CoreTestSweeper extends LazyLogging {
 
   def repeat(times: Int, log: Boolean = true)(code: CoreTestSweeper => Unit): Unit = {
     import swaydb.testkit.RunThis._
-    runThis(times, log)(CoreTestSweeper[Unit](s"TEST${testNumber.incrementAndGet()}")(code))
+    runThis(times, log)(CoreTestSweeper[Unit](code))
   }
 
   def foreachRepeat[S](times: Int, states: Iterable[S])(code: (CoreTestSweeper, S) => Unit): Unit =
@@ -116,19 +96,10 @@ object CoreTestSweeper extends LazyLogging {
         }
     }
 
-  def apply[T](code: CoreTestSweeper => T): T =
-    CoreTestSweeper[T](s"TEST${testNumber.incrementAndGet()}")(code)
-
-  def distributed[T](subDirectories: Int)(code: CoreTestSweeper => T): T =
-    CoreTestSweeper(s"TEST${testNumber.incrementAndGet()}", subDirectories)(code)
-
-  def apply[T](testName: String)(code: CoreTestSweeper => T): T =
-    CoreTestSweeper(testName, 0)(code)
-
-  def apply[T](testName: String, subDirectories: Int)(code: CoreTestSweeper => T): T = {
-    val sweeper = new CoreTestSweeper(testName, subDirectories)
+  def apply[T](code: CoreTestSweeper => T): T = {
+    val sweeper = new CoreTestSweeper {}
     val result = code(sweeper)
-    sweeper.close()
+    sweeper.terminate()
     result
   }
 
@@ -150,11 +121,6 @@ object CoreTestSweeper extends LazyLogging {
   implicit class TestMapsSweeperImplicits[M <: Logs[_, _, _]](map: M) {
     def sweep()(implicit sweeper: CoreTestSweeper): M =
       sweeper sweepLogs map
-  }
-
-  implicit class TestLevelPathSweeperImplicits(path: Path) {
-    def sweep()(implicit sweeper: CoreTestSweeper): Path =
-      sweeper sweepPath path
   }
 
   implicit class CoreFileSweeperImplicits(coreFile: CoreFile) {
@@ -202,10 +168,10 @@ object CoreTestSweeper extends LazyLogging {
       sweeper sweepCounter counter
   }
 
-  implicit class FunctionSweeperImplicits[BAG[_], T](sweepable: T) {
-    def sweep(f: T => Unit)(implicit sweeper: CoreTestSweeper): T =
-      sweeper.sweepItem(sweepable, f)
-  }
+//  implicit class FunctionSweeperImplicits[BAG[_], T](sweepable: T) {
+//    def sweep(f: T => Unit)(implicit sweeper: CoreTestSweeper): T =
+//      sweeper.sweepItem(sweepable, f)
+//  }
 }
 
 
@@ -222,52 +188,42 @@ object CoreTestSweeper extends LazyLogging {
  * }}}
  */
 
-class CoreTestSweeper(val testName: String,
-                      val subDirectories: Int,
-                      @BeanProperty protected var deleteFiles: Boolean = true,
-                      private val fileSweepers: ListBuffer[CacheUnsafe[Unit, FileSweeper.On]] = ListBuffer(Cache.unsafe[Unit, FileSweeper.On](true, true, None)((_, _) => createFileSweeper())),
-                      private val cleaners: ListBuffer[CacheUnsafe[Unit, ByteBufferSweeperActor]] = ListBuffer(Cache.unsafe[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner())),
-                      private val compactionIOActors: ListBuffer[CacheUnsafe[Unit, SegmentCompactionIO.Actor]] = ListBuffer(Cache.unsafe[Unit, SegmentCompactionIO.Actor](true, true, None)((_, _) => SegmentCompactionIO.create()(TestExecutionContext.executionContext))),
-                      private val blockCaches: ListBuffer[CacheUnsafe[Unit, Option[BlockCacheState]]] = ListBuffer(Cache.unsafe[Unit, Option[BlockCacheState]](true, true, None)((_, _) => createBlockCacheRandom())),
-                      private val allMemorySweepers: ListBuffer[CacheUnsafe[Unit, Option[MemorySweeper.All]]] = ListBuffer(Cache.unsafe[Unit, Option[MemorySweeper.All]](true, true, None)((_, _) => createMemorySweeperMax())),
-                      private val keyValueMemorySweepers: ListBuffer[CacheUnsafe[Unit, Option[MemorySweeper.KeyValue]]] = ListBuffer(Cache.unsafe[Unit, Option[MemorySweeper.KeyValue]](true, true, None)((_, _) => createMemorySweeperRandom())),
-                      private val blockMemorySweepers: ListBuffer[CacheUnsafe[Unit, Option[MemorySweeper.Block]]] = ListBuffer(Cache.unsafe[Unit, Option[MemorySweeper.Block]](true, true, None)((_, _) => createMemoryBlockSweeper())),
-                      private val cacheMemorySweepers: ListBuffer[CacheUnsafe[Unit, Option[MemorySweeper.Cache]]] = ListBuffer(Cache.unsafe[Unit, Option[MemorySweeper.Cache]](true, true, None)((_, _) => createRandomCacheSweeper())),
-                      private val schedulers: ListBuffer[CacheUnsafe[Unit, Scheduler]] = ListBuffer(Cache.unsafe[Unit, Scheduler](true, true, None)((_, _) => Scheduler())),
-                      private val levels: ListBuffer[LevelRef] = ListBuffer.empty,
-                      private val segments: ListBuffer[Segment] = ListBuffer.empty,
-                      private val mapFiles: ListBuffer[Log[_, _, _]] = ListBuffer.empty,
-                      private val logs: ListBuffer[Logs[_, _, _]] = ListBuffer.empty,
-                      private val coreFiles: ListBuffer[CoreFile] = ListBuffer.empty,
-                      private val paths: ListBuffer[Path] = ListBuffer.empty,
-                      private val actors: ListBuffer[ActorRef[_, _]] = ListBuffer.empty,
-                      private val defActors: ListBuffer[DefActor[_]] = ListBuffer.empty,
-                      private val counters: ListBuffer[CounterLog] = ListBuffer.empty,
-                      private val functions: ListBuffer[() => Unit] = ListBuffer.empty) extends ActorTestSweeper(schedulers = schedulers, actors = actors, defActors = defActors) with LazyLogging {
+trait CoreTestSweeper extends ActorTestSweeper with EffectTestSweeper with LazyLogging {
 
-  val testPath: Path =
-    CoreTestSweeper.testFolder.resolve(testName)
+  @BeanProperty protected var deleteFiles: Boolean = true
 
-  def persistTestPath(): Path =
-    sweepPath(Effect.createDirectoriesIfAbsent(testPath))
+  private val fileSweepers: ListBuffer[CacheUnsafe[Unit, FileSweeper.On]] = ListBuffer(Cache.unsafe[Unit, FileSweeper.On](true, true, None)((_, _) => createFileSweeper()))
+  private val cleaners: ListBuffer[CacheUnsafe[Unit, ByteBufferSweeperActor]] = ListBuffer(Cache.unsafe[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner()))
+  private val compactionIOActors: ListBuffer[CacheUnsafe[Unit, SegmentCompactionIO.Actor]] = ListBuffer(Cache.unsafe[Unit, SegmentCompactionIO.Actor](true, true, None)((_, _) => SegmentCompactionIO.create()(TestExecutionContext.executionContext)))
+  private val blockCaches: ListBuffer[CacheUnsafe[Unit, Option[BlockCacheState]]] = ListBuffer(Cache.unsafe[Unit, Option[BlockCacheState]](true, true, None)((_, _) => createBlockCacheRandom()))
+  private val allMemorySweepers: ListBuffer[CacheUnsafe[Unit, Option[MemorySweeper.All]]] = ListBuffer(Cache.unsafe[Unit, Option[MemorySweeper.All]](true, true, None)((_, _) => createMemorySweeperMax()))
+  private val keyValueMemorySweepers: ListBuffer[CacheUnsafe[Unit, Option[MemorySweeper.KeyValue]]] = ListBuffer(Cache.unsafe[Unit, Option[MemorySweeper.KeyValue]](true, true, None)((_, _) => createMemorySweeperRandom()))
+  private val blockMemorySweepers: ListBuffer[CacheUnsafe[Unit, Option[MemorySweeper.Block]]] = ListBuffer(Cache.unsafe[Unit, Option[MemorySweeper.Block]](true, true, None)((_, _) => createMemoryBlockSweeper()))
+  private val cacheMemorySweepers: ListBuffer[CacheUnsafe[Unit, Option[MemorySweeper.Cache]]] = ListBuffer(Cache.unsafe[Unit, Option[MemorySweeper.Cache]](true, true, None)((_, _) => createRandomCacheSweeper()))
+  private val levels: ListBuffer[LevelRef] = ListBuffer.empty
+  private val segments: ListBuffer[Segment] = ListBuffer.empty
+  private val mapFiles: ListBuffer[Log[_, _, _]] = ListBuffer.empty
+  private val logs: ListBuffer[Logs[_, _, _]] = ListBuffer.empty
+  private val coreFiles: ListBuffer[CoreFile] = ListBuffer.empty
+  private val counters: ListBuffer[CounterLog] = ListBuffer.empty
+  private val functions: ListBuffer[() => Unit] = ListBuffer.empty
 
   implicit lazy val pathDistributor: PathDistributor = {
-    def persistentSubDirectories(): Seq[Path] =
-      (0 until subDirectories) map {
-        intDir =>
-          sweepPath(Effect.createDirectoriesIfAbsent(testPath.resolve(intDir.toString)))
-      }
-
-    val addDirectories =
-      Seq(persistTestPath()) ++ persistentSubDirectories() map {
-        path =>
-          Dir(path, 1)
-      }
-
-    PathDistributor(addDirectories, () => Seq.empty)
+    //      def persistentSubDirectories(): Seq[Path] =
+    //        (0 until subDirectories) map {
+    //          intDir =>
+    //            sweepPath(Effect.createDirectoriesIfAbsent(testPath.resolve(intDir.toString)))
+    //        }
+    //
+    //      val addDirectories =
+    //        Seq(persistTestPath()) ++ persistentSubDirectories() map {
+    //          path =>
+    //            Dir(path, 1)
+    //        }
+    //
+    //      PathDistributor(addDirectories, () => Seq.empty)
+    ???
   }
-
-  implicit lazy val idGenerator: IDGenerator = IDGenerator()
 
   implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.On
   implicit lazy val fileSweeper: FileSweeper.On = fileSweepers.head.getOrFetch(())
@@ -282,8 +238,6 @@ class CoreTestSweeper(val testName: String,
   implicit lazy val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = keyValueMemorySweepers.head.getOrFetch(()) orElse allMemorySweeper()
   implicit lazy val blockSweeperCache: Option[MemorySweeper.Block] = blockMemorySweepers.head.getOrFetch(()) orElse allMemorySweeper()
   implicit lazy val cacheMemorySweeper: Option[MemorySweeper.Cache] = cacheMemorySweepers.head.getOrFetch(()) orElse allMemorySweeper()
-
-  implicit lazy val scheduler: Scheduler = schedulers.head.getOrFetch(())
 
   lazy implicit val testCoreFunctionStore: TestCoreFunctionStore = TestCoreFunctionStore()
   lazy implicit val coreFunctionStore: CoreFunctionStore = testCoreFunctionStore.store
@@ -308,11 +262,6 @@ class CoreTestSweeper(val testName: String,
     logs
   }
 
-  def sweepPath(path: Path): Path = {
-    paths += path
-    path
-  }
-
   def sweepCoreFiles(file: CoreFile): CoreFile = {
     coreFiles += file
     file
@@ -323,15 +272,6 @@ class CoreTestSweeper(val testName: String,
       sweepers.remove(0)
 
     val cache = Cache.unsafe[I, Option[O]](true, true, Some(Some(replace)))((_, _) => Some(replace))
-    sweepers += cache
-    replace
-  }
-
-  private def removeReplaceCache[I, O](sweepers: ListBuffer[CacheUnsafe[I, O]], replace: O): O = {
-    if (sweepers.lastOption.exists(_.get().isEmpty))
-      sweepers.remove(0)
-
-    val cache = Cache.unsafe[I, O](true, true, Some(replace))((_, _) => replace)
     sweepers += cache
     replace
   }
@@ -373,10 +313,10 @@ class CoreTestSweeper(val testName: String,
   /**
    * Terminates all sweepers immediately.
    */
-  override def close(): Unit = {
+  def terminate(): Unit = {
     logger.info(s"Terminating ${classOf[CoreTestSweeper].getSimpleName}")
 
-    super.close()
+    super.terminateAllActors()
 
     //CLOSE - close everything first so that Actors sweepers get populated with Clean messages
     coreFiles.foreach(_.close())
@@ -422,12 +362,8 @@ class CoreTestSweeper(val testName: String,
       coreFiles.foreach(_.delete())
       functions.foreach(_ ())
 
-      paths.foreach {
-        path =>
-          eventual(10.seconds)(Effect.walkDelete(path))
-      }
-
-      eventual(10.seconds)(testPath)
+      super.deleteAllPaths()
+      eventual(10.seconds)(testDirectory)
     }
   }
 

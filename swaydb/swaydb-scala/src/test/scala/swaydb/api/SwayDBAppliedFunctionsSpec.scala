@@ -42,7 +42,7 @@
 //          CoreTestSweeper {
 //            implicit sweeper =>
 //
-//              val dir = createRandomDir()
+//              val dir = genDir()
 //              val map = swaydb.persistent.Map[Int, String, Nothing, Glass](dir).sweep(_.delete())
 //
 //              Files.exists(dir) shouldBe true
@@ -60,7 +60,7 @@
 //          CoreTestSweeper {
 //            implicit sweeper =>
 //
-//              val dir = createRandomDir()
+//              val dir = genDir()
 //
 //              val function: OnKey[Int, String] =
 //                _ =>
@@ -85,7 +85,7 @@
 //        CoreTestSweeper {
 //          implicit sweeper =>
 //
-//            val dir = createRandomDir()
+//            val dir = genDir()
 //
 //            val function1: OnKey[Int, String] =
 //              (_: Int) =>
@@ -121,7 +121,7 @@
 //        CoreTestSweeper {
 //          implicit sweeper =>
 //
-//            val dir = createRandomDir()
+//            val dir = genDir()
 //
 //            val noDataToApply: OnKey[Int, String] =
 //              (_: Int) =>
@@ -177,7 +177,7 @@
 //        CoreTestSweeper {
 //          implicit sweeper =>
 //
-//            val dir = createRandomDir()
+//            val dir = genDir()
 //
 //            val noDataToApply: OnKey[Int, String] =
 //              (key: Int) => fail("There is no data for this function to execute")
@@ -216,7 +216,7 @@
 //      CoreTestSweeper {
 //        implicit sweeper =>
 //
-//          val dir = createRandomDir()
+//          val dir = genDir()
 //
 //          val functions =
 //            (1 to 1000) map {

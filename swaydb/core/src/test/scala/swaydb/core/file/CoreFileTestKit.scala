@@ -4,11 +4,10 @@ import org.scalatest.PrivateMethodTester._
 import swaydb.core.{CoreTestSweeper, RandomForceSave}
 import swaydb.core.CoreTestSweeper._
 import swaydb.core.segment.block.BlockCacheSource
-import swaydb.effect.Effect
-import swaydb.effect.EffectTestKit.randomThreadSafeIOStrategy
+import swaydb.effect.EffectTestKit._
 import swaydb.slice.{Slice, SliceRO}
 import swaydb.testkit.TestKit._
-import swaydb.utils.OperatingSystem
+import swaydb.utils.{Extension, OperatingSystem}
 
 import java.nio.file.Path
 import scala.util.Random
@@ -20,15 +19,6 @@ object CoreFileTestKit {
 
   def invokePrivate_file(reader: FileReader): CoreFile =
     reader invokePrivate PrivateMethod[CoreFile](Symbol("file"))()
-
-  def randomFilePath()(implicit sweeper: CoreTestSweeper): Path =
-    sweeper.testPath.resolve(s"${randomCharacters()}.test").sweep()
-
-  def createFile(bytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): Path =
-    Effect.write(
-      to = sweeper.persistTestPath().resolve(sweeper.idGenerator.nextSegmentId()),
-      bytes = bytes.toByteBufferWrap()
-    ).sweep()
 
   def createRandomFileReader(path: Path)(implicit sweeper: CoreTestSweeper): FileReader =
     if (Random.nextBoolean())
@@ -42,8 +32,8 @@ object CoreFileTestKit {
       right = createStandardFileFileReader(path)
     )
 
-  def createMMAPFileReader(bytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): FileReader =
-    createMMAPFileReader(createFile(bytes))
+  def createMMAPFileReader(bytes: Slice[Byte], extension: Extension)(implicit sweeper: CoreTestSweeper): FileReader =
+    createMMAPFileReader(genFile(bytes, extension))
 
   /**
    * Creates all file types currently supported which are MMAP and StandardFile.
@@ -65,8 +55,8 @@ object CoreFileTestKit {
 
   def createFiles(mmapBytes: Slice[Byte], standardBytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): TestTuple2[CoreFile] =
     TestTuple2(
-      left = createMMAPWriteableReadable(randomFilePath(), mmapBytes),
-      right = createStandardWriteableReadable(randomFilePath(), standardBytes)
+      left = createMMAPWriteableReadable(genFilePath(), mmapBytes),
+      right = createStandardWriteableReadable(genFilePath(), standardBytes)
     )
 
   def createMMAPWriteableReadable(path: Path, bytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): CoreFile = {
@@ -74,7 +64,7 @@ object CoreFileTestKit {
 
     CoreFile.mmapWriteableReadable(
       path = path,
-      fileOpenIOStrategy = randomThreadSafeIOStrategy(),
+      fileOpenIOStrategy = genThreadSafeIOStrategy(),
       autoClose = true,
       deleteAfterClean = OperatingSystem.isWindows(),
       forceSave = RandomForceSave.mmap(),
@@ -87,7 +77,7 @@ object CoreFileTestKit {
 
     CoreFile.mmapEmptyWriteableReadable(
       path = path,
-      fileOpenIOStrategy = randomThreadSafeIOStrategy(),
+      fileOpenIOStrategy = genThreadSafeIOStrategy(),
       autoClose = true,
       deleteAfterClean = OperatingSystem.isWindows(),
       forceSave = RandomForceSave.mmap(),
@@ -100,7 +90,7 @@ object CoreFileTestKit {
 
     CoreFile.standardWritable(
       path = path,
-      fileOpenIOStrategy = randomThreadSafeIOStrategy(),
+      fileOpenIOStrategy = genThreadSafeIOStrategy(),
       autoClose = true,
       forceSave = RandomForceSave.standard()
     )
@@ -112,7 +102,7 @@ object CoreFileTestKit {
     val file =
       CoreFile.standardWritable(
         path = path,
-        fileOpenIOStrategy = randomThreadSafeIOStrategy(),
+        fileOpenIOStrategy = genThreadSafeIOStrategy(),
         autoClose = true,
         forceSave = RandomForceSave.standard()
       ).sweep()
@@ -122,7 +112,7 @@ object CoreFileTestKit {
 
     CoreFile.standardReadable(
       path = path,
-      fileOpenIOStrategy = randomThreadSafeIOStrategy(),
+      fileOpenIOStrategy = genThreadSafeIOStrategy(),
       autoClose = true
     ).sweep()
   }
@@ -133,7 +123,7 @@ object CoreFileTestKit {
     val file =
       CoreFile.mmapReadable(
         path = path,
-        fileOpenIOStrategy = randomThreadSafeIOStrategy(),
+        fileOpenIOStrategy = genThreadSafeIOStrategy(),
         autoClose = true,
         deleteAfterClean = OperatingSystem.isWindows()
       ).sweep()
@@ -141,8 +131,8 @@ object CoreFileTestKit {
     new FileReader(file = file)
   }
 
-  def createStandardFileFileReader(bytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): FileReader =
-    createStandardFileFileReader(createFile(bytes))
+  def createStandardFileFileReader(bytes: Slice[Byte], extension: Extension)(implicit sweeper: CoreTestSweeper): FileReader =
+    createStandardFileFileReader(genFile(bytes, extension))
 
   def createStandardFileFileReader(path: Path)(implicit sweeper: CoreTestSweeper): FileReader = {
     import sweeper._
@@ -150,27 +140,15 @@ object CoreFileTestKit {
     val file =
       CoreFile.standardReadable(
         path = path,
-        fileOpenIOStrategy = randomThreadSafeIOStrategy(),
+        fileOpenIOStrategy = genThreadSafeIOStrategy(),
         autoClose = true
       ).sweep()
 
     new FileReader(file = file)
   }
 
-  def createRandomFileReader(bytes: Slice[Byte])(implicit sweeper: CoreTestSweeper): FileReader =
-    createRandomFileReader(createFile(bytes))
-
-  def randomIntDirectory()(implicit sweeper: CoreTestSweeper): Path =
-    sweeper.testPath.resolve(sweeper.idGenerator.toString)
-
-  def createRandomIntDirectory()(implicit sweeper: CoreTestSweeper): Path =
-    Effect.createDirectoriesIfAbsent(randomIntDirectory()).sweep()
-
-  def randomDir()(implicit sweeper: CoreTestSweeper): Path =
-    sweeper.testPath.resolve(s"${randomCharacters()}").sweep()
-
-  def createRandomDir()(implicit sweeper: CoreTestSweeper): Path =
-    Effect.createDirectory(randomDir()).sweep()
+  def createRandomFileReader(bytes: Slice[Byte], extension: Extension)(implicit sweeper: CoreTestSweeper): FileReader =
+    createRandomFileReader(genFile(bytes, extension))
 
   implicit class CoreFileImplicits(file: CoreFile) {
     def toBlockCacheSource: BlockCacheSource =

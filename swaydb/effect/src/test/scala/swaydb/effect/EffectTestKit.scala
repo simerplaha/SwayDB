@@ -1,19 +1,23 @@
 package swaydb.effect
 
+import EffectTestSweeper._
+import swaydb.slice.Slice
 import swaydb.testkit.TestKit._
+import swaydb.utils.Extension
 
+import java.nio.file.Path
 import scala.util.Random
 
 object EffectTestKit {
 
-  def randomThreadSafeIOStrategy(cacheOnAccess: Boolean = randomBoolean(),
-                                 includeReserved: Boolean = true): IOStrategy.ThreadSafe =
+  def genThreadSafeIOStrategy(cacheOnAccess: Boolean = randomBoolean(),
+                              includeReserved: Boolean = true): IOStrategy.ThreadSafe =
     if (cacheOnAccess && includeReserved && randomBoolean())
       IOStrategy.AsyncIO(cacheOnAccess = true) //this not being stored will result in too many retries.
     else
       IOStrategy.SynchronisedIO(cacheOnAccess)
 
-  def randomIOStrategyWithCacheOnAccess(cacheOnAccess: Boolean): IOStrategy =
+  def genIOStrategyWithCacheOnAccess(cacheOnAccess: Boolean): IOStrategy =
     if (randomBoolean())
       IOStrategy.SynchronisedIO(cacheOnAccess)
     else if (randomBoolean())
@@ -21,7 +25,7 @@ object EffectTestKit {
     else
       IOStrategy.ConcurrentIO(cacheOnAccess)
 
-  def randomIOAccess(cacheOnAccess: => Boolean = randomBoolean()) =
+  def genIOAccess(cacheOnAccess: => Boolean = randomBoolean()) =
     Random.shuffle(
       Seq(
         IOStrategy.ConcurrentIO(cacheOnAccess),
@@ -30,13 +34,44 @@ object EffectTestKit {
       )
     ).head
 
-  def randomIOStrategy(cacheOnAccess: Boolean = randomBoolean(),
-                       includeReserved: Boolean = true): IOStrategy =
+  def genIOStrategy(cacheOnAccess: Boolean = randomBoolean(),
+                    includeReserved: Boolean = true): IOStrategy =
     if (randomBoolean())
       IOStrategy.SynchronisedIO(cacheOnAccess)
     else if (cacheOnAccess && includeReserved && randomBoolean())
       IOStrategy.AsyncIO(cacheOnAccess = true) //this not being stored will result in too many retries.
     else
       IOStrategy.ConcurrentIO(cacheOnAccess)
+
+  def genFilePath()(implicit sweeper: EffectTestSweeper): Path =
+    sweeper.testDirectory.resolve(s"${randomCharacters()}.test").sweep()
+
+  def genFile(persistFile: Boolean)(implicit sweeper: EffectTestSweeper): Path = {
+    val filePath = genFilePath()
+    Effect.createDirectoryIfAbsent(filePath.getParent)
+
+    if (persistFile)
+      Effect.createFile(filePath)
+    else
+      filePath
+  }
+
+  def genFile(bytes: Slice[Byte], extension: Extension)(implicit sweeper: EffectTestSweeper): Path =
+    Effect.write(
+      to = Effect.createDirectoryIfAbsent(sweeper.testDirectory).resolve(sweeper.idGenerator.nextId() + s"${extension.toStringWithDot}"),
+      bytes = bytes.toByteBufferWrap()
+    ).sweep()
+
+  def genIntPath()(implicit sweeper: EffectTestSweeper): Path =
+    sweeper.testDirectory.resolve(sweeper.idGenerator.toString)
+
+  def genIntDir()(implicit sweeper: EffectTestSweeper): Path =
+    Effect.createDirectoriesIfAbsent(genIntPath()).sweep()
+
+  def genDirPath()(implicit sweeper: EffectTestSweeper): Path =
+    sweeper.testDirectory.resolve(s"${randomCharacters()}").sweep()
+
+  def genDir()(implicit sweeper: EffectTestSweeper): Path =
+    Effect.createDirectory(genDirPath()).sweep()
 
 }

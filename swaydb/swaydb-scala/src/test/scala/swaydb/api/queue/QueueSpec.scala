@@ -32,7 +32,7 @@
 //class QueueSpec0 extends QueueSpec {
 //
 //  override def newQueue()(implicit sweeper: CoreTestSweeper): Queue[Int] =
-//    swaydb.persistent.Queue[Int, Glass](randomDir()).sweep(_.delete())
+//    swaydb.persistent.Queue[Int, Glass](genDirPath()).sweep(_.delete())
 //}
 //
 //class QueueSpec3 extends QueueSpec {
@@ -189,7 +189,7 @@
 //    CoreTestSweeper {
 //      implicit sweeper =>
 //
-//        val path = randomDir()
+//        val path = genDirPath()
 //        val queue = swaydb.persistent.Queue[Int, Glass](path)
 //
 //        (1 to 6).map(queue.push)

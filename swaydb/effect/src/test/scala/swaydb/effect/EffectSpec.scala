@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package swaydb.core.file
+package swaydb.effect
 
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.{Benchmark, IO}
-import swaydb.core.{CoreSpecType, CoreTestSweeper}
-import swaydb.core.file.CoreFileTestKit._
-import swaydb.effect.Effect
-import swaydb.effect.IOValues._
+import swaydb.effect.EffectTestKit._
 import swaydb.slice.Slice
 import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
@@ -36,9 +33,9 @@ class EffectSpec extends AnyWordSpec {
   "fileId" should {
 
     "value the file id" in {
-      Effect.numberFileId(Paths.get("/one/1.log")).runRandomIO.get shouldBe(1, Extension.Log)
-      Effect.numberFileId(Paths.get("/one/two/10.log")).runRandomIO.get shouldBe(10, Extension.Log)
-      Effect.numberFileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.get shouldBe(1000, Extension.Seg)
+      Effect.numberFileId(Paths.get("/one/1.log")) shouldBe ((1, Extension.Log))
+      Effect.numberFileId(Paths.get("/one/two/10.log")) shouldBe ((10, Extension.Log))
+      Effect.numberFileId(Paths.get("/one/two/three/1000.seg")) shouldBe ((1000, Extension.Seg))
     }
 
     "fail if the file's name is not an integer" in {
@@ -48,7 +45,7 @@ class EffectSpec extends AnyWordSpec {
 
     "fail if the file has invalid extension" in {
       val path = Paths.get("/one/1.txt")
-      IO(Effect.numberFileId(path)).left.runRandomIO.get shouldBe swaydb.Exception.UnknownExtension(path)
+      IO(Effect.numberFileId(path)).left.get shouldBe swaydb.Exception.UnknownExtension(path)
     }
   }
 
@@ -62,9 +59,9 @@ class EffectSpec extends AnyWordSpec {
 
   "incrementFileId" should {
     "return a new file path with incremented file id" in {
-      Effect.incrementFileId(Paths.get("/one/1.log")).runRandomIO.get shouldBe Paths.get("/one/2.log")
-      Effect.incrementFileId(Paths.get("/one/two/10.log")).runRandomIO.get shouldBe Paths.get("/one/two/11.log")
-      Effect.incrementFileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.get shouldBe Paths.get("/one/two/three/1001.seg")
+      Effect.incrementFileId(Paths.get("/one/1.log")) shouldBe Paths.get("/one/2.log")
+      Effect.incrementFileId(Paths.get("/one/two/10.log")) shouldBe Paths.get("/one/two/11.log")
+      Effect.incrementFileId(Paths.get("/one/two/three/1000.seg")) shouldBe Paths.get("/one/two/three/1001.seg")
     }
   }
 
@@ -78,10 +75,10 @@ class EffectSpec extends AnyWordSpec {
 
   "files" should {
     "fetch all the files in sorted order" in {
-      CoreTestSweeper {
+      EffectTestSweeper {
         implicit sweeper =>
 
-          val dir = createRandomIntDirectory()
+          val dir = genIntDir()
           val actual =
             Seq(
               dir.resolve(s"1.${Extension.Log}"),
@@ -96,7 +93,7 @@ class EffectSpec extends AnyWordSpec {
 
           actual.foreach {
             path =>
-              Effect.createFile(path).runRandomIO.get
+              Effect.createFile(path)
           }
 
           val expect =
@@ -118,10 +115,10 @@ class EffectSpec extends AnyWordSpec {
 
   "folders" should {
     "fetch all the folders in sorted order" in {
-      CoreTestSweeper {
+      EffectTestSweeper {
         implicit sweeper =>
 
-          val dir = createRandomIntDirectory()
+          val dir = genIntDir()
           val actual =
             Seq(
               dir.resolve("1"),
@@ -158,12 +155,12 @@ class EffectSpec extends AnyWordSpec {
 
   "segmentFilesOnDisk" should {
     "fetch all segment files in order" in {
-      CoreTestSweeper {
+      EffectTestSweeper {
         implicit sweeper =>
 
-          val dir1 = createRandomIntDirectory()
-          val dir2 = createRandomIntDirectory()
-          val dir3 = createRandomIntDirectory()
+          val dir1 = genIntDir()
+          val dir2 = genIntDir()
+          val dir3 = genIntDir()
           val dirs = Seq(dir1, dir2, dir3)
 
           dirs foreach {
@@ -219,17 +216,14 @@ class EffectSpec extends AnyWordSpec {
   }
 
   "walkDelete" in {
-    CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
-      (_sweeper, _specType) =>
-
-        implicit val sweeper: CoreTestSweeper = _sweeper
-        implicit val specType: CoreSpecType = _specType
+    EffectTestSweeper {
+      implicit sweeper =>
 
         //this iterators counts the number of nested directories to create.
         (0 to 10) foreach {
           maxNestedDirectories =>
             //initialise the root test directory
-            val testDirectory = sweeper.testPath
+            val testDirectory = sweeper.testDirectory
 
             //but path for nested directory hierarchy.
             val testCaseDirectory =
@@ -270,48 +264,9 @@ class EffectSpec extends AnyWordSpec {
     }
   }
 
-  "transfer" in {
-    CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
-      (_sweeper, _specType) =>
-
-        implicit val sweeper: CoreTestSweeper = _sweeper
-        implicit val specType: CoreSpecType = _specType
-
-        val bytes = randomBytesSlice(size = 100)
-        //test when files are both channel and mmap
-        val files = createFiles(mmapBytes = bytes, standardBytes = bytes)
-        files should have size 2
-
-        files foreach {
-          file =>
-            //transfer bytes to both mmap and channel files
-            val targetMMAPFile = createWriteableMMAPFile(randomFilePath(), 100)
-            val targetStandardFile = createWriteableStandardFile(randomFilePath())
-
-            Seq(targetMMAPFile, targetStandardFile) foreach {
-              targetFile =>
-                file.transfer(position = 0, count = 10, transferTo = targetFile)
-                targetFile.close()
-
-                val fileReaders = createFileReaders(targetFile.path)
-                fileReaders should have size 2
-                fileReaders foreach {
-                  reader =>
-                    reader.read(10) shouldBe bytes.take(10)
-                }
-            }
-        }
-    }
-  }
-
   "benchmark" in {
-    CoreTestSweeper.foreachRepeat(1.times, CoreSpecType.all) {
-      (_sweeper, _specType) =>
-
-        implicit val sweeper: CoreTestSweeper = _sweeper
-        implicit val specType: CoreSpecType = _specType
-
-
+    EffectTestSweeper {
+      implicit sweeper =>
         val fileSize = 4.mb
         val flattenBytes = randomBytesSlice(fileSize)
         val groupBytes = flattenBytes.groupedSlice(8)
@@ -320,23 +275,23 @@ class EffectSpec extends AnyWordSpec {
         //0.067924621 seconds
         //4.mb
         //0.057647201 seconds & 0.047565694 seconds
-        val groupedPath = Benchmark("groupBytes")(Effect.write(randomFilePath(), groupBytes.mapToSlice(_.toByteBufferWrap())))
+        val groupedPath = Benchmark("groupBytes")(Effect.write(genFile(false), groupBytes.mapToSlice(_.toByteBufferWrap())))
         Slice.wrap(Effect.readAllBytes(groupedPath)) shouldBe flattenBytes
 
         //20.mb
         //0.077162871 seconds
         //4.mb
         //0.05330862 seconds & 0.045989919 seconds
-        val flattenedPath = Benchmark("flattenBytes")(Effect.write(randomFilePath(), flattenBytes.toByteBufferWrap()))
+        val flattenedPath = Benchmark("flattenBytes")(Effect.write(genFile(false), flattenBytes.toByteBufferWrap()))
         Slice.wrap(Effect.readAllBytes(flattenedPath)) shouldBe flattenBytes
     }
   }
 
   "isEmptyOrNotExists" when {
     "folder does not exist" in {
-      CoreTestSweeper {
+      EffectTestSweeper {
         implicit sweeper =>
-          val dir = randomDir()
+          val dir = genDirPath()
           Effect.notExists(dir) shouldBe true
 
           Effect.isEmptyOrNotExists(dir).get shouldBe true
@@ -344,9 +299,9 @@ class EffectSpec extends AnyWordSpec {
     }
 
     "folder exists but is empty" in {
-      CoreTestSweeper {
+      EffectTestSweeper {
         implicit sweeper =>
-          val dir = createRandomDir()
+          val dir = genDir()
           Effect.exists(dir) shouldBe true
 
           Effect.isEmptyOrNotExists(dir).get shouldBe true
@@ -354,11 +309,11 @@ class EffectSpec extends AnyWordSpec {
     }
 
     "folder exists and is non-empty" in {
-      CoreTestSweeper {
+      EffectTestSweeper {
         implicit sweeper =>
           Extension.all foreach {
             extension =>
-              val dir = createRandomDir()
+              val dir = genDir()
               Effect.exists(dir) shouldBe true
 
               Effect.createFile(dir.resolve(s"somefile.$extension"))
@@ -369,11 +324,11 @@ class EffectSpec extends AnyWordSpec {
     }
 
     "input is a file" in {
-      CoreTestSweeper {
+      EffectTestSweeper {
         implicit sweeper =>
           Extension.all foreach {
             extension =>
-              val file = createRandomDir().resolve(s"somefile.$extension")
+              val file = genDir().resolve(s"somefile.$extension")
               Effect.createFile(file)
 
               Effect.exists(file) shouldBe true

@@ -44,6 +44,7 @@ import swaydb.slice.order.KeyOrder
 import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
+import swaydb.utils.Extension
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
@@ -96,7 +97,7 @@ class SegmentBlockSpec extends AnyWordSpec {
             val reader = SliceReader(segmentBytes)
             assertReads(keyValues, segmentReader = reader)
 
-            val persistentReader = createRandomFileReader(segmentBytes)
+            val persistentReader = createRandomFileReader(segmentBytes, Extension.Seg)
             assertReads(keyValues, segmentReader = persistentReader)
             invokePrivate_file(persistentReader).close()
           }
@@ -125,7 +126,7 @@ class SegmentBlockSpec extends AnyWordSpec {
             //in memory
             assertReads(keyValues.toSlice, segmentReader = segmentBytes.cut().createReader())
             //on disk
-            assertReads(keyValues.toSlice, segmentReader = createRandomFileReader(segmentBytes))
+            assertReads(keyValues.toSlice, segmentReader = createRandomFileReader(segmentBytes, Extension.Seg))
         }
       }
     }
@@ -146,7 +147,7 @@ class SegmentBlockSpec extends AnyWordSpec {
           //in memory
           assertReads(keyValues, segmentReader = bytes.createReader())
           //on disk
-          assertReads(keyValues, segmentReader = createRandomFileReader(bytes))
+          assertReads(keyValues, segmentReader = createRandomFileReader(bytes, Extension.Seg))
       }
     }
 
@@ -181,7 +182,7 @@ class SegmentBlockSpec extends AnyWordSpec {
             //in memory
             assertReads(keyValues, segmentReader = bytes.createReader())
             //on disk
-            assertReads(keyValues, segmentReader = createRandomFileReader(bytes))
+            assertReads(keyValues, segmentReader = createRandomFileReader(bytes, Extension.Seg))
         }
       }
     }
@@ -275,7 +276,7 @@ class SegmentBlockSpec extends AnyWordSpec {
                     falsePositiveRate = 0.001,
                     minimumNumberOfKeys = 1,
                     optimalMaxProbe = probe => probe,
-                    ioStrategy = _ => randomIOStrategy(),
+                    ioStrategy = _ => genIOStrategy(),
                     compressions = _ => randomCompressions()
                   )
               ).get
@@ -430,7 +431,7 @@ class SegmentBlockSpec extends AnyWordSpec {
                   ValuesBlockConfig(
                     compressDuplicateValues = true,
                     compressDuplicateRangeValues = randomBoolean(),
-                    ioStrategy = _ => randomIOAccess(),
+                    ioStrategy = _ => genIOAccess(),
                     compressions = _ => Seq.empty
                   )
               ).get

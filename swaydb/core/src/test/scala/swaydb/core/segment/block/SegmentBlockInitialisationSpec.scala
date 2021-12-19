@@ -116,7 +116,7 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
                       searchSortedIndexDirectlyIfPossible = randomBoolean(),
                       minimumNumberOfKeys = generatedKeyValues.size + 1,
                       fullIndex = randomBoolean(),
-                      ioStrategy = _ => randomIOAccess(),
+                      ioStrategy = _ => genIOAccess(),
                       compressions = _ => randomCompressionsOrEmpty()
                     )
                 ).get
@@ -165,7 +165,7 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
                       searchSortedIndexDirectlyIfPossible = randomBoolean(),
                       minimumNumberOfKeys = 0,
                       fullIndex = false,
-                      ioStrategy = _ => randomIOAccess(),
+                      ioStrategy = _ => genIOAccess(),
                       compressions = _ => compressions
                     ),
                   hashIndexConfig =
@@ -175,7 +175,7 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
                       format = randomHashIndexSearchFormat(),
                       minimumNumberOfKeys = 0,
                       minimumNumberOfHits = 0,
-                      ioStrategy = _ => randomIOAccess(),
+                      ioStrategy = _ => genIOAccess(),
                       compressions = _ => compressions
                     )
                 ).get
@@ -222,7 +222,7 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
                       searchSortedIndexDirectlyIfPossible = false,
                       minimumNumberOfKeys = 0,
                       fullIndex = true,
-                      ioStrategy = _ => randomIOAccess(),
+                      ioStrategy = _ => genIOAccess(),
                       compressions = _ => compressions
                     ),
                   hashIndexConfig =
@@ -232,7 +232,7 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
                       minimumNumberOfHits = 0,
                       format = randomHashIndexSearchFormat(),
                       allocateSpace = _.requiredSpace * 20,
-                      ioStrategy = _ => randomIOAccess(),
+                      ioStrategy = _ => genIOAccess(),
                       compressions = _ => compressions
                     ),
                   sortedIndexConfig =
@@ -278,7 +278,7 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
       //                  searchSortedIndexDirectlyIfPossible = randomBoolean(),
       //                  minimumNumberOfKeys = 0,
       //                  fullIndex = false,
-      //                  ioStrategy = _ => randomIOAccess(),
+      //                  ioStrategy = _ => genIOAccess(),
       //                  compressions = _ => compressions
       //                ),
       //              hashIndexConfig =
@@ -288,7 +288,7 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
       //                  minimumNumberOfHits = 0,
       //                  format = randomHashIndexSearchFormat(),
       //                  allocateSpace = _.requiredSpace * 0,
-      //                  ioStrategy = _ => randomIOAccess(),
+      //                  ioStrategy = _ => genIOAccess(),
       //                  compressions = _ => compressions
       //                )
       //            ).get
@@ -334,7 +334,7 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
                       falsePositiveRate = 1,
                       minimumNumberOfKeys = 0,
                       optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-                      ioStrategy = _ => randomIOAccess(),
+                      ioStrategy = _ => genIOAccess(),
                       compressions = _ => randomCompressionsOrEmpty()
                     )
                 ).get
@@ -365,7 +365,7 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
                       falsePositiveRate = 0.001,
                       optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
                       minimumNumberOfKeys = keyValues.size + 1,
-                      ioStrategy = _ => randomIOAccess(),
+                      ioStrategy = _ => genIOAccess(),
                       compressions = _ => randomCompressionsOrEmpty()
                     )
                 ).get
@@ -423,7 +423,7 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
                       falsePositiveRate = 0.001,
                       minimumNumberOfKeys = 0,
                       optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-                      ioStrategy = _ => randomIOAccess(),
+                      ioStrategy = _ => genIOAccess(),
                       compressions = _ => randomCompressionsOrEmpty()
                     )
                 ).get
@@ -465,7 +465,7 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
                         writeAbleLargestValueSize = Int.MaxValue,
                         allocateSpace = _.requiredSpace
                       ),
-                    ioStrategy = _ => randomIOAccess(),
+                    ioStrategy = _ => genIOAccess(),
                     compressions = _ => randomCompressionsOrEmpty()
                   )
               ).get
@@ -500,12 +500,12 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
                     ValuesBlockConfig(
                       compressDuplicateValues = randomBoolean(),
                       compressDuplicateRangeValues = randomBoolean(),
-                      ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
+                      ioStrategy = _ => genIOAccess(cacheOnAccess = true),
                       compressions = _ => compressions.head
                     ),
                   sortedIndexConfig =
                     SortedIndexBlockConfig(
-                      ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
+                      ioStrategy = _ => genIOAccess(cacheOnAccess = true),
                       shouldPrefixCompress = _ => randomBoolean(),
                       enablePrefixCompression = randomBoolean(),
                       optimiseForReverseIteration = randomBoolean(),
@@ -521,7 +521,7 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
                       searchSortedIndexDirectlyIfPossible = randomBoolean(),
                       minimumNumberOfKeys = 1,
                       fullIndex = true,
-                      ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
+                      ioStrategy = _ => genIOAccess(cacheOnAccess = true),
                       compressions = _ => compressions(2)
                     ),
                   hashIndexConfig =
@@ -531,7 +531,7 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
                       minimumNumberOfHits = 2,
                       format = randomHashIndexSearchFormat(),
                       allocateSpace = _.requiredSpace * 10,
-                      ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
+                      ioStrategy = _ => genIOAccess(cacheOnAccess = true),
                       compressions = _ => compressions(3)
                     ),
                   bloomFilterConfig =
@@ -539,13 +539,13 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
                       falsePositiveRate = 0.001,
                       minimumNumberOfKeys = 2,
                       optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-                      ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
+                      ioStrategy = _ => genIOAccess(cacheOnAccess = true),
                       compressions = _ => compressions(4)
                     ),
                   segmentConfig =
                     SegmentBlockConfig.applyInternal(
-                      fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-                      blockIOStrategy = _ => randomIOAccess(cacheOnAccess = true),
+                      fileOpenIOStrategy = genThreadSafeIOStrategy(cacheOnAccess = true),
+                      blockIOStrategy = _ => genIOAccess(cacheOnAccess = true),
                       cacheBlocksOnCreate = false,
                       minSize = randomIntMax(2.mb),
                       maxCount = randomIntMax(1000),

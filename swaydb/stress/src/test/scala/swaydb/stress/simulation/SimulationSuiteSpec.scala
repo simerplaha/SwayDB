@@ -43,7 +43,7 @@
 //  override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
 //                       sweeper: CoreTestSweeper) =
 //    swaydb.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
-//      dir = randomDir(),
+//      dir = genDirPath(),
 //      //      acceleration = Accelerator.brake(),
 //      atomic = Atomic.Off,
 //      //      mmapLogs = MMAP.randomForMap(),
@@ -59,7 +59,7 @@
 //  override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
 //                       sweeper: CoreTestSweeper) =
 //    swaydb.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
-//      dir = randomDir(),
+//      dir = genDirPath(),
 //      //      acceleration = Accelerator.brake(),
 //      atomic = Atomic.On,
 //      //      mmapLogs = MMAP.randomForMap(),
@@ -75,7 +75,7 @@
 //  override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
 //                       sweeper: CoreTestSweeper) =
 //    swaydb.eventually.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
-//      dir = randomDir(),
+//      dir = genDirPath(),
 //      //      acceleration = Accelerator.brake(),
 //      atomic = Atomic.Off,
 //      //      mmapLogs = MMAP.randomForMap(),
@@ -90,7 +90,7 @@
 //  override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
 //                       sweeper: CoreTestSweeper) =
 //    swaydb.eventually.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
-//      dir = randomDir(),
+//      dir = genDirPath(),
 //      //      acceleration = Accelerator.brake(),
 //      atomic = Atomic.On,
 //      //      mmapLogs = MMAP.randomForMap(),

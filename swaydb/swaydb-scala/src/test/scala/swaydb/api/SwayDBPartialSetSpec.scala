@@ -55,7 +55,7 @@
 //  import SwayDBPartialSetSpec._
 //
 //  override def newDB()(implicit sweeper: CoreTestSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass] =
-//    swaydb.persistent.Set[(Int, Option[String]), Nothing, Glass](randomDir(), logSize = 10.bytes).sweep(_.delete())
+//    swaydb.persistent.Set[(Int, Option[String]), Nothing, Glass](genDirPath(), logSize = 10.bytes).sweep(_.delete())
 //}
 //
 //class SwayDBPartialSet_Memory_Spec extends SwayDBPartialSetSpec {

@@ -26,7 +26,6 @@ import swaydb.core.CoreTestSweeper._
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.{ByteBufferSweeperActor, State}
-import swaydb.core.file.CoreFileTestKit.randomIntDirectory
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.level.NextLevel
@@ -39,6 +38,7 @@ import swaydb.core.segment.{CoreFunctionStore, Segment, SegmentOption}
 import swaydb.core.segment.data.{KeyValue, Memory}
 import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.effect.Effect
+import swaydb.effect.EffectTestKit._
 import swaydb.effect.IOValues._
 import swaydb.slice.{Slice, SliceOption}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
@@ -47,6 +47,7 @@ import swaydb.utils.{Extension, OperatingSystem}
 import swaydb.utils.StorageUnits._
 import swaydb.Bag.Async
 import swaydb.core.file.sweeper.FileSweeper
+import swaydb.effect.EffectTestSweeper._
 
 import java.nio.file.Path
 import scala.concurrent.{ExecutionContext, Future}
@@ -237,13 +238,13 @@ object LogTestKit {
   def testLogFilePath()(implicit sweeper: CoreTestSweeper,
                         coreSpecType: CoreSpecType): Path =
     if (coreSpecType.isMemory)
-      randomIntDirectory()
-        .resolve(sweeper.idGenerator.nextId().toString + Extension.Log.dotToString)
+      genIntPath()
+        .resolve(s"${sweeper.idGenerator.nextId()}${Extension.Log.toStringWithDot}")
         .sweep()
     else
       Effect
-        .createDirectoriesIfAbsent(randomIntDirectory())
-        .resolve(sweeper.idGenerator.nextId().toString + Extension.Log.dotToString)
+        .createDirectoriesIfAbsent(genIntPath())
+        .resolve(s"${sweeper.idGenerator.nextId()}${Extension.Log.toStringWithDot}")
         .sweep()
 
   object TestLog {

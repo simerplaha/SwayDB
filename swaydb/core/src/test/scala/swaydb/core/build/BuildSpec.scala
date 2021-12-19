@@ -22,8 +22,8 @@ import swaydb.Error.IO
 import swaydb.Exception.InvalidDirectoryType
 import swaydb.config.DataType
 import swaydb.core.CoreTestSweeper
-import swaydb.core.file.CoreFileTestKit._
 import swaydb.effect.Effect
+import swaydb.effect.EffectTestKit._
 import swaydb.slice.Slice
 import swaydb.testkit.TestKit._
 import swaydb.utils.{ByteSizeOf, Extension}
@@ -42,7 +42,7 @@ class BuildSpec extends AnyWordSpec {
               val version = Build.Version(major = randomIntMax(), minor = randomIntMax(), revision = randomIntMax())
               val buildInfo = Build.Info(version = version, dataType = dataType)
 
-              val folder = randomDir()
+              val folder = genDirPath()
               Build.write(folder, buildInfo).get shouldBe folder.resolve(Build.fileName)
 
               val readBuildInfo = Build.read(folder).get
@@ -54,7 +54,7 @@ class BuildSpec extends AnyWordSpec {
     "fail if build.info already exists" in {
       CoreTestSweeper {
         implicit sweeper =>
-          val folder = createRandomDir()
+          val folder = genDir()
           val file = Effect.createFile(folder.resolve(Build.fileName))
           val fileContent = Effect.readAllBytes(file)
 
@@ -72,7 +72,7 @@ class BuildSpec extends AnyWordSpec {
         CoreTestSweeper {
           implicit sweeper =>
 
-            val folder = randomDir()
+            val folder = genDirPath()
             Effect.exists(folder) shouldBe false
             Build.read(folder).get shouldBe Build.Fresh
         }
@@ -82,7 +82,7 @@ class BuildSpec extends AnyWordSpec {
         CoreTestSweeper {
           implicit sweeper =>
 
-            val folder = createRandomDir()
+            val folder = genDir()
             Effect.exists(folder) shouldBe true
             Build.read(folder).get shouldBe Build.Fresh
         }
@@ -95,7 +95,7 @@ class BuildSpec extends AnyWordSpec {
           implicit sweeper =>
             Extension.all foreach {
               extension =>
-                val folder = createRandomDir()
+                val folder = genDir()
                 val file = Effect.createFile(folder.resolve(s"somefile.$extension"))
 
                 Effect.exists(folder) shouldBe true
@@ -120,7 +120,7 @@ class BuildSpec extends AnyWordSpec {
                 val version = Build.Version(major = randomIntMax(), minor = randomIntMax(), revision = randomIntMax())
                 val buildInfo = Build.Info(version = version, dataType = dataType)
 
-                val folder = randomDir()
+                val folder = genDirPath()
                 val file = Build.write(folder, buildInfo).get
 
                 //drop crc
@@ -139,7 +139,7 @@ class BuildSpec extends AnyWordSpec {
                 val version = Build.Version(major = randomIntMax(), minor = randomIntMax(), revision = randomIntMax())
                 val buildInfo = Build.Info(version = version, dataType = dataType)
 
-                val folder = randomDir()
+                val folder = genDirPath()
                 val file = Build.write(folder, buildInfo).get
 
                 val existsBytes = Effect.readAllBytes(file)
@@ -172,7 +172,7 @@ class BuildSpec extends AnyWordSpec {
                 Extension.all foreach {
                   extension =>
 
-                    val folder = createRandomDir()
+                    val folder = genDir()
                     val file = folder.resolve(s"somefile.$extension")
 
                     Effect.createFile(file)
@@ -197,7 +197,7 @@ class BuildSpec extends AnyWordSpec {
                 val dataType = Random.shuffle(DataType.all.toList).find(_ != invalidDataType).get
 
                 implicit val validator = BuildValidator.DisallowOlderVersions(dataType)
-                val folder = createRandomDir()
+                val folder = genDir()
                 Build.validateOrCreate(folder)
 
                 Effect.exists(folder) shouldBe true
@@ -216,7 +216,7 @@ class BuildSpec extends AnyWordSpec {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>
-                val folder = createRandomDir()
+                val folder = genDir()
                 Effect.exists(folder) shouldBe true
 
                 implicit val validator = BuildValidator.DisallowOlderVersions(dataType)
@@ -234,7 +234,7 @@ class BuildSpec extends AnyWordSpec {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>
-                val folder = randomDir()
+                val folder = genDirPath()
                 Effect.exists(folder) shouldBe false
 
                 implicit val validator = BuildValidator.DisallowOlderVersions(dataType)

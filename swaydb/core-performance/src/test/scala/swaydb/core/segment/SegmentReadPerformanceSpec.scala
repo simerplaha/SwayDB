@@ -298,7 +298,7 @@
 ////        //    }
 ////
 ////        //
-////        //    val file = CoreFile.mmapRead(segment.path, randomIOStrategy(false), true).get
+////        //    val file = CoreFile.mmapRead(segment.path, genIOStrategy(false), true).get
 ////        //
 ////        //
 ////        //    val reader = FileReader(file)

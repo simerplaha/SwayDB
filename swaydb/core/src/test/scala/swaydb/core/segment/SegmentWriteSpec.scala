@@ -331,7 +331,7 @@
 //                  falsePositiveRate = 0.001,
 //                  minimumNumberOfKeys = 0,
 //                  optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-//                  ioStrategy = _ => randomIOStrategy(),
+//                  ioStrategy = _ => genIOStrategy(),
 //                  compressions = _ => randomCompressionsOrEmpty()
 //                ),
 //
@@ -358,7 +358,7 @@
 //                  falsePositiveRate = 0.001,
 //                  minimumNumberOfKeys = 0,
 //                  optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-//                  ioStrategy = _ => randomIOStrategy(),
+//                  ioStrategy = _ => genIOStrategy(),
 //                  compressions = _ => randomCompressionsOrEmpty()
 //                ),
 //
@@ -825,7 +825,7 @@
 //            val keyValuesReadOnly = keyValues
 //
 //            val segment = TestSegment(keyValues).asInstanceOf[PersistentSegment]
-//            val targetPath = createRandomIntDirectory.resolve(nextId + s".${Extension.Seg}")
+//            val targetPath = genIntDir.resolve(nextId + s".${Extension.Seg}")
 //
 //            segment.copyTo(targetPath)
 //            segment.existsOnDisk() shouldBe true
@@ -2007,7 +2007,7 @@
 //
 //          val keyValues2 = Slice(Memory.put(7, 7), Memory.put(8, 8), Memory.put(9, 9), Memory.put(10, 10), Memory.put(11, 11), Memory.put(12, 12))
 //
-//          val dirs = (1 to 6) map (_ => Dir(createRandomIntDirectory, 1))
+//          val dirs = (1 to 6) map (_ => Dir(genIntDir, 1))
 //
 //          val segmentSizeForMerge = Segment.segmentSizeForMerge(segment, randomBoolean())
 //

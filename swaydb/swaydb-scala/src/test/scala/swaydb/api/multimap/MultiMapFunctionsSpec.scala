@@ -34,13 +34,13 @@
 //class MultiMapFunctionsSpec0 extends MultiMapFunctionsSpec {
 //  override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
 //                       sweeper: CoreTestSweeper) =
-//    swaydb.persistent.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](dir = randomDir()).sweep(_.delete())
+//    swaydb.persistent.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](dir = genDirPath()).sweep(_.delete())
 //}
 //
 //class MultiMapFunctionsSpec1 extends MultiMapFunctionsSpec {
 //  override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
 //                       sweeper: CoreTestSweeper) =
-//    swaydb.persistent.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](dir = randomDir(), logSize = 1.byte).sweep(_.delete())
+//    swaydb.persistent.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](dir = genDirPath(), logSize = 1.byte).sweep(_.delete())
 //}
 //
 //class MultiMapFunctionsSpec2 extends MultiMapFunctionsSpec {

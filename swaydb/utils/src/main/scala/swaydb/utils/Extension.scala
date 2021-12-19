@@ -18,7 +18,7 @@ package swaydb.utils
 
 private[swaydb] sealed trait Extension {
 
-  def dotToString: String =
+  def toStringWithDot: String =
     "." + super.toString
 
 }

@@ -32,7 +32,7 @@
 //  val keyValueCount: Int = 10000
 //
 //  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir()).right.value.sweep(_.delete().get)
+//    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = genDirPath()).right.value.sweep(_.delete().get)
 //}
 //
 //class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {

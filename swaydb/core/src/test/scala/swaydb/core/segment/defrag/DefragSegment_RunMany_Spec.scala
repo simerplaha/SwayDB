@@ -46,6 +46,7 @@ import swaydb.core.segment.distributor.PathDistributor
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 import scala.util.Random
+import swaydb.effect.EffectTestKit._
 
 class DefragSegment_RunMany_Spec extends AnyWordSpec {
 

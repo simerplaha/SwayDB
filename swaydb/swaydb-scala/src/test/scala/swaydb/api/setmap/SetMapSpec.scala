@@ -25,7 +25,7 @@
 //
 //class SetMapSpec0 extends SetMapSpec {
 //  override def newDB()(implicit sweeper: CoreTestSweeper): swaydb.SetMap[Int, String, Glass] =
-//    swaydb.persistent.SetMap[Int, String, Glass](randomDir()).sweep(_.delete())
+//    swaydb.persistent.SetMap[Int, String, Glass](genDirPath()).sweep(_.delete())
 //}
 //
 //class SetMapSpec3 extends SetMapSpec {

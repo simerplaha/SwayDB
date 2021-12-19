@@ -455,7 +455,7 @@
 //                TestLevel(
 //                  LevelStorage.Persistent(
 //                    dir = nextLevelPath,
-//                    otherDirs = eitherOne(Seq.empty, Seq(Dir(randomDir(), 1), Dir(randomDir(), 1))),
+//                    otherDirs = eitherOne(Seq.empty, Seq(Dir(genDirPath(), 1), Dir(genDirPath(), 1))),
 //                    appendixMMAP = MMAP.randomForLog(),
 //                    appendixFlushCheckpointSize = 4.mb
 //                  )

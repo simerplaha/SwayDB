@@ -56,7 +56,7 @@
 //
 //          runThis(100.times, log = true) {
 //            //create random path and byte slice
-//            val path = randomFilePath()
+//            val path = genFilePath()
 //
 //            val channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
 //            val buffer = channel.map(MapMode.READ_WRITE, 0, bytes.size)
@@ -104,7 +104,7 @@
 //
 //          runThis(100.times, log = true) {
 //            //create random path and byte slice
-//            val path = randomFilePath()
+//            val path = genFilePath()
 //
 //            val channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
 //

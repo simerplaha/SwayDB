@@ -30,6 +30,7 @@ import swaydb.serializers.Default._
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
+import swaydb.utils.Extension
 
 import scala.util.Random
 
@@ -62,7 +63,7 @@ class BloomFilterBlockSpec extends AnyWordSpec {
 
             Seq(
               BlockRefReader[BloomFilterBlockOffset](filter.blockBytes),
-              BlockRefReader[BloomFilterBlockOffset](createRandomFileReader(filter.blockBytes), blockCache)
+              BlockRefReader[BloomFilterBlockOffset](createRandomFileReader(filter.blockBytes, Extension.Seg), blockCache)
             ) foreach {
               reader =>
                 val bloom = Block.unblock[BloomFilterBlockOffset, BloomFilterBlock](reader)
@@ -98,7 +99,7 @@ class BloomFilterBlockSpec extends AnyWordSpec {
 
             Seq(
               BlockRefReader[BloomFilterBlockOffset](state.blockBytes),
-              BlockRefReader[BloomFilterBlockOffset](createRandomFileReader(state.blockBytes), blockCache)
+              BlockRefReader[BloomFilterBlockOffset](createRandomFileReader(state.blockBytes, Extension.Seg), blockCache)
             ) foreach {
               reader =>
                 val bloom = Block.unblock[BloomFilterBlockOffset, BloomFilterBlock](reader)
@@ -314,7 +315,7 @@ class BloomFilterBlockSpec extends AnyWordSpec {
 
           Seq(
             BlockRefReader[BloomFilterBlockOffset](state.blockBytes),
-            BlockRefReader[BloomFilterBlockOffset](createRandomFileReader(state.blockBytes), blockCache)
+            BlockRefReader[BloomFilterBlockOffset](createRandomFileReader(state.blockBytes, Extension.Seg), blockCache)
           ) foreach {
             blockRefReader =>
               val reader = Block.unblock[BloomFilterBlockOffset, BloomFilterBlock](blockRefReader)

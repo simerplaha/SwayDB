@@ -27,6 +27,7 @@ import swaydb.slice.{Slice, SliceRO, Slices}
 import swaydb.slice.SliceTestKit._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
+import swaydb.utils.Extension
 import swaydb.utils.StorageUnits._
 import swaydb.utils.UtilsTestKit._
 
@@ -126,7 +127,7 @@ class BlockCacheSpec extends AnyWordSpec {
       CoreTestSweeper {
         implicit sweeper =>
           val bytes: Slice[Byte] = Slice.range(Bytes.zero, Byte.MaxValue)
-          val file = invokePrivate_file(createRandomFileReader(bytes)).toBlockCacheSource
+          val file = invokePrivate_file(createRandomFileReader(bytes, Extension.Seg)).toBlockCacheSource
 
           val blockSize = 10
 
@@ -199,7 +200,7 @@ class BlockCacheSpec extends AnyWordSpec {
         implicit val specType: CoreSpecType = _specType
 
         val bytes: Slice[Byte] = Slice.range(Bytes.zero, Byte.MaxValue)
-        val file = invokePrivate_file(createRandomFileReader(bytes))
+        val file = invokePrivate_file(createRandomFileReader(bytes, Extension.Seg))
         runThis(500.times, log = true) {
           val blockSize = randomIntMax(bytes.size * 2)
 

@@ -79,10 +79,10 @@
 //        CoreTestSweeper {
 //          implicit sweeper =>
 //
-//            val otherDirs = (0 to randomIntMax(5)) map (_ => Dir(randomDir(), 1))
+//            val otherDirs = (0 to randomIntMax(5)) map (_ => Dir(genDirPath(), 1))
 //            val storage =
 //              LevelStorage.Persistent(
-//                dir = randomDir(),
+//                dir = genDirPath(),
 //                otherDirs = otherDirs,
 //                appendixMMAP = MMAP.randomForLog(),
 //                appendixFlushCheckpointSize = 4.mb

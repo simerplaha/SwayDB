@@ -57,7 +57,7 @@ object SegmentBlockTestKit {
       ValuesBlockConfig(
         compressDuplicateValues = randomBoolean(),
         compressDuplicateRangeValues = randomBoolean(),
-        ioStrategy = _ => randomIOStrategy(cacheOnAccess),
+        ioStrategy = _ => genIOStrategy(cacheOnAccess),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -70,7 +70,7 @@ object SegmentBlockTestKit {
                cacheOnAccess: Boolean = randomBoolean(),
                shouldPrefixCompress: Boolean = randomBoolean()): SortedIndexBlockConfig =
       SortedIndexBlockConfig(
-        ioStrategy = _ => randomIOStrategy(cacheOnAccess),
+        ioStrategy = _ => genIOStrategy(cacheOnAccess),
         enablePrefixCompression = randomBoolean(),
         optimiseForReverseIteration = randomBoolean(),
         shouldPrefixCompress = _ => shouldPrefixCompress,
@@ -92,7 +92,7 @@ object SegmentBlockTestKit {
         minimumNumberOfKeys = randomIntMax(5),
         searchSortedIndexDirectlyIfPossible = randomBoolean(),
         fullIndex = randomBoolean(),
-        ioStrategy = _ => randomIOStrategy(cacheOnAccess),
+        ioStrategy = _ => genIOStrategy(cacheOnAccess),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -108,7 +108,7 @@ object SegmentBlockTestKit {
         minimumNumberOfHits = randomIntMax(5),
         format = randomHashIndexSearchFormat(),
         allocateSpace = _.requiredSpace * randomIntMax(3),
-        ioStrategy = _ => randomIOStrategy(cacheOnAccess),
+        ioStrategy = _ => genIOStrategy(cacheOnAccess),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -122,7 +122,7 @@ object SegmentBlockTestKit {
         falsePositiveRate = Random.nextDouble() min 0.5,
         minimumNumberOfKeys = randomIntMax(5),
         optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-        ioStrategy = _ => randomIOStrategy(cacheOnAccess),
+        ioStrategy = _ => genIOStrategy(cacheOnAccess),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -142,8 +142,8 @@ object SegmentBlockTestKit {
                segmentRefCacheLife: SegmentRefCacheLife = randomSegmentRefCacheLife(),
                initialiseIteratorsInOneSeek: Boolean = randomBoolean()): SegmentBlockConfig =
       SegmentBlockConfig.applyInternal(
-        fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess),
-        blockIOStrategy = _ => randomIOStrategy(cacheOnAccess),
+        fileOpenIOStrategy = genThreadSafeIOStrategy(cacheOnAccess),
+        blockIOStrategy = _ => genIOStrategy(cacheOnAccess),
         cacheBlocksOnCreate = cacheBlocksOnCreate,
         minSize = minSegmentSize,
         maxCount = maxKeyValuesPerSegment,
@@ -155,8 +155,8 @@ object SegmentBlockTestKit {
         initialiseIteratorsInOneSeek = initialiseIteratorsInOneSeek
       )
 
-    def random2(fileOpenIOStrategy: IOStrategy.ThreadSafe = randomThreadSafeIOStrategy(),
-                blockIOStrategy: IOAction => IOStrategy = _ => randomIOStrategy(),
+    def random2(fileOpenIOStrategy: IOStrategy.ThreadSafe = genThreadSafeIOStrategy(),
+                blockIOStrategy: IOAction => IOStrategy = _ => genIOStrategy(),
                 cacheBlocksOnCreate: Boolean = randomBoolean(),
                 compressions: UncompressedBlockInfo => Iterable[CoreCompression] = _ => randomCompressionsOrEmpty(),
                 maxKeyValuesPerSegment: Int = randomIntMax(1000000),

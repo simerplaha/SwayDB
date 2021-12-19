@@ -155,7 +155,7 @@ class SegmentBlockCacheSpec extends AnyWordSpec {
             val keyValues = randomizedKeyValues(100, startId = Some(1))
             val segmentConfig =
               SegmentBlockConfig.random2(
-                blockIOStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false),
+                blockIOStrategy = _ => genIOStrategyWithCacheOnAccess(cacheOnAccess = false),
                 cacheBlocksOnCreate = false,
                 compressions = _ => randomCompressions()
               )
@@ -163,11 +163,11 @@ class SegmentBlockCacheSpec extends AnyWordSpec {
             val blockCache =
               getSegmentBlockCacheSingle(
                 keyValues = keyValues,
-                valuesConfig = ValuesBlockConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
-                sortedIndexConfig = SortedIndexBlockConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
-                binarySearchIndexConfig = BinarySearchIndexBlockConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
-                hashIndexConfig = HashIndexBlockConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
-                bloomFilterConfig = BloomFilterBlockConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
+                valuesConfig = ValuesBlockConfig.random.copy(ioStrategy = _ => genIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
+                sortedIndexConfig = SortedIndexBlockConfig.random.copy(ioStrategy = _ => genIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
+                binarySearchIndexConfig = BinarySearchIndexBlockConfig.random.copy(ioStrategy = _ => genIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
+                hashIndexConfig = HashIndexBlockConfig.random.copy(ioStrategy = _ => genIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
+                bloomFilterConfig = BloomFilterBlockConfig.random.copy(ioStrategy = _ => genIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
                 segmentConfig = segmentConfig
               )
 
@@ -244,12 +244,12 @@ class SegmentBlockCacheSpec extends AnyWordSpec {
             val blockCache =
               getSegmentBlockCacheSingle(
                 keyValues,
-                valuesConfig = ValuesBlockConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
-                sortedIndexConfig = SortedIndexBlockConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
-                binarySearchIndexConfig = BinarySearchIndexBlockConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
-                hashIndexConfig = HashIndexBlockConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
-                bloomFilterConfig = BloomFilterBlockConfig.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
-                segmentConfig = SegmentBlockConfig.random2(blockIOStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true), cacheBlocksOnCreate = false, compressions = _ => randomCompressions())
+                valuesConfig = ValuesBlockConfig.random.copy(ioStrategy = _ => genIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
+                sortedIndexConfig = SortedIndexBlockConfig.random.copy(ioStrategy = _ => genIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
+                binarySearchIndexConfig = BinarySearchIndexBlockConfig.random.copy(ioStrategy = _ => genIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
+                hashIndexConfig = HashIndexBlockConfig.random.copy(ioStrategy = _ => genIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
+                bloomFilterConfig = BloomFilterBlockConfig.random.copy(ioStrategy = _ => genIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
+                segmentConfig = SegmentBlockConfig.random2(blockIOStrategy = _ => genIOStrategyWithCacheOnAccess(cacheOnAccess = true), cacheBlocksOnCreate = false, compressions = _ => randomCompressions())
               )
 
             blockCache.isCached shouldBe false

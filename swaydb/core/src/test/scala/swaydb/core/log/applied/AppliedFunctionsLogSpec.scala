@@ -33,6 +33,7 @@ import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 import swaydb.utils.StorageUnits._
+import swaydb.effect.EffectTestKit._
 
 class AppliedFunctionsLogSpec extends AnyWordSpec {
 
@@ -48,7 +49,7 @@ class AppliedFunctionsLogSpec extends AnyWordSpec {
 
         val mapResult =
           AppliedFunctionsLog(
-            dir = randomDir(),
+            dir = genDirPath(),
             fileSize = randomIntMax(1.kb) max 1,
             mmap = MMAP.randomForLog()
           )

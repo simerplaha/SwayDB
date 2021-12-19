@@ -25,9 +25,9 @@ import scala.collection.mutable.ListBuffer
 object ActorTestSweeper extends LazyLogging {
 
   def apply[T](code: ActorTestSweeper => T): T = {
-    val sweeper = new ActorTestSweeper()
+    val sweeper = new ActorTestSweeper {}
     val result = code(sweeper)
-    sweeper.close()
+    sweeper.terminateAllActors()
     result
   }
 
@@ -41,7 +41,6 @@ object ActorTestSweeper extends LazyLogging {
       sweeper sweepActor actor
   }
 
-
   implicit class ActorWiresSweeperImplicits[T](actor: DefActor[T]) {
     def sweep()(implicit sweeper: ActorTestSweeper): DefActor[T] =
       sweeper sweepActor actor
@@ -49,11 +48,15 @@ object ActorTestSweeper extends LazyLogging {
 
 }
 
-class ActorTestSweeper(private val schedulers: ListBuffer[CacheUnsafe[Unit, Scheduler]] = ListBuffer(Cache.unsafe[Unit, Scheduler](true, true, None)((_, _) => Scheduler())),
-                       private val actors: ListBuffer[ActorRef[_, _]] = ListBuffer.empty,
-                       private val defActors: ListBuffer[DefActor[_]] = ListBuffer.empty) extends AutoCloseable with LazyLogging {
+trait ActorTestSweeper extends LazyLogging {
 
-  private def removeReplaceCache[I, O](sweepers: ListBuffer[CacheUnsafe[I, O]], replace: O): O = {
+  private val schedulers: ListBuffer[CacheUnsafe[Unit, Scheduler]] = ListBuffer(Cache.unsafe[Unit, Scheduler](true, true, None)((_, _) => Scheduler()))
+  private val actors: ListBuffer[ActorRef[_, _]] = ListBuffer.empty
+  private val defActors: ListBuffer[DefActor[_]] = ListBuffer.empty
+
+  implicit lazy val scheduler: Scheduler = schedulers.head.getOrFetch(())
+
+  protected def removeReplaceCache[I, O](sweepers: ListBuffer[CacheUnsafe[I, O]], replace: O): O = {
     if (sweepers.lastOption.exists(_.get().isEmpty))
       sweepers.remove(0)
 
@@ -78,7 +81,7 @@ class ActorTestSweeper(private val schedulers: ListBuffer[CacheUnsafe[Unit, Sche
   /**
    * Terminates all sweepers immediately.
    */
-  def close(): Unit = {
+  def terminateAllActors(): Unit = {
     logger.info(s"Terminating ${classOf[ActorTestSweeper].getSimpleName}")
 
     actors.foreach(_.terminateAndClear[Glass]())

@@ -32,6 +32,7 @@ import swaydb.testkit.TestKit._
 import swaydb.utils.StorageUnits._
 
 import scala.collection.mutable.ListBuffer
+import swaydb.effect.EffectTestKit._
 
 class CounterLogSpec extends AnyWordSpec {
 
@@ -71,7 +72,7 @@ class CounterLogSpec extends AnyWordSpec {
 
           val map =
             CounterLog.persistent(
-              dir = randomDir(),
+              dir = genDirPath(),
               fileSize = randomIntMax(100) max 1,
               mmap = MMAP.randomForLog(),
               mod = mod
@@ -104,7 +105,7 @@ class CounterLogSpec extends AnyWordSpec {
 
           val map =
             CounterLog.persistent(
-              dir = randomDir(),
+              dir = genDirPath(),
               fileSize = randomIntMax(1.kb) max 1,
               mmap = MMAP.randomForLog(),
               mod = mod

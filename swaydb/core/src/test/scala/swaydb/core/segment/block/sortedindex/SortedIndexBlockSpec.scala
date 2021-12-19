@@ -64,7 +64,7 @@ class SortedIndexBlockSpec extends AnyWordSpec {
               prefixCompression = prefixCompression,
               enablePositionIndex = randomBoolean(),
               optimiseForReverseIteration = randomBoolean(),
-              blockIOStrategy = _ => randomIOStrategy(),
+              blockIOStrategy = _ => genIOStrategy(),
               compressions = _ => eitherOne(Seq.empty, Seq(Compression.LZ4((LZ4Instance.Fastest, LZ4Compressor.Fast(Int.MinValue)), (LZ4Instance.Fastest, LZ4Decompressor.Fast))))
             )
           )
@@ -79,7 +79,7 @@ class SortedIndexBlockSpec extends AnyWordSpec {
         //internal creation
         val internalConfig =
           SortedIndexBlockConfig(
-            ioStrategy = _ => randomIOStrategy(),
+            ioStrategy = _ => genIOStrategy(),
             //prefix compression is enabled, so normaliseIndex even though true will set to false in the Config.
             shouldPrefixCompress = prefixCompression.interval.shouldCompress,
             prefixCompressKeysOnly = randomBoolean(),
@@ -106,7 +106,7 @@ class SortedIndexBlockSpec extends AnyWordSpec {
               prefixCompression = prefixCompression,
               enablePositionIndex = randomBoolean(),
               optimiseForReverseIteration = randomBoolean(),
-              blockIOStrategy = _ => randomIOStrategy(),
+              blockIOStrategy = _ => genIOStrategy(),
               compressions = _ => eitherOne(Seq.empty, Seq(Compression.LZ4((LZ4Instance.Fastest, LZ4Compressor.Fast(Int.MinValue)), (LZ4Instance.Fastest, LZ4Decompressor.Fast))))
             )
           )
@@ -121,7 +121,7 @@ class SortedIndexBlockSpec extends AnyWordSpec {
         //internal creation
         val internalConfig =
           SortedIndexBlockConfig(
-            ioStrategy = _ => randomIOStrategy(),
+            ioStrategy = _ => genIOStrategy(),
             //prefix compression is disabled, normaliseIndex will always return true.
             shouldPrefixCompress = _ => false,
             prefixCompressKeysOnly = randomBoolean(),

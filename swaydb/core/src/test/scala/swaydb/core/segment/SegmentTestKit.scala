@@ -43,6 +43,7 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
+import swaydb.effect.EffectTestKit._
 
 object SegmentTestKit {
 
@@ -58,14 +59,14 @@ object SegmentTestKit {
     def random(cacheOnAccess: Boolean = randomBoolean(),
                includeReserved: Boolean = true): SegmentReadIO =
       SegmentReadIO(
-        fileOpenIO = randomThreadSafeIOStrategy(cacheOnAccess, includeReserved),
-        segmentBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
-        hashIndexBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
-        bloomFilterBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
-        binarySearchIndexBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
-        sortedIndexBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
-        valuesBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
-        segmentFooterBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved)
+        fileOpenIO = genThreadSafeIOStrategy(cacheOnAccess, includeReserved),
+        segmentBlockIO = _ => genIOStrategy(cacheOnAccess, includeReserved),
+        hashIndexBlockIO = _ => genIOStrategy(cacheOnAccess, includeReserved),
+        bloomFilterBlockIO = _ => genIOStrategy(cacheOnAccess, includeReserved),
+        binarySearchIndexBlockIO = _ => genIOStrategy(cacheOnAccess, includeReserved),
+        sortedIndexBlockIO = _ => genIOStrategy(cacheOnAccess, includeReserved),
+        valuesBlockIO = _ => genIOStrategy(cacheOnAccess, includeReserved),
+        segmentFooterBlockIO = _ => genIOStrategy(cacheOnAccess, includeReserved)
       )
   }
 

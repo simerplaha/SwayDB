@@ -37,9 +37,9 @@
 //    val bytes = randomByteChunks(size = 20000, sizePerChunk = 50.bytes)
 //
 //    "write key values to a StandardFile" in {
-//      val path = randomFilePath()
+//      val path = genFilePath()
 //
-//      val file = CoreFile.standardWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
+//      val file = CoreFile.standardWrite(path, genIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
 //      Benchmark("write 1 million key values to a StandardFile") {
 //        bytes foreach {
 //          byteChunk =>
@@ -50,9 +50,9 @@
 //    }
 //
 //    "write key values to a StandardFile concurrently" in {
-//      val path = randomFilePath()
+//      val path = genFilePath()
 //
-//      val file = CoreFile.standardWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
+//      val file = CoreFile.standardWrite(path, genIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
 //      Benchmark("write 1 million key values to a StandardFile concurrently") {
 //        Future.sequence {
 //          bytes map {
@@ -65,12 +65,12 @@
 //    }
 //
 //    "write key values to a MMAPlFile" in {
-//      val path = randomFilePath()
+//      val path = genFilePath()
 //
 //      val file =
 //        CoreFile.mmapInit(
 //          path = path,
-//          ioStrategy = randomIOAccess(true),
+//          ioStrategy = genIOAccess(true),
 //          bufferSize = bytes.size * 50,
 //          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
 //          autoClose = false,
@@ -87,12 +87,12 @@
 //    }
 //
 //    "write key values to a MMAPlFile concurrently" in {
-//      val path = randomFilePath()
+//      val path = genFilePath()
 //
 //      val file =
 //        CoreFile.mmapInit(
 //          path = path,
-//          ioStrategy = randomIOAccess(true),
+//          ioStrategy = genIOAccess(true),
 //          bufferSize = bytes.size * 50,
 //          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
 //          autoClose = false,

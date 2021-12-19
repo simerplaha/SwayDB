@@ -41,6 +41,7 @@ import swaydb.utils.{Extension, OperatingSystem}
 import swaydb.utils.StorageUnits._
 
 import java.nio.file.NoSuchFileException
+import swaydb.effect.EffectTestKit._
 
 class LogsSpec extends AnyWordSpec {
 
@@ -60,7 +61,7 @@ class LogsSpec extends AnyWordSpec {
           implicit sweeper =>
             import sweeper._
 
-            val path = createRandomDir()
+            val path = genDir()
             val logs: Logs[Slice[Byte], Memory, LevelZeroLogCache] =
               Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 path = path,
@@ -115,7 +116,7 @@ class LogsSpec extends AnyWordSpec {
         CoreTestSweeper {
           implicit sweeper =>
             import sweeper._
-            val path = createRandomDir()
+            val path = genDir()
             val logs =
               Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 path = path,
@@ -193,7 +194,7 @@ class LogsSpec extends AnyWordSpec {
           }
 
           //persistent
-          val path = createRandomDir()
+          val path = genDir()
           val logs =
             Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               path = path,
@@ -251,7 +252,7 @@ class LogsSpec extends AnyWordSpec {
               logs
             }
 
-            val path = createRandomDir()
+            val path = genDir()
             //persistent
 
             val originalLogs =
@@ -301,7 +302,7 @@ class LogsSpec extends AnyWordSpec {
           implicit sweeper =>
             import sweeper._
 
-            val path = createRandomDir()
+            val path = genDir()
             val logs =
               Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 path = path,
@@ -368,7 +369,7 @@ class LogsSpec extends AnyWordSpec {
           implicit sweeper =>
             import sweeper._
 
-            val path = createRandomDir()
+            val path = genDir()
             val logs =
               Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 path = path,
@@ -413,7 +414,7 @@ class LogsSpec extends AnyWordSpec {
         CoreTestSweeper {
           implicit sweeper =>
             import sweeper._
-            val path = createRandomDir()
+            val path = genDir()
             val logs =
               Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 path = path,
@@ -452,7 +453,7 @@ class LogsSpec extends AnyWordSpec {
         CoreTestSweeper {
           implicit sweeper =>
             import sweeper._
-            val path = createRandomDir()
+            val path = genDir()
             val logs =
               Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
                 path = path,
@@ -510,7 +511,7 @@ class LogsSpec extends AnyWordSpec {
       CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
-          val path = createRandomDir()
+          val path = genDir()
           val logs =
             Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               path = path,
@@ -560,7 +561,7 @@ class LogsSpec extends AnyWordSpec {
       CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
-          val path = createRandomDir()
+          val path = genDir()
           val logs =
             Logs.persistent[Slice[Byte], Memory, LevelZeroLogCache](
               path = path,

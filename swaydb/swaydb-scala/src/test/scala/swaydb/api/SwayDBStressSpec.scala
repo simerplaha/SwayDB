@@ -28,7 +28,7 @@
 ////  val keyValueCount: Int = 100000
 ////
 ////  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, IO] =
-////    swaydb.persistent.Map[Int, String](dir = randomDir()).runIO
+////    swaydb.persistent.Map[Int, String](dir = genDirPath()).runIO
 ////}
 ////
 ////class SwayDBStressSpec1 extends SwayDBStressSpec {
@@ -36,7 +36,7 @@
 ////  val keyValueCount: Int = 100000
 ////
 ////  override def newDB()(implicit sweeper: CoreTestSweeper): Map[Int, String, IO] =
-////    swaydb.persistent.Map[Int, String](randomDir(), logSize = 1.byte).runIO
+////    swaydb.persistent.Map[Int, String](genDirPath(), logSize = 1.byte).runIO
 ////}
 ////
 ////class SwayDBStressSpec2 extends SwayDBStressSpec {

@@ -67,7 +67,7 @@
 //                    keySerializer: Serializer[K],
 //                    valueSerializer: Serializer[V],
 //                    sweeper: CoreTestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
-//    swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](randomDir()).right.value.sweep(_.delete().get)
+//    swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](genDirPath()).right.value.sweep(_.delete().get)
 //}
 //
 //class SwayDBFunctionSpec1 extends SwayDBFunctionSpec {
@@ -76,7 +76,7 @@
 //                    keySerializer: Serializer[K],
 //                    valueSerializer: Serializer[V],
 //                    sweeper: CoreTestSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
-//    swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](randomDir(), logSize = 1.byte).right.value.sweep(_.delete().get)
+//    swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](genDirPath(), logSize = 1.byte).right.value.sweep(_.delete().get)
 //}
 //
 //class SwayDBFunctionSpec2 extends SwayDBFunctionSpec {

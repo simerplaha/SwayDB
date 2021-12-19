@@ -25,6 +25,7 @@ import swaydb.core.log.counter.CounterLog
 import swaydb.core.log.serialiser.{CounterLogEntryReader, CounterLogEntryWriter}
 import swaydb.core.log.LogTestKit.ReopenTimer
 import swaydb.utils.OperatingSystem
+import swaydb.effect.EffectTestKit._
 
 class TimerSpec extends AnyFlatSpec {
 
@@ -46,7 +47,7 @@ class TimerSpec extends AnyFlatSpec {
               nextTime.readUnsignedLong() shouldBe i
           }
 
-        val dir = randomDir()
+        val dir = genDirPath()
 
         val timer: Timer =
           specType match {

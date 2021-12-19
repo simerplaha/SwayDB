@@ -33,7 +33,7 @@
 //  "initialising caches" in {
 //    Benchmark.time("initialising caches") {
 //      runThis(range.size.times) {
-//        Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](None, _ => randomIOStrategy(), swaydb.Error.ReservedResource(Reserve.free(name = "test")))() {
+//        Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](None, _ => genIOStrategy(), swaydb.Error.ReservedResource(Reserve.free(name = "test")))() {
 //          (int, self) =>
 //            IO.Right(int)
 //        }

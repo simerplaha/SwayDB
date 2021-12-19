@@ -33,6 +33,7 @@ import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.StandardOpenOption
 import java.util.concurrent.atomic.AtomicBoolean
+import swaydb.effect.EffectTestKit._
 
 class MMAPFileSpec extends AnyWordSpec with MockFactory {
 
@@ -43,7 +44,7 @@ class MMAPFileSpec extends AnyWordSpec with MockFactory {
           implicit sweeper =>
             runThis(50.times, log = true) {
               //create random path and byte slice
-              val path = randomFilePath()
+              val path = genFilePath()
               val bytes = randomBytesSlice(10.mb)
 
               /**
@@ -99,7 +100,7 @@ class MMAPFileSpec extends AnyWordSpec with MockFactory {
                 Seq(
                   () => {
                     //copy file to another path
-                    val path2 = Effect.copy(path, randomFilePath())
+                    val path2 = Effect.copy(path, genFilePath())
                     Slice.wrap(Effect.readAllBytes(path2)) shouldBe bytes
                   },
                   () =>
