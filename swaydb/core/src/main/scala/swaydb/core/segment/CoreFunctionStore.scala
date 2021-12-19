@@ -16,7 +16,6 @@
 
 package swaydb.core.segment
 
-import swaydb.OK
 import swaydb.core.segment.data.{SegmentFunction, Value}
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
@@ -32,12 +31,12 @@ import scala.jdk.CollectionConverters._
  *
  * Missing functions will be reported with their functionId.
  */
-private[swaydb] abstract class CoreFunctionStore {
+private[swaydb] trait CoreFunctionStore {
   def get(functionId: Slice[Byte]): Option[SegmentFunction]
   def get(functionId: String): Option[SegmentFunction]
 
-  def put(functionId: Slice[Byte], function: SegmentFunction): OK
-  def put(functionId: String, function: SegmentFunction): OK
+  def put(functionId: Slice[Byte], function: SegmentFunction): Unit
+  def put(functionId: String, function: SegmentFunction): Unit
 
   def remove(functionId: Slice[Byte]): SegmentFunction
 
@@ -97,13 +96,11 @@ private[swaydb] object CoreFunctionStore {
     override def get(functionId: Slice[Byte]): Option[SegmentFunction] =
       Option(hashMap.get(functionId))
 
-    override def put(functionId: String, function: SegmentFunction): OK =
+    override def put(functionId: String, function: SegmentFunction): Unit =
       put(Slice.writeString(functionId), function)
 
-    override def put(functionId: Slice[Byte], function: SegmentFunction): OK =
-      if (hashMap.putIfAbsent(functionId, function) == null)
-        OK.instance
-      else
+    override def put(functionId: Slice[Byte], function: SegmentFunction): Unit =
+      if (hashMap.putIfAbsent(functionId, function) != null)
         throw new IllegalArgumentException(s"Duplicate functionId '${functionId.readString()}'. functionId should be unique.")
 
     override def contains(functionId: Slice[Byte]): Boolean =
