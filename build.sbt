@@ -151,7 +151,7 @@ lazy val SwayDB =
       `swaydb-scala`,
       //      `swaydb-java`,
       configs,
-      serializers,
+      serializer,
       `interop-boopickle`,
       `interop-monix`,
       `interop-zio`,
@@ -205,7 +205,7 @@ lazy val core =
       testkit % Test,
       macros % "test->test;compile-internal",
       configs % Test,
-      serializers % Test
+      serializer % Test
     )
 
 lazy val `core-config` =
@@ -234,7 +234,7 @@ lazy val `core-skiplist` =
       effect,
       slice,
       testkit % Test,
-      serializers % Test
+      serializer % Test
     )
 
 lazy val `core-series` =
@@ -246,7 +246,7 @@ lazy val `core-series` =
     .dependsOn(
       effect % Test,
       testkit % Test,
-      serializers % Test
+      serializer % Test
     )
 
 lazy val `core-queue` =
@@ -303,7 +303,7 @@ lazy val `swaydb-scala` =
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(
-      serializers,
+      serializer,
       configs,
       stream,
       core % "test->test;compile->compile",
@@ -324,9 +324,9 @@ lazy val configs =
     .settings(publishSettings)
     .dependsOn(`core-config`)
 
-lazy val serializers =
+lazy val serializer =
   project
-    .in(file("swaydb/serializers"))
+    .in(file("swaydb/serializer"))
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(slice)
@@ -356,7 +356,7 @@ lazy val `core-compression` =
           :+ "org.lz4" % "lz4-java" % lz4Version
           :+ "org.xerial.snappy" % "snappy-java" % snappyVersion
     )
-    .dependsOn(`core-config`, serializers % Test)
+    .dependsOn(`core-config`, serializer % Test)
 
 lazy val macros =
   project
@@ -418,7 +418,7 @@ lazy val `interop-boopickle` =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies += "io.suzaku" %% "boopickle" % boopickleVersion)
-    .dependsOn(serializers, slice)
+    .dependsOn(serializer, slice)
 
 lazy val tools =
   project
