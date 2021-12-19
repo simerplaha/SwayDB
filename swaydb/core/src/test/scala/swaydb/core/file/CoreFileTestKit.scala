@@ -25,12 +25,12 @@ object CoreFileTestKit {
     if (Random.nextBoolean())
       createMMAPFileReader(path)
     else
-      createStandardFileFileReader(path)
+      createStandardFileReader(path)
 
   def createFileReaders(path: Path)(implicit sweeper: CoreTestSweeper): TestTuple2[FileReader] =
     TestTuple2(
       left = createMMAPFileReader(path),
-      right = createStandardFileFileReader(path)
+      right = createStandardFileReader(path)
     )
 
   def createMMAPFileReader(bytes: Slice[Byte], extension: Extension)(implicit sweeper: CoreTestSweeper): FileReader =
@@ -132,10 +132,10 @@ object CoreFileTestKit {
     new FileReader(file = file)
   }
 
-  def createStandardFileFileReader(bytes: Slice[Byte], extension: Extension)(implicit sweeper: CoreTestSweeper): FileReader =
-    createStandardFileFileReader(genFile(bytes, extension))
+  def createStandardFileReader(bytes: Slice[Byte], extension: Extension)(implicit sweeper: CoreTestSweeper): FileReader =
+    createStandardFileReader(genFile(bytes, extension))
 
-  def createStandardFileFileReader(path: Path)(implicit sweeper: CoreTestSweeper): FileReader = {
+  def createStandardFileReader(path: Path)(implicit sweeper: CoreTestSweeper): FileReader = {
     import sweeper._
 
     val file =
