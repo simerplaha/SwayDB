@@ -447,7 +447,7 @@
 //              assert =
 //                (keyValues, segment) => {
 //                  val failedKV = randomKeyValues(keyValuesCount, addRemoves = true)
-//                  val reopenedSegment = IO(TestSegment(failedKV, path = segment.path))
+//                  val reopenedSegment = IO(GenSegment(failedKV, path = segment.path))
 //                  reopenedSegment.left.right.value.exception shouldBe a[FileAlreadyExistsException]
 //                  //data remained unchanged
 //                  assertReads(keyValues, segment)
@@ -551,7 +551,7 @@
 //            bufferCleaner.actor
 //
 //            //create a segment and delete it
-//            val segment = TestSegment(randomizedKeyValues(100))
+//            val segment = GenSegment(randomizedKeyValues(100))
 //            segment.delete()
 //
 //            eventual(20.seconds) {
@@ -570,9 +570,9 @@
 //
 //            implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds).sweep()
 //
-//            val segment1 = TestSegment(randomizedKeyValues(keyValuesCount))
-//            val segment2 = TestSegment(randomizedKeyValues(keyValuesCount))
-//            val segment3 = TestSegment(randomizedKeyValues(keyValuesCount))
+//            val segment1 = GenSegment(randomizedKeyValues(keyValuesCount))
+//            val segment2 = GenSegment(randomizedKeyValues(keyValuesCount))
+//            val segment3 = GenSegment(randomizedKeyValues(keyValuesCount))
 //
 //            val deleted = Segment.deleteSegments(Seq(segment1, segment2, segment3))
 //            deleted shouldBe 3
@@ -605,7 +605,7 @@
 //          implicit val fileSweeper = FileSweeper(50, ActorConfig.TimeLoop("", 10.seconds, TestExecutionContext.executionContext)).sweep()
 //
 //          val keyValues = randomizedKeyValues(keyValuesCount)
-//          val segment = TestSegment(keyValues)
+//          val segment = GenSegment(keyValues)
 //
 //          def close(): Unit = {
 //            segment.close()
@@ -652,7 +652,7 @@
 //          val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random(mmap = mmapSegments)
 //
 //          val segment =
-//            TestSegment(
+//            GenSegment(
 //              keyValues = keyValues,
 //              valuesConfig = valuesConfig,
 //              sortedIndexConfig = sortedIndexConfig,
@@ -750,7 +750,7 @@
 //            val segmentConfig = SegmentBlockConfig.random(cacheBlocksOnCreate = true, mmap = MMAP.Off(TestForceSave.standard()), cacheOnAccess = true)
 //
 //            val segment1 =
-//              TestSegment(
+//              GenSegment(
 //                keyValues = keyValues,
 //                segmentConfig = segmentConfig
 //              )
@@ -760,7 +760,7 @@
 //            segment1.isOpen shouldBe !segmentConfig.cacheBlocksOnCreate
 //
 //            //create another segment should close segment 1
-//            val segment2 = TestSegment(keyValues)
+//            val segment2 = GenSegment(keyValues)
 //            segment2.keyValueCount shouldBe keyValues.size
 //
 //            eventual(5.seconds) {
@@ -796,7 +796,7 @@
 //          ByteBufferSweeper(messageReschedule = 0.seconds).sweep()
 //
 //          val keyValues = randomizedKeyValues(keyValuesCount)
-//          val segment = TestSegment(keyValues)
+//          val segment = GenSegment(keyValues)
 //          assertReads(keyValues, segment) //populate the cache
 //
 //          segment.cachedKeyValueSize shouldBe keyValues.size
@@ -824,7 +824,7 @@
 //            val keyValues = randomizedKeyValues(keyValuesCount)
 //            val keyValuesReadOnly = keyValues
 //
-//            val segment = TestSegment(keyValues).asInstanceOf[PersistentSegment]
+//            val segment = GenSegment(keyValues).asInstanceOf[PersistentSegment]
 //            val targetPath = genIntDir.resolve(nextId + s".${Extension.Seg}")
 //
 //            segment.copyTo(targetPath)
@@ -856,7 +856,7 @@
 //          val keyValues = randomizedKeyValues(keyValuesCount)
 //
 //          val segment =
-//            TestSegment(
+//            GenSegment(
 //              keyValues = keyValues,
 //              valuesConfig = valuesConfig,
 //              sortedIndexConfig = sortedIndexConfig,
@@ -899,7 +899,7 @@
 //            import sweeper._
 //
 //            val keyValues = randomizedKeyValues(keyValuesCount)
-//            val segment = TestSegment(keyValues, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
+//            val segment = GenSegment(keyValues, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
 //
 //            val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
 //            val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
@@ -946,7 +946,7 @@
 //          import sweeper._
 //
 //          val keyValues = randomizedKeyValues(keyValuesCount)
-//          val segment = TestSegment(keyValues)
+//          val segment = GenSegment(keyValues)
 //
 //          val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
 //          val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
@@ -1016,7 +1016,7 @@
 //
 //          //used to calculate the size of Segment
 //          val temporarySegment =
-//            TestSegment(
+//            GenSegment(
 //              keyValues = keyValues,
 //              valuesConfig = valuesConfig,
 //              sortedIndexConfig = sortedIndexConfig,
@@ -1092,7 +1092,7 @@
 //
 //              //used to calculate the size of Segment
 //              val segment =
-//                TestSegment(
+//                GenSegment(
 //                  keyValues = keyValues,
 //                  valuesConfig = valuesConfig,
 //                  sortedIndexConfig = sortedIndexConfig,
@@ -1225,7 +1225,7 @@
 //    //
 //    //              //used to calculate the size of Segment
 //    //              val segment =
-//    //                TestSegment.many(
+//    //                GenSegment.many(
 //    //                  keyValues = keyValues,
 //    //                  valuesConfig = valuesConfig,
 //    //                  sortedIndexConfig = sortedIndexConfig,
@@ -1321,7 +1321,7 @@
 //          implicit sweeper =>
 //            import sweeper._
 //            val keyValues = randomizedKeyValues(keyValuesCount)
-//            val segment = TestSegment(keyValues, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
+//            val segment = GenSegment(keyValues, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
 //
 //            val memorySize = keyValues.foldLeft(0)(_ + MergeStats.Memory.calculateSize(_))
 //
@@ -1357,7 +1357,7 @@
 //            import sweeper._
 //
 //            val keyValues = randomizedKeyValues(keyValuesCount)
-//            val segment = TestSegment(keyValues)
+//            val segment = GenSegment(keyValues)
 //
 //            val pathDistributor = createPathDistributor()
 //            pathDistributor.dirs.foreach(_.path.sweep())
@@ -1417,7 +1417,7 @@
 //                key
 //            }
 //
-//            val segment = TestSegment(keyValuesWithEmptyValues.toSlice, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
+//            val segment = GenSegment(keyValuesWithEmptyValues.toSlice, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
 //
 //            def valuesValueShouldBeNone(value: Value): Unit =
 //              value match {
@@ -1463,7 +1463,7 @@
 //
 //          val keyValues1 = randomizedKeyValues(keyValuesCount)
 //
-//          val segment = TestSegment(keyValues1)
+//          val segment = GenSegment(keyValues1)
 //          segment.close()
 //          if (isPersistent) segment.isOpen shouldBe false
 //
@@ -1505,7 +1505,7 @@
 //          val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 //
 //          val segment =
-//            TestSegment(
+//            GenSegment(
 //              keyValues = keyValues,
 //              valuesConfig = valuesConfig,
 //              sortedIndexConfig = sortedIndexConfig,
@@ -1592,7 +1592,7 @@
 //                  val expectedKeyValues =
 //                    head ++ builder.result ++ tail
 //
-//                  (head, mid, tail, TestSegment(mid), expectedKeyValues)
+//                  (head, mid, tail, GenSegment(mid), expectedKeyValues)
 //                } else {
 //                  val newKeyValues = oldKeyValues
 //
@@ -1606,7 +1606,7 @@
 //                    initialiseIteratorsInOneSeek = randomBoolean()
 //                  )
 //
-//                  (Iterable.empty[KeyValue], newKeyValues, Iterable.empty[KeyValue], TestSegment(oldKeyValues), builder.result)
+//                  (Iterable.empty[KeyValue], newKeyValues, Iterable.empty[KeyValue], GenSegment(oldKeyValues), builder.result)
 //                }
 //
 //              val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
@@ -1666,7 +1666,7 @@
 //              val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random
 //
 //              val keyValues = randomizedKeyValues(keyValuesCount)
-//              val segment = TestSegment(keyValues)
+//              val segment = GenSegment(keyValues)
 //              val newKeyValues = randomizedKeyValues(keyValuesCount)
 //
 //              val tenthSegmentId = {
@@ -1675,7 +1675,7 @@
 //              }
 //
 //              //create a segment with the next id in sequence which should fail put with FileAlreadyExistsException
-//              val segmentToFailPut = TestSegment(path = tenthSegmentId)
+//              val segmentToFailPut = GenSegment(path = tenthSegmentId)
 //
 //              assertThrows[FileAlreadyExistsException] {
 //                segment.put(
@@ -1728,7 +1728,7 @@
 //            Memory.put(4),
 //            Memory.Range(5, 10, FromValue.Null, Value.Update(Slice.Null, None, testTimer.next))
 //          )
-//          val segment = TestSegment(keyValues)
+//          val segment = GenSegment(keyValues)
 //          assertGet(keyValues, segment)
 //
 //          val deleteKeyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.remove(3), Memory.remove(4), Memory.Range(5, 10, FromValue.Null, Value.remove(None)))
@@ -1775,7 +1775,7 @@
 //          implicit val testTimer: TestTimer = TestTimer.Incremental()
 //
 //          val keyValues = randomizedKeyValues(count = keyValuesCount)
-//          val segment = TestSegment(keyValues)
+//          val segment = GenSegment(keyValues)
 //
 //          val updatedKeyValues = Slice.of[Memory](keyValues.size)
 //          keyValues.foreach(keyValue => updatedKeyValues add Memory.put(keyValue.key, Slice.Null))
@@ -1820,7 +1820,7 @@
 //            implicit val testTimer: TestTimer = TestTimer.Incremental()
 //            //ranges value split to make sure there are no ranges.
 //            val keyValues1 = randomizedKeyValues(count = keyValuesCount, addRanges = false)
-//            val segment1 = TestSegment(keyValues1)
+//            val segment1 = GenSegment(keyValues1)
 //
 //            val keyValues2Unclosed = Slice.of[Memory](keyValues1.size * 100)
 //            keyValues1 foreach {
@@ -1832,7 +1832,7 @@
 //
 //            val segmentConfig2 = SegmentBlockConfig.random.copy(Int.MaxValue, if (isMemorySpec) keyValues2Closed.size else randomIntMax(keyValues2Closed.size))
 //
-//            val segment2 = TestSegment(keyValues2Closed, segmentConfig = segmentConfig2)
+//            val segment2 = GenSegment(keyValues2Closed, segmentConfig = segmentConfig2)
 //
 //            val valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random
 //            val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
@@ -1888,7 +1888,7 @@
 //                randomRangeKeyValue(5, 10, randomRangeValue(), randomRangeValue())
 //              )
 //
-//            val segment = TestSegment(keyValues)
+//            val segment = GenSegment(keyValues)
 //
 //            val deleteKeyValues = Slice.of[Memory](keyValues.size)
 //            (1 to 4).foreach(key => deleteKeyValues add Memory.remove(key))
@@ -1923,7 +1923,7 @@
 //            implicit val testTimer: TestTimer = TestTimer.Empty
 //
 //            val keyValues = Slice(Memory.Range(1, 10, FromValue.Null, Value.update(10)))
-//            val segment = TestSegment(keyValues)
+//            val segment = GenSegment(keyValues)
 //
 //            val deleteKeyValues = Slice.of[Memory](10)
 //            (1 to 10).foreach(key => deleteKeyValues add Memory.remove(key))
@@ -1961,7 +1961,7 @@
 //          implicit val testTimer: TestTimer = TestTimer.Empty
 //
 //          val keyValues = randomKeyValues(count = keyValuesCount)
-//          val segment = TestSegment(keyValues)
+//          val segment = GenSegment(keyValues)
 //
 //          val deleteKeyValues = Slice.of[Memory.Remove](keyValues.size - 1)
 //          keyValues.drop(1).foreach(keyValue => deleteKeyValues add Memory.remove(keyValue.key))
@@ -2003,7 +2003,7 @@
 //          import sweeper._
 //
 //          val keyValues1 = Slice(Memory.put(1, 1), Memory.put(2, 2), Memory.put(3, 3), Memory.put(4, 4), Memory.put(5, 5), Memory.put(6, 6))
-//          val segment = TestSegment(keyValues1)
+//          val segment = GenSegment(keyValues1)
 //
 //          val keyValues2 = Slice(Memory.put(7, 7), Memory.put(8, 8), Memory.put(9, 9), Memory.put(10, 10), Memory.put(11, 11), Memory.put(12, 12))
 //
@@ -2085,7 +2085,7 @@
 //                  eitherOne(randomRemoveKeyValue(key), randomRangeKeyValue(key, key + 1, FromValue.Null, randomRangeValue()))
 //              } toSlice
 //
-//            val segment = TestSegment(keyValues).asInstanceOf[PersistentSegment]
+//            val segment = GenSegment(keyValues).asInstanceOf[PersistentSegment]
 //            segment.keyValueCount shouldBe keyValues.size
 //            segment.iterator(randomBoolean()).toList shouldBe keyValues
 //
@@ -2110,7 +2110,7 @@
 //        implicit sweeper =>
 //
 //          val keyValues1 = (1 to 100).map(key => randomPutKeyValue(key, deadline = Some(1.second.fromNow))).toSlice
-//          val segment = TestSegment(keyValues1)
+//          val segment = GenSegment(keyValues1)
 //          segment.keyValueCount shouldBe keyValues1.size
 //
 //          sleep(2.seconds)
@@ -2138,7 +2138,7 @@
 //
 //            val segment =
 //              Benchmark(s"Created Segment: ${keyValues.size} keyValues", inlinePrint = true) {
-//                TestSegment(
+//                GenSegment(
 //                  keyValues = keyValues,
 //                  createdInLevel = 3
 //                )
@@ -2200,7 +2200,7 @@
 //
 //            val segment =
 //              Benchmark(s"Created Segment: ${keyValues.size} keyValues", inlinePrint = true) {
-//                TestSegment(
+//                GenSegment(
 //                  keyValues = keyValues,
 //                  createdInLevel = 5,
 //                  valuesConfig = valuesConfig,
@@ -2276,7 +2276,7 @@
 //
 //            val segment =
 //              Benchmark(s"Created Segment: ${keyValues.size} keyValues", inlinePrint = true) {
-//                TestSegment(
+//                GenSegment(
 //                  keyValues = keyValues,
 //                  createdInLevel = 5,
 //                  valuesConfig = valuesConfig,

@@ -46,7 +46,7 @@
 //      implicit sweeper =>
 //        val logs: List[LevelZeroLog] =
 //          List(
-//            TestLog(randomizedKeyValues(startId = Some(0)))
+//            GenLog(randomizedKeyValues(startId = Some(0)))
 //          )
 //
 //        val stacks = LevelZeroTaskAssigner.createStacks(logs).asScala
@@ -79,7 +79,7 @@
 //                      0
 //                  }
 //
-//                logs += TestLog(randomizedKeyValues(startId = Some(startId)))
+//                logs += GenLog(randomizedKeyValues(startId = Some(startId)))
 //            }
 //
 //          val stacks = LevelZeroTaskAssigner.createStacks(logs).asScala

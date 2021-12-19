@@ -60,7 +60,7 @@
 //            }
 //
 //          //build maps
-//          val logs = keyValues.map(TestLog(_))
+//          val logs = keyValues.map(GenLog(_))
 //          //execute the flatten function on the map
 //          val flattenedMaps = LevelZeroTaskAssigner.flatten(logs.iterator).awaitInf
 //

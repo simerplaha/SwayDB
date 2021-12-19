@@ -81,7 +81,7 @@
 ////
 ////            val level = TestLevel()
 ////            val keyValues = randomIntKeyStringValues(keyValuesCount)
-////            val segment = TestSegment(keyValues)
+////            val segment = GenSegment(keyValues)
 ////            segment.close.runRandomIO.get
 ////            level.put(segment) shouldBe IO.unit
 ////            assertReads(keyValues, level)
@@ -98,11 +98,11 @@
 ////              // as reads do not value retried on failure in Level, they only value retried in LevelZero.
 ////              val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 100.bytes, mmap = mmapSegments))
 ////              val keyValues = randomIntKeyStringValues(keyValuesCount)
-////              val segment = TestSegment(keyValues)
+////              val segment = GenSegment(keyValues)
 ////              level.put(segment) shouldBe IO.unit
 ////
 ////              val keyValues2 = randomIntKeyStringValues(keyValuesCount * 10)
-////              val segment2 = TestSegment(keyValues2).runRandomIO.get
+////              val segment2 = GenSegment(keyValues2).runRandomIO.get
 ////              level.put(segment2).get
 ////
 ////              assertGet(keyValues, level)
@@ -128,7 +128,7 @@
 ////                    (split1, two, three)
 ////                }
 ////
-////            val segments = Seq(TestSegment(keyValues1).runRandomIO.get, TestSegment(keyValues2).runRandomIO.get, TestSegment(keyValues3).runRandomIO.get)
+////            val segments = Seq(GenSegment(keyValues1).runRandomIO.get, GenSegment(keyValues2).runRandomIO.get, GenSegment(keyValues3).runRandomIO.get)
 ////            level.putSegments(segments) shouldBe IO.unit
 ////
 ////            assertReads(keyValues, level)
@@ -153,8 +153,8 @@
 ////
 ////            val segments =
 ////              Seq(
-////                TestSegment(keyValues1, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, mmap = mmapSegments)),
-////                TestSegment(keyValues3, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, mmap = mmapSegments))
+////                GenSegment(keyValues1, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, mmap = mmapSegments)),
+////                GenSegment(keyValues3, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, mmap = mmapSegments))
 ////              )
 ////
 ////            level.putSegments(segments) shouldBe IO.unit
@@ -245,7 +245,7 @@
 ////            val level = TestLevel()
 ////
 ////            val keyValues = randomIntKeyStringValues()
-////            val segment = TestSegment(keyValues)
+////            val segment = GenSegment(keyValues)
 ////            segment.delete()
 ////
 ////            if (isWindowsAndMMAPSegments())
@@ -271,7 +271,7 @@
 ////              implicit sweeper =>
 ////
 ////                val keyValues = randomKeyValues(100)(TestTimer.Empty).groupedSlice(10).toArray
-////                val segmentToMerge = keyValues map (keyValues => TestSegment(keyValues))
+////                val segmentToMerge = keyValues map (keyValues => GenSegment(keyValues))
 ////
 ////                val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 150.bytes, deleteDelay = Duration.Zero, mmap = mmapSegments))
 ////

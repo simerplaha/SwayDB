@@ -23,7 +23,7 @@ import swaydb.config.{GenForceSave, MMAP}
 import swaydb.core.{CoreSpecType, CoreTestSweeper}
 import swaydb.core.log.serialiser._
 import swaydb.core.log.timer.TestTimer
-import swaydb.core.segment.{Segment, SegmentOption}
+import swaydb.core.segment.{Segment, SegmentOption, GenSegment}
 import swaydb.core.segment.data.{Memory, MemoryOption, SegmentKeyOrders, Value}
 import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.io.SegmentReadIO
@@ -182,7 +182,7 @@ class LogEntrySpec extends AnyWordSpec {
 
           import sweeper.testCoreFunctionStore
           import AppendixLogEntryWriter._
-          val segment = TestSegment(randomKeyValues(100))
+          val segment = GenSegment(randomKeyValues(100))
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
 
@@ -204,7 +204,7 @@ class LogEntrySpec extends AnyWordSpec {
 
           import sweeper.testCoreFunctionStore
           import AppendixLogEntryWriter._
-          val segment = TestSegment(randomKeyValues(100))
+          val segment = GenSegment(randomKeyValues(100))
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
 
@@ -231,10 +231,10 @@ class LogEntrySpec extends AnyWordSpec {
           import AppendixLogEntryWriter._
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
-          val segment1 = TestSegment(randomizedKeyValues(100)).runRandomIO.get
-          val segment2 = TestSegment(randomizedKeyValues(100)).runRandomIO.get
-          val segment3 = TestSegment(randomizedKeyValues(100)).runRandomIO.get
-          val segment4 = TestSegment(randomizedKeyValues(100)).runRandomIO.get
+          val segment1 = GenSegment(randomizedKeyValues(100)).runRandomIO.get
+          val segment2 = GenSegment(randomizedKeyValues(100)).runRandomIO.get
+          val segment3 = GenSegment(randomizedKeyValues(100)).runRandomIO.get
+          val segment4 = GenSegment(randomizedKeyValues(100)).runRandomIO.get
 
           val entry =
             (LogEntry.Put[Slice[Byte], Segment](1, segment1): LogEntry[Slice[Byte], Segment]) ++
@@ -293,7 +293,7 @@ class LogEntrySpec extends AnyWordSpec {
 
           import AppendixLogEntryWriter._
           import appendixReader._
-          val segment = TestSegment(randomKeyValues(100))
+          val segment = GenSegment(randomKeyValues(100))
 
           val entry = LogEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
           entry.hasRange shouldBe false
@@ -346,7 +346,7 @@ class LogEntrySpec extends AnyWordSpec {
           import AppendixLogEntryWriter._
           import appendixReader._
 
-          val segment = TestSegment(randomKeyValues(100))
+          val segment = GenSegment(randomKeyValues(100))
 
           //do remove
           val entry = LogEntry.Remove[Slice[Byte]](segment.minKey)
@@ -445,7 +445,7 @@ class LogEntrySpec extends AnyWordSpec {
           val segments: Slice[Segment] =
             keyValues.groupedSlice(keyValues.size) mapToSlice {
               keyValues =>
-                TestSegment(keyValues)
+                GenSegment(keyValues)
             }
 
           segments.zipWithIndex foreach {

@@ -48,7 +48,7 @@
 ////
 ////        //randomly create Segments in different paths to have an un-even distribution in each folder
 ////        def randomlyDistributeSegments(): Iterable[Segment] = {
-////          val segment = TestSegment(path = randomPath).runRandomIO.get
+////          val segment = GenSegment(path = randomPath).runRandomIO.get
 ////          segment.close.runRandomIO.get
 ////          Array.fill(10)(segment)
 ////        }

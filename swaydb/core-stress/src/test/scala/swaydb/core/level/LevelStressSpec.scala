@@ -69,11 +69,11 @@
 //      val level = TestLevel(segmentSize = 500.kb)
 //
 //      val keyValues = randomPutKeyValues(keyValueCount, startId = Some(0))
-//      val segment1 = TestSegment(keyValues.toTransient).runIO
-//      val segment2 = TestSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).runIO
-//      val segment3 = TestSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).runIO
-//      val segment4 = TestSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).runIO
-//      val segment5 = TestSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).runIO
+//      val segment1 = GenSegment(keyValues.toTransient).runIO
+//      val segment2 = GenSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).runIO
+//      val segment3 = GenSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).runIO
+//      val segment4 = GenSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).runIO
+//      val segment5 = GenSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).runIO
 //
 //      val segments = Seq(segment1, segment2, segment3, segment4, segment5)
 //

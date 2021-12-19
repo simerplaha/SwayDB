@@ -13,7 +13,7 @@ import swaydb.core.segment._
 import swaydb.core.segment.data.{KeyValue, Memory, SegmentKeyOrders}
 import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.CoreTestSweeper._
-import swaydb.core.log.LogTestKit.{getFunctionStore, SliceKeyValueImplicits}
+import swaydb.core.log.LogTestKit.{invokePrivate_functionStore, SliceKeyValueImplicits}
 import swaydb.effect.{Dir, Effect}
 import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.Slice
@@ -252,7 +252,7 @@ object LevelTestKit {
 
   @tailrec
   def dump(level: NextLevel): Unit = {
-    implicit val functionStore: CoreFunctionStore = getFunctionStore(level)
+    implicit val functionStore: CoreFunctionStore = invokePrivate_functionStore(level)
 
     level.nextLevel match {
       case Some(nextLevel) =>

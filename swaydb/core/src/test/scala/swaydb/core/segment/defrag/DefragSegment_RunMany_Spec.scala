@@ -20,7 +20,7 @@ import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.config.MMAP
 import swaydb.core.{CoreSpecType, CoreTestSweeper}
-import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany}
+import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, GenSegment}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
@@ -81,7 +81,7 @@ class DefragSegment_RunMany_Spec extends AnyWordSpec {
           val keyValues = randomPutKeyValues(100, startId = Some(0))
 
           val segments =
-            TestSegment.many(
+            GenSegment.many(
               keyValues = keyValues,
               segmentConfig = segmentConfig
             )
@@ -132,7 +132,7 @@ class DefragSegment_RunMany_Spec extends AnyWordSpec {
           val keyValues = randomPutKeyValues(100, startId = Some(0))
 
           val segments =
-            TestSegment.many(
+            GenSegment.many(
               keyValues = keyValues,
               segmentConfig = segmentConfig
             )

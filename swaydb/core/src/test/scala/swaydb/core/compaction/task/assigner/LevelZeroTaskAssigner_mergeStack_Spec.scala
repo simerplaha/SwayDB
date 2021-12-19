@@ -59,7 +59,7 @@
 //          val stack: Iterable[Either[LevelZeroLog, Iterable[Memory]]] =
 //            List(
 //              eitherOne(
-//                Left(TestLog(Slice(keyValue))),
+//                Left(GenLog(Slice(keyValue))),
 //                Right(Slice(keyValue))
 //              )
 //            )
@@ -77,7 +77,7 @@
 //
 //          val stack: Iterable[Either[LevelZeroLog, Iterable[Memory]]] =
 //            List(
-//              Left(TestLog(Slice(Memory.put(1, 2)))),
+//              Left(GenLog(Slice(Memory.put(1, 2)))),
 //              Right(Slice(Memory.put(1, 1)))
 //            )
 //
@@ -94,7 +94,7 @@
 //
 //          val stack: Iterable[Either[LevelZeroLog, Iterable[Memory]]] =
 //            List(
-//              Left(TestLog(Slice(Memory.put(1, 2)))),
+//              Left(GenLog(Slice(Memory.put(1, 2)))),
 //              Right(Slice(Memory.put(1, 1))),
 //              Right(Slice(Memory.put(1, 1), Memory.put(2, 2)))
 //            )
@@ -139,7 +139,7 @@
 //            stackedKeyValues map {
 //              keyValues =>
 //                eitherOne(
-//                  left = Left(TestLog(keyValues)),
+//                  left = Left(GenLog(keyValues)),
 //                  right = Right(keyValues)
 //                )
 //            }

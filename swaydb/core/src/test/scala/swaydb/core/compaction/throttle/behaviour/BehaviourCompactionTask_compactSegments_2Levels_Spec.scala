@@ -76,7 +76,7 @@
 //              val sourceLevel = TestLevel()
 //              val targetLevel = TestLevel()
 //
-//              val segments = SortedSet(TestSegment(Slice(Memory.put(1))), TestSegment(Slice(Memory.put(2))))
+//              val segments = SortedSet(GenSegment(Slice(Memory.put(1))), GenSegment(Slice(Memory.put(2))))
 //              val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 //
 //              sourceLevel.putSegments(segments) shouldBe IO.unit
@@ -116,7 +116,7 @@
 //              val sourceLevel = TestLevel()
 //              val targetLevel = TestLevel()
 //
-//              val segments = SortedSet(TestSegment(Slice(Memory.put(1))), TestSegment(Slice(Memory.put(2))))
+//              val segments = SortedSet(GenSegment(Slice(Memory.put(1))), GenSegment(Slice(Memory.put(2))))
 //              val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 //
 //              sourceLevel.putSegments(segments) shouldBe IO.unit
@@ -166,8 +166,8 @@
 //
 //                val segments =
 //                  SortedSet(
-//                    TestSegment(Slice(randomUpdateKeyValue(1), randomExpiredPutKeyValue(2))),
-//                    TestSegment(Slice(randomUpdateKeyValue(3)))
+//                    GenSegment(Slice(randomUpdateKeyValue(1), randomExpiredPutKeyValue(2))),
+//                    GenSegment(Slice(randomUpdateKeyValue(3)))
 //                  )
 //
 //                val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
@@ -212,8 +212,8 @@
 //                //all source key-values are expired or update
 //                val sourceLevelSegment =
 //                  SortedSet(
-//                    TestSegment(Slice(randomUpdateKeyValue(1), randomExpiredPutKeyValue(2))),
-//                    TestSegment(Slice(randomUpdateKeyValue(3, deadline = randomExpiredDeadlineOption())))
+//                    GenSegment(Slice(randomUpdateKeyValue(1), randomExpiredPutKeyValue(2))),
+//                    GenSegment(Slice(randomUpdateKeyValue(3, deadline = randomExpiredDeadlineOption())))
 //                  )
 //
 //                val sourceLevelKeyValues = sourceLevelSegment.iterator.flatMap(_.iterator(randomBoolean())).toSlice
@@ -221,8 +221,8 @@
 //                //all target key-values are expired or update
 //                val targetLevelSegment =
 //                  SortedSet(
-//                    TestSegment(Slice(randomUpdateKeyValue(1), randomExpiredPutKeyValue(3))),
-//                    TestSegment(Slice(randomUpdateKeyValue(4), randomUpdateKeyValue(5)))
+//                    GenSegment(Slice(randomUpdateKeyValue(1), randomExpiredPutKeyValue(3))),
+//                    GenSegment(Slice(randomUpdateKeyValue(4), randomUpdateKeyValue(5)))
 //                  )
 //
 //                val targetLevelKeyValues = targetLevelSegment.iterator.flatMap(_.iterator(randomBoolean())).toSlice
@@ -275,8 +275,8 @@
 //
 //                val segments =
 //                  SortedSet(
-//                    TestSegment(Slice(Memory.put(1))),
-//                    TestSegment(Slice(Memory.put(2)))
+//                    GenSegment(Slice(Memory.put(1))),
+//                    GenSegment(Slice(Memory.put(2)))
 //                  )
 //
 //                val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
@@ -311,7 +311,7 @@
 //                    segment
 //                  } else {
 //                    //for persistent expect
-//                    TestSegment(path = targetLevel.rootPath.resolve(s"${targetLevel.segmentIDGenerator.currentId() + 1}.seg"))
+//                    GenSegment(path = targetLevel.rootPath.resolve(s"${targetLevel.segmentIDGenerator.currentId() + 1}.seg"))
 //                  }
 //
 //                //Create a Segment file in the Level's folder giving it the Level's next SegmentId so that it fails

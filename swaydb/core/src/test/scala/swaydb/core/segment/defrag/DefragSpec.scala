@@ -52,7 +52,7 @@
 //  override def isMemorySpec = false
 //
 //  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: CoreTestSweeper): PersistentSegment =
-//    TestSegment(keyValues).shouldBeInstanceOf[PersistentSegment]
+//    GenSegment(keyValues).shouldBeInstanceOf[PersistentSegment]
 //
 //  override def nullSegment: PersistentSegmentOption =
 //    PersistentSegment.Null
@@ -72,7 +72,7 @@
 //  override def isMemorySpec = true
 //
 //  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: CoreTestSweeper): MemorySegment =
-//    TestSegment(keyValues).shouldBeInstanceOf[MemorySegment]
+//    GenSegment(keyValues).shouldBeInstanceOf[MemorySegment]
 //
 //  override def nullSegment: MemorySegmentOption =
 //    MemorySegment.Null

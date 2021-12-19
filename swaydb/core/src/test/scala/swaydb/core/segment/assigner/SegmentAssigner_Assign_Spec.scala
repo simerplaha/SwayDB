@@ -20,7 +20,7 @@ import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.{CoreSpecType, CoreTestSweeper}
 import swaydb.core.log.timer.TestTimer
-import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne, Segment}
+import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne, Segment, GenSegment}
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.io.SegmentReadIO
@@ -52,7 +52,7 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
 
           import sweeper.testCoreFunctionStore
 
-          val segment = TestSegment.one(randomizedKeyValues())
+          val segment = GenSegment.one(randomizedKeyValues())
 
           //assign the Segment's key-values to itself.
           /**
@@ -84,7 +84,7 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
           }
 
           if (specType.isPersistent) {
-            val segment = TestSegment.one(randomizedKeyValues()).asInstanceOf[PersistentSegment]
+            val segment = GenSegment.one(randomizedKeyValues()).asInstanceOf[PersistentSegment]
 
             val segmentRef =
               segment match {
@@ -122,8 +122,8 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
           val keyValues = randomKeyValues(count = 1000, startId = Some(1)).groupedSlice(2)
           keyValues should have size 2
 
-          val segment1 = TestSegment.one(keyValues.head)
-          val segment2 = TestSegment.one(keyValues.last)
+          val segment1 = GenSegment.one(keyValues.head)
+          val segment2 = GenSegment.one(keyValues.last)
 
           //assign the Segment's key-values to itself.
           /**
@@ -192,10 +192,10 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
           val keyValuesGrouped = keyValues.groupedSlice(2)
           keyValuesGrouped should have size 2
 
-          val inputSegment = TestSegment.one(keyValues)
+          val inputSegment = GenSegment.one(keyValues)
 
-          val segment1 = TestSegment.one(keyValuesGrouped.head)
-          val segment2 = TestSegment.one(keyValuesGrouped.last)
+          val segment1 = GenSegment.one(keyValuesGrouped.head)
+          val segment2 = GenSegment.one(keyValuesGrouped.last)
 
           //assign the Segment's key-values to itself.
           /**
@@ -255,10 +255,10 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
           val keyValues = randomKeyValues(count = 1000, startId = Some(1)).groupedSlice(2)
           keyValues should have size 2
 
-          val inputSegment = TestSegment.one(keyValues.last)
+          val inputSegment = GenSegment.one(keyValues.last)
 
-          val segment1 = TestSegment.one(keyValues.head)
-          val segment2 = TestSegment.one(keyValues.last)
+          val segment1 = GenSegment.one(keyValues.head)
+          val segment2 = GenSegment.one(keyValues.last)
 
           //assign the Segment's key-values to itself.
           /**
@@ -321,11 +321,11 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
           val segments =
             expectedAssignments mapToSlice {
               case (_, midKeyValues, _) =>
-                TestSegment.one(midKeyValues)
+                GenSegment.one(midKeyValues)
             }
 
           val inputSegments =
-            keyValues mapToSlice (TestSegment.one(_))
+            keyValues mapToSlice (GenSegment.one(_))
 
           //Expect full Segments to get assigned without expanding or assigning gaps.
 
@@ -392,7 +392,7 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
           val gapedSegment: Slice[(Segment, Segment, Segment)] =
             expectedAssignments mapToSlice {
               case (headGap, midKeyValues, tailGap) =>
-                (TestSegment.one(headGap), TestSegment.one(midKeyValues), TestSegment.one(tailGap))
+                (GenSegment.one(headGap), GenSegment.one(midKeyValues), GenSegment.one(tailGap))
             }
 
           //input all Segments and gap Segments flattened
@@ -406,7 +406,7 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
           val existingSegments =
             expectedAssignments mapToSlice {
               case (_, midKeyValues, _) =>
-                TestSegment.one(midKeyValues)
+                GenSegment.one(midKeyValues)
             }
 
           /**
@@ -471,13 +471,13 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
 
           //[SEG-1, SEG-2, SEG-3, SEG-4, SEG-5]
           val inputSegment =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValuesGrouped.take(5).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
           //[........., SEG-6, SEG-7, SEG-8, SEG-9, SEG-10]
           val existingSegment =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValuesGrouped.drop(5).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
@@ -506,13 +506,13 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
 
           //[........., SEG-6, SEG-7, SEG-8, SEG-9, SEG-10]
           val inputSegment =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValuesGrouped.drop(5).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
           //[SEG-1, SEG-2, SEG-3, SEG-4, SEG-5]
           val existingSegment =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValuesGrouped.take(5).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
@@ -541,13 +541,13 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
 
           //[SEG-1, SEG-2, SEG-3 ... SEG-10]
           val inputSegment =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValues, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
           //[_____, SEG-2, SEG-3 ... SEG-10]
           val existingSegment =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValuesGrouped.dropHead().flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
@@ -577,13 +577,13 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
 
           //[SEG-1, SEG-2, SEG-3 ... SEG-10]
           val inputSegment =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValues, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
           //[SEG-1, SEG-2, SEG-3 ... ______]
           val existingSegment =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValuesGrouped.dropRight(1).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
@@ -612,14 +612,14 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
 
           //[SEG-1, SEG-2, GAP-3, GAP-4 ... SEG-10]
           val inputSegment =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValues, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
           //[SEG-1, SEG-2, _____, _____ ... SEG-10]
           val existingKeyValues = (keyValuesGrouped.take(2) ++ keyValuesGrouped.drop(4)).flatten
           val existingSegment =
-            TestSegment
+            GenSegment
               .many(keyValues = existingKeyValues, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
@@ -649,19 +649,19 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
 
           //[SEG-1, SEG-2, GAP-3, GAP-4 ... SEG-10]
           val inputSegment =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValues, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
           //[SEG-1, SEG-2]
           val existingSegment1 =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValuesGrouped.take(2).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
           //[..................., SEG-5, SEG-6 .... SEG-10]
           val existingSegment2 =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValuesGrouped.drop(4).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
@@ -698,25 +698,25 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
 
           //[............, SEG-3, SEG-4, SEG-5, SEG-6, SEG-7] - gets
           val inputSegment1 =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValuesGrouped.drop(2).take(5).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
           //[................................................, SEG-8, SEG-9, SEG-10]
           val inputSegment2 =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValuesGrouped.drop(7).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
           //[SEG-1, SEG-2, _____, _____]
           val existingSegment1 =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValuesGrouped.take(2).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 
           //[.........................., SEG-5, SEG-6, .....]
           val existingSegment2 =
-            TestSegment
+            GenSegment
               .many(keyValues = keyValuesGrouped.drop(4).take(2).flatten, segmentConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
               .asInstanceOf[Slice[PersistentSegmentMany]]
 

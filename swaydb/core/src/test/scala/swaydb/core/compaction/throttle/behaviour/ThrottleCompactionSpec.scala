@@ -94,7 +94,7 @@
 ////            val nextLevel = mock[NextLevel]("nextLevel")
 ////
 ////            val keyValues = randomPutKeyValues(keyValueCount).groupedSlice(2)
-////            val segments = Seq(TestSegment(keyValues(0)), TestSegment(keyValues(1)))
+////            val segments = Seq(GenSegment(keyValues(0)), GenSegment(keyValues(1)))
 ////
 ////            //next level should value a put for all the input Segments
 ////            (nextLevel.put(_: Iterable[Segment], _: ParallelMerge)(_: ExecutionContext)) expects(*, *, *) onCall {
@@ -129,7 +129,7 @@
 ////            val nextLevel = mock[NextLevel]("nextLevel")
 ////
 ////            val keyValues = randomPutKeyValues(keyValueCount).groupedSlice(2)
-////            val segments = Seq(TestSegment(keyValues(0)), TestSegment(keyValues(1)))
+////            val segments = Seq(GenSegment(keyValues(0)), GenSegment(keyValues(1)))
 ////
 ////            //next level should value a put for all the input Segments
 ////            (nextLevel.put(_: Iterable[Segment], _: ParallelMerge)(_: ExecutionContext)) expects(*, *, *) onCall {
@@ -300,7 +300,7 @@
 ////                i =>
 ////                  if (i % 2 == 0)
 ////                    Some(
-////                      TestSegment(
+////                      GenSegment(
 ////                        Slice(
 ////                          Memory.put(i, i, Some(expiredDeadline())),
 ////                          Memory.put(i + 1, i + 1, Some(expiredDeadline()))
@@ -342,7 +342,7 @@
 ////                i =>
 ////                  if (i % 2 == 0)
 ////                    Some(
-////                      TestSegment(
+////                      GenSegment(
 ////                        Slice(
 ////                          Memory.put(i, i, Some(expiredDeadline())),
 ////                          Memory.put(i + 1, i + 1, Some(expiredDeadline()))
@@ -390,7 +390,7 @@
 ////  //            i =>
 ////  //              if (i % 2 == 0)
 ////  //                Some(
-////  //                  TestSegment(
+////  //                  GenSegment(
 ////  //                    Slice(
 ////  //                      Memory.put(i, i, Some(expiredDeadline())),
 ////  //                      Memory.put(i + 1, i + 1, Some(expiredDeadline()))

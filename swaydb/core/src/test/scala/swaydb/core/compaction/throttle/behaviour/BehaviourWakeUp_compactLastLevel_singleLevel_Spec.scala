@@ -186,7 +186,7 @@
 //                  randomPutKeyValue(key, randomString(), someOrNone(1.hour.fromNow))
 //              }
 //
-//            val testSegments = keyValues.grouped(2).map(TestSegment(_)).toList
+//            val testSegments = keyValues.grouped(2).map(GenSegment(_)).toList
 //
 //            val level =
 //              TestLevel(
@@ -244,7 +244,7 @@
 //              }
 //
 //            //create Segments
-//            val testSegments = keyValues.grouped(3).map(TestSegment(_)).toList
+//            val testSegments = keyValues.grouped(3).map(GenSegment(_)).toList
 //
 //            //create level
 //            val level =
@@ -302,7 +302,7 @@
 //              }
 //
 //            //create Segments
-//            val testSegments = keyValues.mapToSlice(keyValue => TestSegment(Slice(keyValue))).toList
+//            val testSegments = keyValues.mapToSlice(keyValue => GenSegment(Slice(keyValue))).toList
 //
 //            //create level
 //            val level =

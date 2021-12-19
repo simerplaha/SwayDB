@@ -61,9 +61,9 @@
 //              dirs,
 //              () =>
 //                Seq(
-//                  TestSegment(path = path1.resolve("11.seg")).runRandomIO.get,
-//                  TestSegment(path = path3.resolve("31.seg")).runRandomIO.get,
-//                  TestSegment(path = path3.resolve("32.seg")).runRandomIO.get
+//                  GenSegment(path = path1.resolve("11.seg")).runRandomIO.get,
+//                  GenSegment(path = path3.resolve("31.seg")).runRandomIO.get,
+//                  GenSegment(path = path3.resolve("32.seg")).runRandomIO.get
 //                )
 //            )
 //
@@ -232,9 +232,9 @@
 //          //second batch, where each Path has 1 Segment = a total of 3 Segments. Distribution ratio for path2 is 2 and but it contains only 1 Segment.
 //          segments.expects() returning
 //            Seq(
-//              TestSegment(path = path1.resolve("1.seg")).runRandomIO.get,
-//              TestSegment(path = path2.resolve("2.seg")).runRandomIO.get,
-//              TestSegment(path = path3.resolve("3.seg")).runRandomIO.get
+//              GenSegment(path = path1.resolve("1.seg")).runRandomIO.get,
+//              GenSegment(path = path2.resolve("2.seg")).runRandomIO.get,
+//              GenSegment(path = path3.resolve("3.seg")).runRandomIO.get
 //            )
 //          //a total of 3 Segments but path2 was expected to have 2 Segments which it does not so the distribution returns path2 to be filled.
 //          distributor.next() shouldBe path2
@@ -251,12 +251,12 @@
 //          //4ht batch, path3 contains none but path1 and path2 have one Segment.
 //          segments.expects() returning
 //            Seq(
-//              TestSegment(path = path1.resolve("11.seg")).runRandomIO.get,
-//              TestSegment(path = path2.resolve("22.seg")).runRandomIO.get,
-//              TestSegment(path = path2.resolve("222.seg")).runRandomIO.get,
-//              TestSegment(path = path2.resolve("2222.seg")).runRandomIO.get,
-//              TestSegment(path = path2.resolve("22222.seg")).runRandomIO.get,
-//              TestSegment(path = path2.resolve("222222.seg")).runRandomIO.get
+//              GenSegment(path = path1.resolve("11.seg")).runRandomIO.get,
+//              GenSegment(path = path2.resolve("22.seg")).runRandomIO.get,
+//              GenSegment(path = path2.resolve("222.seg")).runRandomIO.get,
+//              GenSegment(path = path2.resolve("2222.seg")).runRandomIO.get,
+//              GenSegment(path = path2.resolve("22222.seg")).runRandomIO.get,
+//              GenSegment(path = path2.resolve("222222.seg")).runRandomIO.get
 //            )
 //          //a total 6 Segments which path3 is empty, here the path3 gets filled before going back to normal
 //          distributor.next() shouldBe path3
@@ -266,12 +266,12 @@
 //          //5th batch. Distribution is fixed all Paths contains equally distributed Segments based on distribution ration.
 //          segments.expects() returning
 //            Seq(
-//              TestSegment(path = path1.resolve("111.seg")).runRandomIO.get,
-//              TestSegment(path = path2.resolve("2222222.seg")).runRandomIO.get,
-//              TestSegment(path = path2.resolve("22222222.seg")).runRandomIO.get,
-//              TestSegment(path = path3.resolve("33.seg")).runRandomIO.get,
-//              TestSegment(path = path3.resolve("333.seg")).runRandomIO.get,
-//              TestSegment(path = path3.resolve("3333.seg")).runRandomIO.get
+//              GenSegment(path = path1.resolve("111.seg")).runRandomIO.get,
+//              GenSegment(path = path2.resolve("2222222.seg")).runRandomIO.get,
+//              GenSegment(path = path2.resolve("22222222.seg")).runRandomIO.get,
+//              GenSegment(path = path3.resolve("33.seg")).runRandomIO.get,
+//              GenSegment(path = path3.resolve("333.seg")).runRandomIO.get,
+//              GenSegment(path = path3.resolve("3333.seg")).runRandomIO.get
 //            )
 //          // goes back to returning normal paths based on the default distribution ratio.
 //          distributor.next() shouldBe path1

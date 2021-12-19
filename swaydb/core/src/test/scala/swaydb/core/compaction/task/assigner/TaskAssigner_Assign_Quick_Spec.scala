@@ -63,7 +63,7 @@
 //    def runTest(pushStrategy: PushStrategy): Unit =
 //      CoreTestSweeper {
 //        implicit sweeper =>
-//          val segment = TestSegment(Slice(Memory.put(1)))
+//          val segment = GenSegment(Slice(Memory.put(1)))
 //          val level = TestLevel()
 //
 //          val tasks =
@@ -92,7 +92,7 @@
 //
 //  "all levels are empty" when {
 //    def setupTest(pushStrategy: PushStrategy)(implicit sweeper: CoreTestSweeper) = {
-//      val segment = TestSegment(Slice(Memory.put(1)))
+//      val segment = GenSegment(Slice(Memory.put(1)))
 //      //multiple nested Levels but
 //      val level = TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel()))))))
 //
@@ -146,7 +146,7 @@
 //  "parent levels are empty but last Level has OVERLAPPING key-values" when {
 //    def runTest(pushStrategy: PushStrategy)(implicit sweeper: CoreTestSweeper) = {
 //      //segment gets assigned to last Level with overlapping key-values.
-//      val segment = TestSegment(Slice(Memory.put(1)))
+//      val segment = GenSegment(Slice(Memory.put(1)))
 //      //multiple nested Levels but last level is non-empty with the same key-values as the segment
 //      val lastLevel = TestLevel(keyValues = Slice(Memory.put(1)))
 //      val level = TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(lastLevel))))))
@@ -186,7 +186,7 @@
 //  "parent levels are empty but last Level has NON-OVERLAPPING key-values" when {
 //    def setupTest(pushStrategy: PushStrategy)(implicit sweeper: CoreTestSweeper) = {
 //      //segment gets assigned to last Level with overlapping key-values.
-//      val segment = TestSegment(Slice(Memory.put(1)))
+//      val segment = GenSegment(Slice(Memory.put(1)))
 //      //multiple nested Levels but last level is non-empty and does not overlap the Segment's key-values
 //      val level = TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(keyValues = Slice(Memory.put(2)))))))))
 //
@@ -245,7 +245,7 @@
 //      //nextLevel is empty
 //      //last level has key-value 2
 //
-//      val segment = TestSegment(Slice(Memory.put(3)))
+//      val segment = GenSegment(Slice(Memory.put(3)))
 //      val level = TestLevel(keyValues = Slice(Memory.put(1)), nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(keyValues = Slice(Memory.put(2)))))))))
 //
 //      val tasks =
@@ -306,7 +306,7 @@
 //      //nextLevel is empty
 //      //last level has key-value 2
 //
-//      val segment = TestSegment(Slice(Memory.put(1)))
+//      val segment = GenSegment(Slice(Memory.put(1)))
 //      val lastLevel = TestLevel(keyValues = Slice(Memory.put(2)))
 //      val level = TestLevel(keyValues = Slice(Memory.put(1)), nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(lastLevel))))))
 //
@@ -353,7 +353,7 @@
 //      //nextLevel is empty
 //      //last level has key-value 2
 //
-//      val segments = Slice(TestSegment(Slice(Memory.put(1))), TestSegment(Slice(Memory.put(3))))
+//      val segments = Slice(GenSegment(Slice(Memory.put(1))), GenSegment(Slice(Memory.put(3))))
 //      val level = TestLevel(keyValues = Slice(Memory.put(1)), nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(nextLevel = Some(TestLevel(keyValues = Slice(Memory.put(2)))))))))
 //
 //      val tasks =
@@ -426,10 +426,10 @@
 //
 //            val segments =
 //              Slice(
-//                TestSegment(Slice(Memory.put(1))),
-//                TestSegment(Slice(Memory.put(2))),
-//                TestSegment(Slice(Memory.put(3))),
-//                TestSegment(Slice(Memory.put(4)))
+//                GenSegment(Slice(Memory.put(1))),
+//                GenSegment(Slice(Memory.put(2))),
+//                GenSegment(Slice(Memory.put(3))),
+//                GenSegment(Slice(Memory.put(4)))
 //              )
 //
 //            val level4 = TestLevel(keyValues = Slice(Memory.put(4)))
@@ -492,13 +492,13 @@
 //        //input Segments - 1, 2, 3, 4, 5, 6, 7
 //        val segments =
 //          Slice(
-//            TestSegment(Slice(Memory.put(1))),
-//            TestSegment(Slice(Memory.put(2))),
-//            TestSegment(Slice(Memory.put(3))),
-//            TestSegment(Slice(Memory.put(4))),
-//            TestSegment(Slice(Memory.put(5))),
-//            TestSegment(Slice(Memory.put(6))),
-//            TestSegment(Slice(Memory.put(7)))
+//            GenSegment(Slice(Memory.put(1))),
+//            GenSegment(Slice(Memory.put(2))),
+//            GenSegment(Slice(Memory.put(3))),
+//            GenSegment(Slice(Memory.put(4))),
+//            GenSegment(Slice(Memory.put(5))),
+//            GenSegment(Slice(Memory.put(6))),
+//            GenSegment(Slice(Memory.put(7)))
 //          )
 //
 //        val level4 = TestLevel(keyValues = Slice(Memory.put(4)))
@@ -589,13 +589,13 @@
 //        //input Segments - 1, 2, 3, 4, 5, 6, 7
 //        val segments =
 //          Slice(
-//            TestSegment(Slice(Memory.put(1))),
-//            TestSegment(Slice(Memory.put(2))),
-//            TestSegment(Slice(Memory.put(3))),
-//            TestSegment(Slice(Memory.put(4))),
-//            TestSegment(Slice(Memory.put(5))),
-//            TestSegment(Slice(Memory.put(6))),
-//            TestSegment(Slice(Memory.put(7)))
+//            GenSegment(Slice(Memory.put(1))),
+//            GenSegment(Slice(Memory.put(2))),
+//            GenSegment(Slice(Memory.put(3))),
+//            GenSegment(Slice(Memory.put(4))),
+//            GenSegment(Slice(Memory.put(5))),
+//            GenSegment(Slice(Memory.put(6))),
+//            GenSegment(Slice(Memory.put(7)))
 //          )
 //
 //        val level4 = TestLevel(keyValues = Slice(Memory.put(7)))

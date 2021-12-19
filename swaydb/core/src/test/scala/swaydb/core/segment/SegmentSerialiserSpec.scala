@@ -46,7 +46,7 @@ class SegmentSerialiserSpec extends AnyWordSpec {
           implicit val segmentIO: SegmentReadIO = SegmentReadIO.random
 
           val keyValues = randomizedKeyValues(randomIntMax(100) max 1)
-          val segment = TestSegment(keyValues)
+          val segment = GenSegment(keyValues)
 
           val bytes = Slice.allocate[Byte](SegmentSerialiser.FormatA.bytesRequired(segment))
 

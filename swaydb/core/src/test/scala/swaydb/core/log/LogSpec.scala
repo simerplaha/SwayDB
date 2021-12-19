@@ -29,7 +29,7 @@ import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.log.LogTestKit._
 import swaydb.core.log.serialiser._
 import swaydb.core.log.timer.TestTimer
-import swaydb.core.segment.Segment
+import swaydb.core.segment.{Segment, GenSegment}
 import swaydb.core.segment.data.{Memory, MemoryOption, SegmentKeyOrders, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.SegmentTestKit._
@@ -116,8 +116,8 @@ class LogSpec extends AnyWordSpec {
               flushOnOverflow = false
             ).sweep()
 
-          val segment1 = TestSegment(randomizedKeyValues())
-          val segment2 = TestSegment(randomizedKeyValues(100))
+          val segment1 = GenSegment(randomizedKeyValues())
+          val segment2 = GenSegment(randomizedKeyValues(100))
 
           log.writeSync(LogEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
           log.writeSync(LogEntry.Put[Slice[Byte], Segment](2, segment2)) shouldBe true
@@ -287,8 +287,8 @@ class LogSpec extends AnyWordSpec {
           import AppendixLogEntryWriter._
           import appendixReader._
 
-          val segment1 = TestSegment(Slice(Memory.put(1, 1, None), Memory.put(2, 2, None)))
-          val segment2 = TestSegment(Slice(Memory.put(3, 3, None), Memory.put(4, 4, None)))
+          val segment1 = GenSegment(Slice(Memory.put(1, 1, None), Memory.put(2, 2, None)))
+          val segment2 = GenSegment(Slice(Memory.put(3, 3, None), Memory.put(4, 4, None)))
 
           val log =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](
@@ -418,12 +418,12 @@ class LogSpec extends AnyWordSpec {
           import AppendixLogEntryWriter._
           import appendixReader._
 
-          val segment1 = TestSegment(Slice(Memory.put(1, 1, None), Memory.put(2, 2, None)))
-          val segment2 = TestSegment(Slice(Memory.put(2, 2, None), Memory.put(4, 4, None)))
-          val segment3 = TestSegment(Slice(Memory.put(3, 3, None), Memory.put(6, 6, None)))
-          val segment4 = TestSegment(Slice(Memory.put(4, 4, None), Memory.put(8, 8, None)))
-          val segment5 = TestSegment(Slice(Memory.put(5, 5, None), Memory.put(10, 10, None)))
-          val segment2Updated = TestSegment(Slice(Memory.put(2, 2, None), Memory.put(12, 12, None)))
+          val segment1 = GenSegment(Slice(Memory.put(1, 1, None), Memory.put(2, 2, None)))
+          val segment2 = GenSegment(Slice(Memory.put(2, 2, None), Memory.put(4, 4, None)))
+          val segment3 = GenSegment(Slice(Memory.put(3, 3, None), Memory.put(6, 6, None)))
+          val segment4 = GenSegment(Slice(Memory.put(4, 4, None), Memory.put(8, 8, None)))
+          val segment5 = GenSegment(Slice(Memory.put(5, 5, None), Memory.put(10, 10, None)))
+          val segment2Updated = GenSegment(Slice(Memory.put(2, 2, None), Memory.put(12, 12, None)))
 
           val map1 =
             Log.persistent[Slice[Byte], Segment, AppendixLogCache](

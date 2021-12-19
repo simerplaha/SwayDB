@@ -67,7 +67,7 @@ class SegmentMemorySweeperSpec extends AnyWordSpec {
 
             //create persistent Segment
             val segment =
-              TestSegment(
+              GenSegment(
                 keyValues = keyValues,
                 segmentConfig = SegmentBlockConfig.random(cacheBlocksOnCreate = false, mmap = mmapSegments)
               )

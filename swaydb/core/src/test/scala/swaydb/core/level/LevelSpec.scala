@@ -148,7 +148,7 @@
 //            //create a non empty level
 //            val level = TestLevel()
 //
-//            val segment = TestSegment(randomKeyValues(keyValuesCount))
+//            val segment = GenSegment(randomKeyValues(keyValuesCount))
 //
 //            level.put(segment).value
 //
@@ -199,9 +199,9 @@
 //                //deleteUncommittedSegments will also be invoked on Levels with cleared and closed Segments there will never be
 //                //memory-mapped. So disable mmap in this test specially for windows which does not allow deleting memory-mapped files without
 //                //clearing the MappedByteBuffer.
-//                TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.standard())))
-//                TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.standard())))
-//                TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.standard())))
+//                GenSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.standard())))
+//                GenSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.standard())))
+//                GenSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.standard())))
 //                currentSegmentId + 3
 //            }
 //            //every level folder has 3 uncommitted Segments plus 1 valid Segment
@@ -249,7 +249,7 @@
 //        implicit sweeper =>
 //          val level = TestLevel()
 //
-//          val segments = TestSegment(Slice(Memory.put(1, "value1"), Memory.put(2, "value2"))).runRandomIO.get
+//          val segments = GenSegment(Slice(Memory.put(1, "value1"), Memory.put(2, "value2"))).runRandomIO.get
 //          val actualLogEntry = level.buildNewLogEntry(Slice(segments), originalSegmentMayBe = Segment.Null, initialLogEntry = None).runRandomIO.get
 //          val expectedLogEntry = LogEntry.Put[Slice[Byte], Segment](segments.minKey, segments)
 //
@@ -264,10 +264,10 @@
 //        implicit sweeper =>
 //          val level = TestLevel()
 //
-//          val originalSegment = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.get
-//          val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.get
-//          val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.get
-//          val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.get
+//          val originalSegment = GenSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.get
+//          val mergedSegment1 = GenSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.get
+//          val mergedSegment2 = GenSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.get
+//          val mergedSegment3 = GenSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.get
 //
 //          val actualLogEntry = level.buildNewLogEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialLogEntry = None).runRandomIO.get
 //
@@ -286,10 +286,10 @@
 //        implicit sweeper =>
 //          val level = TestLevel()
 //
-//          val originalSegment = TestSegment(Slice(Memory.put(0, "value"), Memory.put(5, "value"))).runRandomIO.get
-//          val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.get
-//          val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.get
-//          val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.get
+//          val originalSegment = GenSegment(Slice(Memory.put(0, "value"), Memory.put(5, "value"))).runRandomIO.get
+//          val mergedSegment1 = GenSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.get
+//          val mergedSegment2 = GenSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.get
+//          val mergedSegment3 = GenSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.get
 //
 //          val expectedLogEntry =
 //            LogEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++

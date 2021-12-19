@@ -19,15 +19,13 @@ package swaydb.core.log
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.PrivateMethodTester._
 import swaydb.{Bag, Glass, TestExecutionContext}
-import swaydb.config.{Atomic, GenForceSave, MMAP, OptimiseWrites}
 import swaydb.config.CoreConfigTestKit._
+import swaydb.config.MMAP
 import swaydb.core.{CoreSpecType, CoreTestSweeper}
 import swaydb.core.CoreTestSweeper._
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.{ByteBufferSweeperActor, State}
-import swaydb.core.level.zero.LevelZero.LevelZeroLog
-import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.level.NextLevel
 import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
@@ -41,10 +39,9 @@ import swaydb.effect.Effect
 import swaydb.effect.EffectTestKit._
 import swaydb.effect.IOValues._
 import swaydb.slice.{Slice, SliceOption}
-import swaydb.slice.order.{KeyOrder, TimeOrder}
+import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.{Extension, OperatingSystem}
-import swaydb.utils.StorageUnits._
 import swaydb.Bag.Async
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.effect.EffectTestSweeper._
@@ -55,13 +52,13 @@ import scala.concurrent.duration.DurationInt
 
 object LogTestKit {
 
-  def getLogs[K, V, C <: LogCache[K, V]](logs: Logs[K, V, C]): VolatileQueue[Log[K, V, C]] =
+  def invokePrivate_queue[K, V, C <: LogCache[K, V]](logs: Logs[K, V, C]): VolatileQueue[Log[K, V, C]] =
     logs invokePrivate PrivateMethod[VolatileQueue[Log[K, V, C]]](Symbol("queue"))()
 
-  def getFunctionStore(level: NextLevel): CoreFunctionStore =
+  def invokePrivate_functionStore(level: NextLevel): CoreFunctionStore =
     level invokePrivate PrivateMethod[CoreFunctionStore](Symbol("functionStore"))()
 
-  def getTimer[K, V, C <: LogCache[K, V]](logs: Logs[K, V, C]): Timer =
+  def invokePrivate_timer[K, V, C <: LogCache[K, V]](logs: Logs[K, V, C]): Timer =
     logs invokePrivate PrivateMethod[Timer](Symbol("timer"))()
 
   implicit class SliceKeyValueImplicits(actual: Iterable[KeyValue]) {
@@ -235,8 +232,8 @@ object LogTestKit {
     }
   }
 
-  def testLogFilePath()(implicit sweeper: CoreTestSweeper,
-                        coreSpecType: CoreSpecType): Path =
+  def genLogFile()(implicit sweeper: CoreTestSweeper,
+                   coreSpecType: CoreSpecType): Path =
     if (coreSpecType.isMemory)
       genIntPath()
         .resolve(s"${sweeper.idGenerator.nextId()}${Extension.Log.toStringWithDot}")
@@ -246,42 +243,5 @@ object LogTestKit {
         .createDirectoriesIfAbsent(genIntPath())
         .resolve(s"${sweeper.idGenerator.nextId()}${Extension.Log.toStringWithDot}")
         .sweep()
-
-  object TestLog {
-    def apply(keyValues: Slice[Memory],
-              fileSize: Int = 4.mb,
-              flushOnOverflow: Boolean = false,
-              mmap: MMAP.Log = MMAP.On(OperatingSystem.isWindows(), GenForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                          timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                          sweeper: CoreTestSweeper,
-                                                                                          coreSpecType: CoreSpecType): LevelZeroLog = {
-      import swaydb.core.log.serialiser.LevelZeroLogEntryWriter._
-      import sweeper._
-
-      implicit val optimiseWrites: OptimiseWrites = OptimiseWrites.random
-      implicit val atomic: Atomic = Atomic.random
-
-      val testLog =
-        if (coreSpecType.isMemory)
-          Log.memory[Slice[Byte], Memory, LevelZeroLogCache](
-            fileSize = fileSize,
-            flushOnOverflow = flushOnOverflow
-          )
-        else
-          Log.persistent[Slice[Byte], Memory, LevelZeroLogCache](
-            folder = testLogFilePath(),
-            mmap = mmap,
-            flushOnOverflow = flushOnOverflow,
-            fileSize = fileSize
-          ).runRandomIO.get
-
-      keyValues foreach {
-        keyValue =>
-          testLog.writeSync(LogEntry.Put(keyValue.key, keyValue))
-      }
-
-      testLog.sweep()
-    }
-  }
 
 }

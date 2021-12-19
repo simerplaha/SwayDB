@@ -51,7 +51,7 @@
 //  def createStacks(keyValues: Slice[Memory]*)(test: scala.collection.Map[Slice[Byte], LevelZeroTaskAssigner.Stack] => Unit): Unit =
 //    CoreTestSweeper {
 //      implicit sweeper =>
-//        val logs: Iterable[LevelZeroLog] = keyValues.map(TestLog(_))
+//        val logs: Iterable[LevelZeroLog] = keyValues.map(GenLog(_))
 //        val stacks = LevelZeroTaskAssigner.createStacks(logs)
 //        test(stacks.asScala)
 //    }

@@ -320,7 +320,7 @@ class LogsSpec extends AnyWordSpec {
 
             logs.logsCount shouldBe 5
             //logs value added
-            getLogs(logs).iterator.toList.map(_.pathOption.get.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
+            invokePrivate_queue(logs).iterator.toList.map(_.pathOption.get.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
             logs.last().get.pathOption.get.folderId shouldBe 0
 
             if (logs.mmap.hasMMAP && OperatingSystem.isWindows()) {
@@ -337,7 +337,7 @@ class LogsSpec extends AnyWordSpec {
                 recovery = RecoveryMode.ReportFailure
               ).get
 
-            getLogs(recovered1).iterator.toList.map(_.pathOption.get.folderId) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
+            invokePrivate_queue(recovered1).iterator.toList.map(_.pathOption.get.folderId) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
             recovered1.log.pathOption.get.folderId shouldBe 5
             recovered1.write(_ => LogEntry.Put[Slice[Byte], Memory.Remove](6, Memory.remove(6)))
             recovered1.last().get.pathOption.get.folderId shouldBe 0
@@ -356,7 +356,7 @@ class LogsSpec extends AnyWordSpec {
                 recovery = RecoveryMode.ReportFailure
               ).get.sweep()
 
-            getLogs(recovered2).iterator.toList.map(_.pathOption.get.folderId) should contain inOrderOnly(6, 5, 4, 3, 2, 1, 0)
+            invokePrivate_queue(recovered2).iterator.toList.map(_.pathOption.get.folderId) should contain inOrderOnly(6, 5, 4, 3, 2, 1, 0)
             recovered2.log.pathOption.get.folderId shouldBe 6
             recovered2.last().get.pathOption.get.folderId shouldBe 0
         }
@@ -397,7 +397,7 @@ class LogsSpec extends AnyWordSpec {
                 recovery = RecoveryMode.ReportFailure
               ).get.sweep()
 
-            val recoveredLogsLogs = getLogs(recoveredLogs).iterator.toList
+            val recoveredLogsLogs = invokePrivate_queue(recoveredLogs).iterator.toList
             recoveredLogsLogs should have size 4
             recoveredLogsLogs.map(_.pathOption.get.folderId) shouldBe List(3, 2, 1, 0)
 
@@ -433,7 +433,7 @@ class LogsSpec extends AnyWordSpec {
               sweeper.receiveAll()
             }
 
-            val secondLogsPath = getLogs(logs).iterator.toList.tail.head.pathOption.get.files(Extension.Log).head
+            val secondLogsPath = invokePrivate_queue(logs).iterator.toList.tail.head.pathOption.get.files(Extension.Log).head
             val secondLogsBytes = Effect.readAllBytes(secondLogsPath)
             Effect.overwrite(secondLogsPath, secondLogsBytes.dropRight(1))
 
@@ -470,7 +470,7 @@ class LogsSpec extends AnyWordSpec {
             logs.write(_ => LogEntry.Put(5, Memory.put(5)))
             logs.write(_ => LogEntry.Put(6, Memory.put(6, 6)))
 
-            val secondLogsPath = getLogs(logs).iterator.toList.tail.head.pathOption.get.files(Extension.Log).head
+            val secondLogsPath = invokePrivate_queue(logs).iterator.toList.tail.head.pathOption.get.files(Extension.Log).head
             val secondLogsBytes = Effect.readAllBytes(secondLogsPath)
             Effect.overwrite(secondLogsPath, secondLogsBytes.dropRight(1))
 
@@ -483,7 +483,7 @@ class LogsSpec extends AnyWordSpec {
                 recovery = RecoveryMode.DropCorruptedTailEntries
               ).get.sweep()
 
-            val recoveredLogs = getLogs(recovered).iterator.toList
+            val recoveredLogs = invokePrivate_queue(recovered).iterator.toList
 
             //recovered logs will still be 4 (including a new log) but since second logs second entry is corrupted, the first entry will still exists.
             recoveredLogs should have size 4
@@ -528,7 +528,7 @@ class LogsSpec extends AnyWordSpec {
           logs.write(_ => LogEntry.Put(5, Memory.put(5)))
           logs.write(_ => LogEntry.Put(6, Memory.put(6)))
 
-          val secondLogsPath = getLogs(logs).iterator.toList.tail.head.pathOption.get.files(Extension.Log).head
+          val secondLogsPath = invokePrivate_queue(logs).iterator.toList.tail.head.pathOption.get.files(Extension.Log).head
           val secondLogsBytes = Effect.readAllBytes(secondLogsPath)
           Effect.overwrite(secondLogsPath, secondLogsBytes.dropRight(1))
 
@@ -541,9 +541,9 @@ class LogsSpec extends AnyWordSpec {
               recovery = RecoveryMode.DropCorruptedTailEntriesAndLogs
             ).get.sweep()
 
-          getLogs(recoveredLogs) should have size 3
+          invokePrivate_queue(recoveredLogs) should have size 3
           //the last log is delete since the second last Log is found corrupted.
-          getLogs(logs).iterator.toList.last.exists() shouldBe false
+          invokePrivate_queue(logs).iterator.toList.last.exists() shouldBe false
 
           //oldest log contains all key-values
           recoveredLogs.find[MemoryOption](Memory.Null, _.cache.skipList.get(1)) shouldBe Memory.put(1)

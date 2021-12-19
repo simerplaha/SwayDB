@@ -23,7 +23,7 @@ import swaydb.config.CoreConfigTestKit._
 import swaydb.config.{GenForceSave, MMAP}
 import swaydb.core.{CoreSpecType, CoreTestSweeper}
 import swaydb.core.log.LogEntry
-import swaydb.core.segment.{Segment, SegmentOption}
+import swaydb.core.segment.{Segment, SegmentOption, GenSegment}
 import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.data.SegmentKeyOrders
 import swaydb.core.segment.io.SegmentReadIO
@@ -53,7 +53,7 @@ class AppendixLogEntrySpec extends AnyWordSpec {
 
           import sweeper._
 
-          val segment = TestSegment(randomizedKeyValues(100))
+          val segment = GenSegment(randomizedKeyValues(100))
 
           val appendixReader =
             AppendixLogEntryReader(
@@ -147,11 +147,11 @@ class AppendixLogEntrySpec extends AnyWordSpec {
             segmentRefCacheLife = randomSegmentRefCacheLife()
           )
 
-          val segment1 = TestSegment(randomizedKeyValues(100))
-          val segment2 = TestSegment(randomizedKeyValues(100))
-          val segment3 = TestSegment(randomizedKeyValues(100))
-          val segment4 = TestSegment(randomizedKeyValues(100))
-          val segment5 = TestSegment(randomizedKeyValues(100))
+          val segment1 = GenSegment(randomizedKeyValues(100))
+          val segment2 = GenSegment(randomizedKeyValues(100))
+          val segment3 = GenSegment(randomizedKeyValues(100))
+          val segment4 = GenSegment(randomizedKeyValues(100))
+          val segment5 = GenSegment(randomizedKeyValues(100))
 
           val entry: LogEntry[Slice[Byte], Segment] =
             (LogEntry.Put[Slice[Byte], Segment](segment1.minKey, segment1): LogEntry[Slice[Byte], Segment]) ++

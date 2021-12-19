@@ -56,7 +56,7 @@
 //    //      val itemCount = 10000000
 //    //
 //    //      val limitQueue = MemorySweeper(100.mb, 5.seconds)
-//    //      val segment = TestSegment(randomizedKeyValues(100)).get
+//    //      val segment = GenSegment(randomizedKeyValues(100)).get
 //    //
 //    //      val skipList = SkipList.concurrent[Slice[Byte], Int](KeyOrder.default)
 //    //

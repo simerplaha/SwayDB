@@ -26,7 +26,7 @@
 //import swaydb.core.segment.data.Memory
 //import swaydb.core.segment.data.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 //import swaydb.core.segment.data.KeyValueTestKit._
-//import swaydb.core.segment.SegmentTestKit.TestSegment
+//import swaydb.core.segment.SegmentTestKit.GenSegment
 //import swaydb.core.segment.block.SegmentBlockTestKit._
 //import swaydb.serializers._
 //import swaydb.serializers.Default._
@@ -48,7 +48,7 @@
 //  override def isMemorySpec: Boolean = false
 //
 //  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: CoreTestSweeper): PersistentSegment =
-//    TestSegment(keyValues).shouldBeInstanceOf[PersistentSegment]
+//    GenSegment(keyValues).shouldBeInstanceOf[PersistentSegment]
 //
 //  override def nullSegment: PersistentSegmentOption =
 //    PersistentSegment.Null
@@ -69,7 +69,7 @@
 //  override def isMemorySpec = true
 //
 //  override def testSegment(keyValues: Slice[Memory])(implicit sweeper: CoreTestSweeper): MemorySegment =
-//    TestSegment(keyValues).shouldBeInstanceOf[MemorySegment]
+//    GenSegment(keyValues).shouldBeInstanceOf[MemorySegment]
 //
 //  override def nullSegment: MemorySegmentOption =
 //    MemorySegment.Null
@@ -97,7 +97,7 @@
 //      CoreTestSweeper {
 //        implicit sweeper =>
 //
-//          val segments: ListBuffer[SEG] = ListBuffer.range(1, 5).map(_ => TestSegment(randomizedKeyValues(100)))
+//          val segments: ListBuffer[SEG] = ListBuffer.range(1, 5).map(_ => GenSegment(randomizedKeyValues(100)))
 //
 //          implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
 //          implicit val segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(minSize = segments.map(_.segmentSize).min)
@@ -182,7 +182,7 @@
 //          implicit sweeper =>
 //
 //            //each segment has non removable key-values
-//            val segments = ListBuffer.range(0, 5).map(_ => TestSegment.one(randomPutKeyValues(20)))
+//            val segments = ListBuffer.range(0, 5).map(_ => GenSegment.one(randomPutKeyValues(20)))
 //            segments should have size 5
 //
 //            implicit val sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random
@@ -268,7 +268,7 @@
 //              implicit sweeper =>
 //
 //                //a single
-//                val manySegment = TestSegment.many(keyValues = randomPutKeyValues(100), segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = 5))
+//                val manySegment = GenSegment.many(keyValues = randomPutKeyValues(100), segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = 5))
 //                manySegment should have size 1
 //                manySegment.head.isInstanceOf[PersistentSegmentMany] shouldBe true
 //                manySegment.head.asInstanceOf[PersistentSegmentMany].segmentRefs(randomBoolean()) should have size 20
@@ -348,7 +348,7 @@
 //            CoreTestSweeper {
 //              implicit sweeper =>
 //
-//                val manySegment = TestSegment.many(keyValues = randomPutKeyValues(100), segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = 5))
+//                val manySegment = GenSegment.many(keyValues = randomPutKeyValues(100), segmentConfig = SegmentBlockConfig.random.copy(minSize = Int.MaxValue, maxCount = 5))
 //                manySegment should have size 1
 //                manySegment.head.isInstanceOf[PersistentSegmentMany] shouldBe true
 //
@@ -431,7 +431,7 @@
 //            val segments =
 //              ListBuffer.range(0, 5) map {
 //                _ =>
-//                  TestSegment(keyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.update(3)))
+//                  GenSegment(keyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.update(3)))
 //              }
 //
 //            segments.foreach(_.hasUpdateOrRange shouldBe true)

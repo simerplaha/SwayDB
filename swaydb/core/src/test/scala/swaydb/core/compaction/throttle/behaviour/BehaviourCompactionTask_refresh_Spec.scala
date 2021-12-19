@@ -69,7 +69,7 @@
 //          val segments =
 //            (1 to 10) map {
 //              key =>
-//                TestSegment(Slice(Memory.update(key)))
+//                GenSegment(Slice(Memory.update(key)))
 //            }
 //
 //          val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
@@ -103,9 +103,9 @@
 //            (1 to 10) map {
 //              key =>
 //                if (key == 2)
-//                  TestSegment(Slice(Memory.put(key)))
+//                  GenSegment(Slice(Memory.put(key)))
 //                else
-//                  TestSegment(Slice(Memory.update(key)))
+//                  GenSegment(Slice(Memory.update(key)))
 //            }
 //
 //          val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
@@ -122,7 +122,7 @@
 //          if (isMemorySpec)
 //            level.segments().last.delete()
 //          else
-//            TestSegment(path = level.rootPath.resolve(s"${level.segmentIDGenerator.currentId() + 1}.seg"))
+//            GenSegment(path = level.rootPath.resolve(s"${level.segmentIDGenerator.currentId() + 1}.seg"))
 //
 //          BehaviourCompactionTask.refresh(task, level).awaitFailureInf shouldBe a[Exception]
 //

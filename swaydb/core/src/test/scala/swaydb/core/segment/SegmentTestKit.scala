@@ -43,7 +43,6 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
-import swaydb.effect.EffectTestKit._
 
 object SegmentTestKit {
 
@@ -165,7 +164,6 @@ object SegmentTestKit {
              |""".stripMargin + "\n"
       }
     }
-
 
   implicit class ReopenSegment(segment: PersistentSegment)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
@@ -320,8 +318,7 @@ object SegmentTestKit {
     }
   }
 
-
-  implicit class TestSegmentImplicits(segment: Segment) {
+  implicit class GenSegmentImplicits(segment: Segment) {
 
     import swaydb.testkit.RunThis._
 
@@ -489,132 +486,6 @@ object SegmentTestKit {
   //        .resolve(sweeper.idGenerator.nextSegmentId())
   //        .sweep()
 
-  object TestSegment {
-    def apply(keyValues: Slice[Memory],
-              createdInLevel: Int = 1,
-              valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
-              sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
-              binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random,
-              hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
-              bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
-              segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                                       sweeper: CoreTestSweeper,
-                                                                                                       coreSpecType: CoreSpecType,
-                                                                                                       ec: ExecutionContext = TestExecutionContext.executionContext): Segment = {
-      val segments =
-        many(
-          createdInLevel = createdInLevel,
-          keyValues = keyValues,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig,
-          segmentConfig =
-            if (coreSpecType.isPersistent)
-              segmentConfig.copy(minSize = Int.MaxValue, maxCount = eitherOne(randomIntMax(keyValues.size), Int.MaxValue))
-            else
-              segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
-        )
-
-      segments should have size 1
-
-      segments.head
-    }
-
-    def one(keyValues: Slice[Memory],
-            createdInLevel: Int = 1,
-            valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
-            sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
-            binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random,
-            hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
-            bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
-            segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                                     sweeper: CoreTestSweeper,
-                                                                                                     coreSpecType: CoreSpecType,
-                                                                                                     ec: ExecutionContext = TestExecutionContext.executionContext): Segment = {
-
-      val segments =
-        many(
-          createdInLevel = createdInLevel,
-          keyValues = keyValues,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
-        )
-
-      segments should have size 1
-
-      segments.head
-    }
-
-    def many(keyValues: Slice[Memory],
-             createdInLevel: Int = 1,
-             valuesConfig: ValuesBlockConfig = ValuesBlockConfig.random,
-             sortedIndexConfig: SortedIndexBlockConfig = SortedIndexBlockConfig.random,
-             binarySearchIndexConfig: BinarySearchIndexBlockConfig = BinarySearchIndexBlockConfig.random,
-             hashIndexConfig: HashIndexBlockConfig = HashIndexBlockConfig.random,
-             bloomFilterConfig: BloomFilterBlockConfig = BloomFilterBlockConfig.random,
-             segmentConfig: SegmentBlockConfig = SegmentBlockConfig.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                      timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                                      sweeper: CoreTestSweeper,
-                                                                                                      coreSpecType: CoreSpecType,
-                                                                                                      ec: ExecutionContext = TestExecutionContext.executionContext): Slice[Segment] = {
-      import swaydb.testkit.RunThis._
-      import sweeper._
-
-      implicit val segmentIO: SegmentReadIO =
-        SegmentReadIO(
-          bloomFilterConfig = bloomFilterConfig,
-          hashIndexConfig = hashIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          valuesConfig = valuesConfig,
-          segmentConfig = segmentConfig
-        )
-
-      implicit val segmentKeyOrders: SegmentKeyOrders =
-        SegmentKeyOrders(keyOrder)
-
-      val segment =
-        if (coreSpecType.isMemory)
-          MemorySegment(
-            minSegmentSize = segmentConfig.minSize,
-            maxKeyValueCountPerSegment = segmentConfig.maxCount,
-            pathDistributor = sweeper.pathDistributor,
-            createdInLevel = createdInLevel,
-            stats = MergeStats.memoryBuilder(keyValues).close()
-          )
-        else
-          PersistentSegment(
-            pathDistributor = sweeper.pathDistributor,
-            createdInLevel = createdInLevel,
-            bloomFilterConfig = bloomFilterConfig,
-            hashIndexConfig = hashIndexConfig,
-            binarySearchIndexConfig = binarySearchIndexConfig,
-            sortedIndexConfig = sortedIndexConfig,
-            valuesConfig = valuesConfig,
-            segmentConfig = segmentConfig,
-            mergeStats =
-              MergeStats
-                .persistentBuilder(keyValues)
-                .close(
-                  hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
-                  optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
-                )
-          ).awaitInf
-
-      segment.foreach(_.sweep())
-
-      Slice.from(segment, segment.size)
-    }
-  }
-
 
   def assertSegment[T](keyValues: Slice[Memory],
                        assert: (Slice[Memory], Segment) => T,
@@ -635,7 +506,7 @@ object SegmentTestKit {
 
     val segment =
       if (ensureOneSegmentOnly)
-        TestSegment.one(
+        GenSegment.one(
           keyValues = keyValues,
           valuesConfig = valuesConfig,
           sortedIndexConfig = sortedIndexConfig,
@@ -645,7 +516,7 @@ object SegmentTestKit {
           segmentConfig = segmentConfig
         )
       else
-        TestSegment(
+        GenSegment(
           keyValues = keyValues,
           valuesConfig = valuesConfig,
           sortedIndexConfig = sortedIndexConfig,

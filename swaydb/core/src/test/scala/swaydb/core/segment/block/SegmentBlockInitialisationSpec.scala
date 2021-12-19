@@ -24,7 +24,7 @@ import swaydb.config.MMAP
 import swaydb.core.{CoreSpecType, CoreTestSweeper}
 import swaydb.core.compression.CompressionTestKit._
 import swaydb.core.log.timer.TestTimer
-import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
+import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne, GenSegment}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig}
@@ -627,7 +627,7 @@ class SegmentBlockInitialisationSpec extends AnyWordSpec {
               val keyValues = randomKeyValues(100)
 
               val segment =
-                TestSegment(
+                GenSegment(
                   keyValues = keyValues,
                   segmentConfig = SegmentBlockConfig.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = true, minSegmentSize = Int.MaxValue)
                 )

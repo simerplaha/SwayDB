@@ -85,10 +85,10 @@
 //
 //              val segments =
 //                SortedSet(
-//                  TestSegment(Slice(Memory.put(1))),
-//                  TestSegment(Slice(Memory.put(2))),
-//                  TestSegment(Slice(Memory.put(3))),
-//                  TestSegment(Slice(Memory.put(4)))
+//                  GenSegment(Slice(Memory.put(1))),
+//                  GenSegment(Slice(Memory.put(2))),
+//                  GenSegment(Slice(Memory.put(3))),
+//                  GenSegment(Slice(Memory.put(4)))
 //                )
 //
 //              val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
@@ -157,10 +157,10 @@
 //              //level1 has updated key-values
 //              val newSegments =
 //                SortedSet(
-//                  TestSegment(Slice(Memory.put(1, 1))),
-//                  TestSegment(Slice(Memory.put(2, 2))),
-//                  TestSegment(Slice(Memory.put(3, 3))),
-//                  TestSegment(Slice(Memory.put(4, 4)))
+//                  GenSegment(Slice(Memory.put(1, 1))),
+//                  GenSegment(Slice(Memory.put(2, 2))),
+//                  GenSegment(Slice(Memory.put(3, 3))),
+//                  GenSegment(Slice(Memory.put(4, 4)))
 //                )
 //
 //              val newKeyValues = newSegments.iterator.flatMap(_.iterator(randomBoolean())).toSlice

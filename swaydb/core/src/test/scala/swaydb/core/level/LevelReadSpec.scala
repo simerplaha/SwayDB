@@ -138,7 +138,7 @@
 ////          val putKeyValues = randomPutKeyValues(keyValuesCount)
 ////          //refresh so that if there is a compression running, this Segment will compressed.
 ////          val segments =
-////            TestSegment(putKeyValues, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments))
+////            GenSegment(putKeyValues, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments))
 ////              .runRandomIO
 ////              .right.value
 ////              .refresh(
@@ -176,7 +176,7 @@
 ////          val putKeyValues = randomPutKeyValues(keyValuesCount)
 ////          //refresh so that if there is a compression running, this Segment will compressed.
 ////          val segments =
-////            TestSegment(putKeyValues, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments))
+////            GenSegment(putKeyValues, segmentConfig = SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments))
 ////              .runRandomIO.get
 ////              .refresh(
 ////                removeDeletes = false,
@@ -220,7 +220,7 @@
 ////          val level1 = TestLevel(nextLevel = Some(level2))
 ////
 ////          val putKeyValues = randomPutKeyValues(keyValuesCount)
-////          val segment = TestSegment(putKeyValues).runRandomIO.get
+////          val segment = GenSegment(putKeyValues).runRandomIO.get
 ////          level2.put(segment).get
 ////
 ////          level1.meterFor(3) shouldBe empty

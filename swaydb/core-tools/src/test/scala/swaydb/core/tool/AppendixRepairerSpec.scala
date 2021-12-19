@@ -196,7 +196,7 @@
 //                val numberOfKeyValuesToOverlap = randomNextInt(3) max 1
 //                val keyValuesToOverlap = Random.shuffle(segment.iterator(randomBoolean()).runRandomIO.value.toList).take(numberOfKeyValuesToOverlap).map(_.toMemory()).toSlice
 //                //create overlapping Segment
-//                val overlappingSegment = TestSegment(keyValuesToOverlap, segmentConfig = SegmentBlockConfig.random(mmap = MMAP.Off(TestForceSave.standard())))
+//                val overlappingSegment = GenSegment(keyValuesToOverlap, segmentConfig = SegmentBlockConfig.random(mmap = MMAP.Off(TestForceSave.standard())))
 //                Effect.copy(overlappingSegment.path, overlappingLevelSegmentPath)
 //                overlappingSegment.close() //gotta close the new segment create after it's copied over.
 //                if (level.hasMMAP && OperatingSystem.isWindows())

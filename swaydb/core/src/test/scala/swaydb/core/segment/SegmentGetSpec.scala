@@ -146,7 +146,7 @@ class SegmentGetSpec extends AnyWordSpec {
           import sweeper.testCoreFunctionStore
 
           val keyValues = randomizedKeyValues(keyValuesCount)
-          val segment = TestSegment(keyValues)
+          val segment = GenSegment(keyValues)
           assertGet(keyValues, segment)
       }
     }

@@ -10,7 +10,7 @@ import swaydb.core.{CoreSpecType, CoreTestSweeper}
 import swaydb.core.CoreTestSweeper._
 import swaydb.core.compression.CompressionTestKit._
 import swaydb.core.log.timer.TestTimer
-import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
+import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne, GenSegment}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
 import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
@@ -346,7 +346,7 @@ class SegmentBlockCacheSpec extends AnyWordSpec {
               randomizedKeyValues(randomIntMax(100) max 1)
 
             val segment =
-              TestSegment(
+              GenSegment(
                 keyValues = keyValues,
                 valuesConfig = ValuesBlockConfig.random(hasCompression = false, cacheOnAccess = false),
                 sortedIndexConfig = SortedIndexBlockConfig.random(hasCompression = false, cacheOnAccess = false),

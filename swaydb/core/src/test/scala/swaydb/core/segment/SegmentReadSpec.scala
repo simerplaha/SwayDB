@@ -22,7 +22,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.TestExecutionContext
 import swaydb.core._
 import swaydb.core.log.timer.TestTimer
-import swaydb.core.log.LogTestKit.TestLog
+import swaydb.core.log.GenLog
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data._
 import swaydb.core.segment.data.KeyValueTestKit._
@@ -61,7 +61,7 @@ class SegmentReadSpec extends AnyWordSpec {
 
           import sweeper.testCoreFunctionStore
 
-          val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)))
+          val segment = GenSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)))
 
           runThis(10.times) {
             Segment.keyOverlaps(randomFixedKeyValue(0), segment) shouldBe false
@@ -97,7 +97,7 @@ class SegmentReadSpec extends AnyWordSpec {
 
           import sweeper.testCoreFunctionStore
 
-          val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)))
+          val segment = GenSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)))
 
           runThis(10.times) {
             Segment.keyOverlaps(randomFixedKeyValue(0), segment) shouldBe false
@@ -133,7 +133,7 @@ class SegmentReadSpec extends AnyWordSpec {
 
           import sweeper.testCoreFunctionStore
 
-          val segment = TestSegment(Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)))
+          val segment = GenSegment(Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)))
 
           runThis(10.times) {
             Segment.keyOverlaps(randomFixedKeyValue(0), segment) shouldBe false
@@ -170,7 +170,7 @@ class SegmentReadSpec extends AnyWordSpec {
           import sweeper.testCoreFunctionStore
 
           val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(keyValuesCount + 1000))
-          val segment = TestSegment(keyValues)
+          val segment = GenSegment(keyValues)
 
           val minKeyInt = keyValues.head.key.readInt()
           val maxKey = getMaxKey(keyValues.last)
@@ -221,7 +221,7 @@ class SegmentReadSpec extends AnyWordSpec {
 
           import sweeper.testCoreFunctionStore
 
-          val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)))
+          val segment = GenSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)))
 
           //0 - 0
           //      1 - 5
@@ -301,7 +301,7 @@ class SegmentReadSpec extends AnyWordSpec {
 
           import sweeper.testCoreFunctionStore
 
-          val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)))
+          val segment = GenSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)))
 
           //0 - 0
           //      1 - (5 - 10(EX))
@@ -433,45 +433,45 @@ class SegmentReadSpec extends AnyWordSpec {
 
           //0-1, 2-3
           //         4-5, 6-7
-          var segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3))))
-          var segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          var segments1 = Seq(GenSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), GenSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3))))
+          var segments2 = Seq(GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), GenSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
           Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
 
           //0-1,   3-4
           //         4-5, 6-7
-          segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))))
-          segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          segments1 = Seq(GenSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), GenSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))))
+          segments2 = Seq(GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), GenSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
           Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
 
           //0-1,   3 - 5
           //         4-5, 6-7
-          segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(5))))
-          segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          segments1 = Seq(GenSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), GenSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(5))))
+          segments2 = Seq(GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), GenSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
           Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
 
 
           //0-1,      6-8
           //      4-5,    10-20
-          segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(8))))
-          segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
+          segments1 = Seq(GenSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), GenSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(8))))
+          segments2 = Seq(GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), GenSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
           Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
 
           //0-1,             20 - 21
           //      4-5,    10-20
-          segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(20), randomFixedKeyValue(21))))
-          segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
+          segments1 = Seq(GenSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), GenSegment(Slice(randomFixedKeyValue(20), randomFixedKeyValue(21))))
+          segments2 = Seq(GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), GenSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
           Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
 
           //0-1,               21 - 22
           //      4-5,    10-20
-          segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(21), randomFixedKeyValue(22))))
-          segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
+          segments1 = Seq(GenSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), GenSegment(Slice(randomFixedKeyValue(21), randomFixedKeyValue(22))))
+          segments2 = Seq(GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), GenSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
           Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
 
           //0          -          22
           //      4-5,    10-20
-          segments1 = Seq(TestSegment(Slice(randomRangeKeyValue(0, 22))))
-          segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
+          segments1 = Seq(GenSegment(Slice(randomRangeKeyValue(0, 22))))
+          segments2 = Seq(GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), GenSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
           Segment.partitionOverlapping(segments1, segments2) shouldBe(segments1, Seq.empty)
       }
     }
@@ -489,50 +489,50 @@ class SegmentReadSpec extends AnyWordSpec {
 
           //0 1
           //    2 3
-          var segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
-          var segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          var segment1 = GenSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
+          var segment2 = GenSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
           Segment.overlaps(segment1, segment2) shouldBe false
           Segment.overlaps(segment2, segment1) shouldBe false
 
           //1 2
           //  2 3
-          segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
-          segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          segment1 = GenSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
+          segment2 = GenSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
           Segment.overlaps(segment1, segment2) shouldBe true
           Segment.overlaps(segment2, segment1) shouldBe true
 
           //2 3
           //2 3
-          segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
-          segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          segment1 = GenSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          segment2 = GenSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
           Segment.overlaps(segment1, segment2) shouldBe true
           Segment.overlaps(segment2, segment1) shouldBe true
 
           //  3 4
           //2 3
-          segment1 = TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)))
-          segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          segment1 = GenSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)))
+          segment2 = GenSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
           Segment.overlaps(segment1, segment2) shouldBe true
           Segment.overlaps(segment2, segment1) shouldBe true
 
           //    4 5
           //2 3
-          segment1 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)))
-          segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          segment1 = GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)))
+          segment2 = GenSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
           Segment.overlaps(segment1, segment2) shouldBe false
           Segment.overlaps(segment2, segment1) shouldBe false
 
           //0       10
           //   2 3
-          segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)))
-          segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          segment1 = GenSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)))
+          segment2 = GenSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
           Segment.overlaps(segment1, segment2) shouldBe true
           Segment.overlaps(segment2, segment1) shouldBe true
 
           //   2 3
           //0       10
-          segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
-          segment2 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)))
+          segment1 = GenSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          segment2 = GenSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)))
           Segment.overlaps(segment1, segment2) shouldBe true
           Segment.overlaps(segment2, segment1) shouldBe true
       }
@@ -549,82 +549,82 @@ class SegmentReadSpec extends AnyWordSpec {
 
           //0 1
           //    2 3
-          var segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
-          var segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          var segment1 = GenSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
+          var segment2 = GenSegment(Slice(randomRangeKeyValue(2, 3)))
           Segment.overlaps(segment1, segment2) shouldBe false
           Segment.overlaps(segment2, segment1) shouldBe false
           //range over range
-          segment1 = TestSegment(Slice(randomRangeKeyValue(0, 1)))
+          segment1 = GenSegment(Slice(randomRangeKeyValue(0, 1)))
           Segment.overlaps(segment1, segment2) shouldBe false
           Segment.overlaps(segment2, segment1) shouldBe false
 
           //1 2
           //  2 3
-          segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
-          segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          segment1 = GenSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
+          segment2 = GenSegment(Slice(randomRangeKeyValue(2, 3)))
           Segment.overlaps(segment1, segment2) shouldBe true
           Segment.overlaps(segment2, segment1) shouldBe true
-          segment1 = TestSegment(Slice(randomRangeKeyValue(1, 2)))
+          segment1 = GenSegment(Slice(randomRangeKeyValue(1, 2)))
           Segment.overlaps(segment1, segment2) shouldBe false
           Segment.overlaps(segment2, segment1) shouldBe false
 
           //1   3
           //  2 3
-          segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(3)))
-          segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          segment1 = GenSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(3)))
+          segment2 = GenSegment(Slice(randomRangeKeyValue(2, 3)))
           Segment.overlaps(segment1, segment2) shouldBe true
           Segment.overlaps(segment2, segment1) shouldBe true
-          segment1 = TestSegment(Slice(randomRangeKeyValue(1, 3)))
+          segment1 = GenSegment(Slice(randomRangeKeyValue(1, 3)))
           Segment.overlaps(segment1, segment2) shouldBe true
           Segment.overlaps(segment2, segment1) shouldBe true
 
           //2 3
           //2 3
-          segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
-          segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          segment1 = GenSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          segment2 = GenSegment(Slice(randomRangeKeyValue(2, 3)))
           Segment.overlaps(segment1, segment2) shouldBe true
           Segment.overlaps(segment2, segment1) shouldBe true
-          segment1 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          segment1 = GenSegment(Slice(randomRangeKeyValue(2, 3)))
           Segment.overlaps(segment1, segment2) shouldBe true
           Segment.overlaps(segment2, segment1) shouldBe true
 
           //  3 4
           //2 3
-          segment1 = TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)))
-          segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          segment1 = GenSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)))
+          segment2 = GenSegment(Slice(randomRangeKeyValue(2, 3)))
           Segment.overlaps(segment1, segment2) shouldBe false
           Segment.overlaps(segment2, segment1) shouldBe false
-          segment1 = TestSegment(Slice(randomRangeKeyValue(3, 4)))
+          segment1 = GenSegment(Slice(randomRangeKeyValue(3, 4)))
           Segment.overlaps(segment1, segment2) shouldBe false
           Segment.overlaps(segment2, segment1) shouldBe false
 
           //    4 5
           //2 3
-          segment1 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)))
-          segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          segment1 = GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)))
+          segment2 = GenSegment(Slice(randomRangeKeyValue(2, 3)))
           Segment.overlaps(segment1, segment2) shouldBe false
           Segment.overlaps(segment2, segment1) shouldBe false
-          segment1 = TestSegment(Slice(randomRangeKeyValue(4, 5)))
+          segment1 = GenSegment(Slice(randomRangeKeyValue(4, 5)))
           Segment.overlaps(segment1, segment2) shouldBe false
           Segment.overlaps(segment2, segment1) shouldBe false
 
           //0       10
           //   2 3
-          segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)))
-          segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          segment1 = GenSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)))
+          segment2 = GenSegment(Slice(randomRangeKeyValue(2, 3)))
           Segment.overlaps(segment1, segment2) shouldBe true
           Segment.overlaps(segment2, segment1) shouldBe true
-          segment1 = TestSegment(Slice(randomRangeKeyValue(0, 10)))
+          segment1 = GenSegment(Slice(randomRangeKeyValue(0, 10)))
           Segment.overlaps(segment1, segment2) shouldBe true
           Segment.overlaps(segment2, segment1) shouldBe true
 
           //   2 3
           //0       10
-          segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
-          segment2 = TestSegment(Slice(randomRangeKeyValue(0, 10)))
+          segment1 = GenSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          segment2 = GenSegment(Slice(randomRangeKeyValue(0, 10)))
           Segment.overlaps(segment1, segment2) shouldBe true
           Segment.overlaps(segment2, segment1) shouldBe true
-          segment1 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          segment1 = GenSegment(Slice(randomRangeKeyValue(2, 3)))
           Segment.overlaps(segment1, segment2) shouldBe true
           Segment.overlaps(segment2, segment1) shouldBe true
       }
@@ -643,8 +643,8 @@ class SegmentReadSpec extends AnyWordSpec {
 
           //0-1, 2-3
           //         4-5, 6-7
-          var segments1 = List(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3))))
-          var segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          var segments1 = List(GenSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), GenSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3))))
+          var segments2 = List(GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), GenSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
           Segment.nonOverlapping(segments1, segments2).map(_.path) shouldBe segments1.map(_.path)
           Segment.nonOverlapping(segments2, segments1).map(_.path) shouldBe segments2.map(_.path)
           Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
@@ -653,8 +653,8 @@ class SegmentReadSpec extends AnyWordSpec {
 
           //2-3, 4-5
           //     4-5, 6-7
-          segments1 = List(TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3))), TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))))
-          segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          segments1 = List(GenSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3))), GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))))
+          segments2 = List(GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), GenSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
           Segment.nonOverlapping(segments1, segments2).map(_.path) should contain only segments1.head.path
           Segment.nonOverlapping(segments2, segments1).map(_.path) should contain only segments2.last.path
           Segment.overlaps(segments1, segments2).map(_.path) should contain only segments1.last.path
@@ -662,8 +662,8 @@ class SegmentReadSpec extends AnyWordSpec {
 
           //4-5, 6-7
           //4-5, 6-7
-          segments1 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
-          segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          segments1 = List(GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), GenSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          segments2 = List(GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), GenSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
           Segment.nonOverlapping(segments1, segments2).map(_.path) shouldBe empty
           Segment.nonOverlapping(segments2, segments1).map(_.path) shouldBe empty
           Segment.overlaps(segments1, segments2).map(_.path) shouldBe segments1.map(_.path)
@@ -671,8 +671,8 @@ class SegmentReadSpec extends AnyWordSpec {
 
           //     6-7, 8-9
           //4-5, 6-7
-          segments1 = List(TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))), TestSegment(Slice(randomFixedKeyValue(8), randomFixedKeyValue(9))))
-          segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          segments1 = List(GenSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))), GenSegment(Slice(randomFixedKeyValue(8), randomFixedKeyValue(9))))
+          segments2 = List(GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), GenSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
           Segment.nonOverlapping(segments1, segments2).map(_.path) should contain only segments1.last.path
           Segment.nonOverlapping(segments2, segments1).map(_.path) should contain only segments2.head.path
           Segment.overlaps(segments1, segments2).map(_.path) should contain only segments1.head.path
@@ -680,8 +680,8 @@ class SegmentReadSpec extends AnyWordSpec {
 
           //         8-9, 10-11
           //4-5, 6-7
-          segments1 = List(TestSegment(Slice(randomFixedKeyValue(8), randomFixedKeyValue(9))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(11))))
-          segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          segments1 = List(GenSegment(Slice(randomFixedKeyValue(8), randomFixedKeyValue(9))), GenSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(11))))
+          segments2 = List(GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), GenSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
           Segment.nonOverlapping(segments1, segments2).map(_.path) should contain allElementsOf segments1.map(_.path)
           Segment.nonOverlapping(segments2, segments1).map(_.path) should contain allElementsOf segments2.map(_.path)
           Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
@@ -689,8 +689,8 @@ class SegmentReadSpec extends AnyWordSpec {
 
           //1-2            10-11
           //     4-5, 6-7
-          segments1 = List(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(11))))
-          segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          segments1 = List(GenSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))), GenSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(11))))
+          segments2 = List(GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), GenSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
           Segment.nonOverlapping(segments1, segments2).map(_.path) should contain allElementsOf segments1.map(_.path)
           Segment.nonOverlapping(segments2, segments1).map(_.path) should contain allElementsOf segments2.map(_.path)
           Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
@@ -711,10 +711,10 @@ class SegmentReadSpec extends AnyWordSpec {
 
           implicit def testTimer: TestTimer = TestTimer.Empty
 
-          val segment1 = TestSegment(randomizedKeyValues(keyValuesCount))
-          val segment2 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment1.maxKey.maxKey.read[Int] + 1)))
-          val segment3 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment2.maxKey.maxKey.read[Int] + 1)))
-          val segment4 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment3.maxKey.maxKey.read[Int] + 1)))
+          val segment1 = GenSegment(randomizedKeyValues(keyValuesCount))
+          val segment2 = GenSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment1.maxKey.maxKey.read[Int] + 1)))
+          val segment3 = GenSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment2.maxKey.maxKey.read[Int] + 1)))
+          val segment4 = GenSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment3.maxKey.maxKey.read[Int] + 1)))
 
           val segments = Seq(segment1, segment2, segment3, segment4)
 
@@ -746,50 +746,50 @@ class SegmentReadSpec extends AnyWordSpec {
           import sweeper.testCoreFunctionStore
 
           val targetSegments =
-            TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
-              TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))) ::
-              TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
-              TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))) ::
+            GenSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
+              GenSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))) ::
+              GenSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
+              GenSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))) ::
               Nil
 
           //0-1
           //          3-4       7-8
           //     1-2, 3-4, ---, 7-8, 9-10
-          var inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))))
-          var busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))), TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))))
+          var inputSegments = Seq(GenSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))))
+          var busySegments = Seq(GenSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))), GenSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))))
           Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
 
           //     1-2
           //          3-4       7-8
           //     1-2, 3-4, ---, 7-8, 9-10
-          inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))))
+          inputSegments = Seq(GenSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))))
           Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
 
           //          3-4
           //          3-4       7-8
           //     1-2, 3-4, ---, 7-8, 9-10
-          inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(2))))
+          inputSegments = Seq(GenSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(2))))
           Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
 
           //               5-6
           //          3-4       7-8
           //     1-2, 3-4, ---, 7-8, 9-10
-          inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6))))
+          inputSegments = Seq(GenSegment(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6))))
           Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
 
           //                         9-10
           //          3-4       7-8
           //     1-2, 3-4, ---, 7-8, 9-10
-          inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))))
+          inputSegments = Seq(GenSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))))
           Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
 
           //               5-6
           //     1-2            7-8
           //     1-2, 3-4, ---, 7-8, 9-10
-          inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6))))
+          inputSegments = Seq(GenSegment(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6))))
           busySegments = {
-            TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
-              TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
+            GenSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
+              GenSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
               Nil
           }
           Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
@@ -797,7 +797,7 @@ class SegmentReadSpec extends AnyWordSpec {
           //               5-6
           //     1-2                 9-10
           //     1-2, 3-4, ---, 7-8, 9-10
-          busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))), TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))))
+          busySegments = Seq(GenSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))), GenSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))))
           Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
       }
     }
@@ -812,51 +812,51 @@ class SegmentReadSpec extends AnyWordSpec {
           import sweeper.testCoreFunctionStore
 
           val targetSegments = {
-            TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
-              TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))) ::
-              TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
-              TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))) ::
+            GenSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
+              GenSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))) ::
+              GenSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
+              GenSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))) ::
               Nil
           }
 
           //0-1
           //          3-4       7-8
           //     1-2, 3-4, ---, 7-8, 9-10
-          var inputMap = TestLog(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
-          var busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))), TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))))
+          var inputMap = GenLog(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
+          var busySegments = Seq(GenSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))), GenSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))))
           Segment.overlapsWithBusySegments(inputMap.cache.skipList, busySegments, targetSegments) shouldBe false
 
           //     1-2
           //          3-4       7-8
           //     1-2, 3-4, ---, 7-8, 9-10
-          inputMap = TestLog(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
+          inputMap = GenLog(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
           Segment.overlapsWithBusySegments(inputMap.cache.skipList, busySegments, targetSegments) shouldBe false
 
           //          3-4
           //          3-4       7-8
           //     1-2, 3-4, ---, 7-8, 9-10
-          inputMap = TestLog(Slice(randomFixedKeyValue(3), randomFixedKeyValue(2)))
+          inputMap = GenLog(Slice(randomFixedKeyValue(3), randomFixedKeyValue(2)))
           Segment.overlapsWithBusySegments(inputMap.cache.skipList, busySegments, targetSegments) shouldBe true
 
           //               5-6
           //          3-4       7-8
           //     1-2, 3-4, ---, 7-8, 9-10
-          inputMap = TestLog(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6)))
+          inputMap = GenLog(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6)))
           Segment.overlapsWithBusySegments(inputMap.cache.skipList, busySegments, targetSegments) shouldBe true
 
           //                         9-10
           //          3-4       7-8
           //     1-2, 3-4, ---, 7-8, 9-10
-          inputMap = TestLog(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)))
+          inputMap = GenLog(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)))
           Segment.overlapsWithBusySegments(inputMap.cache.skipList, busySegments, targetSegments) shouldBe false
 
           //               5-6
           //     1-2            7-8
           //     1-2, 3-4, ---, 7-8, 9-10
-          inputMap = TestLog(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6)))
+          inputMap = GenLog(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6)))
           busySegments = {
-            TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
-              TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
+            GenSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
+              GenSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
               Nil
           }
           Segment.overlapsWithBusySegments(inputMap.cache.skipList, busySegments, targetSegments) shouldBe true
@@ -864,7 +864,7 @@ class SegmentReadSpec extends AnyWordSpec {
           //               5-6
           //     1-2                 9-10
           //     1-2, 3-4, ---, 7-8, 9-10
-          busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))), TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))))
+          busySegments = Seq(GenSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))), GenSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))))
           Segment.overlapsWithBusySegments(inputMap.cache.skipList, busySegments, targetSegments) shouldBe false
       }
     }
@@ -884,13 +884,13 @@ class SegmentReadSpec extends AnyWordSpec {
           val keyValues2 = randomizedKeyValues(keyValuesCount)
           val keyValues3 = randomizedKeyValues(keyValuesCount)
 
-          val segment1 = TestSegment(keyValues1)
-          val segment2 = TestSegment(keyValues2)
-          val segment3 = TestSegment(keyValues3)
+          val segment1 = GenSegment(keyValues1)
+          val segment2 = GenSegment(keyValues2)
+          val segment3 = GenSegment(keyValues3)
 
           val all = Slice.wrap((keyValues1 ++ keyValues2 ++ keyValues3).toArray)
 
-          val mergedSegment = TestSegment(all)
+          val mergedSegment = GenSegment(all)
           mergedSegment.nearestPutDeadline shouldBe nearestPutDeadline(all)
 
           val readKeyValues = Seq(segment1, segment2, segment3).flatMap(_.iterator(randomBoolean()))
@@ -912,9 +912,9 @@ class SegmentReadSpec extends AnyWordSpec {
           val keyValues2 = randomizedKeyValues(keyValuesCount)
           val keyValues3 = randomizedKeyValues(keyValuesCount)
 
-          val segment1 = TestSegment(keyValues1)
-          val segment2 = TestSegment(keyValues2)
-          val segment3 = TestSegment(keyValues3)
+          val segment1 = GenSegment(keyValues1)
+          val segment2 = GenSegment(keyValues2)
+          val segment3 = GenSegment(keyValues3)
 
           segment3.delete() //delete a segment so that there is a failure.
 
@@ -943,9 +943,9 @@ class SegmentReadSpec extends AnyWordSpec {
             val keyValues2 = randomizedKeyValues(keyValuesCount)
             val keyValues3 = randomizedKeyValues(keyValuesCount)
 
-            val segment1 = TestSegment(keyValues1)
-            val segment2 = TestSegment(keyValues2)
-            val segment3 = TestSegment(keyValues3)
+            val segment1 = GenSegment(keyValues1)
+            val segment2 = GenSegment(keyValues2)
+            val segment3 = GenSegment(keyValues3)
 
             def clearAll() = {
               segment1.clearAllCaches()
@@ -987,7 +987,7 @@ class SegmentReadSpec extends AnyWordSpec {
             runThis(10.times) {
               //ensure groups are not added because ones read their values are populated in memory
               val keyValues = randomizedKeyValues(keyValuesCount)
-              val segment = TestSegment(keyValues)
+              val segment = GenSegment(keyValues)
 
               segment.isKeyValueCacheEmpty shouldBe true
 
@@ -1064,10 +1064,10 @@ class SegmentReadSpec extends AnyWordSpec {
 
             runThis(100.times) {
               val keyValues1 = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
-              val segment1 = TestSegment(keyValues1, segmentConfig = segmentConfig(keyValues1.size))
+              val segment1 = GenSegment(keyValues1, segmentConfig = segmentConfig(keyValues1.size))
 
               val keyValues2 = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
-              val segment2 = TestSegment(keyValues2, segmentConfig = segmentConfig(keyValues2.size))
+              val segment2 = GenSegment(keyValues2, segmentConfig = segmentConfig(keyValues2.size))
 
               Segment.getNearestDeadlineSegment(segment1, segment2).toOptionS shouldBe empty
 
@@ -1110,8 +1110,8 @@ class SegmentReadSpec extends AnyWordSpec {
 
             val deadlineToExpect = nearestPutDeadline(keyValuesWithDeadline)
 
-            val segment1 = TestSegment(keyValuesWithDeadline)
-            val segment2 = TestSegment(keyValuesNoDeadline)
+            val segment1 = GenSegment(keyValuesWithDeadline)
+            val segment2 = GenSegment(keyValuesNoDeadline)
 
             Segment.getNearestDeadlineSegment(segment1, segment2).flatMapOptionS(_.nearestPutDeadline) shouldBe deadlineToExpect
             Segment.getNearestDeadlineSegment(segment2, segment1).flatMapOptionS(_.nearestPutDeadline) shouldBe deadlineToExpect
@@ -1140,8 +1140,8 @@ class SegmentReadSpec extends AnyWordSpec {
               else
                 SegmentBlockConfig.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments)
 
-            val segment1 = TestSegment(keyValues1, segmentConfig = segmentConfig)
-            val segment2 = TestSegment(keyValues2, segmentConfig = segmentConfig)
+            val segment1 = GenSegment(keyValues1, segmentConfig = segmentConfig)
+            val segment2 = GenSegment(keyValues2, segmentConfig = segmentConfig)
 
             val deadline = nearestPutDeadline(keyValues1 ++ keyValues2)
 

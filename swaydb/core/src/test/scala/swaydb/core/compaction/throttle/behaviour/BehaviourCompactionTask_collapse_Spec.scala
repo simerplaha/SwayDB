@@ -77,7 +77,7 @@
 //          val segments =
 //            (1 to 10) map {
 //              key =>
-//                TestSegment(Slice(Memory.put(key)))
+//                GenSegment(Slice(Memory.put(key)))
 //            }
 //
 //          val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
@@ -112,7 +112,7 @@
 //          val segments =
 //            (1 to 10) map {
 //              key =>
-//                TestSegment(Slice(Memory.put(key)))
+//                GenSegment(Slice(Memory.put(key)))
 //            }
 //
 //          val keyValues = segments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
@@ -127,7 +127,7 @@
 //            val levelReopen = level.reopen(segmentSize = Int.MaxValue)
 //            val task = CompactionTask.CollapseSegments(source = levelReopen, segments = levelReopen.segments())
 //
-//            TestSegment(path = levelReopen.rootPath.resolve(s"${levelReopen.segmentIDGenerator.currentId() + 1}.seg"))
+//            GenSegment(path = levelReopen.rootPath.resolve(s"${levelReopen.segmentIDGenerator.currentId() + 1}.seg"))
 //            BehaviourCompactionTask.collapse(task, levelReopen).awaitFailureInf shouldBe a[FileAlreadyExistsException]
 //
 //            level.segmentsCount() shouldBe segments.size

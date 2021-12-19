@@ -21,7 +21,7 @@ import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.{CoreSpecType, CoreTestSweeper}
 import swaydb.core.log.timer.TestTimer
-import swaydb.core.segment.Segment
+import swaydb.core.segment.{Segment, GenSegment}
 import swaydb.core.segment.data.{Memory, Value}
 import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.io.SegmentReadIO
@@ -56,7 +56,7 @@ class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
           import sweeper.testCoreFunctionStore
 
           val keyValues = randomKeyValues(count = keyValueCount, startId = Some(1))
-          val segment = TestSegment(keyValues)
+          val segment = GenSegment(keyValues)
 
           //assign the Segment's key-values to itself.
           /**
@@ -88,7 +88,7 @@ class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
 
           val segmentKeyValue = randomKeyValues(count = keyValueCount, startId = Some(0))
 
-          val segment = TestSegment(segmentKeyValue)
+          val segment = GenSegment(segmentKeyValue)
 
           /**
            * Test with no gaps
@@ -130,7 +130,7 @@ class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
           val keyValues = randomizedKeyValues(10, startId = Some(0))
 
           val segmentKeyValues = randomizedKeyValues(10, startId = Some(0))
-          val segment = TestSegment(segmentKeyValues)
+          val segment = GenSegment(segmentKeyValues)
 
           val result = Assigner.assignUnsafeNoGaps(keyValues, List(segment), randomBoolean())
           result.size shouldBe 1
@@ -155,7 +155,7 @@ class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
           val tailGap = randomizedKeyValues(100, startId = Some(midKeyValues.nextKey(incrementBy = randomIntMax(2))))
 
           //create the Segment with only mid key-values
-          val segment = TestSegment(midKeyValues)
+          val segment = GenSegment(midKeyValues)
 
           val newKeyValues = headGap ++ midKeyValues ++ tailGap
 
@@ -180,8 +180,8 @@ class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
 
         import sweeper.testCoreFunctionStore
 
-        val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(2, 10, Value.FromValue.Null, Value.remove(10.seconds.fromNow))))
-        val segment2 = TestSegment(Slice(Memory.put(10)))
+        val segment1 = GenSegment(Slice(Memory.put(1), Memory.Range(2, 10, Value.FromValue.Null, Value.remove(10.seconds.fromNow))))
+        val segment2 = GenSegment(Slice(Memory.put(10)))
         val segments = Seq(segment1, segment2)
 
         val result =
@@ -210,8 +210,8 @@ class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
 
         import sweeper.testCoreFunctionStore
 
-        val segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(2, 10)))
-        val segment2 = TestSegment(Slice(randomFixedKeyValue(20)))
+        val segment1 = GenSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(2, 10)))
+        val segment2 = GenSegment(Slice(randomFixedKeyValue(20)))
         val segments = Seq(segment1, segment2)
 
         //1 belongs to first Segment, 15 is a gap key and since first segment is not empty, it will value assigned 15.
@@ -241,8 +241,8 @@ class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
         val segment1KeyValues = Slice(randomFixedKeyValue(1), randomRangeKeyValue(2, 10))
         val segment2KeyValues = Slice(randomFixedKeyValue(20))
 
-        val segment1 = TestSegment(segment1KeyValues)
-        val segment2 = TestSegment(segment2KeyValues)
+        val segment1 = GenSegment(segment1KeyValues)
+        val segment2 = GenSegment(segment2KeyValues)
         val segments = Seq(segment1, segment2)
 
         //15 is a gap key but no key-values are assigned to segment1 so segment2 will value this key-value.
@@ -268,15 +268,15 @@ class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
 
 
         // 1 - 10(exclusive)
-        val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(2, 10, Value.FromValue.Null, Value.remove(None))))
+        val segment1 = GenSegment(Slice(Memory.put(1), Memory.Range(2, 10, Value.FromValue.Null, Value.remove(None))))
         // 20 - 20
-        val segment2 = TestSegment(Slice(Memory.remove(20)))
+        val segment2 = GenSegment(Slice(Memory.remove(20)))
         //21 - 30
-        val segment3 = TestSegment(Slice(Memory.Range(21, 30, Value.FromValue.Null, Value.remove(None)), Memory.put(30)))
+        val segment3 = GenSegment(Slice(Memory.Range(21, 30, Value.FromValue.Null, Value.remove(None)), Memory.put(30)))
         //40 - 60
-        val segment4 = TestSegment(Slice(Memory.remove(40), Memory.Range(41, 50, Value.FromValue.Null, Value.remove(None)), Memory.put(60)))
+        val segment4 = GenSegment(Slice(Memory.remove(40), Memory.Range(41, 50, Value.FromValue.Null, Value.remove(None)), Memory.put(60)))
         //70 - 80
-        val segment5 = TestSegment(Slice(Memory.put(70), Memory.remove(80)))
+        val segment5 = GenSegment(Slice(Memory.put(70), Memory.remove(80)))
         val segments = Seq(segment1, segment2, segment3, segment4, segment5)
 
         //15 is a gap key but no key-values are assigned to segment1 so segment2 will value this key-value an it will be split across.
@@ -306,8 +306,8 @@ class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
 
         import sweeper.testCoreFunctionStore
 
-        val segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
-        val segment2 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)))
+        val segment1 = GenSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
+        val segment2 = GenSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)))
 
         //segment1 - 1 - 2
         //segment2 - 4 - 5
@@ -327,9 +327,9 @@ class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
         implicit val specType: CoreSpecType = _specType
 
 
-        val segment1 = TestSegment(Slice(Memory.put(1), Memory.put(2)))
-        val segment2 = TestSegment(Slice(Memory.put(4), Memory.put(5)))
-        val segment3 = TestSegment(Slice(Memory.Range(6, 10, Value.remove(None), Value.update(10)), Memory.remove(10)))
+        val segment1 = GenSegment(Slice(Memory.put(1), Memory.put(2)))
+        val segment2 = GenSegment(Slice(Memory.put(4), Memory.put(5)))
+        val segment3 = GenSegment(Slice(Memory.Range(6, 10, Value.remove(None), Value.update(10)), Memory.remove(10)))
 
         //segment1 - 1 - 2
         //segment2 - 4 - 5
@@ -352,11 +352,11 @@ class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
         implicit val sweeper: CoreTestSweeper = _sweeper
         implicit val specType: CoreSpecType = _specType
 
-        val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(26074, 26075, Value.FromValue.Null, Value.update(Slice.Null, None))))
-        val segment2 = TestSegment(Slice(Memory.put(26075), Memory.Range(28122, 28123, Value.FromValue.Null, Value.update(Slice.Null, None))))
-        val segment3 = TestSegment(Slice(Memory.put(28123), Memory.Range(32218, 32219, Value.FromValue.Null, Value.update(Slice.Null, None))))
-        val segment4 = TestSegment(Slice(Memory.put(32219), Memory.Range(40410, 40411, Value.FromValue.Null, Value.update(Slice.Null, None))))
-        val segment5 = TestSegment(Slice(Memory.put(74605), Memory.put(100000)))
+        val segment1 = GenSegment(Slice(Memory.put(1), Memory.Range(26074, 26075, Value.FromValue.Null, Value.update(Slice.Null, None))))
+        val segment2 = GenSegment(Slice(Memory.put(26075), Memory.Range(28122, 28123, Value.FromValue.Null, Value.update(Slice.Null, None))))
+        val segment3 = GenSegment(Slice(Memory.put(28123), Memory.Range(32218, 32219, Value.FromValue.Null, Value.update(Slice.Null, None))))
+        val segment4 = GenSegment(Slice(Memory.put(32219), Memory.Range(40410, 40411, Value.FromValue.Null, Value.update(Slice.Null, None))))
+        val segment5 = GenSegment(Slice(Memory.put(74605), Memory.put(100000)))
 
         val segments = Seq(segment1, segment2, segment3, segment4, segment5)
 
@@ -374,10 +374,10 @@ class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
         implicit val sweeper: CoreTestSweeper = _sweeper
         implicit val specType: CoreSpecType = _specType
 
-        val segment1 = TestSegment(Slice(Memory.put(1), Memory.put(2)))
-        val segment2 = TestSegment(Slice(Memory.put(4), Memory.put(5)))
-        val segment3 = TestSegment(Slice(Memory.put(6), Memory.put(7)))
-        val segment4 = TestSegment(Slice(Memory.put(8), Memory.put(9)))
+        val segment1 = GenSegment(Slice(Memory.put(1), Memory.put(2)))
+        val segment2 = GenSegment(Slice(Memory.put(4), Memory.put(5)))
+        val segment3 = GenSegment(Slice(Memory.put(6), Memory.put(7)))
+        val segment4 = GenSegment(Slice(Memory.put(8), Memory.put(9)))
         val segments = Seq(segment1, segment2, segment3, segment4)
 
         Assigner.assignUnsafeNoGaps(Slice(Memory.put(10, "ten")), segments, randomBoolean()) ==> {
@@ -413,11 +413,11 @@ class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
         import sweeper.testCoreFunctionStore
 
         val keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3), randomFixedKeyValue(4), randomFixedKeyValue(5))
-        val segment1 = TestSegment(Slice(randomFixedKeyValue(key = 1)))
-        val segment2 = TestSegment(Slice(randomFixedKeyValue(key = 2)))
-        val segment3 = TestSegment(Slice(randomFixedKeyValue(key = 3)))
-        val segment4 = TestSegment(Slice(randomFixedKeyValue(key = 4)))
-        val segment5 = TestSegment(Slice(randomFixedKeyValue(key = 5)))
+        val segment1 = GenSegment(Slice(randomFixedKeyValue(key = 1)))
+        val segment2 = GenSegment(Slice(randomFixedKeyValue(key = 2)))
+        val segment3 = GenSegment(Slice(randomFixedKeyValue(key = 3)))
+        val segment4 = GenSegment(Slice(randomFixedKeyValue(key = 4)))
+        val segment5 = GenSegment(Slice(randomFixedKeyValue(key = 5)))
 
         val segments = List(segment1, segment2, segment3, segment4, segment5)
 

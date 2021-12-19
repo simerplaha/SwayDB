@@ -63,7 +63,7 @@ object CoreTestSweeper extends LazyLogging {
 
   private def deleteParentPath(path: Path) = {
     val parentPath = path.getParent
-    //also delete parent folder of Segment. TestSegments are created with a parent folder.
+    //also delete parent folder of Segment. GenSegments are created with a parent folder.
     if (Effect.exists(parentPath) && Try(parentPath.getFileName.toString.toInt).isSuccess)
       Effect.walkDelete(parentPath)
   }
@@ -173,7 +173,6 @@ object CoreTestSweeper extends LazyLogging {
 //      sweeper.sweepItem(sweepable, f)
 //  }
 }
-
 
 /**
  * Manages cleaning levels, segments, maps etc for Levels. Initialises Actors lazily as required and

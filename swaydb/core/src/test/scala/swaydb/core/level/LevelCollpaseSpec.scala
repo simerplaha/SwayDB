@@ -215,7 +215,7 @@
 //        val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 //
 //        val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
-//        val maps = TestLog(keyValues)
+//        val maps = GenLog(keyValues)
 //        level.putMap(maps).get
 //
 //        val nextLevel = TestLevel()

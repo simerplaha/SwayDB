@@ -72,7 +72,7 @@
 //
 //            //create put key-values so they do not get cleared.
 //            val keyValues = randomPutKeyValues(startId = Some(0))
-//            val segment = TestSegment(keyValues)
+//            val segment = GenSegment(keyValues)
 //
 //            //level is empty
 //            level.isEmpty shouldBe true
@@ -111,7 +111,7 @@
 //
 //            //create put key-values so they do not get cleared.
 //            val keyValues = Slice(randomUpdateKeyValue(1), randomRangeKeyValue(2, 10, FromValue.Null), randomFunctionKeyValue(10))
-//            val segment = TestSegment(keyValues)
+//            val segment = GenSegment(keyValues)
 //
 //            //level is empty
 //            level.isEmpty shouldBe true
@@ -150,7 +150,7 @@
 //
 //            //create put key-values so they do not get cleared.
 //            val keyValues = randomPutKeyValues(startId = Some(0))
-//            val segment = TestSegment(keyValues)
+//            val segment = GenSegment(keyValues)
 //
 //            //assign
 //            val segmentAssignment = level.assign(segment, level.segments(), removeDeletedRecords = false)
@@ -163,7 +163,7 @@
 //
 //            assertGet(keyValues, level)
 //
-//            val map = TestLog(keyValues)
+//            val map = GenLog(keyValues)
 //
 //            val mapAssignment = level.assign(map, level.segments(), removeDeletedRecords = false)
 //
@@ -186,7 +186,7 @@
 //             * FIRST with 100 key-values
 //             */
 //            val keyValues1 = randomPutKeyValues(startId = Some(0), count = 100)
-//            val segment = TestSegment(keyValues1)
+//            val segment = GenSegment(keyValues1)
 //
 //            val segmentAssigment = level.assign(segment, level.segments(), removeDeletedRecords = false)
 //
@@ -206,7 +206,7 @@
 //             */
 //            val keyValues2 = randomPutKeyValues(startId = Some(0), count = 200)
 //
-//            val map = TestLog(keyValues2)
+//            val map = GenLog(keyValues2)
 //
 //            val mapAssigment = level.assign(map, level.segments(), removeDeletedRecords = false)
 //
@@ -231,7 +231,7 @@
 //             * FIRST with 100 key-values
 //             */
 //            val keyValues1 = randomPutKeyValues(startId = Some(0), count = 100)
-//            val segment = TestSegment(keyValues1)
+//            val segment = GenSegment(keyValues1)
 //
 //            val segmentAssigment = level.assign(segment, level.segments(), removeDeletedRecords = false)
 //
@@ -249,7 +249,7 @@
 //            /**
 //             * SECOND with 200 key-values
 //             */
-//            val map = TestLog(Slice(randomRemoveRange(0, Int.MaxValue)))
+//            val map = GenLog(Slice(randomRemoveRange(0, Int.MaxValue)))
 //
 //            val mapAssigment = level.assign(map, level.segments(), removeDeletedRecords = false)
 //
