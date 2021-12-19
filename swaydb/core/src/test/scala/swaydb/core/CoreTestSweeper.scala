@@ -58,7 +58,6 @@ import scala.util.Try
  * }}}
  */
 
-
 object CoreTestSweeper extends LazyLogging {
 
   private def deleteParentPath(path: Path) = {
@@ -168,10 +167,10 @@ object CoreTestSweeper extends LazyLogging {
       sweeper sweepCounter counter
   }
 
-//  implicit class FunctionSweeperImplicits[BAG[_], T](sweepable: T) {
-//    def sweep(f: T => Unit)(implicit sweeper: CoreTestSweeper): T =
-//      sweeper.sweepItem(sweepable, f)
-//  }
+  //  implicit class FunctionSweeperImplicits[BAG[_], T](sweepable: T) {
+  //    def sweep(f: T => Unit)(implicit sweeper: CoreTestSweeper): T =
+  //      sweeper.sweepItem(sweepable, f)
+  //  }
 }
 
 /**
@@ -187,7 +186,7 @@ object CoreTestSweeper extends LazyLogging {
  * }}}
  */
 
-trait CoreTestSweeper extends ActorTestSweeper with EffectTestSweeper with LazyLogging {
+sealed trait CoreTestSweeper extends ActorTestSweeper with EffectTestSweeper with LazyLogging {
 
   @BeanProperty protected var deleteFiles: Boolean = true
 

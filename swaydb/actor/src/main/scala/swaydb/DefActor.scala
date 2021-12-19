@@ -83,10 +83,11 @@ final class DefActor[+I] private(name: String,
   private val impl = initialiser(this)
 
   private val actor: ActorRef[I => Unit, Unit] = {
-    val actorBoot: ActorHooks[I => Unit, Unit] =
+    val actorHooks: ActorHooks[I => Unit, Unit] =
       interval match {
         case Some((delays, stashCapacity)) =>
-          implicit val queueOrder = QueueOrder.FIFO
+          implicit val queueOrder: QueueOrder.FIFO.type =
+            QueueOrder.FIFO
 
           Actor.timer[I => Unit](
             name = name,
@@ -98,7 +99,8 @@ final class DefActor[+I] private(name: String,
           }
 
         case None =>
-          implicit val queueOrder = QueueOrder.FIFO
+          implicit val queueOrder: QueueOrder.FIFO.type =
+            QueueOrder.FIFO
 
           Actor[I => Unit](name) {
             (function, self) =>
@@ -109,13 +111,13 @@ final class DefActor[+I] private(name: String,
     val preTerminateBoot =
       preTerminate match {
         case Some(preTerminate) =>
-          actorBoot.onPreTerminate {
+          actorHooks onPreTerminate {
             _ =>
               preTerminate(impl, this)
           }
 
         case None =>
-          actorBoot
+          actorHooks
       }
 
     postTerminate match {
