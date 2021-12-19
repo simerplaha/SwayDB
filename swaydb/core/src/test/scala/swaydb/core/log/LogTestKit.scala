@@ -27,10 +27,9 @@ import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCommand
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.{ByteBufferSweeperActor, State}
 import swaydb.core.level.NextLevel
-import swaydb.core.log.counter.{CounterLog, PersistentCounterLog}
+import swaydb.core.log.counter.PersistentCounterLog
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
-import swaydb.core.log.timer.Timer
-import swaydb.core.log.timer.Timer.PersistentTimer
+import swaydb.core.log.timer.{PersistentTimer, Timer}
 import swaydb.core.queue.VolatileQueue
 import swaydb.core.segment.{CoreFunctionStore, Segment, SegmentOption}
 import swaydb.core.segment.data.{KeyValue, Memory}
@@ -152,7 +151,7 @@ object LogTestKit {
       ensureCleanedForWindows(timer.counter.mmap)
 
       val newTimer =
-        Timer.persistent(
+        PersistentTimer(
           path = timer.counter.path.getParent,
           mmap = MMAP.randomForLog(),
           mod = timer.counter.mod,

@@ -16,19 +16,8 @@
 
 package swaydb.core.log.timer
 
-import swaydb.IO
-import swaydb.config.MMAP
-import swaydb.core.file.ForceSaveApplier
-import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.log.LogEntry
-import swaydb.core.log.counter.{MemoryCounterLog, PersistentCounterLog}
-import swaydb.core.log.serialiser.{KeyValueLogEntryReader, KeyValueLogEntryWriter, LogEntryReader, LogEntryWriter}
 import swaydb.core.segment.data.Time
-import swaydb.effect.Effect
 import swaydb.slice.Slice
-import swaydb.utils.StorageUnits._
-
-import java.nio.file.Path
 
 private[core] trait Timer {
   val isEmptyTimer: Boolean
@@ -40,70 +29,4 @@ private[core] trait Timer {
 
 private[core] object Timer {
   val defaultKey = Slice.emptyBytes
-
-  val folderName = "def-timer"
-
-  trait PersistentTimer extends Timer {
-    def counter: PersistentCounterLog
-  }
-
-  def memory(): Timer =
-    new Timer {
-      val memory = MemoryCounterLog()
-
-      override val isEmptyTimer: Boolean =
-        false
-
-      override def next: Time =
-        Time(memory.next)
-
-      override def close(): Unit =
-        memory.close()
-    }
-
-  def empty: Timer =
-    new Timer {
-      override val isEmptyTimer: Boolean =
-        true
-
-      override val next: Time =
-        Time.empty
-
-      override val close: Unit =
-        ()
-    }
-
-  def persistent(path: Path,
-                 mmap: MMAP.Log,
-                 mod: Long = 100000,
-                 fileSize: Int = 1.mb)(implicit bufferCleaner: ByteBufferSweeperActor,
-                                       forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Log, PersistentTimer] = {
-    implicit val writer: LogEntryWriter[LogEntry.Put[Slice[Byte], Slice[Byte]]] = KeyValueLogEntryWriter.KeyValueLogEntryPutWriter
-    implicit val reader: LogEntryReader[LogEntry[Slice[Byte], Slice[Byte]]] = KeyValueLogEntryReader.KeyValueLogEntryPutReader
-
-    val timerFolder = path.resolve(folderName)
-    Effect createDirectoriesIfAbsent timerFolder
-
-    PersistentCounterLog(
-      path = timerFolder,
-      mmap = mmap,
-      mod = mod,
-      fileSize = fileSize
-    ) transform {
-      persistentCounter =>
-        new PersistentTimer {
-          override val isEmptyTimer: Boolean =
-            false
-
-          override def next: Time =
-            Time(persistentCounter.next)
-
-          override def close(): Unit =
-            persistentCounter.close()
-
-          override def counter: PersistentCounterLog =
-            persistentCounter
-        }
-    }
-  }
 }

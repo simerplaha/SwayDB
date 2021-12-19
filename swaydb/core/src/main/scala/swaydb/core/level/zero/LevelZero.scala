@@ -28,13 +28,13 @@ import swaydb.config.storage.Level0Storage
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.level.{LevelRef, LevelSeek, LevelPathGenerator, NextLevel}
+import swaydb.core.level.{LevelPathGenerator, LevelRef, LevelSeek, NextLevel}
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
 import swaydb.core.log.{Log, LogEntry, Logs}
 import swaydb.core.log.applied.{AppliedFunctionsLog, AppliedFunctionsLogCache}
 import swaydb.core.log.serialiser.KeyLogEntryWriter
-import swaydb.core.log.timer.Timer
+import swaydb.core.log.timer.{EmptyTimer, MemoryTimer, PersistentTimer, Timer}
 import swaydb.core.segment.{CoreFunctionStore, Segment, SegmentOption}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.data._
@@ -102,12 +102,12 @@ private[core] case object LevelZero extends LazyLogging {
 
           val timer =
             if (enableTimer)
-              Timer.persistent(
+              PersistentTimer(
                 path = databaseDirectory,
                 mmap = mmap
               )
             else
-              IO.Right(Timer.empty)
+              IO.Right(EmptyTimer)
 
           timer flatMap {
             implicit timer =>
@@ -194,7 +194,7 @@ private[core] case object LevelZero extends LazyLogging {
                   appliedFunctionsLog
                     .result
                     .and {
-                      Timer.persistent(
+                      PersistentTimer(
                         path = databaseDirectory,
                         mmap = mmap
                       )
@@ -209,10 +209,10 @@ private[core] case object LevelZero extends LazyLogging {
                     }
 
                 case None =>
-                  IO.Right((Timer.memory(), None))
+                  IO.Right((MemoryTimer(), None))
               }
             else
-              IO.Right((Timer.empty, None))
+              IO.Right((EmptyTimer, None))
 
           timer map {
             case (timer, appliedFunctionsLog) =>

@@ -51,10 +51,10 @@ class TimerSpec extends AnyFlatSpec {
         val timer: Timer =
           specType match {
             case CoreSpecType.Memory =>
-              Timer.memory()
+              MemoryTimer()
 
             case CoreSpecType.Persistent =>
-              Timer.persistent(
+              PersistentTimer(
                 path = dir,
                 mmap = MMAP.On(OperatingSystem.isWindows(), GenForceSave.mmap()),
                 mod = 100,
@@ -66,7 +66,7 @@ class TimerSpec extends AnyFlatSpec {
         timer.close()
 
         timer match {
-          case timer: Timer.PersistentTimer =>
+          case timer: PersistentTimer =>
             val reopenedTimer = timer.reopen
 
             write(1000 + 101 to 2000 + 201, reopenedTimer)
