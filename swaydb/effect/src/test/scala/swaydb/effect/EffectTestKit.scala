@@ -5,7 +5,7 @@ import swaydb.slice.Slice
 import swaydb.testkit.TestKit._
 import swaydb.utils.Extension
 
-import java.nio.file.Path
+import java.nio.file.{Files, Path, Paths}
 import scala.util.Random
 import swaydb.utils.UtilsTestKit._
 
@@ -47,8 +47,11 @@ object EffectTestKit {
   def genFilePath(extension: Extension = Extension.gen())(implicit sweeper: EffectTestSweeper): Path =
     sweeper.testDirectory.resolve(s"${sweeper.idGenerator.nextId()}.${extension.toString}").sweep()
 
-  def genDirWithFilePath()(implicit sweeper: EffectTestSweeper): Path =
-    genDir() resolve genFilePath()
+  def genDirWithFilePath(extension: Extension = Extension.gen())(implicit sweeper: EffectTestSweeper): Path = {
+    val filePath = genFilePath(extension)
+    Effect.createDirectoriesIfAbsent(filePath.getParent)
+    filePath
+  }
 
   def genFile()(implicit sweeper: EffectTestSweeper): Path = {
     val filePath = genFilePath()

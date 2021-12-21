@@ -54,9 +54,8 @@ class CoreFileSpec extends AnyWordSpec {
               forceSave = GenForceSave.standard()
             )
 
-          //the file is open
-          file.isFileDefined shouldBe true //file is set
-          file.isOpen shouldBe true
+          file.isCached shouldBe true //file is set
+          file.isOpen shouldBe true //the file is open
           file.append(bytes)
 
           //cannot read the file
@@ -68,12 +67,12 @@ class CoreFileSpec extends AnyWordSpec {
 
           //closing the channel and reopening it will open it in read only mode
           file.close()
-          file.isFileDefined shouldBe false
+          file.isCached shouldBe false
           file.isOpen shouldBe false
           file.readAll() shouldBe bytes //read
 
           //above onOpen is also invoked
-          file.isFileDefined shouldBe true
+          file.isCached shouldBe true
           file.isOpen shouldBe true
 
           //cannot write to a reopened file channel. Ones closed! It cannot be reopened for writing.
@@ -109,21 +108,21 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
 
-          val testFile = genFilePath()
+          val path = genDirWithFilePath()
 
-          def genFile() =
+          def createFile() =
             CoreFile.standardWritable(
-              path = testFile,
+              path = path,
               fileOpenIOStrategy = genThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
               forceSave = GenForceSave.standard()
             )
 
-          val file = genFile()
+          val file = createFile()
           file.isOpen shouldBe true
 
           assertThrows[NonReadableChannelException](file.readAll()) //cannot read
-          assertThrows[FileAlreadyExistsException](genFile()) //create new file fails
+          assertThrows[FileAlreadyExistsException](createFile()) //create new file fails
       }
     }
   }
@@ -147,12 +146,12 @@ class CoreFileSpec extends AnyWordSpec {
             )
 
           //reading a file should load the file lazily
-          readFile.isFileDefined shouldBe false
+          readFile.isCached shouldBe false
           readFile.isOpen shouldBe false
           //reading the opens the file
           readFile.readAll() shouldBe bytes
           //file is now opened
-          readFile.isFileDefined shouldBe true
+          readFile.isCached shouldBe true
           readFile.isOpen shouldBe true
 
           //writing fails since the file is readonly
@@ -166,7 +165,7 @@ class CoreFileSpec extends AnyWordSpec {
 
           readFile.close()
           readFile.isOpen shouldBe false
-          readFile.isFileDefined shouldBe false
+          readFile.isCached shouldBe false
           //read bytes one by one
           (0 until bytes.size) foreach {
             index =>
@@ -228,10 +227,10 @@ class CoreFileSpec extends AnyWordSpec {
 
           //close buffer
           file.close()
-          file.isFileDefined shouldBe false
+          file.isCached shouldBe false
           file.isOpen shouldBe false
           file.readAll() shouldBe expectedBytes
-          file.isFileDefined shouldBe true
+          file.isCached shouldBe true
           file.isOpen shouldBe true
 
           //writing fails since the file is now readonly
@@ -339,10 +338,10 @@ class CoreFileSpec extends AnyWordSpec {
             )
 
           def doRead() = {
-            readFile.isFileDefined shouldBe false //reading a file should load the file lazily
+            readFile.isCached shouldBe false //reading a file should load the file lazily
             readFile.isOpen shouldBe false
             readFile.readAll() shouldBe bytes
-            readFile.isFileDefined shouldBe true
+            readFile.isCached shouldBe true
             readFile.isOpen shouldBe true
           }
 
@@ -444,14 +443,14 @@ class CoreFileSpec extends AnyWordSpec {
           def close() = {
             file.close()
             file.isOpen shouldBe false
-            file.isFileDefined shouldBe false
+            file.isCached shouldBe false
             file.existsOnDisk() shouldBe true
           }
 
           def open() = {
             file.read(position = 0, size = bytes.size) shouldBe bytes
             file.isOpen shouldBe true
-            file.isFileDefined shouldBe true
+            file.isCached shouldBe true
           }
 
           //closing multiple times should not fail
@@ -945,7 +944,7 @@ class CoreFileSpec extends AnyWordSpec {
           file.delete()
           file.existsOnDisk() shouldBe false
           file.isOpen shouldBe false
-          file.isFileDefined shouldBe false
+          file.isCached shouldBe false
       }
     }
 
@@ -973,7 +972,7 @@ class CoreFileSpec extends AnyWordSpec {
 
           file.existsOnDisk() shouldBe false
           file.isOpen shouldBe false
-          file.isFileDefined shouldBe false
+          file.isCached shouldBe false
       }
     }
   }

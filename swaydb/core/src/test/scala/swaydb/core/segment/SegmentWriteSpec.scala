@@ -488,19 +488,19 @@
 //                assert =
 //                  (keyValues, segment) => {
 //                    segment.isOpen shouldBe false
-//                    segment.isFileDefined shouldBe false
+//                    segment.isCached shouldBe false
 //                    segment.isKeyValueCacheEmpty shouldBe true
 //
 //                    assertHigher(keyValues, segment)
 //
 //                    segment.isOpen shouldBe true
-//                    segment.isFileDefined shouldBe true
+//                    segment.isCached shouldBe true
 //                    segment.isKeyValueCacheEmpty shouldBe false
 //
 //                    assertBloom(keyValues, segment)
 //                    segment.close.runRandomIO.get
 //                    segment.isOpen shouldBe false
-//                    segment.isFileDefined shouldBe false
+//                    segment.isCached shouldBe false
 //
 //                    segment.isKeyValueCacheEmpty shouldBe segment.isInstanceOf[PersistentSegmentMany]
 //                  }
@@ -583,9 +583,9 @@
 //              segment2.isOpen shouldBe false
 //              segment3.isOpen shouldBe false
 //
-//              segment1.isFileDefined shouldBe false
-//              segment2.isFileDefined shouldBe false
-//              segment3.isFileDefined shouldBe false
+//              segment1.isCached shouldBe false
+//              segment2.isCached shouldBe false
+//              segment3.isCached shouldBe false
 //
 //              segment1.existsOnDisk() shouldBe false
 //              segment2.existsOnDisk() shouldBe false
@@ -613,14 +613,14 @@
 //              //also clear the cache so that if the key-value is a group on open file is still reopened
 //              //instead of just reading from in-memory Group key-value.
 //              eitherOne(segment.clearCachedKeyValues(), segment.clearAllCaches())
-//              segment.isFileDefined shouldBe false
+//              segment.isCached shouldBe false
 //              segment.isOpen shouldBe false
 //            }
 //          }
 //
 //          def open(keyValue: KeyValue): Unit = {
 //            segment.get(keyValue.key, ThreadReadState.random).runRandomIO.value.getUnsafe shouldBe keyValue
-//            segment.isFileDefined shouldBe true
+//            segment.isCached shouldBe true
 //            segment.isOpen shouldBe true
 //          }
 //
@@ -667,7 +667,7 @@
 //          //segment eventually gets deleted
 //          eventual(5.seconds) {
 //            segment.isOpen shouldBe false
-//            segment.isFileDefined shouldBe false
+//            segment.isCached shouldBe false
 //            segment.existsOnDisk() shouldBe false
 //          }
 //
@@ -717,7 +717,7 @@
 //          }.left.get.exception shouldBe a[NoSuchFileException]
 //
 //          segment.isOpen shouldBe false
-//          segment.isFileDefined shouldBe false
+//          segment.isCached shouldBe false
 //
 //          if (isPersistent && gaped) {
 //            //if gap wait for gap segments to be created.

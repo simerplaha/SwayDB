@@ -405,7 +405,7 @@ private[core] class CoreFile(val path: Path,
   def isOpen: Boolean =
     cache.state().exists(_.exists(_.isOpen))
 
-  def isFileDefined: Boolean =
+  def isCached: Boolean =
     cache.state().isDefined
 
   def isLoaded(): Boolean =

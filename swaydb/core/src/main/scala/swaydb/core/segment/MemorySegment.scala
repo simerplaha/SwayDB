@@ -414,7 +414,7 @@ private[core] final case class MemorySegment(path: Path,
   override def isOpen: Boolean =
     !deleted
 
-  override def isFileDefined: Boolean =
+  override def isCached: Boolean =
     !deleted
 
   override def memory: Boolean =

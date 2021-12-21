@@ -625,7 +625,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
 
   def isOpen: Boolean
 
-  def isFileDefined: Boolean
+  def isCached: Boolean
 
   def memory: Boolean
 
