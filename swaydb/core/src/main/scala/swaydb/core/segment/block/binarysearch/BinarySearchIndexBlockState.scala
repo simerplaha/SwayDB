@@ -1,12 +1,23 @@
 package swaydb.core.segment.block.binarysearch
 
-import swaydb.core.compression.CoreCompression
 import swaydb.config.UncompressedBlockInfo
+import swaydb.core.compression.CoreCompression
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock.optimalBytesRequired
 import swaydb.slice.{Slice, SliceMut}
-import swaydb.utils.Maybe
+import swaydb.utils.{Maybe, SomeOrNone}
 
-private[block] object BinarySearchIndexBlockState {
+sealed trait BinarySearchIndexBlockStateOption extends SomeOrNone[BinarySearchIndexBlockStateOption, BinarySearchIndexBlockState] {
+  override def noneS: BinarySearchIndexBlockStateOption =
+    BinarySearchIndexBlockState.Null
+}
+
+private[block] case object BinarySearchIndexBlockState {
+
+  final case object Null extends BinarySearchIndexBlockStateOption {
+    override def isNoneS: Boolean = true
+
+    override def getS: BinarySearchIndexBlockState = throw new Exception(s"${BinarySearchIndexBlockState.productPrefix} is of type ${Null.productPrefix}")
+  }
 
   def apply(format: BinarySearchEntryFormat,
             largestIndexOffset: Int,
@@ -14,9 +25,9 @@ private[block] object BinarySearchIndexBlockState {
             uniqueValuesCount: Int,
             isFullIndex: Boolean,
             minimumNumberOfKeys: Int,
-            compressions: UncompressedBlockInfo => Iterable[CoreCompression]): Option[BinarySearchIndexBlockState] =
+            compressions: UncompressedBlockInfo => Iterable[CoreCompression]): BinarySearchIndexBlockStateOption =
     if (uniqueValuesCount < minimumNumberOfKeys) {
-      None
+      BinarySearchIndexBlockState.Null
     } else {
       val bytesPerValue =
         format.bytesToAllocatePerEntry(
@@ -36,22 +47,19 @@ private[block] object BinarySearchIndexBlockState {
 
       val bytes = Slice.allocate[Byte](bytesRequired)
 
-      val state =
-        new BinarySearchIndexBlockState(
-          format = format,
-          bytesPerValue = bytesPerValue,
-          uniqueValuesCount = uniqueValuesCount,
-          _previousWritten = Int.MinValue,
-          writtenValues = 0,
-          minimumNumberOfKeys = minimumNumberOfKeys,
-          isFullIndex = isFullIndex,
-          compressibleBytes = bytes,
-          cacheableBytes = bytes,
-          header = null,
-          compressions = compressions
-        )
-
-      Some(state)
+      new BinarySearchIndexBlockState(
+        format = format,
+        bytesPerValue = bytesPerValue,
+        uniqueValuesCount = uniqueValuesCount,
+        _previousWritten = Int.MinValue,
+        writtenValues = 0,
+        minimumNumberOfKeys = minimumNumberOfKeys,
+        isFullIndex = isFullIndex,
+        compressibleBytes = bytes,
+        cacheableBytes = bytes,
+        header = null,
+        compressions = compressions
+      )
     }
 }
 
@@ -65,7 +73,13 @@ private[block] class BinarySearchIndexBlockState(val format: BinarySearchEntryFo
                                                  var compressibleBytes: SliceMut[Byte],
                                                  val cacheableBytes: Slice[Byte],
                                                  var header: Slice[Byte],
-                                                 val compressions: UncompressedBlockInfo => Iterable[CoreCompression]) {
+                                                 val compressions: UncompressedBlockInfo => Iterable[CoreCompression]) extends BinarySearchIndexBlockStateOption {
+
+  override def isNoneS: Boolean =
+    false
+
+  override def getS: BinarySearchIndexBlockState =
+    this
 
   def blockSize: Int =
     header.size + compressibleBytes.size

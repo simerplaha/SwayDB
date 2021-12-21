@@ -18,22 +18,22 @@ package swaydb.core.segment.block.segment
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.config._
+import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.segment.block._
-import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockConfig, BinarySearchIndexBlockState}
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig}
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig, HashIndexBlockState}
+import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockConfig, BinarySearchIndexBlockState, BinarySearchIndexBlockStateOption}
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockConfig, BloomFilterBlockState}
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockConfig, HashIndexBlockState, HashIndexBlockStateOption}
 import swaydb.core.segment.block.segment.footer.{SegmentFooterBlock, SegmentFooterBlockState}
 import swaydb.core.segment.block.segment.transient.{ClosedBlocks, TransientSegment, TransientSegmentRef}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig, SortedIndexBlockState}
-import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockState}
+import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig, SortedIndexBlockState, SortedIndexBlockStateOption}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig, ValuesBlockState, ValuesBlockStateOption}
 import swaydb.core.segment.data.Memory
 import swaydb.core.segment.data.merge.stats.MergeStats
-import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.{Bytes, MinMax}
-import swaydb.slice.Slice
+import swaydb.slice.{Slice, SliceOption}
 import swaydb.slice.order.KeyOrder
+import swaydb.utils.ByteSizeOf
 import swaydb.utils.Futures._
-import swaydb.utils.{ByteSizeOf, Futures}
 
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
@@ -285,8 +285,8 @@ private[core] case object SegmentBlock extends LazyLogging {
 
           def unwrittenTailSegmentBytes() =
             sortedIndex.compressibleBytes.unwrittenTailSize() + {
-              if (values.isDefined)
-                values.get.compressibleBytes.unwrittenTailSize()
+              if (values.isSomeS)
+                values.getS.compressibleBytes.unwrittenTailSize()
               else
                 0
             }
@@ -310,11 +310,11 @@ private[core] case object SegmentBlock extends LazyLogging {
             bloomFilterIndexableKeys += comparableKey
 
             SortedIndexBlock.write(keyValue = keyValue, state = sortedIndex)
-            values foreach (ValuesBlock.write(keyValue, _))
+            values foreachS (ValuesBlock.write(keyValue, _))
 
             //Do not include SegmentFooterBlock.optimalBytesRequired here. Screws up the above max segments count estimation.
             var currentSegmentSize = sortedIndex.compressibleBytes.size
-            values foreach (currentSegmentSize += _.compressibleBytes.size)
+            values foreachS (currentSegmentSize += _.compressibleBytes.size)
 
             //check and close segment if segment size limit is reached.
             //to do - maybe check if compression is defined and increase the segmentSize.
@@ -347,7 +347,7 @@ private[core] case object SegmentBlock extends LazyLogging {
               //segment's closed. Prepare for next Segment.
               bloomFilterIndexableKeys = ListBuffer.empty[Slice[Byte]] //clear bloomFilter keys.
 
-              nextSortedIndex foreach { //set the newSortedIndex if it was created.
+              nextSortedIndex foreachS { //set the newSortedIndex if it was created.
                 newSortedIndex =>
                   sortedIndex = newSortedIndex
               }
@@ -378,7 +378,7 @@ private[core] case object SegmentBlock extends LazyLogging {
               )
 
             //temporary check.
-            assert(nextSortedIndex.isEmpty && nextValuesBlock.isEmpty, s"${nextSortedIndex.isEmpty} && ${nextValuesBlock.isEmpty} is not empty.")
+            assert(nextSortedIndex.isNoneS && nextValuesBlock.isNoneS, s"${nextSortedIndex.isNoneS} && ${nextValuesBlock.isNoneS} is not empty.")
 
             segments += segmentRef
 
@@ -390,16 +390,16 @@ private[core] case object SegmentBlock extends LazyLogging {
                               hasMoreKeyValues: Boolean,
                               bloomFilterIndexableKeys: Iterable[Slice[Byte]],
                               sortedIndex: SortedIndexBlockState,
-                              values: Option[ValuesBlockState],
+                              values: ValuesBlockStateOption,
                               bloomFilterConfig: BloomFilterBlockConfig,
                               hashIndexConfig: HashIndexBlockConfig,
                               binarySearchIndexConfig: BinarySearchIndexBlockConfig,
                               sortedIndexConfig: SortedIndexBlockConfig,
                               valuesConfig: ValuesBlockConfig,
-                              prepareForCachingSegmentBlocksOnCreate: Boolean)(implicit ec: ExecutionContext): (Future[TransientSegmentRef], Option[SortedIndexBlockState], Option[ValuesBlockState]) = {
+                              prepareForCachingSegmentBlocksOnCreate: Boolean)(implicit ec: ExecutionContext): (Future[TransientSegmentRef], SortedIndexBlockStateOption, ValuesBlockStateOption) = {
     //tail bytes before closing and compression is applied.
     val unwrittenTailSortedIndexBytes = sortedIndex.compressibleBytes.unwrittenTail()
-    val unwrittenTailValueBytes = values.map(_.compressibleBytes.unwrittenTail())
+    val unwrittenTailValueBytes = values.flatMapSomeS[SliceOption[Byte]](Slice.Null)(_.compressibleBytes.unwrittenTail())
 
     //Run closeBlocks concurrently in another thread while the
     //next slot of sortedIndex and valuesBlock is being created.
@@ -445,9 +445,9 @@ private[core] case object SegmentBlock extends LazyLogging {
             keyValueCount = closedBlocks.sortedIndex.entriesCount,
             createdInLevel = createdInLevel,
 
-            valuesBlockHeader = closedBlocks.values.map(_.header.close()),
+            valuesBlockHeader = closedBlocks.values.flatMapSomeS[SliceOption[Byte]](Slice.Null)(_.header.close()),
 
-            valuesBlock = closedBlocks.values.map(_.compressibleBytes.close()),
+            valuesBlock = closedBlocks.values.flatMapSomeS[SliceOption[Byte]](Slice.Null)(_.compressibleBytes.close()),
             valuesUnblockedReader = closedBlocks.valuesUnblockedReader,
 
             sortedIndexBlockHeader = closedBlocks.sortedIndex.header.close(),
@@ -455,16 +455,16 @@ private[core] case object SegmentBlock extends LazyLogging {
             sortedIndexUnblockedReader = closedBlocks.sortedIndexUnblockedReader,
             sortedIndexClosedState = closedBlocks.sortedIndex,
 
-            hashIndexBlockHeader = closedBlocks.hashIndex map (_.header.close()),
-            hashIndexBlock = closedBlocks.hashIndex map (_.compressibleBytes.close()),
+            hashIndexBlockHeader = closedBlocks.hashIndex.flatMapSomeS[SliceOption[Byte]](Slice.Null)(_.header.close()),
+            hashIndexBlock = closedBlocks.hashIndex.flatMapSomeS[SliceOption[Byte]](Slice.Null)(_.compressibleBytes.close()),
             hashIndexUnblockedReader = closedBlocks.hashIndexUnblockedReader,
 
-            binarySearchIndexBlockHeader = closedBlocks.binarySearchIndex map (_.header.close()),
-            binarySearchIndexBlock = closedBlocks.binarySearchIndex map (_.compressibleBytes.close()),
+            binarySearchIndexBlockHeader = closedBlocks.binarySearchIndex.flatMapSomeS[SliceOption[Byte]](Slice.Null)(_.header.close()),
+            binarySearchIndexBlock = closedBlocks.binarySearchIndex.flatMapSomeS[SliceOption[Byte]](Slice.Null)(_.compressibleBytes.close()),
             binarySearchUnblockedReader = closedBlocks.binarySearchUnblockedReader,
 
-            bloomFilterBlockHeader = closedBlocks.bloomFilter map (_.header.close()),
-            bloomFilterBlock = closedBlocks.bloomFilter map (_.compressibleBytes.close()),
+            bloomFilterBlockHeader = closedBlocks.bloomFilter.flatMapSomeS[SliceOption[Byte]](Slice.Null)(_.header.close()),
+            bloomFilterBlock = closedBlocks.bloomFilter.flatMapSomeS[SliceOption[Byte]](Slice.Null)(_.compressibleBytes.close()),
             bloomFilterUnblockedReader = closedBlocks.bloomFilterUnblockedReader,
 
             footerBlock = closedFooter.bytes.close()
@@ -474,33 +474,31 @@ private[core] case object SegmentBlock extends LazyLogging {
     //start new sortedIndex block only if there are more key-values to process
     val newSortedIndex =
       if (hasMoreKeyValues)
-        Some(
-          SortedIndexBlock.init(
-            bytes = unwrittenTailSortedIndexBytes,
-            compressDuplicateValues = valuesConfig.compressDuplicateValues,
-            compressDuplicateRangeValues = valuesConfig.compressDuplicateRangeValues,
-            sortedIndexConfig = sortedIndexConfig
-          )
+        SortedIndexBlock.init(
+          bytes = unwrittenTailSortedIndexBytes,
+          compressDuplicateValues = valuesConfig.compressDuplicateValues,
+          compressDuplicateRangeValues = valuesConfig.compressDuplicateRangeValues,
+          sortedIndexConfig = sortedIndexConfig
         )
       else
-        None
+        SortedIndexBlockState.Null
 
     //start new values block only if there are more key-values to process
-    val newValues =
+    val newValues: ValuesBlockStateOption =
       if (hasMoreKeyValues)
-        newSortedIndex flatMap {
+        newSortedIndex.flatMapSomeS[ValuesBlockStateOption](ValuesBlockState.Null) {
           newSortedIndex =>
-            unwrittenTailValueBytes map {
+            unwrittenTailValueBytes.flatMapSomeC[ValuesBlockStateOption](ValuesBlockState.Null) {
               tailValueBytes =>
                 ValuesBlock.init(
-                  bytes = tailValueBytes,
+                  bytes = tailValueBytes.asMut(),
                   valuesConfig = valuesConfig,
                   builder = newSortedIndex.builder
                 )
             }
         }
       else
-        None
+        ValuesBlockState.Null
 
     (ref, newSortedIndex, newValues)
   }
@@ -509,7 +507,7 @@ private[core] case object SegmentBlock extends LazyLogging {
    * Build closed Blocks and runs each block index concurrently.
    */
   private def closeBlocks(sortedIndex: SortedIndexBlockState,
-                          values: Option[ValuesBlockState],
+                          values: ValuesBlockStateOption,
                           bloomFilterIndexableKeys: Iterable[Slice[Byte]],
                           bloomFilterConfig: BloomFilterBlockConfig,
                           hashIndexConfig: HashIndexBlockConfig,
@@ -520,15 +518,15 @@ private[core] case object SegmentBlock extends LazyLogging {
       .flatMapUnit {
         //close the Values block first since no other block depends on it
         val closedValuesFuture =
-          if (values.isDefined)
-            Future(Some(ValuesBlock.close(values.get)))
+          if (values.isSomeS)
+            Future(ValuesBlock.close(values.getS))
           else
-            Futures.none
+            Future.successful(ValuesBlockState.Null)
 
         //close bloomFilter since no other block depends on it
         val closedBloomFilterFuture =
           if (sortedIndex.mightContainRemoveRange || bloomFilterIndexableKeys.size < bloomFilterConfig.minimumNumberOfKeys)
-            Futures.none
+            Future.successful(BloomFilterBlockState.Null)
           else
             Future { //build bloomFilter concurrently
               val bloomFilterOption =
@@ -539,8 +537,8 @@ private[core] case object SegmentBlock extends LazyLogging {
                   compressions = bloomFilterConfig.compressions
                 )
 
-              if (bloomFilterOption.isDefined) {
-                val bloomFilter = bloomFilterOption.get
+              if (bloomFilterOption.isSomeS) {
+                val bloomFilter = bloomFilterOption.getS
 
                 for (comparableKey <- bloomFilterIndexableKeys)
                   BloomFilterBlock.add(
@@ -550,7 +548,7 @@ private[core] case object SegmentBlock extends LazyLogging {
 
                 BloomFilterBlock.close(bloomFilter)
               } else {
-                None
+                BloomFilterBlockState.Null
               }
             }
 
@@ -587,7 +585,7 @@ private[core] case object SegmentBlock extends LazyLogging {
    */
   private def closeIndexBlocks(closedSortedIndex: SortedIndexBlockState, //SortedIndexBlock must be closed
                                hashIndexConfig: HashIndexBlockConfig,
-                               binarySearchIndexConfig: BinarySearchIndexBlockConfig)(implicit ec: ExecutionContext): Future[(Option[HashIndexBlockState], Option[BinarySearchIndexBlockState])] =
+                               binarySearchIndexConfig: BinarySearchIndexBlockConfig)(implicit ec: ExecutionContext): Future[(HashIndexBlockStateOption, BinarySearchIndexBlockStateOption)] =
     Future
       .unit
       .flatMapUnit {
@@ -606,15 +604,15 @@ private[core] case object SegmentBlock extends LazyLogging {
           )
 
         //if either one is defined then build the index
-        if (hashIndexOption.isDefined || binarySearchIndexOption.isDefined)
+        if (hashIndexOption.isSomeS || binarySearchIndexOption.isSomeS)
           if (binarySearchIndexConfig.fullIndex) {
             //fullIndex is required for binary search for binarySearch has no dependency
             //on hashIndex therefore we can build both indexes concurrently
 
-            val hashIndexFuture: Future[Option[HashIndexBlockState]] =
-              if (hashIndexOption.isDefined)
+            val hashIndexFuture: Future[HashIndexBlockStateOption] =
+              if (hashIndexOption.isSomeS)
                 Future {
-                  val hashIndexState = hashIndexOption.get
+                  val hashIndexState = hashIndexOption.getS
 
                   for (indexEntry <- closedSortedIndex.secondaryIndexEntries)
                     HashIndexBlock.write(
@@ -625,13 +623,13 @@ private[core] case object SegmentBlock extends LazyLogging {
                   HashIndexBlock.close(hashIndexState)
                 }
               else
-                Futures.none
+                Future.successful(HashIndexBlockState.Null)
 
             //concurrently build binarySearch
-            val binarySearchIndexFuture: Future[Option[BinarySearchIndexBlockState]] =
-              if (binarySearchIndexOption.isDefined)
+            val binarySearchIndexFuture: Future[BinarySearchIndexBlockStateOption] =
+              if (binarySearchIndexOption.isSomeS)
                 Future {
-                  val binarySearchIndexState = binarySearchIndexOption.get
+                  val binarySearchIndexState = binarySearchIndexOption.getS
 
                   for (indexEntry <- closedSortedIndex.secondaryIndexEntries)
                     BinarySearchIndexBlock.write(
@@ -642,7 +640,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                   BinarySearchIndexBlock.close(binarySearchIndexState, closedSortedIndex.uncompressedPrefixCount)
                 }
               else
-                Futures.none
+                Future.successful(BinarySearchIndexBlockState.Null)
 
             hashIndexFuture.join(binarySearchIndexFuture)
           } else {
@@ -651,41 +649,41 @@ private[core] case object SegmentBlock extends LazyLogging {
               for (indexEntry <- closedSortedIndex.secondaryIndexEntries) {
                 //write to hashIndex first
                 val hit =
-                  if (hashIndexOption.isDefined)
+                  if (hashIndexOption.isSomeS)
                     HashIndexBlock.write(
                       entry = indexEntry,
-                      state = hashIndexOption.get
+                      state = hashIndexOption.getS
                     )
                   else
                     false
 
                 //if it's a hit and binary search is not configured to be full.
                 //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
-                if (binarySearchIndexOption.isDefined && !hit)
+                if (binarySearchIndexOption.isSomeS && !hit)
                   BinarySearchIndexBlock.write(
                     entry = indexEntry,
-                    state = binarySearchIndexOption.get
+                    state = binarySearchIndexOption.getS
                   )
               }
             } flatMapUnit {
               //finally close both indexes concurrently.
               val hashIndexFuture =
-                if (hashIndexOption.isDefined)
-                  Future(HashIndexBlock.close(hashIndexOption.get))
+                if (hashIndexOption.isSomeS)
+                  Future(HashIndexBlock.close(hashIndexOption.getS))
                 else
-                  Futures.none
+                  Future.successful(HashIndexBlockState.Null)
 
               val binarySearchIndexFuture =
-                if (binarySearchIndexOption.isDefined)
-                  Future(BinarySearchIndexBlock.close(binarySearchIndexOption.get, closedSortedIndex.uncompressedPrefixCount))
+                if (binarySearchIndexOption.isSomeS)
+                  Future(BinarySearchIndexBlock.close(binarySearchIndexOption.getS, closedSortedIndex.uncompressedPrefixCount))
                 else
-                  Futures.none
+                  Future.successful(BinarySearchIndexBlockState.Null)
 
               hashIndexFuture.join(binarySearchIndexFuture)
             }
           }
         else
-          Future.successful((None, None))
+          Future.successful((HashIndexBlockState.Null, BinarySearchIndexBlockState.Null))
       }
 
 }

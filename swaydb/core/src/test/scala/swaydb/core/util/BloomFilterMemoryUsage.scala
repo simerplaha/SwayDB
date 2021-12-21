@@ -40,7 +40,7 @@ object BloomFilterMemoryUsage extends App {
       falsePositiveRate = 0.01,
       updateMaxProbe = probe => probe,
       compressions = _ => Seq.empty
-    ).get
+    ).getS
 
   keys.foreach(BloomFilterBlock.add(_, bloomFilter))
 

@@ -57,7 +57,7 @@ class ValuesBlockSpec extends AnyWordSpec {
           stats = keyValues,
           valuesConfig = ValuesBlockConfig.random,
           builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes.asMut())
-        ) shouldBe empty
+        ).isNoneS shouldBe true
       }
     }
 
@@ -72,7 +72,7 @@ class ValuesBlockSpec extends AnyWordSpec {
           stats = keyValues,
           valuesConfig = ValuesBlockConfig.random,
           builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes.asMut())
-        ) shouldBe defined
+        ).isSomeS shouldBe true
       }
     }
   }
@@ -90,7 +90,7 @@ class ValuesBlockSpec extends AnyWordSpec {
             stats = stats,
             valuesConfig = ValuesBlockConfig.random,
             builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes.asMut())
-          ).get
+          ).getS
 
         val keyValues = stats.keyValues
 

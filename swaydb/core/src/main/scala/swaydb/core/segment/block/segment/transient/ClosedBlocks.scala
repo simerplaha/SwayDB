@@ -16,22 +16,22 @@
 
 package swaydb.core.segment.block.segment.transient
 
-import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset, BinarySearchIndexBlockState}
-import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset, BloomFilterBlockState}
-import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset, HashIndexBlockState}
+import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexBlockOffset, BinarySearchIndexBlockStateOption}
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset, BloomFilterBlockStateOption}
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset, HashIndexBlockStateOption}
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset, SortedIndexBlockState}
-import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset, ValuesBlockState}
+import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset, ValuesBlockStateOption}
 import swaydb.core.util.MinMax
 import swaydb.slice.Slice
 
 import scala.concurrent.duration.Deadline
 
 private[block] class ClosedBlocks(val sortedIndex: SortedIndexBlockState,
-                                  val values: Option[ValuesBlockState],
-                                  val hashIndex: Option[HashIndexBlockState],
-                                  val binarySearchIndex: Option[BinarySearchIndexBlockState],
-                                  val bloomFilter: Option[BloomFilterBlockState],
+                                  val values: ValuesBlockStateOption,
+                                  val hashIndex: HashIndexBlockStateOption,
+                                  val binarySearchIndex: BinarySearchIndexBlockStateOption,
+                                  val bloomFilter: BloomFilterBlockStateOption,
                                   val minMaxFunction: Option[MinMax[Slice[Byte]]],
                                   prepareForCachingSegmentBlocksOnCreate: Boolean) {
   def nearestDeadline: Option[Deadline] = sortedIndex.nearestDeadline
@@ -44,25 +44,25 @@ private[block] class ClosedBlocks(val sortedIndex: SortedIndexBlockState,
 
   val valuesUnblockedReader: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]] =
     if (prepareForCachingSegmentBlocksOnCreate)
-      values.map(ValuesBlock.unblockedReader)
+      values.mapS(ValuesBlock.unblockedReader)
     else
       None
 
   val hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]] =
     if (prepareForCachingSegmentBlocksOnCreate)
-      hashIndex.map(HashIndexBlock.unblockedReader)
+      hashIndex.mapS(HashIndexBlock.unblockedReader)
     else
       None
 
   val binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]] =
     if (prepareForCachingSegmentBlocksOnCreate)
-      binarySearchIndex.map(BinarySearchIndexBlock.unblockedReader)
+      binarySearchIndex.mapS(BinarySearchIndexBlock.unblockedReader)
     else
       None
 
   val bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]] =
     if (prepareForCachingSegmentBlocksOnCreate)
-      bloomFilter.map(BloomFilterBlock.unblockedReader)
+      bloomFilter.mapS(BloomFilterBlock.unblockedReader)
     else
       None
 }

@@ -187,7 +187,7 @@ class SortedIndexBlockSpec extends AnyWordSpec {
       keyValues foreach {
         keyValue =>
           SortedIndexBlock.write(keyValue, sortedIndex)
-          values foreach {
+          values foreachS {
             valuesBlock =>
               ValuesBlock.write(keyValue, valuesBlock)
           }
@@ -204,7 +204,7 @@ class SortedIndexBlockSpec extends AnyWordSpec {
       val sortedIndexBlock = SortedIndexBlock.read(header)
 
       val valuesBlockReader: UnblockedReader[ValuesBlockOffset, ValuesBlock] =
-        values map {
+        values mapS {
           valuesBlock =>
             val closedState = ValuesBlock.close(valuesBlock)
             Block.unblock[ValuesBlockOffset, ValuesBlock](closedState.blockBytes)

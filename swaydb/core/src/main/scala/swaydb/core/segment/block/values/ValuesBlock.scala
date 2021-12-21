@@ -41,22 +41,20 @@ private[core] case object ValuesBlock {
   def init(stats: MergeStats.Persistent.ClosedStatsOnly,
            valuesConfig: ValuesBlockConfig,
            //the builder created by SortedIndex.
-           builder: EntryWriter.Builder): Option[ValuesBlockState] = {
+           builder: EntryWriter.Builder): ValuesBlockStateOption = {
     val totalValuesSize = stats.totalValuesSize
     if (totalValuesSize > 0) {
       val bytes = Slice.allocate[Byte](totalValuesSize)
-      val state =
-        new ValuesBlockState(
-          compressibleBytes = bytes,
-          cacheableBytes = bytes,
-          header = null,
-          compressions = valuesConfig.compressions,
-          builder = builder
-        )
-      Some(state)
+      new ValuesBlockState(
+        compressibleBytes = bytes,
+        cacheableBytes = bytes,
+        header = null,
+        compressions = valuesConfig.compressions,
+        builder = builder
+      )
     }
     else
-      None
+      ValuesBlockState.Null
   }
 
   def init(bytes: SliceMut[Byte],

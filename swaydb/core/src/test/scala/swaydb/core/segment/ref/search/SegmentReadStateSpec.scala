@@ -69,7 +69,7 @@ class SegmentReadStateSpec extends AnyWordSpec {
 
     val previous = previousKeyValue
 
-    val forKey = randomBytes().take(2)
+    val forKey = genBytes().take(2)
 
     SegmentReadState.createOnSuccessSequentialRead(
       path = path,
@@ -92,7 +92,7 @@ class SegmentReadStateSpec extends AnyWordSpec {
 
     val next = nextKeyValue
 
-    val forKey = randomBytes().take(3)
+    val forKey = genBytes().take(3)
 
     SegmentReadState.createOnSuccessSequentialRead(
       path = path,

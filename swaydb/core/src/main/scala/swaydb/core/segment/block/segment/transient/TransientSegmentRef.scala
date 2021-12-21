@@ -24,7 +24,7 @@ import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset, SortedIndexBlockState}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.util.MinMax
-import swaydb.slice.{MaxKey, Slice}
+import swaydb.slice.{MaxKey, Slice, SliceOption}
 
 import scala.concurrent.duration.Deadline
 
@@ -41,8 +41,8 @@ class TransientSegmentRef( //key info
                            val putDeadlineCount: Int,
                            val keyValueCount: Int,
                            //values
-                           val valuesBlockHeader: Option[Slice[Byte]],
-                           val valuesBlock: Option[Slice[Byte]],
+                           val valuesBlockHeader: SliceOption[Byte],
+                           val valuesBlock: SliceOption[Byte],
                            val valuesUnblockedReader: Option[UnblockedReader[ValuesBlockOffset, ValuesBlock]],
                            //sortedIndex
                            val sortedIndexClosedState: SortedIndexBlockState,
@@ -50,16 +50,16 @@ class TransientSegmentRef( //key info
                            val sortedIndexBlock: Slice[Byte],
                            val sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlockOffset, SortedIndexBlock]],
                            //hashIndex
-                           val hashIndexBlockHeader: Option[Slice[Byte]],
-                           val hashIndexBlock: Option[Slice[Byte]],
+                           val hashIndexBlockHeader: SliceOption[Byte],
+                           val hashIndexBlock: SliceOption[Byte],
                            val hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlockOffset, HashIndexBlock]],
                            //binarySearch
-                           val binarySearchIndexBlockHeader: Option[Slice[Byte]],
-                           val binarySearchIndexBlock: Option[Slice[Byte]],
+                           val binarySearchIndexBlockHeader: SliceOption[Byte],
+                           val binarySearchIndexBlock: SliceOption[Byte],
                            val binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock]],
                            //bloomFilter
-                           val bloomFilterBlockHeader: Option[Slice[Byte]],
-                           val bloomFilterBlock: Option[Slice[Byte]],
+                           val bloomFilterBlockHeader: SliceOption[Byte],
+                           val bloomFilterBlock: SliceOption[Byte],
                            val bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]],
                            //footer
                            val footerBlock: Slice[Byte]) {
@@ -71,13 +71,13 @@ class TransientSegmentRef( //key info
     /**
      * VALUES BLOCK
      */
-    valuesBlockHeader foreach {
+    valuesBlockHeader foreachC {
       valuesBlockHeader =>
         allBytes add valuesBlockHeader
         segmentSize += valuesBlockHeader.size
     }
 
-    valuesBlock foreach {
+    valuesBlock foreachC {
       valuesBlock =>
         allBytes add valuesBlock
         segmentSize += valuesBlock.size
@@ -95,13 +95,13 @@ class TransientSegmentRef( //key info
     /**
      * HashIndex
      */
-    hashIndexBlockHeader foreach {
+    hashIndexBlockHeader foreachC {
       hashIndexBlockHeader =>
         allBytes add hashIndexBlockHeader
         segmentSize += hashIndexBlockHeader.size
     }
 
-    hashIndexBlock foreach {
+    hashIndexBlock foreachC {
       hashIndexBlock =>
         allBytes add hashIndexBlock
         segmentSize += hashIndexBlock.size
@@ -110,13 +110,13 @@ class TransientSegmentRef( //key info
     /**
      * Binary search index
      */
-    binarySearchIndexBlockHeader foreach {
+    binarySearchIndexBlockHeader foreachC {
       binarySearchIndexBlockHeader =>
         allBytes add binarySearchIndexBlockHeader
         segmentSize += binarySearchIndexBlockHeader.size
     }
 
-    binarySearchIndexBlock foreach {
+    binarySearchIndexBlock foreachC {
       binarySearchIndexBlock =>
         allBytes add binarySearchIndexBlock
         segmentSize += binarySearchIndexBlock.size
@@ -125,13 +125,13 @@ class TransientSegmentRef( //key info
     /**
      * BoomFilter
      */
-    bloomFilterBlockHeader foreach {
+    bloomFilterBlockHeader foreachC {
       bloomFilterBlockHeader =>
         allBytes add bloomFilterBlockHeader
         segmentSize += bloomFilterBlockHeader.size
     }
 
-    bloomFilterBlock foreach {
+    bloomFilterBlock foreachC {
       bloomFilterBlock =>
         allBytes add bloomFilterBlock
         segmentSize += bloomFilterBlock.size

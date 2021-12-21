@@ -380,7 +380,7 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
           val testFile = genFilePath()
-          Effect.write(to = testFile, bytes = Slice.wrap(randomBytes()).toByteBufferWrap())
+          Effect.write(to = testFile, bytes = Slice.wrap(genBytes()).toByteBufferWrap())
 
           assertThrows[FileAlreadyExistsException] {
             CoreFile.mmapEmptyWriteableReadable(
@@ -569,8 +569,8 @@ class CoreFileSpec extends AnyWordSpec {
     "write bytes to a File" in {
       CoreTestSweeper.repeat(10.times) {
         implicit sweeper =>
-          val bytes1 = Slice.wrap(randomBytes(100))
-          val bytes2 = Slice.wrap(randomBytes(100))
+          val bytes1 = Slice.wrap(genBytes(100))
+          val bytes2 = Slice.wrap(genBytes(100))
 
           val filesAndBytes = createFiles(bytes1, bytes2) zip Seq(bytes1, bytes2)
           filesAndBytes should have size 2
@@ -1078,7 +1078,7 @@ class CoreFileSpec extends AnyWordSpec {
   //  "Concurrently opening files" should {
   //    "result in Busy exception" in {
   //      //create a file
-  //      val bytes = Slice(randomBytes())
+  //      val bytes = Slice(genBytes())
   //      val file = CoreFile.mmapInit(genFilePath(), bytes.size, autoClose = true).runIO
   //      file.append(bytes).runIO
   //

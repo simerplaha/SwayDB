@@ -6,9 +6,24 @@ import swaydb.core.segment.data.Memory
 import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.core.util.MinMax
 import swaydb.slice.{MaxKey, Slice, SliceMut}
+import swaydb.utils.SomeOrNone
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
+
+sealed trait SortedIndexBlockStateOption extends SomeOrNone[SortedIndexBlockStateOption, SortedIndexBlockState] {
+  override def noneS: SortedIndexBlockStateOption =
+    SortedIndexBlockState.Null
+}
+
+case object SortedIndexBlockState {
+
+  final case object Null extends SortedIndexBlockStateOption {
+    override def isNoneS: Boolean = true
+
+    override def getS: SortedIndexBlockState = throw new Exception(s"${SortedIndexBlockState.productPrefix} is of type ${Null.productPrefix}")
+  }
+}
 
 /**
  * [[SortedIndexBlockState]] is mostly mutable because these vars calculate runtime stats of
@@ -44,7 +59,13 @@ private[block] class SortedIndexBlockState(var compressibleBytes: SliceMut[Byte]
                                            val compressions: UncompressedBlockInfo => Iterable[CoreCompression],
                                            val secondaryIndexEntries: ListBuffer[SortedIndexBlockSecondaryIndexEntry],
                                            val indexEntries: ListBuffer[Slice[Byte]],
-                                           val builder: EntryWriter.Builder) {
+                                           val builder: EntryWriter.Builder) extends SortedIndexBlockStateOption {
+
+  override def isNoneS: Boolean =
+    false
+
+  override def getS: SortedIndexBlockState =
+    this
 
   def blockBytes: Slice[Byte] =
     header ++ compressibleBytes
@@ -66,4 +87,5 @@ private[block] class SortedIndexBlockState(var compressibleBytes: SliceMut[Byte]
 
   def blockSize: Int =
     header.size + compressibleBytes.size
+
 }

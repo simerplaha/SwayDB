@@ -43,27 +43,18 @@ object SliceTestKit {
     val slice = Slice.allocate[Slice[Byte]](size)
     (1 to size) foreach {
       _ =>
-        slice add Slice.wrap(randomBytes(sizePerChunk))
+        slice add Slice.wrap(genBytes(sizePerChunk))
     }
     slice
   }
 
   def genBytesSlice(size: Int = 10): Slice[Byte] =
-    Slice.wrap(randomBytes(size))
+    Slice.wrap(genBytes(size))
 
-  def genBytesSliceOption(size: Int = 10): Option[Slice[Byte]] =
-    genBytesSliceOptional(size).toOptionC
-
-  def genBytesSliceOptional(size: Int = 10): SliceOption[Byte] =
+  def genBytesSliceOption(size: Int = 10): SliceOption[Byte] =
     if (randomBoolean() || size == 0)
       Slice.Null
     else
       genBytesSlice(size)
-
-  def someByteSlice(size: Int = 10): Option[Slice[Byte]] =
-    if (size == 0)
-      None
-    else
-      Some(genBytesSlice(size))
 
 }

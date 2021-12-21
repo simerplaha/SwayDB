@@ -17,12 +17,12 @@
 package swaydb.core.segment.block.segment.footer
 
 import swaydb.core.segment.block._
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockOffset
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlockOffset
-import swaydb.core.segment.block.hashindex.HashIndexBlockOffset
+import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlockOffset, BinarySearchIndexBlockState}
+import swaydb.core.segment.block.bloomfilter.{BloomFilterBlockOffset, BloomFilterBlockState}
+import swaydb.core.segment.block.hashindex.{HashIndexBlockOffset, HashIndexBlockState}
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.segment.transient.ClosedBlocks
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockOffset}
+import swaydb.core.segment.block.segment.transient.ClosedBlocks
 import swaydb.core.segment.block.sortedindex.SortedIndexBlockOffset
 import swaydb.core.segment.block.values.ValuesBlockOffset
 import swaydb.core.util.{Bytes, CRC32}
@@ -94,8 +94,8 @@ private[core] case object SegmentFooterBlock {
     footerBytes addUnsignedInt state.keyValuesCount
 
     val valuesSize =
-      if (values.isDefined)
-        values.get.header.size + values.get.compressibleBytes.size
+      if (values.isSomeS)
+        values.getS.header.size + values.getS.compressibleBytes.size
       else
         0
 
@@ -109,42 +109,42 @@ private[core] case object SegmentFooterBlock {
 
     val hashIndexSize: Int =
       hashIndex match {
-        case Some(hashIndex) =>
+        case hashIndex: HashIndexBlockState =>
           val hashIndexSize = hashIndex.blockSize
           footerBytes addUnsignedInt hashIndexSize
           footerBytes addUnsignedInt currentBlockOffset
           currentBlockOffset = currentBlockOffset + hashIndexSize
           hashIndexSize
 
-        case None =>
+        case HashIndexBlockState.Null =>
           footerBytes addUnsignedInt 0
           0
       }
 
     val binarySearchIndexSize =
       binarySearchIndex match {
-        case Some(binarySearchIndex) =>
+        case binarySearchIndex: BinarySearchIndexBlockState =>
           val binarySearchIndexSize = binarySearchIndex.blockSize
           footerBytes addUnsignedInt binarySearchIndexSize
           footerBytes addUnsignedInt currentBlockOffset
           currentBlockOffset = currentBlockOffset + binarySearchIndexSize
           binarySearchIndexSize
 
-        case None =>
+        case BinarySearchIndexBlockState.Null =>
           footerBytes addUnsignedInt 0
           0
       }
 
     val bloomFilterSize =
       bloomFilter match {
-        case Some(bloomFilter) =>
+        case bloomFilter: BloomFilterBlockState =>
           val bloomFilterSize = bloomFilter.blockSize
           footerBytes addUnsignedInt bloomFilterSize
           footerBytes addUnsignedInt currentBlockOffset
           currentBlockOffset = currentBlockOffset + bloomFilterSize
           bloomFilterSize
 
-        case None =>
+        case BloomFilterBlockState.Null =>
           footerBytes addUnsignedInt 0
           0
       }

@@ -35,13 +35,13 @@ private[core] case object BinarySearchIndexBlock {
   val blockName = this.productPrefix
 
   def init(sortedIndexState: SortedIndexBlockState,
-           binarySearchConfig: BinarySearchIndexBlockConfig): Option[BinarySearchIndexBlockState] = {
+           binarySearchConfig: BinarySearchIndexBlockConfig): BinarySearchIndexBlockStateOption = {
 
     if (!binarySearchConfig.enabled ||
       sortedIndexState.uncompressedPrefixCount < binarySearchConfig.minimumNumberOfKeys ||
       sortedIndexState.normaliseIndex ||
       (!sortedIndexState.hasPrefixCompression && binarySearchConfig.searchSortedIndexDirectlyIfPossible && sortedIndexState.isPreNormalised))
-      None
+      BinarySearchIndexBlockState.Null
     else
       BinarySearchIndexBlockState(
         format = binarySearchConfig.format,
@@ -74,9 +74,9 @@ private[core] case object BinarySearchIndexBlock {
       bytesToAllocatedPerEntry * valuesCount
     }
 
-  def close(state: BinarySearchIndexBlockState, uncompressedKeyValuesCount: Int): Option[BinarySearchIndexBlockState] =
+  def close(state: BinarySearchIndexBlockState, uncompressedKeyValuesCount: Int): BinarySearchIndexBlockStateOption =
     if (state.compressibleBytes.isEmpty)
-      None
+      BinarySearchIndexBlockState.Null
     else if (state.hasMinimumKeys) {
       val headerSize: Int =
         ByteSizeOf.byte + //formatId
@@ -105,10 +105,10 @@ private[core] case object BinarySearchIndexBlock {
 
       //      if (state.bytes.currentWritePosition > state.headerSize)
       //        throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
-      Some(state)
+      state
     }
     else
-      None
+      BinarySearchIndexBlockState.Null
 
   def unblockedReader(closedState: BinarySearchIndexBlockState): UnblockedReader[BinarySearchIndexBlockOffset, BinarySearchIndexBlock] = {
     val block =

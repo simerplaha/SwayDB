@@ -53,11 +53,11 @@ class BloomFilterBlockSpec extends AnyWordSpec {
                 updateMaxProbe = probe => probe,
                 falsePositiveRate = 0.01,
                 compressions = _ => compressions
-              ).value
+              ).getS
 
             (1 to 10) foreach (BloomFilterBlock.add(_, filter))
 
-            BloomFilterBlock.close(filter).value
+            BloomFilterBlock.close(filter).getS
 
             val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 
@@ -89,11 +89,11 @@ class BloomFilterBlockSpec extends AnyWordSpec {
                 updateMaxProbe = probe => probe,
                 falsePositiveRate = 0.01,
                 compressions = _ => compressions
-              ).value
+              ).getS
 
             BloomFilterBlock.add(1, state)
 
-            BloomFilterBlock.close(state).value
+            BloomFilterBlock.close(state).getS
 
             val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 
@@ -135,7 +135,7 @@ class BloomFilterBlockSpec extends AnyWordSpec {
               updateMaxProbe = probe => probe,
               falsePositiveRate = falsePositiveRate,
               compressions = _ => compression
-            ).value
+            ).getS
 
           bloomFilter.compressibleBytes.size should be <=
             BloomFilterBlock.optimalSize(
@@ -156,7 +156,7 @@ class BloomFilterBlockSpec extends AnyWordSpec {
         updateMaxProbe = probe => probe,
         falsePositiveRate = randomFalsePositiveRate(),
         compressions = _ => randomCompressionsOrEmpty()
-      ) shouldBe empty
+      ).isNoneS shouldBe true
     }
 
     "not initialise if false positive range is 0.0 are empty" in {
@@ -165,7 +165,7 @@ class BloomFilterBlockSpec extends AnyWordSpec {
         updateMaxProbe = probe => probe,
         falsePositiveRate = 0.0,
         compressions = _ => randomCompressionsOrEmpty()
-      ) shouldBe empty
+      ).isNoneS shouldBe true
     }
 
     //    "not initialise bloomFilter if it contain removeRange" in {
@@ -294,7 +294,7 @@ class BloomFilterBlockSpec extends AnyWordSpec {
               updateMaxProbe = probe => probe,
               falsePositiveRate = 0.001,
               compressions = _ => compressions
-            ).value
+            ).getS
 
           val data: Seq[String] =
             (1 to 10000) map {
@@ -304,7 +304,7 @@ class BloomFilterBlockSpec extends AnyWordSpec {
                 string
             }
 
-          BloomFilterBlock.close(state).value
+          BloomFilterBlock.close(state).getS
 
           runAssert(
             data = data,

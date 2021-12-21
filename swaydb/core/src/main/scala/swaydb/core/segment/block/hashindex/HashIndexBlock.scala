@@ -38,9 +38,9 @@ private[core] case object HashIndexBlock extends LazyLogging {
   val blockName = this.productPrefix
 
   def init(sortedIndexState: SortedIndexBlockState,
-           hashIndexConfig: HashIndexBlockConfig): Option[HashIndexBlockState] =
+           hashIndexConfig: HashIndexBlockConfig): HashIndexBlockStateOption =
     if (sortedIndexState.uncompressedPrefixCount < hashIndexConfig.minimumNumberOfKeys) {
-      None
+      HashIndexBlockState.Null
     } else {
       val writeAbleLargestValueSize =
         hashIndexConfig.format.bytesToAllocatePerEntry(
@@ -58,26 +58,24 @@ private[core] case object HashIndexBlock extends LazyLogging {
 
       //if the user allocated
       if (optimalBytes < ByteSizeOf.int) {
-        None
+        HashIndexBlockState.Null
       } else {
         val bytes = Slice.allocate[Byte](optimalBytes)
-        val state =
-          new HashIndexBlockState(
-            hit = 0,
-            miss = sortedIndexState.prefixCompressedCount,
-            format = hashIndexConfig.format,
-            minimumNumberOfKeys = hashIndexConfig.minimumNumberOfKeys,
-            minimumNumberOfHits = hashIndexConfig.minimumNumberOfHits,
-            writeAbleLargestValueSize = writeAbleLargestValueSize,
-            minimumCRC = CRC32.disabledCRC,
-            maxProbe = hashIndexConfig.maxProbe,
-            compressibleBytes = bytes,
-            cacheableBytes = bytes,
-            header = null,
-            compressions = hashIndexConfig.compressions
-          )
 
-        Some(state)
+        new HashIndexBlockState(
+          hit = 0,
+          miss = sortedIndexState.prefixCompressedCount,
+          format = hashIndexConfig.format,
+          minimumNumberOfKeys = hashIndexConfig.minimumNumberOfKeys,
+          minimumNumberOfHits = hashIndexConfig.minimumNumberOfHits,
+          writeAbleLargestValueSize = writeAbleLargestValueSize,
+          minimumCRC = CRC32.disabledCRC,
+          maxProbe = hashIndexConfig.maxProbe,
+          compressibleBytes = bytes,
+          cacheableBytes = bytes,
+          header = null,
+          compressions = hashIndexConfig.compressions
+        )
       }
     }
 
@@ -111,9 +109,9 @@ private[core] case object HashIndexBlock extends LazyLogging {
       }
     }
 
-  def close(state: HashIndexBlockState): Option[HashIndexBlockState] =
+  def close(state: HashIndexBlockState): HashIndexBlockStateOption =
     if (state.compressibleBytes.isEmpty || !state.hasMinimumHits)
-      None
+      HashIndexBlockState.Null
     else {
       val headerSize: Int =
         ByteSizeOf.byte + //formatId
@@ -148,7 +146,7 @@ private[core] case object HashIndexBlock extends LazyLogging {
 
       //      if (state.bytes.currentWritePosition > state.headerSize)
       //        throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition}")
-      Some(state)
+      state
     }
 
   def unblockedReader(closedState: HashIndexBlockState): UnblockedReader[HashIndexBlockOffset, HashIndexBlock] = {

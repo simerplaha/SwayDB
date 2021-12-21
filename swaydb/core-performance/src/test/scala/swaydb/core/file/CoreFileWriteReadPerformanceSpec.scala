@@ -200,7 +200,7 @@
 //  //    }
 //  //
 //  //    "Get performance" in {
-//  //      val bytes = randomBytes(chunkSize)
+//  //      val bytes = genBytes(chunkSize)
 //  //      val file = CoreFile.standardWrite(genFilePath(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.get
 //  //      file.append(Slice(bytes))
 //  //      file.close().runRandomIO.get

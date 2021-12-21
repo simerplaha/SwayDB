@@ -97,9 +97,9 @@ private[core] case object BloomFilterBlock extends LazyLogging {
     update(optimal)
   }
 
-  def close(state: BloomFilterBlockState): Option[BloomFilterBlockState] =
+  def close(state: BloomFilterBlockState): BloomFilterBlockStateOption =
     if (state.compressibleBytes.isEmpty) {
-      None
+      BloomFilterBlockState.Null
     } else {
       val headerSize =
         Bytes.sizeOfUnsignedInt(state.numberOfBits) + // numberOfBits
@@ -129,7 +129,7 @@ private[core] case object BloomFilterBlock extends LazyLogging {
       //        Some(state)
       //      }
       logger.trace(s"BloomFilter stats: allocatedSpace: ${state.numberOfBits}. actualSpace: ${state.compressibleBytes.size}. maxProbe: ${state.maxProbe}")
-      Some(state)
+      state
     }
 
   def unblockedReader(closedState: BloomFilterBlockState): UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock] = {
@@ -167,17 +167,15 @@ private[core] case object BloomFilterBlock extends LazyLogging {
   def init(numberOfKeys: Int,
            falsePositiveRate: Double,
            updateMaxProbe: Int => Int,
-           compressions: UncompressedBlockInfo => Iterable[CoreCompression]): Option[BloomFilterBlockState] =
+           compressions: UncompressedBlockInfo => Iterable[CoreCompression]): BloomFilterBlockStateOption =
     if (numberOfKeys <= 0 || falsePositiveRate <= 0.0 || falsePositiveRate >= 1)
-      None
+      BloomFilterBlockState.Null
     else
-      Some(
-        BloomFilterBlock(
-          numberOfKeys = numberOfKeys,
-          falsePositiveRate = falsePositiveRate,
-          updateMaxProbe = updateMaxProbe,
-          compressions = compressions
-        )
+      BloomFilterBlock(
+        numberOfKeys = numberOfKeys,
+        falsePositiveRate = falsePositiveRate,
+        updateMaxProbe = updateMaxProbe,
+        compressions = compressions
       )
 
   def add(comparableKey: Slice[Byte],

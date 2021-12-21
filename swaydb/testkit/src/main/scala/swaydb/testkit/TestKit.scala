@@ -70,7 +70,7 @@ object TestKit {
   def randomCharacters(size: Int = 10): String =
     Random.alphanumeric.take(size max 1).mkString
 
-  def randomBytes(size: Int = 10): Array[Byte] =
+  def genBytes(size: Int = 10): Array[Byte] =
     Array.fill(size)(randomByte())
 
   def randomly[T](f: => T): Option[T] =

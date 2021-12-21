@@ -190,7 +190,7 @@ class BlockSpec extends AnyWordSpec {
               keyValueCount = randomIntMax(),
               createdInLevel = randomIntMax(),
 
-              valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+              valuesBlockHeader = Slice.fill(headerSize)(0.toByte),
 
               valuesBlock = genBytesSliceOption(2),
               valuesUnblockedReader = None,
@@ -199,15 +199,15 @@ class BlockSpec extends AnyWordSpec {
               sortedIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
               sortedIndexBlock = genBytesSlice(2),
               sortedIndexUnblockedReader = None,
-              hashIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+              hashIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
 
               hashIndexBlock = genBytesSliceOption(2),
               hashIndexUnblockedReader = None,
-              binarySearchIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+              binarySearchIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
 
               binarySearchIndexBlock = genBytesSliceOption(2),
               binarySearchUnblockedReader = None,
-              bloomFilterBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+              bloomFilterBlockHeader = Slice.fill(headerSize)(0.toByte),
 
               bloomFilterBlock = genBytesSliceOption(2),
 
@@ -293,7 +293,7 @@ class BlockSpec extends AnyWordSpec {
               keyValueCount = randomIntMax(),
               createdInLevel = randomIntMax(),
 
-              valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+              valuesBlockHeader = Slice.fill(headerSize)(0.toByte),
 
               valuesBlock = genBytesSliceOption(randomIntMax(100) + 1),
               valuesUnblockedReader = None,
@@ -302,15 +302,15 @@ class BlockSpec extends AnyWordSpec {
               sortedIndexClosedState = null,
               sortedIndexBlock = genBytesSlice(randomIntMax(100) + 1),
               sortedIndexUnblockedReader = None,
-              hashIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+              hashIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
 
               hashIndexBlock = genBytesSliceOption(randomIntMax(100) + 1),
               hashIndexUnblockedReader = None,
-              binarySearchIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+              binarySearchIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
 
               binarySearchIndexBlock = genBytesSliceOption(randomIntMax(100) + 1),
               binarySearchUnblockedReader = None,
-              bloomFilterBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+              bloomFilterBlockHeader = Slice.fill(headerSize)(0.toByte),
 
               bloomFilterBlock = genBytesSliceOption(randomIntMax(100) + 1),
 
