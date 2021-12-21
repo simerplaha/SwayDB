@@ -18,7 +18,7 @@ package swaydb.core.log.counter
 
 import swaydb.slice.Slice
 
-private[swaydb] trait CounterLog {
+trait CounterLog {
   def next: Long
 
   def close(): Unit

@@ -27,6 +27,6 @@ private[core] trait Timer {
   def close(): Unit
 }
 
-private[core] object Timer {
+private object Timer {
   val defaultKey = Slice.emptyBytes
 }

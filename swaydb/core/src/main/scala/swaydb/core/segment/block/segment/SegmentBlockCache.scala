@@ -337,9 +337,7 @@ private[core] class SegmentBlockCache private(path: Path,
           )
         )
       }
-  }
-    .get
-    .copy()
+  }.get.copy()
 
   private[block] val footerBlockCache =
     Cache[swaydb.Error.Segment, swaydb.Error.ReservedResource, UnblockedReader[SegmentBlockOffset, SegmentBlock], SegmentFooterBlock](

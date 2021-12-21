@@ -79,7 +79,6 @@ class TimerSpec extends AnyFlatSpec {
           case _ =>
           //cannot reopen non-persistent timers.
         }
-
     }
   }
 }

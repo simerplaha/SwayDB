@@ -729,7 +729,6 @@ class SegmentAssigner_Assign_Spec extends AnyWordSpec {
           val gaps = Assigner.assignUnsafeGaps[ListBuffer[Assignable]](inputKeyValues ++ inputSegment1 ++ inputSegment2, existingSegment1 ++ existingSegment2, randomBoolean())
           gaps should have size 2
 
-
           gaps.head.headGap.result shouldBe empty
           gaps.head.midOverlap.result.expectKeyValues() shouldBe inputKeyValues
           gaps.head.tailGap.result.expectSegmentRefs() shouldBe inputSegment1.head.segmentRefs(randomBoolean()).take(2).toList
