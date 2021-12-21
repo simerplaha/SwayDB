@@ -344,7 +344,7 @@ private[core] class CoreFile(val path: Path,
           else
             Effect.deleteIfExists(path)
         }
-    } get
+    }.get
 
   def close(): Unit =
     cache.clearApply {
@@ -353,7 +353,7 @@ private[core] class CoreFile(val path: Path,
 
       case None =>
         IO.unit
-    } get
+    }.get
 
   //if it's an in memory files return failure as Memory files cannot be copied.
   def copyTo(toPath: Path): Path = {
