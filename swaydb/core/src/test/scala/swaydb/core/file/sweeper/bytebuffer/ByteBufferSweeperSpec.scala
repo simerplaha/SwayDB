@@ -65,7 +65,7 @@
 //            autoClose = true,
 //            deleteAfterClean = OperatingSystem.isWindows(),
 //            forceSave = TestForceSave.mmap(),
-//            bytes = Array(randomBytesSlice())
+//            bytes = Array(genBytesSlice())
 //          )
 //
 //        val innerFile = invokePrivate_file(file).shouldBeInstanceOf[MMAPFile]
@@ -88,7 +88,7 @@
 //
 //          implicit val fileSweeper = FileSweeper(1, ActorConfig.Timer("FileSweeper Test Timer", 0.second, TestExecutionContext.executionContext)).sweep()
 //          implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(messageReschedule = 0.millisecond).sweep()
-//          val bytes = randomBytesSlice()
+//          val bytes = genBytesSlice()
 //
 //          val files =
 //            (1 to 10) map {

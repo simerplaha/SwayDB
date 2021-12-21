@@ -43,10 +43,10 @@
 //      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = randomFromValueOption(addPut = false)).toOptionPut shouldBe empty
 //      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = randomFromValueOption(addPut = false)).toOptionPut shouldBe empty
 //
-//      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = Value.put(randomStringSliceOptional(), Some(expiredDeadline()))).toOptionPut shouldBe empty
-//      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = Value.put(randomStringSliceOptional(), Some(expiredDeadline()))).toOptionPut shouldBe empty
+//      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = Value.put(genStringSliceOptional(), Some(expiredDeadline()))).toOptionPut shouldBe empty
+//      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = Value.put(genStringSliceOptional(), Some(expiredDeadline()))).toOptionPut shouldBe empty
 //
-//      val put = Value.put(randomStringSliceOptional(), randomDeadlineOption(false))
+//      val put = Value.put(genStringSliceOptional(), randomDeadlineOption(false))
 //      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = put) shouldBe put.toMemory(1)
 //      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = put).toOptionPut shouldBe empty
 //    }

@@ -39,7 +39,7 @@ class BlockRefReaderSpec extends AnyWordSpec {
     "File, bytes & reader" in {
       CoreTestSweeper {
         implicit sweeper =>
-          val bytes = randomBytesSlice(100)
+          val bytes = genBytesSlice(100)
           val fileReader = createRandomFileReader(bytes, Extension.Seg)
           val file = invokePrivate_file(fileReader)
 
@@ -65,7 +65,7 @@ class BlockRefReaderSpec extends AnyWordSpec {
           val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 
           val header = Slice(1.toByte, 0.toByte)
-          val bodyBytes = randomBytesSlice(20)
+          val bodyBytes = genBytesSlice(20)
           val bytes = header ++ bodyBytes
 
           val ref = BlockRefReader[ValuesBlockOffset](bytes)
@@ -92,7 +92,7 @@ class BlockRefReaderSpec extends AnyWordSpec {
           val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 
           def runTest(compressions: Iterable[CoreCompression]) = {
-            val body = randomBytesSlice(1000)
+            val body = genBytesSlice(1000)
             val compressed = Block.compress(body, 0, compressions, "test")
 
             val compressedBytes = compressed.headerBytes ++ compressed.compressedBytes.getOrElseC(body)

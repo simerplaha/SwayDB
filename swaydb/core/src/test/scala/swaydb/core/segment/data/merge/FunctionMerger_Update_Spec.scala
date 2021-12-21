@@ -49,7 +49,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with MockFactory {
         implicit val testTimer: TestTimer = TestTimer.Empty
 
         runThis(1000.times) {
-          val key = randomBytesSlice()
+          val key = genBytesSlice()
 
           val oldKeyValue = randomUpdateKeyValue(key = key)(testTimer)
 
@@ -97,7 +97,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with MockFactory {
         runThis(1000.times) {
 
           implicit val testTimer: TestTimer = eitherOne(TestTimer.Incremental(), TestTimer.Empty)
-          val key = randomBytesSlice()
+          val key = genBytesSlice()
 
           val oldKeyValue = randomUpdateKeyValue(key = key)(testTimer)
 
@@ -197,7 +197,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with MockFactory {
         runThis(100.times) {
           //mock functions are never called
           implicit val testTimer = TestTimer.Incremental()
-          val output = SegmentFunctionOutput.Update((randomStringOption(): Slice[Byte]).asSliceOption(), Some(randomDeadline()))
+          val output = SegmentFunctionOutput.Update((genStringOption(): Slice[Byte]).asSliceOption(), Some(randomDeadline()))
 
           Seq(
             SegmentFunction.Key(_ => output),

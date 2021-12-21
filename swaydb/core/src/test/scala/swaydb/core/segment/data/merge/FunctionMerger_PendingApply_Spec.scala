@@ -45,7 +45,7 @@ class FunctionMerger_PendingApply_Spec extends AnyWordSpec {
     "times are in order" should {
       "always return the same result as the Function being merged into Fixed" in {
         runThis(1000.times) {
-          val key = randomBytesSlice()
+          val key = genBytesSlice()
 
           val apply = randomApplyWithDeadline()
           //oldKeyValue but it has a newer time.
@@ -77,7 +77,7 @@ class FunctionMerger_PendingApply_Spec extends AnyWordSpec {
     "times are in order" should {
       "always return the same result as the Function being merged into Fixed" in {
         runThis(1000.times) {
-          val key = eitherOne(randomBytesSlice(), Slice.emptyBytes)
+          val key = eitherOne(genBytesSlice(), Slice.emptyBytes)
 
           val oldApplies =
             (1 to randomIntMax(20)) map {
@@ -93,7 +93,7 @@ class FunctionMerger_PendingApply_Spec extends AnyWordSpec {
           //          println(s"newKeyValue: $newKeyValue")
           //          println(s"old applies: $oldApplies")
           //          println(s"oldKeyValue: $oldKeyValue")
-          ////          println(s"function result: ${functionStore.get(newKeyValue.function).get.asInstanceOf[coreFunction.Key].f(randomBytesSlice())}")
+          ////          println(s"function result: ${functionStore.get(newKeyValue.function).get.asInstanceOf[coreFunction.Key].f(genBytesSlice())}")
           //          println(s"expected: $expected")
           //          println
 

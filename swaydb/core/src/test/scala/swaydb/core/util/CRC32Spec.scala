@@ -27,7 +27,7 @@ class CRC32Spec extends AnyFlatSpec {
 
   it should "apply CRC on bytes" in {
     runThis(100.times) {
-      val bytes = randomBytesSlice(randomIntMax(100) + 1)
+      val bytes = genBytesSlice(randomIntMax(100) + 1)
       CRC32.forBytes(bytes) should be >= 1L
     }
   }

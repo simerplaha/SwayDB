@@ -5,6 +5,7 @@ import org.scalatest.PrivateMethodTester._
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import scala.collection.mutable.ListBuffer
+import scala.util.Random
 
 object UtilsTestKit {
 
@@ -20,6 +21,11 @@ object UtilsTestKit {
       buffer.addAll(items)
       buffer
     }
+  }
+
+  implicit class ExtensionsImplicits(extension: Extension.type) {
+    def gen(): Extension =
+      Random.shuffle(Extension.all.toList).head
   }
 
 }

@@ -48,7 +48,7 @@ class RemoveMerger_Put_Spec extends AnyWordSpec {
         implicit val testTimer: TestTimer.Incremental = TestTimer.Incremental()
 
         runThis(1000.times) {
-          val key = randomStringOption()
+          val key = genStringOption()
 
           val oldKeyValue = randomPutKeyValue(key = key)(eitherOne(testTimer, TestTimer.Empty))
 

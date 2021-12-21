@@ -32,18 +32,15 @@ import swaydb.core.segment.{CoreFunctionStore, Segment, TestCoreFunctionStore}
 import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.cache.sweeper.MemorySweeperTestKit._
-import swaydb.core.segment.io.SegmentCompactionIO
-import swaydb.core.CoreTestSweeper.deleteParentPath
 import swaydb.core.segment.distributor.PathDistributor
+import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.effect.{Effect, EffectTestSweeper}
 import swaydb.testkit.RunThis._
 
-import java.nio.file.Path
 import scala.beans.BeanProperty
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters.IterableIsParallelizable
 import scala.concurrent.duration.DurationInt
-import scala.util.Try
 
 /**
  * Manages cleaning levels, segments, maps etc for Levels. Initialises Actors lazily as required and
@@ -59,13 +56,6 @@ import scala.util.Try
  */
 
 object CoreTestSweeper extends LazyLogging {
-
-  private def deleteParentPath(path: Path) = {
-    val parentPath = path.getParent
-    //also delete parent folder of Segment. GenSegments are created with a parent folder.
-    if (Effect.exists(parentPath) && Try(parentPath.getFileName.toString.toInt).isSuccess)
-      Effect.walkDelete(parentPath)
-  }
 
   def repeat(times: Int, log: Boolean = true)(code: CoreTestSweeper => Unit): Unit = {
     import swaydb.testkit.RunThis._
@@ -188,7 +178,7 @@ object CoreTestSweeper extends LazyLogging {
 
 sealed trait CoreTestSweeper extends ActorTestSweeper with EffectTestSweeper with LazyLogging {
 
-  @BeanProperty protected var deleteFiles: Boolean = true
+  @BeanProperty var deleteFiles: Boolean = true
 
   private val fileSweepers: ListBuffer[CacheUnsafe[Unit, FileSweeper.On]] = ListBuffer(Cache.unsafe[Unit, FileSweeper.On](true, true, None)((_, _) => createFileSweeper()))
   private val cleaners: ListBuffer[CacheUnsafe[Unit, ByteBufferSweeperActor]] = ListBuffer(Cache.unsafe[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner()))
@@ -200,7 +190,7 @@ sealed trait CoreTestSweeper extends ActorTestSweeper with EffectTestSweeper wit
   private val cacheMemorySweepers: ListBuffer[CacheUnsafe[Unit, Option[MemorySweeper.Cache]]] = ListBuffer(Cache.unsafe[Unit, Option[MemorySweeper.Cache]](true, true, None)((_, _) => createRandomCacheSweeper()))
   private val levels: ListBuffer[LevelRef] = ListBuffer.empty
   private val segments: ListBuffer[Segment] = ListBuffer.empty
-  private val mapFiles: ListBuffer[Log[_, _, _]] = ListBuffer.empty
+  private val logFiles: ListBuffer[Log[_, _, _]] = ListBuffer.empty
   private val logs: ListBuffer[Logs[_, _, _]] = ListBuffer.empty
   private val coreFiles: ListBuffer[CoreFile] = ListBuffer.empty
   private val counters: ListBuffer[CounterLog] = ListBuffer.empty
@@ -251,7 +241,7 @@ sealed trait CoreTestSweeper extends ActorTestSweeper with EffectTestSweeper wit
   }
 
   def sweepLog[M <: Log[_, _, _]](map: M): M = {
-    mapFiles += map
+    logFiles += map
     map
   }
 
@@ -318,7 +308,7 @@ sealed trait CoreTestSweeper extends ActorTestSweeper with EffectTestSweeper wit
 
     //CLOSE - close everything first so that Actors sweepers get populated with Clean messages
     coreFiles.foreach(_.close())
-    mapFiles.foreach(_.close())
+    logFiles.foreach(_.close())
     logs.foreach(_.delete().get)
     segments.foreach(_.close())
     levels.foreach(_.close[Glass]())
@@ -344,24 +334,23 @@ sealed trait CoreTestSweeper extends ActorTestSweeper with EffectTestSweeper wit
         else
           segment.close() //the test itself might've delete this file so submit close just in-case.
 
-        //eventual because segment.delete() goes to an actor which might eventually get resolved.
-        if (deleteFiles)
-          eventual(20.seconds)(deleteParentPath(segment.path))
+      //eventual because segment.delete() goes to an actor which might eventually get resolved.
+      //        if (deleteFiles)
+      //          eventual(20.seconds)(deleteParentPath(segment.path))
     }
 
     if (deleteFiles) {
-      mapFiles.foreach {
-        map =>
-          if (map.pathOption.exists(Effect.exists))
-            map.pathOption.foreach(Effect.walkDelete)
-          map.pathOption.foreach(deleteParentPath)
+      logFiles.foreach {
+        log =>
+          if (log.pathOption.exists(Effect.exists))
+            log.pathOption.foreach(Effect.walkDelete)
+        //          map.pathOption.foreach(deleteParentPath)
       }
 
       coreFiles.foreach(_.delete())
       functions.foreach(_ ())
 
       super.deleteAllPaths()
-      eventual(10.seconds)(testDirectory)
     }
   }
 

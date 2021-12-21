@@ -109,7 +109,7 @@ class EntryReaderWriterSpec extends AnyWordSpec {
       implicit val testTimer = TestTimer.random
 
       val previous = randomizedKeyValues(count = 1).head
-      val duplicateValues = if (Random.nextBoolean()) previous.value else randomStringSliceOptional()
+      val duplicateValues = if (Random.nextBoolean()) previous.value else genStringSliceOptional()
       val duplicateDeadline = if (Random.nextBoolean()) previous.deadline else randomDeadlineOption()
       val next =
         eitherOne(

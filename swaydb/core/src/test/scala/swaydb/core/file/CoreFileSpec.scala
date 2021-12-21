@@ -43,8 +43,8 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
 
-          val testFile = genFilePath()
-          val bytes = randomBytesSlice()
+          val testFile = genDirWithFilePath()
+          val bytes = genBytesSlice()
 
           val file =
             CoreFile.standardWritable(
@@ -134,8 +134,8 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
 
-          val testFile = genFilePath()
-          val bytes = randomBytesSlice()
+          val testFile = genDirWithFilePath()
+          val bytes = genBytesSlice()
 
           Effect.write(testFile, bytes.toByteBufferWrap())
 
@@ -282,7 +282,7 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
           val testFile = genFilePath()
-          val bytes = randomBytesSlice()
+          val bytes = genBytesSlice()
 
           CoreFile.mmapWriteableReadable(
             path = testFile,
@@ -402,7 +402,7 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
           val testFile = genFilePath()
-          val bytes = randomBytesSlice()
+          val bytes = genBytesSlice()
 
           val file =
             CoreFile.standardWritable(
@@ -427,7 +427,7 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
           val testFile = genFilePath()
-          val bytes = randomBytesSlice()
+          val bytes = genBytesSlice()
 
           val file =
             CoreFile.mmapEmptyWriteableReadable(
@@ -476,7 +476,7 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
           val testFile = genFilePath()
-          val bytes = randomBytesSlice()
+          val bytes = genBytesSlice()
 
           val file =
             CoreFile.mmapEmptyWriteableReadable(
@@ -640,7 +640,7 @@ class CoreFileSpec extends AnyWordSpec {
     "fail to write if the file already exists" in {
       CoreTestSweeper {
         implicit sweeper =>
-          val bytes = randomBytesSlice()
+          val bytes = genBytesSlice()
 
           val files = createFiles(bytes)
           files should have size 2
@@ -649,8 +649,8 @@ class CoreFileSpec extends AnyWordSpec {
             file =>
               //creating the same file again should fail
               anyOrder(
-                assertThrows[FileAlreadyExistsException](createMMAPWriteableReadable(file.path, randomBytesSlice())),
-                assertThrows[FileAlreadyExistsException](createStandardWriteableReadable(file.path, randomBytesSlice()))
+                assertThrows[FileAlreadyExistsException](createMMAPWriteableReadable(file.path, genBytesSlice())),
+                assertThrows[FileAlreadyExistsException](createStandardWriteableReadable(file.path, genBytesSlice()))
               )
           }
 
@@ -671,7 +671,7 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
           val testFile = genFilePath()
-          val bytes = List(randomBytesSlice(), randomBytesSlice(), randomBytesSlice())
+          val bytes = List(genBytesSlice(), genBytesSlice(), genBytesSlice())
 
           val file =
             CoreFile.standardWritable(
@@ -720,7 +720,7 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
           val testFile = genFilePath()
-          val bytes = List(randomBytesSlice(), randomBytesSlice(), randomBytesSlice())
+          val bytes = List(genBytesSlice(), genBytesSlice(), genBytesSlice())
 
           val allBytesSize = bytes.foldLeft(0)(_ + _.size)
           val file =
@@ -773,7 +773,7 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
           val testFile = genFilePath()
-          val bytes = List(randomBytesSlice(), randomBytesSlice(), randomBytesSlice(), randomBytesSlice(), randomBytesSlice())
+          val bytes = List(genBytesSlice(), genBytesSlice(), genBytesSlice(), genBytesSlice(), genBytesSlice())
           val allBytesSize = bytes.foldLeft(0)(_ + _.size)
 
           val file =
@@ -890,7 +890,7 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
           val testFile = genFilePath()
-          val bytes = randomBytesSlice(100)
+          val bytes = genBytesSlice(100)
 
           val file =
             CoreFile.standardWritable(
@@ -930,7 +930,7 @@ class CoreFileSpec extends AnyWordSpec {
       CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
-          val bytes = randomBytesSlice(100)
+          val bytes = genBytesSlice(100)
 
           val file =
             CoreFile.standardWritable(
@@ -961,7 +961,7 @@ class CoreFileSpec extends AnyWordSpec {
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows(),
               forceSave = GenForceSave.mmap(),
-              bytes = randomBytesSlice()
+              bytes = genBytesSlice()
             ).sweep()
 
           file.close()
@@ -983,7 +983,7 @@ class CoreFileSpec extends AnyWordSpec {
       CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
-          val bytes = randomBytesSlice(100)
+          val bytes = genBytesSlice(100)
 
           val file =
             CoreFile.standardWritable(
@@ -1016,7 +1016,7 @@ class CoreFileSpec extends AnyWordSpec {
       CoreTestSweeper {
         implicit sweeper =>
           import sweeper._
-          val bytes = randomBytesSlice(100)
+          val bytes = genBytesSlice(100)
 
           val file =
             CoreFile.mmapEmptyWriteableReadable(
@@ -1057,7 +1057,7 @@ class CoreFileSpec extends AnyWordSpec {
   //          import sweeper._
   //          val testFile = genFilePath()
   //          import swaydb.config.util.StorageUnits._
-  //          val bytes = randomBytesSlice(1.kb)
+  //          val bytes = genBytesSlice(1.kb)
   //          val file =
   //            CoreFile.mmapWriteAndRead(
   //              path = testFile,
@@ -1114,7 +1114,7 @@ class CoreFileSpec extends AnyWordSpec {
     CoreTestSweeper.repeat(1.times) {
       implicit sweeper =>
 
-        val bytes = randomBytesSlice(size = 100)
+        val bytes = genBytesSlice(size = 100)
         //test when files are both channel and mmap
         val files = createFiles(mmapBytes = bytes, standardBytes = bytes)
         files should have size 2
@@ -1145,7 +1145,7 @@ class CoreFileSpec extends AnyWordSpec {
     "size is empty" in {
       CoreTestSweeper {
         implicit sweeper =>
-          createFiles(randomBytesSlice(100), randomBytesSlice(100)) foreach {
+          createFiles(genBytesSlice(100), genBytesSlice(100)) foreach {
             file =>
               file.read(0, 0, 10) shouldBe empty
           }
@@ -1155,7 +1155,7 @@ class CoreFileSpec extends AnyWordSpec {
     "blockSize == size" in {
       CoreTestSweeper {
         implicit sweeper =>
-          val bytes = randomBytesSlice(100)
+          val bytes = genBytesSlice(100)
 
           createFiles(bytes, bytes) foreach {
             file =>
@@ -1167,7 +1167,7 @@ class CoreFileSpec extends AnyWordSpec {
     "blockSize > size" in {
       CoreTestSweeper {
         implicit sweeper =>
-          val bytes = randomBytesSlice(100)
+          val bytes = genBytesSlice(100)
 
           createFiles(bytes, bytes) foreach {
             file =>
@@ -1180,7 +1180,7 @@ class CoreFileSpec extends AnyWordSpec {
       "size is multiple of blockSize" in {
         CoreTestSweeper {
           implicit sweeper =>
-            val bytes = randomBytesSlice(100)
+            val bytes = genBytesSlice(100)
 
             createFiles(bytes, bytes) foreach {
               file =>
@@ -1204,7 +1204,7 @@ class CoreFileSpec extends AnyWordSpec {
       "size is not a multiple of blockSize" in {
         CoreTestSweeper {
           implicit sweeper =>
-            val bytes = randomBytesSlice(100)
+            val bytes = genBytesSlice(100)
 
             createFiles(bytes, bytes) foreach {
               file =>

@@ -41,7 +41,7 @@
 ////
 ////      CoreTestSweeper {
 ////        implicit sweeper =>
-////          val bytes = Benchmark("Generating bytes")(randomBytesSlice(1.gb))
+////          val bytes = Benchmark("Generating bytes")(genBytesSlice(1.gb))
 ////          val file = createStandardFileReader(bytes).file
 ////
 ////          val state = BlockCache.forSearch(bytes.size, Some(MemorySweeper.BlockSweeper(4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, false, actorConfig = None))).get

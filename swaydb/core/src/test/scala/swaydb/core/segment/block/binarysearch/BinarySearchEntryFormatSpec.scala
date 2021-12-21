@@ -53,7 +53,7 @@ class BinarySearchEntryFormatSpec extends AnyWordSpec {
 
             BinarySearchEntryFormat.Reference.write(
               indexOffset = indexOffset,
-              mergedKey = randomBytesSlice(),
+              mergedKey = genBytesSlice(),
               keyType = 1,
               bytes = bytes
             )

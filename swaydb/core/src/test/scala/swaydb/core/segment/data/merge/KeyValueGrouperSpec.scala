@@ -46,7 +46,7 @@ class KeyValueGrouperSpec extends AnyWordSpec {
       runThis(100.times) {
         var builder = MergeStats.random()
 
-        val keyValue = randomFixedKeyValue(1, randomStringOption(), Some(expiredDeadline()))
+        val keyValue = randomFixedKeyValue(1, genStringOption(), Some(expiredDeadline()))
         KeyValueGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
         builder.keyValues should contain only keyValue
 
@@ -60,7 +60,7 @@ class KeyValueGrouperSpec extends AnyWordSpec {
       runThis(100.times) {
         var builder = MergeStats.random()
 
-        val keyValue = randomFixedKeyValue(1, randomStringOption(), deadline = None)
+        val keyValue = randomFixedKeyValue(1, genStringOption(), deadline = None)
         KeyValueGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
         builder.keyValues should contain only keyValue
 
@@ -79,7 +79,7 @@ class KeyValueGrouperSpec extends AnyWordSpec {
       runThis(100.times) {
         var builder = MergeStats.random()
 
-        val fromKeyValue = eitherOne(randomRangeValue(), Value.Put(randomStringOption(), deadline = Some(expiredDeadline()), testTimer.next))
+        val fromKeyValue = eitherOne(randomRangeValue(), Value.Put(genStringOption(), deadline = Some(expiredDeadline()), testTimer.next))
         val keyValue = randomRangeKeyValue(1, 100, fromValue = eitherOne(fromKeyValue, Value.FromValue.Null), randomRangeValue())
         KeyValueGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
         builder.keyValues should contain only keyValue
@@ -94,7 +94,7 @@ class KeyValueGrouperSpec extends AnyWordSpec {
       runThis(100.times) {
         var builder = MergeStats.random()
 
-        val fromKeyValue = eitherOne(randomRangeValue(), Value.Put(randomStringOption(), deadline = Some(expiredDeadline()), testTimer.next))
+        val fromKeyValue = eitherOne(randomRangeValue(), Value.Put(genStringOption(), deadline = Some(expiredDeadline()), testTimer.next))
         val keyValue = randomRangeKeyValue(1, 100, fromValue = eitherOne(fromKeyValue, Value.FromValue.Null), randomRangeValue())
         KeyValueGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
         builder.keyValues should contain only keyValue

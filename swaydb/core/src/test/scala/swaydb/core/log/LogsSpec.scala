@@ -223,7 +223,7 @@ class LogsSpec extends AnyWordSpec {
         CoreTestSweeper {
           implicit sweeper =>
             import sweeper._
-            val largeValue = randomBytesSlice(1.mb)
+            val largeValue = genBytesSlice(1.mb)
 
             def test(logs: Logs[Slice[Byte], Memory, LevelZeroLogCache]): Logs[Slice[Byte], Memory, LevelZeroLogCache] = {
               //adding 1.mb key-value to log, the file size is 500.bytes, since this is the first entry in the log and the log is empty,

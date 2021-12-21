@@ -96,7 +96,7 @@ class SegmentReadStateSpec extends AnyWordSpec {
 
     SegmentReadState.createOnSuccessSequentialRead(
       path = path,
-      forKey = randomBytesSlice(),
+      forKey = genBytesSlice(),
       readState = threadState,
       found = next
     )
@@ -127,7 +127,7 @@ class SegmentReadStateSpec extends AnyWordSpec {
 
         SegmentReadState.createAfterRandomRead(
           path = path,
-          forKey = randomBytesSlice(),
+          forKey = genBytesSlice(),
           threadState = threadState,
           foundOption = Persistent.Null,
           start = previousKeyValue
@@ -145,7 +145,7 @@ class SegmentReadStateSpec extends AnyWordSpec {
         val previous = previousKeyValue
         val next = nextKeyValue
 
-        val forKey = randomBytesSlice(5).take(2)
+        val forKey = genBytesSlice(5).take(2)
 
         SegmentReadState.createAfterRandomRead(
           path = path,
@@ -172,7 +172,7 @@ class SegmentReadStateSpec extends AnyWordSpec {
         val previous = previousKeyValue
         val next = nextKeyValue
 
-        val forKey = randomBytesSlice().take(5)
+        val forKey = genBytesSlice().take(5)
 
         SegmentReadState.createAfterRandomRead(
           path = path,
@@ -200,7 +200,7 @@ class SegmentReadStateSpec extends AnyWordSpec {
 
         val previous = previousKeyValue
 
-        val forKey1 = randomBytesSlice()
+        val forKey1 = genBytesSlice()
 
         threadState.setSegmentState(
           path = path,
@@ -212,7 +212,7 @@ class SegmentReadStateSpec extends AnyWordSpec {
             )
         )
 
-        val forKey2 = randomBytesSlice()
+        val forKey2 = genBytesSlice()
 
         SegmentReadState.mutateAfterRandomRead(
           path = path,
@@ -241,13 +241,13 @@ class SegmentReadStateSpec extends AnyWordSpec {
           path = path,
           nextIndexOffset =
             new SegmentReadState(
-              keyValue = (randomBytesSlice(), previous),
+              keyValue = (genBytesSlice(), previous),
               lower = TupleOrNone.None,
               isSequential = randomBoolean()
             )
         )
 
-        val forKey = randomBytesSlice().take(4)
+        val forKey = genBytesSlice().take(4)
 
         SegmentReadState.mutateAfterRandomRead(
           path = path,
@@ -278,13 +278,13 @@ class SegmentReadStateSpec extends AnyWordSpec {
           path = path,
           nextIndexOffset =
             new SegmentReadState(
-              keyValue = (randomBytesSlice(), previous),
+              keyValue = (genBytesSlice(), previous),
               lower = TupleOrNone.None,
               isSequential = randomBoolean()
             )
         )
 
-        val forKey = randomBytesSlice().take(5)
+        val forKey = genBytesSlice().take(5)
 
         SegmentReadState.mutateAfterRandomRead(
           path = path,

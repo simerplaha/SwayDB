@@ -192,7 +192,7 @@
 //              eitherOne(
 //                SegmentFunctionOutput.Remove,
 //                SegmentFunctionOutput.Expire(expiredDeadline()),
-//                SegmentFunctionOutput.Update(randomStringOption(), Some(expiredDeadline()))
+//                SegmentFunctionOutput.Update(genStringOption(), Some(expiredDeadline()))
 //              )
 //          )
 //
@@ -237,7 +237,7 @@
 //              eitherOne(
 //                SegmentFunctionOutput.Remove,
 //                SegmentFunctionOutput.Expire(expiredDeadline()),
-//                SegmentFunctionOutput.Update(randomStringOption(), Some(expiredDeadline()))
+//                SegmentFunctionOutput.Update(genStringOption(), Some(expiredDeadline()))
 //              )
 //          ).toRangeValue()
 //

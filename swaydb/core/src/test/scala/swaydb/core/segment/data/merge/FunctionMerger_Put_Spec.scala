@@ -45,7 +45,7 @@ class FunctionMerger_Put_Spec extends AnyWordSpec {
         runThis(1000.times) {
 
           implicit val testTimer: TestTimer = eitherOne(TestTimer.Incremental(), TestTimer.Empty)
-          val key = randomBytesSlice()
+          val key = genBytesSlice()
 
           val oldKeyValue = randomPutKeyValue(key = key)(testTimer)
 

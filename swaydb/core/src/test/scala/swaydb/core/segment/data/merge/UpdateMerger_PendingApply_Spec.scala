@@ -48,7 +48,7 @@ class UpdateMerger_PendingApply_Spec extends AnyWordSpec {
         implicit val testTimer: TestTimer =
           eitherOne(incrementalTimer, TestTimer.Empty)
 
-        val key = randomStringOption()
+        val key = genStringOption()
 
         val oldKeyValue = randomPendingApplyKeyValue(key = key)
 

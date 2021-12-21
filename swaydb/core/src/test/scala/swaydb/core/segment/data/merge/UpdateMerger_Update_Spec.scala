@@ -44,7 +44,7 @@ class UpdateMerger_Update_Spec extends AnyWordSpec {
       implicit val testTimer: TestTimer = TestTimer.Incremental()
 
       runThis(1000.times) {
-        val key = randomStringOption()
+        val key = genStringOption()
 
         val oldKeyValue = randomUpdateKeyValue(key = key)(eitherOne(testTimer, TestTimer.Empty))
 

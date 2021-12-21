@@ -125,7 +125,7 @@ class BlockSpec extends AnyWordSpec {
       "for bytes" in {
         runThis(100.times) {
           //          val headerSize = Block.headerSize(false) + 1 //+1 for Bytes.sizeOf(headerSize) that is calculated by the block itself.
-          val dataBytes = randomBytesSlice(10)
+          val dataBytes = genBytesSlice(10)
 
           val extraHeaderBytes = Slice.fill(randomIntMax(10))(randomByte())
 
@@ -192,27 +192,27 @@ class BlockSpec extends AnyWordSpec {
 
               valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
 
-              valuesBlock = randomBytesSliceOption(2),
+              valuesBlock = genBytesSliceOption(2),
               valuesUnblockedReader = None,
               sortedIndexClosedState = null,
 
               sortedIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
-              sortedIndexBlock = randomBytesSlice(2),
+              sortedIndexBlock = genBytesSlice(2),
               sortedIndexUnblockedReader = None,
               hashIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
 
-              hashIndexBlock = randomBytesSliceOption(2),
+              hashIndexBlock = genBytesSliceOption(2),
               hashIndexUnblockedReader = None,
               binarySearchIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
 
-              binarySearchIndexBlock = randomBytesSliceOption(2),
+              binarySearchIndexBlock = genBytesSliceOption(2),
               binarySearchUnblockedReader = None,
               bloomFilterBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
 
-              bloomFilterBlock = randomBytesSliceOption(2),
+              bloomFilterBlock = genBytesSliceOption(2),
 
               bloomFilterUnblockedReader = None,
-              footerBlock = randomBytesSlice()
+              footerBlock = genBytesSlice()
             )
 
           val blockedSegment = Block.block(segment, Seq.empty, "test-segment-block")
@@ -244,7 +244,7 @@ class BlockSpec extends AnyWordSpec {
     "has compression" should {
       "for bytes" in {
         runThis(100.times) {
-          val dataBytes = randomBytesSlice(randomIntMax(100) + 1)
+          val dataBytes = genBytesSlice(randomIntMax(100) + 1)
           //          val uncompressedBytes = Slice.fill(headerSize)(0.toByte) ++ dataBytes
 
           val compression = randomCompressions().head
@@ -295,27 +295,27 @@ class BlockSpec extends AnyWordSpec {
 
               valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
 
-              valuesBlock = randomBytesSliceOption(randomIntMax(100) + 1),
+              valuesBlock = genBytesSliceOption(randomIntMax(100) + 1),
               valuesUnblockedReader = None,
               sortedIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
 
               sortedIndexClosedState = null,
-              sortedIndexBlock = randomBytesSlice(randomIntMax(100) + 1),
+              sortedIndexBlock = genBytesSlice(randomIntMax(100) + 1),
               sortedIndexUnblockedReader = None,
               hashIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
 
-              hashIndexBlock = randomBytesSliceOption(randomIntMax(100) + 1),
+              hashIndexBlock = genBytesSliceOption(randomIntMax(100) + 1),
               hashIndexUnblockedReader = None,
               binarySearchIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
 
-              binarySearchIndexBlock = randomBytesSliceOption(randomIntMax(100) + 1),
+              binarySearchIndexBlock = genBytesSliceOption(randomIntMax(100) + 1),
               binarySearchUnblockedReader = None,
               bloomFilterBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
 
-              bloomFilterBlock = randomBytesSliceOption(randomIntMax(100) + 1),
+              bloomFilterBlock = genBytesSliceOption(randomIntMax(100) + 1),
 
               bloomFilterUnblockedReader = None,
-              footerBlock = randomBytesSlice(randomIntMax(100) + 1)
+              footerBlock = genBytesSlice(randomIntMax(100) + 1)
             )
 
           val compression = randomCompressions().head

@@ -43,7 +43,7 @@ class UpdateMergerSpec extends AnyWordSpec {
       "always return old key-value" in {
 
         runThis(1000.times) {
-          val key = randomStringOption()
+          val key = genStringOption()
 
           val newKeyValue = randomUpdateKeyValue(key = key)
 

@@ -45,7 +45,7 @@ class FunctionMerger_Remove_Spec extends AnyWordSpec {
       "always return new key-value" in {
         runThis(1000.times) {
           implicit val testTimer: TestTimer = eitherOne(TestTimer.Incremental(), TestTimer.Empty)
-          val key = randomBytesSlice()
+          val key = genBytesSlice()
 
           val oldKeyValue = randomRemoveKeyValue(key = key)(testTimer)
 
@@ -96,7 +96,7 @@ class FunctionMerger_Remove_Spec extends AnyWordSpec {
         implicit val testTimer: TestTimer.Incremental = TestTimer.Incremental()
 
         runThis(1000.times) {
-          val key = randomBytesSlice()
+          val key = genBytesSlice()
 
           val oldKeyValue = randomRemoveKeyValue(key = key)(testTimer)
 

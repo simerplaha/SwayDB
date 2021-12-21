@@ -46,7 +46,7 @@ class MMAPFileSpec extends AnyWordSpec with MockFactory {
             runThis(50.times, log = true) {
               //create random path and byte slice
               val path = genFilePath()
-              val bytes = randomBytesSlice(10.mb)
+              val bytes = genBytesSlice(10.mb)
 
               /**
                * BEHAVIOR 1 - Open a memory-mapped file in read & write mode.

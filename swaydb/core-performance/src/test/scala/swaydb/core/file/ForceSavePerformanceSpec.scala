@@ -18,7 +18,7 @@
 //
 //import swaydb.Benchmark
 //import swaydb.config.ForceSave
-//import swaydb.core.CoreTestData.randomBytesSlice
+//import swaydb.core.CoreTestData.genBytesSlice
 //import swaydb.core.file.sweeper.bytebuffer.ByteBufferCleaner
 //import swaydb.core.CoreTestSweeper
 //import swaydb.effect.Effect
@@ -52,7 +52,7 @@
 //          var slowest: Double = Double.MinValue
 //          var quickest: Double = Double.MaxValue
 //
-//          val bytes = randomBytesSlice(4.mb)
+//          val bytes = genBytesSlice(4.mb)
 //
 //          runThis(100.times, log = true) {
 //            //create random path and byte slice
@@ -100,7 +100,7 @@
 //          var slowest: Double = Double.MinValue
 //          var quickest: Double = Double.MaxValue
 //
-//          val bytes = randomBytesSlice(4.mb)
+//          val bytes = genBytesSlice(4.mb)
 //
 //          runThis(100.times, log = true) {
 //            //create random path and byte slice

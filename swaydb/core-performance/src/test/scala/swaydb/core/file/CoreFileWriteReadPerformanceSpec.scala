@@ -43,7 +43,7 @@
 //  "random access" in {
 //    CoreTestSweeper {
 //      implicit sweeper =>
-//        val bytes = randomBytesSlice(20.mb)
+//        val bytes = genBytesSlice(20.mb)
 //
 //        implicit val blockCache: Option[BlockCacheState] =
 //        //          BlockCache.forSearch(bytes.size, MemorySweeper.BlockSweeper(blockSize = 4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, false, actorConfig = None))
@@ -141,7 +141,7 @@
 //  //    //use larger chunkSize to test on larger data-set
 //  //    //    val chunkSize = 100.kb
 //  //    val chunkSize = 4096
-//  //    val bytes = randomByteChunks(1000, chunkSize)
+//  //    val bytes = genByteChunks(1000, chunkSize)
 //  //    val flattenBytes: Slice[Byte] = bytes.flatten.toSlice
 //  //
 //  //    /**
@@ -243,7 +243,7 @@
 //  //      val allBytes = Slice.create[Byte](1000000 * chunkSize)
 //  //      val bytes = (1 to 1000000) map {
 //  //        _ =>
-//  //          val bytes = randomBytesSlice(chunkSize)
+//  //          val bytes = genBytesSlice(chunkSize)
 //  //          allBytes addAll bytes
 //  //          bytes
 //  //      }

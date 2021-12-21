@@ -41,7 +41,7 @@ class FunctionMerger_Function_Spec extends AnyWordSpec {
     "times are in order" should {
       "always return PendingApply" in {
         runThis(1000.times) {
-          val key = randomBytesSlice()
+          val key = genBytesSlice()
 
           //new but has older time than oldKeyValue
           val newKeyValue = randomFunctionKeyValue(key = key)

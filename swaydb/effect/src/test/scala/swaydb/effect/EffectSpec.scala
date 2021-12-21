@@ -268,21 +268,21 @@ class EffectSpec extends AnyWordSpec {
     EffectTestSweeper {
       implicit sweeper =>
         val fileSize = 4.mb
-        val flattenBytes = randomBytesSlice(fileSize)
+        val flattenBytes = genBytesSlice(fileSize)
         val groupBytes = flattenBytes.groupedSlice(8)
 
         //20.mb
         //0.067924621 seconds
         //4.mb
         //0.057647201 seconds & 0.047565694 seconds
-        val groupedPath = Benchmark("groupBytes")(Effect.write(genFile(false), groupBytes.mapToSlice(_.toByteBufferWrap())))
+        val groupedPath = Benchmark("groupBytes")(Effect.write(genDir().resolve(genFilePath()), groupBytes.mapToSlice(_.toByteBufferWrap())))
         Slice.wrap(Effect.readAllBytes(groupedPath)) shouldBe flattenBytes
 
         //20.mb
         //0.077162871 seconds
         //4.mb
         //0.05330862 seconds & 0.045989919 seconds
-        val flattenedPath = Benchmark("flattenBytes")(Effect.write(genFile(false), flattenBytes.toByteBufferWrap()))
+        val flattenedPath = Benchmark("flattenBytes")(Effect.write(genDir().resolve(genFilePath()), flattenBytes.toByteBufferWrap()))
         Slice.wrap(Effect.readAllBytes(flattenedPath)) shouldBe flattenBytes
     }
   }

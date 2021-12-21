@@ -226,7 +226,7 @@ class BloomFilterBlockSpec extends AnyWordSpec {
     //                  fromKey = 1,
     //                  toKey = 2,
     //                  fromValue = None,
-    //                  rangeValue = Value.PendingApply(Slice(Value.Update(randomStringOption(), randomDeadlineOption(), time.next)))
+    //                  rangeValue = Value.PendingApply(Slice(Value.Update(genStringOption(), randomDeadlineOption(), time.next)))
     //                )
     //              )
     //            ),

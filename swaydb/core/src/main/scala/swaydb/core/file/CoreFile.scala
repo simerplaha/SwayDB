@@ -360,7 +360,7 @@ private[core] class CoreFile(val path: Path,
     forceSaveApplied.beforeCopy(this, toPath, forceSaveConfig)
 
     val copiedPath = Effect.copy(path, toPath)
-    logger.trace("{}: Copied: to {}", copiedPath, toPath)
+    logger.trace(s"$copiedPath: Copied: to $toPath")
     copiedPath
   }
 

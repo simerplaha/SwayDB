@@ -23,12 +23,12 @@ import swaydb.utils.IDGenerator
 
 import java.nio.file.Path
 
-private[core] object Log extends LazyLogging {
+private object Log extends LazyLogging {
 
   /**
    * Used to assign unique numbers for each [[Log]] instance.
    */
-  private[log] val uniqueFileNumberGenerator = IDGenerator()
+  val uniqueFileNumberGenerator = IDGenerator()
 
 }
 

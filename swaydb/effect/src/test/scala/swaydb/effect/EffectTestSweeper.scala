@@ -38,7 +38,6 @@ object EffectTestSweeper extends LazyLogging {
     def sweep()(implicit sweeper: EffectTestSweeper): Path =
       sweeper sweepPath path
   }
-
 }
 
 trait EffectTestSweeper extends LazyLogging {
@@ -82,5 +81,7 @@ trait EffectTestSweeper extends LazyLogging {
           paths remove path
         }
     }
+
+    eventual(10.seconds)(Effect.walkDelete(testDirectory))
   }
 }

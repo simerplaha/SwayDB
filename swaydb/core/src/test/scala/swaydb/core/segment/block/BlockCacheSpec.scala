@@ -36,7 +36,7 @@ import scala.jdk.CollectionConverters._
 class BlockCacheSpec extends AnyWordSpec {
 
   "seekSize" should {
-    val bytes = randomBytesSlice(1000)
+    val bytes = genBytesSlice(1000)
     val blockSize = 10
 
     def createTestData(): (BlockCacheSource, BlockCacheState) = {

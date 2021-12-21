@@ -19,7 +19,7 @@ package swaydb.core.log.counter
 import swaydb.core.log.{LogCache, LogCacheBuilder, LogEntry}
 import swaydb.slice.Slice
 
-object PersistentCounterLogCache {
+private object PersistentCounterLogCache {
   implicit def builder =
     new LogCacheBuilder[PersistentCounterLogCache] {
       override def create(): PersistentCounterLogCache =
@@ -27,7 +27,7 @@ object PersistentCounterLogCache {
     }
 }
 
-class PersistentCounterLogCache extends LogCache[Slice[Byte], Slice[Byte]] {
+private class PersistentCounterLogCache extends LogCache[Slice[Byte], Slice[Byte]] {
   var entryOrNull: LogEntry[Slice[Byte], Slice[Byte]] = _
 
   override def writeAtomic(entry: LogEntry[Slice[Byte], Slice[Byte]]): Unit =

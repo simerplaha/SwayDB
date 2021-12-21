@@ -53,7 +53,7 @@ class ValueSerialiserSpec extends AnyWordSpec {
     val map = mutable.Map.empty[Int, Iterable[(Slice[Byte], Slice[Byte])]]
     (1 to 12700) foreach {
       _ =>
-        val bytesToAdd = (randomBytesSlice(maxUncommonBytesToStore), randomBytesSlice(maxUncommonBytesToStore))
+        val bytesToAdd = (genBytesSlice(maxUncommonBytesToStore), genBytesSlice(maxUncommonBytesToStore))
         map
           .getOrElseUpdate(
             key = randomIntMax(10),

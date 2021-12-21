@@ -44,7 +44,7 @@ class PendingApplyMergerSpec extends AnyWordSpec {
       implicit val testTimer: TestTimer.Incremental = TestTimer.Incremental()
 
       runThis(1000.times) {
-        val key = randomStringOption()
+        val key = genStringOption()
 
         val oldKeyValue = randomPendingApplyKeyValue(key = key)
 
@@ -72,7 +72,7 @@ class PendingApplyMergerSpec extends AnyWordSpec {
         implicit val testTimer: TestTimer.Incremental = TestTimer.Incremental()
 
         runThis(1000.times) {
-          val key = randomStringOption()
+          val key = genStringOption()
 
           val newKeyValue = randomFixedKeyValue(key = key)
 

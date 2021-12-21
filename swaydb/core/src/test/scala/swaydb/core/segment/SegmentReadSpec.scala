@@ -1095,12 +1095,12 @@ class SegmentReadSpec extends AnyWordSpec {
                 left = Memory.remove(keyValues.last.key.readInt() + 10000, deadline),
                 mid =
                   eitherOne(
-                    Memory.put(keyValues.last.key.readInt() + 10000, randomStringOption(), deadline),
+                    Memory.put(keyValues.last.key.readInt() + 10000, genStringOption(), deadline),
                     randomRangeKeyValueForDeadline(keyValues.last.key.readInt() + 10000, keyValues.last.key.readInt() + 20000, deadline = deadline)
                   ),
                 right =
                   eitherOne(
-                    Memory.update(keyValues.last.key.readInt() + 10000, randomStringOption(), deadline),
+                    Memory.update(keyValues.last.key.readInt() + 10000, genStringOption(), deadline),
                     Memory.PendingApply(keyValues.last.key.readInt() + 10000, randomAppliesWithDeadline(deadline = deadline))
                   )
               )

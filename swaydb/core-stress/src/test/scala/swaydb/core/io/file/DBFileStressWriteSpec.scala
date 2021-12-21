@@ -34,7 +34,7 @@
 //
 //  "CoreFile" should {
 //    //use a larger size (200000) to test on larger data-set.
-//    val bytes = randomByteChunks(size = 20000, sizePerChunk = 50.bytes)
+//    val bytes = genByteChunks(size = 20000, sizePerChunk = 50.bytes)
 //
 //    "write key values to a StandardFile" in {
 //      val path = genFilePath()

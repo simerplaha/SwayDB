@@ -49,7 +49,7 @@ class PutMergerSpec extends AnyWordSpec {
           implicit val testTimer: TestTimer =
             eitherOne(incrementalTimer, TestTimer.Empty)
 
-          val key = randomStringOption()
+          val key = genStringOption()
 
           val oldKeyValue = randomFixedKeyValue(key = key)
 
@@ -71,7 +71,7 @@ class PutMergerSpec extends AnyWordSpec {
         implicit val testTimer: TestTimer.Incremental = TestTimer.Incremental()
 
         runThis(1000.times) {
-          val key = randomStringOption()
+          val key = genStringOption()
 
           //new but has older time than oldKeyValue
           val newKeyValue = randomPutKeyValue(key = key)

@@ -46,7 +46,7 @@ class RemoveMergerSpec extends AnyWordSpec {
         implicit val testTimer: TestTimer = TestTimer.Incremental()
 
         runThis(1000.times) {
-          val key = randomStringOption()
+          val key = genStringOption()
 
           //new but has older time than oldKeyValue
           val newKeyValue = Memory.remove(key, randomDeadlineOption())

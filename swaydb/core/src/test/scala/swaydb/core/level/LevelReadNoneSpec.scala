@@ -70,9 +70,9 @@
 //        assertAllLevels =
 //          (_, _, _, level) =>
 //            Seq(
-//              () => level.get(randomStringOption(), ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
-//              () => level.higher(randomStringOption(), ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
-//              () => level.lower(randomStringOption(), ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
+//              () => level.get(genStringOption(), ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
+//              () => level.higher(genStringOption(), ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
+//              () => level.lower(genStringOption(), ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
 //              () => level.head(ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
 //              () => level.last(ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
 //            ).runThisRandomly

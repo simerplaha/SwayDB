@@ -31,7 +31,7 @@
 //  "Benchmark reading different blockSize" in {
 //    val blockSize = 4096.bytes
 //    val iterations = 5000
-//    //        val bytes = randomBytesSlice(blockSize * iterations)
+//    //        val bytes = genBytesSlice(blockSize * iterations)
 //    val bytes = Slice.fill(blockSize * iterations)(1.toByte)
 //    val fileReader = createFileStandardFileReader(bytes)
 //

@@ -44,7 +44,7 @@ class FunctionMergerSpec extends AnyWordSpec {
         implicit val testTimer: TestTimer.Incremental = TestTimer.Incremental()
 
         runThis(1000.times) {
-          val key = randomBytesSlice()
+          val key = genBytesSlice()
 
           //new but has older time than oldKeyValue
           val newKeyValue = randomFunctionKeyValue(key = key)

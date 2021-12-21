@@ -104,7 +104,7 @@
 //            output =
 //              eitherOne(
 //                SegmentFunctionOutput.Expire(randomDeadline(false)),
-//                SegmentFunctionOutput.Update(randomStringSliceOptional(), randomDeadlineOption(false))
+//                SegmentFunctionOutput.Update(genStringSliceOptional(), randomDeadlineOption(false))
 //              )
 //          )
 //
@@ -132,7 +132,7 @@
 //            functionOutput =
 //              eitherOne(
 //                SegmentFunctionOutput.Expire(randomDeadline(false)),
-//                SegmentFunctionOutput.Update(randomStringSliceOptional(), randomDeadlineOption(false))
+//                SegmentFunctionOutput.Update(genStringSliceOptional(), randomDeadlineOption(false))
 //              )
 //          )
 //
@@ -178,7 +178,7 @@
 //            output =
 //              eitherOne(
 //                SegmentFunctionOutput.Expire(randomDeadline(false)),
-//                SegmentFunctionOutput.Update(randomStringSliceOptional(), randomDeadlineOption(false))
+//                SegmentFunctionOutput.Update(genStringSliceOptional(), randomDeadlineOption(false))
 //              )
 //          )
 //

@@ -37,7 +37,7 @@
 ////
 ////  "random access" in {
 ////
-////    val bytes = randomBytesSlice(20.mb)
+////    val bytes = genBytesSlice(20.mb)
 ////
 ////    val ioStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true)
 ////

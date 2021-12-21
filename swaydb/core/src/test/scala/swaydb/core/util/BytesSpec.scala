@@ -240,7 +240,7 @@ class BytesSpec extends AnyWordSpec {
 
     "random" in {
       runThis(1000.times) {
-        val bytes = randomBytesSlice(randomIntMax(100000))
+        val bytes = genBytesSlice(randomIntMax(100000))
         val toSize = (bytes.size + 1) max randomIntMax(100000)
 
         val normalisedBytes = Bytes.normalise(bytes, toSize = toSize)
@@ -249,7 +249,7 @@ class BytesSpec extends AnyWordSpec {
       }
 
       runThis(1000.times) {
-        val bytes = randomBytesSlice(randomIntMax(Byte.MaxValue))
+        val bytes = genBytesSlice(randomIntMax(Byte.MaxValue))
         val toSize = (bytes.size + 1) max randomIntMax(Byte.MaxValue)
 
         val normalisedBytes = Bytes.normalise(bytes, toSize = toSize)

@@ -384,7 +384,7 @@ class SegmentBlockSpec extends AnyWordSpec {
           import sweeper._
           runThis(1000.times) {
             //make sure the first byte in the value is not the same as the key (just for the this test).
-            val fixedValue: Slice[Byte] = Slice(11.toByte) ++ randomBytesSlice(randomIntMax(50)).drop(1)
+            val fixedValue: Slice[Byte] = Slice(11.toByte) ++ genBytesSlice(randomIntMax(50)).drop(1)
 
             def fixed: Slice[Memory.Fixed] =
               Slice(

@@ -7,6 +7,7 @@ import swaydb.utils.Extension
 
 import java.nio.file.Path
 import scala.util.Random
+import swaydb.utils.UtilsTestKit._
 
 object EffectTestKit {
 
@@ -43,17 +44,16 @@ object EffectTestKit {
     else
       IOStrategy.ConcurrentIO(cacheOnAccess)
 
-  def genFilePath()(implicit sweeper: EffectTestSweeper): Path =
-    sweeper.testDirectory.resolve(s"${randomCharacters()}.test").sweep()
+  def genFilePath(extension: Extension = Extension.gen())(implicit sweeper: EffectTestSweeper): Path =
+    sweeper.testDirectory.resolve(s"${sweeper.idGenerator.nextId()}.${extension.toString}").sweep()
 
-  def genFile(persistFile: Boolean)(implicit sweeper: EffectTestSweeper): Path = {
+  def genDirWithFilePath()(implicit sweeper: EffectTestSweeper): Path =
+    genDir() resolve genFilePath()
+
+  def genFile()(implicit sweeper: EffectTestSweeper): Path = {
     val filePath = genFilePath()
     Effect.createDirectoryIfAbsent(filePath.getParent)
-
-    if (persistFile)
-      Effect.createFile(filePath)
-    else
-      filePath
+    Effect.createFile(filePath)
   }
 
   def genFile(bytes: Slice[Byte], extension: Extension)(implicit sweeper: EffectTestSweeper): Path =
@@ -69,9 +69,9 @@ object EffectTestKit {
     Effect.createDirectoriesIfAbsent(genIntPath()).sweep()
 
   def genDirPath()(implicit sweeper: EffectTestSweeper): Path =
-    sweeper.testDirectory.resolve(s"${randomCharacters()}").sweep()
+    sweeper.testDirectory.resolve(sweeper.idGenerator.nextId().toString).sweep()
 
   def genDir()(implicit sweeper: EffectTestSweeper): Path =
-    Effect.createDirectory(genDirPath()).sweep()
+    Effect.createDirectoriesIfAbsent(genDirPath()).sweep()
 
 }

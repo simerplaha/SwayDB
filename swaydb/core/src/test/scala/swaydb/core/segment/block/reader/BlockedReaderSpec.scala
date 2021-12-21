@@ -33,7 +33,7 @@ class BlockedReaderSpec extends AnyWordSpec {
     "ref" in {
       runThis(20.times) {
         val header = Slice(1.toByte, 0.toByte)
-        val body = randomBytesSlice(100)
+        val body = genBytesSlice(100)
         val bytes = header ++ body
 
         val ref = BlockRefReader[ValuesBlockOffset](bytes)

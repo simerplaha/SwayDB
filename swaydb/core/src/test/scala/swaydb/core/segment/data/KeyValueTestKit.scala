@@ -460,7 +460,7 @@ object KeyValueTestKit {
     )
 
   def randomPutKeyValue(key: Slice[Byte],
-                        value: SliceOption[Byte] = randomStringSliceOptional(),
+                        value: SliceOption[Byte] = genStringSliceOptional(),
                         deadline: Option[Deadline] = randomDeadlineOption())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put =
     Memory.Put(
       key = key,
@@ -470,7 +470,7 @@ object KeyValueTestKit {
     )
 
   def randomExpiredPutKeyValue(key: Slice[Byte],
-                               value: SliceOption[Byte] = randomStringSliceOptional())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put =
+                               value: SliceOption[Byte] = genStringSliceOptional())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put =
     randomPutKeyValue(
       key = key,
       value = value,
@@ -478,7 +478,7 @@ object KeyValueTestKit {
     )
 
   def randomUpdateKeyValue(key: Slice[Byte],
-                           value: SliceOption[Byte] = randomStringSliceOptional(),
+                           value: SliceOption[Byte] = genStringSliceOptional(),
                            deadline: Option[Deadline] = randomDeadlineOption())(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Update =
     Memory.Update(key, value, deadline, testTimer.next)
 
@@ -528,19 +528,19 @@ object KeyValueTestKit {
     else if (randomBoolean && addFunctions)
       randomFunctionKeyValue(key, randomRemoveFunctionOutput())
     else
-      randomUpdateKeyValue(key, randomStringOption(), Some(expiredDeadline()))
+      randomUpdateKeyValue(key, genStringOption(), Some(expiredDeadline()))
 
   def randomRemoveFunctionOutput() =
     eitherOne(
       SegmentFunctionOutput.Remove,
       SegmentFunctionOutput.Expire(expiredDeadline()),
-      SegmentFunctionOutput.Update(randomStringOption(), Some(expiredDeadline()))
+      SegmentFunctionOutput.Update(genStringOption(), Some(expiredDeadline()))
     )
 
   def randomUpdateFunctionOutput() =
     eitherOne(
       SegmentFunctionOutput.Expire(randomDeadline(false)),
-      SegmentFunctionOutput.Update(randomStringOption(), randomDeadlineOption(false))
+      SegmentFunctionOutput.Update(genStringOption(), randomDeadlineOption(false))
     )
 
   def randomRemoveRange(from: Slice[Byte],
@@ -579,7 +579,7 @@ object KeyValueTestKit {
 
   def randomPendingApplyKeyValue(key: Slice[Byte],
                                  max: Int = 5,
-                                 value: SliceOption[Byte] = randomStringSliceOptional(),
+                                 value: SliceOption[Byte] = genStringSliceOptional(),
                                  deadline: Option[Deadline] = randomDeadlineOption(),
                                  functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                                  includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
@@ -680,7 +680,7 @@ object KeyValueTestKit {
     if (randomBoolean())
       SegmentFunctionOutput.Expire(randomDeadline(expiredDeadline))
     else
-      SegmentFunctionOutput.Update((randomStringOption(): Slice[Byte]).asSliceOption(), randomDeadlineOption(expiredDeadline))
+      SegmentFunctionOutput.Update((genStringOption(): Slice[Byte]).asSliceOption(), randomDeadlineOption(expiredDeadline))
 
   def randomRequiresKeyFunction(functionOutput: SegmentFunctionOutput = randomFunctionOutput()): SegmentFunction.RequiresKey =
     Random.shuffle(
@@ -767,7 +767,7 @@ object KeyValueTestKit {
     functionId
   }
 
-  def randomApply(value: SliceOption[Byte] = randomStringSliceOptional(),
+  def randomApply(value: SliceOption[Byte] = genStringSliceOptional(),
                   deadline: Option[Deadline] = randomDeadlineOption(),
                   addRemoves: Boolean = randomBoolean(),
                   functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
@@ -780,7 +780,7 @@ object KeyValueTestKit {
     else
       Value.Update(value, deadline, testTimer.next)
 
-  def randomApplyWithDeadline(value: SliceOption[Byte] = randomStringSliceOptional(),
+  def randomApplyWithDeadline(value: SliceOption[Byte] = genStringSliceOptional(),
                               addRangeRemoves: Boolean = randomBoolean(),
                               deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()) =
     if (addRangeRemoves && randomBoolean())
@@ -789,7 +789,7 @@ object KeyValueTestKit {
       Value.Update(value, Some(deadline), testTimer.next)
 
   def randomApplies(max: Int = 5,
-                    value: SliceOption[Byte] = randomStringSliceOptional(),
+                    value: SliceOption[Byte] = genStringSliceOptional(),
                     deadline: Option[Deadline] = randomDeadlineOption(),
                     addRemoves: Boolean = randomBoolean(),
                     functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
@@ -809,7 +809,7 @@ object KeyValueTestKit {
     }
 
   def randomAppliesWithDeadline(max: Int = 5,
-                                value: SliceOption[Byte] = randomStringSliceOptional(),
+                                value: SliceOption[Byte] = genStringSliceOptional(),
                                 addRangeRemoves: Boolean = randomBoolean(),
                                 deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Value.Apply] =
     Slice.wrap {
@@ -825,7 +825,7 @@ object KeyValueTestKit {
 
   def randomTransientKeyValue(key: Slice[Byte],
                               toKey: SliceOption[Byte],
-                              value: SliceOption[Byte] = randomStringSliceOptional(),
+                              value: SliceOption[Byte] = genStringSliceOptional(),
                               rangeValue: RangeValue,
                               deadline: Option[Deadline] = randomDeadlineOption(),
                               time: Time = Time.empty,
@@ -856,7 +856,7 @@ object KeyValueTestKit {
       )
 
   def randomFixedTransientKeyValue(key: Slice[Byte],
-                                   value: SliceOption[Byte] = randomStringSliceOptional(),
+                                   value: SliceOption[Byte] = genStringSliceOptional(),
                                    deadline: Option[Deadline] = randomDeadlineOption(),
                                    time: Time = Time.empty,
                                    functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
@@ -905,7 +905,7 @@ object KeyValueTestKit {
       )
 
   def randomFixedKeyValue(key: Slice[Byte],
-                          value: SliceOption[Byte] = randomStringSliceOptional(),
+                          value: SliceOption[Byte] = genStringSliceOptional(),
                           deadline: Option[Deadline] = randomDeadlineOption(),
                           functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                           includePendingApply: Boolean = true,
@@ -987,7 +987,7 @@ object KeyValueTestKit {
     else
       None
 
-  def randomFromValueOption(value: SliceOption[Byte] = randomStringSliceOptional(),
+  def randomFromValueOption(value: SliceOption[Byte] = genStringSliceOptional(),
                             deadline: Option[Deadline] = randomDeadlineOption(),
                             functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                             addRemoves: Boolean = randomBoolean(),
@@ -1004,7 +1004,7 @@ object KeyValueTestKit {
     else
       Value.FromValue.Null
 
-  def randomFromValueWithDeadlineOption(value: SliceOption[Byte] = randomStringSliceOptional(),
+  def randomFromValueWithDeadlineOption(value: SliceOption[Byte] = genStringSliceOptional(),
                                         addRangeRemoves: Boolean = randomBoolean(),
                                         deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): FromValueOption =
     if (randomBoolean())
@@ -1012,7 +1012,7 @@ object KeyValueTestKit {
     else
       Value.FromValue.Null
 
-  def randomUpdateRangeValue(value: SliceOption[Byte] = randomStringSliceOptional(),
+  def randomUpdateRangeValue(value: SliceOption[Byte] = genStringSliceOptional(),
                              addRemoves: Boolean = randomBoolean(),
                              functionOutput: SegmentFunctionOutput = randomUpdateFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental(),
                                                                                                    functionStore: TestCoreFunctionStore) = {
@@ -1026,7 +1026,7 @@ object KeyValueTestKit {
     randomRangeValue(value = value, addRemoves = addRemoves, functionOutput = functionOutput, deadline = deadline)
   }
 
-  def randomFromValue(value: SliceOption[Byte] = randomStringSliceOptional(),
+  def randomFromValue(value: SliceOption[Byte] = genStringSliceOptional(),
                       addRemoves: Boolean = randomBoolean(),
                       deadline: Option[Deadline] = randomDeadlineOption(),
                       functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
@@ -1037,7 +1037,7 @@ object KeyValueTestKit {
     else
       randomRangeValue(value = value, addRemoves = addRemoves, functionOutput = functionOutput, deadline = deadline)
 
-  def randomRangeValue(value: SliceOption[Byte] = randomStringSliceOptional(),
+  def randomRangeValue(value: SliceOption[Byte] = genStringSliceOptional(),
                        deadline: Option[Deadline] = randomDeadlineOption(),
                        functionOutput: SegmentFunctionOutput = randomFunctionOutput(),
                        addRemoves: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental(),
@@ -1051,7 +1051,7 @@ object KeyValueTestKit {
     else
       Value.Update(value, deadline, testTimer.next)
 
-  def randomFromValueWithDeadline(value: SliceOption[Byte] = randomStringSliceOptional(),
+  def randomFromValueWithDeadline(value: SliceOption[Byte] = genStringSliceOptional(),
                                   addRangeRemoves: Boolean = randomBoolean(),
                                   deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.FromValue =
     if (randomBoolean())
@@ -1059,7 +1059,7 @@ object KeyValueTestKit {
     else
       randomRangeValueWithDeadline(value = value, addRangeRemoves = addRangeRemoves, deadline = deadline)
 
-  def randomRangeValueWithDeadline(value: SliceOption[Byte] = randomStringSliceOptional(),
+  def randomRangeValueWithDeadline(value: SliceOption[Byte] = genStringSliceOptional(),
                                    addRangeRemoves: Boolean = randomBoolean(),
                                    deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.RangeValue =
     if (addRangeRemoves && randomBoolean())
@@ -1168,8 +1168,8 @@ object KeyValueTestKit {
 
       if (addRanges && randomBoolean()) {
         val toKey = key + 10
-        val fromValueValueBytes = eitherOne(Slice.Null, randomBytesSlice(valueSize))
-        val rangeValueValueBytes = eitherOne(Slice.Null, randomBytesSlice(valueSize))
+        val fromValueValueBytes = eitherOne(Slice.Null, genBytesSlice(valueSize))
+        val rangeValueValueBytes = eitherOne(Slice.Null, genBytesSlice(valueSize))
         val fromValueDeadline =
           if (addPutDeadlines || addRemoveDeadlines || addUpdateDeadlines)
             randomDeadlineOption(addExpiredPutDeadlines)
@@ -1196,7 +1196,7 @@ object KeyValueTestKit {
           )
         key = key + 1
       } else if (addUpdates && randomBoolean()) {
-        val valueBytes = if (valueSize == 0) Slice.Null else eitherOne(Slice.Null, randomBytesSlice(valueSize))
+        val valueBytes = if (valueSize == 0) Slice.Null else eitherOne(Slice.Null, genBytesSlice(valueSize))
         slice add
           randomUpdateKeyValue(
             key = key: Slice[Byte],
@@ -1211,7 +1211,7 @@ object KeyValueTestKit {
           )
         key = key + 1
       } else if (addPendingApply && randomBoolean()) {
-        val valueBytes = if (valueSize == 0) Slice.Null else eitherOne(Slice.Null, randomBytesSlice(valueSize))
+        val valueBytes = if (valueSize == 0) Slice.Null else eitherOne(Slice.Null, genBytesSlice(valueSize))
         slice add
           randomPendingApplyKeyValue(
             key = key: Slice[Byte],
@@ -1220,7 +1220,7 @@ object KeyValueTestKit {
           )
         key = key + 1
       } else if (addPut) {
-        val valueBytes = if (valueSize == 0) Slice.Null else eitherOne(Slice.Null, randomBytesSlice(valueSize))
+        val valueBytes = if (valueSize == 0) Slice.Null else eitherOne(Slice.Null, genBytesSlice(valueSize))
         val deadline = if (addPutDeadlines) randomDeadlineOption(addExpiredPutDeadlines) else None
         slice add
           randomPutKeyValue(

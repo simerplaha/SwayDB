@@ -177,21 +177,21 @@ object SegmentSearchTestKit {
   def assertBloomNotContains(bloomFilterReader: UnblockedReader[BloomFilterBlockOffset, BloomFilterBlock]): Assertion =
     (1 to 1000).par.count {
       _ =>
-        BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader.copy()).runRandomIO.get
+        BloomFilterBlock.mightContain(genBytesSlice(100), bloomFilterReader.copy()).runRandomIO.get
     } should be <= 300
 
   def assertBloomNotContains(segment: Segment) =
     if (segment.hasBloomFilter())
       (1 to 1000).par.count {
         _ =>
-          segment.mightContainKey(randomBytesSlice(100), ThreadReadState.random).runRandomIO.get
+          segment.mightContainKey(genBytesSlice(100), ThreadReadState.random).runRandomIO.get
       } should be < 1000
 
   def assertBloomNotContains(bloom: BloomFilterBlockState)(implicit ec: ExecutionContext = TestExecutionContext.executionContext) =
     runThisParallel(1000.times) {
       val bloomFilter = Block.unblock[BloomFilterBlockOffset, BloomFilterBlock](bloom.compressibleBytes)
       BloomFilterBlock.mightContain(
-        comparableKey = randomBytesSlice(randomIntMax(1000) min 100),
+        comparableKey = genBytesSlice(randomIntMax(1000) min 100),
         reader = bloomFilter.copy()
       ).runRandomIO.get shouldBe false
     }

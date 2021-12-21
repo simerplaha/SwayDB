@@ -44,7 +44,7 @@ class RemoveMerger_PendingApply_Spec extends AnyWordSpec {
       val incremental = TestTimer.Incremental()
 
       runThis(1000.times) {
-        val key = randomStringOption()
+        val key = genStringOption()
 
         implicit def testTimer: TestTimer = eitherOne(incremental, TestTimer.Empty)
 
