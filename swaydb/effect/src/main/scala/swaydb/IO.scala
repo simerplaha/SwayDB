@@ -560,7 +560,7 @@ object IO {
 
     executedFuture onComplete {
       _ =>
-        Reserve.setFree(reserve)
+        reserve.setFree()
     }
 
     /**
@@ -710,7 +710,7 @@ object IO {
             ExceptionHandler.recover(error) foreach {
               reserve =>
                 logger.trace(s"Blocking. ${reserve.name}")
-                Reserve.blockUntilFree(reserve)
+                reserve.blockUntilFree()
                 logger.trace(s"Freed. ${reserve.name}")
             }
         }
@@ -756,7 +756,7 @@ object IO {
             ExceptionHandler.recover(error) foreach {
               reserve =>
                 logger.trace(s"Blocking. ${reserve.name}")
-                Reserve.blockUntilFree(reserve)
+                reserve.blockUntilFree()
                 logger.trace(s"Freed. ${reserve.name}")
             }
         }
@@ -801,7 +801,7 @@ object IO {
           error =>
             ExceptionHandler.recover(error) flatMap {
               reserve =>
-                val promise = Reserve.promise(reserve)
+                val promise = reserve.promise()
                 if (promise.isCompleted)
                   None
                 else

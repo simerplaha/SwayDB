@@ -484,10 +484,10 @@ class Actor[-T, S] private[swaydb](val name: String,
   }
 
   @inline private def compareSetBusy(): Boolean =
-    Reserve.compareAndSet(Options.unit, busy)
+    busy.compareAndSet(Options.unit)
 
   @inline private def setFree(): Unit =
-    Reserve.setFree(busy)
+    busy.setFree()
 
   @inline private def wakeUp(currentStashed: Long): Unit =
     if (isTerminated) //if it's terminated ignore fixedStashSize and process messages immediately.
@@ -599,7 +599,7 @@ class Actor[-T, S] private[swaydb](val name: String,
       }
     } else {
       logger.info(s"""$name is processing $messageCount tasks. isTerminated = $isTerminated.""")
-      Reserve.promise(busy).future flatMap {
+      busy.promise().future flatMap {
         _ =>
           whileNotReceivingAsync(continueIfNonEmpty)(releaseFunction)
       }
@@ -643,7 +643,7 @@ class Actor[-T, S] private[swaydb](val name: String,
       }
     } else {
       logger.info(s"""$name is processing $messageCount tasks. isTerminated = $isTerminated.""")
-      Reserve.blockUntilFree(busy)
+      busy.blockUntilFree()
       whileNotReceivingSync(continueIfNonEmpty)(releaseFunction)
     }
   }

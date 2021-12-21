@@ -136,12 +136,12 @@ private[swaydb] case object AtomicRanges extends LazyLogging {
       } finally {
         val removed = ranges.transactions.remove(key)
         //        assert(removed.value.hashCode() == value.value.hashCode())
-        Reserve.setFree(removed.value)
+        removed.value.setFree()
       }
     else
       bag match {
         case _: Bag.Sync[BAG] =>
-          Reserve.blockUntilFree(putResult.value)
+          putResult.value.blockUntilFree()
           writeAndRelease(key, value, f)
 
         case async: Bag.Async[BAG] =>
@@ -160,7 +160,7 @@ private[swaydb] case object AtomicRanges extends LazyLogging {
                                                  f: => T)(implicit bag: Bag.Async[BAG],
                                                           skipList: AtomicRanges[K]): BAG[T] =
     bag
-      .fromPromise(Reserve.promise(busyReserve))
+      .fromPromise(busyReserve.promise())
       .and(writeAndRelease(key, value, f))
 
   @inline def readAndRelease[K, NO, O <: NO, BAG[_]](getKeys: O => (K, K, Boolean),
@@ -202,12 +202,12 @@ private[swaydb] case object AtomicRanges extends LazyLogging {
       if (putResult == null) {
         val removed = ranges.transactions.remove(key)
         //        assert(removed.value.hashCode() == value.value.hashCode())
-        Reserve.setFree(removed.value)
+        removed.value.setFree()
         bag.success(outputOptional)
       } else {
         bag match {
           case _: Bag.Sync[BAG] =>
-            Reserve.blockUntilFree(putResult.value)
+            putResult.value.blockUntilFree()
             readAndRelease(
               getKeys = getKeys,
               value = value,
@@ -238,7 +238,7 @@ private[swaydb] case object AtomicRanges extends LazyLogging {
                                                              f: => NO)(implicit bag: Bag.Async[BAG],
                                                                        skipList: AtomicRanges[K]): BAG[NO] =
     bag
-      .fromPromise(Reserve.promise(busyReserve))
+      .fromPromise(busyReserve.promise())
       .and(
         readAndRelease(
           getKeys = getKeys,
@@ -258,7 +258,7 @@ private[swaydb] case object AtomicRanges extends LazyLogging {
     if (putResult == null)
       Right(key)
     else
-      Left(Reserve.promise(putResult.value))
+      Left(putResult.value.promise())
   }
 
   @inline def removeOrFail[K](key: Key[K])(implicit transaction: AtomicRanges[K]): Unit = {
@@ -268,7 +268,7 @@ private[swaydb] case object AtomicRanges extends LazyLogging {
       logger.error(exception.getMessage, exception)
       throw exception
     } else {
-      Reserve.setFree(removed.value)
+      removed.value.setFree()
     }
   }
 }

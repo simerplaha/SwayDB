@@ -21,18 +21,63 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.Promise
 import scala.concurrent.duration.Deadline
 
-class Reserve[@specialized(Unit) T](private val info: AtomicReference[Option[T]],
-                                    private val promises: ConcurrentLinkedQueue[Promise[Unit]],
-                                    val name: String) {
+class Reserve[@specialized(Unit) T](info: AtomicReference[Option[T]],
+                                    promises: ConcurrentLinkedQueue[Promise[Unit]],
+                                    val name: String) { self =>
 
   @inline private def savePromise(promise: Promise[Unit]): Unit =
     promises add promise
 
-  def isBusy: Boolean =
+  final def isBusy: Boolean =
     info.get().isDefined
 
-  def isFree: Boolean =
+  final def isFree: Boolean =
     !isBusy
+
+  final def blockUntilFree(): Unit =
+    self.synchronized {
+      while (self.isBusy)
+        self.wait()
+    }
+
+  final def blockUntilFree(deadline: Deadline): Unit =
+    self.synchronized {
+      while (self.isBusy && deadline.hasTimeLeft())
+        self.wait(deadline.timeLeft.toMillis)
+    }
+
+  @inline final private def notifyBlocking(): Unit =
+    self.synchronized {
+      self.notifyAll()
+
+      var continue = true
+      while (continue) {
+        val next = self.promises.poll()
+        if (next == null)
+          continue = false
+        else
+          next.trySuccess(())
+      }
+    }
+
+  final def promise(): Promise[Unit] =
+    self.synchronized {
+      if (self.info.get().isDefined) {
+        val promise = Promise[Unit]()
+        self.savePromise(promise)
+        promise
+      } else {
+        Promise.successful(())
+      }
+    }
+
+  final def compareAndSet(info: Some[T]): Boolean =
+    self.info.compareAndSet(None, info)
+
+  final def setFree(): Unit = {
+    self.info.set(None)
+    notifyBlocking()
+  }
 }
 
 object Reserve {
@@ -43,48 +88,4 @@ object Reserve {
   def busy[@specialized(Unit) T](info: T, name: String): Reserve[T] =
     new Reserve(new AtomicReference[Option[T]](Some(info)), new ConcurrentLinkedQueue[Promise[Unit]](), name)
 
-  def blockUntilFree[@specialized(Unit) T](reserve: Reserve[T]): Unit =
-    reserve.synchronized {
-      while (reserve.isBusy)
-        reserve.wait()
-    }
-
-  def blockUntilFree[@specialized(Unit) T](reserve: Reserve[T], deadline: Deadline): Unit =
-    reserve.synchronized {
-      while (reserve.isBusy && deadline.hasTimeLeft())
-        reserve.wait(deadline.timeLeft.toMillis)
-    }
-
-  private def notifyBlocking[@specialized(Unit) T](reserve: Reserve[T]): Unit =
-    reserve.synchronized {
-      reserve.notifyAll()
-
-      var continue = true
-      while (continue) {
-        val next = reserve.promises.poll()
-        if (next == null)
-          continue = false
-        else
-          next.trySuccess(())
-      }
-    }
-
-  def promise[@specialized(Unit) T](reserve: Reserve[T]): Promise[Unit] =
-    reserve.synchronized {
-      if (reserve.info.get().isDefined) {
-        val promise = Promise[Unit]()
-        reserve.savePromise(promise)
-        promise
-      } else {
-        Promise.successful(())
-      }
-    }
-
-  def compareAndSet[@specialized(Unit) T](info: Some[T], reserve: Reserve[T]): Boolean =
-    reserve.info.compareAndSet(None, info)
-
-  def setFree[@specialized(Unit) T](reserve: Reserve[T]): Unit = {
-    reserve.info.set(None)
-    notifyBlocking(reserve)
-  }
 }

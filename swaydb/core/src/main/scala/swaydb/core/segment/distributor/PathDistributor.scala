@@ -119,15 +119,15 @@ private[core] class PathDistributor(val dirs: Seq[Dir],
           path
 
         case None =>
-          if (Reserve.compareAndSet(Options.unit, distributionReserve)) {
+          if (distributionReserve.compareAndSet(Options.unit)) {
             try
               queue.addAll(distributePaths())
             finally
-              Reserve.setFree(distributionReserve)
+              distributionReserve.setFree()
 
             next()
           } else {
-            Reserve.blockUntilFree(distributionReserve)
+            distributionReserve.blockUntilFree()
             next()
           }
       }

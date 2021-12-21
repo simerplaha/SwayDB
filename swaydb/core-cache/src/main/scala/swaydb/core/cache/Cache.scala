@@ -352,11 +352,11 @@ private class ReservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recov
     lazyIO.stored
 
   @inline private def reserveAndExecute[F >: E : IO.ExceptionHandler, T](thunk: => IO[F, T]): IO[F, T] =
-    if (Reserve.compareAndSet(Options.unit, error.reserve))
+    if (error.reserve.compareAndSet(Options.unit))
       try
         thunk
       finally
-        Reserve.setFree(error.reserve)
+        error.reserve.setFree()
     else
       IO.Left[F, T](error)
 
