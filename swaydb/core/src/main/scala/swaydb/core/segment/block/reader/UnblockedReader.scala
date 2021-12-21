@@ -19,20 +19,28 @@ package swaydb.core.segment.block.reader
 import swaydb.core.file.FileReader
 import swaydb.core.segment.block.{Block, BlockCacheState, BlockOffset, BlockOps}
 import swaydb.slice.{Reader, Slice, SliceReader}
+import swaydb.utils.SomeOrNoneCovariant
+
+import scala.annotation.unchecked.uncheckedVariance
 
 /**
  * A typed object that indicates that block is already decompressed and now is reading data bytes.
+ *
+ * FIXME: remove @uncheckedVariance
  */
+sealed trait UnblockedReaderOption[+O <: BlockOffset, +B <: Block[O]] extends SomeOrNoneCovariant[UnblockedReaderOption[O, B], UnblockedReader[O, B]@uncheckedVariance] {
 
-sealed trait UnblockedReaderOption[+O <: BlockOffset, +B <: Block[O]] {
-  def isNone: Boolean
-  def isSome: Boolean = !isNone
+  override def noneC: UnblockedReaderOption[O, B] =
+    UnblockedReader.Null
 }
 
-private[core] object UnblockedReader {
+private[core] case object UnblockedReader {
 
   final case object Null extends UnblockedReaderOption[Nothing, Nothing] {
-    override def isNone: Boolean = true
+    override def isNoneC: Boolean = true
+
+    override def getC: UnblockedReader[Nothing, Nothing] =
+      throw new Exception(s"${UnblockedReader.productPrefix} is of type ${Null.productPrefix}")
   }
 
   def empty[O <: BlockOffset, B <: Block[O]](block: B)(implicit blockOps: BlockOps[O, B]) = {
@@ -91,7 +99,10 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
   def offset: O =
     block.offset
 
-  override def isNone: Boolean =
+  override def getC: UnblockedReader[O, B] =
+    this
+
+  override def isNoneC: Boolean =
     false
 
   def underlyingArraySizeOrReaderSize: Int =
@@ -123,4 +134,5 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
       rootBlockRefOffset = rootBlockRefOffset,
       reader = reader.copy()
     )
+
 }
