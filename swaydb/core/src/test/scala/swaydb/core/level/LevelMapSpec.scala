@@ -40,16 +40,16 @@
 //
 //class LevelMapSpec1 extends LevelMapSpec {
 //  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap())
+//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap())
+//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap())
 //}
 //
 //class LevelMapSpec2 extends LevelMapSpec {
 //  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
-//  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
-//  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
+//  override def mmapSegments = MMAP.Off(forceSave = GenForceSave.standard())
+//  override def level0MMAP = MMAP.Off(forceSave = GenForceSave.standard())
+//  override def appendixStorageMMAP = MMAP.Off(forceSave = GenForceSave.standard())
 //}
 //
 //class LevelMapSpec3 extends LevelMapSpec {
@@ -81,7 +81,7 @@
 //        if (isPersistent)
 //          PersistentLog[Slice[Byte], Memory, LevelZeroLogCache](
 //            folder = randomIntDirectory,
-//            mmap = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap()),
+//            mmap = MMAP.On(OperatingSystem.isWindows(), GenForceSave.mmap()),
 //            flushOnOverflow = true,
 //            fileSize = 1.mb,
 //            dropCorruptedTailEntries = false

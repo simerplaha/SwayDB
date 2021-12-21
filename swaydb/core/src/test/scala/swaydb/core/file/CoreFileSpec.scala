@@ -43,7 +43,7 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
 
-          val testFile = genDirWithFilePath()
+          val testFile = genTestDirAndFilePath()
           val bytes = genBytesSlice()
 
           val file =
@@ -108,7 +108,7 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
 
-          val path = genDirWithFilePath()
+          val path = genTestDirAndFilePath()
 
           def createFile() =
             CoreFile.standardWritable(
@@ -133,7 +133,7 @@ class CoreFileSpec extends AnyWordSpec {
         implicit sweeper =>
           import sweeper._
 
-          val testFile = genDirWithFilePath()
+          val testFile = genTestDirAndFilePath()
           val bytes = genBytesSlice()
 
           Effect.write(testFile, bytes.toByteBufferWrap())

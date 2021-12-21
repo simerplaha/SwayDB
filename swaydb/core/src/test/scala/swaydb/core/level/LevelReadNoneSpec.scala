@@ -22,7 +22,7 @@
 //import swaydb.core.CoreTestData._
 //import swaydb.core.segment.data.{Memory, Value}
 //import swaydb.core.segment.ref.search.ThreadReadState
-//import swaydb.core.{ACoreSpec, TestForceSave}
+//import swaydb.core.{ACoreSpec, GenForceSave}
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
 //import swaydb.slice.Slice
@@ -35,16 +35,16 @@
 //
 //class LevelReadNoneSpec1 extends LevelReadNoneSpec {
 //  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap())
+//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap())
+//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap())
 //}
 //
 //class LevelReadNoneSpec2 extends LevelReadNoneSpec {
 //  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
-//  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
-//  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
+//  override def mmapSegments = MMAP.Off(forceSave = GenForceSave.standard())
+//  override def level0MMAP = MMAP.Off(forceSave = GenForceSave.standard())
+//  override def appendixStorageMMAP = MMAP.Off(forceSave = GenForceSave.standard())
 //}
 //
 //class LevelReadNoneSpec3 extends LevelReadNoneSpec {

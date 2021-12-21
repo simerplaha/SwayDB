@@ -24,7 +24,7 @@
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.CoreTestData._
 //import swaydb.core.segment.block.segment.SegmentBlockConfig
-//import swaydb.core.{ACoreSpec, CoreTestSweeper, TestExecutionContext, TestForceSave}
+//import swaydb.core.{ACoreSpec, CoreTestSweeper, TestExecutionContext, GenForceSave}
 //import swaydb.core.level.ALevelSpec
 //import swaydb.effect.Effect
 //import swaydb.effect.Effect._
@@ -59,7 +59,7 @@
 //        CoreTestSweeper {
 //          implicit sweeper =>
 //            import sweeper._
-//            val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = MMAP.Off(TestForceSave.standard())))
+//            val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = MMAP.Off(GenForceSave.standard())))
 //            level.put(randomizedKeyValues(10000)).value
 //
 //            if (level.hasMMAP && OperatingSystem.isWindows())
@@ -86,7 +86,7 @@
 //            import sweeper._
 //
 //            //create empty Level
-//            val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = MMAP.Off(TestForceSave.standard())))
+//            val level = TestLevel(segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = MMAP.Off(GenForceSave.standard())))
 //
 //            if (level.hasMMAP && OperatingSystem.isWindows()) {
 //              level.close[Glass]()
@@ -120,7 +120,7 @@
 //            import sweeper._
 //            //create a Level with a sub-level and disable throttling so that compaction does not delete expired key-values
 //            val level = TestLevel(
-//              segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = MMAP.Off(TestForceSave.standard())),
+//              segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = MMAP.Off(GenForceSave.standard())),
 //              nextLevel = Some(TestLevel()),
 //              throttle = _ => LevelThrottle(Duration.Zero, 0)
 //            )
@@ -173,7 +173,7 @@
 //          val keyValues = randomizedKeyValues(1000)
 //
 //          val level = TestLevel(
-//            segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = MMAP.Off(TestForceSave.standard())),
+//            segmentConfig = SegmentBlockConfig.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = MMAP.Off(GenForceSave.standard())),
 //            nextLevel = Some(TestLevel()),
 //            throttle = (_) => LevelThrottle(Duration.Zero, 0)
 //          )
@@ -196,7 +196,7 @@
 //                val numberOfKeyValuesToOverlap = randomNextInt(3) max 1
 //                val keyValuesToOverlap = Random.shuffle(segment.iterator(randomBoolean()).runRandomIO.value.toList).take(numberOfKeyValuesToOverlap).map(_.toMemory()).toSlice
 //                //create overlapping Segment
-//                val overlappingSegment = GenSegment(keyValuesToOverlap, segmentConfig = SegmentBlockConfig.random(mmap = MMAP.Off(TestForceSave.standard())))
+//                val overlappingSegment = GenSegment(keyValuesToOverlap, segmentConfig = SegmentBlockConfig.random(mmap = MMAP.Off(GenForceSave.standard())))
 //                Effect.copy(overlappingSegment.path, overlappingLevelSegmentPath)
 //                overlappingSegment.close() //gotta close the new segment create after it's copied over.
 //                if (level.hasMMAP && OperatingSystem.isWindows())

@@ -19,7 +19,7 @@
 //import swaydb.config.MMAP
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.level.{ALevelSpec, Level}
-//import swaydb.core.{ACoreSpec, CoreTestSweeper, TestExecutionContext, TestForceSave}
+//import swaydb.core.{ACoreSpec, CoreTestSweeper, TestExecutionContext, GenForceSave}
 //import swaydb.utils.OperatingSystem
 //
 //
@@ -27,16 +27,16 @@
 //
 //class BehaviourWakeUp_buildLowerLevels_Spec1 extends BehaviourWakeUp_buildLowerLevels_Spec {
 //  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap())
+//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap())
+//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap())
 //}
 //
 //class BehaviourWakeUp_buildLowerLevels_Spec2 extends BehaviourWakeUp_buildLowerLevels_Spec {
 //  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
-//  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
-//  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
+//  override def mmapSegments = MMAP.Off(forceSave = GenForceSave.standard())
+//  override def level0MMAP = MMAP.Off(forceSave = GenForceSave.standard())
+//  override def appendixStorageMMAP = MMAP.Off(forceSave = GenForceSave.standard())
 //}
 //
 //class BehaviourWakeUp_buildLowerLevels_Spec3 extends BehaviourWakeUp_buildLowerLevels_Spec {

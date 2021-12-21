@@ -747,7 +747,7 @@
 //
 //            val keyValues = randomizedKeyValues(keyValuesCount)
 //
-//            val segmentConfig = SegmentBlockConfig.random(cacheBlocksOnCreate = true, mmap = MMAP.Off(TestForceSave.standard()), cacheOnAccess = true)
+//            val segmentConfig = SegmentBlockConfig.random(cacheBlocksOnCreate = true, mmap = MMAP.Off(GenForceSave.standard()), cacheOnAccess = true)
 //
 //            val segment1 =
 //              GenSegment(

@@ -47,11 +47,15 @@ object EffectTestKit {
   def genFilePath(extension: Extension = Extension.gen())(implicit sweeper: EffectTestSweeper): Path =
     sweeper.testDirectory.resolve(s"${sweeper.idGenerator.nextId()}.${extension.toString}").sweep()
 
-  def genDirWithFilePath(extension: Extension = Extension.gen())(implicit sweeper: EffectTestSweeper): Path = {
+  //persists the test directory and creates a file path (not persisted)
+  def genTestDirAndFilePath(extension: Extension = Extension.gen())(implicit sweeper: EffectTestSweeper): Path = {
     val filePath = genFilePath(extension)
     Effect.createDirectoriesIfAbsent(filePath.getParent)
     filePath
   }
+
+  def genTestDirectory()(implicit sweeper: EffectTestSweeper): Path =
+    Effect.createDirectoriesIfAbsent(sweeper.testDirectory)
 
   def genFile()(implicit sweeper: EffectTestSweeper): Path = {
     val filePath = genFilePath()

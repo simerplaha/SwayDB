@@ -5,7 +5,7 @@
 //import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 //import swaydb.config.compaction.{CompactionConfig, LevelMeter, LevelThrottle, LevelZeroThrottle}
 //import swaydb.config.storage.{Level0Storage, LevelStorage}
-//import swaydb.core.{CoreInitialiser, TestExecutionContext, TestForceSave, CoreTestSweeper, TestTimer}
+//import swaydb.core.{CoreInitialiser, TestExecutionContext, GenForceSave, CoreTestSweeper, TestTimer}
 //import swaydb.core.compaction.{Compactor, CompactorCreator}
 //import swaydb.core.compaction.throttle.ThrottleCompactorCreator
 //import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -40,7 +40,7 @@
 //
 //  def levelFoldersCount = 0
 //
-//  def level0MMAP: MMAP.Log = MMAP.On(OperatingSystem.isWindows(), TestForceSave.mmap())
+//  def level0MMAP: MMAP.Log = MMAP.On(OperatingSystem.isWindows(), GenForceSave.mmap())
 //
 //  def createNextLevelPath: Path =
 //    Effect.createDirectoriesIfAbsent(nextLevelPath)

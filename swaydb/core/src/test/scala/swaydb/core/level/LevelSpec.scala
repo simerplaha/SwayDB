@@ -45,16 +45,16 @@
 //
 //class LevelSpec1 extends LevelSpec {
 //  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+//  override def mmapSegments = MMAP.On(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap())
+//  override def level0MMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap())
+//  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap())
 //}
 //
 //class LevelSpec2 extends LevelSpec {
 //  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.standard())
-//  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.standard())
-//  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.standard())
+//  override def mmapSegments = MMAP.Off(forceSave = GenForceSave.standard())
+//  override def level0MMAP = MMAP.Off(forceSave = GenForceSave.standard())
+//  override def appendixStorageMMAP = MMAP.Off(forceSave = GenForceSave.standard())
 //}
 //
 //class LevelSpec3 extends LevelSpec {
@@ -199,9 +199,9 @@
 //                //deleteUncommittedSegments will also be invoked on Levels with cleared and closed Segments there will never be
 //                //memory-mapped. So disable mmap in this test specially for windows which does not allow deleting memory-mapped files without
 //                //clearing the MappedByteBuffer.
-//                GenSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.standard())))
-//                GenSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.standard())))
-//                GenSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(TestForceSave.standard())))
+//                GenSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(GenForceSave.standard())))
+//                GenSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(GenForceSave.standard())))
+//                GenSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId), segmentConfig = SegmentBlockConfig.random(mmap = mmapSegments).copy(mmap = MMAP.Off(GenForceSave.standard())))
 //                currentSegmentId + 3
 //            }
 //            //every level folder has 3 uncommitted Segments plus 1 valid Segment

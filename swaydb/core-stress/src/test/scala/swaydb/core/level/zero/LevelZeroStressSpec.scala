@@ -39,16 +39,16 @@
 //  override def levelFoldersCount = 10
 //  override def mmapSegmentsOnWrite = true
 //  override def mmapSegmentsOnRead = true
-//  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
-//  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows(), forceSave = TestForceSave.mmap())
+//  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap())
+//  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows(), forceSave = GenForceSave.mmap())
 //}
 //
 //class LevelZeroStressSpec2 extends LevelZeroStressSpec {
 //  override def levelFoldersCount = 10
 //  override def mmapSegmentsOnWrite = false
 //  override def mmapSegmentsOnRead = false
-//  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.standard())
-//  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.standard())
+//  override def level0MMAP = MMAP.Disabled(forceSave = GenForceSave.standard())
+//  override def appendixStorageMMAP = MMAP.Disabled(forceSave = GenForceSave.standard())
 //}
 //
 //class LevelZeroStressSpec3 extends LevelZeroStressSpec {
