@@ -44,24 +44,15 @@ object EffectTestKit {
     else
       IOStrategy.ConcurrentIO(cacheOnAccess)
 
-  def genFilePath(extension: Extension = Extension.gen())(implicit sweeper: EffectTestSweeper): Path =
-    sweeper.testDirectory.resolve(s"${sweeper.idGenerator.nextId()}.${extension.toString}").sweep()
-
   //persists the test directory and creates a file path (not persisted)
-  def genTestDirAndFilePath(extension: Extension = Extension.gen())(implicit sweeper: EffectTestSweeper): Path = {
-    val filePath = genFilePath(extension)
-    Effect.createDirectoriesIfAbsent(filePath.getParent)
-    filePath
-  }
+  def genFilePath(extension: Extension = Extension.gen())(implicit sweeper: EffectTestSweeper): Path =
+    genTestDirectory().resolve(s"${sweeper.idGenerator.nextId()}.${extension.toString}").sweep()
 
   def genTestDirectory()(implicit sweeper: EffectTestSweeper): Path =
     Effect.createDirectoriesIfAbsent(sweeper.testDirectory)
 
-  def genFile()(implicit sweeper: EffectTestSweeper): Path = {
-    val filePath = genFilePath()
-    Effect.createDirectoryIfAbsent(filePath.getParent)
-    Effect.createFile(filePath)
-  }
+  def genFile()(implicit sweeper: EffectTestSweeper): Path =
+    Effect.createFile(genFilePath())
 
   def genFile(bytes: Slice[Byte], extension: Extension)(implicit sweeper: EffectTestSweeper): Path =
     Effect.write(

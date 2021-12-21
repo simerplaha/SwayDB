@@ -61,7 +61,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with MockFactory {
 
         val file: CoreFile =
           CoreFile.mmapWriteableReadable(
-            path = genTestDirAndFilePath(),
+            path = genFilePath(),
             fileOpenIOStrategy = genThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
             deleteAfterClean = OperatingSystem.isWindows(),
@@ -95,7 +95,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with MockFactory {
             (1 to 10) map {
               _ =>
                 CoreFile.mmapWriteableReadable(
-                  path = genTestDirAndFilePath(),
+                  path = genFilePath(),
                   fileOpenIOStrategy = genThreadSafeIOStrategy(cacheOnAccess = true),
                   autoClose = true,
                   deleteAfterClean = OperatingSystem.isWindows(),
@@ -214,7 +214,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with MockFactory {
       CoreTestSweeper {
         implicit sweeper =>
 
-          val path = genTestDirAndFilePath()
+          val path = genFilePath()
           val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
           val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
@@ -260,7 +260,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with MockFactory {
           implicit sweeper =>
             import sweeper._
 
-            val filePath = genTestDirAndFilePath()
+            val filePath = genFilePath()
             val folderPath = filePath.getParent
 
             val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
@@ -304,7 +304,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with MockFactory {
           implicit sweeper =>
             import sweeper._
 
-            val filePath = genTestDirAndFilePath()
+            val filePath = genFilePath()
             val folderPath = filePath.getParent
 
             val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
@@ -349,7 +349,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with MockFactory {
           implicit sweeper =>
             import sweeper._
 
-            val filePath = genTestDirAndFilePath()
+            val filePath = genFilePath()
             val folderPath = filePath.getParent
 
             val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
@@ -392,7 +392,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with MockFactory {
           implicit sweeper =>
             import sweeper._
 
-            val filePath = genTestDirAndFilePath()
+            val filePath = genFilePath()
             val folderPath = filePath.getParent
 
             val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
@@ -449,7 +449,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with MockFactory {
 
             implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(messageReschedule = 2.seconds).sweep()
 
-            val filePath = genTestDirAndFilePath()
+            val filePath = genFilePath()
 
             val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
             val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
@@ -569,7 +569,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with MockFactory {
             import sweeper._
 
             def sendRandomRequests(): Path = {
-              val filePath = genTestDirAndFilePath()
+              val filePath = genFilePath()
               val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
               val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
