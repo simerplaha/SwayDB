@@ -19,17 +19,14 @@ package swaydb.actor
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.{ActorRef, DefActor, Glass, Scheduler}
 import swaydb.core.cache.{Cache, CacheUnsafe}
+import swaydb.testkit.{TestSweeper, TestSweeperCompanion}
 
 import scala.collection.mutable.ListBuffer
 
-object ActorTestSweeper extends LazyLogging {
+object ActorTestSweeper extends TestSweeperCompanion[ActorTestSweeper] with LazyLogging {
 
-  def apply[T](code: ActorTestSweeper => T): T = {
-    val sweeper = new ActorTestSweeper {}
-    val result = code(sweeper)
-    sweeper.terminateAllActors()
-    result
-  }
+  override def newTestScope(): ActorTestSweeper =
+    new ActorTestSweeper {}
 
   implicit class SchedulerSweeperImplicits(scheduler: Scheduler) {
     def sweep()(implicit sweeper: ActorTestSweeper): Scheduler =
@@ -48,7 +45,7 @@ object ActorTestSweeper extends LazyLogging {
 
 }
 
-trait ActorTestSweeper extends LazyLogging {
+trait ActorTestSweeper extends TestSweeper with LazyLogging {
 
   private val schedulers: ListBuffer[CacheUnsafe[Unit, Scheduler]] = ListBuffer(Cache.unsafe[Unit, Scheduler](true, true, None)((_, _) => Scheduler()))
   private val actors: ListBuffer[ActorRef[_, _]] = ListBuffer.empty
@@ -89,5 +86,8 @@ trait ActorTestSweeper extends LazyLogging {
 
     schedulers.foreach(_.get().foreach(_.terminate()))
   }
+
+  override def terminate(): Unit =
+    terminateAllActors()
 
 }

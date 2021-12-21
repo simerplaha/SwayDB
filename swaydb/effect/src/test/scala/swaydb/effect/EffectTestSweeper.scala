@@ -18,6 +18,7 @@ package swaydb.effect
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.testkit.RunThis.eventual
+import swaydb.testkit.{TestSweeper, TestSweeperCompanion}
 import swaydb.utils.{IDGenerator, OperatingSystem}
 
 import java.nio.file.{Path, Paths}
@@ -25,22 +26,19 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.ConcurrentLinkedQueue
 import scala.concurrent.duration.DurationInt
 
-object EffectTestSweeper extends LazyLogging {
+object EffectTestSweeper extends TestSweeperCompanion[EffectTestSweeper] with LazyLogging {
 
-  def apply[T](code: EffectTestSweeper => T): T = {
-    val sweeper = new EffectTestSweeper {}
-    val result = code(sweeper)
-    sweeper.deleteAllPaths()
-    result
-  }
+  override def newTestScope(): EffectTestSweeper =
+    new EffectTestSweeper {}
 
   implicit class EffectTestPathSweeperImplicits(path: Path) {
     def sweep()(implicit sweeper: EffectTestSweeper): Path =
       sweeper sweepPath path
   }
+
 }
 
-trait EffectTestSweeper extends LazyLogging {
+trait EffectTestSweeper extends TestSweeper with LazyLogging {
 
   implicit lazy val idGenerator: IDGenerator = IDGenerator()
 
@@ -84,4 +82,7 @@ trait EffectTestSweeper extends LazyLogging {
 
     eventual(10.seconds)(Effect.walkDelete(testDirectory))
   }
+
+  override def terminate(): Unit =
+    deleteAllPaths()
 }

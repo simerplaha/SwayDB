@@ -35,12 +35,10 @@ import swaydb.core.segment.cache.sweeper.MemorySweeperTestKit._
 import swaydb.core.segment.distributor.PathDistributor
 import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.effect.{Effect, EffectTestSweeper}
-import swaydb.testkit.RunThis._
+import swaydb.testkit.TestSweeperCompanion
 
 import scala.beans.BeanProperty
 import scala.collection.mutable.ListBuffer
-import scala.collection.parallel.CollectionConverters.IterableIsParallelizable
-import scala.concurrent.duration.DurationInt
 
 /**
  * Manages cleaning levels, segments, maps etc for Levels. Initialises Actors lazily as required and
@@ -55,46 +53,14 @@ import scala.concurrent.duration.DurationInt
  * }}}
  */
 
-object CoreTestSweeper extends LazyLogging {
+object CoreTestSweeper extends TestSweeperCompanion[CoreTestSweeper] with LazyLogging {
 
-  def repeat(times: Int, log: Boolean = true)(code: CoreTestSweeper => Unit): Unit = {
-    import swaydb.testkit.RunThis._
-    runThis(times, log)(CoreTestSweeper[Unit](code))
-  }
+  override def newTestScope(): CoreTestSweeper =
+    new CoreTestSweeper {}
 
-  def foreachRepeat[S](times: Int, states: Iterable[S])(code: (CoreTestSweeper, S) => Unit): Unit =
-    runThis(times, log = true) {
-      foreach(states)(code)
-    }
-
-  def foreach[S](states: Iterable[S])(code: (CoreTestSweeper, S) => Unit): Unit =
-    states foreach {
-      state =>
-        CoreTestSweeper {
-          sweeper =>
-            code(sweeper, state)
-        }
-    }
-
-  def foreachParallel[S](states: Iterable[S])(code: (CoreTestSweeper, S) => Unit): Unit =
-    states.par foreach {
-      state =>
-        CoreTestSweeper {
-          sweeper =>
-            code(sweeper, state)
-        }
-    }
-
-  def apply[T](code: CoreTestSweeper => T): T = {
-    val sweeper = new CoreTestSweeper {}
-    val result = code(sweeper)
-    sweeper.terminate()
-    result
-  }
-
-  implicit class TestLevelLevelSweeperImplicits[L <: LevelRef](level: L) {
+  implicit class TestLevelLevelSweeperImplicits[L <: LevelRef](levelRef: L) {
     def sweep()(implicit sweeper: CoreTestSweeper): L =
-      sweeper sweepLevel level
+      sweeper sweepLevel levelRef
   }
 
   implicit class TestLevelSegmentSweeperImplicits[L <: Segment](segment: L) {
@@ -102,14 +68,14 @@ object CoreTestSweeper extends LazyLogging {
       sweeper sweepSegment segment
   }
 
-  implicit class TestMapFilesSweeperImplicits[M <: Log[_, _, _]](map: M) {
-    def sweep()(implicit sweeper: CoreTestSweeper): M =
-      sweeper sweepLog map
+  implicit class TestMapFilesSweeperImplicits[L <: Log[_, _, _]](log: L) {
+    def sweep()(implicit sweeper: CoreTestSweeper): L =
+      sweeper sweepLog log
   }
 
-  implicit class TestMapsSweeperImplicits[M <: Logs[_, _, _]](map: M) {
-    def sweep()(implicit sweeper: CoreTestSweeper): M =
-      sweeper sweepLogs map
+  implicit class TestMapsSweeperImplicits[L <: Logs[_, _, _]](logs: L) {
+    def sweep()(implicit sweeper: CoreTestSweeper): L =
+      sweeper sweepLogs logs
   }
 
   implicit class CoreFileSweeperImplicits(coreFile: CoreFile) {
@@ -301,7 +267,7 @@ sealed trait CoreTestSweeper extends ActorTestSweeper with EffectTestSweeper wit
   /**
    * Terminates all sweepers immediately.
    */
-  def terminate(): Unit = {
+  override def terminate(): Unit = {
     logger.info(s"Terminating ${classOf[CoreTestSweeper].getSimpleName}")
 
     super.terminateAllActors()
