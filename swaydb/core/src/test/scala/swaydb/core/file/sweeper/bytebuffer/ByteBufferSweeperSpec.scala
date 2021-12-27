@@ -508,7 +508,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with MockFactory {
                 Seq(
                   () => cleaner.actor() send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(applier),
                   () => cleaner.actor() send ByteBufferCommand.DeleteFolder(filePath, filePath)
-                ).runThisRandomly
+                ).runThisRandomly()
               }
 
               eventual(10.seconds) {
@@ -588,7 +588,7 @@ class ByteBufferSweeperSpec extends AnyWordSpec with MockFactory {
                 Seq(
                   () => runThis(randomIntMax(10) max 1)(cleaner.actor() send ByteBufferCommand.Clean(buffer, () => false, forced, filePath, forceSave)(forceSaveApplier)),
                   () => runThis(randomIntMax(10) max 1)(cleaner.actor() send ByteBufferCommand.DeleteFolder(filePath, filePath))
-                ).runThisRandomly
+                ).runThisRandomly()
               }
 
               eventual(10.seconds) {

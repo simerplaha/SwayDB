@@ -1195,7 +1195,7 @@
 //              Seq(
 //                () => assertGetSequential(keyValues, copiedSegment),
 //                () => assertGetSequential(keyValues, segment)
-//              ).runThisRandomlyInParallel
+//              ).runThisRandomlyInParallel()
 //          }
 //        }
 //    }

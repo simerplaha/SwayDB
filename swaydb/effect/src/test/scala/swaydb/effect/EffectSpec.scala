@@ -259,7 +259,7 @@ class EffectSpec extends AnyWordSpec {
                 Effect.walkDelete(testDirectory)
                 Effect.exists(testDirectory) shouldBe false
               }
-            ).runThisRandomly
+            ).runThisRandomly()
         }
     }
   }

@@ -187,7 +187,7 @@
 //              () => subMap2.count shouldBe 2,
 //              () => subMap2.head.value shouldBe ((3, "three")),
 //              () => subMap2.last.value shouldBe ((4, "four"))
-//            ).runThisRandomly
+//            ).runThisRandomly()
 //          }
 //      }
 //    }
@@ -235,7 +235,7 @@
 //              () => subMap2.count shouldBe 2,
 //              () => subMap2.head.value shouldBe ((3, "three")),
 //              () => subMap2.last.value shouldBe ((4, "four"))
-//            ).runThisRandomly
+//            ).runThisRandomly()
 //          }
 //      }
 //    }
@@ -279,7 +279,7 @@
 //                  () => rootMap.put(2, "two"),
 //                  () => rootMap.put(3, "three"),
 //                  () => rootMap.put(4, "four")
-//                ).runThisRandomly
+//                ).runThisRandomly()
 //
 //              if (!skip)
 //                Seq(
@@ -287,7 +287,7 @@
 //                  () => childMap1.put(22, "two two"),
 //                  () => childMap1.put(33, "three three"),
 //                  () => childMap1.put(44, "four four")
-//                ).runThisRandomly
+//                ).runThisRandomly()
 //
 //              if (!skip)
 //                Seq(
@@ -295,7 +295,7 @@
 //                  () => childMap2.put(222, "two two two"),
 //                  () => childMap2.put(333, "three three three"),
 //                  () => childMap2.put(444, "four four four")
-//                ).runThisRandomly
+//                ).runThisRandomly()
 //            }
 //
 //            //perform initial write.
@@ -334,7 +334,7 @@
 //                () => childMap1.from(44).reverse.map { case (key, value) => (key, value) }.materialize shouldBe List((44, "four four"), (33, "three three"), (22, "two two"), (11, "one one")),
 //
 //                () => childMap1.children.materialize shouldBe empty
-//              ).runThisRandomly
+//              ).runThisRandomly()
 //            }
 //        }
 //      }

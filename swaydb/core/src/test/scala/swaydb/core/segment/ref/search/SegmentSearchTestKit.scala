@@ -239,7 +239,7 @@ object SegmentSearchTestKit {
     Seq(
       () => IO.Defer(level.head(ThreadReadState.random).toOptionPut).runIO.get shouldBe empty,
       () => IO.Defer(level.last(ThreadReadState.random).toOptionPut).runIO.get shouldBe empty
-    ).runThisRandomlyInParallel
+    ).runThisRandomlyInParallel()
 
   def assertGet(keyValues: Iterable[KeyValue],
                 segment: Segment): Unit =

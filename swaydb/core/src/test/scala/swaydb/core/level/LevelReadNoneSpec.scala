@@ -75,7 +75,7 @@
 //              () => level.lower(genStringOption(), ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
 //              () => level.head(ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty,
 //              () => level.last(ThreadReadState.random).runRandomIO.get.toOptionPut shouldBe empty
-//            ).runThisRandomly
+//            ).runThisRandomly()
 //      )
 //    }
 //
@@ -146,7 +146,7 @@
 //                      val expectedLower = existing.reverse.find(put => put.hasTimeLeft() && put.key.readInt() < nonExistentKey).map(_.key.readInt())
 //                      level.lower(nonExistentKey, ThreadReadState.random).runRandomIO.get.toOptionPut.map(_.key.readInt()) shouldBe expectedLower
 //                  }
-//              ).runThisRandomlyInParallel
+//              ).runThisRandomlyInParallel()
 //            }
 //        )
 //      }

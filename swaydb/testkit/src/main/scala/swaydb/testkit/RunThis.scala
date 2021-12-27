@@ -34,13 +34,13 @@ object RunThis extends Eventually {
   }
 
   implicit class RunParallelSeq[T](input: Iterable[() => T]) {
-    def runThisRandomlyInParallel =
+    def runThisRandomlyInParallel() =
       Random.shuffle(input).par.foreach(_ ())
 
-    def runThisRandomly =
+    def runThisRandomly() =
       Random.shuffle(input).foreach(_ ())
 
-    def runThisRandomlyValue: Iterable[T] =
+    def runThisRandomlyValue(): Iterable[T] =
       Random.shuffle(input).map(_ ())
   }
 

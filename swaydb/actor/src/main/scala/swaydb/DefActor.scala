@@ -248,7 +248,7 @@ final class DefActor[+I] private(name: String,
 
   override def equals(other: Any): Boolean =
     other match {
-      case other: DefActor[I] =>
+      case other: DefActor[_] =>
         this.uniqueId == other.uniqueId
 
       case _ =>

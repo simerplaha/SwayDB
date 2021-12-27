@@ -18,7 +18,7 @@ package swaydb.core.cache
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
-import swaydb.effect.{IOStrategy, Reserve}
+import swaydb.effect.IOStrategy
 import swaydb.utils.{FunctionSafe, Options}
 
 sealed trait CacheOrNull[+E, -I, +O]

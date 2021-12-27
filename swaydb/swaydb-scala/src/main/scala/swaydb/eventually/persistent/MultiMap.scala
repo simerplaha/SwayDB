@@ -17,10 +17,11 @@
 package swaydb.eventually.persistent
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.{Apply, CommonConfigs, KeyOrderConverter, MultiMap, PureFunction}
+import swaydb.config._
 import swaydb.config.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.config.compaction.CompactionConfig
 import swaydb.config.sequencer.Sequencer
-import swaydb.config._
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.effect.Dir
@@ -30,7 +31,6 @@ import swaydb.serializers.Serializer
 import swaydb.slice.Slice
 import swaydb.slice.order.KeyOrder
 import swaydb.utils.StorageUnits._
-import swaydb.{Apply, CommonConfigs, KeyOrderConverter, MultiMap, PureFunction}
 
 import java.nio.file.Path
 import scala.concurrent.duration.FiniteDuration

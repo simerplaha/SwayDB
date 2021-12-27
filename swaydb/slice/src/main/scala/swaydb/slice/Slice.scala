@@ -18,9 +18,7 @@ package swaydb.slice
 
 import swaydb.utils.SomeOrNoneCovariant
 
-import java.io.ByteArrayInputStream
 import java.lang
-import java.nio.ByteBuffer
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.{mutable, Iterable, Iterator}
@@ -863,7 +861,7 @@ sealed trait Slice[+T] extends SliceRO[T] with SliceOption[T] { self =>
 
   override def equals(that: Any): Boolean =
     that match {
-      case other: Slice[T] =>
+      case other: Slice[_] =>
         this.size == other.size &&
           this.iterator.sameElements(other.iterator)
 
@@ -1143,7 +1141,7 @@ class Slices[A](val slices: Array[Slice[A]])(override implicit val classTag: Cla
 
   override def equals(that: Any): Boolean =
     that match {
-      case other: Slices[A] =>
+      case other: Slices[_] =>
         this.size == other.size &&
           this.iterator.sameElements(other.iterator)
 

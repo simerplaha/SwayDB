@@ -22,7 +22,7 @@ import swaydb.core.segment.block.reader.{BlockedReader, BlockRefReader, Unblocke
 import swaydb.core.segment.block.segment.transient.{TransientSegment, TransientSegmentRef}
 import swaydb.core.util.Bytes
 import swaydb.effect.IOAction
-import swaydb.slice.{ReaderBase, Slice, SliceMut, SliceReader}
+import swaydb.slice.{Slice, SliceMut, SliceReader}
 import swaydb.utils.ByteSizeOf
 import swaydb.utils.Collections._
 

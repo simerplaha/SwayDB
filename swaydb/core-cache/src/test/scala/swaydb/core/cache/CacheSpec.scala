@@ -479,7 +479,7 @@ class CacheSpec extends AnyWordSpec with MockFactory {
             Future.sequence {
               (1 to 100) map {
                 _ =>
-                  Future().flatMap(_ => cache.getOrFetch(()).toFuture)
+                  Future(()).flatMap(_ => cache.getOrFetch(()).toFuture)
               }
             }
 

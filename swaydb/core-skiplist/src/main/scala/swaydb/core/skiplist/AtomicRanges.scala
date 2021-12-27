@@ -108,7 +108,7 @@ private[swaydb] case object AtomicRanges extends LazyLogging {
   private[swaydb] class Value[V](val value: V)
 
   def apply[K]()(implicit ordering: Ordering[K]): AtomicRanges[K] = {
-    implicit val keyOrder = Key.order(ordering)
+    implicit val keyOrder: Ordering[Key[K]] = Key.order(ordering)
     val transactions = new ConcurrentSkipListMap[Key[K], Value[Reserve[Unit]]](keyOrder)
     new AtomicRanges[K](transactions)
   }
@@ -273,8 +273,7 @@ private[swaydb] case object AtomicRanges extends LazyLogging {
   }
 }
 
-private[swaydb] class AtomicRanges[K](private val transactions: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]])(implicit val keyRangeOrdering: Ordering[AtomicRanges.Key[K]],
-                                                                                                                                  keyOrder: Ordering[K]) {
+private[swaydb] class AtomicRanges[K](private val transactions: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]]) {
 
   private implicit val self: AtomicRanges[K] =
     this

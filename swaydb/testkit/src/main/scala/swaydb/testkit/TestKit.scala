@@ -11,10 +11,7 @@ object TestKit {
 
   implicit class CommonAssertions[A](instance: A) {
     def shouldBeInstanceOf[B <: A](implicit bClassTag: ClassTag[B]): B = {
-      if (!instance.isInstanceOf[B])
-      //shouldBe again for descriptive ScalaTest errors
-        instance.getClass shouldBe bClassTag.runtimeClass
-
+      instance.getClass shouldBe bClassTag.runtimeClass
       instance.asInstanceOf[B]
     }
   }

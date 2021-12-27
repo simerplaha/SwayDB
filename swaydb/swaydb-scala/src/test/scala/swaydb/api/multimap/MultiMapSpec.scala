@@ -226,7 +226,7 @@
 //                () => child.get(i).value shouldBe i.toString,
 //                //child has values set
 //                () => child.expiration(i).value shouldBe deadline
-//              ).runThisRandomly
+//              ).runThisRandomly()
 //          }
 //
 //          eventual(deadline.timeLeft) {
@@ -261,7 +261,7 @@
 //                () => child.get(i).value shouldBe i.toString,
 //                //child has values set
 //                () => child.expiration(i).value shouldBe keyValueDeadline
-//              ).runThisRandomly
+//              ).runThisRandomly()
 //          }
 //
 //          eventual(keyValueDeadline.timeLeft) {

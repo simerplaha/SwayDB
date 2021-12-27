@@ -1,13 +1,13 @@
 package swaydb.effect
 
-import EffectTestSweeper._
+import swaydb.effect.EffectTestSweeper._
 import swaydb.slice.Slice
 import swaydb.testkit.TestKit._
 import swaydb.utils.Extension
-
-import java.nio.file.{Files, Path, Paths}
-import scala.util.Random
 import swaydb.utils.UtilsTestKit._
+
+import java.nio.file.Path
+import scala.util.Random
 
 object EffectTestKit {
 

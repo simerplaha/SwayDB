@@ -72,9 +72,9 @@ object Benchmark extends LazyLogging {
           doPrint(message = messageToLog, useLazyLogging = useLazyLogging, newLine = true)
 
         if (!useLazyLogging)
-          println
+          println()
 
-        bag.success(result, timeWithoutGCRounded)
+        bag.success((result, timeWithoutGCRounded))
     }
   }
 

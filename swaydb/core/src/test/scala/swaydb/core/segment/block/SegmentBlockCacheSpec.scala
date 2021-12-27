@@ -80,7 +80,7 @@ class SegmentBlockCacheSpec extends AnyWordSpec {
                   () => Option(blockCache.createHashIndexReaderOrNull().runRandomIO.get).foreach(reader => hashIndexReader.add(reader)),
                   () => Option(blockCache.createValuesReaderOrNull().runRandomIO.get).foreach(reader => valuesReader.add(reader)),
                   () => eitherOne(blockCache.clear(), ())
-                ).runThisRandomlyInParallel
+                ).runThisRandomlyInParallel()
             }
 
             segmentBlockReader.asScala.toList.distinct.size shouldBe segmentBlockReader.size

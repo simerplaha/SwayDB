@@ -83,7 +83,7 @@ class AppendixLogCache(skipList: SkipListConcurrent[SliceOption[Byte], SegmentOp
   def get(key: Slice[Byte]): SegmentOption =
     skipList.get(key)
 
-  def contains(key: Slice[Byte]) =
+  def contains(key: Slice[Byte]): Boolean =
     skipList.contains(key)
 
   def foreach[R](f: (Slice[Byte], Segment) => R): Unit =
@@ -95,7 +95,7 @@ class AppendixLogCache(skipList: SkipListConcurrent[SliceOption[Byte], SegmentOp
   def take(count: Int)(implicit classTag: ClassTag[Segment]): Slice[Segment] =
     skipList.take(count)
 
-  def size =
+  def size: Int =
     skipList.size
 
   override def iterator: Iterator[(Slice[Byte], Segment)] =

@@ -107,7 +107,7 @@ class MMAPFileSpec extends AnyWordSpec with MockFactory {
                   () =>
                     //read all the bytes from disk and they exist
                     Slice.wrap(Effect.readAllBytes(path)) shouldBe bytes
-                ).runThisRandomly
+                ).runThisRandomly()
               }
 
               /**

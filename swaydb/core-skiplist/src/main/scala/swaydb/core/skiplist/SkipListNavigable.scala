@@ -33,7 +33,7 @@ private[swaydb] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] priva
 
   protected def skipList: util.NavigableMap[K, V]
 
-  def this(int: Int)(implicit ordering: KeyOrder[K]) {
+  def this(int: Int)(implicit ordering: KeyOrder[K]) = {
     this(new AtomicInteger(int))
   }
 
