@@ -60,7 +60,7 @@
 //      def testWrite(mmapPersistentLevelAppendixLogs Maps[Slice[Byte], Memory]) = {
 //        keyValues foreach {
 //          keyValue =>
-//            maps.write(time => LogEntry.Put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))).runRandomIO.get
+//            maps.write(time => LogEntry.Put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue(), None, time.next))).runRandomIO.get
 //        }
 //      }
 //
@@ -70,7 +70,7 @@
 //            val got = maps.get(keyValue.key).value
 //            got.isInstanceOf[Memory.Put] shouldBe true
 //            got.key shouldBe keyValue.key
-//            got.getOrFetchValue shouldBe keyValue.getOrFetchValue
+//            got.getOrFetchValue() shouldBe keyValue.getOrFetchValue()
 //        }
 //      }
 //

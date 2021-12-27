@@ -185,7 +185,7 @@ class SegmentGetSpec extends AnyWordSpec {
                         range.toKey.underlyingArraySize shouldBe keyValues.find(_.key == range.fromKey).value.key.toArray.length
 
                       case _ =>
-                        gotFromCache.getOrFetchValue.map(_.underlyingArraySize) shouldBe keyValue.getOrFetchValue.map(_.toArray.length)
+                        gotFromCache.getOrFetchValue().map(_.underlyingArraySize) shouldBe keyValue.getOrFetchValue().map(_.toArray.length)
                     }
                 }
           )
@@ -235,7 +235,7 @@ class SegmentGetSpec extends AnyWordSpec {
     //                keyValue =>
     //                  val readKeyValue = segment.get(keyValue.key).runIO
     //                  segment.close.runIO
-    //                  readKeyValue.getOrFetchValue shouldBe keyValue.getOrFetchValue
+    //                  readKeyValue.getOrFetchValue() shouldBe keyValue.getOrFetchValue()
     //              }
     //        )
     //      }
@@ -268,7 +268,7 @@ class SegmentGetSpec extends AnyWordSpec {
     //                    case range: KeyValue.Range =>
     //                      range.fetchFromAndRangeValue.runIO
     //                    case _ =>
-    //                      readKeyValue.getOrFetchValue shouldBe keyValue.getOrFetchValue
+    //                      readKeyValue.getOrFetchValue() shouldBe keyValue.getOrFetchValue()
     //                  }
     //
     //                  //value is now set

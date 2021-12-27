@@ -43,16 +43,16 @@ private[core] object FunctionMerger {
       }
 
     if (newKeyValue.time > oldKeyValue.time) {
-      val function = newKeyValue.getOrFetchFunction
+      val function = newKeyValue.getOrFetchFunction()
       functionStore.get(function) match {
         case Some(functionId) =>
           functionId match {
             case SegmentFunction.Value(f) =>
-              val output = f(oldKeyValue.getOrFetchValue)
+              val output = f(oldKeyValue.getOrFetchValue())
               applyOutput(output)
 
             case SegmentFunction.ValueDeadline(f) =>
-              val value = oldKeyValue.getOrFetchValue
+              val value = oldKeyValue.getOrFetchValue()
               val output = f(value, oldKeyValue.deadline)
               applyOutput(output)
 
@@ -62,7 +62,7 @@ private[core] object FunctionMerger {
                   applyOutput(f(oldKeyValue.key))
 
                 case SegmentFunction.KeyValue(f) =>
-                  val oldValue = oldKeyValue.getOrFetchValue
+                  val oldValue = oldKeyValue.getOrFetchValue()
                   val output = f(oldKeyValue.key, oldValue)
                   applyOutput(output)
 
@@ -71,7 +71,7 @@ private[core] object FunctionMerger {
                   applyOutput(output)
 
                 case SegmentFunction.KeyValueDeadline(f) =>
-                  val oldValue = oldKeyValue.getOrFetchValue
+                  val oldValue = oldKeyValue.getOrFetchValue()
                   val output = f(oldKeyValue.key, oldValue, oldKeyValue.deadline)
                   applyOutput(output)
               }
@@ -112,12 +112,12 @@ private[core] object FunctionMerger {
     }
 
     if (newKeyValue.time > oldKeyValue.time) {
-      val function = newKeyValue.getOrFetchFunction
+      val function = newKeyValue.getOrFetchFunction()
       functionStore.get(function) match {
         case Some(functionId) =>
           functionId match {
             case SegmentFunction.Value(f) =>
-              val value = oldKeyValue.getOrFetchValue
+              val value = oldKeyValue.getOrFetchValue()
               applyOutput(f(value))
 
             case SegmentFunction.ValueDeadline(f) =>
@@ -126,7 +126,7 @@ private[core] object FunctionMerger {
               if (oldKeyValue.deadline.isEmpty) {
                 toPendingApply()
               } else {
-                val value = oldKeyValue.getOrFetchValue
+                val value = oldKeyValue.getOrFetchValue()
                 val output = f(value, oldKeyValue.deadline)
                 applyOutput(output)
               }
@@ -140,7 +140,7 @@ private[core] object FunctionMerger {
                     applyOutput(f(oldKeyValue.key))
 
                   case SegmentFunction.KeyValue(f) =>
-                    val oldValue = oldKeyValue.getOrFetchValue
+                    val oldValue = oldKeyValue.getOrFetchValue()
                     val output = f(oldKeyValue.key, oldValue)
                     applyOutput(output)
 
@@ -154,7 +154,7 @@ private[core] object FunctionMerger {
                     if (oldKeyValue.deadline.isEmpty) {
                       toPendingApply()
                     } else {
-                      val oldValue = oldKeyValue.getOrFetchValue
+                      val oldValue = oldKeyValue.getOrFetchValue()
                       val output = f(oldKeyValue.key, oldValue, oldKeyValue.deadline)
                       applyOutput(output)
                     }
@@ -195,7 +195,7 @@ private[core] object FunctionMerger {
       )
 
     if (newKeyValue.time > oldKeyValue.time) {
-      val function = newKeyValue.getOrFetchFunction
+      val function = newKeyValue.getOrFetchFunction()
       oldKeyValue.deadline match {
         case None =>
           oldKeyValue.copyWithTime(newKeyValue.time)
@@ -279,7 +279,7 @@ private[core] object FunctionMerger {
     if (newKeyValue.time > oldKeyValue.time)
       FixedMerger(
         newer = newKeyValue,
-        oldApplies = oldKeyValue.getOrFetchApplies
+        oldApplies = oldKeyValue.getOrFetchApplies()
       )
     else
       oldKeyValue

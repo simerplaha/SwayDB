@@ -110,7 +110,7 @@ private[core] object Lower {
               //10 - 20 (lower range from current Level)
               case currentRange: KeyValue.Range if key < currentRange.toKey =>
                 //if the current range is active fetch the lowest from next Level and return lowest from both Levels.
-                if (Value.hasTimeLeft(currentRange.fetchRangeValueUnsafe))
+                if (Value.hasTimeLeft(currentRange.fetchRangeValueUnsafe()))
                   nextWalker.lower(key, readState) match {
                     case next: KeyValue.Put =>
                       Lower(key, readState, currentStash, Seek.Next.Stash(next))
@@ -122,7 +122,7 @@ private[core] object Lower {
                 //if the rangeValue is expired then check if fromValue is valid put else fetch from lower and merge.
                 else
                 //check if from value is a put before reading the next Level.
-                  lowerFromValue(key, currentRange.fromKey, currentRange.fetchFromValueUnsafe) match {
+                  lowerFromValue(key, currentRange.fromKey, currentRange.fetchFromValueUnsafe()) match {
                     case some: KeyValue.Put => //yes it is!
                       some
 
@@ -225,7 +225,7 @@ private[core] object Lower {
                 //10   -    20 (lower range)
                 //  11 -> 19   (lower possible keys from next)
                 else if (next.key > current.fromKey)
-                  FixedMerger(current.fetchRangeValueUnsafe.toMemory(next.key), next) match {
+                  FixedMerger(current.fetchRangeValueUnsafe().toMemory(next.key), next) match {
                     case put: KeyValue.Put if put.hasTimeLeft() =>
                       put
 
@@ -240,7 +240,7 @@ private[core] object Lower {
                 //10
                 else if (next.key equiv current.fromKey) { //if the lower in next Level falls within the range.
                   //if fromValue is set check if it qualifies as the next highest orElse return lower of fromKey
-                  val rangeValue = current.fetchFromOrElseRangeValueUnsafe
+                  val rangeValue = current.fetchFromOrElseRangeValueUnsafe()
                   lowerFromValue(key, current.fromKey, rangeValue) match {
                     case lowerPut: KeyValue.Put =>
                       lowerPut
@@ -263,7 +263,7 @@ private[core] object Lower {
                 //0->9
                 else //else if the lower in next Level does not fall within the range.
                 //if fromValue is set check if it qualifies as the next highest orElse return lower of fromKey
-                  lowerFromValue(key, current.fromKey, current.fetchFromValueUnsafe) match {
+                  lowerFromValue(key, current.fromKey, current.fetchFromValueUnsafe()) match {
                     case somePut: KeyValue.Put =>
                       somePut
 
@@ -293,7 +293,7 @@ private[core] object Lower {
                 Lower(current.key, readState, Seek.Current.Read(segmentNumber), nextSeek)
 
               case current: KeyValue.Range =>
-                lowerFromValue(key, current.fromKey, current.fetchFromValueUnsafe) match {
+                lowerFromValue(key, current.fromKey, current.fetchFromValueUnsafe()) match {
                   case put: KeyValue.Put =>
                     put
 

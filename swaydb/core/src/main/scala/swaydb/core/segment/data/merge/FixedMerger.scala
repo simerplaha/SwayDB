@@ -28,7 +28,7 @@ private[core] object FixedMerger {
                                           functionStore: CoreFunctionStore): KeyValue.Fixed =
     FixedMerger(
       newer = newer,
-      oldApplies = older.getOrFetchApplies
+      oldApplies = older.getOrFetchApplies()
     )
 
   def apply(newer: KeyValue.Fixed,
@@ -55,7 +55,7 @@ private[core] object FixedMerger {
 
           case newer: KeyValue.PendingApply =>
             return {
-              val newerApplies = newer.getOrFetchApplies
+              val newerApplies = newer.getOrFetchApplies()
               val newMergedApplies = oldApplies.dropRight(count) ++ newerApplies
               if (newMergedApplies.size == 1)
                 newMergedApplies.head.toMemory(newer.key)

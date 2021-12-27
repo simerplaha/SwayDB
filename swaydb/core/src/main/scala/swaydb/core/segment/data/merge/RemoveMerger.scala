@@ -105,7 +105,7 @@ private[core] object RemoveMerger {
         case Some(_) =>
           FixedMerger(
             newer = newer,
-            oldApplies = older.getOrFetchApplies
+            oldApplies = older.getOrFetchApplies()
           )
 
         case None =>

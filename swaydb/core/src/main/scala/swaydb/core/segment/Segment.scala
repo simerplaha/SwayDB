@@ -413,7 +413,7 @@ private[core] case object Segment extends LazyLogging {
         deadline
 
       case range: KeyValue.Range =>
-        range.fetchFromAndRangeValueUnsafe match {
+        range.fetchFromAndRangeValueUnsafe() match {
           case (fromValue: Value.FromValue, _) =>
             getNearestPutDeadline(deadline, fromValue)
 

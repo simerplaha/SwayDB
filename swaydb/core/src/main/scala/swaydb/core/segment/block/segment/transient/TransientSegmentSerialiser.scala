@@ -130,10 +130,10 @@ object TransientSegmentSerialiser {
   def offset(persistent: Persistent): Int =
     persistent match {
       case fixed: Persistent.Put =>
-        fixed.getOrFetchValue.getC.dropHead().readUnsignedInt()
+        fixed.getOrFetchValue().getC.dropHead().readUnsignedInt()
 
       case range: Persistent.Range =>
-        range.fetchRangeValueUnsafe match {
+        range.fetchRangeValueUnsafe() match {
           case update: Value.Update =>
             update.value.getC.dropHead().readUnsignedInt()
 
@@ -151,7 +151,7 @@ object TransientSegmentSerialiser {
         range.fromKey
 
       case fixed: Persistent.Put =>
-        val reader = SliceReader(slice = fixed.getOrFetchValue.getC, position = 1)
+        val reader = SliceReader(slice = fixed.getOrFetchValue().getC, position = 1)
         reader.read(reader.readUnsignedInt())
 
       case keyValue =>
@@ -213,7 +213,7 @@ object TransientSegmentSerialiser {
                                                                 segmentIO: SegmentReadIO,
                                                                 blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentRef =
-    range.fetchRangeValueUnsafe match {
+    range.fetchRangeValueUnsafe() match {
       case Value.Update(value, deadline, time) =>
         val valueReader = SliceReader(value.getC)
         val maxKeyId = valueReader.get()
@@ -319,7 +319,7 @@ object TransientSegmentSerialiser {
                                                                 segmentIO: SegmentReadIO,
                                                                 blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentRef = {
-    val valueReader = SliceReader(put.getOrFetchValue.getC)
+    val valueReader = SliceReader(put.getOrFetchValue().getC)
     val maxKeyId = valueReader.get()
     if (maxKeyId == 0) {
       val minKey = valueReader.read(valueReader.readUnsignedInt())

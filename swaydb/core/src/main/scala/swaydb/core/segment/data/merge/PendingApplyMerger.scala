@@ -36,7 +36,7 @@ private[core] object PendingApplyMerger {
 
         case _: KeyValue.Fixed =>
           ApplyMerger(
-            newApplies = newKeyValue.getOrFetchApplies,
+            newApplies = newKeyValue.getOrFetchApplies(),
             oldKeyValue = oldKeyValue
           )
       }

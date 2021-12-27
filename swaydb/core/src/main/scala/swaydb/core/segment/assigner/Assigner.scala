@@ -270,7 +270,7 @@ private[core] object Assigner {
                   nextSegmentMayBe match {
                     //check if this range key-value spreads onto the next segment
                     case nextSegment: SEG if keyValue.toKey > nextSegment.minKey =>
-                      val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe
+                      val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe()
                       val thisSegmentsRange = Memory.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue)
                       val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = Value.FromValue.Null, rangeValue = rangeValue)
 
@@ -374,7 +374,7 @@ private[core] object Assigner {
                             assign(remaining, nextSegment, getNextSegmentMayBe())
                           } else {
                             //perform a split
-                            val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe
+                            val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe()
                             val thisSegmentsRange = Memory.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue)
                             val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = Value.FromValue.Null, rangeValue = rangeValue)
                             assignToGap(thisSegmentsRange, thisSegment)

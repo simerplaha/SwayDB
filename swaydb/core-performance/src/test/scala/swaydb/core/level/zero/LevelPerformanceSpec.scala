@@ -78,7 +78,7 @@
 ////      //        level.get(keyValue.key).runIO
 ////      //        val got = level.get(keyValue.key, readState).runIO.get.get
 ////      //        got shouldBe keyValue
-////      //        got.getOrFetchValue shouldBe keyValue
+////      //        got.getOrFetchValue() shouldBe keyValue
 ////      //        println("value: " + level.get(keyValue.key).runIO._2.runIO.asInt())
 ////    }
 ////  }
@@ -91,7 +91,7 @@
 ////        level.lower(keyValues(index).key, readState)
 ////      //        val keyValue = level.lower(keyValues(index).key).runIO
 ////      //        keyValue.key shouldBe keyValues(index - 1).key
-////      //        keyValue.getOrFetchValue.runIO.value shouldBe keyValues(index - 1).getOrFetchValue.runIO.value
+////      //        keyValue.getOrFetchValue().runIO.value shouldBe keyValues(index - 1).getOrFetchValue().runIO.value
 ////    }
 ////  }
 ////
@@ -101,7 +101,7 @@
 ////      //        level.higher(keyValues(index).key)
 ////      //        val keyValue = level.higher(keyValues(index).key).runIO
 ////      //        keyValue.key shouldBe keyValues(index + 1).key
-////      //        keyValue.getOrFetchValue.runIO.value shouldBe keyValues(index + 1).getOrFetchValue.runIO.value
+////      //        keyValue.getOrFetchValue().runIO.value shouldBe keyValues(index + 1).getOrFetchValue().runIO.value
 ////    }
 ////
 ////  var level =
@@ -112,7 +112,7 @@
 ////
 ////  keyValues foreach {
 ////    keyValue =>
-////      level.put(keyValue.key, keyValue.getOrFetchValue)
+////      level.put(keyValue.key, keyValue.getOrFetchValue())
 ////  }
 ////
 ////  //  def reopenLevelZero() = {
@@ -130,7 +130,7 @@
 ////
 ////    keyValues foreach {
 ////      keyValue =>
-////        skipList.put(keyValue.key, keyValue.getOrFetchValue)
+////        skipList.put(keyValue.key, keyValue.getOrFetchValue())
 ////    }
 ////
 ////    Benchmark("") {

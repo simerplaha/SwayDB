@@ -56,7 +56,7 @@
 ////          keyValue =>
 ////            maps.write {
 ////              time =>
-////                LogEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))(Level0PutWriter)
+////                LogEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue(), None, time.next))(Level0PutWriter)
 ////            }.runRandomIO.get
 ////        }
 ////
@@ -64,7 +64,7 @@
 ////        keyValues foreach {
 ////          keyValue =>
 ////            maps.get(keyValue.key)
-////          //            maps.get(keyValue.key).runIO shouldBe ((ValueType.Add, keyValue.getOrFetchValue.runIO.value))
+////          //            maps.get(keyValue.key).runIO shouldBe ((ValueType.Add, keyValue.getOrFetchValue().runIO.value))
 ////        }
 ////
 ////      val dir1 = Effect.createDirectoryIfAbsent(testDir.resolve(1.toString))

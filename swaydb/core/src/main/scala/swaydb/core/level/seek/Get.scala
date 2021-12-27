@@ -120,9 +120,9 @@ private[core] object Get {
       case current: KeyValue.Range =>
         val currentValue =
           if (keyOrder.equiv(current.key, key))
-            current.fetchFromOrElseRangeValueUnsafe
+            current.fetchFromOrElseRangeValueUnsafe()
           else
-            current.fetchRangeValueUnsafe
+            current.fetchRangeValueUnsafe()
 
         if (Value.hasTimeLeft(currentValue))
           resolve(current = currentValue.toMemory(key), key = key, readState = readState)

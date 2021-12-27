@@ -60,7 +60,7 @@ class LogEntryParserSpec extends AnyWordSpec {
       val map = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       keyValues foreach {
         keyValue =>
-          map.put(keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))
+          map.put(keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue()))
       }
 
       import MemoryLogEntryWriter.LogEntryPutWriter
@@ -74,7 +74,7 @@ class LogEntryParserSpec extends AnyWordSpec {
       keyValues foreach {
         keyValue =>
           val value = readMap.get(keyValue.key)
-          value.getUnsafe shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
+          value.getUnsafe shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue())
       }
     }
 
@@ -86,7 +86,7 @@ class LogEntryParserSpec extends AnyWordSpec {
       val map = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       keyValues foreach {
         keyValue =>
-          map.put(keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))
+          map.put(keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue()))
       }
 
       def assertBytes(bytesWithEmpty: Slice[Byte]) = {
@@ -97,7 +97,7 @@ class LogEntryParserSpec extends AnyWordSpec {
         keyValues foreach {
           keyValue =>
             val value = readMap.get(keyValue.key)
-            value.getUnsafe shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
+            value.getUnsafe shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue())
         }
       }
 
@@ -124,7 +124,7 @@ class LogEntryParserSpec extends AnyWordSpec {
         val map = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         keyValues foreach {
           keyValue =>
-            map.put(keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))
+            map.put(keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue()))
         }
         map
       }
@@ -152,7 +152,7 @@ class LogEntryParserSpec extends AnyWordSpec {
       allKeyValues foreach {
         keyValue =>
           val value = map.get(keyValue.key)
-          value.getUnsafe shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
+          value.getUnsafe shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue())
       }
 
       //corrupt bytes in bytes2 and read the bytes again. keyValues2 should not exist as it's key-values are corrupted.
@@ -166,7 +166,7 @@ class LogEntryParserSpec extends AnyWordSpec {
       keyValues1 foreach {
         keyValue =>
           val value = map.get(keyValue.key).getUnsafe
-          value shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
+          value shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue())
       }
 
       //corrupt bytes of bytes1

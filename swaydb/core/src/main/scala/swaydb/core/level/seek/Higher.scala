@@ -140,7 +140,7 @@ private[core] object Higher {
               //10 - 20 (higher range from current Level)
               case currentRange: KeyValue.Range if key >= currentRange.fromKey =>
                 //if the current range is active fetch the highest from next Level and return highest from both Levels.
-                if (Value.hasTimeLeft(currentRange.fetchRangeValueUnsafe)) //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
+                if (Value.hasTimeLeft(currentRange.fetchRangeValueUnsafe())) //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
                   nextWalker.higher(key, readState) match {
                     case next: KeyValue.Put =>
                       Higher(key, readState, currentStash, Seek.Next.Stash(next))
@@ -191,7 +191,7 @@ private[core] object Higher {
                 Higher(current.key, readState, Seek.Current.Read(segmentNumber), nextSeek)
 
               case current: KeyValue.Range =>
-                higherFromValue(key, current.fromKey, current.fetchFromValueUnsafe) match {
+                higherFromValue(key, current.fromKey, current.fetchFromValueUnsafe()) match {
                   case somePut: KeyValue.Put =>
                     somePut
 
@@ -261,7 +261,7 @@ private[core] object Higher {
                 //10 - 20
                 //10
                 else if (next.key equiv current.fromKey)
-                  FixedMerger(current.fetchFromOrElseRangeValueUnsafe.toMemory(current.fromKey), next) match {
+                  FixedMerger(current.fetchFromOrElseRangeValueUnsafe().toMemory(current.fromKey), next) match {
                     case put: KeyValue.Put if put.hasTimeLeft() =>
                       put
 
@@ -274,7 +274,7 @@ private[core] object Higher {
                 //10  -  20
                 //  11-19
                 else if (next.key < current.toKey) { //if the higher in next Level falls within the range.
-                  val (fromValue, rangeValue) = current.fetchFromAndRangeValueUnsafe
+                  val (fromValue, rangeValue) = current.fetchFromAndRangeValueUnsafe()
                   //if fromValue is set check if it qualifies as the next highest orElse return higher of fromKey
                   higherFromValue(key, current.fromKey, fromValue) match {
                     case fromValuePut: KeyValue.Put =>
@@ -295,7 +295,7 @@ private[core] object Higher {
                 //10 - 20
                 //     20 ----to----> ∞
                 else //else if the higher in next Level does not fall within the range.
-                  higherFromValue(key, current.fromKey, current.fetchFromValueUnsafe) match {
+                  higherFromValue(key, current.fromKey, current.fetchFromValueUnsafe()) match {
                     case put: KeyValue.Put =>
                       put
 

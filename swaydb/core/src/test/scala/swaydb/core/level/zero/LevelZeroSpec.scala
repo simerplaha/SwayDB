@@ -104,10 +104,10 @@
 //        implicit sweeper =>
 //          def assert(zero: LevelZero): Unit = {
 //            zero.put(1, "one").runRandomIO.value
-//            zero.get(1, ThreadReadState.random).getPut.getOrFetchValue shouldBe ("one": Slice[Byte])
+//            zero.get(1, ThreadReadState.random).getPut.getOrFetchValue() shouldBe ("one": Slice[Byte])
 //
 //            zero.put("2", "two").runRandomIO.value
-//            zero.get("2", ThreadReadState.random).getPut.getOrFetchValue shouldBe ("two": Slice[Byte])
+//            zero.get("2", ThreadReadState.random).getPut.getOrFetchValue() shouldBe ("two": Slice[Byte])
 //          }
 //
 //          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => LevelThrottle(10.seconds, 0))))
@@ -127,7 +127,7 @@
 //
 //          zero.put(one, one).runRandomIO
 //
-//          val gotFromLevelZero = zero.get(one, ThreadReadState.random).getPut.getOrFetchValue.getC
+//          val gotFromLevelZero = zero.get(one, ThreadReadState.random).getPut.getOrFetchValue().getC
 //          gotFromLevelZero shouldBe one
 //          //ensure that key-values are not cut in LevelZero.
 //          gotFromLevelZero.underlyingArraySize shouldBe 10
@@ -138,9 +138,9 @@
 //            //put the same key-value to Level1 and expect the key-values to be sliced
 //            level.put(Slice(Memory.put(one, one))).runRandomIO
 //            val gotFromLevelOne = level.get(one, ThreadReadState.random).getPut
-//            gotFromLevelOne.getOrFetchValue shouldBe one
+//            gotFromLevelOne.getOrFetchValue() shouldBe one
 //            //ensure that key-values are not cut in LevelOne.
-//            gotFromLevelOne.getOrFetchValue.getC.underlyingArraySize shouldBe 4
+//            gotFromLevelOne.getOrFetchValue().getC.underlyingArraySize shouldBe 4
 //          }
 //      }
 //    }
@@ -158,7 +158,7 @@
 //        implicit sweeper =>
 //          val zero = TestLevelZero(Some(TestLevel()))
 //          zero.put(1, Slice.empty).runRandomIO
-//          zero.get(1, ThreadReadState.random).getPut.getOrFetchValue shouldBe Slice.Null
+//          zero.get(1, ThreadReadState.random).getPut.getOrFetchValue() shouldBe Slice.Null
 //      }
 //    }
 //
@@ -178,8 +178,8 @@
 //          }
 //
 //          def assertRead(zero: LevelZero): Unit = {
-//            zero.get(key1, ThreadReadState.random).getPut.getOrFetchValue shouldBe value1
-//            zero.get(key2, ThreadReadState.random).getPut.getOrFetchValue shouldBe value2
+//            zero.get(key1, ThreadReadState.random).getPut.getOrFetchValue() shouldBe value1
+//            zero.get(key2, ThreadReadState.random).getPut.getOrFetchValue() shouldBe value2
 //          }
 //
 //          val zero = TestLevelZero(Some(TestLevel(throttle = _ => LevelThrottle(10.seconds, 0))))
@@ -201,8 +201,8 @@
 //          zero.put("one").runRandomIO
 //          zero.put("two").runRandomIO
 //
-//          zero.get("one", ThreadReadState.random).getPut.getOrFetchValue.toOptionC shouldBe empty
-//          zero.get("two", ThreadReadState.random).getPut.getOrFetchValue.toOptionC shouldBe empty
+//          zero.get("one", ThreadReadState.random).getPut.getOrFetchValue().toOptionC shouldBe empty
+//          zero.get("two", ThreadReadState.random).getPut.getOrFetchValue().toOptionC shouldBe empty
 //
 //          zero.contains("one", ThreadReadState.random).runRandomIO.get shouldBe true
 //          zero.contains("two", ThreadReadState.random).runRandomIO.get shouldBe true
@@ -250,7 +250,7 @@
 //
 //          keyValues foreach {
 //            keyValue =>
-//              zero.put(keyValue.key, keyValue.getOrFetchValue).runRandomIO.get
+//              zero.put(keyValue.key, keyValue.getOrFetchValue()).runRandomIO.get
 //          }
 //
 //          if (unexpiredPuts(keyValues).nonEmpty)
@@ -293,7 +293,7 @@
 //
 //          keyValues foreach {
 //            keyValue =>
-//              zero.put(keyValue.key, keyValue.getOrFetchValue).runRandomIO
+//              zero.put(keyValue.key, keyValue.getOrFetchValue()).runRandomIO
 //          }
 //
 //          zero.keyValueCount shouldBe 1
@@ -314,7 +314,7 @@
 //
 //            keyValues foreach {
 //              keyValue =>
-//                zero.put(keyValue.key, keyValue.getOrFetchValue).runRandomIO
+//                zero.put(keyValue.key, keyValue.getOrFetchValue()).runRandomIO
 //            }
 //
 //            zero.clear(ThreadReadState.random).runRandomIO.get
@@ -341,18 +341,18 @@
 //
 //          val head = zero.head(ThreadReadState.random).getPut
 //          head.key shouldBe (1: Slice[Byte])
-//          head.getOrFetchValue shouldBe ("one": Slice[Byte])
+//          head.getOrFetchValue() shouldBe ("one": Slice[Byte])
 //
 //          //remove 1
 //          zero.remove(1).runRandomIO
 //          println
-//          zero.head(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("two": Slice[Byte])
+//          zero.head(ThreadReadState.random).getPut.getOrFetchValue() shouldBe ("two": Slice[Byte])
 //
 //          zero.remove(2).runRandomIO
 //          zero.remove(3).runRandomIO
 //          zero.remove(4).runRandomIO
 //
-//          zero.head(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("five": Slice[Byte])
+//          zero.head(ThreadReadState.random).getPut.getOrFetchValue() shouldBe ("five": Slice[Byte])
 //
 //          zero.remove(5).runRandomIO
 //          zero.head(ThreadReadState.random).toOptionPut shouldBe empty
@@ -373,17 +373,17 @@
 //          zero.put(4, "four").runRandomIO
 //          zero.put(5, "five").runRandomIO
 //
-//          zero.last(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("five": Slice[Byte])
+//          zero.last(ThreadReadState.random).getPut.getOrFetchValue() shouldBe ("five": Slice[Byte])
 //
 //          //remove 5
 //          zero.remove(5).runRandomIO
-//          zero.last(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("four": Slice[Byte])
+//          zero.last(ThreadReadState.random).getPut.getOrFetchValue() shouldBe ("four": Slice[Byte])
 //
 //          zero.remove(2).runRandomIO
 //          zero.remove(3).runRandomIO
 //          zero.remove(4).runRandomIO
 //
-//          zero.last(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("one": Slice[Byte])
+//          zero.last(ThreadReadState.random).getPut.getOrFetchValue() shouldBe ("one": Slice[Byte])
 //
 //          zero.remove(1).runRandomIO
 //          zero.last(ThreadReadState.random).toOptionPut shouldBe empty

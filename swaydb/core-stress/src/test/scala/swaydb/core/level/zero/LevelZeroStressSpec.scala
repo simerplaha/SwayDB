@@ -79,7 +79,7 @@
 //          val key = keyValue.key.read[Int]
 //          if (key % 100000 == 0)
 //            println(s"PUT. Current written KeyValue : $key")
-//          zero.put(keyValue.key, keyValue.getOrFetchValue).runIO
+//          zero.put(keyValue.key, keyValue.getOrFetchValue()).runIO
 //      }
 //
 //    def doGet =
@@ -88,7 +88,7 @@
 //          val key = keyValue.key.read[Int]
 //          if (key % 100000 == 0)
 //            println(s"GET. KeyValue : $key")
-//          zero.get(keyValue.key).runIO shouldBe keyValue.getOrFetchValue
+//          zero.get(keyValue.key).runIO shouldBe keyValue.getOrFetchValue()
 //      }
 //
 //    def readLower =
@@ -99,7 +99,7 @@
 //          val expectedLower = keyValues(index - 1)
 //          val (key, value) = zero.lower(keyValues(index).key).runIO
 //          key shouldBe expectedLower.key
-//          value shouldBe expectedLower.getOrFetchValue
+//          value shouldBe expectedLower.getOrFetchValue()
 //      }
 //
 //    def readHigher =
@@ -110,7 +110,7 @@
 //          val expectedLower = keyValues(index + 1)
 //          val (key, value) = zero.higher(keyValues(index).key).runIO
 //          key shouldBe expectedLower.key
-//          value shouldBe expectedLower.getOrFetchValue
+//          value shouldBe expectedLower.getOrFetchValue()
 //      }
 //
 //    //Write all keys values to make sure that data is actually there.

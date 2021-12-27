@@ -91,7 +91,7 @@ object SegmentSearchTestKit {
           if (lower.nonEmpty) {
             expectedLowerKeyValue shouldBe defined
             lower.get.key shouldBe expectedLowerKeyValue.get.key
-            lower.get.getOrFetchValue.runRandomIO.get shouldBe expectedLowerKeyValue.get.getOrFetchValue.asSliceOption()
+            lower.get.getOrFetchValue().runRandomIO.get shouldBe expectedLowerKeyValue.get.getOrFetchValue().asSliceOption()
           } else {
             expectedLowerKeyValue shouldBe empty
           }
@@ -223,7 +223,7 @@ object SegmentSearchTestKit {
       keyValue =>
         try {
           val actual = level.getFromThisLevel(keyValue.key, ThreadReadState.random).runRandomIO.get.getUnsafe
-          actual.getOrFetchValue shouldBe keyValue.getOrFetchValue
+          actual.getOrFetchValue() shouldBe keyValue.getOrFetchValue()
         } catch {
           case ex: Exception =>
             println(

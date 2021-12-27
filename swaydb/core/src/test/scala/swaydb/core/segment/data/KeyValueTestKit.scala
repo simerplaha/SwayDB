@@ -68,7 +68,7 @@ object KeyValueTestKit {
           Some(keyValue)
 
         case range: KeyValue.Range =>
-          range.fetchFromValueUnsafe flatMapOptionS {
+          range.fetchFromValueUnsafe() flatMapOptionS {
             case put: Value.Put =>
               Some(put.toMemory(range.fromKey))
 
@@ -87,7 +87,7 @@ object KeyValueTestKit {
       actualMemory should be(expectedMemory.cut())
     }
 
-    def getOrFetchValue: Option[Slice[Byte]] =
+    def getOrFetchValue(): Option[Slice[Byte]] =
       actual match {
         case keyValue: Memory =>
           keyValue match {
@@ -98,11 +98,11 @@ object KeyValueTestKit {
               keyValue.value.toOptionC
 
             case keyValue: Memory.Function =>
-              Some(keyValue.getOrFetchFunction)
+              Some(keyValue.getOrFetchFunction())
 
             case keyValue: Memory.PendingApply =>
-              val bytes = Slice.allocate[Byte](ValueSerialiser.bytesRequired(keyValue.getOrFetchApplies.runRandomIO.get))
-              ValueSerialiser.write(keyValue.getOrFetchApplies.runRandomIO.get)(bytes)
+              val bytes = Slice.allocate[Byte](ValueSerialiser.bytesRequired(keyValue.getOrFetchApplies().runRandomIO.get))
+              ValueSerialiser.write(keyValue.getOrFetchApplies().runRandomIO.get)(bytes)
               Some(bytes)
 
             case keyValue: Memory.Remove =>
@@ -117,16 +117,16 @@ object KeyValueTestKit {
         case keyValue: Persistent =>
           keyValue match {
             case keyValue: Persistent.Put =>
-              keyValue.getOrFetchValue.runRandomIO.get.toOptionC
+              keyValue.getOrFetchValue().runRandomIO.get.toOptionC
 
             case keyValue: Persistent.Update =>
-              keyValue.getOrFetchValue.runRandomIO.get.toOptionC
+              keyValue.getOrFetchValue().runRandomIO.get.toOptionC
 
             case keyValue: Persistent.Function =>
-              Some(keyValue.getOrFetchFunction.runRandomIO.get)
+              Some(keyValue.getOrFetchFunction().runRandomIO.get)
 
             case keyValue: Persistent.PendingApply =>
-              val applies = keyValue.getOrFetchApplies.runRandomIO.get
+              val applies = keyValue.getOrFetchApplies().runRandomIO.get
 
               applies.forall(_.isCut) shouldBe true
 
@@ -138,7 +138,7 @@ object KeyValueTestKit {
               None
 
             case range: Persistent.Range =>
-              val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe.runRandomIO.get
+              val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe().runRandomIO.get
               fromValue.forallS(_.isCut) shouldBe true
               rangeValue.isCut shouldBe true
 
@@ -385,28 +385,28 @@ object KeyValueTestKit {
           case put @ Persistent.Put(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeCut()
             _time.time.shouldBeCut()
-            put.getOrFetchValue.runRandomIO.get.toOptionC.shouldBeCut()
+            put.getOrFetchValue().runRandomIO.get.toOptionC.shouldBeCut()
 
           case updated @ Persistent.Update(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeCut()
             _time.time.shouldBeCut()
-            updated.getOrFetchValue.runRandomIO.get.toOptionC.shouldBeCut()
+            updated.getOrFetchValue().runRandomIO.get.toOptionC.shouldBeCut()
 
           case function @ Persistent.Function(_key, lazyFunctionReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeCut()
             _time.time.shouldBeCut()
-            function.getOrFetchFunction.runRandomIO.get.shouldBeCut()
+            function.getOrFetchFunction().runRandomIO.get.shouldBeCut()
 
           case pendingApply @ Persistent.PendingApply(_key, _time, deadline, lazyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeCut()
             _time.time.shouldBeCut()
-            pendingApply.getOrFetchApplies.runRandomIO.get foreach assertCut
+            pendingApply.getOrFetchApplies().runRandomIO.get foreach assertCut
 
           case range @ Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _fromKey.shouldBeCut()
             _toKey.shouldBeCut()
-            range.fetchFromValueUnsafe.runRandomIO.get foreachS assertCut
-            assertCut(range.fetchRangeValueUnsafe.runRandomIO.get)
+            range.fetchFromValueUnsafe().runRandomIO.get foreachS assertCut
+            assertCut(range.fetchRangeValueUnsafe().runRandomIO.get)
         }
     }
 
@@ -1520,8 +1520,8 @@ object KeyValueTestKit {
       case put: KeyValue.Put =>
         put
 
-      case range: KeyValue.Range if range.fetchFromValueUnsafe.isSomeS && range.fetchFromValueUnsafe.getS.isPut =>
-        range.fetchFromValueUnsafe.getS.toPutMayBe(range.key).value
+      case range: KeyValue.Range if range.fetchFromValueUnsafe().isSomeS && range.fetchFromValueUnsafe().getS.isPut =>
+        range.fetchFromValueUnsafe().getS.toPutMayBe(range.key).value
     }
 
   def getPutsWithDeadline(keyValues: Iterable[KeyValue]): Iterable[KeyValue.Put] =
@@ -1529,8 +1529,8 @@ object KeyValueTestKit {
       case put: KeyValue.Put if put.deadline.isDefined =>
         put
 
-      case range: KeyValue.Range if range.fetchFromValueUnsafe.isSomeS && range.fetchFromValueUnsafe.getS.isPut && range.fetchFromValueUnsafe.getS.deadline.isDefined =>
-        range.fetchFromValueUnsafe.getS.toPutMayBe(range.key).value
+      case range: KeyValue.Range if range.fetchFromValueUnsafe().isSomeS && range.fetchFromValueUnsafe().getS.isPut && range.fetchFromValueUnsafe().getS.deadline.isDefined =>
+        range.fetchFromValueUnsafe().getS.toPutMayBe(range.key).value
     }
 
   def getRanges(keyValues: Iterable[KeyValue]): Iterable[KeyValue.Range] =
@@ -1667,7 +1667,7 @@ object KeyValueTestKit {
             //merge as though applies were normal fixed key-values. The result should be the same.
             FixedMerger(newer, older.toMemory(newKeyValue.key)).runRandomIO.get match {
               case newPendingApply: KeyValue.PendingApply =>
-                val resultApplies = newPendingApply.getOrFetchApplies.runRandomIO.get.reverse.toList ++ reveredApplied.drop(count)
+                val resultApplies = newPendingApply.getOrFetchApplies().runRandomIO.get.reverse.toList ++ reveredApplied.drop(count)
                 val result =
                   if (resultApplies.size == 1)
                     resultApplies.head.toMemory(newKeyValue.key)

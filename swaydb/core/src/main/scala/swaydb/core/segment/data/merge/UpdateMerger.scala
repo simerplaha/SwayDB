@@ -112,7 +112,7 @@ private[core] object UpdateMerger {
     if (newKeyValue.time > oldKeyValue.time)
       FixedMerger(
         newer = newKeyValue,
-        oldApplies = oldKeyValue.getOrFetchApplies
+        oldApplies = oldKeyValue.getOrFetchApplies()
       )
     else
       oldKeyValue

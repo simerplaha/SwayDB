@@ -92,7 +92,7 @@
 //
 //        //if fromValue is defined it will be merged with lower else lower is returned
 //        val expected =
-//          IO(upperLevel.fetchFromOrElseRangeValueUnsafe)
+//          IO(upperLevel.fetchFromOrElseRangeValueUnsafe())
 //            .map(currentFromValue => FixedMerger(currentFromValue.toMemory(0), lowerLevel).runRandomIO.get)
 //            .getOrElse(lowerLevel)
 //

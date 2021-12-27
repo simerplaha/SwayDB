@@ -105,7 +105,7 @@
 //                  val (gotValue, gotDeadline) =
 //                    level.get(update.key, ThreadReadState.random).toOptionPut.runRandomIO.map {
 //                      case Some(put) =>
-//                        val value = put.getOrFetchValue.runRandomIO.get
+//                        val value = put.getOrFetchValue().runRandomIO.get
 //                        (value, put.deadline)
 //
 //                      case None =>

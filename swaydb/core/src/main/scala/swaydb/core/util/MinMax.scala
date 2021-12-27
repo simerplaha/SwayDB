@@ -209,7 +209,7 @@ private[core] object MinMax {
                      current: Option[MinMax[Slice[Byte]]]): MinMax[Slice[Byte]] =
     minMax(
       current = current,
-      next = function.getOrFetchFunction
+      next = function.getOrFetchFunction()
     )(CoreFunctionStore.order)
 
   def minMaxFunction(range: Memory.Range,
@@ -240,7 +240,7 @@ private[core] object MinMax {
 
   def minMaxFunction(range: KeyValue.Range,
                      current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] = {
-    val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe
+    val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe()
     minMaxFunction(
       fromValue = fromValue,
       rangeValue = rangeValue,

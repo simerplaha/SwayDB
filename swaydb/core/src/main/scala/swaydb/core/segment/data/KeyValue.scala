@@ -84,7 +84,7 @@ private[core] object KeyValue {
         None
       } else {
         val put = this.getPut
-        val value = put.getOrFetchValue
+        val value = put.getOrFetchValue()
         val key = put.key
         Some((key, value.toOptionC))
       }
@@ -94,7 +94,7 @@ private[core] object KeyValue {
         TupleOrNone.None
       } else {
         val put = this.getPut
-        TupleOrNone.Some(put.key, put.getOrFetchValue)
+        TupleOrNone.Some(put.key, put.getOrFetchValue())
       }
 
     @inline def toDeadlineOrNone: TupleOrNone[Slice[Byte], Option[Deadline]] =
@@ -110,14 +110,14 @@ private[core] object KeyValue {
         TupleOrNone.None
       } else {
         val put = this.getPut
-        TupleOrNone.Some((put.key, put.getOrFetchValue), put.deadline)
+        TupleOrNone.Some((put.key, put.getOrFetchValue()), put.deadline)
       }
 
     @inline def getValue: Option[SliceOption[Byte]] =
       if (isNoneS)
         None
       else
-        Some(this.getPut.getOrFetchValue)
+        Some(this.getPut.getOrFetchValue())
 
     @inline def getKey: SliceOption[Byte] =
       if (isNoneS)
@@ -182,7 +182,7 @@ private[core] object KeyValue {
     def hasTimeLeft(): Boolean
     def isOverdue(): Boolean = !hasTimeLeft()
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
-    def getOrFetchValue: SliceOption[Byte]
+    def getOrFetchValue(): SliceOption[Byte]
     def time: Time
     def toFromValue(): Value.Put
     def copyWithDeadlineAndTime(deadline: Option[Deadline], time: Time): KeyValue.Put
@@ -206,7 +206,7 @@ private[core] object KeyValue {
     def isOverdue(): Boolean = !hasTimeLeft()
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
     def time: Time
-    def getOrFetchValue: SliceOption[Byte]
+    def getOrFetchValue(): SliceOption[Byte]
     def toFromValue(): Value.Update
     def toPut(): KeyValue.Put
     def toPut(deadline: Option[Deadline]): KeyValue.Put
@@ -217,13 +217,13 @@ private[core] object KeyValue {
 
   sealed trait Function extends KeyValue.Fixed {
     def time: Time
-    def getOrFetchFunction: Slice[Byte]
+    def getOrFetchFunction(): Slice[Byte]
     def toFromValue(): Value.Function
     def copyWithTime(time: Time): Function
   }
 
   sealed trait PendingApply extends KeyValue.Fixed {
-    def getOrFetchApplies: Slice[Value.Apply]
+    def getOrFetchApplies(): Slice[Value.Apply]
     def toFromValue(): Value.PendingApply
     def time: Time
     def deadline: Option[Deadline]
@@ -240,11 +240,11 @@ private[core] object KeyValue {
   sealed trait Range extends KeyValue {
     def fromKey: Slice[Byte]
     def toKey: Slice[Byte]
-    def fetchFromValueUnsafe: Value.FromValueOption
-    def fetchRangeValueUnsafe: Value.RangeValue
-    def fetchFromAndRangeValueUnsafe: (Value.FromValueOption, Value.RangeValue)
-    def fetchFromOrElseRangeValueUnsafe: Value.FromValue = {
-      val (fromValue, rangeValue) = fetchFromAndRangeValueUnsafe
+    def fetchFromValueUnsafe(): Value.FromValueOption
+    def fetchRangeValueUnsafe(): Value.RangeValue
+    def fetchFromAndRangeValueUnsafe(): (Value.FromValueOption, Value.RangeValue)
+    def fetchFromOrElseRangeValueUnsafe(): Value.FromValue = {
+      val (fromValue, rangeValue) = fetchFromAndRangeValueUnsafe()
       fromValue getOrElseS rangeValue
     }
   }
@@ -399,7 +399,7 @@ private[swaydb] object Memory {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: SliceOption[Byte] =
+    override def getOrFetchValue(): SliceOption[Byte] =
       if (value.existsC(_.isEmpty))
         Slice.Null
       else
@@ -463,7 +463,7 @@ private[swaydb] object Memory {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: SliceOption[Byte] =
+    override def getOrFetchValue(): SliceOption[Byte] =
       if (value.existsC(_.isEmpty))
         Slice.Null
       else
@@ -541,7 +541,7 @@ private[swaydb] object Memory {
           time = time.cut()
         )
 
-    override def getOrFetchFunction: Slice[Byte] =
+    override def getOrFetchFunction(): Slice[Byte] =
       function
 
     override def toFromValue(): Value.Function =
@@ -594,7 +594,7 @@ private[swaydb] object Memory {
 
     def time = Time.fromApplies(applies)
 
-    override def getOrFetchApplies: Slice[Value.Apply] =
+    override def getOrFetchApplies(): Slice[Value.Apply] =
       applies
 
     override def toFromValue(): Value.PendingApply =
@@ -729,13 +729,13 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def fetchFromValueUnsafe: Value.FromValueOption =
+    override def fetchFromValueUnsafe(): Value.FromValueOption =
       fromValue
 
-    override def fetchRangeValueUnsafe: Value.RangeValue =
+    override def fetchRangeValueUnsafe(): Value.RangeValue =
       rangeValue
 
-    override def fetchFromAndRangeValueUnsafe: (Value.FromValueOption, Value.RangeValue) =
+    override def fetchFromAndRangeValueUnsafe(): (Value.FromValueOption, Value.RangeValue) =
       (fromValue, rangeValue)
 
     override def toMemory(): Memory.Range =
@@ -1067,7 +1067,7 @@ private[core] object Persistent {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: SliceOption[Byte] =
+    override def getOrFetchValue(): SliceOption[Byte] =
       valueCache.getOrFetch(ValuesBlockOffset(valueOffset, valueLength))
 
     override def isValueCached: Boolean =
@@ -1075,7 +1075,7 @@ private[core] object Persistent {
 
     override def toFromValue(): Value.Put =
       Value.Put(
-        value = getOrFetchValue,
+        value = getOrFetchValue(),
         deadline = deadline,
         time = time
       )
@@ -1086,7 +1086,7 @@ private[core] object Persistent {
     override def toMemory(): Memory.Put =
       Memory.Put(
         key = key,
-        value = getOrFetchValue,
+        value = getOrFetchValue(),
         deadline = deadline,
         time = time
       )
@@ -1175,12 +1175,12 @@ private[core] object Persistent {
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    def getOrFetchValue: SliceOption[Byte] =
+    def getOrFetchValue(): SliceOption[Byte] =
       valueCache.getOrFetch(ValuesBlockOffset(valueOffset, valueLength))
 
     override def toFromValue(): Value.Update =
       Value.Update(
-        value = getOrFetchValue,
+        value = getOrFetchValue(),
         deadline = deadline,
         time = time
       )
@@ -1191,7 +1191,7 @@ private[core] object Persistent {
     override def toMemory(): Memory.Update =
       Memory.Update(
         key = key,
-        value = getOrFetchValue,
+        value = getOrFetchValue(),
         deadline = deadline,
         time = time
       )
@@ -1327,12 +1327,12 @@ private[core] object Persistent {
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    def getOrFetchFunction: Slice[Byte] =
+    def getOrFetchFunction(): Slice[Byte] =
       valueCache.getOrFetch(ValuesBlockOffset(valueOffset, valueLength))
 
     override def toFromValue(): Value.Function =
       Value.Function(
-        function = getOrFetchFunction,
+        function = getOrFetchFunction(),
         time = time
       )
 
@@ -1342,7 +1342,7 @@ private[core] object Persistent {
     override def toMemory(): Memory.Function =
       Memory.Function(
         key = key,
-        function = getOrFetchFunction,
+        function = getOrFetchFunction(),
         time = time
       )
 
@@ -1424,7 +1424,7 @@ private[core] object Persistent {
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    override def getOrFetchApplies: Slice[Value.Apply] =
+    override def getOrFetchApplies(): Slice[Value.Apply] =
       valueCache.getOrFetch(ValuesBlockOffset(valueOffset, valueLength))
 
     override def toFromValue(): Value.PendingApply = {
@@ -1438,7 +1438,7 @@ private[core] object Persistent {
     override def toMemory(): Memory.PendingApply =
       Memory.PendingApply(
         key = key,
-        applies = getOrFetchApplies
+        applies = getOrFetchApplies()
       )
 
     def toPersistent: Persistent.PendingApply =
@@ -1560,17 +1560,17 @@ private[core] object Persistent {
     override def key: Slice[Byte] =
       _fromKey
 
-    def fetchRangeValueUnsafe: Value.RangeValue =
-      fetchFromAndRangeValueUnsafe._2
+    def fetchRangeValueUnsafe(): Value.RangeValue =
+      fetchFromAndRangeValueUnsafe()._2
 
-    def fetchFromValueUnsafe: Value.FromValueOption =
-      fetchFromAndRangeValueUnsafe._1
+    def fetchFromValueUnsafe(): Value.FromValueOption =
+      fetchFromAndRangeValueUnsafe()._1
 
-    def fetchFromAndRangeValueUnsafe: (Value.FromValueOption, Value.RangeValue) =
+    def fetchFromAndRangeValueUnsafe(): (Value.FromValueOption, Value.RangeValue) =
       valueCache.getOrFetch(ValuesBlockOffset(valueOffset, valueLength))
 
     override def toMemory(): Memory.Range = {
-      val (fromValue, rangeValue) = fetchFromAndRangeValueUnsafe
+      val (fromValue, rangeValue) = fetchFromAndRangeValueUnsafe()
       Memory.Range(
         fromKey = fromKey,
         toKey = toKey,

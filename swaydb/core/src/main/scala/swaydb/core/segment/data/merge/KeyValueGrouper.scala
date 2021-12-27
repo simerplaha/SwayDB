@@ -49,7 +49,7 @@ private[core] object KeyValueGrouper extends LazyLogging {
         null
 
       case range: KeyValue.Range =>
-        val fromValue = range.fetchFromValueUnsafe
+        val fromValue = range.fetchFromValueUnsafe()
         if (fromValue.isSomeS)
           fromValue.getS match {
             case put @ Value.Put(fromValue, deadline, time) =>

@@ -86,7 +86,7 @@
 ////      //        level.get(keyValue.key).runIO
 ////      //        val got = level.get(keyValue.key, readState).runIO.get.get
 ////      //        got shouldBe keyValue
-////      //        got.getOrFetchValue shouldBe keyValue
+////      //        got.getOrFetchValue() shouldBe keyValue
 ////      //        println("value: " + level.get(keyValue.key).runIO._2.runIO.asInt())
 ////    }
 ////  }
@@ -99,7 +99,7 @@
 ////        level.lower(keyValues(index).key, readState)
 ////      //        val keyValue = level.lower(keyValues(index).key).runIO
 ////      //        keyValue.key shouldBe keyValues(index - 1).key
-////      //        keyValue.getOrFetchValue.runIO.value shouldBe keyValues(index - 1).getOrFetchValue.runIO.value
+////      //        keyValue.getOrFetchValue().runIO.value shouldBe keyValues(index - 1).getOrFetchValue().runIO.value
 ////    }
 ////  }
 ////
@@ -109,7 +109,7 @@
 ////      //        level.higher(keyValues(index).key)
 ////      //        val keyValue = level.higher(keyValues(index).key).runIO
 ////      //        keyValue.key shouldBe keyValues(index + 1).key
-////      //        keyValue.getOrFetchValue.runIO.value shouldBe keyValues(index + 1).getOrFetchValue.runIO.value
+////      //        keyValue.getOrFetchValue().runIO.value shouldBe keyValues(index + 1).getOrFetchValue().runIO.value
 ////    }
 ////
 ////  def strategy(action: IOAction): IOStrategy =

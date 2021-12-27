@@ -1435,17 +1435,17 @@
 //
 //            segment.iterator(randomBoolean()) foreach {
 //              case keyValue: KeyValue.Put =>
-//                keyValue.getOrFetchValue shouldBe Slice.Null
+//                keyValue.getOrFetchValue() shouldBe Slice.Null
 //
 //              case keyValue: KeyValue.Update =>
-//                keyValue.getOrFetchValue shouldBe Slice.Null
+//                keyValue.getOrFetchValue() shouldBe Slice.Null
 //
 //              case keyValue: KeyValue.Range =>
-//                val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe
+//                val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe()
 //                Seq(fromValue.toOptionS, Some(rangeValue)).flatten foreach valuesValueShouldBeNone
 //
 //              case apply: KeyValue.PendingApply =>
-//                apply.getOrFetchApplies foreach valuesValueShouldBeNone
+//                apply.getOrFetchApplies() foreach valuesValueShouldBeNone
 //
 //              case _: KeyValue.Function =>
 //              //nothing to assert

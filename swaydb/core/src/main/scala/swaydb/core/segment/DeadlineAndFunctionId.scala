@@ -70,7 +70,7 @@ private object DeadlineAndFunctionId {
       case pendingApply: KeyValue.PendingApply =>
         DeadlineAndFunctionId(
           deadline = deadline,
-          minMaxFunctionId = MinMax.minMaxFunction(pendingApply.getOrFetchApplies, minMaxFunctionId)
+          minMaxFunctionId = MinMax.minMaxFunction(pendingApply.getOrFetchApplies(), minMaxFunctionId)
         )
 
       case function: KeyValue.Function =>
@@ -80,7 +80,7 @@ private object DeadlineAndFunctionId {
         )
 
       case range: KeyValue.Range =>
-        range.fetchFromAndRangeValueUnsafe match {
+        range.fetchFromAndRangeValueUnsafe() match {
           case (fromValue: Value.FromValue, rangeValue) =>
             DeadlineAndFunctionId(
               deadline = getNearestPutDeadline(getNearestPutDeadline(deadline, fromValue), rangeValue),

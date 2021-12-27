@@ -47,7 +47,7 @@
 //      def test(map: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory]) = {
 //        keyValues foreach {
 //          keyValue =>
-//            val entry = LogEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))(Level0PutWriter)
+//            val entry = LogEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue()))(Level0PutWriter)
 //            map.write(entry).runRandomIO.get shouldBe true
 //        }
 //
@@ -57,7 +57,7 @@
 //      def testRead(map: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory]) =
 //        keyValues foreach {
 //          keyValue =>
-//            map.get(keyValue.key).value shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
+//            map.get(keyValue.key).value shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue())
 //        }
 //
 //      val dir1 = genDir()

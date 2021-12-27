@@ -131,7 +131,7 @@ private[core] object ApplyMerger {
 
           case old: KeyValue.PendingApply =>
             return {
-              val oldMergedApplies = old.getOrFetchApplies
+              val oldMergedApplies = old.getOrFetchApplies()
               val resultApplies = oldMergedApplies ++ newApplies.drop(count)
               if (resultApplies.size == 1)
                 resultApplies.head.toMemory(oldKeyValue.key)

@@ -165,7 +165,7 @@
 //
 //              val newKeyValues = newSegments.iterator.flatMap(_.iterator(randomBoolean())).toSlice
 //
-//              newKeyValues.foreach(_.getOrFetchValue shouldBe defined)
+//              newKeyValues.foreach(_.getOrFetchValue() shouldBe defined)
 //
 //              level1.putSegments(newSegments) shouldBe IO.unit
 //

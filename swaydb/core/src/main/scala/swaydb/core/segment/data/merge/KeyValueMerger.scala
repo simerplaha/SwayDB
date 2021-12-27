@@ -236,7 +236,7 @@ private[core] object KeyValueMerger extends LazyLogging {
                 add(oldRangeKeyValue)
                 doMerge(newKeyValues, oldKeyValues.dropHead())
               } else { //is in-range key
-                val (oldFromValue, oldRangeValue) = oldRangeKeyValue.fetchFromAndRangeValueUnsafe
+                val (oldFromValue, oldRangeValue) = oldRangeKeyValue.fetchFromAndRangeValueUnsafe()
                 if (compare == 0) {
                   val newFromValue =
                     FixedMerger(
@@ -285,7 +285,7 @@ private[core] object KeyValueMerger extends LazyLogging {
                 add(oldKeyValue)
                 doMerge(newKeyValues, oldKeyValues.dropHead())
               } else { //is in-range key
-                val (newRangeFromValue, newRangeRangeValue) = newRangeKeyValue.fetchFromAndRangeValueUnsafe
+                val (newRangeFromValue, newRangeRangeValue) = newRangeKeyValue.fetchFromAndRangeValueUnsafe()
                 if (newRangeKeyValue.fromKey equiv oldKeyValue.key) {
                   val fromOrRange = newRangeFromValue.getOrElseS(newRangeRangeValue)
                   fromOrRange match {
@@ -340,8 +340,8 @@ private[core] object KeyValueMerger extends LazyLogging {
                 add(oldRangeKeyValue)
                 doMerge(newKeyValues, oldKeyValues.dropHead())
               } else {
-                val (newRangeFromValue, newRangeRangeValue) = newRangeKeyValue.fetchFromAndRangeValueUnsafe
-                val (oldRangeFromValue, oldRangeRangeValue) = oldRangeKeyValue.fetchFromAndRangeValueUnsafe
+                val (newRangeFromValue, newRangeRangeValue) = newRangeKeyValue.fetchFromAndRangeValueUnsafe()
+                val (oldRangeFromValue, oldRangeRangeValue) = oldRangeKeyValue.fetchFromAndRangeValueUnsafe()
                 val newRangeFromKey = newRangeKeyValue.fromKey
                 val newRangeToKey = newRangeKeyValue.toKey
                 val oldRangeFromKey = oldRangeKeyValue.fromKey
