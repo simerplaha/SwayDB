@@ -18,6 +18,7 @@ package swaydb.effect
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
+import swaydb.effect.EffectImplicits._
 import swaydb.utils.Extension
 
 import java.io.IOException
@@ -34,39 +35,7 @@ import scala.util.Try
 
 private[swaydb] object Effect extends LazyLogging {
 
-  implicit class PathExtensionImplicits(path: Path) {
-    @inline def fileId(): (Long, Extension) =
-      Effect.numberFileId(path)
-
-    @inline def incrementFileId(): Path =
-      Effect.incrementFileId(path)
-
-    @inline def incrementFolderId(): Path =
-      Effect.incrementFolderId(path)
-
-    @inline def folderId(): Long =
-      Effect.folderId(path)
-
-    @inline def files(extension: Extension): List[Path] =
-      Effect.files(path, extension)
-
-    @inline def folders(): List[Path] =
-      Effect.folders(path)
-
-    @inline def exists(): Boolean =
-      Effect.exists(path)
-  }
-
-  implicit class FileIdImplicits(id: Long) {
-    @inline final def toLogFileId: String =
-      s"$id.${Extension.Log}"
-
-    @inline final def toFolderId: String =
-      s"$id"
-
-    @inline final def toSegmentFileId: String =
-      s"$id.${Extension.Seg}"
-  }
+  val implicits = EffectImplicits
 
   @inline def getIntFileSizeOrFail(channel: FileChannel): Int = {
     val fileSize = channel.size()

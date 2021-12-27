@@ -28,6 +28,7 @@
 ////import swaydb.core.segment.data._
 ////import swaydb.core.segment.io.SegmentCompactionIO
 ////import swaydb.effect.Effect._
+////import swaydb.effect.Effect.implicits._
 ////import swaydb.effect.{Dir, Effect}
 ////import swaydb.slice.Slice
 ////import swaydb.slice.order.{KeyOrder, TimeOrder}

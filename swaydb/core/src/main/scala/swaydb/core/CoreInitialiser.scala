@@ -42,6 +42,7 @@ import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data.SegmentKeyOrders
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.effect.Effect._
+import swaydb.effect.Effect.implicits._
 import swaydb.effect.IOStrategy
 import swaydb.slice.Slice
 import swaydb.slice.order.{KeyOrder, TimeOrder}

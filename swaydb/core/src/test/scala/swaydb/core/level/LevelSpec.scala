@@ -31,6 +31,7 @@
 //import swaydb.core.segment.data._
 //import swaydb.effect.{Dir, Effect}
 //import swaydb.effect.Effect._
+////import swaydb.effect.Effect.implicits._
 //import swaydb.serializers._
 //import swaydb.serializers.Default._
 //import swaydb.slice.Slice

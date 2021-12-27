@@ -26,6 +26,7 @@ import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperAc
 import swaydb.core.file.{CoreFile, ForceSaveApplier}
 import swaydb.core.log.serialiser.{LogEntryReader, LogEntryParser, LogEntryWriter}
 import swaydb.effect.Effect._
+import swaydb.effect.Effect.implicits._
 import swaydb.effect.{Effect, IOStrategy}
 import swaydb.slice.Slice
 import swaydb.SliceIOImplicits._

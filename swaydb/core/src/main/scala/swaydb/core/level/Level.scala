@@ -50,6 +50,7 @@ import swaydb.core.util._
 import swaydb.core.util.Exceptions._
 import swaydb.effect.{Dir, Effect, FileLocker}
 import swaydb.effect.Effect._
+import swaydb.effect.Effect.implicits._
 import swaydb.SliceIOImplicits._
 import swaydb.core.segment.distributor.PathDistributor
 import swaydb.slice.{Slice, SliceOption}

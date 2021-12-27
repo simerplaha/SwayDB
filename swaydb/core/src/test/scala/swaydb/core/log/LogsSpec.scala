@@ -31,6 +31,7 @@ import swaydb.core.segment.data.{Memory, MemoryOption, Value}
 import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.effect.Effect
 import swaydb.effect.Effect._
+import swaydb.effect.Effect.implicits._
 import swaydb.serializers._
 import swaydb.serializers.Default._
 import swaydb.slice.Slice

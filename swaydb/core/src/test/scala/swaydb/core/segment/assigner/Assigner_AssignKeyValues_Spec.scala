@@ -27,6 +27,7 @@ import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.SegmentTestKit._
 import swaydb.effect.Effect._
+import swaydb.effect.Effect.implicits._
 import swaydb.serializers._
 import swaydb.serializers.Default._
 import swaydb.slice.Slice

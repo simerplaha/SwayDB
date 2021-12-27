@@ -28,6 +28,7 @@
 //import swaydb.core.level.ALevelSpec
 //import swaydb.effect.Effect
 //import swaydb.effect.Effect._
+//import swaydb.effect.Effect.implicits._
 //import swaydb.slice.Slice
 //import swaydb.slice.order.{KeyOrder, TimeOrder}
 //import swaydb.testkit.RunThis._

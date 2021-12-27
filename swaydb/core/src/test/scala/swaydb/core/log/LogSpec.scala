@@ -23,20 +23,19 @@ import swaydb.config.CoreConfigTestKit._
 import swaydb.core._
 import swaydb.core.CoreTestSweeper._
 import swaydb.core.file.CoreFile
-import swaydb.core.file.CoreFileTestKit._
 import swaydb.core.level.AppendixLogCache
 import swaydb.core.level.zero.LevelZeroLogCache
 import swaydb.core.log.LogTestKit._
 import swaydb.core.log.serialiser._
 import swaydb.core.log.timer.TestTimer
-import swaydb.core.segment.{Segment, GenSegment}
+import swaydb.core.segment.{GenSegment, Segment}
 import swaydb.core.segment.data.{Memory, MemoryOption, SegmentKeyOrders, Value}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.SegmentTestKit._
 import swaydb.core.segment.data.KeyValueTestKit._
 import swaydb.core.skiplist.SkipListConcurrent
 import swaydb.effect.Effect
-import swaydb.effect.Effect._
+import swaydb.effect.Effect.implicits._
 import swaydb.effect.EffectTestKit._
 import swaydb.serializers._
 import swaydb.serializers.Default._

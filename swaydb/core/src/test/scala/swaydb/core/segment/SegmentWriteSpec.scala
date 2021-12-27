@@ -46,6 +46,7 @@
 //import swaydb.core.segment.ref.search.ThreadReadState
 //import swaydb.utils.{ByteSizeOf, Extension, IDGenerator, OperatingSystem}
 //import swaydb.effect.Effect._
+//import swaydb.effect.Effect.implicits._
 //import swaydb.effect.{Dir, Effect}
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
