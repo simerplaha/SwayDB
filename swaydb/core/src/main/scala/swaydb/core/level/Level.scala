@@ -17,19 +17,19 @@
 package swaydb.core.level
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Bag.Implicits._
+import swaydb.{Bag, Error, IO}
+import swaydb.Bag.implicits._
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.config.compaction.{LevelMeter, LevelThrottle}
 import swaydb.config.storage.LevelStorage
-import swaydb.core.segment.io.SegmentCompactionIO
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroLog
-import swaydb.core.log.serialiser._
 import swaydb.core.log.{Log, LogEntry, MemoryLog, PersistentLog}
+import swaydb.core.log.serialiser._
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.{Assignable, Assigner, Assignment, GapAggregator}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -44,25 +44,24 @@ import swaydb.core.segment.data._
 import swaydb.core.segment.data.merge.stats.MergeStats
 import swaydb.core.segment.data.merge.stats.MergeStats.{Memory, Persistent}
 import swaydb.core.segment.defrag.{DefragMemorySegment, DefragPersistentSegment}
-import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteMemoryIO, SegmentWritePersistentIO}
+import swaydb.core.segment.io.{SegmentCompactionIO, SegmentReadIO, SegmentWriteMemoryIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.util.Exceptions._
 import swaydb.core.util._
-import swaydb.effect.Effect._
+import swaydb.core.util.Exceptions._
 import swaydb.effect.{Dir, Effect, FileLocker}
+import swaydb.effect.Effect._
 import swaydb.SliceIOImplicits._
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.slice.{Slice, SliceOption}
-import swaydb.utils.{Aggregator, Extension, Futures, IDGenerator}
-import swaydb.{Bag, Error, IO}
 import swaydb.core.segment.distributor.PathDistributor
+import swaydb.slice.{Slice, SliceOption}
+import swaydb.slice.order.TimeOrder
+import swaydb.utils.{Aggregator, Extension, IDGenerator}
 
 import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
 import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
 
 private[core] case object Level extends LazyLogging {
 

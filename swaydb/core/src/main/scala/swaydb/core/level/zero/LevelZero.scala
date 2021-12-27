@@ -18,7 +18,7 @@ package swaydb.core.level.zero
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.{Bag, Error, Glass, IO}
-import swaydb.Bag.Implicits._
+import swaydb.Bag.implicits._
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.Exception.FunctionNotFound
 import swaydb.config.{Atomic, MMAP, OptimiseWrites}

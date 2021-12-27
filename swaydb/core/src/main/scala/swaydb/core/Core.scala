@@ -17,8 +17,8 @@
 package swaydb.core
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Bag.Implicits._
 import swaydb._
+import swaydb.Bag.implicits._
 import swaydb.config._
 import swaydb.config.accelerate.LevelZeroMeter
 import swaydb.config.compaction.{CompactionConfig, LevelMeter}
@@ -33,8 +33,8 @@ import swaydb.core.log.timer.Timer
 import swaydb.core.segment.CoreFunctionStore
 import swaydb.core.segment.data.{Memory, SegmentFunction, Value}
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{Slice, SliceOption}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.TupleOrNone
 
 import java.nio.file.Path

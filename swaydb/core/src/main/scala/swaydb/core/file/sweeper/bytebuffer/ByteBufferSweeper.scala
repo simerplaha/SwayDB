@@ -17,10 +17,10 @@
 package swaydb.core.file.sweeper.bytebuffer
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.ActorConfig.QueueOrder
-import swaydb.Bag.Implicits._
-import swaydb.Error.IO.ExceptionHandler
 import swaydb._
+import swaydb.ActorConfig.QueueOrder
+import swaydb.Bag.implicits._
+import swaydb.Error.IO.ExceptionHandler
 import swaydb.core.cache.{Cache, CacheUnsafe}
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferCleaner.Cleaner
 import swaydb.effect.Effect
@@ -28,12 +28,12 @@ import swaydb.utils.English
 import swaydb.utils.FiniteDurations.FiniteDurationImplicits
 
 import java.io.FileNotFoundException
-import java.nio.file.{AccessDeniedException, NoSuchFileException, Path}
 import java.nio.{ByteBuffer, MappedByteBuffer}
+import java.nio.file.{AccessDeniedException, NoSuchFileException, Path}
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.duration._
 
 private[swaydb] case object ByteBufferSweeper extends LazyLogging {
 

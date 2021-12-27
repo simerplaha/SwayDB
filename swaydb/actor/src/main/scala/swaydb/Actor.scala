@@ -18,7 +18,7 @@ package swaydb
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorConfig.QueueOrder
-import swaydb.Bag.Implicits._
+import swaydb.Bag.implicits._
 import swaydb.core.cache.{Cache, CacheUnsafe}
 import swaydb.effect.Reserve
 import swaydb.utils.{AtomicThreadLocalBoolean, FunctionSafe, Options}
@@ -28,8 +28,8 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 import java.util.function.LongUnaryOperator
 import scala.annotation.tailrec
-import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
 sealed trait ActorRef[-T, S] { self =>

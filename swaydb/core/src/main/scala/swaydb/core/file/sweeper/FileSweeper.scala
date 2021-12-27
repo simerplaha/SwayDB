@@ -18,7 +18,7 @@ package swaydb.core.file.sweeper
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.{ActorConfig, ActorRef, Bag}
 import swaydb.ActorConfig.QueueOrder
-import swaydb.Bag.Implicits._
+import swaydb.Bag.implicits._
 import swaydb.config.FileCache
 import swaydb.core.cache.CacheUnsafe
 

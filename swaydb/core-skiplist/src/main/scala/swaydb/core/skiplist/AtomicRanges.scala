@@ -18,7 +18,7 @@ package swaydb.core.skiplist
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
-import swaydb.Bag.Implicits._
+import swaydb.Bag.implicits._
 import swaydb.core.skiplist.AtomicRanges.{Action, Value}
 import swaydb.effect.Reserve
 import swaydb.slice.{MaxKey, Slice}
