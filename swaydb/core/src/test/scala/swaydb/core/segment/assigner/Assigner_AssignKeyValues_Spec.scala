@@ -425,7 +425,7 @@ class Assigner_AssignKeyValues_Spec extends AnyWordSpec {
         result.size shouldBe 5
 
         //sort them by the fileId, so it's easier to test
-        val resultArray = result.toArray.sortBy(_.segment.path.fileId._1)
+        val resultArray = result.toArray.sortBy(_.segment.path.fileId()._1)
 
         resultArray(0).segment.path shouldBe segment1.path
         resultArray(0).midOverlap.result should have size 1

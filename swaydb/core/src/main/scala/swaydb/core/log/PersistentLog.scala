@@ -234,7 +234,7 @@ private[core] object PersistentLog extends LazyLogging {
                                                     bufferCleaner: ByteBufferSweeperActor,
                                                     forceSaveApplier: ForceSaveApplier): CoreFile = {
 
-    val nextPath = currentFile.path.incrementFileId
+    val nextPath = currentFile.path.incrementFileId()
     val bytes = LogEntryParser.write(cache.iterator)
 
     val newFile =

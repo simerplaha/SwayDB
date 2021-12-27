@@ -90,7 +90,7 @@ private[core] object Logs extends LazyLogging {
             case Some(lastLogs) =>
               lastLogs match {
                 case PersistentLog(path, _, _, _, _, _) =>
-                  path.incrementFolderId
+                  path.incrementFolderId()
 
                 case _ =>
                   path.resolve(0.toFolderId)
@@ -252,7 +252,7 @@ private[core] object Logs extends LazyLogging {
       }
 
     doRecovery(
-      logs = folder.folders,
+      logs = folder.folders(),
       recoveredLogs = ListBuffer.empty
     )
   }
@@ -268,7 +268,7 @@ private[core] object Logs extends LazyLogging {
       case currentLog: PersistentLog[K, V, C] =>
         currentLog.close()
         PersistentLog[K, V, C](
-          folder = currentLog.path.incrementFolderId,
+          folder = currentLog.path.incrementFolderId(),
           mmap = currentLog.mmap,
           flushOnOverflow = false,
           fileSize = nextLogSize

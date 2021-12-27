@@ -78,7 +78,7 @@ class LogsSpec extends AnyWordSpec {
             logs.find[MemoryOption](Memory.Null, _.cache.skipList.get(1)) shouldBe Memory.remove(1)
             logs.find[MemoryOption](Memory.Null, _.cache.skipList.get(2)) shouldBe Memory.put(2)
             //since the size of the Log is 1.mb and entries are too small. No flushing will value executed and there should only be one folder.
-            path.folders.map(_.folderId) should contain only 0
+            path.folders().map(_.folderId()) should contain only 0
 
             if (logs.mmap.hasMMAP && OperatingSystem.isWindows()) {
               logs.close().get
@@ -106,7 +106,7 @@ class LogsSpec extends AnyWordSpec {
 
             //reopening will start the Log in recovery mode which will add all the existing logs in memory and initialise a new log for writing
             //so a new folder 1 is initialised.
-            path.folders.map(_.folderId) shouldBe List(0, 1)
+            path.folders().map(_.folderId()) shouldBe List(0, 1)
         }
       }
     }
@@ -151,7 +151,7 @@ class LogsSpec extends AnyWordSpec {
             if (reopen.mmap.hasMMAP && OperatingSystem.isWindows())
               sweeper.receiveAll()
 
-            currentLogsPath.exists shouldBe false
+            currentLogsPath.exists() shouldBe false
         }
       }
     }
@@ -206,7 +206,7 @@ class LogsSpec extends AnyWordSpec {
 
           test(logs)
           //new log 1 gets created since the 3rd entry is overflow entry.
-          path.folders.map(_.folderId) should contain only(0, 1)
+          path.folders().map(_.folderId()) should contain only(0, 1)
 
           //in memory
           test(
@@ -320,8 +320,8 @@ class LogsSpec extends AnyWordSpec {
 
             logs.logsCount shouldBe 5
             //logs value added
-            invokePrivate_queue(logs).iterator.toList.map(_.pathOption.get.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
-            logs.last().get.pathOption.get.folderId shouldBe 0
+            invokePrivate_queue(logs).iterator.toList.map(_.pathOption.get.folderId()) should contain inOrderOnly(4, 3, 2, 1, 0)
+            logs.last().get.pathOption.get.folderId() shouldBe 0
 
             if (logs.mmap.hasMMAP && OperatingSystem.isWindows()) {
               logs.close().get
@@ -337,10 +337,10 @@ class LogsSpec extends AnyWordSpec {
                 recovery = RecoveryMode.ReportFailure
               ).get
 
-            invokePrivate_queue(recovered1).iterator.toList.map(_.pathOption.get.folderId) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
-            recovered1.log.pathOption.get.folderId shouldBe 5
+            invokePrivate_queue(recovered1).iterator.toList.map(_.pathOption.get.folderId()) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
+            recovered1.log.pathOption.get.folderId() shouldBe 5
             recovered1.write(_ => LogEntry.Put[Slice[Byte], Memory.Remove](6, Memory.remove(6)))
-            recovered1.last().get.pathOption.get.folderId shouldBe 0
+            recovered1.last().get.pathOption.get.folderId() shouldBe 0
 
             if (recovered1.mmap.hasMMAP && OperatingSystem.isWindows()) {
               recovered1.close().get
@@ -356,9 +356,9 @@ class LogsSpec extends AnyWordSpec {
                 recovery = RecoveryMode.ReportFailure
               ).get.sweep()
 
-            invokePrivate_queue(recovered2).iterator.toList.map(_.pathOption.get.folderId) should contain inOrderOnly(6, 5, 4, 3, 2, 1, 0)
-            recovered2.log.pathOption.get.folderId shouldBe 6
-            recovered2.last().get.pathOption.get.folderId shouldBe 0
+            invokePrivate_queue(recovered2).iterator.toList.map(_.pathOption.get.folderId()) should contain inOrderOnly(6, 5, 4, 3, 2, 1, 0)
+            recovered2.log.pathOption.get.folderId() shouldBe 6
+            recovered2.last().get.pathOption.get.folderId() shouldBe 0
         }
       }
     }
@@ -399,7 +399,7 @@ class LogsSpec extends AnyWordSpec {
 
             val recoveredLogsLogs = invokePrivate_queue(recoveredLogs).iterator.toList
             recoveredLogsLogs should have size 4
-            recoveredLogsLogs.map(_.pathOption.get.folderId) shouldBe List(3, 2, 1, 0)
+            recoveredLogsLogs.map(_.pathOption.get.folderId()) shouldBe List(3, 2, 1, 0)
 
             recoveredLogsLogs.head.cache.skipList.size shouldBe 0
             recoveredLogsLogs.tail.head.cache.skipList.get(1) shouldBe Memory.remove(1)

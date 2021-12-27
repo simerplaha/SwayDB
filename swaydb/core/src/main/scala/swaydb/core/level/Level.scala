@@ -220,7 +220,7 @@ private[core] case object Level extends LazyLogging {
   def largestSegmentId(appendix: Iterable[Segment]): Long =
     appendix.foldLeft(0L) {
       case (initialId, segment) =>
-        val segmentNumber = segment.path.fileId._1
+        val segmentNumber = segment.path.fileId()._1
         if (initialId > segmentNumber)
           initialId
         else
@@ -1191,8 +1191,8 @@ private[core] case class Level(dirs: Seq[Dir],
   def hasNextLevel: Boolean =
     nextLevel.isDefined
 
-  override def existsOnDisk() =
-    dirs.forall(_.path.exists)
+  override def existsOnDisk(): Boolean =
+    dirs.forall(_.path.exists())
 
   override def levelSize: Long =
     appendix.cache.foldLeft(0L)(_ + _._2.segmentSize)
@@ -1207,7 +1207,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   def meterFor(levelNumber: Int): Option[LevelMeter] =
-    if (levelNumber == pathDistributor.head.path.folderId)
+    if (levelNumber == pathDistributor.head.path.folderId())
       Some(meter)
     else
       nextLevel.flatMap(_.meterFor(levelNumber))

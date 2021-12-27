@@ -392,7 +392,7 @@ class LogSpec extends AnyWordSpec {
           map1Recovered.cache.skipList.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
 
           //recovered file's id is 2.log
-          map1Recovered.path.files(Extension.Log).map(_.fileId) should contain only ((2, Extension.Log))
+          map1Recovered.path.files(Extension.Log).map(_.fileId()) should contain only ((2, Extension.Log))
       }
     }
 
@@ -473,7 +473,7 @@ class LogSpec extends AnyWordSpec {
           map1Recovered.cache.get(6).toOptionS shouldBe empty
 
           //recovered file's id is 2.log
-          map1Recovered.path.files(Extension.Log).map(_.fileId) should contain only ((2, Extension.Log))
+          map1Recovered.path.files(Extension.Log).map(_.fileId()) should contain only ((2, Extension.Log))
       }
     }
 
@@ -538,7 +538,7 @@ class LogSpec extends AnyWordSpec {
           file.memoryMapped shouldBe false
           file.existsOnDisk() shouldBe true
           file.fileSize() shouldBe 0
-          file.path.fileId shouldBe(0, Extension.Log)
+          file.path.fileId() shouldBe(0, Extension.Log)
 
           cache.isEmpty shouldBe true
       }
@@ -568,7 +568,7 @@ class LogSpec extends AnyWordSpec {
           log.writeSync(LogEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
           log.writeSync(LogEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
 
-          log.currentFilePath.fileId shouldBe(0, Extension.Log)
+          log.currentFilePath.fileId() shouldBe(0, Extension.Log)
 
           log.cache.hasRange shouldBe true
 
@@ -593,9 +593,9 @@ class LogSpec extends AnyWordSpec {
           recoveredFile.isOpen shouldBe true
           recoveredFile.memoryMapped shouldBe false
           recoveredFile.existsOnDisk() shouldBe true
-          recoveredFile.path.fileId shouldBe(1, Extension.Log) //file id gets incremented on recover
+          recoveredFile.path.fileId() shouldBe(1, Extension.Log) //file id gets incremented on recover
 
-          recoveredFile.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
+          recoveredFile.path.resolveSibling(0.toLogFileId).exists() shouldBe false //0.log gets deleted
 
           cache.isEmpty shouldBe false
           cache.skipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
@@ -629,12 +629,12 @@ class LogSpec extends AnyWordSpec {
           log.writeSync(LogEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
           log.writeSync(LogEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
 
-          log.currentFilePath.fileId shouldBe(5, Extension.Log)
-          log.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
-          log.path.resolveSibling(1.toLogFileId).exists shouldBe false //1.log gets deleted
-          log.path.resolveSibling(2.toLogFileId).exists shouldBe false //2.log gets deleted
-          log.path.resolveSibling(3.toLogFileId).exists shouldBe false //3.log gets deleted
-          log.path.resolveSibling(4.toLogFileId).exists shouldBe false //4.log gets deleted
+          log.currentFilePath.fileId() shouldBe(5, Extension.Log)
+          log.path.resolveSibling(0.toLogFileId).exists() shouldBe false //0.log gets deleted
+          log.path.resolveSibling(1.toLogFileId).exists() shouldBe false //1.log gets deleted
+          log.path.resolveSibling(2.toLogFileId).exists() shouldBe false //2.log gets deleted
+          log.path.resolveSibling(3.toLogFileId).exists() shouldBe false //3.log gets deleted
+          log.path.resolveSibling(4.toLogFileId).exists() shouldBe false //4.log gets deleted
 
           if (OperatingSystem.isWindows()) {
             log.close()
@@ -657,7 +657,7 @@ class LogSpec extends AnyWordSpec {
           recoveredFile.memoryMapped shouldBe true
           recoveredFile.existsOnDisk() shouldBe true
           recoveredFile.path.fileId shouldBe(6, Extension.Log) //file id gets incremented on recover
-          recoveredFile.path.resolveSibling(5.toLogFileId).exists shouldBe false //5.log gets deleted
+          recoveredFile.path.resolveSibling(5.toLogFileId).exists() shouldBe false //5.log gets deleted
 
           cache.isEmpty shouldBe false
           cache.skipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
@@ -685,8 +685,8 @@ class LogSpec extends AnyWordSpec {
           recoveredFile2.isOpen shouldBe true
           recoveredFile2.memoryMapped shouldBe true
           recoveredFile2.existsOnDisk() shouldBe true
-          recoveredFile2.path.fileId shouldBe(7, Extension.Log) //file id gets incremented on recover
-          recoveredFile2.path.resolveSibling(6.toLogFileId).exists shouldBe false //6.log gets deleted
+          recoveredFile2.path.fileId() shouldBe(7, Extension.Log) //file id gets incremented on recover
+          recoveredFile2.path.resolveSibling(6.toLogFileId).exists() shouldBe false //6.log gets deleted
 
           cache2.isEmpty shouldBe false
           cache2.skipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
@@ -714,7 +714,7 @@ class LogSpec extends AnyWordSpec {
               dropCorruptedTailEntries = false
             ).item
 
-          log.currentFilePath.fileId shouldBe(0, Extension.Log)
+          log.currentFilePath.fileId() shouldBe(0, Extension.Log)
           log.close()
 
           if (OperatingSystem.isWindows())
@@ -733,8 +733,8 @@ class LogSpec extends AnyWordSpec {
           file.isOpen shouldBe true
           file.memoryMapped shouldBe false
           file.existsOnDisk() shouldBe true
-          file.path.fileId shouldBe(1, Extension.Log) //file id gets incremented on recover
-          file.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
+          file.path.fileId() shouldBe(1, Extension.Log) //file id gets incremented on recover
+          file.path.resolveSibling(0.toLogFileId).exists() shouldBe false //0.log gets deleted
 
           cache.isEmpty shouldBe true
       }

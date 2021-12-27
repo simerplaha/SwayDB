@@ -35,26 +35,37 @@ import scala.util.Try
 private[swaydb] object Effect extends LazyLogging {
 
   implicit class PathExtensionImplicits(path: Path) {
-    @inline def fileId =
+    @inline def fileId(): (Long, Extension) =
       Effect.numberFileId(path)
 
-    @inline def incrementFileId =
+    @inline def incrementFileId(): Path =
       Effect.incrementFileId(path)
 
-    @inline def incrementFolderId =
+    @inline def incrementFolderId(): Path =
       Effect.incrementFolderId(path)
 
-    @inline def folderId =
+    @inline def folderId(): Long =
       Effect.folderId(path)
 
     @inline def files(extension: Extension): List[Path] =
       Effect.files(path, extension)
 
-    @inline def folders =
+    @inline def folders(): List[Path] =
       Effect.folders(path)
 
-    @inline def exists =
+    @inline def exists(): Boolean =
       Effect.exists(path)
+  }
+
+  implicit class FileIdImplicits(id: Long) {
+    @inline final def toLogFileId: String =
+      s"$id.${Extension.Log}"
+
+    @inline final def toFolderId: String =
+      s"$id"
+
+    @inline final def toSegmentFileId: String =
+      s"$id.${Extension.Seg}"
   }
 
   @inline def getIntFileSizeOrFail(channel: FileChannel): Int = {
@@ -232,17 +243,6 @@ private[swaydb] object Effect extends LazyLogging {
   @inline def release(lock: Option[FileLocker]): Unit =
     lock.foreach(_.channel.close())
 
-  implicit class FileIdImplicits(id: Long) {
-    @inline final def toLogFileId =
-      s"$id.${Extension.Log}"
-
-    @inline final def toFolderId =
-      s"$id"
-
-    @inline final def toSegmentFileId =
-      s"$id.${Extension.Seg}"
-  }
-
   @inline def incrementFileId(path: Path): Path = {
     val (id, ext) = numberFileId(path)
     path.getParent.resolve(s"${id + 1}.${ext.toString}")
@@ -309,7 +309,7 @@ private[swaydb] object Effect extends LazyLogging {
   def segmentFilesOnDisk(paths: Seq[Path]): Seq[Path] =
     paths
       .flatMap(_.files(Extension.Seg))
-      .sortBy(_.getFileName.fileId._1)
+      .sortBy(_.getFileName.fileId()._1)
 
   @inline def readAllBytes(path: Path): Array[Byte] =
     Files.readAllBytes(path)
