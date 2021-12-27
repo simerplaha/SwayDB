@@ -23,7 +23,7 @@ import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.log
-import swaydb.core.log.{Log, PersistentLog, RecoveryResult}
+import swaydb.core.log.{Log, PersistentLog, LogRecoveryResult}
 import swaydb.core.log.serialiser.{KeyLogEntryReader, KeyLogEntryWriter}
 import swaydb.core.segment.CoreFunctionStore
 import swaydb.effect.Effect
@@ -40,7 +40,7 @@ case object AppliedFunctionsLog extends LazyLogging {
   def apply(dir: Path,
             fileSize: Int,
             mmap: MMAP.Log)(implicit bufferCleaner: ByteBufferSweeperActor,
-                            forceSaveApplier: ForceSaveApplier): RecoveryResult[log.PersistentLog[Slice[Byte], Unit, AppliedFunctionsLogCache]] = {
+                            forceSaveApplier: ForceSaveApplier): LogRecoveryResult[log.PersistentLog[Slice[Byte], Unit, AppliedFunctionsLogCache]] = {
     val folder = dir.resolve(folderName)
     Effect.createDirectoriesIfAbsent(folder)
 

@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Log.ExceptionHandler
 import swaydb.IO
 import swaydb.ReaderBaseIOImplicits._
-import swaydb.core.log.{LogEntry, RecoveryResult}
+import swaydb.core.log.{LogEntry, LogRecoveryResult}
 import swaydb.core.util.CRC32
 import swaydb.slice.{Slice, SliceReader}
 import swaydb.utils.ByteSizeOf
@@ -63,8 +63,8 @@ private[core] object LogEntryParser extends LazyLogging {
    * THIS FUNCTION NEED REFACTORING.
    */
   def read[K, V](bytes: Slice[Byte],
-                 dropCorruptedTailEntries: Boolean)(implicit logReader: LogEntryReader[LogEntry[K, V]]): IO[swaydb.Error.Log, RecoveryResult[Option[LogEntry[K, V]]]] =
-    SliceReader(bytes).foldLeftIO(RecoveryResult(Option.empty[LogEntry[K, V]], IO.unit)) {
+                 dropCorruptedTailEntries: Boolean)(implicit logReader: LogEntryReader[LogEntry[K, V]]): IO[swaydb.Error.Log, LogRecoveryResult[Option[LogEntry[K, V]]]] =
+    SliceReader(bytes).foldLeftIO(LogRecoveryResult(Option.empty[LogEntry[K, V]], IO.unit)) {
       case (recovery, reader) =>
         IO(reader.hasAtLeast(ByteSizeOf.long)) match {
           case IO.Right(hasMore) =>
@@ -85,7 +85,7 @@ private[core] object LogEntryParser extends LazyLogging {
                           IO {
                             val readLogEntry = logReader.read(SliceReader(payload))
                             val nextEntry = recovery.item.map(_ ++ readLogEntry) orElse Some(readLogEntry)
-                            RecoveryResult(nextEntry, recovery.result)
+                            LogRecoveryResult(nextEntry, recovery.result)
                           }
                         } else {
                           val failureMessage =
@@ -110,7 +110,7 @@ private[core] object LogEntryParser extends LazyLogging {
                 case IO.Left(failure) =>
                   if (dropCorruptedTailEntries) {
                     logger.error("Skipping WAL on failure at position {}", reader.getPosition)
-                    return IO.Right(RecoveryResult(recovery.item, IO.Left(failure)))
+                    return IO.Right(LogRecoveryResult(recovery.item, IO.Left(failure)))
                   } else {
                     IO.Left(failure)
                   }

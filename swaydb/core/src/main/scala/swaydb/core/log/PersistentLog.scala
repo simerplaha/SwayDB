@@ -47,7 +47,7 @@ private[core] object PersistentLog extends LazyLogging {
                                                                           reader: LogEntryReader[LogEntry[K, V]],
                                                                           writer: LogEntryWriter[LogEntry.Put[K, V]],
                                                                           cacheBuilder: LogCacheBuilder[C],
-                                                                          forceSaveApplier: ForceSaveApplier): RecoveryResult[PersistentLog[K, V, C]] = {
+                                                                          forceSaveApplier: ForceSaveApplier): LogRecoveryResult[PersistentLog[K, V, C]] = {
     Effect.createDirectoryIfAbsent(folder)
 
     val cache = cacheBuilder.create()
@@ -61,7 +61,7 @@ private[core] object PersistentLog extends LazyLogging {
         dropCorruptedTailEntries = dropCorruptedTailEntries
       )
 
-    val map =
+    val log =
       new PersistentLog[K, V, C](
         path = folder,
         mmap = mmap,
@@ -71,8 +71,8 @@ private[core] object PersistentLog extends LazyLogging {
         currentFile = fileRecoveryResult.item
       )
 
-    RecoveryResult(
-      item = map,
+    LogRecoveryResult(
+      item = log,
       result = fileRecoveryResult.result
     )
   }
@@ -139,7 +139,7 @@ private[core] object PersistentLog extends LazyLogging {
                                                                             logReader: LogEntryReader[LogEntry[K, V]],
                                                                             fileSweeper: FileSweeper,
                                                                             bufferCleaner: ByteBufferSweeperActor,
-                                                                            forceSaveApplier: ForceSaveApplier): RecoveryResult[CoreFile] = {
+                                                                            forceSaveApplier: ForceSaveApplier): LogRecoveryResult[CoreFile] = {
 
     val files = folder.files(Extension.Log)
 
@@ -163,7 +163,7 @@ private[core] object PersistentLog extends LazyLogging {
           recovery.item foreach cache.writeNonAtomic
 
           logger.debug(s"$path: Indexed!")
-          RecoveryResult(file, recovery.result)
+          LogRecoveryResult(file, recovery.result)
       }
 
     val file =
@@ -181,7 +181,7 @@ private[core] object PersistentLog extends LazyLogging {
       }
 
     //if there was a failure recovering any one of the files, return the recovery with the failure result.
-    RecoveryResult(
+    LogRecoveryResult(
       item = file,
       result = recoveredFiles.find(_.result.isLeft).map(_.result) getOrElse IO.unit
     )
