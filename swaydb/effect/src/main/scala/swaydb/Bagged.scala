@@ -16,7 +16,6 @@
 
 package swaydb
 
-
 trait Bagged[A, BAG[_]] {
   def get: BAG[A]
 

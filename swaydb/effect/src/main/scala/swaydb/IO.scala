@@ -690,7 +690,7 @@ object IO {
           runSync[B, BAG](tried)(sync)
 
         //if a bag is provided that implements isComplete then execute it directly
-        case async: Bag.Async.Retryable[BAG] =>
+        case async: Bag.AsyncRetryable[BAG] =>
           runAsync[B, BAG](tried)(async)
 
         case async: Bag.Async[BAG] =>
@@ -790,7 +790,7 @@ object IO {
       doRun(this, tried)
     }
 
-    private def runAsync[B >: A, BAG[_]](tried: Int)(implicit bag: Bag.Async.Retryable[BAG]): BAG[B] = {
+    private def runAsync[B >: A, BAG[_]](tried: Int)(implicit bag: Bag.AsyncRetryable[BAG]): BAG[B] = {
 
       /**
        * If the value is already fetched [[isPending]] run in current thread

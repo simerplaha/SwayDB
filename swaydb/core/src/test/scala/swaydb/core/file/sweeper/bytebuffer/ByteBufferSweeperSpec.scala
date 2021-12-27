@@ -31,7 +31,7 @@ import swaydb.effect.IOValues._
 import swaydb.testkit.RunThis._
 import swaydb.testkit.TestKit._
 import swaydb.utils.OperatingSystem
-import swaydb.Bag.Async
+import swaydb.Bag.{Async, AsyncRetryable}
 import swaydb.config.GenForceSave
 import swaydb.effect.EffectTestKit._
 import swaydb.effect.EffectTestSweeper._
@@ -49,7 +49,7 @@ import scala.util.Random
 class ByteBufferSweeperSpec extends AnyWordSpec with MockFactory {
 
   implicit val ec: ExecutionContext = TestExecutionContext.executionContext
-  implicit val futureBag: Async.Retryable[Future] = Bag.future
+  implicit val futureBag: AsyncRetryable[Future] = Bag.future
 
   "clear a MMAP file" in {
     CoreTestSweeper.repeat(10.times) {

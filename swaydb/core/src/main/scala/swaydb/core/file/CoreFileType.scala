@@ -34,7 +34,7 @@ private trait CoreFileType extends FileSweeperItem {
 
   def isLoaded(): Boolean
 
-  def isOpen: Boolean
+  def isOpen(): Boolean
 
   def isFull(): Boolean
 

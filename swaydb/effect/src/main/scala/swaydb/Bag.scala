@@ -17,7 +17,6 @@
 package swaydb
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO.{ApiIO, ThrowableIO}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
@@ -106,6 +105,51 @@ sealed trait Bag[BAG[_]] { thisBag =>
 
 object Bag extends LazyLogging {
 
+  trait Sync[BAG[_]] extends Bag[BAG] { self =>
+    @inline def isSuccess[A](a: BAG[A]): Boolean
+    @inline def isFailure[A](a: BAG[A]): Boolean
+    @inline def exception[A](a: BAG[A]): Option[Throwable]
+    @inline def getOrElse[A, B >: A](a: BAG[A])(b: => B): B
+    @inline def getUnsafe[A](a: BAG[A]): A
+    @inline def orElse[A, B >: A](a: BAG[A])(b: BAG[B]): BAG[B]
+    @inline def recover[A, B >: A](fa: BAG[A])(pf: PartialFunction[Throwable, B]): BAG[B]
+    @inline def recoverWith[A, B >: A](fa: BAG[A])(pf: PartialFunction[Throwable, BAG[B]]): BAG[B]
+
+  }
+
+  trait Async[BAG[_]] extends Bag[BAG] { self =>
+    @inline def fromPromise[A](a: Promise[A]): BAG[A]
+    @inline def complete[A](promise: Promise[A], a: BAG[A]): Unit
+    @inline def executionContext: ExecutionContext
+    @inline def fromFuture[A](a: Future[A]): BAG[A]
+  }
+
+  /**
+   * Reserved for Bags that have the ability to check is T.isComplete or not.
+   *
+   * zio.Task and monix.Task do not have this ability but scala.Future does.
+   *
+   * isComplete is required to add stack-safe read retries if there were failures like
+   * async closed files during reads etc.
+   */
+  trait AsyncRetryable[BAG[_]] extends Async[BAG] { self =>
+    @inline def isComplete[A](a: BAG[A]): Boolean
+    @inline def isIncomplete[A](a: BAG[A]): Boolean =
+      !isComplete(a)
+  }
+
+  //default Bag implementation for known effect types
+  implicit val throwableIO: Bag.Sync[IO.ThrowableIO] = BagThrowableIO
+  implicit val apiIO: Bag.Sync[IO.ApiIO] = BagApiIO
+
+  implicit val tryBag: Bag.Sync[Try] = BagTry
+  implicit val glass: Bag.Sync[Glass] = BagGlass
+
+  implicit def future(implicit ec: ExecutionContext): BagFuture = BagFuture()(ec)
+
+  /**
+   * Convenience implicits for working with [[Bag]]s
+   */
   object Implicits {
 
     implicit class BagImplicits[A, BAG[_]](fa: BAG[A])(implicit bag: Bag[BAG]) {
@@ -227,344 +271,4 @@ object Bag extends LazyLogging {
         bag.fromFuture(future)
     }
   }
-
-  trait Sync[BAG[_]] extends Bag[BAG] { self =>
-    @inline def isSuccess[A](a: BAG[A]): Boolean
-    @inline def isFailure[A](a: BAG[A]): Boolean
-    @inline def exception[A](a: BAG[A]): Option[Throwable]
-    @inline def getOrElse[A, B >: A](a: BAG[A])(b: => B): B
-    @inline def getUnsafe[A](a: BAG[A]): A
-    @inline def orElse[A, B >: A](a: BAG[A])(b: BAG[B]): BAG[B]
-    @inline def recover[A, B >: A](fa: BAG[A])(pf: PartialFunction[Throwable, B]): BAG[B]
-    @inline def recoverWith[A, B >: A](fa: BAG[A])(pf: PartialFunction[Throwable, BAG[B]]): BAG[B]
-
-  }
-
-  trait Async[BAG[_]] extends Bag[BAG] { self =>
-    @inline def fromPromise[A](a: Promise[A]): BAG[A]
-    @inline def complete[A](promise: Promise[A], a: BAG[A]): Unit
-    @inline def executionContext: ExecutionContext
-    @inline def fromFuture[A](a: Future[A]): BAG[A]
-  }
-
-
-  object Async {
-
-    /**
-     * Reserved for Bags that have the ability to check is T.isComplete or not.
-     *
-     * zio.Task and monix.Task do not have this ability but scala.Future does.
-     *
-     * isComplete is required to add stack-safe read retries if there were failures like
-     * async closed files during reads etc.
-     */
-    trait Retryable[BAG[_]] extends Bag.Async[BAG] { self =>
-      @inline def isComplete[A](a: BAG[A]): Boolean
-      @inline def isIncomplete[A](a: BAG[A]): Boolean =
-        !isComplete(a)
-    }
-  }
-
-  implicit val throwableIO: Bag.Sync[IO.ThrowableIO] =
-    new Bag.Sync[IO.ThrowableIO] {
-      override val unit: IO.ThrowableIO[Unit] =
-        IO.unit
-
-      @inline override def none[A]: IO.ThrowableIO[Option[A]] =
-        IO.none
-
-      @inline override def apply[A](a: => A): IO.ThrowableIO[A] =
-        IO(a)
-
-      @inline def isSuccess[A](a: IO.ThrowableIO[A]): Boolean =
-        a.isRight
-
-      @inline def isFailure[A](a: IO.ThrowableIO[A]): Boolean =
-        a.isLeft
-
-      @inline override def map[A, B](a: IO.ThrowableIO[A])(f: A => B): IO.ThrowableIO[B] =
-        a.map(f)
-
-      @inline override def transform[A, B](a: ThrowableIO[A])(f: A => B): ThrowableIO[B] =
-        a.transform(f)
-
-      @inline override def foreach[A](a: IO.ThrowableIO[A])(f: A => Unit): Unit =
-        a.foreach(f)
-
-      @inline override def flatMap[A, B](fa: IO.ThrowableIO[A])(f: A => IO.ThrowableIO[B]): IO.ThrowableIO[B] =
-        fa.flatMap(f)
-
-      @inline override def success[A](value: A): IO.ThrowableIO[A] =
-        IO.Right(value)
-
-      @inline override def failure[A](exception: Throwable): IO.ThrowableIO[A] =
-        IO.failed(exception)
-
-      @inline override def exception[A](a: IO.ThrowableIO[A]): Option[Throwable] =
-        a.left.toOption
-
-      @inline override def getOrElse[A, B >: A](a: IO.ThrowableIO[A])(b: => B): B =
-        a.getOrElse(b)
-
-      @inline override def getUnsafe[A](a: ThrowableIO[A]): A =
-        a.get
-
-      @inline override def orElse[A, B >: A](a: IO.ThrowableIO[A])(b: IO.ThrowableIO[B]): IO.ThrowableIO[B] =
-        a.orElse(b)
-
-      @inline override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): IO.ThrowableIO[A] =
-        IO[Throwable, A](a.get)
-
-      @inline override def suspend[B](f: => ThrowableIO[B]): ThrowableIO[B] =
-        f
-      @inline override def flatten[A](fa: ThrowableIO[ThrowableIO[A]]): ThrowableIO[A] =
-        fa.flatten
-
-      @inline override def recover[A, B >: A](fa: ThrowableIO[A])(pf: PartialFunction[Throwable, B]): ThrowableIO[B] =
-        fa.recover(pf)
-
-      @inline override def recoverWith[A, B >: A](fa: ThrowableIO[A])(pf: PartialFunction[Throwable, ThrowableIO[B]]): ThrowableIO[B] =
-        fa.recoverWith(pf)
-    }
-
-  implicit val apiIO: Bag.Sync[IO.ApiIO] =
-    new Sync[IO.ApiIO] {
-
-      implicit val exceptionHandler = swaydb.Error.API.ExceptionHandler
-
-      @inline override def isSuccess[A](a: ApiIO[A]): Boolean =
-        a.isRight
-
-      @inline override def isFailure[A](a: ApiIO[A]): Boolean =
-        a.isLeft
-
-      @inline override def exception[A](a: ApiIO[A]): Option[Throwable] =
-        a.left.toOption.map(_.exception)
-
-      @inline override def getOrElse[A, B >: A](a: ApiIO[A])(b: => B): B =
-        a.getOrElse(b)
-
-      @inline override def getUnsafe[A](a: ApiIO[A]): A =
-        a.get
-
-      @inline override def orElse[A, B >: A](a: ApiIO[A])(b: ApiIO[B]): ApiIO[B] =
-        a.orElse(b)
-
-      @inline override def unit: ApiIO[Unit] =
-        IO.unit
-
-      @inline override def none[A]: ApiIO[Option[A]] =
-        IO.none
-
-      @inline override def apply[A](a: => A): ApiIO[A] =
-        IO(a)
-
-      @inline override def foreach[A](a: ApiIO[A])(f: A => Unit): Unit =
-        a.foreach(f)
-
-      @inline override def map[A, B](a: ApiIO[A])(f: A => B): ApiIO[B] =
-        a.map(f)
-
-      @inline override def transform[A, B](a: ApiIO[A])(f: A => B): ApiIO[B] =
-        a.transform(f)
-
-      @inline override def flatMap[A, B](fa: ApiIO[A])(f: A => ApiIO[B]): ApiIO[B] =
-        fa.flatMap(f)
-
-      @inline override def success[A](value: A): ApiIO[A] =
-        IO.Right(value)
-
-      @inline override def failure[A](exception: Throwable): ApiIO[A] =
-        IO.failed(exception)
-
-      @inline override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): ApiIO[A] =
-        IO[swaydb.Error.API, A](a.get)
-
-      @inline override def suspend[B](f: => ApiIO[B]): ApiIO[B] =
-        f
-      @inline override def flatten[A](fa: ApiIO[ApiIO[A]]): ApiIO[A] =
-        fa.flatten
-
-      @inline override def recover[A, B >: A](fa: ApiIO[A])(pf: PartialFunction[Throwable, B]): ApiIO[B] =
-        fa match {
-          case right @ IO.Right(_) =>
-            right
-
-          case IO.Left(value) =>
-            IO(pf.apply(value.exception))
-        }
-
-      @inline override def recoverWith[A, B >: A](fa: ApiIO[A])(pf: PartialFunction[Throwable, ApiIO[B]]): ApiIO[B] =
-        fa match {
-          case right @ IO.Right(_) =>
-            right
-
-          case IO.Left(value) =>
-            pf.apply(value.exception)
-        }
-    }
-
-  implicit val tryBag: Bag.Sync[Try] =
-    new Bag.Sync[Try] {
-      val unit: scala.util.Success[Unit] = scala.util.Success(())
-
-      val none: scala.util.Success[Option[Nothing]] = scala.util.Success(None)
-
-      @inline override def isSuccess[A](a: Try[A]): Boolean =
-        a.isSuccess
-
-      @inline override def isFailure[A](a: Try[A]): Boolean =
-        a.isFailure
-
-      @inline override def exception[A](a: Try[A]): Option[Throwable] =
-        a.failed.toOption
-
-      @inline override def getOrElse[A, B >: A](a: Try[A])(b: => B): B =
-        a.getOrElse(b)
-
-      @inline override def getUnsafe[A](a: Try[A]): A =
-        a.get
-
-      @inline override def orElse[A, B >: A](a: Try[A])(b: Try[B]): Try[B] =
-        a.orElse(b)
-
-      @inline override def none[A]: Try[Option[A]] =
-        none
-
-      @inline override def apply[A](a: => A): Try[A] =
-        Try(a)
-
-      @inline override def foreach[A](a: Try[A])(f: A => Unit): Unit =
-        a.foreach(f)
-
-      @inline override def map[A, B](a: Try[A])(f: A => B): Try[B] =
-        a.map(f)
-
-      @inline override def transform[A, B](a: Try[A])(f: A => B): Try[B] =
-        a.transform(a => Try(f(a)), exception => scala.util.Failure(exception))
-
-      @inline override def flatMap[A, B](fa: Try[A])(f: A => Try[B]): Try[B] =
-        fa.flatMap(f)
-
-      @inline override def success[A](value: A): Try[A] =
-        scala.util.Success(value)
-
-      @inline override def failure[A](exception: Throwable): Try[A] =
-        scala.util.Failure(exception)
-
-      @inline override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Try[A] =
-        a.toTry
-
-      @inline override def suspend[B](f: => Try[B]): Try[B] =
-        f
-
-      @inline override def flatten[A](fa: Try[Try[A]]): Try[A] =
-        fa.flatten
-
-      @inline override def recover[A, B >: A](fa: Try[A])(pf: PartialFunction[Throwable, B]): Try[B] =
-        fa.recover(pf)
-
-      @inline override def recoverWith[A, B >: A](fa: Try[A])(pf: PartialFunction[Throwable, Try[B]]): Try[B] =
-        fa.recoverWith(pf)
-    }
-
-  implicit val glass: Bag.Sync[Glass] =
-    new Bag.Sync[Glass] {
-      @inline override def isSuccess[A](a: Glass[A]): Boolean = true
-
-      @inline override def isFailure[A](a: Glass[A]): Boolean = false
-
-      @inline override def exception[A](a: Glass[A]): Option[Throwable] = None
-
-      @inline override def getOrElse[A, B >: A](a: Glass[A])(b: => B): B = a
-
-      @inline override def getUnsafe[A](a: Glass[A]): A = a
-
-      @inline override def orElse[A, B >: A](a: Glass[A])(b: Glass[B]): B = a
-
-      @inline override def unit: Unit = ()
-
-      @inline override def none[A]: Option[A] = Option.empty[A]
-
-      @inline override def apply[A](a: => A): A = a
-
-      @inline override def foreach[A](a: Glass[A])(f: A => Unit): Unit = f(a)
-
-      @inline override def map[A, B](a: Glass[A])(f: A => B): B = f(a)
-
-      @inline override def transform[A, B](a: Glass[A])(f: A => B): B = f(a)
-
-      @inline override def flatMap[A, B](fa: Glass[A])(f: A => Glass[B]): B = f(fa)
-
-      @inline override def success[A](value: A): A = value
-
-      @inline override def failure[A](exception: Throwable): A = throw exception
-
-      @inline override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): A = a.get
-
-      @inline override def suspend[B](f: => Glass[B]): B = f
-
-      @inline override def safe[B](f: => Glass[B]): B = f
-
-      @inline override def flatten[A](fa: Glass[A]): A = fa
-
-      @inline override def recover[A, B >: A](fa: Glass[A])(pf: PartialFunction[Throwable, B]): B = fa
-
-      @inline override def recoverWith[A, B >: A](fa: Glass[A])(pf: PartialFunction[Throwable, Glass[B]]): B = fa
-    }
-
-  implicit def future(implicit ec: ExecutionContext): Bag.Async.Retryable[Future] =
-    new Async.Retryable[Future] { self =>
-
-      @inline override def executionContext: ExecutionContext =
-        ec
-
-      override val unit: Future[Unit] =
-        Future.unit
-
-      @inline override def none[A]: Future[Option[A]] =
-        Future.successful(None)
-
-      @inline override def apply[A](a: => A): Future[A] =
-        Future(a)
-
-      @inline override def map[A, B](a: Future[A])(f: A => B): Future[B] =
-        a.map(f)
-
-      @inline override def transform[A, B](a: Future[A])(f: A => B): Future[B] =
-        a.transform(f, throwable => throwable)
-
-      @inline override def flatMap[A, B](fa: Future[A])(f: A => Future[B]): Future[B] =
-        fa.flatMap(f)
-
-      @inline override def success[A](value: A): Future[A] =
-        Future.successful(value)
-
-      @inline override def failure[A](exception: Throwable): Future[A] =
-        Future.failed(exception)
-
-      @inline override def foreach[A](a: Future[A])(f: A => Unit): Unit =
-        a.foreach(f)
-
-      @inline def fromPromise[A](a: Promise[A]): Future[A] =
-        a.future
-
-      @inline override def complete[A](promise: Promise[A], a: Future[A]): Unit =
-        promise tryCompleteWith a
-
-      @inline def isComplete[A](a: Future[A]): Boolean =
-        a.isCompleted
-
-      @inline override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Future[A] =
-        a.toFuture
-
-      @inline override def fromFuture[A](a: Future[A]): Future[A] =
-        a
-
-      @inline override def suspend[B](f: => Future[B]): Future[B] =
-        f
-
-      @inline override def flatten[A](fa: Future[Future[A]]): Future[A] =
-        fa.flatten
-    }
 }

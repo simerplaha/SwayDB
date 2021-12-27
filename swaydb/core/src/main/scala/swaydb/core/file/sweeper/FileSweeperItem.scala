@@ -6,5 +6,5 @@ private[core] trait FileSweeperItem {
   def path: Path
   def delete(): Unit
   def close(): Unit
-  def isOpen: Boolean
+  def isOpen(): Boolean
 }

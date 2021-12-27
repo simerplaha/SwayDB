@@ -41,7 +41,7 @@ import swaydb.slice.{Slice, SliceOption}
 import swaydb.slice.order.KeyOrder
 import swaydb.testkit.RunThis._
 import swaydb.utils.{Extension, OperatingSystem}
-import swaydb.Bag.Async
+import swaydb.Bag.{Async, AsyncRetryable}
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.effect.EffectTestSweeper._
 
@@ -116,7 +116,7 @@ object LogTestKit {
       ensureCleanedForWindows(log.mmap)(log.bufferCleaner)
 
       implicit val ec: ExecutionContext = TestExecutionContext.executionContext
-      implicit val bag: Async.Retryable[Future] = Bag.future
+      implicit val bag: AsyncRetryable[Future] = Bag.future
       val isShut = (log.bufferCleaner.actor() ask ByteBufferCommand.IsTerminated[Unit]).await(10.seconds)
       assert(isShut, "Is not shut")
     }
