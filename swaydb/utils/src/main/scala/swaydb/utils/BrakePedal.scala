@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package swaydb.core.log
+package swaydb.utils
 
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.duration._
 
-private[core] class BrakePedal(private var brakeFor: FiniteDuration,
-                               releaseRate: FiniteDuration,
-                               logAsWarning: Boolean) extends LazyLogging {
+class BrakePedal(private var brakeFor: FiniteDuration,
+                 releaseRate: FiniteDuration,
+                 logAsWarning: Boolean) extends LazyLogging {
 
   /**
    * Blocking back-pressure.
