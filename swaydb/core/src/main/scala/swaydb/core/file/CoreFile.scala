@@ -44,7 +44,7 @@ private[core] object CoreFile extends LazyLogging {
     //re-submitted to fileSweeper every time this file requires a close Actor request.
     //Creating new FileSweeper item for each close request would result in cleaner
     //code without null but would be expensive considering the number of objects created.
-    var self: Cache[Error.IO, Unit, CoreFileType] = null
+    var cache: Cache[Error.IO, Unit, CoreFileType] = null
 
     val closer: FileSweeperItem.Closeable =
       new FileSweeperItem.Closeable {
@@ -52,7 +52,7 @@ private[core] object CoreFile extends LazyLogging {
           filePath
 
         override def close(): Unit =
-          self.clearApply {
+          cache.clearApply {
             case Some(file) =>
               IO(file.close())
 
@@ -61,10 +61,10 @@ private[core] object CoreFile extends LazyLogging {
           }
 
         override def isOpen(): Boolean =
-          self.state().exists(_.exists(_.isOpen()))
+          cache.state().exists(_.exists(_.isOpen()))
       }
 
-    val cache =
+    cache =
       Cache[swaydb.Error.IO, Error.OpeningFile, Unit, CoreFileType](
         //force the cache to be cacheOnAccess regardless of what's configured.
         //This is also needed because only a single thread can close or delete a
@@ -93,8 +93,6 @@ private[core] object CoreFile extends LazyLogging {
             file
           }
       }
-
-    self = cache
 
     if (autoClose && file.isDefined) fileSweeper send FileSweeperCommand.CloseFileItem(closer)
     cache
