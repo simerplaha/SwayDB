@@ -16,13 +16,11 @@
 
 package swaydb.core.file
 
-import swaydb.core.file.sweeper.FileSweeperItem
 import swaydb.slice.{Slice, SliceRO}
 
-import java.nio.channels.WritableByteChannel
 import java.nio.file.Path
 
-private trait CoreFileType extends FileSweeperItem {
+private trait CoreFileType {
 
   val path: Path
 

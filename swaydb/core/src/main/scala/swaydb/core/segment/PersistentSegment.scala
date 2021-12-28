@@ -19,7 +19,7 @@ package swaydb.core.segment
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.file.{CoreFile, ForceSaveApplier}
-import swaydb.core.file.sweeper.FileSweeper
+import swaydb.core.file.sweeper.{FileSweeper, FileSweeperItem}
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
@@ -52,7 +52,7 @@ private[core] sealed trait PersistentSegmentOption {
   def asSegmentOption: SegmentOption
 }
 
-private[core] trait PersistentSegment extends Segment with PersistentSegmentOption {
+private[core] trait PersistentSegment extends Segment with FileSweeperItem.Deletable with FileSweeperItem.Closeable with PersistentSegmentOption {
   def file: CoreFile
 
   def copyTo(toPath: Path): Path
@@ -426,7 +426,7 @@ private[core] object PersistentSegment extends LazyLogging {
         }
 
       case memory: MemorySegment =>
-        import keyOrders.keyOrder
+
 
         PersistentSegment(
           keyValues = memory.skipList.values(),

@@ -97,11 +97,23 @@ object SegmentTestKit {
 
     def clearAllCaches(): Unit =
       actual match {
-        case segment: MemorySegment =>
-        //ignore
+        case _: MemorySegment =>
+        //ignore no closing needed
 
         case segment: PersistentSegment =>
           segment.clearAllCaches()
+
+        case segment =>
+          fail(s"Unknown segment $segment")
+      }
+
+    def close(): Unit =
+      actual match {
+        case _: MemorySegment =>
+        //ignore no closing needed
+
+        case segment: PersistentSegment =>
+          segment.close()
 
         case segment =>
           fail(s"Unknown segment $segment")

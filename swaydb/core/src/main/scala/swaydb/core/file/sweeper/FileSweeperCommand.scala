@@ -14,7 +14,7 @@ object FileSweeperCommand {
   //remove references to the file after eventualDelete is invoked.
   //If the file gets garbage collected due to it being WeakReference before
   //delete on the file is triggered, the physical file will remain on disk.
-  case class Delete(file: FileSweeperItem, deadline: Deadline) extends FileSweeperCommand {
+  case class Delete(file: FileSweeperItem.Deletable, deadline: Deadline) extends FileSweeperCommand {
     final override def isDelete: Boolean = true
   }
 
@@ -29,18 +29,18 @@ object FileSweeperCommand {
   sealed trait CloseFile extends Close
 
   object CloseFileItem {
-    def apply(file: FileSweeperItem): CloseFileItem =
-      new CloseFileItem(new WeakReference[FileSweeperItem](file))
+    def apply(file: FileSweeperItem.Closeable): CloseFileItem =
+      new CloseFileItem(new WeakReference[FileSweeperItem.Closeable](file))
   }
 
-  case class CloseFileItem private(file: WeakReference[FileSweeperItem]) extends CloseFile
+  case class CloseFileItem private(file: WeakReference[FileSweeperItem.Closeable]) extends CloseFile
 
   object CloseFiles {
-    def of(files: Iterable[FileSweeperItem]): CloseFiles =
-      new CloseFiles(files.map(file => new WeakReference[FileSweeperItem](file)))
+    def of(files: Iterable[FileSweeperItem.Closeable]): CloseFiles =
+      new CloseFiles(files.map(file => new WeakReference[FileSweeperItem.Closeable](file)))
   }
 
-  case class CloseFiles private(files: Iterable[WeakReference[FileSweeperItem]]) extends CloseFile
+  case class CloseFiles private(files: Iterable[WeakReference[FileSweeperItem.Closeable]]) extends CloseFile
 
   sealed trait PauseResume extends Close
   case class Pause(levels: Iterable[Path]) extends PauseResume

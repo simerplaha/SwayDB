@@ -380,7 +380,7 @@ private case object PersistentSegmentMany extends LazyLogging {
   }
 
   /**
-   * Used for recovery only - [[swaydb.core.tool.AppendixRepairer]] - Not performance optimised.
+   * Used for recovery only in AppendixRepairer - Not performance optimised.
    *
    * Used when Segment's information is unknown.
    */

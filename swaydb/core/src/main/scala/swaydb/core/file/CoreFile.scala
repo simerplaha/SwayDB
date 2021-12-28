@@ -46,16 +46,10 @@ private[core] object CoreFile extends LazyLogging {
     //code without null but would be expensive considering the number of objects created.
     var self: Cache[Error.IO, Unit, CoreFileType] = null
 
-    val closer: FileSweeperItem =
-      new FileSweeperItem {
-        override def path: Path = filePath
-
-        override def delete(): Unit = {
-          val message = s"Delete invoked on only closeable ${classOf[FileSweeperItem].getSimpleName}. Path: $path. autoClose = $autoClose. deleteAfterClean = $deleteAfterClean."
-          val exception = new Exception(message)
-          logger.error(message, exception)
-          exception.printStackTrace()
-        }
+    val closer: FileSweeperItem.Closeable =
+      new FileSweeperItem.Closeable {
+        override def path: Path =
+          filePath
 
         override def close(): Unit =
           self.clearApply {

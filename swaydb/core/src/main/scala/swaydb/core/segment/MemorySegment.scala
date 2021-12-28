@@ -17,7 +17,7 @@
 package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand}
+import swaydb.core.file.sweeper.{FileSweeper, FileSweeperCommand, FileSweeperItem}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlockConfig
 import swaydb.core.segment.data._
@@ -27,15 +27,15 @@ import swaydb.core.segment.distributor.PathDistributor
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.skiplist.SkipListTreeMap
 import swaydb.core.util._
-import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, Slice, SliceOption}
+import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.utils.{FiniteDurations, IDGenerator}
 
 import java.nio.file.Path
 import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 private[core] sealed trait MemorySegmentOption {
   def asSegmentOption: SegmentOption
@@ -246,7 +246,7 @@ private[core] final case class MemorySegment(path: Path,
                                              pathDistributor: PathDistributor)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                timeOrder: TimeOrder[Slice[Byte]],
                                                                                functionStore: CoreFunctionStore,
-                                                                               fileSweeper: FileSweeper) extends Segment with MemorySegmentOption with LazyLogging {
+                                                                               fileSweeper: FileSweeper) extends Segment with FileSweeperItem.Deletable with MemorySegmentOption with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -264,9 +264,9 @@ private[core] final case class MemorySegment(path: Path,
           createdInLevel: Int,
           segmentConfig: SegmentBlockConfig)(implicit idGenerator: IDGenerator,
                                              executionContext: ExecutionContext): Future[DefIO[MemorySegmentOption, Iterable[MemorySegment]]] =
-    if (deleted)
+    if (deleted) {
       Future.failed(swaydb.Exception.NoSuchFile(path))
-    else {
+    } else {
       implicit val segmentConfigImplicit: SegmentBlockConfig = segmentConfig
 
       DefragMemorySegment.runOnSegment(
@@ -401,9 +401,6 @@ private[core] final case class MemorySegment(path: Path,
     else
       deleted = true
   }
-
-  override val close: Unit =
-    ()
 
   override def keyValueCount: Int =
     if (deleted)

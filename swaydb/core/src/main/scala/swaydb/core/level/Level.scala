@@ -1297,7 +1297,14 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def closeSegmentsInThisLevel(): IO[Error.Level, Unit] =
     segments()
-      .foreachIO(segment => IO(segment.close()), failFast = false)
+      .foreachIO(
+        {
+          case _: MemorySegment           => IO.unit
+          case segment: PersistentSegment => IO(segment.close())
+          case segment                    => IO.failed(s"Unknown segment ${segment}")
+        },
+        failFast = false
+      )
       .getOrElse(IO.unit)
       .onLeftSideEffect {
         failure =>

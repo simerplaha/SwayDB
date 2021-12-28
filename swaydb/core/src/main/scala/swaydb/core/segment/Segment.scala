@@ -18,43 +18,25 @@ package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.config.{MMAP, SegmentRefCacheLife}
-import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.file.sweeper.{FileSweeper, FileSweeperItem}
-import swaydb.core.file.{CoreFile, ForceSaveApplier}
 import swaydb.core.segment.assigner.{Assignable, Assigner}
-import swaydb.core.segment.block.BlockCompressionInfo
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlockConfig
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlockConfig
-import swaydb.core.segment.block.hashindex.HashIndexBlockConfig
-import swaydb.core.segment.block.segment.transient.TransientSegment
-import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockConfig}
-import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockConfig}
-import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockConfig}
-import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data._
 import swaydb.core.segment.data.merge.KeyValueGrouper
-import swaydb.core.segment.data.merge.stats.MergeStats
-import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.skiplist.{SkipList, SkipListTreeMap}
+import swaydb.core.skiplist.SkipList
 import swaydb.core.util._
 import swaydb.effect.Effect
 import swaydb.SliceIOImplicits._
 import swaydb.core.segment.distributor.Distributable
-import swaydb.slice.order.{KeyOrder, TimeOrder}
 import swaydb.slice.{MaxKey, Slice, SliceOption}
+import swaydb.slice.order.KeyOrder
+import swaydb.utils.{FiniteDurations, SomeOrNone}
 import swaydb.utils.Collections._
-import swaydb.utils.Futures.FutureUnitImplicits
-import swaydb.utils.{Aggregator, FiniteDurations, IDGenerator, SomeOrNone}
 
 import java.nio.file.Path
 import scala.annotation.tailrec
-import scala.collection.compat.IterableOnce
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.concurrent.{ExecutionContext, Future}
 
 private[swaydb] sealed trait SegmentOption extends SomeOrNone[SegmentOption, Segment] {
   override def noneS: SegmentOption =
@@ -541,7 +523,7 @@ private[core] case object Segment extends LazyLogging {
     }
 }
 
-private[core] trait Segment extends FileSweeperItem with SegmentOption with Assignable.Collection with Distributable { self =>
+private[core] trait Segment extends SegmentOption with Assignable.Collection with Distributable { self =>
 
   final def key: Slice[Byte] =
     minKey
@@ -584,8 +566,6 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
   def delete(): Unit
 
   def delete(delay: FiniteDuration): Unit
-
-  def close(): Unit
 
   def keyValueCount: Int
 

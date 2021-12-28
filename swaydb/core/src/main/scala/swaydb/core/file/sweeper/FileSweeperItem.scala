@@ -2,9 +2,19 @@ package swaydb.core.file.sweeper
 
 import java.nio.file.Path
 
-private[core] trait FileSweeperItem {
+private[core] sealed trait FileSweeperItem {
   def path: Path
-  def delete(): Unit
-  def close(): Unit
   def isOpen(): Boolean
+}
+
+private[core] object FileSweeperItem {
+
+  trait Closeable extends FileSweeperItem {
+    def close(): Unit
+  }
+
+  trait Deletable extends FileSweeperItem {
+    def delete(): Unit
+  }
+
 }

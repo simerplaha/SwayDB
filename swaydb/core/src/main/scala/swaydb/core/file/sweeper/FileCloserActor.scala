@@ -35,7 +35,7 @@ private object FileCloserActor extends LazyLogging {
     }
 
   private def closeFile(command: FileSweeperCommand.CloseFileItem,
-                        file: WeakReference[FileSweeperItem],
+                        file: WeakReference[FileSweeperItem.Closeable],
                         self: Actor[FileSweeperCommand.Close, State]): Unit = {
     //using underlying to avoid creating Option
     val fileOrNull = file.underlying.get()

@@ -29,6 +29,7 @@ import swaydb.core.level.LevelRef
 import swaydb.core.log.{Log, Logs}
 import swaydb.core.log.counter.CounterLog
 import swaydb.core.segment.{CoreFunctionStore, Segment, TestCoreFunctionStore}
+import swaydb.core.segment.SegmentTestKit._
 import swaydb.core.segment.block.{BlockCache, BlockCacheState}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.cache.sweeper.MemorySweeperTestKit._
