@@ -83,6 +83,30 @@ object SegmentTestKit {
 
   implicit class SegmentImplicits(actual: Segment) {
 
+    def clearCachedKeyValues(): Unit =
+      actual match {
+        case _: MemorySegment =>
+        //Ignore. MemorySegment never clear cache.
+
+        case segment: PersistentSegment =>
+          segment.clearCachedKeyValues()
+
+        case segment =>
+          fail(s"Unknown segment $segment")
+      }
+
+    def clearAllCaches(): Unit =
+      actual match {
+        case segment: MemorySegment =>
+        //ignore
+
+        case segment: PersistentSegment =>
+          segment.clearAllCaches()
+
+        case segment =>
+          fail(s"Unknown segment $segment")
+      }
+
     def shouldBe(expected: Segment): Unit =
       shouldBe(expected = expected, ignoreReads = false)
 

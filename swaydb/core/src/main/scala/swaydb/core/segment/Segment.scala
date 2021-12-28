@@ -589,10 +589,6 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
 
   def keyValueCount: Int
 
-  def clearCachedKeyValues(): Unit
-
-  def clearAllCaches(): Unit
-
   def isInKeyValueCache(key: Slice[Byte]): Boolean
 
   def isKeyValueCacheEmpty: Boolean

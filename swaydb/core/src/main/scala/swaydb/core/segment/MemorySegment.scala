@@ -440,12 +440,6 @@ private[core] final case class MemorySegment(path: Path,
       fileSweeper send FileSweeperCommand.Delete(this, deadline)
   }
 
-  override def clearCachedKeyValues(): Unit =
-    ()
-
-  override def clearAllCaches(): Unit =
-    ()
-
   override def isInKeyValueCache(key: Slice[Byte]): Boolean =
     skipList contains key
 

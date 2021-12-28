@@ -57,6 +57,10 @@ private[core] trait PersistentSegment extends Segment with PersistentSegmentOpti
 
   def copyTo(toPath: Path): Path
 
+  def clearCachedKeyValues(): Unit
+
+  def clearAllCaches(): Unit
+
   final def isMMAP: Boolean =
     file.memoryMapped
 
