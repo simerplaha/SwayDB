@@ -9,6 +9,27 @@ import scala.util.Random
 
 object CoreConfigTestKit {
 
+  def randomSegmentRefCacheLife(): SegmentRefCacheLife =
+    if (randomBoolean())
+      SegmentRefCacheLife.Permanent
+    else
+      SegmentRefCacheLife.Temporary
+
+  def randomPrefixCompressionInterval(): PrefixCompression.Interval =
+    eitherOne(
+      PrefixCompression.Interval.ResetCompressionAt(randomIntMax(100)),
+      PrefixCompression.Interval.ResetCompressionAt(randomIntMax()),
+      PrefixCompression.Interval.CompressAt(randomIntMax(100)),
+      PrefixCompression.Interval.CompressAt(randomIntMax())
+    )
+
+  def randomPushStrategy(): PushStrategy =
+    if (randomBoolean())
+      PushStrategy.Immediately
+    else
+      PushStrategy.OnOverflow
+
+
   implicit class AtomicImplicits(atomic: Atomic.type) {
 
     def all: Seq[Atomic] =
@@ -41,19 +62,6 @@ object CoreConfigTestKit {
         )
   }
 
-  def randomSegmentRefCacheLife(): SegmentRefCacheLife =
-    if (randomBoolean())
-      SegmentRefCacheLife.Permanent
-    else
-      SegmentRefCacheLife.Temporary
-
-  def randomPrefixCompressionInterval(): PrefixCompression.Interval =
-    eitherOne(
-      PrefixCompression.Interval.ResetCompressionAt(randomIntMax(100)),
-      PrefixCompression.Interval.ResetCompressionAt(randomIntMax()),
-      PrefixCompression.Interval.CompressAt(randomIntMax(100)),
-      PrefixCompression.Interval.CompressAt(randomIntMax())
-    )
 
   implicit class MMAPImplicits(mmap: MMAP.type) {
     def randomForSegment(): MMAP.Segment =
@@ -71,9 +79,4 @@ object CoreConfigTestKit {
         MMAP.Off(GenForceSave.standard())
   }
 
-  def randomPushStrategy(): PushStrategy =
-    if (randomBoolean())
-      PushStrategy.Immediately
-    else
-      PushStrategy.OnOverflow
 }
