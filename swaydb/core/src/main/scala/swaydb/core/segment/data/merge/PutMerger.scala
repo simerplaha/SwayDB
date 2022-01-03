@@ -67,14 +67,12 @@ private[core] object PutMerger {
 
   def apply(newKeyValue: KeyValue.Put,
             oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
-  //@formatter:off
     oldKeyValue match {
-      case oldKeyValue: KeyValue.Put =>             PutMerger(newKeyValue, oldKeyValue)
-      case oldKeyValue: KeyValue.Remove =>          PutMerger(newKeyValue, oldKeyValue)
-      case oldKeyValue: KeyValue.Update =>          PutMerger(newKeyValue, oldKeyValue)
-      case oldKeyValue: KeyValue.Function =>        PutMerger(newKeyValue, oldKeyValue)
-      case oldKeyValue: KeyValue.PendingApply =>    PutMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.Put          => PutMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.Remove       => PutMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.Update       => PutMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.Function     => PutMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.PendingApply => PutMerger(newKeyValue, oldKeyValue)
     }
-  //@formatter:on
 
 }

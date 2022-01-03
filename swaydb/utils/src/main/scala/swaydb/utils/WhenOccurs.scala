@@ -28,11 +28,11 @@ object WhenOccurs {
 /**
  * Run something if it's occurs [[interval]] number of times.
  */
-class WhenOccurs(interval: Long)(f: Long => Unit) extends LazyLogging {
+class WhenOccurs private(interval: Long)(f: Long => Unit) extends LazyLogging {
 
   @volatile private var count = 0
 
-  def occurs() = {
+  def occurs(): Unit = {
     //initial count is 0 so it's always invoked initially.
     if (count % interval == 0)
       try

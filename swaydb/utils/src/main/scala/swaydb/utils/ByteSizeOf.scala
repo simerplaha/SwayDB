@@ -21,16 +21,16 @@ sealed trait ByteSizeOf[A] {
 }
 
 private[swaydb] object ByteSizeOf {
-  @inline val byte = java.lang.Byte.BYTES
-  @inline val short = java.lang.Short.BYTES
-  @inline val int = java.lang.Integer.BYTES
-  @inline val varInt = int + 1 //5
-  @inline val long = java.lang.Long.BYTES
-  @inline val varLong = long + 2 //10
-  @inline val boolean = java.lang.Byte.BYTES
-  @inline val char = java.lang.Character.BYTES
-  @inline val double = java.lang.Double.BYTES
-  @inline val float = java.lang.Float.BYTES
+  @inline val byte: Int = java.lang.Byte.BYTES
+  @inline val short: Int = java.lang.Short.BYTES
+  @inline val int: Int = java.lang.Integer.BYTES
+  @inline val varInt: Int = int + 1 //5
+  @inline val long: Int = java.lang.Long.BYTES
+  @inline val varLong: Int = long + 2 //10
+  @inline val boolean: Int = java.lang.Byte.BYTES
+  @inline val char: Int = java.lang.Character.BYTES
+  @inline val double: Int = java.lang.Double.BYTES
+  @inline val float: Int = java.lang.Float.BYTES
 
   implicit object ByteSizeOfByte extends ByteSizeOf[Byte] {
     override def size: Int = ByteSizeOf.byte
@@ -48,6 +48,6 @@ private[swaydb] object ByteSizeOf {
     override def size: Int = ByteSizeOf.int
   }
 
-  def apply[A]()(implicit sizeOf: ByteSizeOf[A]) =
+  @inline def apply[A]()(implicit sizeOf: ByteSizeOf[A]): Int =
     sizeOf.size
 }

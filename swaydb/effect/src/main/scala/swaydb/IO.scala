@@ -213,7 +213,7 @@ object IO {
      *
      * This is current used only in Java.
      */
-    def neverException[T] =
+    def neverException[T]: ExceptionHandler[T] =
       new ExceptionHandler[T] {
         override def toException(f: T): Throwable = new Exception("neverException: Cannot convert to Exception.")
 
@@ -695,7 +695,7 @@ object IO {
 
         case async: Bag.Async[BAG] =>
           //else run the Bag as Future and return it's result.
-          implicit val ec = async.executionContext
+          implicit val ec: ExecutionContext = async.executionContext
           async.fromFuture(runAsync[B, Future](tried))
       }
 

@@ -21,8 +21,6 @@ import scala.reflect.ClassTag
 
 private[swaydb] object Collections {
 
-  val emptyStringSeq = Seq.empty[String]
-
   def hasOnlyOne[A](segments: Iterable[A]): Boolean = {
     val iterator = segments.iterator
     iterator.hasNext && {

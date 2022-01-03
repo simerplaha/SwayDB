@@ -23,7 +23,7 @@ import swaydb.core.segment.ref.SegmentRef
 
 import scala.collection.mutable.ListBuffer
 
-private[core] object DefragCommon {
+private object DefragCommon {
 
   @inline def isSegmentSmall(segment: Segment)(implicit segmentConfig: SegmentBlockConfig): Boolean =
     segment.segmentSize < segmentConfig.minSize

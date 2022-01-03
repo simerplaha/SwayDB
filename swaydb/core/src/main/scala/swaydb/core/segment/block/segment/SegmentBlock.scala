@@ -642,7 +642,7 @@ private[core] case object SegmentBlock extends LazyLogging {
               else
                 Future.successful(BinarySearchIndexBlockState.Null)
 
-            hashIndexFuture.join(binarySearchIndexFuture)
+            hashIndexFuture.joinExecuted(binarySearchIndexFuture)
           } else {
             //else binarySearch is partial index and has dependency on hashIndex
             Future {
@@ -679,7 +679,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                 else
                   Future.successful(BinarySearchIndexBlockState.Null)
 
-              hashIndexFuture.join(binarySearchIndexFuture)
+              hashIndexFuture.joinExecuted(binarySearchIndexFuture)
             }
           }
         else

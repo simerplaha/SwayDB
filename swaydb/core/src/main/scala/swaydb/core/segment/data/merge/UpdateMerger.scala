@@ -120,14 +120,12 @@ private[core] object UpdateMerger {
   def apply(newKeyValue: KeyValue.Update,
             oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: CoreFunctionStore): KeyValue.Fixed =
-  //@formatter:off
     oldKeyValue match {
-      case oldKeyValue: KeyValue.Put =>             UpdateMerger(newKeyValue, oldKeyValue)
-      case oldKeyValue: KeyValue.Remove =>          UpdateMerger(newKeyValue, oldKeyValue)
-      case oldKeyValue: KeyValue.Update =>          UpdateMerger(newKeyValue, oldKeyValue)
-      case oldKeyValue: KeyValue.Function =>        UpdateMerger(newKeyValue, oldKeyValue)
-      case oldKeyValue: KeyValue.PendingApply =>    UpdateMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.Put          => UpdateMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.Remove       => UpdateMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.Update       => UpdateMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.Function     => UpdateMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.PendingApply => UpdateMerger(newKeyValue, oldKeyValue)
     }
-  //@formatter:on
 
 }
