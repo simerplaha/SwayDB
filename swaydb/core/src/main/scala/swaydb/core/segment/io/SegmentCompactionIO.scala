@@ -16,19 +16,19 @@
 
 package swaydb.core.segment.io
 
+import swaydb.{Actor, DefActor}
 import swaydb.config.{MMAP, SegmentRefCacheLife}
 import swaydb.core.file.ForceSaveApplier
 import swaydb.core.file.sweeper.FileSweeper
 import swaydb.core.file.sweeper.bytebuffer.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.segment.{CoreFunctionStore, Segment}
 import swaydb.core.segment.block.segment.transient.TransientSegment
 import swaydb.core.segment.cache.sweeper.MemorySweeper
 import swaydb.core.segment.data.{KeyValue, SegmentKeyOrders}
-import swaydb.core.segment.{CoreFunctionStore, Segment}
-import swaydb.utils.IDGenerator
-import swaydb.slice.Slice
-import swaydb.slice.order.{KeyOrder, TimeOrder}
-import swaydb.{Actor, DefActor}
 import swaydb.core.segment.distributor.PathDistributor
+import swaydb.slice.Slice
+import swaydb.slice.order.TimeOrder
+import swaydb.utils.IDGenerator
 
 import java.util.concurrent.ConcurrentHashMap
 import scala.concurrent.{ExecutionContext, Future}

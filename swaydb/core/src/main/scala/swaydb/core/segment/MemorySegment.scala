@@ -393,7 +393,7 @@ private[core] final case class MemorySegment(path: Path,
     else
       skipList.values().iterator
 
-  override def delete: Unit = {
+  override def delete(): Unit = {
     //cache should not be cleared.
     logger.trace(s"{}: DELETING FILE", path)
     if (deleted)
@@ -408,7 +408,7 @@ private[core] final case class MemorySegment(path: Path,
     else
       skipList.size
 
-  override def isOpen: Boolean =
+  override def isOpen(): Boolean =
     !deleted
 
   override def isCached: Boolean =

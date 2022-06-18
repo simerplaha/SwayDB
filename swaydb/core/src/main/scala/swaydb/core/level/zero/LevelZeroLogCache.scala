@@ -50,13 +50,13 @@ private[core] object LevelZeroLogCache {
               @volatile private var hasNonPut: Boolean, //if it has key-values other than put
               @volatile private var hasRange: Boolean) { //if it has range key-values
 
-    @inline def setHasRangeToTrue() =
+    @inline def setHasRangeToTrue(): Unit =
       if (!hasRange) {
         hasRange = true
         setHasNonPutToTrue()
       }
 
-    @inline def setHasNonPutToTrue() =
+    @inline def setHasNonPutToTrue(): Unit =
       if (!hasNonPut)
         hasNonPut = true
 
@@ -173,10 +173,10 @@ private[core] class LevelZeroLogCache private(@volatile private var state: Level
   @inline def maxKeyValueCount: Int =
     state.skipList.size
 
-  @inline def hasRange =
+  @inline def hasRange: Boolean =
     state.getHasRange()
 
-  @inline def hasNonPut =
+  @inline def hasNonPut: Boolean =
     state.getHasNonPut()
 
   override def iterator: Iterator[(Slice[Byte], Memory)] =

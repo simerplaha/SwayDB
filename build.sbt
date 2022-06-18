@@ -7,25 +7,25 @@ import xerial.sbt.Sonatype._
 val lz4Version = "1.8.0"
 val snappyVersion = "1.1.8.4"
 val scalaJava8CompatVersion = "1.0.2"
-val scalaCollectionsCompat = "2.6.0"
+val scalaCollectionsCompat = "2.7.0"
 
 //TEST dependencies - Libraries used for tests
-val logbackClassicVersion = "1.2.7"
-val scalaLoggingVersion = "3.9.4"
-val scalaMockVersion = "5.1.0"
-val scalaTestVersion = "3.2.10"
+val logbackClassicVersion = "1.2.11"
+val scalaLoggingVersion = "3.9.5"
+val scalaMockVersion = "5.2.0"
+val scalaTestVersion = "3.2.12"
 val junitJupiterVersion = "5.8.2"
 val scalaParallelCollectionsVersion = "1.0.4"
 
 //INTEROP - Supported external libraries for serialisation & effects interop
 val boopickleVersion = "1.4.0"
-val monixVersion = "3.4.0"
-val zioVersion = "1.0.12"
-val catsEffectVersion = "3.3.0"
+val monixVersion = "3.4.1"
+val zioVersion = "1.0.15"
+val catsEffectVersion = "3.3.12"
 
 //SCALA VERSIONS
-val scala212 = "2.12.15"
-val scala213 = "2.13.7"
+val scala212 = "2.12.16"
+val scala213 = "2.13.8"
 
 val inlining =
   Seq(
@@ -124,7 +124,7 @@ val commonJavaDependencies =
     "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
     "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompat % Test,
     "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion % Test,
-    "org.projectlombok" % "lombok" % "1.18.22" % Test
+    "org.projectlombok" % "lombok" % "1.18.24" % Test
   )
 
 def commonDependencies(scalaVersion: String) =

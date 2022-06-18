@@ -23,8 +23,8 @@ import swaydb.core.segment.block.binarysearch.{BinarySearchIndexBlock, BinarySea
 import swaydb.core.segment.block.bloomfilter.{BloomFilterBlock, BloomFilterBlockOffset}
 import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexBlockOffset}
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.segment.{SegmentBlockCache, SegmentBlockOffset}
+import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.{SortedIndexBlock, SortedIndexBlockOffset}
 import swaydb.core.segment.block.values.{ValuesBlock, ValuesBlockOffset}
 import swaydb.core.segment.cache.sweeper.MemorySweeper
@@ -33,7 +33,6 @@ import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.{SegmentSearcher, ThreadReadState}
 import swaydb.core.skiplist.{SkipList, SkipListConcurrent, SkipListConcurrentLimit}
 import swaydb.core.util.MinMax
-import swaydb.slice.order.KeyOrder
 import swaydb.slice.{MaxKey, Slice, SliceOption}
 import swaydb.utils.SomeOrNoneCovariant
 

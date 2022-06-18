@@ -28,7 +28,6 @@ import swaydb.core.log.serialiser.{LogEntryReader, LogEntryWriter}
 import swaydb.core.log.timer.Timer
 import swaydb.core.queue.VolatileQueue
 import swaydb.effect.Effect
-import swaydb.effect.Effect._
 import swaydb.effect.Effect.implicits._
 import swaydb.SliceIOImplicits._
 import swaydb.slice.order.KeyOrder
