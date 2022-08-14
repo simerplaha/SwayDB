@@ -40,7 +40,7 @@ trait CompanionSlice extends SliceBuildFrom {
   val emptyBytes: Slice[Byte] =
     emptyNothing
 
-  @inline final def empty[T: ClassTag]: Slice[T] =
+  @inline final def empty[T]: Slice[T] =
     emptyNothing
 
   final def range(from: Int, to: Int): Slice[Int] = {
