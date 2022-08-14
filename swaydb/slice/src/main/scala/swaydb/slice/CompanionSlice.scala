@@ -34,11 +34,14 @@ import scala.reflect.ClassTag
  */
 trait CompanionSlice extends SliceBuildFrom {
 
+  val emptyNothing: SliceMut[Nothing] =
+    Slice.allocate[Nothing](0)
+
   val emptyBytes: Slice[Byte] =
-    allocate[Byte](0)
+    emptyNothing
 
   @inline final def empty[T: ClassTag]: Slice[T] =
-    allocate[T](0)
+    emptyNothing
 
   final def range(from: Int, to: Int): Slice[Int] = {
     val slice = allocate[Int](to - from + 1)
