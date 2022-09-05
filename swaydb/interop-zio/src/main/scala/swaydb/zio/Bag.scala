@@ -17,27 +17,28 @@
 package swaydb.zio
 
 import swaydb.Bag.Async
-import zio.Task
+import zio.{Task, Unsafe, ZIO}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Failure
 
 object Bag {
 
-  implicit def apply[T](implicit runTime: zio.Runtime[T]): swaydb.Bag.Async[Task] =
+  implicit def apply[T](implicit runTime: zio.Runtime[T],
+                        ec: ExecutionContext): swaydb.Bag.Async[Task] =
     new Async[Task] { self =>
 
       override def executionContext: ExecutionContext =
-        runTime.platform.executor.asEC
+        ec
 
       override val unit: Task[Unit] =
-        Task.unit
+        ZIO.unit
 
       override def none[A]: Task[Option[A]] =
-        Task.none
+        ZIO.none
 
       override def apply[A](a: => A): Task[A] =
-        Task(a)
+        ZIO.attempt(a)
 
       override def map[A, B](a: Task[A])(f: A => B): Task[B] =
         a.map(f)
@@ -49,28 +50,34 @@ object Bag {
         fa.flatMap(f)
 
       override def success[A](value: A): Task[A] =
-        Task.succeed(value)
+        ZIO.succeed(value)
 
       override def failure[A](exception: Throwable): Task[A] =
-        Task.fromTry(Failure(exception))
+        ZIO.fromTry(Failure(exception))
 
       override def foreach[A](a: Task[A])(f: A => Unit): Unit =
-        f(runTime.unsafeRun(a))
+        Unsafe.unsafe {
+          implicit unsafe =>
+            f(runTime.unsafe.run(a).getOrThrowFiberFailure())
+        }
 
       def fromPromise[A](a: Promise[A]): Task[A] =
-        Task.fromFuture(_ => a.future)
+        ZIO.fromFuture(_ => a.future)
 
       override def complete[A](promise: Promise[A], task: Task[A]): Unit =
-        promise.tryCompleteWith(runTime.unsafeRunToFuture(task))
+        Unsafe.unsafe {
+          implicit unsafe =>
+            promise.tryCompleteWith(runTime.unsafe.runToFuture(task))
+        }
 
       override def fromIO[E: swaydb.IO.ExceptionHandler, A](a: swaydb.IO[E, A]): Task[A] =
-        Task.fromTry(a.toTry)
+        ZIO.fromTry(a.toTry)
 
       override def fromFuture[A](a: Future[A]): Task[A] =
-        Task.fromFuture(_ => a)
+        ZIO.fromFuture(_ => a)
 
       override def suspend[B](f: => Task[B]): Task[B] =
-        Task.effectSuspend(f)
+        ZIO.suspend(f)
 
       override def flatten[A](fa: Task[Task[A]]): Task[A] =
         fa.flatten

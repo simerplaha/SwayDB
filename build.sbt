@@ -2,30 +2,7 @@ import sbt.Keys.{libraryDependencies, publishMavenStyle}
 import sbt.url
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import xerial.sbt.Sonatype._
-
-//CORE dependencies
-val lz4Version = "1.8.0"
-val snappyVersion = "1.1.8.4"
-val scalaJava8CompatVersion = "1.0.2"
-val scalaCollectionsCompat = "2.7.0"
-
-//TEST dependencies - Libraries used for tests
-val logbackClassicVersion = "1.2.11"
-val scalaLoggingVersion = "3.9.5"
-val scalaMockVersion = "5.2.0"
-val scalaTestVersion = "3.2.12"
-val junitJupiterVersion = "5.8.2"
-val scalaParallelCollectionsVersion = "1.0.4"
-
-//INTEROP - Supported external libraries for serialisation & effects interop
-val boopickleVersion = "1.4.0"
-val monixVersion = "3.4.1"
-val zioVersion = "1.0.15"
-val catsEffectVersion = "3.3.12"
-
-//SCALA VERSIONS
-val scala212 = "2.12.16"
-val scala213 = "2.13.8"
+import Dependency.Version
 
 val inlining =
   Seq(
@@ -52,11 +29,11 @@ val scalaOptions =
 val commonSettings = Seq(
   organization := "io.swaydb",
   scalaVersion := scalaVersion.value,
-  scalaVersion in ThisBuild := scala213,
-  parallelExecution in ThisBuild := false,
+  ThisBuild / scalaVersion := Version.`scala-2.13`,
+  ThisBuild / parallelExecution := false,
   scalacOptions ++= scalaOptions,
-  unmanagedSourceDirectories in Compile += {
-    val sourceDir = (sourceDirectory in Compile).value
+  Compile / unmanagedSourceDirectories += {
+    val sourceDir = (Compile / sourceDirectory).value
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, n)) if n >= 13 =>
         sourceDir / "scala-2.13"
@@ -67,7 +44,7 @@ val commonSettings = Seq(
   }
 )
 
-lazy val supportedScalaVersions = List(scala212, scala213)
+lazy val supportedScalaVersions = List(Version.`scala-2.12`, Version.`scala-2.13`)
 
 val publishSettings = Seq[Setting[_]](
   crossScalaVersions := supportedScalaVersions,
@@ -104,7 +81,7 @@ val publishSettings = Seq[Setting[_]](
 def scalaParallelCollections(scalaVersion: String, scope: sbt.librarymanagement.Configuration): Option[ModuleID] =
   CrossVersion.partialVersion(scalaVersion) match {
     case Some((2, major)) if major >= 13 =>
-      Some("org.scala-lang.modules" %% "scala-parallel-collections" % scalaParallelCollectionsVersion % scope)
+      Some(Dependency.`scala-parallel-collections` % scope)
 
     case _ =>
       None
@@ -112,26 +89,26 @@ def scalaParallelCollections(scalaVersion: String, scope: sbt.librarymanagement.
 
 def testDependencies(scalaVersion: String) =
   Seq(
-    "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-    "org.scalamock" %% "scalamock" % scalaMockVersion % Test,
-    "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test,
-    "io.suzaku" %% "boopickle" % boopickleVersion % Test
+    Dependency.scalatest % Test,
+    Dependency.`scalamock` % Test,
+    Dependency.`logback-classic` % Test,
+    Dependency.`boopickle` % Test
   ) ++ scalaParallelCollections(scalaVersion, Test)
 
 val commonJavaDependencies =
   Seq(
-    "org.junit.jupiter" % "junit-jupiter-api" % junitJupiterVersion % Test,
-    "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-    "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompat % Test,
-    "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion % Test,
-    "org.projectlombok" % "lombok" % "1.18.24" % Test
+    Dependency.`junit-jupiter-api` % Test,
+    Dependency.`scalatest` % Test,
+    Dependency.`scala-collection-compat` % Test,
+    Dependency.`scala-java8-compat` % Test,
+    Dependency.`lombok` % Test
   )
 
 def commonDependencies(scalaVersion: String) =
   Seq(
-    "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-    "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompat,
-    "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion
+    Dependency.`scala-logging`,
+    Dependency.`scala-collection-compat`,
+    Dependency.`scala-java8-compat`
   ) ++ testDependencies(scalaVersion)
 
 lazy val SwayDB =
@@ -167,7 +144,7 @@ lazy val testkit =
       libraryDependencies ++=
         commonDependencies(scalaVersion.value) ++
           scalaParallelCollections(scalaVersion.value, Compile) :+
-          "org.scalatest" %% "scalatest" % scalaTestVersion
+          Dependency.`scalatest`
     )
 
 lazy val utils =
@@ -353,8 +330,8 @@ lazy val `core-compression` =
     .settings(
       libraryDependencies ++=
         commonDependencies(scalaVersion.value)
-          :+ "org.lz4" % "lz4-java" % lz4Version
-          :+ "org.xerial.snappy" % "snappy-java" % snappyVersion
+          :+ Dependency.`lz4-java`
+          :+ Dependency.`snappy-java`
     )
     .dependsOn(`core-config`, serializer % Test)
 
@@ -364,7 +341,7 @@ lazy val macros =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .settings(libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value)
+    .settings(libraryDependencies += Dependency.`scala-reflect`(scalaVersion.value))
 
 lazy val stress =
   project
@@ -390,7 +367,7 @@ lazy val `interop-monix` =
     .in(file("swaydb/interop-monix"))
     .settings(commonSettings)
     .settings(publishSettings)
-    .settings(libraryDependencies += "io.monix" %% "monix" % monixVersion)
+    .settings(libraryDependencies += Dependency.monix)
     .dependsOn(effect)
 
 lazy val `interop-zio` =
@@ -398,7 +375,7 @@ lazy val `interop-zio` =
     .in(file("swaydb/interop-zio"))
     .settings(commonSettings)
     .settings(publishSettings)
-    .settings(libraryDependencies += "dev.zio" %% "zio" % zioVersion)
+    .settings(libraryDependencies += Dependency.zio)
     .dependsOn(effect)
 
 lazy val `interop-cats-effect` =
@@ -406,7 +383,7 @@ lazy val `interop-cats-effect` =
     .in(file("swaydb/interop-cats-effect"))
     .settings(commonSettings)
     .settings(publishSettings)
-    .settings(libraryDependencies += "org.typelevel" %% "cats-effect" % catsEffectVersion)
+    .settings(libraryDependencies += Dependency.`cats-effect`)
     .dependsOn(effect)
 
 /**
@@ -417,7 +394,7 @@ lazy val `interop-boopickle` =
     .in(file("swaydb/interop-boopickle"))
     .settings(commonSettings)
     .settings(publishSettings)
-    .settings(libraryDependencies += "io.suzaku" %% "boopickle" % boopickleVersion)
+    .settings(libraryDependencies += Dependency.boopickle)
     .dependsOn(serializer, slice)
 
 lazy val tools =
