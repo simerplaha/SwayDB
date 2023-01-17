@@ -1,12 +1,8 @@
-# <img src="docs/swaydb_logo.png" align = "right"/> SwayDB [![Slack Chat][slack-badge]][slack-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Build status][build-badge]][build-link] [![Maven central][maven-badge]][maven-link]
+# <img src="docs/swaydb_logo.png" align = "right"/> SwayDB [![Gitter Chat][gitter-badge]][gitter-link] [![Build status][build-badge]][build-link] [![Maven central][maven-badge]][maven-link]
 
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 
 [gitter-link]: https://gitter.im/SwayDB-chat/Lobby
-
-[slack-badge]: https://img.shields.io/badge/slack-join%20chat-e01563.svg
-
-[slack-link]: https://join.slack.com/t/swaydb/shared_invite/enQtNzI1NzM1NTA0NzQxLTJiNjRhMDg2NGQ3YzBkNGMxZGRmODlkN2M3MWEwM2U2NWY1ZmU5OWEyYTgyN2ZhYjlhNjdlZTM3YWJjMGZmNzQ
 
 [maven-badge]: https://img.shields.io/maven-central/v/io.swaydb/swaydb_2.12.svg
 
