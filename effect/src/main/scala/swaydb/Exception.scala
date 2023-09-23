@@ -82,7 +82,7 @@ object Exception {
    *
    * @param functionId the id of the missing function.
    */
-  case class FunctionNotFound(functionId: String) extends Exception(s"Function with id '$functionId' not found. Make sure the function is added to the instance. See documentation http://swaydb.io/.")
+  case class FunctionNotFound(functionId: String) extends Exception(s"Function with id '$functionId' not found. Make sure the function is added to the instance. See documentation https://swaydb.simer.au/.")
   case class OverlappingFileLock(exception: OverlappingFileLockException) extends Exception("Failed to get directory lock.")
   case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int) extends Exception(s"Failed to write all bytes written: $written, expected : $expected, bytesSize: $bytesSize")
   case class CannotCopyInMemoryFiles(file: Path) extends Exception(s"Cannot copy in-memory files $file")

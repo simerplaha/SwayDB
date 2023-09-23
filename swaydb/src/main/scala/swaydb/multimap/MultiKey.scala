@@ -148,7 +148,7 @@ private[swaydb] object MultiKey {
 
   /**
    * Implements un-typed ordering for performance. This ordering can also be implemented using types.
-   * See documentation at http://www.swaydb.io/custom-key-ordering/
+   * See documentation at https://swaydb.simer.au/custom-key-ordering/
    *
    * Creates dual ordering on [[MultiKey.childId]]. Orders mapKey using the [[KeyOrder.default]] order
    * and applies custom ordering on the user provided keys.

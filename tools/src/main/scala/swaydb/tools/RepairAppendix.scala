@@ -14,7 +14,7 @@ import java.nio.file.Path
 object RepairAppendix {
 
   /**
-   * Documentation: http://www.swaydb.io/api/repairAppendix
+   * Documentation: https://swaydb.simer.au/api/repairAppendix
    */
   def apply[K](levelPath: Path,
                repairStrategy: AppendixRepairStrategy)(implicit serializer: Serializer[K],

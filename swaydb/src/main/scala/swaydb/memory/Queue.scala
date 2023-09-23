@@ -32,7 +32,7 @@ import scala.concurrent.duration.FiniteDuration
 object Queue extends LazyLogging {
 
   /**
-   * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
+   * For custom configurations read documentation on website: https://swaydb.simer.au/configuring-levels
    */
   def apply[A, BAG[_]](logSize: Int = DefaultConfigs.logSize,
                        minSegmentSize: Int = DefaultConfigs.segmentSize,

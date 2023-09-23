@@ -32,7 +32,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 /**
  * Set database API.
  *
- * For documentation check - http://swaydb.io/
+ * For documentation check - https://swaydb.simer.au/
  */
 case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit serializer: Serializer[A],
                                                                   bag: Bag[BAG]) extends Source[A, A, BAG] { self =>

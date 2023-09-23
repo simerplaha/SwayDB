@@ -26,7 +26,7 @@ import java.nio.charset.StandardCharsets
 /**
  * Default serializers.
  *
- * Documentation for custom serializers: http://www.swaydb.io/custom-serializers
+ * Documentation for custom serializers: https://swaydb.simer.au/custom-serializers
  */
 object Default {
 

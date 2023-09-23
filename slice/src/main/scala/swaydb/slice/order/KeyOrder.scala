@@ -24,7 +24,7 @@ object KeyOrder {
    * Default ordering.
    *
    * Custom key-ordering can be implemented.
-   * Documentation: http://www.swaydb.io/custom-key-ordering
+   * Documentation: https://swaydb.simer.au/custom-key-ordering
    *
    */
   val default, lexicographic: KeyOrder[Slice[Byte]] =

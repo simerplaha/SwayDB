@@ -25,7 +25,7 @@ latest (unstable).
 
 **Status**: Under testing & performance optimisations. See [project status](#Project-status).
 
-[Documentation](http://swaydb.io)
+[Documentation](https://swaydb.simer.au)
 
 # Sponsors
 
@@ -44,19 +44,19 @@ for full-featured open-source licences to their awesome development tools!
 ## Overview
 
 - Simple data types - `Map`, `Set`, `Queue`, `SetMap` & `MultiMap` with native Java and Scala collections support.
-- Conditional updates using any pure [JVM function](http://swaydb.io/api/pure-functions/?language=java) - **No query
+- Conditional updates using any pure [JVM function](https://swaydb.simer.au/api/pure-functions/?language=java) - **No query
   language**.
 - Atomic updates and inserts with `Transaction` API.
 - **Non-blocking core** with configurable APIs for blocking, non-blocking and/or reactive use-cases.
 - Single or multiple disks persistent, in-memory or eventually persistent.
-- [Streams](http://swaydb.io/api/stream/?language=java) - Async & sync forward and reverse data streaming/iteration.
-- TTL - non-blocking, non-polling asynchronous auto [expiring](http://swaydb.io/api/expire/?language=java) key-values.
+- [Streams](https://swaydb.simer.au/api/stream/?language=java) - Async & sync forward and reverse data streaming/iteration.
+- TTL - non-blocking, non-polling asynchronous auto [expiring](https://swaydb.simer.au/api/expire/?language=java) key-values.
 - Range operations to update, remove & expire a range of key-values.
 - Key only iterations (Lazily fetched values).
-- [Configurable compression](http://swaydb.io/configuration/compressions/?language=scala) with LZ4 & Snappy
+- [Configurable compression](https://swaydb.simer.au/configuration/compressions/?language=scala) with LZ4 & Snappy
 - Configurable core internals to support custom workloads.
 - Duplicate values elimination
-  with [compressDuplicateValues](http://swaydb.io/configuration/valuesConfig/?language=scala).
+  with [compressDuplicateValues](https://swaydb.simer.au/configuration/valuesConfig/?language=scala).
 
 ## Use cases
 
@@ -71,8 +71,8 @@ Highly configurable to suit **different workloads**. Some known use-cases are:
 
 ## Quick start
 
-- [Java - Quick start](http://swaydb.io/quick-start/?language=java&data-type=map&functions=off)
-- [Scala - Quick start](http://swaydb.io/quick-start/?language=scala&data-type=map&functions=off)
+- [Java - Quick start](https://swaydb.simer.au/quick-start/?language=java&data-type=map&functions=off)
+- [Scala - Quick start](https://swaydb.simer.au/quick-start/?language=scala&data-type=map&functions=off)
 - [Kotlin - Quick start](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src/main/kotlin/quickstart/QuickStartMapSimple.kt)
 
 ## Contributing

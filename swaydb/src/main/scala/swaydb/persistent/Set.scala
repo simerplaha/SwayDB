@@ -39,7 +39,7 @@ import scala.reflect.ClassTag
 object Set extends LazyLogging {
 
   /**
-   * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
+   * For custom configurations read documentation on website: https://swaydb.simer.au/configuring-levels
    */
   def apply[A, F <: PureFunction.Set[A], BAG[_]](dir: Path,
                                                  logSize: Int = DefaultConfigs.logSize,

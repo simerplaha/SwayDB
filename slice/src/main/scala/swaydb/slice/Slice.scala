@@ -1152,7 +1152,7 @@ object Slices {
  * provide similar functionality as [[Slice]].
  *
  * This type is mainly used by BlockCache which stores byte arrays
- * in the configured block-size via <a href="https://swaydb.io/configuration/memoryCache/?language=java">minIOSeekSize</a>.
+ * in the configured block-size via <a href="https://swaydb.simer.au/configuration/memoryCache/?language=java">minIOSeekSize</a>.
  *
  * When a read is submitted to BlockCache which is greater than the configured `minIOSeekSize`
  * we do not want to copy byte arrays to form a single [[Slice]] but use [[Slices]] which can

@@ -109,7 +109,7 @@ class LevelZeroTaskAssigner_flatten_Spec extends TestBase with MockFactory {
               //where flattening merge (concurrent) resulted in a deadline to expire a key-value immediately
               //and sequential merge resulted in allowing the key-value's deadline to be extended or vice-versa.
               //This happens when the order of merge is not the same and only effects key-values with deadline.
-              //Documentation - http://swaydb.io/implementation/compaction/increasing-expiration-time/?language=java
+              //Documentation - https://swaydb.simer.au/implementation/compaction/increasing-expiration-time/?language=java
               val expectedMerged = merge(expected, Slice.empty, true)
               val actualMerged = merge(actual, Slice.empty, true)
               actualMerged shouldBe expectedMerged

@@ -22,7 +22,7 @@ import java.nio.file.Paths
 import scala.reflect.ClassTag
 
 /**
- * http://www.swaydb.io/slice/byte-slice
+ * https://swaydb.simer.au/slice/byte-slice
  */
 case class SliceReader[@specialized(Byte) B](slice: Slice[B],
                                              private var position: Int = 0)(implicit val byteOps: ByteOps[B]) extends Reader[B] {

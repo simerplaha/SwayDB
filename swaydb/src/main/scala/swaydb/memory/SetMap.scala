@@ -34,7 +34,7 @@ import scala.reflect.ClassTag
 object SetMap extends LazyLogging {
 
   /**
-   * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
+   * For custom configurations read documentation on website: https://swaydb.simer.au/configuring-levels
    */
   def apply[K, V, BAG[_]](logSize: Int = DefaultConfigs.logSize,
                           minSegmentSize: Int = DefaultConfigs.segmentSize,

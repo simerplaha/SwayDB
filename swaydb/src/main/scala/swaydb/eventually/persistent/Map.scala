@@ -41,7 +41,7 @@ object Map extends LazyLogging {
   /**
    * A 3 Leveled in-memory database where the 3rd is persistent.
    *
-   * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
+   * For custom configurations read documentation on website: https://swaydb.simer.au/configuring-levels
    */
   def apply[K, V, F <: PureFunction.Map[K, V], BAG[_]](dir: Path,
                                                        logSize: Int = DefaultConfigs.logSize,
